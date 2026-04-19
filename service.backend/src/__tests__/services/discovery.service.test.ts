@@ -28,38 +28,38 @@ describe('DiscoveryService', () => {
   describe('getDiscoveryQueue', () => {
     const mockPets = [
       {
-        pet_id: 'pet1',
+        petId: 'pet1',
         name: 'Buddy',
         type: PetType.DOG,
         breed: 'Golden Retriever',
-        age_group: AgeGroup.ADULT,
+        ageGroup: AgeGroup.ADULT,
         size: Size.LARGE,
         gender: Gender.MALE,
         images: [{ url: 'image1.jpg' }, { url: 'image2.jpg' }],
-        short_description: 'Friendly dog',
+        shortDescription: 'Friendly dog',
         status: PetStatus.AVAILABLE,
-        created_at: new Date(),
+        createdAt: new Date(),
         rescue: {
-          rescue_id: 'rescue1',
+          rescueId: 'rescue1',
           name: 'Happy Paws Rescue',
           verified: true,
           premium: false,
         },
       },
       {
-        pet_id: 'pet2',
+        petId: 'pet2',
         name: 'Whiskers',
         type: PetType.CAT,
         breed: 'Persian',
-        age_group: AgeGroup.YOUNG,
+        ageGroup: AgeGroup.YOUNG,
         size: Size.MEDIUM,
         gender: Gender.FEMALE,
         images: [{ url: 'image3.jpg' }],
-        short_description: 'Calm cat',
+        shortDescription: 'Calm cat',
         status: PetStatus.AVAILABLE,
-        created_at: new Date(),
+        createdAt: new Date(),
         rescue: {
-          rescue_id: 'rescue2',
+          rescueId: 'rescue2',
           name: 'Cat Haven',
           verified: true,
           premium: true,
@@ -131,19 +131,19 @@ describe('DiscoveryService', () => {
   describe('loadMorePets', () => {
     const mockPets = [
       {
-        pet_id: 'pet3',
+        petId: 'pet3',
         name: 'Max',
         type: PetType.DOG,
         breed: 'Labrador',
-        age_group: AgeGroup.YOUNG,
+        ageGroup: AgeGroup.YOUNG,
         size: Size.LARGE,
         gender: Gender.MALE,
         images: [{ url: 'image4.jpg' }, { url: 'image5.jpg' }],
-        short_description: 'Energetic pup',
+        shortDescription: 'Energetic pup',
         status: PetStatus.AVAILABLE,
-        created_at: new Date(),
+        createdAt: new Date(),
         rescue: {
-          rescue_id: 'rescue1',
+          rescueId: 'rescue1',
           name: 'Happy Paws Rescue',
         },
       },
@@ -160,7 +160,7 @@ describe('DiscoveryService', () => {
 
       expect(MockedPet.findAll).toHaveBeenCalledWith({
         where: {
-          pet_id: { [Op.gt]: 'pet2' },
+          petId: { [Op.gt]: 'pet2' },
           status: PetStatus.AVAILABLE,
         },
         include: [
@@ -209,11 +209,11 @@ describe('DiscoveryService', () => {
     it('should calculate basic compatibility score', () => {
       const mockPet = {
         images: [{ url: 'img1.jpg' }],
-        long_description: 'Short description',
-        age_group: AgeGroup.ADULT,
-        good_with_children: false,
-        good_with_dogs: false,
-        good_with_cats: false,
+        longDescription: 'Short description',
+        ageGroup: AgeGroup.ADULT,
+        goodWithChildren: false,
+        goodWithDogs: false,
+        goodWithCats: false,
       } as Pet;
 
       const score = (discoveryService as unknown).calculateCompatibilityScore(mockPet);
@@ -224,12 +224,12 @@ describe('DiscoveryService', () => {
     it('should boost score for pets with good attributes', () => {
       const mockPet = {
         images: [{ url: 'img1.jpg' }, { url: 'img2.jpg' }, { url: 'img3.jpg' }],
-        long_description:
+        longDescription:
           'This is a very long and detailed description about this wonderful pet that provides lots of useful information for potential adopters.',
-        age_group: AgeGroup.YOUNG,
-        good_with_children: true,
-        good_with_dogs: true,
-        good_with_cats: true,
+        ageGroup: AgeGroup.YOUNG,
+        goodWithChildren: true,
+        goodWithDogs: true,
+        goodWithCats: true,
       } as Pet;
 
       const score = (discoveryService as unknown).calculateCompatibilityScore(mockPet);
@@ -241,11 +241,11 @@ describe('DiscoveryService', () => {
     it('should cap score at 100', () => {
       const mockPet = {
         images: Array(10).fill({ url: 'img.jpg' }),
-        long_description: 'Very long description '.repeat(20),
-        age_group: AgeGroup.BABY,
-        good_with_children: true,
-        good_with_dogs: true,
-        good_with_cats: true,
+        longDescription: 'Very long description '.repeat(20),
+        ageGroup: AgeGroup.BABY,
+        goodWithChildren: true,
+        goodWithDogs: true,
+        goodWithCats: true,
       } as Pet;
 
       const score = (discoveryService as unknown).calculateCompatibilityScore(mockPet);

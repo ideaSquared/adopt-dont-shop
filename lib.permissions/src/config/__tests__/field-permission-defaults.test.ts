@@ -98,12 +98,12 @@ describe('Field Permission Defaults', () => {
     });
 
     it('should not allow adopters to see pet medical notes', () => {
-      const level = getDefaultFieldAccess('pets', 'adopter', 'medical_notes');
+      const level = getDefaultFieldAccess('pets', 'adopter', 'medicalNotes');
       expect(level).toBe('none');
     });
 
     it('should not allow adopters to see pet behavioral notes', () => {
-      const level = getDefaultFieldAccess('pets', 'adopter', 'behavioral_notes');
+      const level = getDefaultFieldAccess('pets', 'adopter', 'behavioralNotes');
       expect(level).toBe('none');
     });
 
@@ -111,7 +111,7 @@ describe('Field Permission Defaults', () => {
       expect(getDefaultFieldAccess('pets', 'adopter', 'name')).toBe('read');
       expect(getDefaultFieldAccess('pets', 'adopter', 'type')).toBe('read');
       expect(getDefaultFieldAccess('pets', 'adopter', 'breed')).toBe('read');
-      expect(getDefaultFieldAccess('pets', 'adopter', 'short_description')).toBe('read');
+      expect(getDefaultFieldAccess('pets', 'adopter', 'shortDescription')).toBe('read');
     });
 
     it('should allow adopters to read their own application status', () => {
@@ -121,10 +121,10 @@ describe('Field Permission Defaults', () => {
 
   describe('rescue staff access', () => {
     it('should allow rescue staff to write application internal notes', () => {
-      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'interview_notes')).toBe(
+      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'interviewNotes')).toBe(
         'write'
       );
-      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'home_visit_notes')).toBe(
+      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'homeVisitNotes')).toBe(
         'write'
       );
       expect(getDefaultFieldAccess('applications', 'rescue_staff', 'score')).toBe('write');
@@ -132,8 +132,8 @@ describe('Field Permission Defaults', () => {
 
     it('should allow rescue staff to write pet details', () => {
       expect(getDefaultFieldAccess('pets', 'rescue_staff', 'name')).toBe('write');
-      expect(getDefaultFieldAccess('pets', 'rescue_staff', 'medical_notes')).toBe('write');
-      expect(getDefaultFieldAccess('pets', 'rescue_staff', 'behavioral_notes')).toBe('write');
+      expect(getDefaultFieldAccess('pets', 'rescue_staff', 'medicalNotes')).toBe('write');
+      expect(getDefaultFieldAccess('pets', 'rescue_staff', 'behavioralNotes')).toBe('write');
     });
 
     it('should not allow rescue staff to see user status or type', () => {

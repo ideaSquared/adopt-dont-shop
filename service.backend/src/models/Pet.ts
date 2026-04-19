@@ -88,49 +88,49 @@ export enum GoodWith {
 type TSVector = unknown;
 
 export interface PetAttributes {
-  pet_id: string;
+  petId: string;
   name: string;
-  rescue_id: string;
-  short_description?: string | null;
-  long_description?: string | null;
-  age_years?: number | null;
-  age_months?: number | null;
-  age_group: AgeGroup;
+  rescueId: string;
+  shortDescription?: string | null;
+  longDescription?: string | null;
+  ageYears?: number | null;
+  ageMonths?: number | null;
+  ageGroup: AgeGroup;
   gender: Gender;
   status: PetStatus;
   type: PetType;
   breed?: string | null;
-  secondary_breed?: string | null;
-  weight_kg?: number | null;
+  secondaryBreed?: string | null;
+  weightKg?: number | null;
   size: Size;
   color?: string | null;
   markings?: string | null;
-  microchip_id?: string | null;
+  microchipId?: string | null;
   archived: boolean;
   featured: boolean;
-  priority_listing: boolean;
-  adoption_fee?: number | null;
-  special_needs: boolean;
-  special_needs_description?: string | null;
-  house_trained: boolean;
-  good_with_children?: boolean | null;
-  good_with_dogs?: boolean | null;
-  good_with_cats?: boolean | null;
-  good_with_small_animals?: boolean | null;
-  energy_level: EnergyLevel;
-  exercise_needs?: string | null;
-  grooming_needs?: string | null;
-  training_notes?: string | null;
+  priorityListing: boolean;
+  adoptionFee?: number | null;
+  specialNeeds: boolean;
+  specialNeedsDescription?: string | null;
+  houseTrained: boolean;
+  goodWithChildren?: boolean | null;
+  goodWithDogs?: boolean | null;
+  goodWithCats?: boolean | null;
+  goodWithSmallAnimals?: boolean | null;
+  energyLevel: EnergyLevel;
+  exerciseNeeds?: string | null;
+  groomingNeeds?: string | null;
+  trainingNotes?: string | null;
   temperament?: string[] | null;
-  medical_notes?: string | null;
-  behavioral_notes?: string | null;
-  surrender_reason?: string | null;
-  intake_date?: Date | null;
-  vaccination_status: VaccinationStatus;
-  vaccination_date?: Date | null;
-  spay_neuter_status: SpayNeuterStatus;
-  spay_neuter_date?: Date | null;
-  last_vet_checkup?: Date | null;
+  medicalNotes?: string | null;
+  behavioralNotes?: string | null;
+  surrenderReason?: string | null;
+  intakeDate?: Date | null;
+  vaccinationStatus: VaccinationStatus;
+  vaccinationDate?: Date | null;
+  spayNeuterStatus: SpayNeuterStatus;
+  spayNeuterDate?: Date | null;
+  lastVetCheckup?: Date | null;
   images: Array<{
     image_id: string;
     url: string;
@@ -149,82 +149,82 @@ export interface PetAttributes {
     uploaded_at: Date;
   }>;
   location?: { type: string; coordinates: [number, number] };
-  available_since?: Date | null;
-  adopted_date?: Date | null;
-  foster_start_date?: Date | null;
-  foster_end_date?: Date | null;
-  view_count: number;
-  favorite_count: number;
-  application_count: number;
-  search_vector?: TSVector;
+  availableSince?: Date | null;
+  adoptedDate?: Date | null;
+  fosterStartDate?: Date | null;
+  fosterEndDate?: Date | null;
+  viewCount: number;
+  favoriteCount: number;
+  applicationCount: number;
+  searchVector?: TSVector;
   tags?: string[] | null;
-  created_at?: Date;
-  updated_at?: Date;
-  deleted_at?: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface PetCreationAttributes
   extends Optional<
     PetAttributes,
-    | 'pet_id'
+    | 'petId'
     | 'archived'
     | 'featured'
-    | 'priority_listing'
-    | 'special_needs'
-    | 'house_trained'
+    | 'priorityListing'
+    | 'specialNeeds'
+    | 'houseTrained'
     | 'videos'
-    | 'view_count'
-    | 'favorite_count'
-    | 'application_count'
-    | 'created_at'
-    | 'updated_at'
-    | 'deleted_at'
+    | 'viewCount'
+    | 'favoriteCount'
+    | 'applicationCount'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'deletedAt'
   > {}
 
 class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttributes {
-  public pet_id!: string;
+  public petId!: string;
   public name!: string;
-  public rescue_id!: string;
-  public short_description!: string | null;
-  public long_description!: string | null;
-  public age_years!: number | null;
-  public age_months!: number | null;
-  public age_group!: AgeGroup;
+  public rescueId!: string;
+  public shortDescription!: string | null;
+  public longDescription!: string | null;
+  public ageYears!: number | null;
+  public ageMonths!: number | null;
+  public ageGroup!: AgeGroup;
   public gender!: Gender;
   public status!: PetStatus;
   public type!: PetType;
   public breed!: string | null;
-  public secondary_breed!: string | null;
-  public weight_kg!: number | null;
+  public secondaryBreed!: string | null;
+  public weightKg!: number | null;
   public size!: Size;
   public color!: string | null;
   public markings!: string | null;
-  public microchip_id!: string | null;
+  public microchipId!: string | null;
   public archived!: boolean;
   public featured!: boolean;
-  public priority_listing!: boolean;
-  public adoption_fee!: number | null;
-  public special_needs!: boolean;
-  public special_needs_description!: string | null;
-  public house_trained!: boolean;
-  public good_with_children!: boolean | null;
-  public good_with_dogs!: boolean | null;
-  public good_with_cats!: boolean | null;
-  public good_with_small_animals!: boolean | null;
-  public energy_level!: EnergyLevel;
-  public exercise_needs!: string | null;
-  public grooming_needs!: string | null;
-  public training_notes!: string | null;
+  public priorityListing!: boolean;
+  public adoptionFee!: number | null;
+  public specialNeeds!: boolean;
+  public specialNeedsDescription!: string | null;
+  public houseTrained!: boolean;
+  public goodWithChildren!: boolean | null;
+  public goodWithDogs!: boolean | null;
+  public goodWithCats!: boolean | null;
+  public goodWithSmallAnimals!: boolean | null;
+  public energyLevel!: EnergyLevel;
+  public exerciseNeeds!: string | null;
+  public groomingNeeds!: string | null;
+  public trainingNotes!: string | null;
   public temperament!: string[] | null;
-  public medical_notes!: string | null;
-  public behavioral_notes!: string | null;
-  public surrender_reason!: string | null;
-  public intake_date!: Date | null;
-  public vaccination_status!: VaccinationStatus;
-  public vaccination_date!: Date | null;
-  public spay_neuter_status!: SpayNeuterStatus;
-  public spay_neuter_date!: Date | null;
-  public last_vet_checkup!: Date | null;
+  public medicalNotes!: string | null;
+  public behavioralNotes!: string | null;
+  public surrenderReason!: string | null;
+  public intakeDate!: Date | null;
+  public vaccinationStatus!: VaccinationStatus;
+  public vaccinationDate!: Date | null;
+  public spayNeuterStatus!: SpayNeuterStatus;
+  public spayNeuterDate!: Date | null;
+  public lastVetCheckup!: Date | null;
   public images!: Array<{
     image_id: string;
     url: string;
@@ -243,18 +243,18 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
     uploaded_at: Date;
   }>;
   public location!: { type: string; coordinates: [number, number] };
-  public available_since!: Date | null;
-  public adopted_date!: Date | null;
-  public foster_start_date!: Date | null;
-  public foster_end_date!: Date | null;
-  public view_count!: number;
-  public favorite_count!: number;
-  public application_count!: number;
-  public search_vector!: TSVector;
+  public availableSince!: Date | null;
+  public adoptedDate!: Date | null;
+  public fosterStartDate!: Date | null;
+  public fosterEndDate!: Date | null;
+  public viewCount!: number;
+  public favoriteCount!: number;
+  public applicationCount!: number;
+  public searchVector!: TSVector;
   public tags!: string[] | null;
-  public created_at!: Date;
-  public updated_at!: Date;
-  public deleted_at!: Date | null;
+  public createdAt!: Date;
+  public updatedAt!: Date;
+  public deletedAt!: Date | null;
 
   // Instance methods
   public isAvailable(): boolean {
@@ -271,30 +271,30 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
   }
 
   public getAgeInMonths(): number | null {
-    if (this.age_years !== null && this.age_months !== null) {
-      return this.age_years * 12 + this.age_months;
+    if (this.ageYears !== null && this.ageMonths !== null) {
+      return this.ageYears * 12 + this.ageMonths;
     }
-    if (this.age_years !== null) {
-      return this.age_years * 12;
+    if (this.ageYears !== null) {
+      return this.ageYears * 12;
     }
-    return this.age_months;
+    return this.ageMonths;
   }
 
   public getAgeDisplay(): string {
-    if (this.age_years && this.age_months) {
-      return `${this.age_years} years, ${this.age_months} months`;
+    if (this.ageYears && this.ageMonths) {
+      return `${this.ageYears} years, ${this.ageMonths} months`;
     }
-    if (this.age_years) {
-      return this.age_years === 1 ? '1 year' : `${this.age_years} years`;
+    if (this.ageYears) {
+      return this.ageYears === 1 ? '1 year' : `${this.ageYears} years`;
     }
-    if (this.age_months) {
-      return this.age_months === 1 ? '1 month' : `${this.age_months} months`;
+    if (this.ageMonths) {
+      return this.ageMonths === 1 ? '1 month' : `${this.ageMonths} months`;
     }
     return 'Age unknown';
   }
 
   public incrementViewCount(): void {
-    this.view_count += 1;
+    this.viewCount += 1;
   }
 
   public canBeAdopted(): boolean {
@@ -311,7 +311,7 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
     const whereClause: WhereOptions<PetAttributes> = { ...filters };
 
     if (query) {
-      whereClause.search_vector = {
+      whereClause.searchVector = {
         [Op.match]: sequelize.fn('plainto_tsquery', 'english', query),
       };
     }
@@ -331,13 +331,13 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
               'DESC',
             ],
             ['featured', 'DESC'],
-            ['priority_listing', 'DESC'],
-            ['created_at', 'DESC'],
+            ['priorityListing', 'DESC'],
+            ['createdAt', 'DESC'],
           ]
         : [
             ['featured', 'DESC'],
-            ['priority_listing', 'DESC'],
-            ['created_at', 'DESC'],
+            ['priorityListing', 'DESC'],
+            ['createdAt', 'DESC'],
           ],
     });
   };
@@ -345,9 +345,10 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
 
 Pet.init(
   {
-    pet_id: {
+    petId: {
       type: DataTypes.STRING,
       primaryKey: true,
+      field: 'pet_id',
     },
     name: {
       type: DataTypes.STRING(100),
@@ -357,48 +358,54 @@ Pet.init(
         len: [1, 100],
       },
     },
-    rescue_id: {
+    rescueId: {
       type: getUuidType(),
       allowNull: false,
+      field: 'rescue_id',
       references: {
         model: 'rescues',
         key: 'rescue_id',
       },
       onDelete: 'CASCADE',
     },
-    short_description: {
+    shortDescription: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'short_description',
       validate: {
         len: [0, 500],
       },
     },
-    long_description: {
+    longDescription: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'long_description',
       validate: {
         len: [0, 5000],
       },
     },
-    age_years: {
+    ageYears: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: 'age_years',
       validate: {
         min: 0,
         max: 30,
       },
     },
-    age_months: {
+    ageMonths: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: 'age_months',
       validate: {
         min: 0,
         max: 11,
       },
     },
-    age_group: {
+    ageGroup: {
       type: DataTypes.ENUM(...Object.values(AgeGroup)),
       allowNull: false,
+      field: 'age_group',
       defaultValue: AgeGroup.ADULT,
     },
     gender: {
@@ -419,13 +426,15 @@ Pet.init(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
-    secondary_breed: {
+    secondaryBreed: {
       type: DataTypes.STRING(100),
       allowNull: true,
+      field: 'secondary_breed',
     },
-    weight_kg: {
+    weightKg: {
       type: DataTypes.DECIMAL(5, 2),
       allowNull: true,
+      field: 'weight_kg',
       validate: {
         min: 0.1,
         max: 200,
@@ -444,9 +453,10 @@ Pet.init(
       type: DataTypes.STRING(255),
       allowNull: true,
     },
-    microchip_id: {
+    microchipId: {
       type: DataTypes.STRING(50),
       allowNull: true,
+      field: 'microchip_id',
       unique: true,
     },
     archived: {
@@ -459,107 +469,129 @@ Pet.init(
       allowNull: false,
       defaultValue: false,
     },
-    priority_listing: {
+    priorityListing: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
+      field: 'priority_listing',
       defaultValue: false,
     },
-    adoption_fee: {
+    adoptionFee: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
+      field: 'adoption_fee',
       validate: {
         min: 0,
         max: 10000,
       },
     },
-    special_needs: {
+    specialNeeds: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
+      field: 'special_needs',
       defaultValue: false,
     },
-    special_needs_description: {
+    specialNeedsDescription: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'special_needs_description',
     },
-    house_trained: {
+    houseTrained: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
+      field: 'house_trained',
       defaultValue: false,
     },
-    good_with_children: {
+    goodWithChildren: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
+      field: 'good_with_children',
     },
-    good_with_dogs: {
+    goodWithDogs: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
+      field: 'good_with_dogs',
     },
-    good_with_cats: {
+    goodWithCats: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
+      field: 'good_with_cats',
     },
-    good_with_small_animals: {
+    goodWithSmallAnimals: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
+      field: 'good_with_small_animals',
     },
-    energy_level: {
+    energyLevel: {
       type: DataTypes.ENUM(...Object.values(EnergyLevel)),
       allowNull: false,
+      field: 'energy_level',
       defaultValue: EnergyLevel.MEDIUM,
     },
-    exercise_needs: {
+    exerciseNeeds: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'exercise_needs',
     },
-    grooming_needs: {
+    groomingNeeds: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'grooming_needs',
     },
-    training_notes: {
+    trainingNotes: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'training_notes',
     },
     temperament: {
       type: getArrayType(DataTypes.STRING),
       allowNull: true,
     },
-    medical_notes: {
+    medicalNotes: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'medical_notes',
     },
-    behavioral_notes: {
+    behavioralNotes: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'behavioral_notes',
     },
-    surrender_reason: {
+    surrenderReason: {
       type: DataTypes.TEXT,
       allowNull: true,
+      field: 'surrender_reason',
     },
-    intake_date: {
+    intakeDate: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'intake_date',
     },
-    vaccination_status: {
+    vaccinationStatus: {
       type: DataTypes.ENUM(...Object.values(VaccinationStatus)),
       allowNull: false,
+      field: 'vaccination_status',
       defaultValue: VaccinationStatus.UNKNOWN,
     },
-    vaccination_date: {
+    vaccinationDate: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'vaccination_date',
     },
-    spay_neuter_status: {
+    spayNeuterStatus: {
       type: DataTypes.ENUM(...Object.values(SpayNeuterStatus)),
       allowNull: false,
+      field: 'spay_neuter_status',
       defaultValue: SpayNeuterStatus.UNKNOWN,
     },
-    spay_neuter_date: {
+    spayNeuterDate: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'spay_neuter_date',
     },
-    last_vet_checkup: {
+    lastVetCheckup: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'last_vet_checkup',
     },
     images: {
       type: getJsonType(),
@@ -591,67 +623,78 @@ Pet.init(
       type: getGeometryType('POINT'),
       allowNull: true,
     },
-    available_since: {
+    availableSince: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'available_since',
     },
-    adopted_date: {
+    adoptedDate: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'adopted_date',
     },
-    foster_start_date: {
+    fosterStartDate: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'foster_start_date',
     },
-    foster_end_date: {
+    fosterEndDate: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'foster_end_date',
     },
-    view_count: {
+    viewCount: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'view_count',
       defaultValue: 0,
       validate: {
         min: 0,
       },
     },
-    favorite_count: {
+    favoriteCount: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'favorite_count',
       defaultValue: 0,
       validate: {
         min: 0,
       },
     },
-    application_count: {
+    applicationCount: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'application_count',
       defaultValue: 0,
       validate: {
         min: 0,
       },
     },
-    search_vector: {
+    searchVector: {
       type: DataTypes.TSVECTOR,
       allowNull: true,
+      field: 'search_vector',
     },
     tags: {
       type: getArrayType(DataTypes.STRING),
       allowNull: true,
     },
-    created_at: {
+    createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: 'created_at',
       defaultValue: DataTypes.NOW,
     },
-    updated_at: {
+    updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
+      field: 'updated_at',
       defaultValue: DataTypes.NOW,
     },
-    deleted_at: {
+    deletedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'deleted_at',
     },
   },
   {
@@ -660,9 +703,6 @@ Pet.init(
     modelName: 'Pet',
     timestamps: true,
     paranoid: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    deletedAt: 'deleted_at',
     indexes: [
       {
         fields: ['rescue_id'],
@@ -729,14 +769,14 @@ Pet.init(
     ],
     hooks: {
       beforeValidate: (pet: Pet) => {
-        // Auto-set available_since when status changes to available
-        if (pet.status === PetStatus.AVAILABLE && !pet.available_since) {
-          pet.available_since = new Date();
+        // Auto-set availableSince when status changes to available
+        if (pet.status === PetStatus.AVAILABLE && !pet.availableSince) {
+          pet.availableSince = new Date();
         }
 
-        // Auto-set adopted_date when status changes to adopted
-        if (pet.status === PetStatus.ADOPTED && !pet.adopted_date) {
-          pet.adopted_date = new Date();
+        // Auto-set adoptedDate when status changes to adopted
+        if (pet.status === PetStatus.ADOPTED && !pet.adoptedDate) {
+          pet.adoptedDate = new Date();
         }
       },
       beforeSave: async (pet: Pet) => {
@@ -747,15 +787,15 @@ Pet.init(
           dialect === 'postgres' &&
           (pet.changed('name') ||
             pet.changed('breed') ||
-            pet.changed('short_description') ||
-            pet.changed('long_description'))
+            pet.changed('shortDescription') ||
+            pet.changed('longDescription'))
         ) {
           const searchText = [
             pet.name,
             pet.breed,
-            pet.secondary_breed,
-            pet.short_description,
-            pet.long_description,
+            pet.secondaryBreed,
+            pet.shortDescription,
+            pet.longDescription,
             pet.temperament?.join(' '),
           ]
             .filter(Boolean)
@@ -769,7 +809,7 @@ Pet.init(
                 type: QueryTypes.SELECT,
               }
             );
-            pet.search_vector = results.vector;
+            pet.searchVector = results.vector;
           }
         }
       },
@@ -794,7 +834,7 @@ Pet.init(
       },
       specialNeeds: {
         where: {
-          special_needs: true,
+          specialNeeds: true,
         },
       },
       byType: (type: PetType) => ({
@@ -804,21 +844,21 @@ Pet.init(
         where: { size },
       }),
       byAge: (ageGroup: AgeGroup) => ({
-        where: { age_group: ageGroup },
+        where: { ageGroup },
       }),
       goodWithChildren: {
         where: {
-          good_with_children: true,
+          goodWithChildren: true,
         },
       },
       goodWithDogs: {
         where: {
-          good_with_dogs: true,
+          goodWithDogs: true,
         },
       },
       goodWithCats: {
         where: {
-          good_with_cats: true,
+          goodWithCats: true,
         },
       },
     },

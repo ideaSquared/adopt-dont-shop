@@ -180,7 +180,7 @@ export class PetController {
       .withMessage('Gender must be male, female, or unknown'),
     query('sortBy')
       .optional()
-      .isIn(['name', 'age_years', 'created_at', 'adoption_fee', 'distance'])
+      .isIn(['name', 'ageYears', 'createdAt', 'adoptionFee', 'distance'])
       .withMessage('Invalid sort field'),
     query('sortOrder')
       .optional()
@@ -289,7 +289,7 @@ export class PetController {
       const options = {
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
-        sortBy: (req.query.sortBy as string) || 'created_at',
+        sortBy: (req.query.sortBy as string) || 'createdAt',
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
       };
 
@@ -382,7 +382,7 @@ export class PetController {
       const sanitizedBody = { ...req.body };
 
       // Handle numeric fields that might be empty strings
-      const numericFields = ['adoption_fee', 'adoptionFee', 'weight_kg', 'weightKg'];
+      const numericFields = ['adoptionFee', 'weightKg'];
       numericFields.forEach(field => {
         if (
           sanitizedBody[field] === '' ||
@@ -467,7 +467,7 @@ export class PetController {
       const sanitizedBody = { ...req.body };
 
       // Handle numeric fields that might be empty strings
-      const numericFields = ['adoption_fee', 'adoptionFee', 'weight_kg', 'weightKg'];
+      const numericFields = ['adoptionFee', 'weightKg'];
       numericFields.forEach(field => {
         if (
           sanitizedBody[field] === '' ||
@@ -668,7 +668,7 @@ export class PetController {
       const breed = req.query.breed as string;
       const ageGroup = req.query.ageGroup as string;
       const gender = req.query.gender as string;
-      const sortBy = (req.query.sortBy as string) || 'created_at';
+      const sortBy = (req.query.sortBy as string) || 'createdAt';
       const sortOrder = (req.query.sortOrder as string) || 'DESC';
 
       // Use the searchPets method with rescue filter

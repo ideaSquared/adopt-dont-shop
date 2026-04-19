@@ -914,11 +914,11 @@ class ModerationService {
                 entityContext = pet
                   ? {
                       type: 'pet',
-                      id: pet.pet_id,
+                      id: pet.petId,
                       displayName: pet.name,
                       petType: pet.type,
                       breed: pet.breed,
-                      rescueId: pet.rescue_id,
+                      rescueId: pet.rescueId,
                     }
                   : {
                       type: 'pet',

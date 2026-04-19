@@ -78,7 +78,7 @@ export class PetService {
       const {
         page = 1,
         limit = 20,
-        sortBy = 'created_at',
+        sortBy = 'createdAt',
         sortOrder = 'DESC',
         includeArchived = false,
         includeAdopted = false,
@@ -104,39 +104,39 @@ export class PetService {
         whereConditions.breed = { [getLikeOp()]: `%${breed}%` };
       }
       if (ageGroup) {
-        whereConditions.age_group = ageGroup;
+        whereConditions.ageGroup = ageGroup;
       }
       if (energyLevel) {
-        whereConditions.energy_level = energyLevel;
+        whereConditions.energyLevel = energyLevel;
       }
       if (rescueId) {
-        whereConditions.rescue_id = rescueId;
+        whereConditions.rescueId = rescueId;
       }
       if (vaccinationStatus) {
-        whereConditions.vaccination_status = vaccinationStatus;
+        whereConditions.vaccinationStatus = vaccinationStatus;
       }
       if (spayNeuterStatus) {
-        whereConditions.spay_neuter_status = spayNeuterStatus;
+        whereConditions.spayNeuterStatus = spayNeuterStatus;
       }
 
       // Boolean filters
       if (goodWithChildren !== undefined) {
-        whereConditions.good_with_children = goodWithChildren;
+        whereConditions.goodWithChildren = goodWithChildren;
       }
       if (goodWithDogs !== undefined) {
-        whereConditions.good_with_dogs = goodWithDogs;
+        whereConditions.goodWithDogs = goodWithDogs;
       }
       if (goodWithCats !== undefined) {
-        whereConditions.good_with_cats = goodWithCats;
+        whereConditions.goodWithCats = goodWithCats;
       }
       if (goodWithSmallAnimals !== undefined) {
-        whereConditions.good_with_small_animals = goodWithSmallAnimals;
+        whereConditions.goodWithSmallAnimals = goodWithSmallAnimals;
       }
       if (houseTrained !== undefined) {
-        whereConditions.house_trained = houseTrained;
+        whereConditions.houseTrained = houseTrained;
       }
       if (specialNeeds !== undefined) {
-        whereConditions.special_needs = specialNeeds;
+        whereConditions.specialNeeds = specialNeeds;
       }
       if (featured !== undefined) {
         whereConditions.featured = featured;
@@ -160,7 +160,7 @@ export class PetService {
         if (adoptionFeeMax !== undefined) {
           feeFilter[Op.lte] = adoptionFeeMax;
         }
-        whereConditions.adoption_fee = feeFilter;
+        whereConditions.adoptionFee = feeFilter;
       }
 
       if (weightMin !== undefined || weightMax !== undefined) {
@@ -171,7 +171,7 @@ export class PetService {
         if (weightMax !== undefined) {
           weightFilter[Op.lte] = weightMax;
         }
-        whereConditions.weight_kg = weightFilter;
+        whereConditions.weightKg = weightFilter;
       }
 
       // Date filters
@@ -183,7 +183,7 @@ export class PetService {
         if (availableUntil) {
           dateFilter[Op.lte] = availableUntil;
         }
-        whereConditions.available_since = dateFilter;
+        whereConditions.availableSince = dateFilter;
       }
 
       // Tags filter (PostgreSQL only - SQLite doesn't support overlap)
@@ -196,9 +196,9 @@ export class PetService {
         const searchConditions: WhereOptions[] = [
           { name: { [getLikeOp()]: `%${search}%` } },
           { breed: { [getLikeOp()]: `%${search}%` } },
-          { secondary_breed: { [getLikeOp()]: `%${search}%` } },
-          { short_description: { [getLikeOp()]: `%${search}%` } },
-          { long_description: { [getLikeOp()]: `%${search}%` } },
+          { secondaryBreed: { [getLikeOp()]: `%${search}%` } },
+          { shortDescription: { [getLikeOp()]: `%${search}%` } },
+          { longDescription: { [getLikeOp()]: `%${search}%` } },
         ];
 
         // Only add tags search for PostgreSQL (SQLite doesn't support overlap operator)
@@ -244,7 +244,7 @@ export class PetService {
       // Build order clause
       const orderClause: Array<[string, 'ASC' | 'DESC'] | ReturnType<typeof literal>> = [];
       orderClause.push(['featured', 'DESC'] as [string, 'ASC' | 'DESC']);
-      orderClause.push(['priority_listing', 'DESC'] as [string, 'ASC' | 'DESC']);
+      orderClause.push(['priorityListing', 'DESC'] as [string, 'ASC' | 'DESC']);
 
       // Distance-based sorting
       if (sortBy === 'distance' && hasValidLocation && isPostgres) {
@@ -319,7 +319,7 @@ export class PetService {
       }
 
       // Increment view count
-      await pet.increment('view_count');
+      await pet.increment('viewCount');
 
       // Log pet view
       if (userId) {
@@ -377,7 +377,7 @@ export class PetService {
       // Create pet
       const pet = await Pet.create({
         ...petAttributes,
-        rescue_id: rescueId,
+        rescueId,
         images,
         videos,
       });
@@ -386,7 +386,7 @@ export class PetService {
       await AuditLogService.log({
         action: 'CREATE',
         entity: 'Pet',
-        entityId: pet.pet_id,
+        entityId: pet.petId,
         details: {
           rescueId,
           createdBy,
@@ -399,7 +399,7 @@ export class PetService {
         loggerHelpers.logBusiness(
           'Pet Created',
           {
-            petId: pet.pet_id,
+            petId: pet.petId,
             rescueId,
             createdBy,
           },
@@ -442,36 +442,36 @@ export class PetService {
       // The frontend service sends snake_case, so we normalize to camelCase first,
       // then convert to snake_case for the database.
       const snakeToCamelMapping: Record<string, string> = {
-        short_description: 'shortDescription',
-        long_description: 'longDescription',
-        age_years: 'ageYears',
-        age_months: 'ageMonths',
-        age_group: 'ageGroup',
-        secondary_breed: 'secondaryBreed',
-        weight_kg: 'weightKg',
-        microchip_id: 'microchipId',
-        priority_listing: 'priorityListing',
-        adoption_fee: 'adoptionFee',
-        special_needs: 'specialNeeds',
-        special_needs_description: 'specialNeedsDescription',
-        house_trained: 'houseTrained',
-        good_with_children: 'goodWithChildren',
-        good_with_dogs: 'goodWithDogs',
-        good_with_cats: 'goodWithCats',
-        good_with_small_animals: 'goodWithSmallAnimals',
-        energy_level: 'energyLevel',
-        exercise_needs: 'exerciseNeeds',
-        grooming_needs: 'groomingNeeds',
-        training_notes: 'trainingNotes',
-        medical_notes: 'medicalNotes',
-        behavioral_notes: 'behavioralNotes',
-        surrender_reason: 'surrenderReason',
-        intake_date: 'intakeDate',
-        vaccination_status: 'vaccinationStatus',
-        vaccination_date: 'vaccinationDate',
-        spay_neuter_status: 'spayNeuterStatus',
-        spay_neuter_date: 'spayNeuterDate',
-        last_vet_checkup: 'lastVetCheckup',
+        shortDescription: 'shortDescription',
+        longDescription: 'longDescription',
+        ageYears: 'ageYears',
+        ageMonths: 'ageMonths',
+        ageGroup: 'ageGroup',
+        secondaryBreed: 'secondaryBreed',
+        weightKg: 'weightKg',
+        microchipId: 'microchipId',
+        priorityListing: 'priorityListing',
+        adoptionFee: 'adoptionFee',
+        specialNeeds: 'specialNeeds',
+        specialNeedsDescription: 'specialNeedsDescription',
+        houseTrained: 'houseTrained',
+        goodWithChildren: 'goodWithChildren',
+        goodWithDogs: 'goodWithDogs',
+        goodWithCats: 'goodWithCats',
+        goodWithSmallAnimals: 'goodWithSmallAnimals',
+        energyLevel: 'energyLevel',
+        exerciseNeeds: 'exerciseNeeds',
+        groomingNeeds: 'groomingNeeds',
+        trainingNotes: 'trainingNotes',
+        medicalNotes: 'medicalNotes',
+        behavioralNotes: 'behavioralNotes',
+        surrenderReason: 'surrenderReason',
+        intakeDate: 'intakeDate',
+        vaccinationStatus: 'vaccinationStatus',
+        vaccinationDate: 'vaccinationDate',
+        spayNeuterStatus: 'spayNeuterStatus',
+        spayNeuterDate: 'spayNeuterDate',
+        lastVetCheckup: 'lastVetCheckup',
       };
 
       const rawData = updateData as Record<string, unknown>;
@@ -484,100 +484,100 @@ export class PetService {
         }
       }
 
-      // Convert camelCase to snake_case for database
+      // Build update data using camelCase attribute names (Sequelize maps to DB columns via field:)
       const dbUpdateData: Record<string, unknown> = {};
       if (normalizedData.shortDescription !== undefined) {
-        dbUpdateData.short_description = normalizedData.shortDescription;
+        dbUpdateData.shortDescription = normalizedData.shortDescription;
       }
       if (normalizedData.longDescription !== undefined) {
-        dbUpdateData.long_description = normalizedData.longDescription;
+        dbUpdateData.longDescription = normalizedData.longDescription;
       }
       if (normalizedData.ageYears !== undefined) {
-        dbUpdateData.age_years = normalizedData.ageYears;
+        dbUpdateData.ageYears = normalizedData.ageYears;
       }
       if (normalizedData.ageMonths !== undefined) {
-        dbUpdateData.age_months = normalizedData.ageMonths;
+        dbUpdateData.ageMonths = normalizedData.ageMonths;
       }
       if (normalizedData.ageGroup !== undefined) {
-        dbUpdateData.age_group = normalizedData.ageGroup;
+        dbUpdateData.ageGroup = normalizedData.ageGroup;
       }
       if (normalizedData.secondaryBreed !== undefined) {
-        dbUpdateData.secondary_breed = normalizedData.secondaryBreed;
+        dbUpdateData.secondaryBreed = normalizedData.secondaryBreed;
       }
       if (normalizedData.weightKg !== undefined) {
-        dbUpdateData.weight_kg = normalizedData.weightKg;
+        dbUpdateData.weightKg = normalizedData.weightKg;
       }
       if (normalizedData.microchipId !== undefined) {
-        dbUpdateData.microchip_id = normalizedData.microchipId;
+        dbUpdateData.microchipId = normalizedData.microchipId;
       }
       if (normalizedData.priorityListing !== undefined) {
-        dbUpdateData.priority_listing = normalizedData.priorityListing;
+        dbUpdateData.priorityListing = normalizedData.priorityListing;
       }
       if (normalizedData.adoptionFee !== undefined) {
-        dbUpdateData.adoption_fee = normalizedData.adoptionFee;
+        dbUpdateData.adoptionFee = normalizedData.adoptionFee;
       }
       if (normalizedData.specialNeeds !== undefined) {
-        dbUpdateData.special_needs = normalizedData.specialNeeds;
+        dbUpdateData.specialNeeds = normalizedData.specialNeeds;
       }
       if (normalizedData.specialNeedsDescription !== undefined) {
-        dbUpdateData.special_needs_description = normalizedData.specialNeedsDescription;
+        dbUpdateData.specialNeedsDescription = normalizedData.specialNeedsDescription;
       }
       if (normalizedData.houseTrained !== undefined) {
-        dbUpdateData.house_trained = normalizedData.houseTrained;
+        dbUpdateData.houseTrained = normalizedData.houseTrained;
       }
       if (normalizedData.goodWithChildren !== undefined) {
-        dbUpdateData.good_with_children = normalizedData.goodWithChildren;
+        dbUpdateData.goodWithChildren = normalizedData.goodWithChildren;
       }
       if (normalizedData.goodWithDogs !== undefined) {
-        dbUpdateData.good_with_dogs = normalizedData.goodWithDogs;
+        dbUpdateData.goodWithDogs = normalizedData.goodWithDogs;
       }
       if (normalizedData.goodWithCats !== undefined) {
-        dbUpdateData.good_with_cats = normalizedData.goodWithCats;
+        dbUpdateData.goodWithCats = normalizedData.goodWithCats;
       }
       if (normalizedData.goodWithSmallAnimals !== undefined) {
-        dbUpdateData.good_with_small_animals = normalizedData.goodWithSmallAnimals;
+        dbUpdateData.goodWithSmallAnimals = normalizedData.goodWithSmallAnimals;
       }
       if (normalizedData.energyLevel !== undefined) {
-        dbUpdateData.energy_level = normalizedData.energyLevel;
+        dbUpdateData.energyLevel = normalizedData.energyLevel;
       }
       if (normalizedData.exerciseNeeds !== undefined) {
-        dbUpdateData.exercise_needs = normalizedData.exerciseNeeds;
+        dbUpdateData.exerciseNeeds = normalizedData.exerciseNeeds;
       }
       if (normalizedData.groomingNeeds !== undefined) {
-        dbUpdateData.grooming_needs = normalizedData.groomingNeeds;
+        dbUpdateData.groomingNeeds = normalizedData.groomingNeeds;
       }
       if (normalizedData.trainingNotes !== undefined) {
-        dbUpdateData.training_notes = normalizedData.trainingNotes;
+        dbUpdateData.trainingNotes = normalizedData.trainingNotes;
       }
       if (normalizedData.medicalNotes !== undefined) {
-        dbUpdateData.medical_notes = normalizedData.medicalNotes;
+        dbUpdateData.medicalNotes = normalizedData.medicalNotes;
       }
       if (normalizedData.behavioralNotes !== undefined) {
-        dbUpdateData.behavioral_notes = normalizedData.behavioralNotes;
+        dbUpdateData.behavioralNotes = normalizedData.behavioralNotes;
       }
       if (normalizedData.surrenderReason !== undefined) {
-        dbUpdateData.surrender_reason = normalizedData.surrenderReason;
+        dbUpdateData.surrenderReason = normalizedData.surrenderReason;
       }
       if (normalizedData.intakeDate !== undefined) {
-        dbUpdateData.intake_date = normalizedData.intakeDate;
+        dbUpdateData.intakeDate = normalizedData.intakeDate;
       }
       if (normalizedData.vaccinationStatus !== undefined) {
-        dbUpdateData.vaccination_status = normalizedData.vaccinationStatus;
+        dbUpdateData.vaccinationStatus = normalizedData.vaccinationStatus;
       }
       if (normalizedData.vaccinationDate !== undefined) {
-        dbUpdateData.vaccination_date = normalizedData.vaccinationDate;
+        dbUpdateData.vaccinationDate = normalizedData.vaccinationDate;
       }
       if (normalizedData.spayNeuterStatus !== undefined) {
-        dbUpdateData.spay_neuter_status = normalizedData.spayNeuterStatus;
+        dbUpdateData.spayNeuterStatus = normalizedData.spayNeuterStatus;
       }
       if (normalizedData.spayNeuterDate !== undefined) {
-        dbUpdateData.spay_neuter_date = normalizedData.spayNeuterDate;
+        dbUpdateData.spayNeuterDate = normalizedData.spayNeuterDate;
       }
       if (normalizedData.lastVetCheckup !== undefined) {
-        dbUpdateData.last_vet_checkup = normalizedData.lastVetCheckup;
+        dbUpdateData.lastVetCheckup = normalizedData.lastVetCheckup;
       }
 
-      // Handle simple field mappings (fields where column name matches key)
+      // Handle simple field mappings (fields where attribute name matches key)
       const simpleFields = [
         'name',
         'gender',
@@ -661,9 +661,9 @@ export class PetService {
       // Update status and related fields
       await pet.update({
         status: statusUpdate.status,
-        ...(statusUpdate.effectiveDate && { available_since: statusUpdate.effectiveDate }),
-        ...(statusUpdate.status === PetStatus.ADOPTED && { adopted_date: new Date() }),
-        ...(statusUpdate.status === PetStatus.FOSTER && { foster_start_date: new Date() }),
+        ...(statusUpdate.effectiveDate && { availableSince: statusUpdate.effectiveDate }),
+        ...(statusUpdate.status === PetStatus.ADOPTED && { adoptedDate: new Date() }),
+        ...(statusUpdate.status === PetStatus.FOSTER && { fosterStartDate: new Date() }),
       });
 
       // Log status update
@@ -914,11 +914,11 @@ export class PetService {
       const offset = (page - 1) * limit;
 
       const { rows: pets, count: total } = await Pet.findAndCountAll({
-        where: { rescue_id: rescueId, archived: false },
+        where: { rescueId, archived: false },
         order: [
           ['featured', 'DESC'],
-          ['priority_listing', 'DESC'],
-          ['created_at', 'DESC'],
+          ['priorityListing', 'DESC'],
+          ['createdAt', 'DESC'],
         ],
         limit,
         offset,
@@ -952,8 +952,8 @@ export class PetService {
           status: { [Op.in]: [PetStatus.AVAILABLE, PetStatus.FOSTER] },
         },
         order: [
-          ['priority_listing', 'DESC'],
-          ['created_at', 'DESC'],
+          ['priorityListing', 'DESC'],
+          ['createdAt', 'DESC'],
         ],
         limit,
       });
@@ -972,7 +972,7 @@ export class PetService {
    */
   static async getPetStatistics(rescueId?: string): Promise<PetStatistics> {
     try {
-      const whereClause = rescueId ? { rescue_id: rescueId } : {};
+      const whereClause = rescueId ? { rescueId } : {};
 
       // Get basic counts
       const [totalPets, availablePets, adoptedPets, fosterPets, featuredPets, specialNeedsPets] =
@@ -982,7 +982,7 @@ export class PetService {
           Pet.count({ where: { ...whereClause, status: PetStatus.ADOPTED } }),
           Pet.count({ where: { ...whereClause, status: PetStatus.FOSTER } }),
           Pet.count({ where: { ...whereClause, featured: true } }),
-          Pet.count({ where: { ...whereClause, special_needs: true } }),
+          Pet.count({ where: { ...whereClause, specialNeeds: true } }),
         ]);
 
       // Get counts by type
@@ -1033,19 +1033,19 @@ export class PetService {
 
       // Calculate days since posted
       const daysSincePosted = Math.floor(
-        (new Date().getTime() - pet.created_at.getTime()) / (1000 * 60 * 60 * 24)
+        (new Date().getTime() - pet.createdAt.getTime()) / (1000 * 60 * 60 * 24)
       );
 
       // Calculate average views per day
-      const averageViewsPerDay = daysSincePosted > 0 ? pet.view_count / daysSincePosted : 0;
+      const averageViewsPerDay = daysSincePosted > 0 ? pet.viewCount / daysSincePosted : 0;
 
       logger.info('Pet activity retrieved successfully', { petId });
 
       return {
         petId,
-        viewCount: pet.view_count,
-        favoriteCount: pet.favorite_count,
-        applicationCount: pet.application_count,
+        viewCount: pet.viewCount,
+        favoriteCount: pet.favoriteCount,
+        applicationCount: pet.applicationCount,
         recentViews: [],
         recentApplications: [],
         daysSincePosted,
@@ -1081,11 +1081,11 @@ export class PetService {
               }
               break;
             case 'archive':
-              await Pet.update({ archived: true }, { where: { pet_id: petId } });
+              await Pet.update({ archived: true }, { where: { petId } });
               break;
             case 'feature':
               if (data && typeof data.featured === 'boolean') {
-                await Pet.update({ featured: data.featured }, { where: { pet_id: petId } });
+                await Pet.update({ featured: data.featured }, { where: { petId } });
               }
               break;
             case 'delete':
@@ -1137,7 +1137,7 @@ export class PetService {
 
   // Private helper methods for statistics
   private static async getPetCountByType(rescueId?: string): Promise<Record<PetType, number>> {
-    const whereClause = rescueId ? { rescue_id: rescueId } : {};
+    const whereClause = rescueId ? { rescueId } : {};
     const results = await Pet.findAll({
       where: whereClause,
       attributes: ['type', [fn('COUNT', col('pet_id')), 'count']],
@@ -1158,7 +1158,7 @@ export class PetService {
   }
 
   private static async getPetCountByStatus(rescueId?: string): Promise<Record<PetStatus, number>> {
-    const whereClause = rescueId ? { rescue_id: rescueId } : {};
+    const whereClause = rescueId ? { rescueId } : {};
     const results = await Pet.findAll({
       where: whereClause,
       attributes: ['status', [fn('COUNT', col('pet_id')), 'count']],
@@ -1179,7 +1179,7 @@ export class PetService {
   }
 
   private static async getPetCountBySize(rescueId?: string): Promise<Record<Size, number>> {
-    const whereClause = rescueId ? { rescue_id: rescueId } : {};
+    const whereClause = rescueId ? { rescueId } : {};
     const results = await Pet.findAll({
       where: whereClause,
       attributes: ['size', [fn('COUNT', col('pet_id')), 'count']],
@@ -1200,11 +1200,11 @@ export class PetService {
   }
 
   private static async getPetCountByAgeGroup(rescueId?: string): Promise<Record<AgeGroup, number>> {
-    const whereClause = rescueId ? { rescue_id: rescueId } : {};
+    const whereClause = rescueId ? { rescueId } : {};
     const results = await Pet.findAll({
       where: whereClause,
-      attributes: ['age_group', [fn('COUNT', col('pet_id')), 'count']],
-      group: ['age_group'],
+      attributes: ['ageGroup', [fn('COUNT', col('pet_id')), 'count']],
+      group: ['ageGroup'],
       raw: true,
     });
 
@@ -1213,8 +1213,8 @@ export class PetService {
       counts[ageGroup] = 0;
     });
 
-    (results as unknown as Array<{ age_group: AgeGroup; count: string }>).forEach(result => {
-      counts[result.age_group] = parseInt(result.count);
+    (results as unknown as Array<{ ageGroup: AgeGroup; count: string }>).forEach(result => {
+      counts[result.ageGroup] = parseInt(result.count);
     });
 
     return counts;
@@ -1223,7 +1223,7 @@ export class PetService {
   private static async getAverageAdoptionTime(rescueId?: string): Promise<number> {
     try {
       const whereClause = rescueId
-        ? { rescue_id: rescueId, status: PetStatus.ADOPTED }
+        ? { rescueId, status: PetStatus.ADOPTED }
         : { status: PetStatus.ADOPTED };
 
       // Database-agnostic date difference calculation
@@ -1232,8 +1232,8 @@ export class PetService {
       const dialect = sequelize.getDialect();
       const dateDiffExpression =
         dialect === 'sqlite'
-          ? literal('julianday(adopted_date) - julianday(available_since)')
-          : literal('EXTRACT(epoch FROM (adopted_date - available_since)) / 86400');
+          ? literal('julianday(adoptedDate) - julianday(availableSince)')
+          : literal('EXTRACT(epoch FROM (adoptedDate - availableSince)) / 86400');
 
       const result = await Pet.findOne({
         where: whereClause,
@@ -1271,7 +1271,7 @@ export class PetService {
       search?: string;
       page?: number;
       limit?: number;
-      sortBy?: 'created_at' | 'name' | 'age' | 'adoption_fee';
+      sortBy?: 'createdAt' | 'name' | 'age' | 'adoptionFee';
       sortOrder?: 'ASC' | 'DESC';
     } = {}
   ): Promise<{
@@ -1304,7 +1304,7 @@ export class PetService {
         search,
         page = 1,
         limit = 20,
-        sortBy = 'created_at',
+        sortBy = 'createdAt',
         sortOrder = 'DESC',
       } = filters;
 
@@ -1312,7 +1312,7 @@ export class PetService {
       const whereClause: WhereOptions = {};
 
       if (rescueId) {
-        whereClause.rescue_id = rescueId;
+        whereClause.rescueId = rescueId;
       }
       if (type) {
         whereClause.type = type;
@@ -1330,16 +1330,16 @@ export class PetService {
         whereClause.gender = gender;
       }
       if (goodWithKids !== undefined) {
-        whereClause.good_with_children = goodWithKids;
+        whereClause.goodWithChildren = goodWithKids;
       }
       if (goodWithPets !== undefined) {
         (whereClause as Record<symbol, unknown>)[Op.or] = [
-          { good_with_dogs: goodWithPets },
-          { good_with_cats: goodWithPets },
+          { goodWithDogs: goodWithPets },
+          { goodWithCats: goodWithPets },
         ];
       }
       if (energyLevel) {
-        whereClause.energy_level = energyLevel;
+        whereClause.energyLevel = energyLevel;
       }
       if (location) {
         whereClause.location = { [getLikeOp()]: `%${location}%` };
@@ -1354,7 +1354,7 @@ export class PetService {
         if (adoptionFeeMax !== undefined) {
           feeFilter[Op.lte] = adoptionFeeMax;
         }
-        whereClause.adoption_fee = feeFilter;
+        whereClause.adoptionFee = feeFilter;
       }
 
       if (weightMin !== undefined || weightMax !== undefined) {
@@ -1365,7 +1365,7 @@ export class PetService {
         if (weightMax !== undefined) {
           weightFilter[Op.lte] = weightMax;
         }
-        whereClause.weight_kg = weightFilter;
+        whereClause.weightKg = weightFilter;
       }
 
       // Date range filters
@@ -1377,7 +1377,7 @@ export class PetService {
         if (createdBefore) {
           dateFilter[Op.lte] = createdBefore;
         }
-        whereClause.created_at = dateFilter;
+        whereClause.createdAt = dateFilter;
       }
 
       // Search functionality
@@ -1385,8 +1385,8 @@ export class PetService {
         (whereClause as Record<symbol, unknown>)[Op.or] = [
           { name: { [getLikeOp()]: `%${search}%` } },
           { breed: { [getLikeOp()]: `%${search}%` } },
-          { short_description: { [getLikeOp()]: `%${search}%` } },
-          { long_description: { [getLikeOp()]: `%${search}%` } },
+          { shortDescription: { [getLikeOp()]: `%${search}%` } },
+          { longDescription: { [getLikeOp()]: `%${search}%` } },
         ];
       }
 
@@ -1432,25 +1432,25 @@ export class PetService {
 
       // Check if already favorited (including soft-deleted records)
       const existingFavorite = await UserFavorite.findOne({
-        where: { user_id: userId, pet_id: petId },
+        where: { userId, petId },
         paranoid: false, // Include soft-deleted records
       });
 
-      if (existingFavorite && !existingFavorite.deleted_at) {
+      if (existingFavorite && !existingFavorite.deletedAt) {
         // Already favorited and not soft-deleted
         throw new Error('Pet is already in favorites');
       }
 
-      if (existingFavorite && existingFavorite.deleted_at) {
+      if (existingFavorite && existingFavorite.deletedAt) {
         // Restore soft-deleted favorite
         await existingFavorite.restore();
         logger.info(`Pet ${petId} favorite restored for user ${userId}`);
       } else {
         // Create new favorite
         await UserFavorite.create({
-          user_id: userId,
-          pet_id: petId,
-          created_at: new Date(),
+          userId,
+          petId,
+          createdAt: new Date(),
         });
         logger.info(`Pet ${petId} added to favorites for user ${userId}`);
       }
@@ -1463,7 +1463,7 @@ export class PetService {
   static async removeFromFavorites(userId: string, petId: string): Promise<void> {
     try {
       const favorite = await UserFavorite.findOne({
-        where: { user_id: userId, pet_id: petId },
+        where: { userId, petId },
       });
 
       if (!favorite) {
@@ -1492,7 +1492,7 @@ export class PetService {
       }
 
       const { rows: favorites, count: total } = await UserFavorite.findAndCountAll({
-        where: { user_id: userId },
+        where: { userId },
         include: [
           {
             model: Pet,
@@ -1508,7 +1508,7 @@ export class PetService {
         ],
         limit,
         offset,
-        order: [['created_at', 'DESC']],
+        order: [['createdAt', 'DESC']],
       });
 
       const pets = (favorites as UserFavoriteWithPet[]).map(favorite => favorite.Pet);
@@ -1529,7 +1529,7 @@ export class PetService {
   static async checkFavoriteStatus(userId: string, petId: string): Promise<boolean> {
     try {
       const favorite = await UserFavorite.findOne({
-        where: { user_id: userId, pet_id: petId },
+        where: { userId, petId },
       });
 
       return !!favorite;
@@ -1556,7 +1556,7 @@ export class PetService {
             attributes: ['rescueId', 'name', 'city', 'state'],
           },
         ],
-        order: [['created_at', 'DESC']],
+        order: [['createdAt', 'DESC']],
         limit,
       });
 
@@ -1635,14 +1635,14 @@ export class PetService {
       // Find similar pets with priority scoring
       const similarPets = await Pet.findAll({
         where: {
-          pet_id: { [Op.ne]: petId }, // Exclude the reference pet
+          petId: { [Op.ne]: petId }, // Exclude the reference pet
           status: PetStatus.AVAILABLE,
           archived: false,
           [Op.or]: [
             { breed: referencePet.breed }, // Same breed (highest priority)
             { type: referencePet.type }, // Same type
             { size: referencePet.size }, // Same size
-            { age_group: referencePet.age_group }, // Same age group
+            { ageGroup: referencePet.ageGroup }, // Same age group
           ],
         },
         include: [
@@ -1668,7 +1668,7 @@ export class PetService {
             'ASC',
           ],
           // Finally by creation date (newest first)
-          ['created_at', 'DESC'],
+          ['createdAt', 'DESC'],
         ],
         limit,
       });

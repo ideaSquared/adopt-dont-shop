@@ -69,9 +69,9 @@ describe('Application Submission Workflow Integration Tests', () => {
     describe('when browsing available pets', () => {
       it('should return list of available pets for adoption', async () => {
         const mockPets = [
-          createMockPet({ pet_id: 'pet-1', name: 'Buddy', status: PetStatus.AVAILABLE }),
-          createMockPet({ pet_id: 'pet-2', name: 'Max', status: PetStatus.AVAILABLE }),
-          createMockPet({ pet_id: 'pet-3', name: 'Luna', status: PetStatus.AVAILABLE }),
+          createMockPet({ petId: 'pet-1', name: 'Buddy', status: PetStatus.AVAILABLE }),
+          createMockPet({ petId: 'pet-2', name: 'Max', status: PetStatus.AVAILABLE }),
+          createMockPet({ petId: 'pet-3', name: 'Luna', status: PetStatus.AVAILABLE }),
         ];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
@@ -91,8 +91,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should filter pets by type when browsing', async () => {
         const mockDogs = [
-          createMockPet({ pet_id: 'dog-1', name: 'Buddy', type: PetType.DOG }),
-          createMockPet({ pet_id: 'dog-2', name: 'Max', type: PetType.DOG }),
+          createMockPet({ petId: 'dog-1', name: 'Buddy', type: PetType.DOG }),
+          createMockPet({ petId: 'dog-2', name: 'Max', type: PetType.DOG }),
         ];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
@@ -111,8 +111,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should filter pets by rescue organization', async () => {
         const mockPets = [
-          createMockPet({ pet_id: 'pet-1', rescue_id: rescueId }),
-          createMockPet({ pet_id: 'pet-2', rescue_id: rescueId }),
+          createMockPet({ petId: 'pet-1', rescueId: rescueId }),
+          createMockPet({ petId: 'pet-2', rescueId: rescueId }),
         ];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
@@ -123,11 +123,11 @@ describe('Application Submission Workflow Integration Tests', () => {
         const result = await PetService.searchPets({ rescueId }, { page: 1, limit: 20 });
 
         expect(result.pets).toHaveLength(2);
-        expect(result.pets[0].rescue_id).toBe(rescueId);
+        expect(result.pets[0].rescueId).toBe(rescueId);
       });
 
       it('should exclude adopted and pending pets from available listings', async () => {
-        const mockAvailablePets = [createMockPet({ pet_id: 'pet-1', status: PetStatus.AVAILABLE })];
+        const mockAvailablePets = [createMockPet({ petId: 'pet-1', status: PetStatus.AVAILABLE })];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockAvailablePets,
@@ -147,11 +147,11 @@ describe('Application Submission Workflow Integration Tests', () => {
     describe('when viewing pet details', () => {
       it('should display complete pet information for potential adopters', async () => {
         const mockPet = createMockPet({
-          pet_id: petId,
+          petId: petId,
           name: 'Buddy',
           status: PetStatus.AVAILABLE,
-          short_description: 'Friendly dog',
-          long_description: 'A very friendly and energetic dog',
+          shortDescription: 'Friendly dog',
+          longDescription: 'A very friendly and energetic dog',
         });
 
         MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
@@ -159,15 +159,15 @@ describe('Application Submission Workflow Integration Tests', () => {
         const result = await PetService.getPetById(petId);
 
         expect(result).toBeDefined();
-        expect(result?.pet_id).toBe(petId);
+        expect(result?.petId).toBe(petId);
         expect(result?.name).toBe('Buddy');
-        expect(result?.short_description).toBe('Friendly dog');
+        expect(result?.shortDescription).toBe('Friendly dog');
       });
 
       it('should show adoption requirements and rescue contact information', async () => {
         const mockPet = createMockPet({
-          pet_id: petId,
-          rescue_id: rescueId,
+          petId: petId,
+          rescueId: rescueId,
           status: PetStatus.AVAILABLE,
         });
 
@@ -176,12 +176,12 @@ describe('Application Submission Workflow Integration Tests', () => {
         const result = await PetService.getPetById(petId);
 
         expect(result).toBeDefined();
-        expect(result?.rescue_id).toBe(rescueId);
+        expect(result?.rescueId).toBe(rescueId);
       });
 
       it('should indicate when a pet is no longer available', async () => {
         const mockPet = createMockPet({
-          pet_id: petId,
+          petId: petId,
           status: PetStatus.ADOPTED,
         });
 
@@ -209,11 +209,11 @@ describe('Application Submission Workflow Integration Tests', () => {
     describe('when creating a new application', () => {
       it('should successfully create application with valid data', async () => {
         const mockUser = createMockUser({ userId: adopterId, userType: UserType.ADOPTER });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
-          pet_id: petId,
+          applicationId: applicationId,
+          userId: adopterId,
+          petId: petId,
         });
 
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
@@ -222,7 +222,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: validAnswers,
           references: validReferences,
         };
@@ -230,15 +230,15 @@ describe('Application Submission Workflow Integration Tests', () => {
         const result = await ApplicationService.createApplication(applicationData, adopterId);
 
         expect(result).toBeDefined();
-        expect(result.user_id).toBe(adopterId);
-        expect(result.pet_id).toBe(petId);
+        expect(result.userId).toBe(adopterId);
+        expect(result.petId).toBe(petId);
         expect(result.status).toBe(ApplicationStatus.SUBMITTED);
         expect(MockedApplication.create).toHaveBeenCalled();
       });
 
       it('should set default priority to NORMAL when not specified', async () => {
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
         const mockApplication = createMockApplication({
           priority: ApplicationPriority.NORMAL,
         });
@@ -249,7 +249,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: validAnswers,
           references: validReferences,
         };
@@ -261,7 +261,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should initialize references with pending status', async () => {
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
         const mockApplication = createMockApplication({
           references: validReferences.map(ref => ({ ...ref, status: 'pending' as const })),
         });
@@ -272,7 +272,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: validAnswers,
           references: validReferences,
         };
@@ -285,9 +285,9 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should create timeline event when application is submitted', async () => {
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
         });
 
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
@@ -296,7 +296,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: validAnswers,
           references: validReferences,
         };
@@ -314,8 +314,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should log application creation in audit log', async () => {
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
-        const mockApplication = createMockApplication({ application_id: applicationId });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
+        const mockApplication = createMockApplication({ applicationId: applicationId });
 
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
         MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
@@ -323,7 +323,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: validAnswers,
           references: validReferences,
         };
@@ -344,7 +344,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: validAnswers,
           references: validReferences,
         };
@@ -361,7 +361,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedPet.findByPk = vi.fn().mockResolvedValue(null);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: validAnswers,
           references: validReferences,
         };
@@ -373,13 +373,13 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should reject application for unavailable pet', async () => {
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.ADOPTED });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.ADOPTED });
 
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
         MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: validAnswers,
           references: validReferences,
         };
@@ -391,10 +391,10 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should reject duplicate application for same pet by same user', async () => {
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
         const existingApplication = createMockApplication({
-          user_id: adopterId,
-          pet_id: petId,
+          userId: adopterId,
+          petId: petId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -403,7 +403,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.findOne = vi.fn().mockResolvedValue(existingApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: validAnswers,
           references: validReferences,
         };
@@ -420,13 +420,13 @@ describe('Application Submission Workflow Integration Tests', () => {
       it('should allow rescue staff to view applications for their rescue', async () => {
         const mockApplications = [
           createMockApplication({
-            application_id: 'app-1',
-            rescue_id: rescueId,
+            applicationId: 'app-1',
+            rescueId: rescueId,
             status: ApplicationStatus.SUBMITTED,
           }),
           createMockApplication({
-            application_id: 'app-2',
-            rescue_id: rescueId,
+            applicationId: 'app-2',
+            rescueId: rescueId,
             status: ApplicationStatus.SUBMITTED,
           }),
         ];
@@ -437,7 +437,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         } as never);
 
         const result = await ApplicationService.searchApplications(
-          { rescue_id: rescueId, status: [ApplicationStatus.SUBMITTED] },
+          { rescueId: rescueId, status: [ApplicationStatus.SUBMITTED] },
           { page: 1, limit: 20 },
           rescueStaffId,
           UserType.RESCUE_STAFF
@@ -449,8 +449,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should display applicant information to rescue staff', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
         });
 
         MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication as never);
@@ -462,13 +462,13 @@ describe('Application Submission Workflow Integration Tests', () => {
         );
 
         expect(result).toBeDefined();
-        expect(result?.user_id).toBe(adopterId);
+        expect(result?.userId).toBe(adopterId);
       });
 
       it('should prevent adopters from viewing other adopters applications', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: 'other-adopter-999',
+          applicationId: applicationId,
+          userId: 'other-adopter-999',
         });
 
         MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication as never);
@@ -480,8 +480,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should allow adopters to view their own applications', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
         });
 
         MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication as never);
@@ -493,14 +493,14 @@ describe('Application Submission Workflow Integration Tests', () => {
         );
 
         expect(result).toBeDefined();
-        expect(result?.user_id).toBe(adopterId);
+        expect(result?.userId).toBe(adopterId);
       });
     });
 
     describe('when rescue staff updates application status', () => {
       it('should allow status update from SUBMITTED to APPROVED', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -512,7 +512,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
         };
 
         const result = await ApplicationService.updateApplicationStatus(
@@ -524,14 +524,14 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             status: ApplicationStatus.APPROVED,
-            actioned_by: rescueStaffId,
+            actionedBy: rescueStaffId,
           })
         );
       });
 
       it('should allow status update from SUBMITTED to REJECTED with reason', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -543,8 +543,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
-          actioned_by: rescueStaffId,
-          rejection_reason: 'Not suitable for high-energy dog',
+          actionedBy: rescueStaffId,
+          rejectionReason: 'Not suitable for high-energy dog',
         };
 
         const result = await ApplicationService.updateApplicationStatus(
@@ -556,14 +556,14 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             status: ApplicationStatus.REJECTED,
-            rejection_reason: 'Not suitable for high-energy dog',
+            rejectionReason: 'Not suitable for high-energy dog',
           })
         );
       });
 
-      it('should set decision_at timestamp when approving', async () => {
+      it('should set decisionAt timestamp when approving', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -575,7 +575,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -586,14 +586,14 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            decision_at: expect.any(Date),
+            decisionAt: expect.any(Date),
           })
         );
       });
 
       it('should create timeline event for status update', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -605,7 +605,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -625,7 +625,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should reject invalid status transitions', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.APPROVED,
         });
 
@@ -635,7 +635,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.SUBMITTED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
         };
 
         await expect(
@@ -649,7 +649,7 @@ describe('Application Submission Workflow Integration Tests', () => {
     describe('when contacting references', () => {
       it('should update reference status to contacted', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           references: [
             {
               id: 'ref-0',
@@ -682,7 +682,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should update reference status to verified after successful check', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           references: [
             {
               id: 'ref-0',
@@ -712,7 +712,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should update reference status to failed if unreachable', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           references: [
             {
               id: 'ref-0',
@@ -742,7 +742,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should track when reference was contacted', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           references: [
             {
               id: 'ref-0',
@@ -762,7 +762,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
           status: 'contacted',
-          contacted_at: new Date(),
+          contactedAt: new Date(),
         };
 
         await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
@@ -772,7 +772,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should allow adding notes to reference checks', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           references: [
             {
               id: 'ref-0',
@@ -806,8 +806,8 @@ describe('Application Submission Workflow Integration Tests', () => {
     describe('when scheduling home visits', () => {
       it('should allow rescue staff to add home visit notes', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -818,21 +818,21 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         await ApplicationService.updateApplication(
           applicationId,
-          { home_visit_notes: 'Scheduled for Saturday 2pm' },
+          { homeVisitNotes: 'Scheduled for Saturday 2pm' },
           adopterId
         );
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            home_visit_notes: 'Scheduled for Saturday 2pm',
+            homeVisitNotes: 'Scheduled for Saturday 2pm',
           })
         );
       });
 
       it('should record home visit completion details', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -844,7 +844,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         await ApplicationService.updateApplication(
           applicationId,
           {
-            home_visit_notes:
+            homeVisitNotes:
               'Visit completed. Home is suitable. Has fenced yard and safe environment.',
           },
           adopterId
@@ -852,15 +852,15 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            home_visit_notes: expect.stringContaining('Visit completed'),
+            homeVisitNotes: expect.stringContaining('Visit completed'),
           })
         );
       });
 
       it('should allow documenting issues found during home visit', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -872,14 +872,14 @@ describe('Application Submission Workflow Integration Tests', () => {
         await ApplicationService.updateApplication(
           applicationId,
           {
-            home_visit_notes: 'Concerns: No fenced yard. Busy road nearby.',
+            homeVisitNotes: 'Concerns: No fenced yard. Busy road nearby.',
           },
           adopterId
         );
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            home_visit_notes: expect.stringContaining('Concerns'),
+            homeVisitNotes: expect.stringContaining('Concerns'),
           })
         );
       });
@@ -890,7 +890,7 @@ describe('Application Submission Workflow Integration Tests', () => {
     describe('when approving applications', () => {
       it('should successfully approve application', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -902,7 +902,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
           notes: 'Great fit for our dog!',
         };
 
@@ -921,7 +921,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should record who approved the application', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -933,7 +933,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -944,14 +944,14 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            actioned_by: rescueStaffId,
+            actionedBy: rescueStaffId,
           })
         );
       });
 
       it('should set decision timestamp on approval', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -963,7 +963,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -974,14 +974,14 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            decision_at: expect.any(Date),
+            decisionAt: expect.any(Date),
           })
         );
       });
 
       it('should create timeline event for approval', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -993,7 +993,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -1013,7 +1013,7 @@ describe('Application Submission Workflow Integration Tests', () => {
     describe('when rejecting applications', () => {
       it('should require rejection reason when rejecting', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1025,8 +1025,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
-          actioned_by: rescueStaffId,
-          rejection_reason: 'Not suitable living conditions for this pet',
+          actionedBy: rescueStaffId,
+          rejectionReason: 'Not suitable living conditions for this pet',
         };
 
         const result = await ApplicationService.updateApplicationStatus(
@@ -1037,14 +1037,14 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            rejection_reason: 'Not suitable living conditions for this pet',
+            rejectionReason: 'Not suitable living conditions for this pet',
           })
         );
       });
 
       it('should set decision timestamp on rejection', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1056,8 +1056,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
-          actioned_by: rescueStaffId,
-          rejection_reason: 'Insufficient pet experience',
+          actionedBy: rescueStaffId,
+          rejectionReason: 'Insufficient pet experience',
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -1068,14 +1068,14 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            decision_at: expect.any(Date),
+            decisionAt: expect.any(Date),
           })
         );
       });
 
       it('should record who rejected the application', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1087,8 +1087,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
-          actioned_by: rescueStaffId,
-          rejection_reason: 'Does not meet requirements',
+          actionedBy: rescueStaffId,
+          rejectionReason: 'Does not meet requirements',
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -1099,14 +1099,14 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            actioned_by: rescueStaffId,
+            actionedBy: rescueStaffId,
           })
         );
       });
 
       it('should create timeline event for rejection', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1118,8 +1118,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
-          actioned_by: rescueStaffId,
-          rejection_reason: 'Does not meet requirements',
+          actionedBy: rescueStaffId,
+          rejectionReason: 'Does not meet requirements',
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -1137,7 +1137,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should log rejection in audit trail', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
+          applicationId: applicationId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1149,8 +1149,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
-          actioned_by: rescueStaffId,
-          rejection_reason: 'Does not meet requirements',
+          actionedBy: rescueStaffId,
+          rejectionReason: 'Does not meet requirements',
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -1173,8 +1173,8 @@ describe('Application Submission Workflow Integration Tests', () => {
     describe('when applicant withdraws application', () => {
       it('should allow applicant to withdraw their own application', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1195,8 +1195,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should prevent withdrawal by non-owner', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1209,8 +1209,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should prevent withdrawal of already approved applications', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.APPROVED,
         });
 
@@ -1225,8 +1225,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should prevent withdrawal of already rejected applications', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.REJECTED,
         });
 
@@ -1241,8 +1241,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should record who withdrew the application', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1256,15 +1256,15 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            actioned_by: adopterId,
+            actionedBy: adopterId,
           })
         );
       });
 
       it('should create timeline event for withdrawal', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1286,8 +1286,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
       it('should log withdrawal in audit trail', async () => {
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
+          applicationId: applicationId,
+          userId: adopterId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1314,7 +1314,7 @@ describe('Application Submission Workflow Integration Tests', () => {
     describe('when following complete successful adoption path', () => {
       it('should handle full workflow: browse, apply, review, approve', async () => {
         // Step 1: Browse pets
-        const mockPets = [createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE })];
+        const mockPets = [createMockPet({ petId: petId, status: PetStatus.AVAILABLE })];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
@@ -1330,11 +1330,11 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         // Step 2: Create application
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
-          pet_id: petId,
+          applicationId: applicationId,
+          userId: adopterId,
+          petId: petId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1344,7 +1344,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: { livingConditions: { homeType: 'house' } },
           references: [
             { id: 'ref-0', name: 'John Doe', relationship: 'Veterinarian', phone: '555-1234' },
@@ -1364,7 +1364,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
         };
 
         const approveResult = await ApplicationService.updateApplicationStatus(
@@ -1380,11 +1380,11 @@ describe('Application Submission Workflow Integration Tests', () => {
       it('should handle full workflow: browse, apply, check references, home visit, approve', async () => {
         // Step 1: Create application
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
-          pet_id: petId,
+          applicationId: applicationId,
+          userId: adopterId,
+          petId: petId,
           references: [
             {
               id: 'ref-0',
@@ -1402,7 +1402,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: { livingConditions: { homeType: 'house' } },
           references: [
             { id: 'ref-0', name: 'John Doe', relationship: 'Veterinarian', phone: '555-1234' },
@@ -1427,7 +1427,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         // Step 3: Home visit
         await ApplicationService.updateApplication(
           applicationId,
-          { home_visit_notes: 'Excellent home environment' },
+          { homeVisitNotes: 'Excellent home environment' },
           adopterId
         );
 
@@ -1436,7 +1436,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.APPROVED,
-          actioned_by: rescueStaffId,
+          actionedBy: rescueStaffId,
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -1453,11 +1453,11 @@ describe('Application Submission Workflow Integration Tests', () => {
       it('should handle full workflow: browse, apply, review, reject', async () => {
         // Step 1: Create application
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
-          pet_id: petId,
+          applicationId: applicationId,
+          userId: adopterId,
+          petId: petId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1467,7 +1467,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: { livingConditions: { homeType: 'apartment' } },
           references: [
             { id: 'ref-0', name: 'John Doe', relationship: 'Veterinarian', phone: '555-1234' },
@@ -1485,8 +1485,8 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const statusUpdate: ApplicationStatusUpdateRequest = {
           status: ApplicationStatus.REJECTED,
-          actioned_by: rescueStaffId,
-          rejection_reason: 'Apartment not suitable for large dog',
+          actionedBy: rescueStaffId,
+          rejectionReason: 'Apartment not suitable for large dog',
         };
 
         await ApplicationService.updateApplicationStatus(
@@ -1498,7 +1498,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             status: ApplicationStatus.REJECTED,
-            rejection_reason: 'Apartment not suitable for large dog',
+            rejectionReason: 'Apartment not suitable for large dog',
           })
         );
       });
@@ -1508,11 +1508,11 @@ describe('Application Submission Workflow Integration Tests', () => {
       it('should handle full workflow: browse, apply, withdraw', async () => {
         // Step 1: Create application
         const mockUser = createMockUser({ userId: adopterId });
-        const mockPet = createMockPet({ pet_id: petId, status: PetStatus.AVAILABLE });
+        const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
         const mockApplication = createMockApplication({
-          application_id: applicationId,
-          user_id: adopterId,
-          pet_id: petId,
+          applicationId: applicationId,
+          userId: adopterId,
+          petId: petId,
           status: ApplicationStatus.SUBMITTED,
         });
 
@@ -1522,7 +1522,7 @@ describe('Application Submission Workflow Integration Tests', () => {
         MockedApplication.create = vi.fn().mockResolvedValue(mockApplication as never);
 
         const applicationData: CreateApplicationRequest = {
-          pet_id: petId,
+          petId: petId,
           answers: { livingConditions: { homeType: 'house' } },
           references: [
             { id: 'ref-0', name: 'John Doe', relationship: 'Veterinarian', phone: '555-1234' },
@@ -1583,15 +1583,15 @@ function createMockUser(overrides: Partial<User> = {}): vi.Mocked<User> {
 // Helper function to create mock pet
 function createMockPet(overrides: Partial<Pet> = {}): vi.Mocked<Pet> {
   const defaultPet = {
-    pet_id: 'mock-pet-123',
+    petId: 'mock-pet-123',
     name: 'Mock Pet',
-    rescue_id: 'rescue-123',
+    rescueId: 'rescue-123',
     type: PetType.DOG,
     status: PetStatus.AVAILABLE,
-    age_group: AgeGroup.ADULT,
+    ageGroup: AgeGroup.ADULT,
     gender: Gender.MALE,
-    short_description: 'A friendly pet',
-    long_description: 'A very friendly and loving pet',
+    shortDescription: 'A friendly pet',
+    longDescription: 'A very friendly and loving pet',
     breed: 'Mixed Breed',
     size: 'medium',
     createdAt: new Date(),
@@ -1601,12 +1601,12 @@ function createMockPet(overrides: Partial<Pet> = {}): vi.Mocked<Pet> {
     isPending: vi.fn().mockReturnValue(false),
     increment: vi.fn().mockResolvedValue(undefined),
     toJSON: vi.fn().mockReturnValue({
-      pet_id: overrides.pet_id ?? 'mock-pet-123',
+      petId: overrides.petId ?? 'mock-pet-123',
       name: overrides.name ?? 'Mock Pet',
-      rescue_id: overrides.rescue_id ?? 'rescue-123',
+      rescueId: overrides.rescueId ?? 'rescue-123',
       type: overrides.type ?? PetType.DOG,
       status: overrides.status ?? PetStatus.AVAILABLE,
-      age_group: overrides.age_group ?? AgeGroup.ADULT,
+      ageGroup: overrides.ageGroup ?? AgeGroup.ADULT,
       gender: overrides.gender ?? Gender.MALE,
     }),
     save: vi.fn().mockResolvedValue(undefined),
@@ -1619,41 +1619,41 @@ function createMockPet(overrides: Partial<Pet> = {}): vi.Mocked<Pet> {
 // Helper function to create mock application
 function createMockApplication(overrides: Partial<Application> = {}): vi.Mocked<Application> {
   const defaultApplication = {
-    application_id: 'mock-app-123',
-    user_id: 'user-123',
-    pet_id: 'pet-123',
-    rescue_id: 'rescue-123',
+    applicationId: 'mock-app-123',
+    userId: 'user-123',
+    petId: 'pet-123',
+    rescueId: 'rescue-123',
     status: ApplicationStatus.SUBMITTED,
     priority: ApplicationPriority.NORMAL,
     answers: {},
     references: [],
     documents: [],
-    interview_notes: null,
-    home_visit_notes: null,
+    interviewNotes: null,
+    homeVisitNotes: null,
     score: null,
     tags: [],
     notes: null,
-    submitted_at: new Date(),
-    reviewed_at: null,
-    decision_at: null,
-    expires_at: null,
-    follow_up_date: null,
-    actioned_by: null,
-    actioned_at: null,
-    rejection_reason: null,
-    created_at: new Date(),
-    updated_at: new Date(),
-    deleted_at: null,
+    submittedAt: new Date(),
+    reviewedAt: null,
+    decisionAt: null,
+    expiresAt: null,
+    followUpDate: null,
+    actionedBy: null,
+    actionedAt: null,
+    rejectionReason: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
     canTransitionTo: vi.fn().mockReturnValue(true),
     isInProgress: vi.fn().mockReturnValue(true),
     isPending: vi.fn().mockReturnValue(true),
     requiresAction: vi.fn().mockReturnValue(true),
     getCompletionPercentage: vi.fn().mockReturnValue(25),
     toJSON: vi.fn().mockReturnValue({
-      application_id: overrides.application_id ?? 'mock-app-123',
-      user_id: overrides.user_id ?? 'user-123',
-      pet_id: overrides.pet_id ?? 'pet-123',
-      rescue_id: overrides.rescue_id ?? 'rescue-123',
+      applicationId: overrides.applicationId ?? 'mock-app-123',
+      userId: overrides.userId ?? 'user-123',
+      petId: overrides.petId ?? 'pet-123',
+      rescueId: overrides.rescueId ?? 'rescue-123',
       status: overrides.status ?? ApplicationStatus.SUBMITTED,
       priority: overrides.priority ?? ApplicationPriority.NORMAL,
       answers: overrides.answers ?? {},

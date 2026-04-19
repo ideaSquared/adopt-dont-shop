@@ -837,15 +837,15 @@ export class RescueService {
     try {
       // Get pet statistics
       const [totalPets, availablePets, adoptedPets] = await Promise.all([
-        Pet.count({ where: { rescue_id: rescueId } }),
-        Pet.count({ where: { rescue_id: rescueId, status: 'available' } }),
-        Pet.count({ where: { rescue_id: rescueId, status: 'adopted' } }),
+        Pet.count({ where: { rescueId } }),
+        Pet.count({ where: { rescueId, status: 'available' } }),
+        Pet.count({ where: { rescueId, status: 'adopted' } }),
       ]);
 
       // Get application statistics
       const [totalApplications, pendingApplications] = await Promise.all([
         Application.count({
-          include: [{ model: Pet, as: 'Pet', where: { rescue_id: rescueId } }],
+          include: [{ model: Pet, as: 'Pet', where: { rescueId } }],
         }),
         Application.count({
           where: {
@@ -853,7 +853,7 @@ export class RescueService {
               [Op.in]: ['submitted'],
             },
           },
-          include: [{ model: Pet, as: 'Pet', where: { rescue_id: rescueId } }],
+          include: [{ model: Pet, as: 'Pet', where: { rescueId } }],
         }),
       ]);
 
@@ -866,29 +866,29 @@ export class RescueService {
 
       const monthlyAdoptions = await Pet.count({
         where: {
-          rescue_id: rescueId,
+          rescueId,
           status: 'adopted',
-          updated_at: { [Op.gte]: thirtyDaysAgo },
+          updatedAt: { [Op.gte]: thirtyDaysAgo },
         },
       });
 
       // Calculate average time to adoption (simplified)
       const recentAdoptions = await Pet.findAll({
         where: {
-          rescue_id: rescueId,
+          rescueId,
           status: 'adopted',
-          adopted_date: { [Op.ne]: null },
+          adoptedDate: { [Op.ne]: null },
         },
-        attributes: ['created_at', 'adopted_date'],
+        attributes: ['createdAt', 'adoptedDate'],
         limit: 50,
-        order: [['adopted_date', 'DESC']],
+        order: [['adoptedDate', 'DESC']],
       });
 
       let averageTimeToAdoption = 0;
       if (recentAdoptions.length > 0) {
         const totalDays = recentAdoptions.reduce((sum, pet) => {
-          const createdAt = new Date(pet.created_at);
-          const adoptedAt = new Date(pet.adopted_date!);
+          const createdAt = new Date(pet.createdAt);
+          const adoptedAt = new Date(pet.adoptedDate!);
           const diffTime = Math.abs(adoptedAt.getTime() - createdAt.getTime());
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           return sum + diffDays;

@@ -56,7 +56,7 @@ export async function seedReports() {
       validReports.push({
         reporterId: users[2].userId,
         reportedEntityType: 'pet' as const,
-        reportedEntityId: pets[0].pet_id,
+        reportedEntityId: pets[0].petId,
         reportedUserId: users[3].userId,
         category: ReportCategory.ANIMAL_WELFARE,
         severity: ReportSeverity.CRITICAL,
@@ -105,7 +105,7 @@ export async function seedReports() {
       validReports.push({
         reporterId: users[6].userId,
         reportedEntityType: 'pet' as const,
-        reportedEntityId: pets[1].pet_id,
+        reportedEntityId: pets[1].petId,
         reportedUserId: users[7].userId,
         category: ReportCategory.FALSE_INFORMATION,
         severity: ReportSeverity.MEDIUM,
@@ -194,7 +194,7 @@ export async function seedReports() {
       validReports.push({
         reporterId: users[5].userId,
         reportedEntityType: 'pet' as const,
-        reportedEntityId: pets[2].pet_id,
+        reportedEntityId: pets[2].petId,
         category: ReportCategory.SPAM,
         severity: ReportSeverity.LOW,
         status: ReportStatus.RESOLVED,

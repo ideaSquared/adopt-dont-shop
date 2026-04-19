@@ -5,41 +5,41 @@ import { JsonObject, JsonValue } from './common';
 
 // Core Application Types
 export interface ApplicationData {
-  application_id: string;
-  user_id: string;
-  pet_id: string;
-  rescue_id: string;
+  applicationId: string;
+  userId: string;
+  petId: string;
+  rescueId: string;
   status: ApplicationStatus;
   priority: ApplicationPriority;
-  actioned_by?: string | null;
-  actioned_at?: Date | null;
-  rejection_reason?: string | null;
+  actionedBy?: string | null;
+  actionedAt?: Date | null;
+  rejectionReason?: string | null;
   answers: JsonObject;
   references: ApplicationReference[];
   documents: ApplicationDocument[];
-  interview_notes?: string | null;
-  home_visit_notes?: string | null;
+  interviewNotes?: string | null;
+  homeVisitNotes?: string | null;
   score?: number | null;
   tags?: string[] | null;
   notes?: string | null;
-  submitted_at?: Date | null;
-  reviewed_at?: Date | null;
-  decision_at?: Date | null;
-  expires_at?: Date | null;
-  follow_up_date?: Date | null;
-  created_at?: Date;
-  updated_at?: Date;
-  deleted_at?: Date | null;
+  submittedAt?: Date | null;
+  reviewedAt?: Date | null;
+  decisionAt?: Date | null;
+  expiresAt?: Date | null;
+  followUpDate?: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
 
   // New stage-based fields
   stage?: string;
-  final_outcome?: string | null;
-  review_started_at?: Date | null;
-  visit_scheduled_at?: Date | null;
-  visit_completed_at?: Date | null;
-  resolved_at?: Date | null;
-  withdrawal_reason?: string | null;
-  stage_rejection_reason?: string | null;
+  finalOutcome?: string | null;
+  reviewStartedAt?: Date | null;
+  visitScheduledAt?: Date | null;
+  visitCompletedAt?: Date | null;
+  resolvedAt?: Date | null;
+  withdrawalReason?: string | null;
+  stageRejectionReason?: string | null;
 }
 
 export interface ApplicationReference {
@@ -118,17 +118,17 @@ export interface FrontendApplication {
 }
 
 export interface ApplicationDocument {
-  document_id: string;
-  document_type: string;
-  file_name: string;
-  file_url: string;
-  uploaded_at: Date;
+  documentId: string;
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
+  uploadedAt: Date;
   verified: boolean;
 }
 
 // Request/Response Types
 export interface CreateApplicationRequest {
-  pet_id: string;
+  petId: string;
   answers: JsonObject;
   references: Omit<ApplicationReference, 'contacted_at' | 'status'>[];
   priority?: ApplicationPriority;
@@ -142,23 +142,23 @@ export interface UpdateApplicationRequest {
   priority?: ApplicationPriority;
   notes?: string;
   tags?: string[];
-  interview_notes?: string;
-  home_visit_notes?: string;
+  interviewNotes?: string;
+  homeVisitNotes?: string;
   score?: number;
 }
 
 export interface ApplicationStatusUpdateRequest {
   status: ApplicationStatus;
-  actioned_by: string;
-  rejection_reason?: string;
+  actionedBy: string;
+  rejectionReason?: string;
   notes?: string;
-  follow_up_date?: Date;
+  followUpDate?: Date;
 }
 
 export interface ApplicationDocumentUpload {
-  document_type: string;
-  file_name: string;
-  file_url: string;
+  documentType: string;
+  fileName: string;
+  fileUrl: string;
 }
 
 // Search and Filter Types
@@ -166,27 +166,27 @@ export interface ApplicationSearchFilters {
   search?: string;
   status?: ApplicationStatus | ApplicationStatus[];
   priority?: ApplicationPriority | ApplicationPriority[];
-  user_id?: string;
-  pet_id?: string;
-  rescue_id?: string;
-  actioned_by?: string;
+  userId?: string;
+  petId?: string;
+  rescueId?: string;
+  actionedBy?: string;
   score_min?: number;
   score_max?: number;
   tags?: string[];
-  has_interview_notes?: boolean;
-  has_home_visit_notes?: boolean;
-  submitted_from?: Date;
-  submitted_to?: Date;
-  reviewed_from?: Date;
-  reviewed_to?: Date;
-  decision_from?: Date;
-  decision_to?: Date;
-  expires_from?: Date;
-  expires_to?: Date;
-  follow_up_from?: Date;
-  follow_up_to?: Date;
-  created_from?: Date;
-  created_to?: Date;
+  hasInterviewNotes?: boolean;
+  hasHomeVisitNotes?: boolean;
+  submittedFrom?: Date;
+  submittedTo?: Date;
+  reviewedFrom?: Date;
+  reviewedTo?: Date;
+  decisionFrom?: Date;
+  decisionTo?: Date;
+  expiresFrom?: Date;
+  expiresTo?: Date;
+  followUpFrom?: Date;
+  followUpTo?: Date;
+  createdFrom?: Date;
+  createdTo?: Date;
 }
 
 export interface ApplicationSearchOptions extends PaginationOptions {
@@ -198,22 +198,22 @@ export interface ApplicationSearchOptions extends PaginationOptions {
 
 // Statistics and Analytics Types
 export interface ApplicationStatistics {
-  total_applications: number;
-  applications_by_status: Record<ApplicationStatus, number>;
-  applications_by_priority: Record<ApplicationPriority, number>;
-  average_processing_time: number; // in days
-  approval_rate: number; // percentage
-  rejection_rate: number; // percentage
-  withdrawal_rate: number; // percentage
-  pending_applications: number;
-  overdue_applications: number;
-  applications_this_month: number;
-  applications_last_month: number;
-  growth_rate: number; // percentage
-  average_score: number;
-  top_rejection_reasons: Array<{ reason: string; count: number }>;
-  applications_by_rescue: Array<{ rescue_id: string; rescue_name: string; count: number }>;
-  applications_by_month: Array<{ month: string; count: number }>;
+  totalApplications: number;
+  applicationsByStatus: Record<ApplicationStatus, number>;
+  applicationsByPriority: Record<ApplicationPriority, number>;
+  averageProcessingTime: number; // in days
+  approvalRate: number; // percentage
+  rejectionRate: number; // percentage
+  withdrawalRate: number; // percentage
+  pendingApplications: number;
+  overdueApplications: number;
+  applicationsThisMonth: number;
+  applicationsLastMonth: number;
+  growthRate: number; // percentage
+  averageScore: number;
+  topRejectionReasons: Array<{ reason: string; count: number }>;
+  applicationsByRescue: Array<{ rescueId: string; rescueName: string; count: number }>;
+  applicationsByMonth: Array<{ month: string; count: number }>;
 }
 
 export interface ApplicationWorkflowStatistics {
@@ -228,10 +228,10 @@ export interface ApplicationWorkflowStatistics {
 
 // Activity and History Types
 export interface ApplicationActivity {
-  activity_id: string;
-  application_id: string;
-  user_id: string;
-  activity_type:
+  activityId: string;
+  applicationId: string;
+  userId: string;
+  activityType:
     | 'status_change'
     | 'note_added'
     | 'document_uploaded'
@@ -239,37 +239,37 @@ export interface ApplicationActivity {
     | 'score_updated';
   description: string;
   metadata?: JsonObject;
-  created_at: Date;
+  createdAt: Date;
 }
 
 export interface ApplicationStatusHistory {
-  history_id: string;
-  application_id: string;
-  previous_status: ApplicationStatus | null;
-  new_status: ApplicationStatus;
-  changed_by: string;
+  historyId: string;
+  applicationId: string;
+  previousStatus: ApplicationStatus | null;
+  newStatus: ApplicationStatus;
+  changedBy: string;
   reason?: string;
   notes?: string;
-  changed_at: Date;
+  changedAt: Date;
 }
 
 // Bulk Operations Types
 export interface BulkApplicationUpdate {
-  application_ids: string[];
+  applicationIds: string[];
   updates: {
     status?: ApplicationStatus;
     priority?: ApplicationPriority;
     tags?: string[];
     notes?: string;
-    actioned_by?: string;
+    actionedBy?: string;
   };
 }
 
 export interface BulkApplicationResult {
-  success_count: number;
-  failure_count: number;
+  successCount: number;
+  failureCount: number;
   successes: string[];
-  failures: Array<{ application_id: string; error: string }>;
+  failures: Array<{ applicationId: string; error: string }>;
 }
 
 // Workflow and Business Logic Types
@@ -297,21 +297,21 @@ export interface ApplicationScoring {
 
 // Question Configuration Types
 export interface QuestionConfigData {
-  question_id: string;
-  rescue_id?: string | null;
-  question_key: string;
+  questionId: string;
+  rescueId?: string | null;
+  questionKey: string;
   scope: 'core' | 'rescue_specific';
   category: QuestionCategory;
-  question_type: QuestionType;
-  question_text: string;
-  help_text?: string | null;
+  questionType: QuestionType;
+  questionText: string;
+  helpText?: string | null;
   placeholder?: string | null;
   options?: string[] | null;
-  validation_rules?: JsonObject | null;
-  display_order: number;
-  is_enabled: boolean;
-  is_required: boolean;
-  conditional_logic?: JsonObject | null;
+  validationRules?: JsonObject | null;
+  displayOrder: number;
+  isEnabled: boolean;
+  isRequired: boolean;
+  conditionalLogic?: JsonObject | null;
 }
 
 // Application Form Types
@@ -329,8 +329,8 @@ export interface ApplicationFormStructure {
 
 // Reference Management Types
 export interface ReferenceContactRequest {
-  application_id: string;
-  reference_index: number;
+  applicationId: string;
+  referenceIndex: number;
   contact_method: 'email' | 'phone';
   message?: string;
   scheduled_at?: Date;
@@ -341,12 +341,12 @@ export interface ReferenceUpdateRequest {
   referenceId?: string; // Support for ID-based approach (ref-0, ref-1, etc.)
   status: 'pending' | 'contacted' | 'verified' | 'failed';
   notes?: string;
-  contacted_at?: Date;
+  contactedAt?: Date;
 }
 
 // Visit Scheduling Types
 export interface ScheduleVisitRequest {
-  application_id: string;
+  applicationId: string;
   visit_type: 'interview' | 'home_visit';
   scheduled_date: Date;
   location?: string;
@@ -355,25 +355,25 @@ export interface ScheduleVisitRequest {
 }
 
 export interface VisitUpdateRequest {
-  visit_id: string;
+  visitId: string;
   status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
   notes?: string;
   score?: number;
-  completed_at?: Date;
-  rescheduled_date?: Date;
+  completedAt?: Date;
+  rescheduledDate?: Date;
 }
 
 // Notification Types
 export interface ApplicationNotification {
-  notification_id: string;
-  application_id: string;
-  recipient_id: string;
-  notification_type: 'status_update' | 'reminder' | 'document_request' | 'reference_check';
+  notificationId: string;
+  applicationId: string;
+  recipientId: string;
+  notificationType: 'status_update' | 'reminder' | 'document_request' | 'reference_check';
   title: string;
   message: string;
-  scheduled_at?: Date;
-  sent_at?: Date;
-  read_at?: Date;
+  scheduledAt?: Date;
+  sentAt?: Date;
+  readAt?: Date;
   metadata?: JsonObject;
 }
 

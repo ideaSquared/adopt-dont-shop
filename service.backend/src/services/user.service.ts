@@ -536,7 +536,7 @@ export class UserService {
 
       // Get real application count
       const applicationsCount = await Application.count({
-        where: { user_id: userId },
+        where: { userId },
       });
 
       // Get active chats count
@@ -553,7 +553,7 @@ export class UserService {
 
       // Get pets favorited count
       const petsFavoritedCount = await UserFavorite.count({
-        where: { user_id: userId },
+        where: { userId },
       });
 
       // Get recent activity from audit logs
@@ -669,7 +669,7 @@ export class UserService {
 
       // Get real application count
       const applicationsCount = await Application.count({
-        where: { user_id: userId },
+        where: { userId },
       });
 
       // Get active chats count
@@ -686,7 +686,7 @@ export class UserService {
 
       // Get pets favorited count
       const petsFavoritedCount = await UserFavorite.count({
-        where: { user_id: userId },
+        where: { userId },
       });
 
       // Get recent activity from audit logs
@@ -1296,12 +1296,9 @@ export class UserService {
       }
 
       // Soft delete related data first
-      await Application.update(
-        { deleted_at: new Date() },
-        { where: { user_id: userId, deleted_at: null } }
-      );
+      await Application.update({ deletedAt: new Date() }, { where: { userId, deletedAt: null } });
 
-      await UserFavorite.destroy({ where: { user_id: userId } });
+      await UserFavorite.destroy({ where: { userId } });
 
       // Remove from chats
       await ChatParticipant.destroy({ where: { participant_id: userId } });
