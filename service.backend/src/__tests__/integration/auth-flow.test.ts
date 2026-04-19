@@ -15,6 +15,7 @@ import crypto from 'crypto';
 import speakeasy from 'speakeasy';
 import { Op } from 'sequelize';
 import User, { UserStatus, UserType } from '../../models/User';
+import RefreshToken from '../../models/RefreshToken';
 import { AuthService } from '../../services/auth.service';
 import { AuditLogService } from '../../services/auditLog.service';
 import {
@@ -28,6 +29,7 @@ import {
 // Mock dependencies
 vi.mock('../../models/User');
 vi.mock('../../models/AuditLog');
+vi.mock('../../models/RefreshToken');
 vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
 vi.mock('jsonwebtoken');
@@ -49,6 +51,7 @@ vi.mock('../../services/email.service', () => ({
 }));
 
 const MockedUser = User as vi.MockedObject<User>;
+const MockedRefreshToken = RefreshToken as vi.MockedObject<typeof RefreshToken>;
 const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
 const mockedJwt = jwt as vi.MockedObject<jwt>;
 const mockedBcrypt = bcrypt as vi.MockedObject<bcrypt>;
@@ -82,6 +85,11 @@ describe('Authentication Flow Integration Tests', () => {
 
     // Setup default AuditLog mocks
     MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined as never);
+
+    // Setup RefreshToken mocks
+    MockedRefreshToken.create = vi.fn().mockResolvedValue({});
+    MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
+    MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(null);
   });
 
   describe('User Registration and Email Verification', () => {
@@ -771,25 +779,29 @@ describe('Authentication Flow Integration Tests', () => {
   describe('Token Refresh Workflow', () => {
     const validRefreshToken = 'valid.refresh.token';
 
+    const buildStoredToken = (overrides = {}) => ({
+      token_id: 'token-123',
+      user_id: 'user-123',
+      family_id: 'family-abc',
+      is_revoked: false,
+      expires_at: new Date(Date.now() + 3_600_000),
+      isExpired: vi.fn().mockReturnValue(false),
+      update: vi.fn().mockResolvedValue(undefined),
+      ...overrides,
+    });
+
     describe('when refreshing access token', () => {
       it('should successfully refresh token with valid refresh token', async () => {
-        const mockPayload = {
-          userId: 'user-123',
-          tokenId: 'token-123',
-          email: 'test@example.com',
-          userType: UserType.ADOPTER,
-        };
-
         const mockUser = createMockUser({
           userId: 'user-123',
           email: 'test@example.com',
           emailVerified: true,
           status: UserStatus.ACTIVE,
         });
-
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         const result = await AuthService.refreshToken(validRefreshToken);
@@ -800,20 +812,11 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should verify refresh token with correct secret', async () => {
-        const mockPayload = {
-          userId: 'user-123',
-          tokenId: 'token-123',
-        };
-
-        const mockUser = createMockUser({
-          userId: 'user-123',
-          emailVerified: true,
-          status: UserStatus.ACTIVE,
-        });
-
+        const mockUser = createMockUser({ userId: 'user-123', emailVerified: true, status: UserStatus.ACTIVE });
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         await AuthService.refreshToken(validRefreshToken);
@@ -825,29 +828,17 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should include user roles in refreshed token', async () => {
-        const mockPayload = {
-          userId: 'user-123',
-          tokenId: 'token-123',
-        };
-
         const mockUser = createMockUser({
           userId: 'user-123',
           email: 'test@example.com',
           emailVerified: true,
           status: UserStatus.ACTIVE,
-          Roles: [
-            {
-              roleId: 'role-1',
-              name: 'adopter',
-              description: 'Adopter role',
-              Permissions: [],
-            },
-          ],
+          Roles: [{ roleId: 'role-1', name: 'adopter', description: 'Adopter role', Permissions: [] }],
         });
-
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         const result = await AuthService.refreshToken(validRefreshToken);
@@ -879,12 +870,8 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject refresh for non-existent user', async () => {
-        const mockPayload = {
-          userId: 'non-existent-user',
-          tokenId: 'token-123',
-        };
-
-        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'non-existent-user', jti: 'token-123' } as never);
+        MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken({ user_id: 'non-existent-user' }) as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
         await expect(AuthService.refreshToken(validRefreshToken)).rejects.toThrow(
@@ -893,19 +880,11 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should reject refresh for user who cannot login', async () => {
-        const mockPayload = {
-          userId: 'user-123',
-          tokenId: 'token-123',
-        };
-
-        const mockUser = createMockUser({
-          userId: 'user-123',
-          status: UserStatus.SUSPENDED,
-        });
-
+        const mockUser = createMockUser({ userId: 'user-123', status: UserStatus.SUSPENDED });
         mockUser.canLogin = vi.fn().mockReturnValue(false);
 
-        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         await expect(AuthService.refreshToken(validRefreshToken)).rejects.toThrow(
@@ -914,21 +893,16 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       it('should generate new token pair with same user data', async () => {
-        const mockPayload = {
-          userId: 'user-123',
-          tokenId: 'token-123',
-        };
-
         const mockUser = createMockUser({
           userId: 'user-123',
           email: 'test@example.com',
           userType: UserType.ADOPTER,
           status: UserStatus.ACTIVE,
         });
-
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        mockedJwt.verify = vi.fn().mockReturnValue({ userId: 'user-123', jti: 'token-123' } as never);
+        MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(buildStoredToken() as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         const result = await AuthService.refreshToken(validRefreshToken);
@@ -1167,18 +1141,19 @@ describe('Authentication Flow Integration Tests', () => {
         await expect(AuthService.logout(refreshToken)).resolves.not.toThrow();
       });
 
-      it('should log logout event when refresh token provided', async () => {
+      it('should log when a refresh token is revoked on logout', async () => {
         const refreshToken = 'valid.refresh.token.with.sufficient.length';
         const { logger } = await import('../../utils/logger');
         const loggerSpy = vi.spyOn(logger, 'info');
 
+        // Simulate a valid JWT that yields a jti
+        mockedJwt.verify = vi.fn().mockReturnValue({ jti: 'some-jti' } as never);
+
         await AuthService.logout(refreshToken);
 
         expect(loggerSpy).toHaveBeenCalledWith(
-          'User logout requested',
-          expect.objectContaining({
-            refreshToken: expect.stringContaining('...'),
-          })
+          expect.stringContaining('logout'),
+          expect.any(Object)
         );
 
         loggerSpy.mockRestore();
@@ -1339,14 +1314,19 @@ describe('Authentication Flow Integration Tests', () => {
 
         // Step 2: Refresh token
         const refreshToken = loginResult.refreshToken;
-        const mockPayload = {
-          userId: mockUser.userId,
-          tokenId: 'token-123',
-        };
 
         mockUser.canLogin = vi.fn().mockReturnValue(true);
 
-        mockedJwt.verify = vi.fn().mockReturnValue(mockPayload as never);
+        mockedJwt.verify = vi.fn().mockReturnValue({ userId: mockUser.userId, jti: 'token-123' } as never);
+        MockedRefreshToken.findByPk = vi.fn().mockResolvedValue({
+          token_id: 'token-123',
+          user_id: mockUser.userId,
+          family_id: 'family-abc',
+          is_revoked: false,
+          expires_at: new Date(Date.now() + 3_600_000),
+          isExpired: vi.fn().mockReturnValue(false),
+          update: vi.fn().mockResolvedValue(undefined),
+        } as never);
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
 
         const refreshResult = await AuthService.refreshToken(refreshToken);

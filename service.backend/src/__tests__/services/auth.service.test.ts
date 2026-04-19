@@ -16,12 +16,14 @@ import crypto from 'crypto';
 import { AuditLog } from '../../models/AuditLog';
 import { AuditLogService } from '../../services/auditLog.service';
 import User, { UserStatus, UserType } from '../../models/User';
+import RefreshToken from '../../models/RefreshToken';
 import { AuthService } from '../../services/auth.service';
 import { LoginCredentials, RegisterData } from '../../types';
 
 // Mock dependencies
 vi.mock('../../models/User');
 vi.mock('../../models/AuditLog');
+vi.mock('../../models/RefreshToken');
 vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
 vi.mock('jsonwebtoken');
@@ -31,6 +33,7 @@ vi.mock('crypto');
 // Mock User model
 const MockedUser = User as Mock<typeof User>;
 const MockedAuditLog = AuditLog as Mock<typeof AuditLog>;
+const MockedRefreshToken = RefreshToken as Mock<typeof RefreshToken>;
 const MockedAuditLogService = AuditLogService as unknown as {
   log: Mock;
 };
@@ -65,12 +68,17 @@ describe('AuthService', () => {
     // Mock AuditLogService.log
     MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined);
 
-    // Mock the generateTokens method to avoid JWT secret issues
+    // Mock the generateTokens and storeRefreshToken methods to avoid JWT/DB issues
     vi.spyOn(AuthService as unknown, 'generateTokens').mockResolvedValue({
       token: 'mocked-access-token',
       refreshToken: 'mocked-refresh-token',
       expiresIn: 900000, // 15 minutes in ms
     });
+    vi.spyOn(AuthService as unknown, 'storeRefreshToken').mockResolvedValue(undefined);
+
+    // Default RefreshToken mock – individual tests override as needed
+    MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(null);
+    MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
   });
 
   afterAll(() => {
@@ -348,9 +356,16 @@ describe('AuthService', () => {
   describe('refreshToken', () => {
     it('should refresh token successfully', async () => {
       const refreshToken = 'valid-refresh-token';
-      const mockPayload = {
-        userId: 'user-123',
-        tokenId: 'token-123',
+      const mockPayload = { userId: 'user-123', jti: 'token-123' };
+
+      const mockStoredToken = {
+        token_id: 'token-123',
+        user_id: 'user-123',
+        family_id: 'family-abc',
+        is_revoked: false,
+        expires_at: new Date(Date.now() + 3_600_000),
+        isExpired: vi.fn().mockReturnValue(false),
+        update: vi.fn().mockResolvedValue(undefined),
       };
 
       const mockUser = {
@@ -366,6 +381,7 @@ describe('AuthService', () => {
       };
 
       mockedJwt.verify = vi.fn().mockReturnValue(mockPayload);
+      MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(mockStoredToken);
       MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
 
       const result = await AuthService.refreshToken(refreshToken);
@@ -374,6 +390,7 @@ describe('AuthService', () => {
         refreshToken,
         'test-refresh-secret-min-32-characters-long-12345'
       );
+      expect(MockedRefreshToken.findByPk).toHaveBeenCalledWith(mockPayload.jti);
       expect(MockedUser.findByPk).toHaveBeenCalledWith(mockPayload.userId, expect.any(Object));
       expect(result.user).toBeDefined();
       expect(result.token).toBe('mocked-access-token');
@@ -771,23 +788,16 @@ describe('AuthService', () => {
       await expect(AuthService.logout()).resolves.not.toThrow();
     });
 
-    it('should handle logout with refresh token', async () => {
-      const refreshToken = 'some.refresh.token';
-      await expect(AuthService.logout(refreshToken)).resolves.not.toThrow();
+    it('should handle logout with a valid refresh token', async () => {
+      mockedJwt.verify = vi.fn().mockReturnValue({ jti: 'some-token-id' });
+      await expect(AuthService.logout('some.valid.refresh.jwt')).resolves.not.toThrow();
     });
 
-    it('should log the logout event when refresh token provided', async () => {
-      const refreshToken = 'some.refresh.token.that.is.long.enough';
-      const { logger } = await import('../../utils/logger');
-      const loggerSpy = vi.spyOn(logger, 'info');
-
-      await AuthService.logout(refreshToken);
-
-      expect(loggerSpy).toHaveBeenCalledWith('User logout requested', {
-        refreshToken: 'some.refre...',
+    it('should not throw when logout is called with an expired or malformed token', async () => {
+      mockedJwt.verify = vi.fn().mockImplementation(() => {
+        throw new Error('jwt expired');
       });
-
-      loggerSpy.mockRestore();
+      await expect(AuthService.logout('expired.token')).resolves.not.toThrow();
     });
   });
 });

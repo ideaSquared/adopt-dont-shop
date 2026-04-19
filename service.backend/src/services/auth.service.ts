@@ -5,6 +5,7 @@ import { Op } from 'sequelize';
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
 import User, { UserStatus, UserType } from '../models/User';
+import RefreshToken from '../models/RefreshToken';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { env } from '../config/env';
@@ -108,12 +109,14 @@ export class AuthService {
         // Don't throw error - user is still created, they can request resend
       }
 
-      // Generate tokens
-      const tokens = await this.generateTokens({
-        userId: user.userId,
-        email: user.email,
-        userType: userData.userType,
-      });
+      // Generate tokens with rotation support
+      const tokenId = crypto.randomUUID();
+      const familyId = crypto.randomUUID();
+      const tokens = await this.generateTokens(
+        { userId: user.userId, email: user.email, userType: userData.userType },
+        tokenId
+      );
+      await this.storeRefreshToken(user.userId, tokenId, familyId);
 
       return {
         user: this.sanitizeUser(user),
@@ -225,12 +228,14 @@ export class AuthService {
         ipAddress,
       });
 
-      // Generate tokens
-      const tokens = await this.generateTokens({
-        userId: user.userId,
-        email: user.email,
-        userType: user.userType,
-      });
+      // Generate tokens with rotation support
+      const tokenId = crypto.randomUUID();
+      const familyId = crypto.randomUUID();
+      const tokens = await this.generateTokens(
+        { userId: user.userId, email: user.email, userType: user.userType },
+        tokenId
+      );
+      await this.storeRefreshToken(user.userId, tokenId, familyId);
 
       return {
         user: this.sanitizeUser(user),
@@ -247,22 +252,43 @@ export class AuthService {
   }
 
   static async refreshToken(refreshToken: string): Promise<AuthResponse> {
-    let decoded: { userId: string; tokenId: string } | null = null;
+    let decoded: { userId: string; jti: string } | null = null;
 
     try {
       decoded = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET) as {
         userId: string;
-        tokenId: string;
+        jti: string;
       };
+
+      const storedToken = await RefreshToken.findByPk(decoded.jti);
+
+      if (!storedToken) {
+        throw new Error('Invalid refresh token');
+      }
+
+      if (storedToken.is_revoked) {
+        // Reuse detected: revoke entire token family to protect the account
+        await RefreshToken.update(
+          { is_revoked: true },
+          { where: { family_id: storedToken.family_id, user_id: storedToken.user_id } }
+        );
+        loggerHelpers.logSecurity('Refresh token reuse detected – family revoked', {
+          userId: storedToken.user_id,
+          familyId: storedToken.family_id,
+        });
+        throw new Error('Invalid refresh token');
+      }
+
+      if (storedToken.isExpired()) {
+        await storedToken.update({ is_revoked: true });
+        throw new Error('Invalid refresh token');
+      }
+
       const user = await User.findByPk(decoded.userId, {
         include: [
           {
             association: 'Roles',
-            include: [
-              {
-                association: 'Permissions',
-              },
-            ],
+            include: [{ association: 'Permissions' }],
           },
         ],
       });
@@ -271,14 +297,17 @@ export class AuthService {
         throw new Error('Invalid refresh token');
       }
 
-      const tokens = await this.generateTokens({
-        userId: user.userId,
-        email: user.email,
-        userType: user.userType,
-      });
+      const newTokenId = crypto.randomUUID();
+      const newTokens = await this.generateTokens(
+        { userId: user.userId, email: user.email, userType: user.userType },
+        newTokenId
+      );
+      await this.storeRefreshToken(user.userId, newTokenId, storedToken.family_id);
+      await storedToken.update({ is_revoked: true, replaced_by_token_id: newTokenId });
+
       return {
         user: this.sanitizeUser(user),
-        ...tokens,
+        ...newTokens,
       };
     } catch (error) {
       logger.error('Token refresh failed:', {
@@ -540,26 +569,19 @@ Need help? Contact us at support@adoptdontshop.com
   }
 
   static async logout(refreshToken?: string): Promise<void> {
+    if (!refreshToken) {
+      return;
+    }
+
     try {
-      // TODO: Implement token blacklisting for more secure logout
-      // This would involve:
-      // 1. Adding the refresh token to a blacklist/revoked tokens table
-      // 2. Optionally invalidating all tokens for the user
-      // 3. Cleaning up expired blacklisted tokens periodically
-
-      if (refreshToken) {
-        // For now, we'll just log the logout event
-        // In a production system, you'd want to blacklist the token
-        logger.info('User logout requested', {
-          refreshToken: refreshToken.substring(0, 10) + '...',
-        });
+      const decoded = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET) as { jti?: string };
+      if (decoded.jti) {
+        await RefreshToken.update({ is_revoked: true }, { where: { token_id: decoded.jti } });
+        logger.info('Refresh token revoked on logout', { jti: decoded.jti });
       }
-
-      // Future implementation would include:
-      // await TokenBlacklist.create({ token: refreshToken, expires_at: tokenExpiry });
-    } catch (error) {
-      logger.error('Logout service error:', error);
-      throw error;
+    } catch {
+      // Expired or malformed token — nothing to revoke
+      logger.info('Logout with invalid or expired token, skipping revocation');
     }
   }
 
@@ -627,11 +649,10 @@ Need help? Contact us at support@adoptdontshop.com
     }
   }
 
-  private static async generateTokens(payload: {
-    userId: string;
-    email: string;
-    userType?: UserType;
-  }): Promise<Omit<AuthResponse, 'user'>> {
+  private static async generateTokens(
+    payload: { userId: string; email: string; userType?: UserType },
+    tokenId: string
+  ): Promise<Omit<AuthResponse, 'user'>> {
     const jwtSecret = this.JWT_SECRET;
     const jwtRefreshSecret = this.JWT_REFRESH_SECRET;
 
@@ -643,15 +664,35 @@ Need help? Contact us at support@adoptdontshop.com
       expiresIn: this.JWT_EXPIRES_IN,
     } as SignOptions);
 
-    const refreshToken = jwt.sign(payload, jwtRefreshSecret, {
-      expiresIn: this.JWT_REFRESH_EXPIRES_IN,
-    } as SignOptions);
+    const refreshToken = jwt.sign(
+      { ...payload, jti: tokenId },
+      jwtRefreshSecret,
+      { expiresIn: this.JWT_REFRESH_EXPIRES_IN } as SignOptions
+    );
 
     return {
       token,
       refreshToken,
       expiresIn: this.parseExpirationTime(this.JWT_EXPIRES_IN),
     };
+  }
+
+  private static async storeRefreshToken(
+    userId: string,
+    tokenId: string,
+    familyId: string
+  ): Promise<void> {
+    const expiresAt = new Date(
+      Date.now() + this.parseExpirationTime(this.JWT_REFRESH_EXPIRES_IN)
+    );
+    await RefreshToken.create({
+      token_id: tokenId,
+      user_id: userId,
+      family_id: familyId,
+      is_revoked: false,
+      expires_at: expiresAt,
+      replaced_by_token_id: null,
+    });
   }
 
   private static parseExpirationTime(expiresIn: string): number {

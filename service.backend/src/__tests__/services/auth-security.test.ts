@@ -17,6 +17,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import User, { UserStatus, UserType } from '../../models/User';
+import RefreshToken from '../../models/RefreshToken';
 import { AuthService } from '../../services/auth.service';
 import { LoginCredentials, RegisterData } from '../../types/auth';
 
@@ -37,6 +38,10 @@ vi.mock('crypto');
 // Mock speakeasy
 vi.mock('speakeasy');
 const MockedSpeakeasy = speakeasy as vi.MockedObject<typeof speakeasy>;
+
+// Mock RefreshToken model so token storage doesn't hit the DB
+vi.mock('../../models/RefreshToken');
+const MockedRefreshToken = RefreshToken as vi.MockedObject<typeof RefreshToken>;
 
 // Mock qrcode
 vi.mock('qrcode', () => ({
@@ -117,6 +122,11 @@ describe('AuthService - Security Business Logic', () => {
     // Setup JWT mocks
     MockedJwt.sign = vi.fn().mockReturnValue('mock-token');
     MockedJwt.verify = vi.fn();
+
+    // Setup RefreshToken mock defaults
+    MockedRefreshToken.create = vi.fn().mockResolvedValue({});
+    MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
+    MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(null);
 
     // Setup speakeasy mocks
     if (!MockedSpeakeasy.totp) {
@@ -785,9 +795,19 @@ describe('AuthService - Security Business Logic', () => {
     });
 
     it('should verify refresh token before generating new tokens', async () => {
-      // Given: Valid refresh token
+      // Given: Valid refresh token with a matching DB record
       const mockUser = createMockUser();
-      MockedJwt.verify = vi.fn().mockReturnValue({ userId: mockUserId, tokenId: 'token-id' });
+      const mockStoredToken = {
+        token_id: 'token-id',
+        user_id: mockUserId,
+        family_id: 'family-abc',
+        is_revoked: false,
+        expires_at: new Date(Date.now() + 3_600_000),
+        isExpired: vi.fn().mockReturnValue(false),
+        update: vi.fn().mockResolvedValue(undefined),
+      };
+      MockedJwt.verify = vi.fn().mockReturnValue({ userId: mockUserId, jti: 'token-id' });
+      MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(mockStoredToken);
       MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
 
       // When: Refreshing token
@@ -812,8 +832,18 @@ describe('AuthService - Security Business Logic', () => {
     });
 
     it('should reject refresh token for non-existent user', async () => {
-      // Given: Token for deleted/non-existent user
-      MockedJwt.verify = vi.fn().mockReturnValue({ userId: 'deleted-user', tokenId: 'token-id' });
+      // Given: Token exists in DB but user has been deleted
+      const mockStoredToken = {
+        token_id: 'token-id',
+        user_id: 'deleted-user',
+        family_id: 'family-abc',
+        is_revoked: false,
+        expires_at: new Date(Date.now() + 3_600_000),
+        isExpired: vi.fn().mockReturnValue(false),
+        update: vi.fn().mockResolvedValue(undefined),
+      };
+      MockedJwt.verify = vi.fn().mockReturnValue({ userId: 'deleted-user', jti: 'token-id' });
+      MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(mockStoredToken);
       MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
       // When & Then: Refresh fails
@@ -823,11 +853,20 @@ describe('AuthService - Security Business Logic', () => {
     });
 
     it('should reject refresh token if user cannot login', async () => {
-      // Given: Token for suspended user
+      // Given: Token exists in DB but user is suspended
       const suspendedUser = createMockUser();
       suspendedUser.canLogin.mockReturnValue(false);
-
-      MockedJwt.verify = vi.fn().mockReturnValue({ userId: mockUserId, tokenId: 'token-id' });
+      const mockStoredToken = {
+        token_id: 'token-id',
+        user_id: mockUserId,
+        family_id: 'family-abc',
+        is_revoked: false,
+        expires_at: new Date(Date.now() + 3_600_000),
+        isExpired: vi.fn().mockReturnValue(false),
+        update: vi.fn().mockResolvedValue(undefined),
+      };
+      MockedJwt.verify = vi.fn().mockReturnValue({ userId: mockUserId, jti: 'token-id' });
+      MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(mockStoredToken);
       MockedUser.findByPk = vi.fn().mockResolvedValue(suspendedUser);
 
       // When & Then: Refresh fails
