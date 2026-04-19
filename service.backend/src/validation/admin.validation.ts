@@ -1,6 +1,6 @@
 import { body, param, query } from 'express-validator';
 
-const USER_ACTIONS = ['suspend', 'unsuspend', 'ban', 'warn', 'restrict', 'activate', 'deactivate'];
+const USER_ACTIONS = ['suspend', 'unsuspend', 'verify', 'update_status', 'delete'];
 const EXPORT_TYPES = ['users', 'pets', 'applications', 'rescues', 'reports', 'audit-logs'];
 
 export const adminValidation = {
@@ -31,10 +31,10 @@ export const adminValidation = {
       .withMessage('Role must be a string of 1-50 characters'),
   ],
 
-  getUserDetails: [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
+  getUserDetails: [param('userId').isString().notEmpty().withMessage('User ID is required')],
 
   performUserAction: [
-    param('userId').isUUID().withMessage('User ID must be a valid UUID'),
+    param('userId').isString().notEmpty().withMessage('User ID is required'),
     body('action')
       .isIn(USER_ACTIONS)
       .withMessage(`Action must be one of: ${USER_ACTIONS.join(', ')}`),
@@ -49,7 +49,7 @@ export const adminValidation = {
       .withMessage('Duration must be between 1 and 8760 hours'),
   ],
 
-  updateUserProfile: [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
+  updateUserProfile: [param('userId').isString().notEmpty().withMessage('User ID is required')],
 
   moderateRescue: [
     param('rescueId').isUUID().withMessage('Rescue ID must be a valid UUID'),
@@ -80,7 +80,7 @@ export const adminValidation = {
       .isISO8601()
       .withMessage('Start date must be a valid ISO 8601 date'),
     query('endDate').optional().isISO8601().withMessage('End date must be a valid ISO 8601 date'),
-    query('userId').optional().isUUID().withMessage('User ID must be a valid UUID'),
+    query('userId').optional().isString().notEmpty().withMessage('User ID must be a non-empty string'),
     query('action')
       .optional()
       .isString()
