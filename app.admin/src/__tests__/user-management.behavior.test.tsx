@@ -85,9 +85,15 @@ vi.mock('../components/modals', () => ({
         <span>Ticket for: {user.email}</span>
       </div>
     ) : null,
-  UserActionsMenu: ({ user }: { user: AdminUser; onSuspend: () => void; onUnsuspend: () => void; onVerify: () => void; onDelete: () => void }) => (
-    <button data-testid={`actions-${user.userId}`}>Actions</button>
-  ),
+  UserActionsMenu: ({
+    user,
+  }: {
+    user: AdminUser;
+    onSuspend: () => void;
+    onUnsuspend: () => void;
+    onVerify: () => void;
+    onDelete: () => void;
+  }) => <button data-testid={`actions-${user.userId}`}>Actions</button>,
 }));
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────

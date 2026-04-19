@@ -127,9 +127,7 @@ describe('ProtectedRoute', () => {
         </ProtectedRoute>
       );
 
-      expect(
-        screen.getByText(/restricted to platform administrators/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/restricted to platform administrators/i)).toBeInTheDocument();
     });
 
     it('does not show the protected content', () => {

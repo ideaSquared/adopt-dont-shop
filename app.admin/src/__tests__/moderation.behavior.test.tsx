@@ -31,11 +31,10 @@ vi.mock('@adopt-dont-shop/lib.moderation', () => ({
   useReports: (...args: unknown[]) => mockUseReports(...args),
   useModerationMetrics: () => mockUseModerationMetrics(),
   useReportMutations: () => mockUseReportMutations(),
-  getSeverityLabel: (severity: string) =>
-    severity.charAt(0).toUpperCase() + severity.slice(1),
+  getSeverityLabel: (severity: string) => severity.charAt(0).toUpperCase() + severity.slice(1),
   getStatusLabel: (status: string) =>
     status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-  formatRelativeTime: (date: Date) => '2 hours ago',
+  formatRelativeTime: (_date: Date) => '2 hours ago',
 }));
 
 vi.mock('../components/moderation/ReportDetailModal', () => ({
@@ -96,7 +95,12 @@ const makeReport = (overrides: Partial<Report> = {}): Report => ({
 });
 
 const mockReports: Report[] = [
-  makeReport({ reportId: 'report-1', title: 'Harassment Report', severity: 'high', status: 'pending' }),
+  makeReport({
+    reportId: 'report-1',
+    title: 'Harassment Report',
+    severity: 'high',
+    status: 'pending',
+  }),
   makeReport({
     reportId: 'report-2',
     title: 'Spam Content',
@@ -212,7 +216,9 @@ describe('Content Moderation page', () => {
       });
 
       renderWithProviders(<Moderation />);
-      expect(screen.getByText(/error loading reports.*failed to load reports/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/error loading reports.*failed to load reports/i)
+      ).toBeInTheDocument();
     });
   });
 
@@ -296,9 +302,7 @@ describe('Content Moderation page', () => {
       await user.selectOptions(statusSelect, 'pending');
 
       await waitFor(() => {
-        expect(mockUseReports).toHaveBeenCalledWith(
-          expect.objectContaining({ status: 'pending' })
-        );
+        expect(mockUseReports).toHaveBeenCalledWith(expect.objectContaining({ status: 'pending' }));
       });
     });
 

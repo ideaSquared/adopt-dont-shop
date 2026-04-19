@@ -21,9 +21,7 @@ describe('Dashboard page', () => {
 
     it('shows a welcome message to the admin', () => {
       renderWithProviders(<Dashboard />);
-      expect(
-        screen.getByText(/welcome back.*here's what's happening/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/welcome back.*here's what's happening/i)).toBeInTheDocument();
     });
   });
 

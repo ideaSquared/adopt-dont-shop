@@ -179,9 +179,7 @@ describe('Rescue Management page', () => {
     it('shows the search input', async () => {
       renderWithProviders(<Rescues />);
       await waitFor(() => {
-        expect(
-          screen.getByPlaceholderText(/search by name, city, or email/i)
-        ).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/search by name, city, or email/i)).toBeInTheDocument();
       });
     });
 
@@ -373,14 +371,12 @@ describe('Rescue Management page', () => {
     it('filters to only pending rescues when admin selects Pending Review', async () => {
       const user = userEvent.setup();
       const pendingOnly = [mockRescues[0]];
-      mockGetAll.mockImplementation(
-        (filters: { status?: string }) => {
-          if (filters.status === 'pending') {
-            return Promise.resolve(mockPaginatedResponse(pendingOnly));
-          }
-          return Promise.resolve(mockPaginatedResponse());
+      mockGetAll.mockImplementation((filters: { status?: string }) => {
+        if (filters.status === 'pending') {
+          return Promise.resolve(mockPaginatedResponse(pendingOnly));
         }
-      );
+        return Promise.resolve(mockPaginatedResponse());
+      });
 
       renderWithProviders(<Rescues />);
       await waitFor(() => screen.getByDisplayValue('All Statuses'));
