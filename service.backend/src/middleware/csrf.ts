@@ -2,7 +2,6 @@ import { doubleCsrf, DoubleCsrfConfigOptions } from 'csrf-csrf';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 import { config } from '../config';
-import { AuthenticatedRequest } from '../types';
 
 // CSRF Configuration
 const isProduction = process.env.NODE_ENV === 'production';
@@ -10,9 +9,10 @@ const isProduction = process.env.NODE_ENV === 'production';
 const csrfConfig: DoubleCsrfConfigOptions = {
   getSecret: () => config.security.csrfSecret, // Validated at startup (minimum 32 characters)
   getSessionIdentifier: req => {
-    // Use user ID if authenticated, otherwise use IP address
-    const authenticatedReq = req as AuthenticatedRequest;
-    return authenticatedReq.user?.userId || req.ip || 'anonymous';
+    // Use IP address consistently — the CSRF token endpoint is unauthenticated,
+    // so binding by userId would cause the token to be generated under one identifier
+    // (IP) but validated under another (userId), breaking the double-submit check.
+    return req.ip || 'anonymous';
   },
   // Use __Host- prefix only in production (requires secure context)
   cookieName: isProduction ? '__Host-psifi.x-csrf-token' : 'psifi.x-csrf-token',

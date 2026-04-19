@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { PetController } from '../controllers/pet.controller';
 import { authenticateToken, authenticateOptionalToken } from '../middleware/auth';
+import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { requirePermission } from '../middleware/rbac';
 import { handleValidationErrors } from '../middleware/validation';
 import { petValidation } from '../validation/pet.validation';
@@ -204,6 +205,7 @@ const petController = new PetController();
 router.get(
   '/',
   authenticateOptionalToken,
+  fieldMask('pets'),
   PetController.validateSearchPets,
   petController.searchPets
 );
@@ -1170,7 +1172,12 @@ router.get('/favorites/user', authenticateToken, petController.getUserFavorites)
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/:petId', PetController.validatePetId, petController.getPetById);
+router.get(
+  '/:petId',
+  fieldMask('pets', { resourceIdParam: 'petId' }),
+  PetController.validatePetId,
+  petController.getPetById
+);
 
 /**
  * @swagger
@@ -1332,6 +1339,7 @@ router.post(
   '/',
   authenticateToken,
   requirePermission('pets.create'),
+  fieldWriteGuard('pets', { audit: true }),
   PetController.validateCreatePet,
   petController.createPet
 );
@@ -1340,6 +1348,7 @@ router.put(
   '/:petId',
   authenticateToken,
   requirePermission('pets.update'),
+  fieldWriteGuard('pets', { audit: true, resourceIdParam: 'petId' }),
   PetController.validateUpdatePet,
   petController.updatePet
 );
@@ -1348,6 +1357,7 @@ router.patch(
   '/:petId',
   authenticateToken,
   requirePermission('pets.update'),
+  fieldWriteGuard('pets', { audit: true, resourceIdParam: 'petId' }),
   PetController.validateUpdatePet,
   petController.updatePet
 );

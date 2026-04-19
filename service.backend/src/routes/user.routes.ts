@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import UserController, { userValidation } from '../controllers/user.controller';
 import { authenticateToken } from '../middleware/auth';
+import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { requirePermission, requirePermissionOrOwnership } from '../middleware/rbac';
 import { PERMISSIONS } from '../types';
 
@@ -112,7 +113,7 @@ router.use(authenticateToken);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/profile', UserController.getCurrentUserProfile);
+router.get('/profile', fieldMask('users', { audit: true }), UserController.getCurrentUserProfile);
 
 /**
  * @swagger
@@ -247,7 +248,12 @@ router.get('/profile', UserController.getCurrentUserProfile);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.put('/profile', userValidation.updateProfile, UserController.updateUser);
+router.put(
+  '/profile',
+  fieldWriteGuard('users', { audit: true }),
+  userValidation.updateProfile,
+  UserController.updateUser
+);
 
 /**
  * @swagger
@@ -849,6 +855,7 @@ router.delete('/account', UserController.deleteAccount);
 router.get(
   '/search',
   requirePermission(PERMISSIONS.ADMIN_USER_SEARCH),
+  fieldMask('users', { audit: true }),
   userValidation.searchUsers,
   UserController.searchUsers
 );
@@ -1029,6 +1036,7 @@ router.get(
 router.get(
   '/:userId',
   requirePermissionOrOwnership(PERMISSIONS.USER_READ, 'userId'),
+  fieldMask('users', { audit: true, resourceIdParam: 'userId' }),
   UserController.getUserById
 );
 
@@ -1100,6 +1108,7 @@ router.get(
 router.put(
   '/:userId',
   requirePermissionOrOwnership(PERMISSIONS.USER_UPDATE, 'userId'),
+  fieldWriteGuard('users', { audit: true, resourceIdParam: 'userId' }),
   userValidation.updateProfile,
   UserController.updateUser
 );

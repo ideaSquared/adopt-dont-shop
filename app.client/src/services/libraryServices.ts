@@ -25,7 +25,7 @@ console.log('🔧 DEBUG: DEV =', import.meta.env.DEV);
 import { apiService as globalApiService } from '@adopt-dont-shop/lib.api';
 
 // Configure with the proper base URL (no '/api' path - that's added by services)
-const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const baseUrl = import.meta.env.VITE_API_BASE_URL ?? '';
 globalApiService.updateConfig({
   apiUrl: baseUrl,
   debug: import.meta.env.DEV,

@@ -107,15 +107,14 @@ export class ApiService {
   }
 
   private getBaseUrl(): string {
-    // ✅ IMPROVED: Better fallback logic for different environments
-
-    // For browser environments, try to get from environment first
+    // For browser environments, use relative URLs so all requests go through
+    // the same origin (Vite proxy in dev, nginx in prod). This is critical
+    // for CSRF cookies to be scoped to the same origin as the app.
     if (typeof window !== 'undefined') {
-      // Development fallback - use localhost:5000 instead of relative '/api'
-      return 'http://localhost:5000';
+      return '';
     }
 
-    // For Node.js environments
+    // For Node.js environments (SSR / tests)
     if (typeof process !== 'undefined' && process.env.NODE_ENV) {
       if (process.env.NODE_ENV === 'production') {
         return 'https://api.adoptdontshop.com';
@@ -123,8 +122,7 @@ export class ApiService {
       return 'http://localhost:5000';
     }
 
-    // Last resort fallback
-    return 'http://localhost:5000';
+    return '';
   }
 
   /**

@@ -58,9 +58,22 @@ services:
     ports:
       - '5000:5000'
     volumes:
-      - ./service.backend:/app
-      - /app/node_modules
-      - ./uploads:/app/uploads
+      - ./service.backend:/app/service.backend
+      - ./lib.types:/app/lib.types
+      - /app/service.backend/node_modules
+      - lib_types_node_modules:/app/lib.types/node_modules
+      - ./uploads:/app/service.backend/uploads
+    # Build lib.types from the bind-mounted source at startup, using the
+    # Docker-installed TypeScript (preserved by lib_types_node_modules volume).
+    # Then symlink lib.types into the backend's node_modules so require()
+    # always resolves to the freshly-built dist, regardless of host state.
+    command: >
+      sh -c "cd /app/lib.types && npm run build &&
+             cd /app/service.backend &&
+             mkdir -p node_modules/@adopt-dont-shop &&
+             rm -rf node_modules/@adopt-dont-shop/lib.types &&
+             ln -s /app/lib.types node_modules/@adopt-dont-shop/lib.types &&
+             npm run dev"
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 5000
@@ -121,7 +134,8 @@ services:
       - /app/app.admin/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      VITE_API_BASE_URL: http://localhost:5000
+      DOCKER_ENV: 'true'
+      VITE_API_BASE_URL: ''
       VITE_WS_BASE_URL: ws://localhost:5000
       # Memory and file watching optimizations
       CHOKIDAR_USEPOLLING: true
@@ -157,7 +171,8 @@ services:
       - /app/app.client/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      VITE_API_BASE_URL: http://localhost:5000
+      DOCKER_ENV: 'true'
+      VITE_API_BASE_URL: ''
       VITE_WS_BASE_URL: ws://localhost:5000
       # Memory and file watching optimizations
       CHOKIDAR_USEPOLLING: true
@@ -193,8 +208,8 @@ services:
       - /app/app.rescue/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      DOCKER_ENV: true
-      VITE_API_BASE_URL: http://localhost:5000
+      DOCKER_ENV: 'true'
+      VITE_API_BASE_URL: ''
       VITE_WS_BASE_URL: ws://localhost:5000
       # Memory and file watching optimizations - Enable polling for Windows
       CHOKIDAR_USEPOLLING: true
@@ -242,6 +257,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  lib_types_node_modules:
 
 # ============================================================================
 # NETWORKS

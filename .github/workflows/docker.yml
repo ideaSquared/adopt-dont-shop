@@ -184,26 +184,26 @@ jobs:
 
       - name: Build and start core services
         run: |
-          docker compose up -d database redis
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database redis
           echo "Waiting for database to be ready..."
-          timeout 60 bash -c 'until docker compose exec -T database pg_isready -U postgres; do sleep 2; done'
+          timeout 60 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -U postgres; do sleep 2; done'
 
       - name: Build and start backend service
         run: |
-          docker compose up -d service-backend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d service-backend
           echo "Waiting for backend to be ready..."
           timeout 90 bash -c 'until curl -f http://localhost:5000/health; do sleep 3; done'
 
       - name: Build and start frontend apps
         run: |
           echo "Starting app-client..."
-          docker compose up -d app-client
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d app-client
           sleep 10
           echo "Starting app-admin..."
-          docker compose up -d app-admin
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d app-admin
           sleep 10
           echo "Starting app-rescue..."
-          docker compose up -d app-rescue
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d app-rescue
           sleep 10
 
       - name: Wait for all services to be ready
@@ -223,21 +223,21 @@ jobs:
 
       - name: Show container status
         if: always()
-        run: docker compose ps
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
 
       - name: Show service logs on failure
         if: failure()
         run: |
           echo "=== Backend logs ==="
-          docker compose logs service-backend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs service-backend
           echo "=== Database logs ==="
-          docker compose logs database
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database
           echo "=== App Client logs ==="
-          docker compose logs app-client
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs app-client
 
       - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
 
   security-scan:
     name: Security Scan

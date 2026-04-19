@@ -5,6 +5,7 @@ import { defineConfig } from 'vite';
 export default defineConfig(({ mode }) => {
   // Check if we're running in Docker (service-backend hostname is available)
   const isDocker = process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'production';
+  const backendHost = isDocker ? 'service-backend' : 'localhost';
 
   // Development aliases for all libraries to use source files directly
   const libraryAliases =
@@ -68,21 +69,18 @@ export default defineConfig(({ mode }) => {
       hmr: {
         overlay: true,
       },
-      // Use proxy for local development outside Docker
-      proxy: !isDocker
-        ? {
-            '/api': {
-              target: 'http://localhost:5000',
-              changeOrigin: true,
-              secure: false,
-            },
-            '/health': {
-              target: 'http://localhost:5000',
-              changeOrigin: true,
-              secure: false,
-            },
-          }
-        : undefined,
+      proxy: {
+        '/api': {
+          target: `http://${backendHost}:5000`,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/health': {
+          target: `http://${backendHost}:5000`,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
     },
     build: {
       outDir: 'dist',
