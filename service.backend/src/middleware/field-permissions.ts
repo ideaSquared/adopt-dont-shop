@@ -64,7 +64,11 @@ const getOverrides = async (
 
     return overrides;
   } catch (error) {
-    logger.error('Failed to fetch field permission overrides', { resource, role, error });
+    logger.error('Failed to fetch field permission overrides', {
+      message: error instanceof Error ? error.message : String(error),
+      resource,
+      role,
+    });
     return [];
   }
 };
@@ -84,7 +88,20 @@ const getEffectiveAccessMap = async (
   role: string
 ): Promise<Record<string, FieldAccessLevel>> => {
   const userRole = role as 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
-  const defaults = getFieldAccessMap(resource, userRole);
+
+  let defaults: Record<string, FieldAccessLevel>;
+  try {
+    defaults = getFieldAccessMap(resource, userRole);
+  } catch (err) {
+    logger.error('getFieldAccessMap threw — using empty defaults', {
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      resource,
+      role,
+    });
+    defaults = {};
+  }
+
   const overrides = await getOverrides(resource, role);
 
   const effective: Record<string, FieldAccessLevel> = { ...defaults };
@@ -188,7 +205,12 @@ export const fieldMask = (
     try {
       accessMap = await getEffectiveAccessMap(resource, role);
     } catch (error) {
-      logger.error('Failed to fetch field access map — failing closed', { error, resource, role });
+      logger.error('Failed to fetch field access map — failing closed', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        resource,
+        role,
+      });
       res.status(500).json({ error: 'Field permission check failed' });
       return;
     }
