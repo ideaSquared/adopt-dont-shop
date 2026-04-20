@@ -189,8 +189,8 @@ export const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
             data-testid='document-upload-input'
           />
           <SupportedFormats>
-            Supported formats: PDF, JPG, PNG, DOC, DOCX · Max size: 5MB per file · Up to{' '}
-            {MAX_FILES} files
+            Supported formats: PDF, JPG, PNG, DOC, DOCX · Max size: 5MB per file · Up to {MAX_FILES}{' '}
+            files
           </SupportedFormats>
         </div>
 

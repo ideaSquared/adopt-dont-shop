@@ -1,26 +1,21 @@
 import { lazy, Suspense, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { Spinner } from '@adopt-dont-shop/lib.components';
+import { Footer, Spinner } from '@adopt-dont-shop/lib.components';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
-import { Footer } from '@adopt-dont-shop/lib.components';
 import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppNavbar } from './components/navigation/AppNavbar';
 import { SwipeOnboarding } from './components/onboarding/SwipeOnboarding';
 import { SwipeFloatingButton } from './components/ui/SwipeFloatingButton';
 
-const HomePage = lazy(() =>
-  import('@/pages/HomePage').then(m => ({ default: m.HomePage }))
-);
+const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));
 const DiscoveryPage = lazy(() =>
   import('./components/discovery/DiscoveryPage').then(m => ({ default: m.DiscoveryPage }))
 );
-const SearchPage = lazy(() =>
-  import('@/pages/SearchPage').then(m => ({ default: m.SearchPage }))
-);
+const SearchPage = lazy(() => import('@/pages/SearchPage').then(m => ({ default: m.SearchPage })));
 const PetDetailsPage = lazy(() =>
   import('@/pages/PetDetailsPage').then(m => ({ default: m.PetDetailsPage }))
 );
@@ -45,9 +40,7 @@ const NotificationsPage = lazy(() =>
 const ChatPage = lazy(() =>
   import('./components/chat/ChatPage').then(m => ({ default: m.ChatPage }))
 );
-const LoginPage = lazy(() =>
-  import('@/pages/LoginPage').then(m => ({ default: m.LoginPage }))
-);
+const LoginPage = lazy(() => import('@/pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() =>
   import('@/pages/RegisterPage').then(m => ({ default: m.RegisterPage }))
 );
