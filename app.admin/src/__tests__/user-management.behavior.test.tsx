@@ -98,8 +98,15 @@ vi.mock('../components/modals', () => ({
   }) => (
     <div>
       <button data-testid={`actions-${user.userId}`}>Actions</button>
-      <button data-testid={`suspend-${user.userId}`} onClick={() => onSuspend(user.userId, 'test reason')}>Suspend</button>
-      <button data-testid={`unsuspend-${user.userId}`} onClick={() => onUnsuspend(user.userId)}>Unsuspend</button>
+      <button
+        data-testid={`suspend-${user.userId}`}
+        onClick={() => onSuspend(user.userId, 'test reason')}
+      >
+        Suspend
+      </button>
+      <button data-testid={`unsuspend-${user.userId}`} onClick={() => onUnsuspend(user.userId)}>
+        Unsuspend
+      </button>
     </div>
   ),
 }));

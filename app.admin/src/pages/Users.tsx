@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Heading, Text, Button, Input, useToast, Toast, ToastContainer, type ToastMessage } from '@adopt-dont-shop/lib.components';
+import {
+  Heading,
+  Text,
+  Button,
+  Input,
+  useToast,
+  Toast,
+  ToastContainer,
+  type ToastMessage,
+} from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail, FiShield } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { useUsers, useSuspendUser, useUnsuspendUser, useVerifyUser, useDeleteUser } from '../hooks';
