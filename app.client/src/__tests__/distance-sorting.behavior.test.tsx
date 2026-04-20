@@ -312,4 +312,62 @@ describe('Distance Sorting - Behavioral Tests', () => {
       });
     });
   });
+
+  describe('Manual Location Entry', () => {
+    it('shows "Use as Location" button when location text is entered', async () => {
+      renderWithProviders(<SearchPage />);
+
+      const locationInput = await screen.findByLabelText(/^location$/i);
+      const user = userEvent.setup();
+      await user.type(locationInput, 'New York, NY');
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /use as location/i })).toBeInTheDocument();
+      });
+    });
+
+    it('detects location after successfully geocoding typed location', async () => {
+      server.use(
+        http.get('https://nominatim.openstreetmap.org/search', () => {
+          return HttpResponse.json([
+            { lat: '40.7128', lon: '-74.0060', display_name: 'New York, NY, USA' },
+          ]);
+        })
+      );
+
+      renderWithProviders(<SearchPage />);
+
+      const locationInput = await screen.findByLabelText(/^location$/i);
+      const user = userEvent.setup();
+      await user.type(locationInput, 'New York, NY');
+
+      const useAsLocationButton = await screen.findByRole('button', { name: /use as location/i });
+      await user.click(useAsLocationButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/location detected/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows error when typed location cannot be geocoded', async () => {
+      server.use(
+        http.get('https://nominatim.openstreetmap.org/search', () => {
+          return HttpResponse.json([]);
+        })
+      );
+
+      renderWithProviders(<SearchPage />);
+
+      const locationInput = await screen.findByLabelText(/^location$/i);
+      const user = userEvent.setup();
+      await user.type(locationInput, 'XYZ999InvalidPlace');
+
+      const useAsLocationButton = await screen.findByRole('button', { name: /use as location/i });
+      await user.click(useAsLocationButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/location not found/i)).toBeInTheDocument();
+      });
+    });
+  });
 });

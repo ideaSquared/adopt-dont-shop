@@ -4,6 +4,7 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService, PaginatedResponse, Pet, PetSearchFilters } from '@/services';
+import { geocodeLocation } from '@/utils/geocoding';
 import {
   Button,
   Card,
@@ -267,6 +268,8 @@ export const SearchPage: React.FC = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [isGeocodingLocation, setIsGeocodingLocation] = useState(false);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
   // Log page view
   useEffect(() => {
@@ -461,6 +464,9 @@ export const SearchPage: React.FC = () => {
   }, [loadPets]);
 
   const handleFilterChange = (field: keyof PetSearchFilters, value: string) => {
+    if (field === 'location') {
+      setGeocodeError(null);
+    }
     setFilters(prev => ({
       ...prev,
       [field]: value,
@@ -485,6 +491,26 @@ export const SearchPage: React.FC = () => {
     }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  const handleUseLocationText = async () => {
+    if (!filters.location?.trim()) return;
+
+    setIsGeocodingLocation(true);
+    setGeocodeError(null);
+
+    try {
+      const result = await geocodeLocation(filters.location);
+      if (result) {
+        geolocation.setManualLocation(result.latitude, result.longitude);
+      } else {
+        setGeocodeError('Location not found. Please try a more specific location.');
+      }
+    } catch {
+      setGeocodeError('Failed to look up location. Please try again.');
+    } finally {
+      setIsGeocodingLocation(false);
+    }
+  };
+
   const clearFilters = () => {
     setFilters({
       page: 1,
@@ -493,6 +519,7 @@ export const SearchPage: React.FC = () => {
       sortOrder: 'desc',
     });
     setSearchQuery('');
+    setGeocodeError(null);
     geolocation.clearLocation();
   };
 
@@ -600,6 +627,16 @@ export const SearchPage: React.FC = () => {
                 ? 'Update My Location'
                 : 'Use My Location'}
           </LocationButton>
+          {filters.location?.trim() && (
+            <LocationButton
+              variant='outline'
+              size='sm'
+              onClick={handleUseLocationText}
+              disabled={isGeocodingLocation}
+            >
+              {isGeocodingLocation ? 'Finding...' : 'Use as Location'}
+            </LocationButton>
+          )}
           {geolocation.hasLocation && (
             <LocationButton variant='outline' size='sm' onClick={geolocation.clearLocation}>
               Clear Location
@@ -618,6 +655,9 @@ export const SearchPage: React.FC = () => {
           )}
           {geolocation.status === 'unavailable' && (
             <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
+          )}
+          {geocodeError && (
+            <LocationStatus $variant='error'>{geocodeError}</LocationStatus>
           )}
         </LocationFilterRow>
 

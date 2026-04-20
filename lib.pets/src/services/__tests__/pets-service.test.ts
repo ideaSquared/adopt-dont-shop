@@ -84,6 +84,79 @@ describe('PetsService', () => {
 
       await expect(service.searchPets()).rejects.toThrow('API Error');
     });
+
+    describe('distance-based search', () => {
+      const mockDistanceResponse = {
+        success: true,
+        data: [
+          {
+            pet_id: 'pet-1',
+            name: 'Buddy',
+            type: 'dog',
+            distance: 5.2,
+            images: [],
+            videos: [],
+            location: { type: 'Point', coordinates: [-74.006, 40.7128] },
+            tags: [],
+            temperament: [],
+            created_at: '2023-01-01',
+            updated_at: '2023-01-01',
+          },
+        ],
+        meta: { page: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+      };
+
+      it('sends user coordinates to the API when latitude and longitude are provided', async () => {
+        mockApiService.get.mockResolvedValueOnce(mockDistanceResponse);
+
+        await service.searchPets({ latitude: 40.7128, longitude: -74.006 });
+
+        expect(mockApiService.get).toHaveBeenCalledWith(
+          '/api/v1/pets',
+          expect.objectContaining({ lat: 40.7128, lng: -74.006 })
+        );
+      });
+
+      it('does not send lat/lng params when no coordinates are provided', async () => {
+        mockApiService.get.mockResolvedValueOnce(mockDistanceResponse);
+
+        await service.searchPets({ type: 'dog' });
+
+        const callArgs = mockApiService.get.mock.calls[0][1] as Record<string, unknown>;
+        expect(callArgs).not.toHaveProperty('lat');
+        expect(callArgs).not.toHaveProperty('lng');
+      });
+
+      it('sends maxDistance filter to the API', async () => {
+        mockApiService.get.mockResolvedValueOnce(mockDistanceResponse);
+
+        await service.searchPets({ latitude: 40.7128, longitude: -74.006, maxDistance: 25 });
+
+        expect(mockApiService.get).toHaveBeenCalledWith(
+          '/api/v1/pets',
+          expect.objectContaining({ maxDistance: 25 })
+        );
+      });
+
+      it('maps distance sort option to the API sortBy parameter', async () => {
+        mockApiService.get.mockResolvedValueOnce(mockDistanceResponse);
+
+        await service.searchPets({ sortBy: 'distance', sortOrder: 'asc' });
+
+        expect(mockApiService.get).toHaveBeenCalledWith(
+          '/api/v1/pets',
+          expect.objectContaining({ sortBy: 'distance', sortOrder: 'ASC' })
+        );
+      });
+
+      it('includes distance field from API response in returned pet data', async () => {
+        mockApiService.get.mockResolvedValueOnce(mockDistanceResponse);
+
+        const result = await service.searchPets({ latitude: 40.7128, longitude: -74.006 });
+
+        expect(result.data[0].distance).toBe(5.2);
+      });
+    });
   });
 
   describe('getPetById', () => {
