@@ -4,6 +4,7 @@ import {
   ProfileCompletionPrompt,
   QuickApplicationPrompt,
 } from '@/components/application';
+import { useAutoSave } from '@/hooks/use-auto-save';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, petService, ApplicationData, Pet } from '@/services';
 import { applicationProfileService } from '@/services/applicationProfileService';
@@ -19,7 +20,7 @@ import styled from 'styled-components';
 
 /**
  * Application Page
- * Features smart pre-population and quick application based on user profile
+ * Features smart pre-population, quick application based on user profile, and auto-save.
  */
 
 const Container = styled.div`
@@ -83,6 +84,10 @@ export const ApplicationPage: React.FC = () => {
   const [showProfileCompletionPrompt, setShowProfileCompletionPrompt] = useState(false);
   const [usePrePopulation] = useState(true);
 
+  // Auto-save
+  const { saveStatus, lastSaved, scheduleSave, saveNow, clearDraft, loadedDraft } =
+    useAutoSave(petId);
+
   const populateFormWithData = useCallback(
     (data: ApplicationPrePopulationData) => {
       const populatedData: Partial<ApplicationData> = {
@@ -125,9 +130,6 @@ export const ApplicationPage: React.FC = () => {
       };
 
       setApplicationData(populatedData);
-
-      // Note: lastSavedStep is not part of ApplicationDefaults,
-      // step progression will be handled by the application flow
     },
     [petId, user]
   );
@@ -188,6 +190,13 @@ export const ApplicationPage: React.FC = () => {
       const petData = await petService.getPetById(petId);
       setPet(petData);
 
+      // Restore saved draft if available (takes priority over pre-population)
+      if (loadedDraft) {
+        setApplicationData(loadedDraft.applicationData);
+        setCurrentStep(loadedDraft.currentStep);
+        return;
+      }
+
       // Phase 1: Check quick application capability
       const quickAppCapability = await applicationProfileService.canUseQuickApplication(petId);
       setQuickApplicationCapability(quickAppCapability);
@@ -215,7 +224,7 @@ export const ApplicationPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [petId, usePrePopulation, populateFormWithData]);
+  }, [petId, usePrePopulation, populateFormWithData, loadedDraft]);
 
   useEffect(() => {
     if (authLoading) {
@@ -263,18 +272,10 @@ export const ApplicationPage: React.FC = () => {
   };
 
   const handleStepComplete = async (stepData: Partial<ApplicationData>) => {
-    // Phase 1: Auto-save progress
     try {
       const updatedData = { ...applicationData, ...stepData };
       setApplicationData(updatedData);
-
-      // Auto-save progress (if enabled in user preferences)
-      // await applicationProgressService.saveProgress({
-      //   petId: petId!,
-      //   stepNumber: currentStep,
-      //   totalSteps: steps.length,
-      //   stepData: updatedData,
-      // });
+      scheduleSave(updatedData, currentStep);
 
       if (currentStep < steps.length) {
         setCurrentStep(prev => prev + 1);
@@ -357,8 +358,8 @@ export const ApplicationPage: React.FC = () => {
         submissionData as unknown as ApplicationData
       );
 
-      // Phase 1: Mark progress as completed
-      // await applicationProgressService.completeProgress(petId!);
+      // Clear the draft now the application has been submitted successfully
+      clearDraft();
 
       // Phase 1: Save successful application data as defaults for future use
       await applicationProfileService.updateApplicationDefaults({
@@ -429,7 +430,12 @@ export const ApplicationPage: React.FC = () => {
       <Header>
         <h1>Adoption Application</h1>
         <p>Complete your application to adopt {pet?.name}</p>
-        {prePopulationData && (
+        {loadedDraft && (
+          <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
+            Your draft has been restored. Continue where you left off.
+          </p>
+        )}
+        {!loadedDraft && prePopulationData && (
           <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
             Form data has been pre-populated from your profile
           </p>
@@ -482,8 +488,11 @@ export const ApplicationPage: React.FC = () => {
         onStepComplete={handleStepComplete}
         onStepBack={handleStepBack}
         onSubmit={handleSubmit}
+        onSaveDraft={saveNow}
         isSubmitting={isSubmitting}
         isUpdate={false}
+        saveStatus={saveStatus}
+        lastSaved={lastSaved}
       />
     </Container>
   );
