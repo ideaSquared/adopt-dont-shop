@@ -87,13 +87,21 @@ vi.mock('../components/modals', () => ({
     ) : null,
   UserActionsMenu: ({
     user,
+    onSuspend,
+    onUnsuspend,
   }: {
     user: AdminUser;
-    onSuspend: () => void;
-    onUnsuspend: () => void;
-    onVerify: () => void;
-    onDelete: () => void;
-  }) => <button data-testid={`actions-${user.userId}`}>Actions</button>,
+    onSuspend: (userId: string, reason?: string) => Promise<void>;
+    onUnsuspend: (userId: string) => Promise<void>;
+    onVerify: (userId: string) => Promise<void>;
+    onDelete: (userId: string, reason?: string) => Promise<void>;
+  }) => (
+    <div>
+      <button data-testid={`actions-${user.userId}`}>Actions</button>
+      <button data-testid={`suspend-${user.userId}`} onClick={() => onSuspend(user.userId, 'test reason')}>Suspend</button>
+      <button data-testid={`unsuspend-${user.userId}`} onClick={() => onUnsuspend(user.userId)}>Unsuspend</button>
+    </div>
+  ),
 }));
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -442,6 +450,83 @@ describe('User Management page', () => {
       await user.click(messageButtons[0]);
 
       expect(screen.getByTestId('support-ticket-modal')).toBeInTheDocument();
+    });
+  });
+
+  describe('suspension feedback messages', () => {
+    it('shows a success message when a user is suspended successfully', async () => {
+      const user = userEvent.setup();
+      mockUseSuspendUser.mockReturnValue({
+        ...mockMutationResult,
+        mutateAsync: vi.fn().mockResolvedValue({}),
+      });
+      renderWithProviders(<Users />);
+
+      await user.click(screen.getByTestId('suspend-user-1'));
+
+      await waitFor(() => {
+        expect(screen.getByText('User suspended successfully')).toBeInTheDocument();
+      });
+    });
+
+    it('shows an error message when suspension fails', async () => {
+      const user = userEvent.setup();
+      mockUseSuspendUser.mockReturnValue({
+        ...mockMutationResult,
+        mutateAsync: vi.fn().mockRejectedValue(new Error('Permission denied')),
+      });
+      renderWithProviders(<Users />);
+
+      await user.click(screen.getByTestId('suspend-user-1'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Permission denied')).toBeInTheDocument();
+      });
+    });
+
+    it('shows a generic error message when suspension fails without a message', async () => {
+      const user = userEvent.setup();
+      mockUseSuspendUser.mockReturnValue({
+        ...mockMutationResult,
+        mutateAsync: vi.fn().mockRejectedValue('unknown error'),
+      });
+      renderWithProviders(<Users />);
+
+      await user.click(screen.getByTestId('suspend-user-1'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to suspend user')).toBeInTheDocument();
+      });
+    });
+
+    it('shows a success message when a user is unsuspended successfully', async () => {
+      const user = userEvent.setup();
+      mockUseUnsuspendUser.mockReturnValue({
+        ...mockMutationResult,
+        mutateAsync: vi.fn().mockResolvedValue({}),
+      });
+      renderWithProviders(<Users />);
+
+      await user.click(screen.getByTestId('unsuspend-user-3'));
+
+      await waitFor(() => {
+        expect(screen.getByText('User unsuspended successfully')).toBeInTheDocument();
+      });
+    });
+
+    it('shows an error message when unsuspension fails', async () => {
+      const user = userEvent.setup();
+      mockUseUnsuspendUser.mockReturnValue({
+        ...mockMutationResult,
+        mutateAsync: vi.fn().mockRejectedValue(new Error('Server unavailable')),
+      });
+      renderWithProviders(<Users />);
+
+      await user.click(screen.getByTestId('unsuspend-user-3'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Server unavailable')).toBeInTheDocument();
+      });
     });
   });
 });
