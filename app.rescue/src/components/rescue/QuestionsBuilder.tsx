@@ -459,7 +459,9 @@ const slugify = (text: string): string =>
     .slice(0, 100);
 
 const parseOptions = (rawOptions: string): string[] | null => {
-  if (!rawOptions.trim()) return null;
+  if (!rawOptions.trim()) {
+    return null;
+  }
   return rawOptions
     .split('\n')
     .map(o => o.trim())
@@ -467,7 +469,9 @@ const parseOptions = (rawOptions: string): string[] | null => {
 };
 
 const parseConditionalLogic = (raw: string): ConditionalLogic | null => {
-  if (!raw.trim()) return null;
+  if (!raw.trim()) {
+    return null;
+  }
   try {
     return JSON.parse(raw) as ConditionalLogic;
   } catch {
@@ -625,7 +629,9 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -893,9 +899,7 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                 rows={3}
               />
               <HelpText>Show this question only when a specific condition is met</HelpText>
-              {formErrors.conditionalLogic && (
-                <ErrorText>{formErrors.conditionalLogic}</ErrorText>
-              )}
+              {formErrors.conditionalLogic && <ErrorText>{formErrors.conditionalLogic}</ErrorText>}
             </FormGroup>
 
             <FormGroup>
@@ -916,11 +920,7 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
             <Button variant="secondary" onClick={handleCancel} disabled={submitting}>
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={submitting}
-              data-testid="save-question-btn"
-            >
+            <Button onClick={handleSubmit} disabled={submitting} data-testid="save-question-btn">
               {submitting ? 'Saving...' : editingQuestion ? 'Update Question' : 'Add Question'}
             </Button>
           </FormActions>
@@ -931,7 +931,9 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
         const rescueQs = categoryQs.filter(q => q.scope === 'rescue_specific');
         const coreQs = categoryQs.filter(q => q.scope === 'core');
 
-        if (rescueQs.length === 0 && coreQs.length === 0) return null;
+        if (rescueQs.length === 0 && coreQs.length === 0) {
+          return null;
+        }
 
         return (
           <CategorySection key={category} data-testid={`category-${category}`}>
@@ -961,7 +963,10 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
             )}
 
             {rescueQs.map((question, index) => (
-              <QuestionCard key={question.questionId} data-testid={`question-${question.questionId}`}>
+              <QuestionCard
+                key={question.questionId}
+                data-testid={`question-${question.questionId}`}
+              >
                 <QuestionHeader>
                   <OrderControls>
                     <OrderButton

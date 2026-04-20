@@ -142,12 +142,24 @@ describe('QuestionService - Application Question Management', () => {
 
     it('supports all non-select question types for different data collection needs', async () => {
       const questionTypes: Array<{ type: QuestionType; key: string; text: string }> = [
-        { type: QuestionType.TEXT, key: 'pet_name_pref', text: 'What name would you give the pet?' },
+        {
+          type: QuestionType.TEXT,
+          key: 'pet_name_pref',
+          text: 'What name would you give the pet?',
+        },
         { type: QuestionType.BOOLEAN, key: 'has_fence', text: 'Do you have a fenced yard?' },
         { type: QuestionType.FILE, key: 'vet_reference', text: 'Please upload a vet reference' },
-        { type: QuestionType.NUMBER, key: 'hours_home', text: 'How many hours are you home per day?' },
+        {
+          type: QuestionType.NUMBER,
+          key: 'hours_home',
+          text: 'How many hours are you home per day?',
+        },
         { type: QuestionType.EMAIL, key: 'backup_email', text: 'Provide a backup email address' },
-        { type: QuestionType.DATE, key: 'availability_date', text: 'When are you available for a home visit?' },
+        {
+          type: QuestionType.DATE,
+          key: 'availability_date',
+          text: 'When are you available for a home visit?',
+        },
       ];
 
       for (const [index, qt] of questionTypes.entries()) {
@@ -308,9 +320,9 @@ describe('QuestionService - Application Question Management', () => {
         questionText: "Another rescue's question",
       });
 
-      await expect(
-        QuestionService.deleteQuestion(question.questionId, RESCUE_ID)
-      ).rejects.toThrow('Question not found');
+      await expect(QuestionService.deleteQuestion(question.questionId, RESCUE_ID)).rejects.toThrow(
+        'Question not found'
+      );
     });
 
     it('throws not found error when deleting non-existent question', async () => {
@@ -388,9 +400,7 @@ describe('QuestionService - Application Question Management', () => {
       });
 
       const questions = await QuestionService.getQuestionsForRescue(RESCUE_ID);
-      const disabledCore = questions.find(
-        q => q.scope === QuestionScope.CORE && !q.isEnabled
-      );
+      const disabledCore = questions.find(q => q.scope === QuestionScope.CORE && !q.isEnabled);
       expect(disabledCore).toBeUndefined();
     });
   });

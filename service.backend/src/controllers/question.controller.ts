@@ -1,14 +1,11 @@
 import { Response } from 'express';
-import { body, param } from 'express-validator';
-import { validationResult } from 'express-validator';
+import { body, param, validationResult } from 'express-validator';
 import { QuestionCategory, QuestionType } from '../models/ApplicationQuestion';
 import { AuthenticatedRequest } from '../types/api';
 import QuestionService from '../services/question.service';
 
 export class QuestionController {
-  static validateRescueId = [
-    param('rescueId').isUUID().withMessage('Invalid rescue ID format'),
-  ];
+  static validateRescueId = [param('rescueId').isUUID().withMessage('Invalid rescue ID format')];
 
   static validateQuestionId = [
     param('questionId').isUUID().withMessage('Invalid question ID format'),
@@ -21,12 +18,8 @@ export class QuestionController {
       .withMessage('Question key must be 1-100 characters')
       .matches(/^[a-z0-9_]+$/)
       .withMessage('Question key must contain only lowercase letters, numbers, and underscores'),
-    body('category')
-      .isIn(Object.values(QuestionCategory))
-      .withMessage('Invalid category'),
-    body('questionType')
-      .isIn(Object.values(QuestionType))
-      .withMessage('Invalid question type'),
+    body('category').isIn(Object.values(QuestionCategory)).withMessage('Invalid category'),
+    body('questionType').isIn(Object.values(QuestionType)).withMessage('Invalid question type'),
     body('questionText')
       .trim()
       .isLength({ min: 5, max: 1000 })
@@ -39,20 +32,14 @@ export class QuestionController {
       .optional({ nullable: true })
       .isLength({ max: 255 })
       .withMessage('Placeholder must be max 255 characters'),
-    body('options')
-      .optional({ nullable: true })
-      .isArray()
-      .withMessage('Options must be an array'),
+    body('options').optional({ nullable: true }).isArray().withMessage('Options must be an array'),
     body('options.*')
       .optional()
       .isString()
       .trim()
       .notEmpty()
       .withMessage('Each option must be a non-empty string'),
-    body('isRequired')
-      .optional()
-      .isBoolean()
-      .withMessage('isRequired must be a boolean'),
+    body('isRequired').optional().isBoolean().withMessage('isRequired must be a boolean'),
     body('displayOrder')
       .optional()
       .isInt({ min: 0, max: 9999 })
@@ -81,18 +68,9 @@ export class QuestionController {
       .optional({ nullable: true })
       .isLength({ max: 255 })
       .withMessage('Placeholder must be max 255 characters'),
-    body('options')
-      .optional({ nullable: true })
-      .isArray()
-      .withMessage('Options must be an array'),
-    body('isRequired')
-      .optional()
-      .isBoolean()
-      .withMessage('isRequired must be a boolean'),
-    body('isEnabled')
-      .optional()
-      .isBoolean()
-      .withMessage('isEnabled must be a boolean'),
+    body('options').optional({ nullable: true }).isArray().withMessage('Options must be an array'),
+    body('isRequired').optional().isBoolean().withMessage('isRequired must be a boolean'),
+    body('isEnabled').optional().isBoolean().withMessage('isEnabled must be a boolean'),
     body('displayOrder')
       .optional()
       .isInt({ min: 0, max: 9999 })
@@ -116,12 +94,8 @@ export class QuestionController {
   ];
 
   static validateReorderQuestions = [
-    body('questions')
-      .isArray({ min: 1 })
-      .withMessage('Questions must be a non-empty array'),
-    body('questions.*.questionId')
-      .isUUID()
-      .withMessage('Each question must have a valid UUID'),
+    body('questions').isArray({ min: 1 }).withMessage('Questions must be a non-empty array'),
+    body('questions.*.questionId').isUUID().withMessage('Each question must have a valid UUID'),
     body('questions.*.displayOrder')
       .isInt({ min: 0, max: 9999 })
       .withMessage('Display order must be 0-9999'),
@@ -141,7 +115,9 @@ export class QuestionController {
   }
 
   async getQuestions(req: AuthenticatedRequest, res: Response): Promise<void> {
-    if (QuestionController.sendValidationError(res, req)) return;
+    if (QuestionController.sendValidationError(res, req)) {
+      return;
+    }
 
     const { rescueId } = req.params;
 
@@ -157,7 +133,9 @@ export class QuestionController {
   }
 
   async createQuestion(req: AuthenticatedRequest, res: Response): Promise<void> {
-    if (QuestionController.sendValidationError(res, req)) return;
+    if (QuestionController.sendValidationError(res, req)) {
+      return;
+    }
 
     const { rescueId } = req.params;
 
@@ -172,7 +150,9 @@ export class QuestionController {
   }
 
   async updateQuestion(req: AuthenticatedRequest, res: Response): Promise<void> {
-    if (QuestionController.sendValidationError(res, req)) return;
+    if (QuestionController.sendValidationError(res, req)) {
+      return;
+    }
 
     const { rescueId, questionId } = req.params;
 
@@ -187,7 +167,9 @@ export class QuestionController {
   }
 
   async deleteQuestion(req: AuthenticatedRequest, res: Response): Promise<void> {
-    if (QuestionController.sendValidationError(res, req)) return;
+    if (QuestionController.sendValidationError(res, req)) {
+      return;
+    }
 
     const { rescueId, questionId } = req.params;
 
@@ -202,7 +184,9 @@ export class QuestionController {
   }
 
   async reorderQuestions(req: AuthenticatedRequest, res: Response): Promise<void> {
-    if (QuestionController.sendValidationError(res, req)) return;
+    if (QuestionController.sendValidationError(res, req)) {
+      return;
+    }
 
     const { rescueId } = req.params;
 

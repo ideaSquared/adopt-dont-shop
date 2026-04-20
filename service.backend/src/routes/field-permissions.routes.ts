@@ -60,7 +60,9 @@ const validateBulkFieldName = (
   { req, path }: { req: { body?: unknown }; path?: string }
 ): true => {
   const match = /overrides\[(\d+)\]/.exec(path ?? '');
-  if (!match) return true;
+  if (!match) {
+    return true;
+  }
   const index = parseInt(match[1], 10);
   const overridesArr = (req.body as { overrides?: Array<{ resource?: string }> })?.overrides;
   const resource = overridesArr?.[index]?.resource;

@@ -417,16 +417,14 @@ describe('Questions Builder - Behavioral Tests', () => {
         expect(screen.getByTestId(`toggle-${mockCustomQuestion.questionId}`)).toBeInTheDocument();
       });
 
-      expect(
-        screen.getByTestId(`toggle-${mockCustomQuestion.questionId}`)
-      ).toHaveTextContent('Disable');
+      expect(screen.getByTestId(`toggle-${mockCustomQuestion.questionId}`)).toHaveTextContent(
+        'Disable'
+      );
 
       await user.click(screen.getByTestId(`toggle-${mockCustomQuestion.questionId}`));
 
       expect(vi.mocked(apiService.put)).toHaveBeenCalledWith(
-        expect.stringContaining(
-          `/rescues/${RESCUE_ID}/questions/${mockCustomQuestion.questionId}`
-        ),
+        expect.stringContaining(`/rescues/${RESCUE_ID}/questions/${mockCustomQuestion.questionId}`),
         { isEnabled: false }
       );
     });
@@ -483,9 +481,7 @@ describe('Questions Builder - Behavioral Tests', () => {
       renderWithProviders(<QuestionsBuilder rescueId={RESCUE_ID} />);
 
       await waitFor(() => {
-        expect(
-          screen.getByTestId(`move-up-${mockCustomQuestion.questionId}`)
-        ).toBeInTheDocument();
+        expect(screen.getByTestId(`move-up-${mockCustomQuestion.questionId}`)).toBeInTheDocument();
       });
 
       expect(screen.getByTestId(`move-up-${mockCustomQuestion.questionId}`)).toBeDisabled();

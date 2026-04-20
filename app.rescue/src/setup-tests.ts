@@ -3,7 +3,11 @@ import React from 'react';
 
 // MSW v2 requires web streams APIs that are available in Node.js 18+ but not
 // exposed to the jsdom global scope. Polyfill them so MSW can load correctly.
-const { ReadableStream: NodeReadableStream, WritableStream: NodeWritableStream, TransformStream: NodeTransformStream } = await import('node:stream/web');
+const {
+  ReadableStream: NodeReadableStream,
+  WritableStream: NodeWritableStream,
+  TransformStream: NodeTransformStream,
+} = await import('node:stream/web');
 if (typeof globalThis.WritableStream === 'undefined') {
   Object.assign(globalThis, {
     ReadableStream: NodeReadableStream,
@@ -120,11 +124,14 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Button: ({ children, ...props }: any) => React.createElement('button', props, children),
   Text: ({ children, ...props }: any) => React.createElement('span', props, children),
   Heading: ({ children, ...props }: any) => React.createElement('h1', props, children),
-  Alert: ({ children, ...props }: any) => React.createElement('div', { role: 'alert', ...props }, children),
-  CheckboxInput: ({ children, ...props }: any) => React.createElement('input', { type: 'checkbox', ...props }, children),
+  Alert: ({ children, ...props }: any) =>
+    React.createElement('div', { role: 'alert', ...props }, children),
+  CheckboxInput: ({ children, ...props }: any) =>
+    React.createElement('input', { type: 'checkbox', ...props }, children),
   SelectInput: ({ children, ...props }: any) => React.createElement('select', props, children),
   Badge: ({ children, ...props }: any) => React.createElement('span', props, children),
   Stack: ({ children, ...props }: any) => React.createElement('div', props, children),
-  TextInput: ({ children, ...props }: any) => React.createElement('input', { type: 'text', ...props }),
+  TextInput: ({ children, ...props }: any) =>
+    React.createElement('input', { type: 'text', ...props }),
   TextArea: ({ children, ...props }: any) => React.createElement('textarea', props, children),
 }));

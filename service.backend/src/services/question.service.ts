@@ -101,10 +101,7 @@ export class QuestionService {
     }
   }
 
-  static async createQuestion(
-    rescueId: string,
-    data: CreateQuestionData
-  ): Promise<QuestionData> {
+  static async createQuestion(rescueId: string, data: CreateQuestionData): Promise<QuestionData> {
     try {
       const existingCount = await ApplicationQuestion.count({
         where: {
@@ -157,17 +154,39 @@ export class QuestionService {
       }
 
       const updates: Partial<ApplicationQuestion> = {};
-      if (data.questionText !== undefined) updates.question_text = data.questionText;
-      if (data.helpText !== undefined) updates.help_text = data.helpText ?? null;
-      if (data.placeholder !== undefined) updates.placeholder = data.placeholder ?? null;
-      if (data.options !== undefined) updates.options = data.options ?? null;
-      if (data.validationRules !== undefined) updates.validation_rules = data.validationRules ?? null;
-      if (data.displayOrder !== undefined) updates.display_order = data.displayOrder;
-      if (data.isEnabled !== undefined) updates.is_enabled = data.isEnabled;
-      if (data.isRequired !== undefined) updates.is_required = data.isRequired;
-      if (data.conditionalLogic !== undefined) updates.conditional_logic = data.conditionalLogic ?? null;
-      if (data.category !== undefined) updates.category = data.category;
-      if (data.questionType !== undefined) updates.question_type = data.questionType;
+      if (data.questionText !== undefined) {
+        updates.question_text = data.questionText;
+      }
+      if (data.helpText !== undefined) {
+        updates.help_text = data.helpText ?? null;
+      }
+      if (data.placeholder !== undefined) {
+        updates.placeholder = data.placeholder ?? null;
+      }
+      if (data.options !== undefined) {
+        updates.options = data.options ?? null;
+      }
+      if (data.validationRules !== undefined) {
+        updates.validation_rules = data.validationRules ?? null;
+      }
+      if (data.displayOrder !== undefined) {
+        updates.display_order = data.displayOrder;
+      }
+      if (data.isEnabled !== undefined) {
+        updates.is_enabled = data.isEnabled;
+      }
+      if (data.isRequired !== undefined) {
+        updates.is_required = data.isRequired;
+      }
+      if (data.conditionalLogic !== undefined) {
+        updates.conditional_logic = data.conditionalLogic ?? null;
+      }
+      if (data.category !== undefined) {
+        updates.category = data.category;
+      }
+      if (data.questionType !== undefined) {
+        updates.question_type = data.questionType;
+      }
 
       await question.update(updates);
       await question.reload();
@@ -198,10 +217,7 @@ export class QuestionService {
     }
   }
 
-  static async reorderQuestions(
-    rescueId: string,
-    reorderEntries: ReorderEntry[]
-  ): Promise<void> {
+  static async reorderQuestions(rescueId: string, reorderEntries: ReorderEntry[]): Promise<void> {
     try {
       const questionIds = reorderEntries.map(e => e.questionId);
       const questions = await ApplicationQuestion.findAll({
