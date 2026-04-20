@@ -288,9 +288,7 @@ const Pets: React.FC = () => {
         </HeaderLeft>
       </PageHeader>
 
-      {error && (
-        <ErrorMessage>Failed to load pets: {(error as Error).message}</ErrorMessage>
-      )}
+      {error && <ErrorMessage>Failed to load pets: {(error as Error).message}</ErrorMessage>}
 
       <FilterBar>
         <SearchInputWrapper>
@@ -376,7 +374,9 @@ const Pets: React.FC = () => {
               ? 'Unpublish Pets'
               : 'Archive Pets'
         }
-        variant={bulkAction === 'archive' ? 'danger' : bulkAction === 'unpublish' ? 'warning' : 'info'}
+        variant={
+          bulkAction === 'archive' ? 'danger' : bulkAction === 'unpublish' ? 'warning' : 'info'
+        }
         isLoading={bulkUpdatePets.isLoading}
         resultSummary={bulkResult}
       />

@@ -88,7 +88,9 @@ vi.mock('../components/modals', () => ({
     isLoading?: boolean;
     resultSummary?: { succeeded: number; failed: number } | null;
   }) => {
-    if (!isOpen) return null;
+    if (!isOpen) {
+      return null;
+    }
     return (
       <div data-testid='bulk-confirmation-modal'>
         <span data-testid='modal-title'>{title}</span>
@@ -205,7 +207,9 @@ const mockAdminRescues: AdminRescue[] = [
 ];
 
 const mockMutationResult = {
-  mutateAsync: vi.fn().mockResolvedValue({ successCount: 2, failedCount: 0, success: 2, failed: 0 }),
+  mutateAsync: vi
+    .fn()
+    .mockResolvedValue({ successCount: 2, failedCount: 0, success: 2, failed: 0 }),
   mutate: vi.fn(),
   isLoading: false,
   isError: false,

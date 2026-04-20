@@ -11,7 +11,7 @@ import {
   ToastContainer,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail, FiShield } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import {
   useUsers,
@@ -256,8 +256,8 @@ const Users: React.FC = () => {
 
   const { data, isLoading, error, refetch } = useUsers({
     search: searchQuery,
-    userType: userTypeFilter !== 'all' ? (userTypeFilter as any) : undefined,
-    status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
+    userType: userTypeFilter !== 'all' ? userTypeFilter : undefined,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
     page: 1,
     limit: 20,
   });
@@ -456,22 +456,6 @@ const Users: React.FC = () => {
   const handleExport = (format: 'csv' | 'pdf') => {
     exportData(users, userExportColumns, 'users-export', 'User Management Export', format);
   };
-
-  // Filter users based on search and filters
-  const filteredUsers = (users || []).filter((user: AdminUser) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      user.firstName?.toLowerCase() ||
-      ''.includes(searchQuery.toLowerCase()) ||
-      user.lastName?.toLowerCase() ||
-      ''.includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesUserType = userTypeFilter === 'all' || user.userType === userTypeFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-
-    return matchesSearch && matchesUserType && matchesStatus;
-  });
 
   const getUserInitials = (
     firstName: string | null | undefined,

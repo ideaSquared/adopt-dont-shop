@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
@@ -237,9 +237,7 @@ const Rescues: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
   // Modal states
@@ -277,7 +275,7 @@ const Rescues: React.FC = () => {
     });
   };
 
-  const fetchRescues = async (): Promise<void> => {
+  const fetchRescues = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -293,19 +291,17 @@ const Rescues: React.FC = () => {
       });
 
       setRescues(result.data);
-      setTotalPages(result.pagination.pages);
-      setTotalItems(result.pagination.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch rescues');
       setRescues([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, searchQuery, statusFilter]);
 
   useEffect(() => {
     fetchRescues();
-  }, [currentPage, itemsPerPage, searchQuery, statusFilter]);
+  }, [fetchRescues]);
 
   // Load rescue from URL parameter
   useEffect(() => {

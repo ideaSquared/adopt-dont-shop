@@ -233,7 +233,8 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
     }
   };
 
-  const confirmButtonVariant = variant === 'danger' ? 'danger' : variant === 'warning' ? 'primary' : 'primary';
+  const confirmButtonVariant =
+    variant === 'danger' ? 'danger' : variant === 'warning' ? 'primary' : 'primary';
 
   return (
     <Overlay onClick={handleOverlayClick}>
@@ -258,7 +259,9 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
           ) : (
             <>
               <Description>{description}</Description>
-              <CountBadge>{selectedCount} item{selectedCount !== 1 ? 's' : ''} selected</CountBadge>
+              <CountBadge>
+                {selectedCount} item{selectedCount !== 1 ? 's' : ''} selected
+              </CountBadge>
 
               {requireReason && (
                 <FormGroup>
