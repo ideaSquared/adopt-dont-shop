@@ -84,9 +84,9 @@ export const ApplicationPage: React.FC = () => {
   const [showProfileCompletionPrompt, setShowProfileCompletionPrompt] = useState(false);
   const [usePrePopulation] = useState(true);
 
-  // Auto-save
+  // Auto-save — typed to match the page's own ApplicationData to avoid cross-package type conflicts
   const { saveStatus, lastSaved, scheduleSave, saveNow, clearDraft, loadedDraft } =
-    useAutoSave(petId);
+    useAutoSave<Partial<ApplicationData>>(petId);
 
   const populateFormWithData = useCallback(
     (data: ApplicationPrePopulationData) => {

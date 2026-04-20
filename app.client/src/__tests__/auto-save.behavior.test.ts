@@ -21,7 +21,10 @@ const AUTO_SAVE_INTERVAL_MS = 30_000;
 const DEBOUNCE_DELAY_MS = 3_000;
 const CURRENT_SCHEMA_VERSION = 1;
 
-const mockApplicationData: Partial<ApplicationData> = {
+type TestData = Partial<ApplicationData>;
+type TestDraft = ApplicationDraft<TestData>;
+
+const mockApplicationData: TestData = {
   personalInfo: {
     firstName: 'Jane',
     lastName: 'Smith',
@@ -35,7 +38,7 @@ const mockApplicationData: Partial<ApplicationData> = {
   },
 };
 
-const buildStoredDraft = (overrides: Partial<ApplicationDraft> = {}): ApplicationDraft => ({
+const buildStoredDraft = (overrides: Partial<TestDraft> = {}): TestDraft => ({
   petId: 'pet-abc',
   currentStep: 2,
   applicationData: mockApplicationData,
@@ -57,7 +60,7 @@ describe('Auto-save behavior', () => {
 
   describe('Draft restoration on return', () => {
     it('provides no draft when user visits form for the first time', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       expect(result.current.loadedDraft).toBeNull();
       expect(result.current.hasDraft).toBe(false);
@@ -68,7 +71,7 @@ describe('Auto-save behavior', () => {
       const stored = buildStoredDraft({ currentStep: 3 });
       localStorage.setItem(`${DRAFT_KEY_PREFIX}pet-abc`, JSON.stringify(stored));
 
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       expect(result.current.loadedDraft).not.toBeNull();
       expect(result.current.loadedDraft?.currentStep).toBe(3);
@@ -80,7 +83,7 @@ describe('Auto-save behavior', () => {
       const stored = buildStoredDraft({ savedAt: '2024-01-15T10:00:00Z' });
       localStorage.setItem(`${DRAFT_KEY_PREFIX}pet-abc`, JSON.stringify(stored));
 
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       expect(result.current.lastSaved).toEqual(new Date('2024-01-15T10:00:00Z'));
     });
@@ -91,8 +94,8 @@ describe('Auto-save behavior', () => {
       localStorage.setItem(`${DRAFT_KEY_PREFIX}pet-aaa`, JSON.stringify(draftA));
       localStorage.setItem(`${DRAFT_KEY_PREFIX}pet-bbb`, JSON.stringify(draftB));
 
-      const { result: resultA } = renderHook(() => useAutoSave('pet-aaa'));
-      const { result: resultB } = renderHook(() => useAutoSave('pet-bbb'));
+      const { result: resultA } = renderHook(() => useAutoSave<TestData>('pet-aaa'));
+      const { result: resultB } = renderHook(() => useAutoSave<TestData>('pet-bbb'));
 
       expect(resultA.current.loadedDraft?.currentStep).toBe(1);
       expect(resultB.current.loadedDraft?.currentStep).toBe(4);
@@ -102,7 +105,7 @@ describe('Auto-save behavior', () => {
       const outdatedDraft = buildStoredDraft({ schemaVersion: 0 });
       localStorage.setItem(`${DRAFT_KEY_PREFIX}pet-abc`, JSON.stringify(outdatedDraft));
 
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       expect(result.current.loadedDraft).toBeNull();
       expect(result.current.hasDraft).toBe(false);
@@ -112,14 +115,14 @@ describe('Auto-save behavior', () => {
     it('discards corrupted draft data without crashing', () => {
       localStorage.setItem(`${DRAFT_KEY_PREFIX}pet-abc`, 'this is not valid json{{');
 
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       expect(result.current.loadedDraft).toBeNull();
       expect(result.current.hasDraft).toBe(false);
     });
 
     it('handles missing petId gracefully', () => {
-      const { result } = renderHook(() => useAutoSave(undefined));
+      const { result } = renderHook(() => useAutoSave<TestData>(undefined));
 
       expect(result.current.loadedDraft).toBeNull();
       expect(result.current.hasDraft).toBe(false);
@@ -128,7 +131,7 @@ describe('Auto-save behavior', () => {
 
   describe('Debounced auto-save on data change', () => {
     it('saves draft to localStorage after the debounce delay', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 2);
@@ -142,13 +145,13 @@ describe('Auto-save behavior', () => {
 
       const stored = localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`);
       expect(stored).not.toBeNull();
-      const parsed: ApplicationDraft = JSON.parse(stored!);
+      const parsed: TestDraft = JSON.parse(stored!);
       expect(parsed.currentStep).toBe(2);
       expect(parsed.applicationData.personalInfo?.firstName).toBe('Jane');
     });
 
     it('debounces rapid successive changes into a single save', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave({ personalInfo: { ...mockApplicationData.personalInfo!, firstName: 'A' } }, 1);
@@ -160,12 +163,12 @@ describe('Auto-save behavior', () => {
       });
 
       const stored = localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`);
-      const parsed: ApplicationDraft = JSON.parse(stored!);
+      const parsed: TestDraft = JSON.parse(stored!);
       expect(parsed.applicationData.personalInfo?.firstName).toBe('ABC');
     });
 
     it('does not save before the debounce delay has elapsed', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
@@ -176,7 +179,7 @@ describe('Auto-save behavior', () => {
     });
 
     it('does not save when petId is undefined', () => {
-      const { result } = renderHook(() => useAutoSave(undefined));
+      const { result } = renderHook(() => useAutoSave<TestData>(undefined));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
@@ -187,7 +190,7 @@ describe('Auto-save behavior', () => {
     });
 
     it('updates hasDraft to true and lastSaved after the first save', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
@@ -201,7 +204,7 @@ describe('Auto-save behavior', () => {
 
   describe('Periodic auto-save every 30 seconds', () => {
     it('saves pending data at each 30-second interval', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 2);
@@ -214,12 +217,12 @@ describe('Auto-save behavior', () => {
 
       const stored = localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`);
       expect(stored).not.toBeNull();
-      const parsed: ApplicationDraft = JSON.parse(stored!);
+      const parsed: TestDraft = JSON.parse(stored!);
       expect(parsed.currentStep).toBe(2);
     });
 
     it('does not write to storage during interval when there is no pending data', () => {
-      renderHook(() => useAutoSave('pet-abc'));
+      renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         vi.advanceTimersByTime(AUTO_SAVE_INTERVAL_MS);
@@ -229,7 +232,7 @@ describe('Auto-save behavior', () => {
     });
 
     it('saves the most recent data at the interval, not stale earlier data', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(
@@ -247,7 +250,7 @@ describe('Auto-save behavior', () => {
         vi.advanceTimersByTime(AUTO_SAVE_INTERVAL_MS);
       });
 
-      const parsed: ApplicationDraft = JSON.parse(
+      const parsed: TestDraft = JSON.parse(
         localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!
       );
       expect(parsed.applicationData.personalInfo?.firstName).toBe('Latest');
@@ -257,7 +260,7 @@ describe('Auto-save behavior', () => {
 
   describe('Manual save', () => {
     it('saves the draft immediately without waiting for the debounce', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 2);
@@ -274,7 +277,7 @@ describe('Auto-save behavior', () => {
     });
 
     it('does nothing when saveNow is called before any data has been scheduled', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.saveNow();
@@ -284,7 +287,7 @@ describe('Auto-save behavior', () => {
     });
 
     it('cancels the pending debounce when saveNow is called', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
@@ -308,7 +311,7 @@ describe('Auto-save behavior', () => {
       const stored = buildStoredDraft();
       localStorage.setItem(`${DRAFT_KEY_PREFIX}pet-abc`, JSON.stringify(stored));
 
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
       expect(result.current.hasDraft).toBe(true);
 
       act(() => {
@@ -322,7 +325,7 @@ describe('Auto-save behavior', () => {
     });
 
     it('cancels any pending auto-save after the draft is cleared', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
@@ -339,7 +342,7 @@ describe('Auto-save behavior', () => {
       localStorage.setItem(`${DRAFT_KEY_PREFIX}pet-aaa`, JSON.stringify(draftA));
       localStorage.setItem(`${DRAFT_KEY_PREFIX}pet-bbb`, JSON.stringify(draftB));
 
-      const { result } = renderHook(() => useAutoSave('pet-aaa'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-aaa'));
 
       act(() => {
         result.current.clearDraft();
@@ -352,13 +355,13 @@ describe('Auto-save behavior', () => {
 
   describe('Save status indicator', () => {
     it('starts in idle status', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       expect(result.current.saveStatus).toBe('idle');
     });
 
     it('transitions to saved status after a successful debounced save', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
@@ -369,7 +372,7 @@ describe('Auto-save behavior', () => {
     });
 
     it('transitions to saved status after a successful manual save', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
@@ -380,7 +383,7 @@ describe('Auto-save behavior', () => {
     });
 
     it('returns to idle status after the draft is cleared', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
@@ -399,42 +402,42 @@ describe('Auto-save behavior', () => {
 
   describe('Schema version and stored draft structure', () => {
     it('stores the schema version in every saved draft', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
         vi.advanceTimersByTime(DEBOUNCE_DELAY_MS);
       });
 
-      const parsed: ApplicationDraft = JSON.parse(
+      const parsed: TestDraft = JSON.parse(
         localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!
       );
       expect(parsed.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     });
 
     it('stores the petId in every saved draft', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
         vi.advanceTimersByTime(DEBOUNCE_DELAY_MS);
       });
 
-      const parsed: ApplicationDraft = JSON.parse(
+      const parsed: TestDraft = JSON.parse(
         localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!
       );
       expect(parsed.petId).toBe('pet-abc');
     });
 
     it('stores a valid ISO timestamp in every saved draft', () => {
-      const { result } = renderHook(() => useAutoSave('pet-abc'));
+      const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
         result.current.scheduleSave(mockApplicationData, 1);
         vi.advanceTimersByTime(DEBOUNCE_DELAY_MS);
       });
 
-      const parsed: ApplicationDraft = JSON.parse(
+      const parsed: TestDraft = JSON.parse(
         localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!
       );
       expect(new Date(parsed.savedAt).toString()).not.toBe('Invalid Date');

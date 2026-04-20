@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ApplicationData } from '@/types';
 
 const DRAFT_SCHEMA_VERSION = 1;
 const AUTO_SAVE_INTERVAL_MS = 30_000;
@@ -7,27 +6,27 @@ const DEBOUNCE_DELAY_MS = 3_000;
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
-export type ApplicationDraft = {
+export type ApplicationDraft<TData = Record<string, unknown>> = {
   petId: string;
   currentStep: number;
-  applicationData: Partial<ApplicationData>;
+  applicationData: TData;
   savedAt: string;
   schemaVersion: number;
 };
 
-type UseAutoSaveReturn = {
+type UseAutoSaveReturn<TData> = {
   lastSaved: Date | null;
   saveStatus: SaveStatus;
-  scheduleSave: (data: Partial<ApplicationData>, step: number) => void;
+  scheduleSave: (data: TData, step: number) => void;
   saveNow: () => void;
   clearDraft: () => void;
-  loadedDraft: ApplicationDraft | null;
+  loadedDraft: ApplicationDraft<TData> | null;
   hasDraft: boolean;
 };
 
 const getDraftKey = (petId: string): string => `application_draft_${petId}`;
 
-const loadDraftFromStorage = (petId: string): ApplicationDraft | null => {
+const loadDraftFromStorage = <TData>(petId: string): ApplicationDraft<TData> | null => {
   try {
     const raw = localStorage.getItem(getDraftKey(petId));
     if (!raw) return null;
@@ -43,15 +42,15 @@ const loadDraftFromStorage = (petId: string): ApplicationDraft | null => {
       return null;
     }
 
-    return parsed as ApplicationDraft;
+    return parsed as ApplicationDraft<TData>;
   } catch {
     localStorage.removeItem(getDraftKey(petId));
     return null;
   }
 };
 
-const persistDraft = (petId: string, data: Partial<ApplicationData>, step: number): void => {
-  const draft: ApplicationDraft = {
+const persistDraft = <TData>(petId: string, data: TData, step: number): void => {
+  const draft: ApplicationDraft<TData> = {
     petId,
     currentStep: step,
     applicationData: data,
@@ -61,18 +60,20 @@ const persistDraft = (petId: string, data: Partial<ApplicationData>, step: numbe
   localStorage.setItem(getDraftKey(petId), JSON.stringify(draft));
 };
 
-export const useAutoSave = (petId: string | undefined): UseAutoSaveReturn => {
+export const useAutoSave = <TData = Record<string, unknown>>(
+  petId: string | undefined
+): UseAutoSaveReturn<TData> => {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
-  const [loadedDraft, setLoadedDraft] = useState<ApplicationDraft | null>(null);
+  const [loadedDraft, setLoadedDraft] = useState<ApplicationDraft<TData> | null>(null);
 
-  const pendingRef = useRef<{ data: Partial<ApplicationData>; step: number } | null>(null);
+  const pendingRef = useRef<{ data: TData; step: number } | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!petId) return;
-    const draft = loadDraftFromStorage(petId);
+    const draft = loadDraftFromStorage<TData>(petId);
     setLoadedDraft(draft);
     setHasDraft(draft !== null);
     if (draft) {
@@ -108,7 +109,7 @@ export const useAutoSave = (petId: string | undefined): UseAutoSaveReturn => {
   }, []);
 
   const scheduleSave = useCallback(
-    (data: Partial<ApplicationData>, step: number) => {
+    (data: TData, step: number) => {
       if (!petId) return;
       pendingRef.current = { data, step };
 
