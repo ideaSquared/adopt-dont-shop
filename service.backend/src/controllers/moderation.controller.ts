@@ -313,6 +313,32 @@ export class ModerationController {
       });
     }
   }
+
+  async getFlaggedMessages(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const page = req.query.page ? parseInt(String(req.query.page), 10) : 1;
+      const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 20;
+      const severity = req.query.severity ? String(req.query.severity) : undefined;
+      const moderationStatus = req.query.moderationStatus
+        ? String(req.query.moderationStatus)
+        : undefined;
+
+      const result = await ModerationService.getFlaggedMessages({
+        page,
+        limit,
+        severity,
+        moderationStatus,
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error) {
+      logger.error('Error fetching flagged messages:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to fetch flagged messages',
+      });
+    }
+  }
 }
 
 export default new ModerationController();

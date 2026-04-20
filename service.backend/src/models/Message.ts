@@ -1,6 +1,7 @@
 import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getTsVectorType, TsVector } from '../sequelize';
 import { MessageContentFormat } from '../types/chat';
+import { ScanSeverity, MessageModerationStatus } from '../services/content-moderation.service';
 import Chat from './Chat';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
@@ -31,6 +32,12 @@ interface MessageAttributes {
   attachments?: MessageAttachment[];
   // reactions / read_status moved to typed tables (plan 2.1).
   search_vector?: TsVector;
+  // Content moderation fields
+  is_flagged?: boolean;
+  flag_reason?: string | null;
+  flag_severity?: ScanSeverity | null;
+  moderation_status?: MessageModerationStatus | null;
+  flagged_at?: Date | null;
   created_at?: Date;
   updated_at?: Date;
   Chat?: Chat;
@@ -40,7 +47,16 @@ interface MessageAttributes {
 interface MessageCreationAttributes
   extends Optional<
     MessageAttributes,
-    'message_id' | 'created_at' | 'updated_at' | 'search_vector' | 'Chat'
+    | 'message_id'
+    | 'created_at'
+    | 'updated_at'
+    | 'search_vector'
+    | 'Chat'
+    | 'is_flagged'
+    | 'flag_reason'
+    | 'flag_severity'
+    | 'moderation_status'
+    | 'flagged_at'
   > {}
 
 export class Message
@@ -57,6 +73,11 @@ export class Message
   // MessageReaction and MessageRead. Read-status helpers live in
   // ChatService now.
   public search_vector?: TsVector;
+  public is_flagged?: boolean;
+  public flag_reason?: string | null;
+  public flag_severity?: ScanSeverity | null;
+  public moderation_status?: MessageModerationStatus | null;
+  public flagged_at?: Date | null;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
   public length!: number;
@@ -158,6 +179,27 @@ Message.init(
       set() {
         // intentionally empty
       },
+    },
+    is_flagged: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    flag_reason: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    flag_severity: {
+      type: DataTypes.ENUM(...Object.values(ScanSeverity)),
+      allowNull: true,
+    },
+    moderation_status: {
+      type: DataTypes.ENUM(...Object.values(MessageModerationStatus)),
+      allowNull: true,
+    },
+    flagged_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     ...auditColumns,
   },
