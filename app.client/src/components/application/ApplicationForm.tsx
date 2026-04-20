@@ -4,11 +4,18 @@ import React from 'react';
 import styled from 'styled-components';
 import {
   BasicInfoStep,
+  DocumentUploadStep,
   LivingSituationStep,
   PetExperienceStep,
   ReferencesStep,
   ReviewStep,
 } from './steps';
+
+type PendingDocument = {
+  file: File;
+  documentType: 'REFERENCE' | 'VETERINARY_RECORD' | 'PROOF_OF_RESIDENCE' | 'OTHER';
+  id: string;
+};
 
 interface ApplicationFormProps {
   step: number;
@@ -19,6 +26,8 @@ interface ApplicationFormProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   isUpdate: boolean;
+  pendingDocuments?: PendingDocument[];
+  onDocumentsChange?: (documents: PendingDocument[]) => void;
 }
 
 const FormContainer = styled.div`
@@ -52,6 +61,8 @@ const ButtonGroup = styled.div`
   }
 `;
 
+export const TOTAL_STEPS = 6;
+
 export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   step,
   data,
@@ -61,6 +72,8 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   onSubmit,
   isSubmitting,
   isUpdate,
+  pendingDocuments = [],
+  onDocumentsChange,
 }) => {
   const renderStep = () => {
     switch (step) {
@@ -102,6 +115,18 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
         );
       case 5:
         return (
+          <DocumentUploadStep
+            initialDocuments={pendingDocuments}
+            onComplete={(documents: PendingDocument[]) => {
+              if (onDocumentsChange) {
+                onDocumentsChange(documents);
+              }
+              onStepComplete({});
+            }}
+          />
+        );
+      case 6:
+        return (
           <ReviewStep
             data={data}
             pet={pet}
@@ -117,7 +142,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   };
 
   const isFirstStep = step === 1;
-  const isLastStep = step === 5;
+  const isLastStep = step === TOTAL_STEPS;
 
   return (
     <FormContainer>

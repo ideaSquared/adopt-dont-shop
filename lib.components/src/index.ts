@@ -49,8 +49,8 @@ export { Navbar } from './components/navigation/Navbar';
 // Data Display Components - commenting out for now
 // export { Table } from './components/data/Table';
 
-// Form components - commenting out problematic ones
-// export * from './components/form/FileUpload';
+// Form components
+export * from './components/form/FileUpload';
 // export * from './components/form/RadioInput';
 
 // UI components - commenting out problematic ones

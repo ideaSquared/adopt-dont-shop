@@ -4,6 +4,7 @@ import { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import { HomeVisitStatus } from '../models/HomeVisit';
 import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
+import { FileUploadService } from '../services/file-upload.service';
 import { AuthenticatedRequest } from '../types';
 import {
   ApplicationDocument,
@@ -160,14 +161,10 @@ export class ApplicationController extends BaseController {
       .isLength({ min: 1, max: 255 })
       .withMessage('Valid application ID is required'),
     body('documentType')
+      .optional()
       .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Document type is required and must be less than 100 characters'),
-    body('fileName')
-      .trim()
-      .isLength({ min: 1, max: 255 })
-      .withMessage('File name is required and must be less than 255 characters'),
-    body('fileUrl').isURL().withMessage('Valid file URL is required'),
+      .isIn(['REFERENCE', 'VETERINARY_RECORD', 'PROOF_OF_RESIDENCE', 'OTHER'])
+      .withMessage('Document type must be one of: REFERENCE, VETERINARY_RECORD, PROOF_OF_RESIDENCE, OTHER'),
   ];
 
   static validateReferenceUpdate = [
@@ -779,16 +776,50 @@ export class ApplicationController extends BaseController {
         });
       }
 
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded. Supported formats: PDF, JPG, PNG, DOC, DOCX (max 5MB)',
+        });
+      }
+
       const { applicationId } = req.params;
+      const documentType: string = req.body.documentType || 'OTHER';
+
+      const uploadResult = await FileUploadService.uploadFile(req.file, 'applications', {
+        uploadedBy: req.user!.userId,
+        entityId: applicationId,
+        entityType: 'application',
+        purpose: 'document',
+      });
+
+      if (!uploadResult.success || !uploadResult.upload) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to store uploaded file',
+        });
+      }
+
       const application = await ApplicationService.addDocument(
         applicationId,
-        req.body,
+        {
+          documentType,
+          fileName: uploadResult.upload.original_filename,
+          fileUrl: uploadResult.upload.url,
+        },
         req.user!.userId
       );
 
-      res.status(200).json({
+      res.status(201).json({
         success: true,
-        message: 'Document added successfully',
+        message: 'Document uploaded successfully',
+        document: {
+          documentId: uploadResult.upload.upload_id,
+          fileName: uploadResult.upload.original_filename,
+          fileType: uploadResult.upload.mime_type,
+          url: uploadResult.upload.url,
+          uploadedAt: new Date().toISOString(),
+        },
         data: application,
       });
     } catch (error) {
@@ -812,6 +843,43 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to add document',
+        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      });
+    }
+  };
+
+  // Remove document from application
+  removeDocument = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { applicationId, documentId } = req.params;
+
+      await ApplicationService.removeDocument(applicationId, documentId, req.user!.userId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Document removed successfully',
+      });
+    } catch (error) {
+      logger.error('Error removing document:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage === 'Application not found' || errorMessage === 'Document not found') {
+        return res.status(404).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
+      if (errorMessage === 'Access denied') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied',
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to remove document',
         error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
       });
     }

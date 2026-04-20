@@ -3,8 +3,10 @@ import { ApplicationController } from '../controllers/application.controller';
 import { authenticateToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { requireRole } from '../middleware/rbac';
+import { uploadLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
 import { UserType } from '../models/User';
+import { applicationDocumentUpload } from '../services/file-upload.service';
 import applicationTimelineRoutes from './applicationTimeline.routes';
 import { applicationValidation } from '../validation/application.validation';
 
@@ -648,8 +650,17 @@ router.delete(
 // Add document to application (owner only)
 router.post(
   '/:applicationId/documents',
+  uploadLimiter,
+  applicationDocumentUpload.single('file'),
   ApplicationController.validateDocumentUpload,
   applicationController.addDocument
+);
+
+// Remove document from application (owner only)
+router.delete(
+  '/:applicationId/documents/:documentId',
+  ApplicationController.validateApplicationId,
+  applicationController.removeDocument
 );
 
 /**
