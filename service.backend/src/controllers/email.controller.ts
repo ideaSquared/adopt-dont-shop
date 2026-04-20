@@ -3,6 +3,7 @@ import { NotificationType } from '../models/EmailPreference';
 import { EmailPriority, EmailType } from '../models/EmailQueue';
 import { TemplateType, TemplateCategory, TemplateStatus } from '../models/EmailTemplate';
 import emailService from '../services/email.service';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 
@@ -58,8 +59,14 @@ export const getTemplate = async (req: AuthenticatedRequest, res: Response): Pro
 
 export const createTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    const bodyWithSanitizedHtml: Record<string, unknown> = { ...req.body };
+    if (typeof bodyWithSanitizedHtml.htmlBody === 'string') {
+      bodyWithSanitizedHtml.htmlBody = RichTextProcessingService.sanitize(
+        bodyWithSanitizedHtml.htmlBody
+      );
+    }
     const template = await emailService.createTemplate({
-      ...req.body,
+      ...bodyWithSanitizedHtml,
       createdBy: req.user!.userId,
     });
 
@@ -78,7 +85,11 @@ export const createTemplate = async (req: AuthenticatedRequest, res: Response): 
 export const updateTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { templateId } = req.params;
-    const template = await emailService.updateTemplate(templateId, req.body, req.user!.userId);
+    const updates: Record<string, unknown> = { ...req.body };
+    if (typeof updates.htmlBody === 'string') {
+      updates.htmlBody = RichTextProcessingService.sanitize(updates.htmlBody);
+    }
+    const template = await emailService.updateTemplate(templateId, updates, req.user!.userId);
 
     res.json({
       message: 'Email template updated successfully',

@@ -14,6 +14,7 @@ import {
   FrontendApplication,
 } from '../types/application';
 import { logger } from '../utils/logger';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { BaseController } from './base.controller';
 
 export class ApplicationController extends BaseController {
@@ -436,7 +437,10 @@ export class ApplicationController extends BaseController {
         answers: req.body.answers,
         references: req.body.references,
         priority: req.body.priority,
-        notes: req.body.notes,
+        notes:
+          req.body.notes !== undefined
+            ? RichTextProcessingService.sanitize(req.body.notes)
+            : undefined,
         tags: req.body.tags,
       };
 
@@ -553,9 +557,23 @@ export class ApplicationController extends BaseController {
       }
 
       const { applicationId } = req.params;
+      const sanitizedBody: Record<string, unknown> = { ...req.body };
+      if (typeof sanitizedBody.notes === 'string') {
+        sanitizedBody.notes = RichTextProcessingService.sanitize(sanitizedBody.notes);
+      }
+      if (typeof sanitizedBody.interviewNotes === 'string') {
+        sanitizedBody.interviewNotes = RichTextProcessingService.sanitize(
+          sanitizedBody.interviewNotes
+        );
+      }
+      if (typeof sanitizedBody.homeVisitNotes === 'string') {
+        sanitizedBody.homeVisitNotes = RichTextProcessingService.sanitize(
+          sanitizedBody.homeVisitNotes
+        );
+      }
       const application = await ApplicationService.updateApplication(
         applicationId,
-        req.body,
+        sanitizedBody,
         req.user!.userId
       );
 
@@ -669,8 +687,14 @@ export class ApplicationController extends BaseController {
       const statusUpdate: ApplicationStatusUpdateRequest = {
         status: req.body.status,
         actionedBy: req.user!.userId,
-        rejectionReason: req.body.rejectionReason,
-        notes: req.body.notes,
+        rejectionReason:
+          typeof req.body.rejectionReason === 'string'
+            ? RichTextProcessingService.sanitize(req.body.rejectionReason)
+            : req.body.rejectionReason,
+        notes:
+          typeof req.body.notes === 'string'
+            ? RichTextProcessingService.sanitize(req.body.notes)
+            : req.body.notes,
         followUpDate: req.body.followUpDate,
       };
 
