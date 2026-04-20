@@ -1,8 +1,12 @@
-import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Heading, Text } from '@adopt-dont-shop/lib.components';
-import { FiAlertCircle } from 'react-icons/fi';
+import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
+import { FiSearch, FiPackage } from 'react-icons/fi';
+import { DataTable, type Column } from '../components/data';
+import { usePets, useBulkUpdatePets } from '../hooks';
+import { BulkActionToolbar } from '../components/ui';
+import { BulkConfirmationModal } from '../components/modals';
+import type { AdminPet, PetStatus } from '../services/petService';
 
 const PageContainer = styled.div`
   display: flex;
@@ -25,117 +29,357 @@ const HeaderLeft = styled.div`
     color: #111827;
     margin: 0 0 0.5rem 0;
   }
-
-  p {
-    font-size: 1rem;
-    color: #6b7280;
-    margin: 0;
-  }
 `;
 
-const ContentCard = styled.div`
+const FilterBar = styled.div`
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  padding: 2rem;
+  padding: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
 `;
 
-const InfoBanner = styled.div`
-  background: #dbeafe;
-  border: 1px solid #60a5fa;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+const FilterGroup = styled.div`
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  color: #1e40af;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 200px;
+  flex: 1;
+`;
+
+const FilterLabel = styled.label`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  flex: 2;
+  min-width: 300px;
 
   svg {
-    flex-shrink: 0;
-    margin-top: 0.125rem;
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 1.125rem;
+  }
+
+  input {
+    padding-left: 2.5rem;
   }
 `;
 
-const Pets: React.FC = () => {
-  const { petId } = useParams<{ petId?: string }>();
+const Select = styled.select`
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
 
-  useEffect(() => {
-    if (petId) {
-      // TODO: Load pet details when petId is provided
-      console.log('Loading pet:', petId);
+  &:hover {
+    border-color: #9ca3af;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${props => props.theme.colors.primary[500]};
+    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
+  }
+`;
+
+const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: ${props => {
+    switch (props.$variant) {
+      case 'success':
+        return '#d1fae5';
+      case 'warning':
+        return '#fef3c7';
+      case 'danger':
+        return '#fee2e2';
+      case 'info':
+        return '#dbeafe';
+      default:
+        return '#f3f4f6';
     }
-  }, [petId]);
+  }};
+  color: ${props => {
+    switch (props.$variant) {
+      case 'success':
+        return '#065f46';
+      case 'warning':
+        return '#92400e';
+      case 'danger':
+        return '#991b1b';
+      case 'info':
+        return '#1e40af';
+      default:
+        return '#374151';
+    }
+  }};
+`;
+
+const PetInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+`;
+
+const PetName = styled.div`
+  font-weight: 600;
+  color: #111827;
+`;
+
+const PetDetail = styled.div`
+  font-size: 0.8125rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const ErrorMessage = styled.div`
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #991b1b;
+  font-size: 0.875rem;
+`;
+
+type BulkPetActionType = 'publish' | 'unpublish' | 'archive';
+
+const getStatusBadge = (status: PetStatus, archived: boolean) => {
+  if (archived) {
+    return <Badge $variant='neutral'>Archived</Badge>;
+  }
+  switch (status) {
+    case 'available':
+      return <Badge $variant='success'>Available</Badge>;
+    case 'adopted':
+      return <Badge $variant='info'>Adopted</Badge>;
+    case 'foster':
+      return <Badge $variant='warning'>Foster</Badge>;
+    default:
+      return <Badge $variant='neutral'>Unavailable</Badge>;
+  }
+};
+
+const formatDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+
+const Pets: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<BulkPetActionType | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+
+  const { data, isLoading, error } = usePets({
+    search: searchQuery || undefined,
+    status: statusFilter !== 'all' ? (statusFilter as PetStatus) : undefined,
+    limit: 20,
+  });
+
+  const bulkUpdatePets = useBulkUpdatePets();
+
+  const pets: AdminPet[] = data?.data ?? [];
+
+  const handleBulkConfirm = async (): Promise<void> => {
+    if (!bulkAction) {
+      return;
+    }
+
+    const petIds = Array.from(selectedRows);
+    let result: { successCount: number; failedCount: number };
+
+    if (bulkAction === 'archive') {
+      result = await bulkUpdatePets.mutateAsync({ petIds, operation: 'archive' });
+    } else {
+      result = await bulkUpdatePets.mutateAsync({
+        petIds,
+        operation: 'update_status',
+        data: { status: bulkAction === 'publish' ? 'available' : 'not_available' },
+      });
+    }
+
+    setBulkResult({ succeeded: result.successCount, failed: result.failedCount });
+    setSelectedRows(new Set());
+  };
+
+  const handleBulkModalClose = () => {
+    setBulkAction(null);
+    setBulkResult(null);
+  };
+
+  const columns: Column<AdminPet>[] = [
+    {
+      id: 'pet',
+      header: 'Pet',
+      accessor: row => (
+        <PetInfo>
+          <PetName>{row.name}</PetName>
+          <PetDetail>
+            <FiPackage size={12} />
+            {row.type} · {row.breed}
+          </PetDetail>
+        </PetInfo>
+      ),
+      width: '250px',
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      accessor: row => getStatusBadge(row.status, row.archived),
+      width: '130px',
+      sortable: true,
+    },
+    {
+      id: 'rescue',
+      header: 'Rescue',
+      accessor: row => row.rescueName ?? '-',
+      width: '200px',
+    },
+    {
+      id: 'featured',
+      header: 'Featured',
+      accessor: row =>
+        row.featured ? (
+          <Badge $variant='info'>Featured</Badge>
+        ) : (
+          <span style={{ color: '#9ca3af' }}>-</span>
+        ),
+      width: '100px',
+      align: 'center',
+    },
+    {
+      id: 'createdAt',
+      header: 'Listed',
+      accessor: row => formatDate(row.createdAt),
+      width: '120px',
+      sortable: true,
+    },
+  ];
 
   return (
     <PageContainer>
       <PageHeader>
         <HeaderLeft>
           <Heading level='h1'>Pet Management</Heading>
-          <Text>
-            {petId
-              ? `Viewing details for pet: ${petId}`
-              : 'Browse and manage all pet listings on the platform'}
-          </Text>
+          <Text>Browse and manage all pet listings on the platform</Text>
         </HeaderLeft>
       </PageHeader>
 
-      {petId && (
-        <InfoBanner>
-          <FiAlertCircle size={20} />
-          <div>
-            <strong>Direct Link Navigation</strong>
-            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-              You've navigated to this pet via a direct link (e.g., from a moderation report). The
-              full pet management interface is under development.
-            </p>
-          </div>
-        </InfoBanner>
+      {error && (
+        <ErrorMessage>Failed to load pets: {(error as Error).message}</ErrorMessage>
       )}
 
-      <ContentCard>
-        {petId ? (
-          <>
-            <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>Pet Details</h2>
-            <p style={{ color: '#6b7280', margin: 0 }}>
-              Pet ID:{' '}
-              <code
-                style={{
-                  background: '#f3f4f6',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '4px',
-                  fontFamily: 'monospace',
-                }}
-              >
-                {petId}
-              </code>
-            </p>
-            <p style={{ color: '#6b7280', marginTop: '1rem' }}>
-              Full pet details view will be implemented here. This will include:
-            </p>
-            <ul style={{ color: '#6b7280', marginTop: '0.5rem' }}>
-              <li>Pet information (name, breed, age, etc.)</li>
-              <li>Associated rescue organization</li>
-              <li>Adoption status</li>
-              <li>Photos and description</li>
-              <li>Moderation history</li>
-            </ul>
-          </>
-        ) : (
-          <>
-            <h2 style={{ marginTop: 0, marginBottom: '1rem' }}>All Pets</h2>
-            <p style={{ color: '#6b7280', margin: 0 }}>
-              Pet listing and management interface will be implemented here. This will include:
-            </p>
-            <ul style={{ color: '#6b7280', marginTop: '0.5rem' }}>
-              <li>Searchable pet listings</li>
-              <li>Filter by rescue, status, species</li>
-              <li>Bulk actions</li>
-              <li>Export capabilities</li>
-            </ul>
-          </>
-        )}
-      </ContentCard>
+      <FilterBar>
+        <SearchInputWrapper>
+          <FiSearch />
+          <Input
+            type='text'
+            placeholder='Search by name or breed...'
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </SearchInputWrapper>
+
+        <FilterGroup>
+          <FilterLabel>Status</FilterLabel>
+          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value='all'>All Statuses</option>
+            <option value='available'>Available</option>
+            <option value='adopted'>Adopted</option>
+            <option value='foster'>Foster</option>
+            <option value='not_available'>Unavailable</option>
+          </Select>
+        </FilterGroup>
+      </FilterBar>
+
+      <BulkActionToolbar
+        selectedCount={selectedRows.size}
+        totalCount={pets.length}
+        onSelectAll={() => setSelectedRows(new Set(pets.map((p: AdminPet) => p.petId)))}
+        onClearSelection={() => setSelectedRows(new Set())}
+        actions={[
+          {
+            label: 'Publish',
+            variant: 'primary',
+            onClick: () => setBulkAction('publish'),
+          },
+          {
+            label: 'Unpublish',
+            variant: 'warning',
+            onClick: () => setBulkAction('unpublish'),
+          },
+          {
+            label: 'Archive',
+            variant: 'danger',
+            onClick: () => setBulkAction('archive'),
+          },
+        ]}
+      />
+
+      <DataTable
+        columns={columns}
+        data={pets}
+        loading={isLoading}
+        emptyMessage='No pets found matching your criteria'
+        selectable
+        selectedRows={selectedRows}
+        onSelectionChange={setSelectedRows}
+        getRowId={pet => pet.petId}
+      />
+
+      <BulkConfirmationModal
+        isOpen={bulkAction !== null}
+        onClose={handleBulkModalClose}
+        onConfirm={handleBulkConfirm}
+        title={
+          bulkAction === 'publish'
+            ? 'Publish Pets'
+            : bulkAction === 'unpublish'
+              ? 'Unpublish Pets'
+              : 'Archive Pets'
+        }
+        description={
+          bulkAction === 'publish'
+            ? 'Set the selected pets as available for adoption.'
+            : bulkAction === 'unpublish'
+              ? 'Set the selected pets as unavailable. They will no longer appear in listings.'
+              : 'Archive the selected pets. This marks them as inactive.'
+        }
+        selectedCount={selectedRows.size}
+        confirmLabel={
+          bulkAction === 'publish'
+            ? 'Publish Pets'
+            : bulkAction === 'unpublish'
+              ? 'Unpublish Pets'
+              : 'Archive Pets'
+        }
+        variant={bulkAction === 'archive' ? 'danger' : bulkAction === 'unpublish' ? 'warning' : 'info'}
+        isLoading={bulkUpdatePets.isLoading}
+        resultSummary={bulkResult}
+      />
     </PageContainer>
   );
 };

@@ -6,7 +6,13 @@
 export * from './useUsers';
 
 // Rescue hooks
-// export * from './useRescues'; // TODO: Create this hook when needed
+export * from './useRescues';
+
+// Pet hooks
+export * from './usePets';
+
+// Application hooks
+export * from './useApplications';
 
 // Metrics hook
 // export * from './useMetrics'; // TODO: Create this hook when needed

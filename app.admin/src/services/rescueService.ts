@@ -323,6 +323,24 @@ class AdminRescueService {
       throw new Error(response.message || 'Failed to delete rescue');
     }
   }
+
+  async bulkUpdate(
+    rescueIds: string[],
+    action: 'approve' | 'suspend' | 'verify',
+    reason?: string
+  ): Promise<{ successCount: number; failedCount: number }> {
+    const response = await apiService.post<{
+      success: boolean;
+      message: string;
+      data: { successCount: number; failedCount: number };
+    }>(`${this.baseUrl}/bulk-update`, { rescueIds, action, reason });
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to bulk update rescues');
+    }
+
+    return response.data;
+  }
 }
 
 // Export singleton instance

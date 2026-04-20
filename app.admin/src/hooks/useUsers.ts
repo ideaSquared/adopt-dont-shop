@@ -142,11 +142,10 @@ export const useBulkUpdateUsers = () => {
     ({
       userIds,
       updates,
-    }: Parameters<typeof userManagementService.bulkUpdateUsers>[0] extends infer P
-      ? P extends [infer A, infer B]
-        ? { userIds: A; updates: B }
-        : never
-      : never) => userManagementService.bulkUpdateUsers(userIds, updates),
+    }: {
+      userIds: string[];
+      updates: { userType?: string; is_active?: boolean };
+    }) => userManagementService.bulkUpdateUsers(userIds, updates),
     {
       onSuccess: () => {
         queryClient.invalidateQueries('users');

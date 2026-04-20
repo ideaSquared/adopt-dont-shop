@@ -5,6 +5,14 @@ import { AuditLogService } from './auditLog.service';
 import sequelize from '../sequelize';
 import { AdoptionPolicy } from '../types/rescue';
 
+export type BulkRescueAction = 'approve' | 'suspend' | 'verify';
+
+export type BulkRescueResult = {
+  successCount: number;
+  failedCount: number;
+  errors: Array<{ rescueId: string; error: string }>;
+};
+
 export interface RescueSearchOptions {
   page?: number;
   limit?: number;
@@ -1210,5 +1218,48 @@ export class RescueService {
       }
       throw new Error('Failed to retrieve adoption policies');
     }
+  }
+
+  static async bulkUpdateRescues(
+    rescueIds: string[],
+    action: BulkRescueAction,
+    performedBy: string,
+    reason?: string
+  ): Promise<BulkRescueResult> {
+    const result: BulkRescueResult = { successCount: 0, failedCount: 0, errors: [] };
+
+    for (const rescueId of rescueIds) {
+      try {
+        if (action === 'approve' || action === 'verify') {
+          await RescueService.verifyRescue(rescueId, performedBy, reason);
+        } else if (action === 'suspend') {
+          await Rescue.update({ status: 'suspended' }, { where: { rescueId } });
+          await AuditLogService.log({
+            userId: performedBy,
+            action: 'suspend',
+            entity: 'rescue',
+            entityId: rescueId,
+            details: { reason: reason || null },
+          });
+        }
+        result.successCount++;
+      } catch (error) {
+        result.failedCount++;
+        result.errors.push({
+          rescueId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    logger.info('Bulk rescue operation completed', {
+      action,
+      total: rescueIds.length,
+      successCount: result.successCount,
+      failedCount: result.failedCount,
+      performedBy,
+    });
+
+    return result;
   }
 }

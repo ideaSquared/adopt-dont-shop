@@ -26,6 +26,7 @@ const mockUseSuspendUser = vi.fn();
 const mockUseUnsuspendUser = vi.fn();
 const mockUseVerifyUser = vi.fn();
 const mockUseDeleteUser = vi.fn();
+const mockUseBulkUpdateUsers = vi.fn();
 
 vi.mock('../hooks', () => ({
   useUsers: (...args: unknown[]) => mockUseUsers(...args),
@@ -33,6 +34,7 @@ vi.mock('../hooks', () => ({
   useUnsuspendUser: () => mockUseUnsuspendUser(),
   useVerifyUser: () => mockUseVerifyUser(),
   useDeleteUser: () => mockUseDeleteUser(),
+  useBulkUpdateUsers: () => mockUseBulkUpdateUsers(),
 }));
 
 vi.mock('../services/libraryServices', () => ({
@@ -44,6 +46,7 @@ vi.mock('../services/libraryServices', () => ({
 }));
 
 vi.mock('../components/modals', () => ({
+  BulkConfirmationModal: () => null,
   UserDetailModal: ({
     isOpen,
     user,
@@ -235,6 +238,7 @@ describe('User Management page', () => {
     mockUseUnsuspendUser.mockReturnValue(mockMutationResult);
     mockUseVerifyUser.mockReturnValue(mockMutationResult);
     mockUseDeleteUser.mockReturnValue(mockMutationResult);
+    mockUseBulkUpdateUsers.mockReturnValue(mockMutationResult);
   });
 
   describe('page structure', () => {

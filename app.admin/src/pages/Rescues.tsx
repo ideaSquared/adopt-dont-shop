@@ -15,8 +15,14 @@ import { DataTable, type Column } from '../components/data';
 import type { AdminRescue } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import { exportData, type ExportColumn } from '@/services/exportService';
-import { ExportButton } from '@/components/ui';
-import { RescueDetailModal, RescueVerificationModal, SendEmailModal } from '@/components/modals';
+import {
+  RescueDetailModal,
+  RescueVerificationModal,
+  SendEmailModal,
+  BulkConfirmationModal,
+} from '@/components/modals';
+import { ExportButton, BulkActionToolbar } from '@/components/ui';
+import { useBulkUpdateRescues } from '@/hooks';
 
 const PageContainer = styled.div`
   display: flex;
@@ -243,6 +249,12 @@ const Rescues: React.FC = () => {
   const [verificationAction, setVerificationAction] = useState<'approve' | 'reject'>('approve');
   const [showEmailModal, setShowEmailModal] = useState(false);
 
+  // Bulk selection state
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [bulkRescueAction, setBulkRescueAction] = useState<'approve' | 'suspend' | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const bulkUpdateRescues = useBulkUpdateRescues();
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'verified':
@@ -362,6 +374,22 @@ const Rescues: React.FC = () => {
     exportData(rescues, rescueExportColumns, 'rescues-export', 'Rescue Management Export', format);
   };
 
+  const handleBulkRescueConfirm = async (): Promise<void> => {
+    if (!bulkRescueAction) {
+      return;
+    }
+    const rescueIds = Array.from(selectedRows);
+    const result = await bulkUpdateRescues.mutateAsync({ rescueIds, action: bulkRescueAction });
+    setBulkResult({ succeeded: result.successCount, failed: result.failedCount });
+    setSelectedRows(new Set());
+    fetchRescues();
+  };
+
+  const handleBulkModalClose = (): void => {
+    setBulkRescueAction(null);
+    setBulkResult(null);
+  };
+
   const columns: Column<AdminRescue>[] = [
     {
       id: 'rescue',
@@ -479,12 +507,34 @@ const Rescues: React.FC = () => {
         </FilterGroup>
       </FilterBar>
 
+      <BulkActionToolbar
+        selectedCount={selectedRows.size}
+        totalCount={rescues.length}
+        onSelectAll={() => setSelectedRows(new Set(rescues.map((r: AdminRescue) => r.rescueId)))}
+        onClearSelection={() => setSelectedRows(new Set())}
+        actions={[
+          {
+            label: 'Approve',
+            variant: 'primary',
+            onClick: () => setBulkRescueAction('approve'),
+          },
+          {
+            label: 'Suspend',
+            variant: 'danger',
+            onClick: () => setBulkRescueAction('suspend'),
+          },
+        ]}
+      />
+
       <DataTable
         columns={columns}
         data={rescues}
         loading={loading}
         emptyMessage='No rescue organizations found matching your criteria'
         onRowClick={rescue => handleViewDetails(rescue.rescueId)}
+        selectable
+        selectedRows={selectedRows}
+        onSelectionChange={setSelectedRows}
         getRowId={rescue => rescue.rescueId}
       />
 
@@ -513,6 +563,23 @@ const Rescues: React.FC = () => {
           onSuccess={() => {}}
         />
       )}
+
+      <BulkConfirmationModal
+        isOpen={bulkRescueAction !== null}
+        onClose={handleBulkModalClose}
+        onConfirm={handleBulkRescueConfirm}
+        title={bulkRescueAction === 'approve' ? 'Approve Rescues' : 'Suspend Rescues'}
+        description={
+          bulkRescueAction === 'approve'
+            ? 'Verify and approve the selected rescue organizations on the platform.'
+            : 'Suspend the selected rescue organizations. They will be unable to operate on the platform.'
+        }
+        selectedCount={selectedRows.size}
+        confirmLabel={bulkRescueAction === 'approve' ? 'Approve Rescues' : 'Suspend Rescues'}
+        variant={bulkRescueAction === 'suspend' ? 'danger' : 'info'}
+        isLoading={bulkUpdateRescues.isLoading}
+        resultSummary={bulkResult}
+      />
     </PageContainer>
   );
 };

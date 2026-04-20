@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { PetType, Size, Gender, PetStatus, AgeGroup } from '../models/Pet';
 import PetService, { PetSearchFilters } from '../services/pet.service';
+import type { BulkPetOperation } from '../types/pet';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
 
@@ -1106,6 +1107,45 @@ export class PetController {
           error instanceof Error && error.message === 'Pet not found'
             ? 'Pet not found'
             : 'Failed to submit pet report',
+      });
+    }
+  };
+  static validateBulkUpdate = [
+    body('petIds').isArray({ min: 1 }).withMessage('petIds must be a non-empty array'),
+    body('petIds.*').isString().withMessage('Each pet ID must be a string'),
+    body('operation')
+      .isIn(['update_status', 'archive', 'feature', 'delete'])
+      .withMessage('Invalid operation'),
+    body('data').optional().isObject(),
+    body('reason').optional().isString().isLength({ max: 500 }),
+  ];
+
+  bulkUpdatePets = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const updatedBy = req.user!.userId;
+      const operation: BulkPetOperation = req.body;
+
+      const result = await this.petService.bulkUpdatePets(operation, updatedBy);
+
+      res.status(200).json({
+        success: true,
+        message: 'Bulk pet operation completed',
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Bulk pet update failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to perform bulk update',
       });
     }
   };

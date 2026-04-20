@@ -13,3 +13,6 @@ export { ExportButton } from './ExportButton';
 export { Skeleton, SkeletonText, SkeletonTableRow, SkeletonCard } from './Skeleton';
 
 export * from './SharedComponents';
+
+export { BulkActionToolbar } from './BulkActionToolbar';
+export type { BulkAction } from './BulkActionToolbar';
