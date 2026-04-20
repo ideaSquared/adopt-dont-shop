@@ -77,6 +77,15 @@ vi.mock('../../models/User', () => ({
   },
 }));
 
+// Mock RevokedToken model
+vi.mock('../../models/RevokedToken', () => ({
+  __esModule: true,
+  default: {
+    findByPk: vi.fn(),
+    create: vi.fn(),
+  },
+}));
+
 // Mock Role and Permission models before they are imported
 vi.mock('../../models/Role', () => ({
   __esModule: true,
@@ -125,6 +134,7 @@ import {
   JWTPayload,
 } from '../../middleware/auth';
 import User from '../../models/User';
+import RevokedToken from '../../models/RevokedToken';
 import { AuthenticatedRequest } from '../../types/auth';
 import { logger, loggerHelpers } from '../../utils/logger';
 import { env } from '../../config/env';
@@ -157,6 +167,9 @@ describe('Authentication Middleware', () => {
 
     // Clear all mocks
     vi.clearAllMocks();
+
+    // Default: token is not revoked
+    (RevokedToken.findByPk as vi.Mock).mockResolvedValue(null);
   });
 
   describe('authenticateToken - Required authentication', () => {
@@ -262,6 +275,62 @@ describe('Authentication Middleware', () => {
         expect(mockResponse.json).toHaveBeenCalledWith({
           error: 'Invalid token',
         });
+      });
+    });
+
+    describe('when token has been revoked', () => {
+      it('should reject a blacklisted access token and return 401', async () => {
+        const payload: JWTPayload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          jti: 'revoked-jti-abc',
+        };
+
+        mockRequest.headers = { authorization: 'Bearer revoked-token' };
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (RevokedToken.findByPk as vi.Mock).mockResolvedValue({ jti: 'revoked-jti-abc' });
+
+        await authenticateToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockResponse.status).toHaveBeenCalledWith(401);
+        expect(mockResponse.json).toHaveBeenCalledWith({ error: 'Token has been revoked' });
+        expect(mockNext).not.toHaveBeenCalled();
+        expect(loggerHelpers.logSecurity).toHaveBeenCalledWith(
+          'Authentication failed - token has been revoked',
+          expect.objectContaining({ userId: 'user-123', jti: 'revoked-jti-abc' }),
+          mockRequest
+        );
+      });
+
+      it('should allow tokens without jti to bypass revocation check', async () => {
+        const payload: JWTPayload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          // no jti
+        };
+        const mockUser = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          status: 'active',
+          Roles: [],
+        };
+
+        mockRequest.headers = { authorization: 'Bearer legacy-token' };
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+        await authenticateToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(RevokedToken.findByPk).not.toHaveBeenCalled();
+        expect(mockNext).toHaveBeenCalled();
       });
     });
 

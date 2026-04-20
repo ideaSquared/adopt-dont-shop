@@ -34,8 +34,9 @@ const AUTH_ENDPOINTS = {
 /**
  * AuthService - Authentication and user management service
  *
- * This service handles user authentication, registration, profile management,
- * and token management using lib.api as the HTTP transport layer.
+ * Access tokens are stored in sessionStorage (cleared on tab close).
+ * Refresh tokens are stored in httpOnly cookies (managed by the backend,
+ * not accessible to JavaScript — XSS-safe).
  */
 export class AuthService {
   constructor() {
@@ -51,8 +52,8 @@ export class AuthService {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
 
-    // Store tokens and user data (backend returns 'token', frontend expects 'accessToken')
-    this.setTokens(response.token, response.refreshToken);
+    // Store access token in sessionStorage; refresh token is in httpOnly cookie
+    this.setToken(response.token);
     this.setUser(response.user);
 
     return {
@@ -67,8 +68,8 @@ export class AuthService {
   async register(userData: RegisterRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.REGISTER, userData);
 
-    // Store tokens and user data (backend returns 'token', frontend expects 'accessToken')
-    this.setTokens(response.token, response.refreshToken);
+    // Store access token in sessionStorage; refresh token is in httpOnly cookie
+    this.setToken(response.token);
     this.setUser(response.user);
 
     return {
@@ -84,8 +85,7 @@ export class AuthService {
     try {
       await apiService.post(AUTH_ENDPOINTS.LOGOUT);
     } catch (error) {
-      // Continue with logout even if server request fails
-      console.warn('Logout request failed, clearing local data anyway:', error);
+      console.error('Logout API call failed:', error);
     } finally {
       this.clearTokens();
       localStorage.removeItem(STORAGE_KEYS.USER);
@@ -117,20 +117,13 @@ export class AuthService {
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token — refresh token is sent automatically via httpOnly cookie
    */
   async refreshToken(): Promise<string> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
+    const response = await apiService.post<RefreshTokenResponse>(AUTH_ENDPOINTS.REFRESH, {});
 
-    const response = await apiService.post<RefreshTokenResponse>(AUTH_ENDPOINTS.REFRESH, {
-      refreshToken,
-    });
-
-    // Update stored tokens
-    this.setTokens(response.token, response.refreshToken);
+    // Update stored access token only; new refresh token cookie is set by backend
+    this.setToken(response.token);
 
     return response.token;
   }
@@ -257,54 +250,39 @@ export class AuthService {
   }
 
   /**
-   * Get stored auth token
+   * Get stored access token (from sessionStorage)
    */
   getToken(): string | null {
     return (
-      localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
-      localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
+      sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
+      sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
     );
   }
 
   /**
-   * Get stored refresh token
-   */
-  getRefreshToken(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-  }
-
-  /**
-   * Set auth token in storage
+   * Set access token in storage
    */
   setToken(token: string): void {
-    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token); // For backward compatibility
+    sessionStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+    sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token); // For backward compatibility
   }
 
   /**
    * Clear all stored authentication data
    */
   clearTokens(): void {
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
   }
 
   // Private helper methods
-  private setTokens(token: string, refreshToken: string): void {
-    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token); // For backward compatibility
-    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-  }
-
   private setUser(user: User): void {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
   }
 
   private clearStorage(): void {
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER);
   }
 }

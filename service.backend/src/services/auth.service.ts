@@ -6,6 +6,7 @@ import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
 import User, { UserStatus, UserType } from '../models/User';
 import RefreshToken from '../models/RefreshToken';
+import RevokedToken from '../models/RevokedToken';
 import { logger, loggerHelpers } from '../utils/logger';
 import { decryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
 import { AuditLogService } from './auditLog.service';
@@ -578,7 +579,27 @@ Need help? Contact us at support@adoptdontshop.com
     }
   }
 
-  static async logout(refreshToken?: string): Promise<void> {
+  static async logout(refreshToken?: string, accessToken?: string): Promise<void> {
+    if (accessToken) {
+      try {
+        const decoded = jwt.decode(accessToken) as {
+          jti?: string;
+          userId?: string;
+          exp?: number;
+        } | null;
+        if (decoded?.jti && decoded?.userId && decoded?.exp) {
+          await RevokedToken.create({
+            jti: decoded.jti,
+            user_id: decoded.userId,
+            expires_at: new Date(decoded.exp * 1000),
+          });
+          logger.info('Access token blacklisted on logout', { jti: decoded.jti });
+        }
+      } catch {
+        logger.warn('Failed to blacklist access token on logout');
+      }
+    }
+
     if (!refreshToken) {
       return;
     }
@@ -670,7 +691,8 @@ Need help? Contact us at support@adoptdontshop.com
       throw new Error('JWT secrets not configured');
     }
 
-    const token = jwt.sign(payload, jwtSecret, {
+    const accessTokenJti = crypto.randomUUID();
+    const token = jwt.sign({ ...payload, jti: accessTokenJti }, jwtSecret, {
       expiresIn: this.JWT_EXPIRES_IN,
     } as SignOptions);
 

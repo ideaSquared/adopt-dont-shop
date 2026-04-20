@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import Role from '../models/Role';
 import Permission from '../models/Permission';
+import RevokedToken from '../models/RevokedToken';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger, loggerHelpers } from '../utils/logger';
 import { setUserId } from '../utils/request-context';
@@ -12,6 +13,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   userType?: string;
+  jti?: string;
   iat?: number;
   exp?: number;
 }
@@ -40,6 +42,25 @@ export const authenticateToken = async (
     }
 
     const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
+
+    // Check if access token has been revoked (e.g. post-logout blacklist)
+    if (decoded.jti) {
+      const revoked = await RevokedToken.findByPk(decoded.jti);
+      if (revoked) {
+        loggerHelpers.logSecurity(
+          'Authentication failed - token has been revoked',
+          {
+            userId: decoded.userId,
+            jti: decoded.jti,
+            ip: req.ip,
+            userAgent: req.get('User-Agent'),
+          },
+          req
+        );
+        res.status(401).json({ error: 'Token has been revoked' });
+        return;
+      }
+    }
 
     // Fetch user from database to ensure they still exist and are active
     const user = await User.findByPk(decoded.userId, {

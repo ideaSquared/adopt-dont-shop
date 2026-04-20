@@ -15,15 +15,15 @@ import { AuthenticatedRequest } from '../types';
 import { validateBody } from '../middleware/zod-validate';
 import { logger } from '../utils/logger';
 
-/**
- * Validation rules.
- *
- * The user-shaped paths (register/login/reset/profile) are now driven by
- * Zod schemas in @adopt-dont-shop/lib.validation — same rules, same
- * error response shape, but one source of truth shared with the frontend
- * forms in lib.auth. The remaining endpoints still use express-validator;
- * they'll migrate as their owning slices come up.
- */
+const REFRESH_TOKEN_COOKIE = 'refreshToken';
+const REFRESH_TOKEN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+};
+
+
 export const authValidation = {
   register: validateBody(RegisterRequestSchema),
   login: validateBody(LoginRequestSchema),
@@ -54,7 +54,11 @@ export class AuthController {
   async register(req: Request, res: Response): Promise<void> {
     try {
       const result = await AuthService.register(req.body);
-      res.status(201).json(result);
+
+      res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+      const { refreshToken: _, ...responseBody } = result;
+      res.status(201).json(responseBody);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Registration failed:', error);
@@ -74,7 +78,11 @@ export class AuthController {
   async login(req: Request, res: Response): Promise<void> {
     try {
       const result = await AuthService.login(req.body);
-      res.json(result);
+
+      res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+      const { refreshToken: _, ...responseBody } = result;
+      res.json(responseBody);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Login failed:', error);
@@ -97,11 +105,19 @@ export class AuthController {
    */
   async logout(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const refreshToken = req.body.refreshToken;
-      const result = await AuthService.logout(refreshToken);
-      res.json(result);
+      const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? req.body.refreshToken;
+      const accessToken = req.headers.authorization?.split(' ')[1];
+
+      await AuthService.logout(refreshToken, accessToken);
+
+      res.clearCookie(REFRESH_TOKEN_COOKIE, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+      });
+
+      res.json({ message: 'Logged out successfully' });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Logout failed:', error);
       res.status(500).json({ error: 'Logout failed' });
     }
@@ -112,7 +128,7 @@ export class AuthController {
    */
   async refreshToken(req: Request, res: Response): Promise<void> {
     try {
-      const { refreshToken } = req.body;
+      const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? req.body.refreshToken;
 
       if (!refreshToken) {
         res.status(400).json({ error: 'Refresh token required' });
@@ -120,9 +136,12 @@ export class AuthController {
       }
 
       const result = await AuthService.refreshToken(refreshToken);
-      res.json(result);
+
+      res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+      const { refreshToken: _, ...responseBody } = result;
+      res.json(responseBody);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Token refresh failed:', error);
       res.status(401).json({ error: 'Invalid refresh token' });
     }
