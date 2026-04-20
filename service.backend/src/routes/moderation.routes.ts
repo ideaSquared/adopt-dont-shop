@@ -406,4 +406,44 @@ router.get(
   moderationController.getModerationMetrics.bind(moderationController)
 );
 
+/**
+ * @swagger
+ * /api/v1/admin/moderation/flagged-messages:
+ *   get:
+ *     tags: [Moderation]
+ *     summary: Get flagged messages pending review
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: severity
+ *         schema:
+ *           type: string
+ *           enum: [low, medium, high, critical]
+ *         description: Filter by flag severity
+ *       - in: query
+ *         name: moderationStatus
+ *         schema:
+ *           type: string
+ *           enum: [pending_review, approved, rejected]
+ *         description: Filter by moderation status
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Flagged messages retrieved successfully
+ */
+router.get(
+  '/flagged-messages',
+  requirePermission(PERMISSIONS.MODERATION_REPORTS_READ),
+  generalLimiter,
+  moderationController.getFlaggedMessages.bind(moderationController)
+);
+
 export default router;

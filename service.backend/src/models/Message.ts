@@ -1,6 +1,7 @@
 import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize';
 import sequelize, { getJsonType } from '../sequelize';
 import { MessageContentFormat } from '../types/chat';
+import { ScanSeverity, MessageModerationStatus } from '../services/content-moderation.service';
 import Chat from './Chat';
 import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 
@@ -34,6 +35,12 @@ interface MessageAttributes {
   reactions?: MessageReaction[];
   read_status?: MessageReadStatus[];
   search_vector?: unknown; // tsvector type for full-text search
+  // Content moderation fields
+  is_flagged?: boolean;
+  flag_reason?: string | null;
+  flag_severity?: ScanSeverity | null;
+  moderation_status?: MessageModerationStatus | null;
+  flagged_at?: Date | null;
   created_at?: Date;
   updated_at?: Date;
   Chat?: Chat;
@@ -50,6 +57,11 @@ interface MessageCreationAttributes
     | 'Chat'
     | 'reactions'
     | 'read_status'
+    | 'is_flagged'
+    | 'flag_reason'
+    | 'flag_severity'
+    | 'moderation_status'
+    | 'flagged_at'
   > {}
 
 export class Message
@@ -65,6 +77,11 @@ export class Message
   public reactions?: MessageReaction[];
   public read_status?: MessageReadStatus[];
   public search_vector?: unknown;
+  public is_flagged?: boolean;
+  public flag_reason?: string | null;
+  public flag_severity?: ScanSeverity | null;
+  public moderation_status?: MessageModerationStatus | null;
+  public flagged_at?: Date | null;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
   public length!: number;
@@ -262,6 +279,27 @@ Message.init(
     },
     search_vector: {
       type: DataTypes.TSVECTOR,
+      allowNull: true,
+    },
+    is_flagged: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    flag_reason: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    flag_severity: {
+      type: DataTypes.ENUM(...Object.values(ScanSeverity)),
+      allowNull: true,
+    },
+    moderation_status: {
+      type: DataTypes.ENUM(...Object.values(MessageModerationStatus)),
+      allowNull: true,
+    },
+    flagged_at: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
   },

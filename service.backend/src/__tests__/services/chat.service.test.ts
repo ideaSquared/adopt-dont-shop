@@ -1,4 +1,37 @@
 import { vi } from 'vitest';
+
+// Mock content moderation service
+vi.mock('../../services/content-moderation.service', () => ({
+  ContentModerationService: {
+    scanContent: vi.fn(),
+    isMessageBlocked: vi.fn(),
+    shouldAutoReport: vi.fn(),
+  },
+  ScanSeverity: {
+    LOW: 'low',
+    MEDIUM: 'medium',
+    HIGH: 'high',
+    CRITICAL: 'critical',
+  },
+}));
+
+// Mock moderation service (singleton)
+vi.mock('../../services/moderation.service', () => ({
+  default: {
+    submitReport: vi.fn(),
+    getFlaggedMessages: vi.fn(),
+  },
+  ReportCategory: {
+    INAPPROPRIATE_CONTENT: 'inappropriate_content',
+  },
+  ReportSeverity: {
+    LOW: 'low',
+    MEDIUM: 'medium',
+    HIGH: 'high',
+    CRITICAL: 'critical',
+  },
+}));
+
 // Mock models at the models/index level
 vi.mock('../../models', () => ({
   Chat: {
@@ -88,6 +121,8 @@ import { ChatService } from '../../services/chat.service';
 import { ChatStatus, ParticipantRole, MessageContentFormat } from '../../types/chat';
 import { AuditLogService } from '../../services/auditLog.service';
 import { NotificationService } from '../../services/notification.service';
+import { ContentModerationService } from '../../services/content-moderation.service';
+import moderationService from '../../services/moderation.service';
 
 const MockedChat = Chat as vi.MockedObject<Chat>;
 const MockedChatParticipant = ChatParticipant as vi.MockedObject<ChatParticipant>;
@@ -101,6 +136,16 @@ const mockCreateNotification = NotificationService.createNotification as vi.Mock
 describe('ChatService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: content passes moderation
+    (ContentModerationService.scanContent as vi.Mock).mockReturnValue({
+      isFlagged: false,
+      severity: null,
+      reason: null,
+      matchedCategories: [],
+    });
+    (ContentModerationService.isMessageBlocked as vi.Mock).mockReturnValue(false);
+    (ContentModerationService.shouldAutoReport as vi.Mock).mockReturnValue(false);
+    (moderationService.submitReport as vi.Mock).mockResolvedValue({});
   });
 
   describe('Creating chats', () => {
@@ -1093,6 +1138,146 @@ describe('ChatService', () => {
             }),
           })
         );
+      });
+    });
+  });
+
+  describe('Content moderation on send', () => {
+    const chatId = 'chat-123';
+    const senderId = 'user-456';
+
+    const setupSendMessageMocks = () => {
+      (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+        chat_id: chatId,
+        Participants: [{ participant_id: senderId }],
+      });
+      (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+      const mockMessage = {
+        message_id: 'msg-001',
+        chat_id: chatId,
+        sender_id: senderId,
+        content: 'some content',
+        created_at: new Date(),
+        updated_at: new Date(),
+        Sender: { userId: senderId, firstName: 'John', lastName: 'Doe' },
+      };
+      (MockedMessage.create as vi.Mock).mockResolvedValue(mockMessage);
+      (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
+      (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+      (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue([]);
+    };
+
+    describe('when a message passes content moderation', () => {
+      it('should save the message without moderation flags', async () => {
+        setupSendMessageMocks();
+        (ContentModerationService.scanContent as vi.Mock).mockReturnValue({
+          isFlagged: false,
+          severity: null,
+          reason: null,
+          matchedCategories: [],
+        });
+        (ContentModerationService.isMessageBlocked as vi.Mock).mockReturnValue(false);
+        (ContentModerationService.shouldAutoReport as vi.Mock).mockReturnValue(false);
+
+        await ChatService.sendMessage({ chatId, senderId, content: 'Hello there!' });
+
+        expect(MockedMessage.create).toHaveBeenCalledWith(
+          expect.not.objectContaining({ is_flagged: true }),
+          expect.any(Object)
+        );
+      });
+    });
+
+    describe('when a message contains CRITICAL content (e.g. animal trafficking)', () => {
+      it('should block the message and not save it', async () => {
+        setupSendMessageMocks();
+        (ContentModerationService.scanContent as vi.Mock).mockReturnValue({
+          isFlagged: true,
+          severity: 'critical',
+          reason: 'animal_trafficking_or_abuse',
+          matchedCategories: ['animal_trafficking_or_abuse'],
+        });
+        (ContentModerationService.isMessageBlocked as vi.Mock).mockReturnValue(true);
+
+        await expect(
+          ChatService.sendMessage({
+            chatId,
+            senderId,
+            content: 'Selling puppies for $500 via wire transfer',
+          })
+        ).rejects.toThrow('Message blocked: content violates platform policy');
+
+        expect(MockedMessage.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when a message contains HIGH severity content (e.g. payment request)', () => {
+      it('should save the message with moderation flags and auto-create a report', async () => {
+        setupSendMessageMocks();
+        (ContentModerationService.scanContent as vi.Mock).mockReturnValue({
+          isFlagged: true,
+          severity: 'high',
+          reason: 'financial_fraud_or_threats',
+          matchedCategories: ['financial_fraud_or_threats'],
+        });
+        (ContentModerationService.isMessageBlocked as vi.Mock).mockReturnValue(false);
+        (ContentModerationService.shouldAutoReport as vi.Mock).mockReturnValue(true);
+
+        await ChatService.sendMessage({
+          chatId,
+          senderId,
+          content: 'Please send me $200 via bitcoin',
+        });
+
+        expect(MockedMessage.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            is_flagged: true,
+            flag_severity: 'high',
+            flag_reason: 'financial_fraud_or_threats',
+            moderation_status: 'pending_review',
+          }),
+          expect.any(Object)
+        );
+
+        expect(moderationService.submitReport).toHaveBeenCalledWith(
+          'system',
+          expect.objectContaining({
+            reportedEntityType: 'message',
+            reportedUserId: senderId,
+            severity: 'high',
+          })
+        );
+      });
+    });
+
+    describe('when a message contains LOW severity content (e.g. phone number)', () => {
+      it('should save the message with moderation flags but not auto-report', async () => {
+        setupSendMessageMocks();
+        (ContentModerationService.scanContent as vi.Mock).mockReturnValue({
+          isFlagged: true,
+          severity: 'low',
+          reason: 'off_platform_contact',
+          matchedCategories: ['off_platform_contact'],
+        });
+        (ContentModerationService.isMessageBlocked as vi.Mock).mockReturnValue(false);
+        (ContentModerationService.shouldAutoReport as vi.Mock).mockReturnValue(false);
+
+        await ChatService.sendMessage({
+          chatId,
+          senderId,
+          content: 'Call me at 555-123-4567',
+        });
+
+        expect(MockedMessage.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            is_flagged: true,
+            flag_severity: 'low',
+            moderation_status: 'pending_review',
+          }),
+          expect.any(Object)
+        );
+
+        expect(moderationService.submitReport).not.toHaveBeenCalled();
       });
     });
   });

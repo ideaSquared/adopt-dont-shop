@@ -3,6 +3,11 @@ import { Chat, ChatParticipant, Message, User } from '../models';
 import { NotificationPriority, NotificationType } from '../models/Notification';
 import sequelize from '../sequelize';
 import {
+  ContentModerationService,
+  ScanSeverity,
+} from './content-moderation.service';
+import moderationService, { ReportCategory, ReportSeverity } from './moderation.service';
+import {
   ChatListResponse,
   ChatMessage,
   ChatStatistics,
@@ -542,6 +547,23 @@ export class ChatService {
         }
       }
 
+      // Scan content for policy violations before saving
+      const scanResult = ContentModerationService.scanContent(data.content);
+
+      if (ContentModerationService.isMessageBlocked(scanResult)) {
+        throw new Error('Message blocked: content violates platform policy');
+      }
+
+      const moderationFields = scanResult.isFlagged
+        ? {
+            is_flagged: true,
+            flag_reason: scanResult.reason,
+            flag_severity: scanResult.severity,
+            moderation_status: 'pending_review' as const,
+            flagged_at: new Date(),
+          }
+        : {};
+
       // Create the message with proper field names
       const message = await Message.create(
         {
@@ -551,6 +573,7 @@ export class ChatService {
           content_format: MessageContentFormat.PLAIN,
           attachments: data.attachments || [],
           created_at: new Date(),
+          ...moderationFields,
         },
         { transaction }
       );
@@ -578,6 +601,28 @@ export class ChatService {
       );
 
       await transaction.commit();
+
+      // Auto-report HIGH/CRITICAL violations after commit
+      if (ContentModerationService.shouldAutoReport(scanResult)) {
+        try {
+          const reportSeverity =
+            scanResult.severity === ScanSeverity.CRITICAL
+              ? ReportSeverity.CRITICAL
+              : ReportSeverity.HIGH;
+
+          await moderationService.submitReport('system', {
+            reportedEntityType: 'message',
+            reportedEntityId: messageWithSender.message_id,
+            reportedUserId: data.senderId,
+            category: ReportCategory.INAPPROPRIATE_CONTENT,
+            severity: reportSeverity,
+            title: `Auto-flagged: ${scanResult.reason}`,
+            description: `Message automatically flagged for: ${scanResult.reason}. Severity: ${scanResult.severity}`,
+          });
+        } catch (reportError) {
+          logger.warn('Failed to auto-create moderation report:', reportError);
+        }
+      }
 
       // Send real-time notifications to other participants
       try {
