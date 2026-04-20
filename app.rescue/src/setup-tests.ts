@@ -98,6 +98,8 @@ vi.mock('@adopt-dont-shop/lib.rescue', () => ({
 }));
 
 vi.mock('@adopt-dont-shop/lib.components', () => ({
+  lightTheme: {},
+  darkTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
   Container: ({ children, ...props }: any) => React.createElement('div', props, children),
   Card: ({ children, ...props }: any) => React.createElement('div', props, children),
