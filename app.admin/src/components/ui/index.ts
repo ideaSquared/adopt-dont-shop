@@ -9,4 +9,6 @@ export type { FilterOption } from './FilterPanel';
 export { ActionMenu } from './ActionMenu';
 export type { ActionMenuItem } from './ActionMenu';
 
+export { ExportButton } from './ExportButton';
+
 export * from './SharedComponents';

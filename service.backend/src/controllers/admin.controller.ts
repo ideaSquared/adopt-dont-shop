@@ -332,6 +332,47 @@ export class AdminController {
   }
 
   /**
+   * Get comprehensive dashboard analytics using AnalyticsService
+   */
+  static async getDashboardAnalytics(req: AuthenticatedRequest, res: Response) {
+    const startTime = Date.now();
+    try {
+      const { startDate, endDate } = req.query;
+
+      const { AnalyticsService } = await import('../services/analytics.service');
+
+      const options = {
+        startDate: startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        endDate: endDate ? new Date(endDate as string) : new Date(),
+      };
+
+      const [userMetrics, adoptionMetrics, applicationMetrics] = await Promise.all([
+        AnalyticsService.getUserBehaviorMetrics(options),
+        AnalyticsService.getAdoptionMetrics(options),
+        AnalyticsService.getApplicationMetrics(options),
+      ]);
+
+      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+      res.json({
+        success: true,
+        data: {
+          users: userMetrics,
+          adoptions: adoptionMetrics,
+          applications: applicationMetrics,
+          generatedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      logger.error('Error getting dashboard analytics:', error);
+      res.status(500).json({
+        error: 'Failed to get dashboard analytics',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
    * Get platform usage analytics with corrected parameter handling
    */
   static async getUsageAnalytics(req: AuthenticatedRequest, res: Response) {

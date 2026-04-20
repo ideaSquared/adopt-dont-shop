@@ -17,5 +17,5 @@ export * from './useUsers';
 // Configuration hooks
 // export * from './useConfig'; // TODO: Create this hook when needed
 
-// Analytics hook
-// export * from './useAnalytics'; // TODO: Create this hook when needed
+// Analytics hooks
+export * from './useAnalytics';

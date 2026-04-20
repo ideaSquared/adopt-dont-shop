@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail, FiShield } from 'react-icons/fi';
+import { FiSearch, FiUserPlus, FiEdit2, FiMail } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { useUsers, useSuspendUser, useUnsuspendUser, useVerifyUser, useDeleteUser } from '../hooks';
 import { apiService, type AdminUser } from '../services/libraryServices';
+import { exportData, type ExportColumn } from '../services/exportService';
+import { ExportButton } from '../components/ui';
 import {
   UserDetailModal,
   EditUserModal,
@@ -372,6 +374,22 @@ const Users: React.FC = () => {
 
   const users = data?.data || [];
 
+  const userExportColumns: ExportColumn<AdminUser>[] = [
+    { header: 'First Name', accessor: 'firstName' },
+    { header: 'Last Name', accessor: 'lastName' },
+    { header: 'Email', accessor: 'email' },
+    { header: 'Type', accessor: 'userType' },
+    { header: 'Status', accessor: 'status' },
+    { header: 'Rescue', accessor: row => row.rescueName ?? '' },
+    { header: 'Email Verified', accessor: row => (row.emailVerified ? 'Yes' : 'No') },
+    { header: 'Joined', accessor: 'createdAt' },
+    { header: 'Last Login', accessor: row => row.lastLogin ?? 'Never' },
+  ];
+
+  const handleExport = (format: 'csv' | 'pdf') => {
+    exportData(users, userExportColumns, 'users-export', 'User Management Export', format);
+  };
+
   // Filter users based on search and filters
   const filteredUsers = (users || []).filter((user: AdminUser) => {
     const matchesSearch =
@@ -515,10 +533,7 @@ const Users: React.FC = () => {
           <Text>Manage all platform users and permissions</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant='outline' size='md'>
-            <FiFilter style={{ marginRight: '0.5rem' }} />
-            Export
-          </Button>
+          <ExportButton onExport={handleExport} disabled={isLoading || users.length === 0} />
           <Button variant='primary' size='md'>
             <FiUserPlus style={{ marginRight: '0.5rem' }} />
             Add User

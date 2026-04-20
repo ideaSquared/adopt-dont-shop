@@ -14,6 +14,8 @@ import {
 import { DataTable, type Column } from '../components/data';
 import type { AdminRescue } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
+import { exportData, type ExportColumn } from '@/services/exportService';
+import { ExportButton } from '@/components/ui';
 import { RescueDetailModal, RescueVerificationModal, SendEmailModal } from '@/components/modals';
 
 const PageContainer = styled.div`
@@ -346,6 +348,20 @@ const Rescues: React.FC = () => {
     fetchRescues();
   };
 
+  const rescueExportColumns: ExportColumn<AdminRescue>[] = [
+    { header: 'Name', accessor: 'name' },
+    { header: 'Email', accessor: 'email' },
+    { header: 'City', accessor: 'city' },
+    { header: 'State', accessor: 'state' },
+    { header: 'Status', accessor: 'status' },
+    { header: 'Registered', accessor: 'createdAt' },
+    { header: 'Verified', accessor: row => row.verifiedAt ?? '' },
+  ];
+
+  const handleExport = (format: 'csv' | 'pdf') => {
+    exportData(rescues, rescueExportColumns, 'rescues-export', 'Rescue Management Export', format);
+  };
+
   const columns: Column<AdminRescue>[] = [
     {
       id: 'rescue',
@@ -430,9 +446,7 @@ const Rescues: React.FC = () => {
           <Text>Manage rescue organizations and verification status</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant='outline' size='md'>
-            Export Data
-          </Button>
+          <ExportButton onExport={handleExport} disabled={loading || rescues.length === 0} />
         </HeaderActions>
       </PageHeader>
 
