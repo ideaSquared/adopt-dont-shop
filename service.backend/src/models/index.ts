@@ -19,6 +19,7 @@ import Notification from './Notification';
 // Auth & Permissions Models
 import Permission from './Permission';
 import RefreshToken from './RefreshToken';
+import RevokedToken from './RevokedToken';
 import Role from './Role';
 import RolePermission from './RolePermission';
 import UserRole from './UserRole';
@@ -68,6 +69,7 @@ const models = {
   Notification,
   DeviceToken,
   RefreshToken,
+  RevokedToken,
   Role,
   Permission,
   RolePermission,
@@ -342,6 +344,7 @@ export {
   ChatParticipant,
   DeviceToken,
   RefreshToken,
+  RevokedToken,
   EmailPreference,
   EmailQueue,
   EmailTemplate,

@@ -182,7 +182,7 @@ export interface RegisterRequest {
 export interface AuthResponse {
   user: User;
   token: string; // Backend returns 'token', not 'accessToken'
-  refreshToken: string;
+  refreshToken?: string; // No longer returned in body — sent as httpOnly cookie
   expiresIn: number;
   // Legacy field for frontend compatibility
   accessToken?: string;
@@ -194,12 +194,12 @@ export interface ChangePasswordRequest {
 }
 
 export interface RefreshTokenRequest {
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 export interface RefreshTokenResponse {
   token: string;
-  refreshToken: string;
+  refreshToken?: string; // No longer returned in body — rotated via httpOnly cookie
 }
 
 export interface PasswordResetRequest {
@@ -238,6 +238,5 @@ export interface TokenData {
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'authToken',
   ACCESS_TOKEN: 'accessToken', // For backward compatibility
-  REFRESH_TOKEN: 'refreshToken',
   USER: 'user',
 } as const;

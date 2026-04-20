@@ -18,6 +18,7 @@ import { AuditLog } from '../../models/AuditLog';
 import { AuditLogService } from '../../services/auditLog.service';
 import User, { UserStatus, UserType } from '../../models/User';
 import RefreshToken from '../../models/RefreshToken';
+import RevokedToken from '../../models/RevokedToken';
 import { AuthService } from '../../services/auth.service';
 import { LoginCredentials, RegisterData } from '../../types';
 
@@ -25,6 +26,7 @@ import { LoginCredentials, RegisterData } from '../../types';
 vi.mock('../../models/User');
 vi.mock('../../models/AuditLog');
 vi.mock('../../models/RefreshToken');
+vi.mock('../../models/RevokedToken');
 vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
 vi.mock('jsonwebtoken');
@@ -35,6 +37,7 @@ vi.mock('crypto');
 const MockedUser = User as Mock<typeof User>;
 const MockedAuditLog = AuditLog as Mock<typeof AuditLog>;
 const MockedRefreshToken = RefreshToken as Mock<typeof RefreshToken>;
+const MockedRevokedToken = RevokedToken as Mock<typeof RevokedToken>;
 const MockedAuditLogService = AuditLogService as unknown as {
   log: Mock;
 };
@@ -80,6 +83,9 @@ describe('AuthService', () => {
     // Default RefreshToken mock – individual tests override as needed
     MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(null);
     MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
+
+    // Default RevokedToken mock
+    MockedRevokedToken.create = vi.fn().mockResolvedValue(undefined);
   });
 
   afterAll(() => {
@@ -785,20 +791,66 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('should handle logout without refresh token', async () => {
+    it('should handle logout without any tokens', async () => {
       await expect(AuthService.logout()).resolves.not.toThrow();
     });
 
-    it('should handle logout with a valid refresh token', async () => {
+    it('should revoke refresh token on logout', async () => {
       mockedJwt.verify = vi.fn().mockReturnValue({ jti: 'some-token-id' });
-      await expect(AuthService.logout('some.valid.refresh.jwt')).resolves.not.toThrow();
+      await AuthService.logout('some.valid.refresh.jwt');
+      expect(MockedRefreshToken.update).toHaveBeenCalledWith(
+        { is_revoked: true },
+        { where: { token_id: 'some-token-id' } }
+      );
     });
 
-    it('should not throw when logout is called with an expired or malformed token', async () => {
+    it('should blacklist access token on logout', async () => {
+      const accessTokenPayload = {
+        jti: 'access-jti-123',
+        userId: 'user-123',
+        exp: Math.floor(Date.now() / 1000) + 900,
+      };
+      mockedJwt.verify = vi.fn().mockReturnValue({ jti: 'some-token-id' });
+      (jwt.decode as unknown as Mock) = vi.fn().mockReturnValue(accessTokenPayload);
+
+      await AuthService.logout('valid.refresh.jwt', 'valid.access.jwt');
+
+      expect(MockedRevokedToken.create).toHaveBeenCalledWith({
+        jti: 'access-jti-123',
+        user_id: 'user-123',
+        expires_at: expect.any(Date),
+      });
+    });
+
+    it('should blacklist access token even when no refresh token is provided', async () => {
+      const accessTokenPayload = {
+        jti: 'access-jti-456',
+        userId: 'user-456',
+        exp: Math.floor(Date.now() / 1000) + 900,
+      };
+      (jwt.decode as unknown as Mock) = vi.fn().mockReturnValue(accessTokenPayload);
+
+      await AuthService.logout(undefined, 'valid.access.jwt');
+
+      expect(MockedRevokedToken.create).toHaveBeenCalledWith({
+        jti: 'access-jti-456',
+        user_id: 'user-456',
+        expires_at: expect.any(Date),
+      });
+      expect(MockedRefreshToken.update).not.toHaveBeenCalled();
+    });
+
+    it('should not throw when logout is called with an expired or malformed refresh token', async () => {
       mockedJwt.verify = vi.fn().mockImplementation(() => {
         throw new Error('jwt expired');
       });
       await expect(AuthService.logout('expired.token')).resolves.not.toThrow();
+    });
+
+    it('should not throw when access token decoding fails', async () => {
+      (jwt.decode as unknown as Mock) = vi.fn().mockReturnValue(null);
+      await expect(AuthService.logout(undefined, 'malformed.token')).resolves.not.toThrow();
+      expect(MockedRevokedToken.create).not.toHaveBeenCalled();
     });
   });
 });
