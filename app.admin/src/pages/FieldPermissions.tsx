@@ -20,6 +20,7 @@ import {
   CardTitle,
   CardContent,
 } from '../components/ui';
+import { Skeleton } from '../components/ui/Skeleton';
 
 const RESOURCES: ReadonlyArray<FieldPermissionResource> = [
   'users',
@@ -417,7 +418,16 @@ const FieldPermissions: React.FC = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <Text>Loading field permissions...</Text>
+            <div aria-label='Loading field permissions' style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+                  <Skeleton height='0.875rem' width={i % 2 === 0 ? '70%' : '50%'} />
+                  <Skeleton height='1.5rem' width='80%' radius='6px' />
+                  <Skeleton height='1.5rem' width='80%' radius='6px' />
+                  <Skeleton height='1rem' width='60%' />
+                </div>
+              ))}
+            </div>
           ) : fieldNames.length === 0 ? (
             <Text>No fields configured for this resource and role.</Text>
           ) : (
