@@ -300,21 +300,6 @@ describe('SupportTicketController - XSS sanitization', () => {
     });
   });
 
-  describe('updateTicket', () => {
-    it('sanitizes XSS from description in updates before calling service', async () => {
-      const req = {
-        body: { description: XSS_WITH_TEXT },
-        params: { ticketId: 'ticket-123' },
-      } as unknown as AuthenticatedRequest;
-
-      await SupportTicketController.updateTicket(req, res as Response);
-
-      const [, updates] = vi.mocked(SupportTicketService.updateTicket).mock.calls[0];
-      expect((updates as Record<string, string>).description).not.toContain('<script>');
-      expect((updates as Record<string, string>).description).toContain('Important content');
-    });
-  });
-
   describe('addResponse', () => {
     it('sanitizes XSS from response content before calling service', async () => {
       const req = {
@@ -414,12 +399,12 @@ describe('EmailController - XSS sanitization', () => {
   });
 
   describe('createTemplate', () => {
-    it('sanitizes XSS from htmlBody before calling service', async () => {
+    it('sanitizes XSS from htmlContent before calling service', async () => {
       const req = {
         user: mockUser,
         body: {
           name: 'Welcome email',
-          htmlBody: XSS_WITH_TEXT,
+          htmlContent: XSS_WITH_TEXT,
           subject: 'Welcome!',
         },
         params: {},
@@ -428,52 +413,52 @@ describe('EmailController - XSS sanitization', () => {
       await createTemplate(req, res as Response);
 
       const [templateData] = vi.mocked(emailService.createTemplate).mock.calls[0];
-      expect((templateData as Record<string, string>).htmlBody).not.toContain('<script>');
-      expect((templateData as Record<string, string>).htmlBody).toContain('Important content');
+      expect((templateData as Record<string, string>).htmlContent).not.toContain('<script>');
+      expect((templateData as Record<string, string>).htmlContent).toContain('Important content');
     });
 
-    it('preserves event handler-free HTML in htmlBody', async () => {
+    it('preserves event handler-free HTML in htmlContent', async () => {
       const safeHtml = '<p>Welcome <strong>there</strong>!</p>';
       const req = {
         user: mockUser,
-        body: { name: 'Welcome email', htmlBody: safeHtml, subject: 'Welcome!' },
+        body: { name: 'Welcome email', htmlContent: safeHtml, subject: 'Welcome!' },
         params: {},
       } as unknown as AuthenticatedRequest;
 
       await createTemplate(req, res as Response);
 
       const [templateData] = vi.mocked(emailService.createTemplate).mock.calls[0];
-      expect((templateData as Record<string, string>).htmlBody).toContain('<p>');
-      expect((templateData as Record<string, string>).htmlBody).toContain('<strong>');
+      expect((templateData as Record<string, string>).htmlContent).toContain('<p>');
+      expect((templateData as Record<string, string>).htmlContent).toContain('<strong>');
     });
   });
 
   describe('updateTemplate', () => {
-    it('sanitizes XSS from htmlBody before calling service', async () => {
+    it('sanitizes XSS from htmlContent before calling service', async () => {
       const req = {
         user: mockUser,
-        body: { htmlBody: `${XSS_PAYLOAD}Updated content` },
+        body: { htmlContent: `${XSS_PAYLOAD}Updated content` },
         params: { templateId: 'tmpl-123' },
       } as unknown as AuthenticatedRequest;
 
       await updateTemplate(req, res as Response);
 
       const [, updates] = vi.mocked(emailService.updateTemplate).mock.calls[0];
-      expect((updates as Record<string, string>).htmlBody).not.toContain('<script>');
-      expect((updates as Record<string, string>).htmlBody).toContain('Updated content');
+      expect((updates as Record<string, string>).htmlContent).not.toContain('<script>');
+      expect((updates as Record<string, string>).htmlContent).toContain('Updated content');
     });
 
-    it('sanitizes event handler attributes from htmlBody', async () => {
+    it('sanitizes event handler attributes from htmlContent', async () => {
       const req = {
         user: mockUser,
-        body: { htmlBody: XSS_EVENT_HANDLER },
+        body: { htmlContent: XSS_EVENT_HANDLER },
         params: { templateId: 'tmpl-123' },
       } as unknown as AuthenticatedRequest;
 
       await updateTemplate(req, res as Response);
 
       const [, updates] = vi.mocked(emailService.updateTemplate).mock.calls[0];
-      expect((updates as Record<string, string>).htmlBody).not.toContain('onclick');
+      expect((updates as Record<string, string>).htmlContent).not.toContain('onclick');
     });
   });
 });

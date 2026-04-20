@@ -373,7 +373,7 @@ export class NotificationController {
         });
       }
 
-      const { userIds, ...rawNotificationData } = req.body;
+      const { userIds, ...notificationData } = req.body;
 
       if (!Array.isArray(userIds) || userIds.length === 0) {
         return res.status(400).json({
@@ -382,7 +382,6 @@ export class NotificationController {
         });
       }
 
-      const notificationData: Record<string, unknown> = { ...rawNotificationData };
       if (typeof notificationData.message === 'string') {
         notificationData.message = RichTextProcessingService.sanitize(notificationData.message);
       }

@@ -557,23 +557,18 @@ export class ApplicationController extends BaseController {
       }
 
       const { applicationId } = req.params;
-      const sanitizedBody: Record<string, unknown> = { ...req.body };
-      if (typeof sanitizedBody.notes === 'string') {
-        sanitizedBody.notes = RichTextProcessingService.sanitize(sanitizedBody.notes);
+      if (typeof req.body.notes === 'string') {
+        req.body.notes = RichTextProcessingService.sanitize(req.body.notes);
       }
-      if (typeof sanitizedBody.interviewNotes === 'string') {
-        sanitizedBody.interviewNotes = RichTextProcessingService.sanitize(
-          sanitizedBody.interviewNotes
-        );
+      if (typeof req.body.interviewNotes === 'string') {
+        req.body.interviewNotes = RichTextProcessingService.sanitize(req.body.interviewNotes);
       }
-      if (typeof sanitizedBody.homeVisitNotes === 'string') {
-        sanitizedBody.homeVisitNotes = RichTextProcessingService.sanitize(
-          sanitizedBody.homeVisitNotes
-        );
+      if (typeof req.body.homeVisitNotes === 'string') {
+        req.body.homeVisitNotes = RichTextProcessingService.sanitize(req.body.homeVisitNotes);
       }
       const application = await ApplicationService.updateApplication(
         applicationId,
-        sanitizedBody,
+        req.body,
         req.user!.userId
       );
 

@@ -59,14 +59,11 @@ export const getTemplate = async (req: AuthenticatedRequest, res: Response): Pro
 
 export const createTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const bodyWithSanitizedHtml: Record<string, unknown> = { ...req.body };
-    if (typeof bodyWithSanitizedHtml.htmlBody === 'string') {
-      bodyWithSanitizedHtml.htmlBody = RichTextProcessingService.sanitize(
-        bodyWithSanitizedHtml.htmlBody
-      );
+    if (typeof req.body.htmlContent === 'string') {
+      req.body.htmlContent = RichTextProcessingService.sanitize(req.body.htmlContent);
     }
     const template = await emailService.createTemplate({
-      ...bodyWithSanitizedHtml,
+      ...req.body,
       createdBy: req.user!.userId,
     });
 
@@ -85,11 +82,10 @@ export const createTemplate = async (req: AuthenticatedRequest, res: Response): 
 export const updateTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { templateId } = req.params;
-    const updates: Record<string, unknown> = { ...req.body };
-    if (typeof updates.htmlBody === 'string') {
-      updates.htmlBody = RichTextProcessingService.sanitize(updates.htmlBody);
+    if (typeof req.body.htmlContent === 'string') {
+      req.body.htmlContent = RichTextProcessingService.sanitize(req.body.htmlContent);
     }
-    const template = await emailService.updateTemplate(templateId, updates, req.user!.userId);
+    const template = await emailService.updateTemplate(templateId, req.body, req.user!.userId);
 
     res.json({
       message: 'Email template updated successfully',

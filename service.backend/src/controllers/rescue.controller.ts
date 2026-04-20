@@ -173,12 +173,11 @@ export class RescueController {
       }
 
       const { rescueId } = req.params;
-      const updateData: Record<string, unknown> = { ...req.body };
-      if (typeof updateData.description === 'string') {
-        updateData.description = RichTextProcessingService.sanitize(updateData.description);
+      if (typeof req.body.description === 'string') {
+        req.body.description = RichTextProcessingService.sanitize(req.body.description);
       }
 
-      const rescue = await RescueService.updateRescue(rescueId, updateData, req.user!.userId);
+      const rescue = await RescueService.updateRescue(rescueId, req.body, req.user!.userId);
 
       res.status(200).json({
         success: true,

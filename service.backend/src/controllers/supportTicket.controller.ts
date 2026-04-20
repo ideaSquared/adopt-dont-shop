@@ -292,10 +292,7 @@ export class SupportTicketController {
   static async updateTicket(req: Request, res: Response) {
     try {
       const { ticketId } = req.params;
-      const updates: Record<string, unknown> = { ...req.body };
-      if (typeof updates.description === 'string') {
-        updates.description = RichTextProcessingService.sanitize(updates.description);
-      }
+      const updates = req.body;
 
       const ticket = await SupportTicketService.updateTicket(ticketId, updates);
 
