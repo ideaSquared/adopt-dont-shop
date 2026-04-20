@@ -29,7 +29,9 @@ const getDraftKey = (petId: string): string => `application_draft_${petId}`;
 const loadDraftFromStorage = <TData>(petId: string): ApplicationDraft<TData> | null => {
   try {
     const raw = localStorage.getItem(getDraftKey(petId));
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
 
     const parsed: unknown = JSON.parse(raw);
     if (
@@ -72,7 +74,9 @@ export const useAutoSave = <TData = Record<string, unknown>>(
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!petId) return;
+    if (!petId) {
+      return;
+    }
     const draft = loadDraftFromStorage<TData>(petId);
     setLoadedDraft(draft);
     setHasDraft(draft !== null);
@@ -82,9 +86,13 @@ export const useAutoSave = <TData = Record<string, unknown>>(
   }, [petId]);
 
   useEffect(() => {
-    if (!petId) return;
+    if (!petId) {
+      return;
+    }
     const interval = setInterval(() => {
-      if (!pendingRef.current) return;
+      if (!pendingRef.current) {
+        return;
+      }
       const { data, step } = pendingRef.current;
       try {
         setSaveStatus('saving');
@@ -110,7 +118,9 @@ export const useAutoSave = <TData = Record<string, unknown>>(
 
   const scheduleSave = useCallback(
     (data: TData, step: number) => {
-      if (!petId) return;
+      if (!petId) {
+        return;
+      }
       pendingRef.current = { data, step };
 
       if (debounceTimerRef.current) {
@@ -133,7 +143,9 @@ export const useAutoSave = <TData = Record<string, unknown>>(
   );
 
   const saveNow = useCallback(() => {
-    if (!petId || !pendingRef.current) return;
+    if (!petId || !pendingRef.current) {
+      return;
+    }
     const { data, step } = pendingRef.current;
 
     if (debounceTimerRef.current) {
@@ -153,7 +165,9 @@ export const useAutoSave = <TData = Record<string, unknown>>(
   }, [petId]);
 
   const clearDraft = useCallback(() => {
-    if (!petId) return;
+    if (!petId) {
+      return;
+    }
     localStorage.removeItem(getDraftKey(petId));
     pendingRef.current = null;
 

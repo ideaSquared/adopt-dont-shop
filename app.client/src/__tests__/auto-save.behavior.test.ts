@@ -154,11 +154,20 @@ describe('Auto-save behavior', () => {
       const { result } = renderHook(() => useAutoSave<TestData>('pet-abc'));
 
       act(() => {
-        result.current.scheduleSave({ personalInfo: { ...mockApplicationData.personalInfo!, firstName: 'A' } }, 1);
+        result.current.scheduleSave(
+          { personalInfo: { ...mockApplicationData.personalInfo!, firstName: 'A' } },
+          1
+        );
         vi.advanceTimersByTime(1000);
-        result.current.scheduleSave({ personalInfo: { ...mockApplicationData.personalInfo!, firstName: 'AB' } }, 1);
+        result.current.scheduleSave(
+          { personalInfo: { ...mockApplicationData.personalInfo!, firstName: 'AB' } },
+          1
+        );
         vi.advanceTimersByTime(1000);
-        result.current.scheduleSave({ personalInfo: { ...mockApplicationData.personalInfo!, firstName: 'ABC' } }, 1);
+        result.current.scheduleSave(
+          { personalInfo: { ...mockApplicationData.personalInfo!, firstName: 'ABC' } },
+          1
+        );
         vi.advanceTimersByTime(DEBOUNCE_DELAY_MS);
       });
 
@@ -250,9 +259,7 @@ describe('Auto-save behavior', () => {
         vi.advanceTimersByTime(AUTO_SAVE_INTERVAL_MS);
       });
 
-      const parsed: TestDraft = JSON.parse(
-        localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!
-      );
+      const parsed: TestDraft = JSON.parse(localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!);
       expect(parsed.applicationData.personalInfo?.firstName).toBe('Latest');
       expect(parsed.currentStep).toBe(3);
     });
@@ -409,9 +416,7 @@ describe('Auto-save behavior', () => {
         vi.advanceTimersByTime(DEBOUNCE_DELAY_MS);
       });
 
-      const parsed: TestDraft = JSON.parse(
-        localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!
-      );
+      const parsed: TestDraft = JSON.parse(localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!);
       expect(parsed.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
     });
 
@@ -423,9 +428,7 @@ describe('Auto-save behavior', () => {
         vi.advanceTimersByTime(DEBOUNCE_DELAY_MS);
       });
 
-      const parsed: TestDraft = JSON.parse(
-        localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!
-      );
+      const parsed: TestDraft = JSON.parse(localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!);
       expect(parsed.petId).toBe('pet-abc');
     });
 
@@ -437,9 +440,7 @@ describe('Auto-save behavior', () => {
         vi.advanceTimersByTime(DEBOUNCE_DELAY_MS);
       });
 
-      const parsed: TestDraft = JSON.parse(
-        localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!
-      );
+      const parsed: TestDraft = JSON.parse(localStorage.getItem(`${DRAFT_KEY_PREFIX}pet-abc`)!);
       expect(new Date(parsed.savedAt).toString()).not.toBe('Invalid Date');
     });
   });

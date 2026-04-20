@@ -85,9 +85,13 @@ const SaveStatusText = styled.span<{ $status: SaveStatus }>`
 
 const formatLastSaved = (date: Date): string => {
   const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diffSeconds < 60) return 'just now';
+  if (diffSeconds < 60) {
+    return 'just now';
+  }
   const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes === 1) return '1 minute ago';
+  if (diffMinutes === 1) {
+    return '1 minute ago';
+  }
   return `${diffMinutes} minutes ago`;
 };
 
