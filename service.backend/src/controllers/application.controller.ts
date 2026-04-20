@@ -164,7 +164,9 @@ export class ApplicationController extends BaseController {
       .optional()
       .trim()
       .isIn(['REFERENCE', 'VETERINARY_RECORD', 'PROOF_OF_RESIDENCE', 'OTHER'])
-      .withMessage('Document type must be one of: REFERENCE, VETERINARY_RECORD, PROOF_OF_RESIDENCE, OTHER'),
+      .withMessage(
+        'Document type must be one of: REFERENCE, VETERINARY_RECORD, PROOF_OF_RESIDENCE, OTHER'
+      ),
   ];
 
   static validateReferenceUpdate = [

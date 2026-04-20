@@ -2,7 +2,15 @@ import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 
 vi.mock('../../services/application.service');
 vi.mock('../../services/file-upload.service');
-vi.mock('../../utils/logger');
+vi.mock('../../utils/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    http: vi.fn(),
+  },
+}));
 
 import { Request, Response } from 'express';
 import { ApplicationController } from '../../controllers/application.controller';

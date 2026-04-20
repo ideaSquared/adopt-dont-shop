@@ -161,6 +161,10 @@ export const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
     onComplete(pendingDocuments);
   };
 
+  const documentCountLabel = `${pendingDocuments.length} document${
+    pendingDocuments.length === 1 ? '' : 's'
+  } ready to upload.`;
+
   return (
     <StepContainer>
       <StepTitle>Supporting Documents</StepTitle>
@@ -185,8 +189,8 @@ export const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
             data-testid='document-upload-input'
           />
           <SupportedFormats>
-            Supported formats: PDF, JPG, PNG, DOC, DOCX · Max size: 5MB per file · Up to {MAX_FILES}{' '}
-            files
+            Supported formats: PDF, JPG, PNG, DOC, DOCX · Max size: 5MB per file · Up to{' '}
+            {MAX_FILES} files
           </SupportedFormats>
         </div>
 
@@ -226,7 +230,7 @@ export const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
         <SkipNote>
           {pendingDocuments.length === 0
             ? 'No documents added. You can skip this step or add documents now.'
-            : `${pendingDocuments.length} document${pendingDocuments.length === 1 ? '' : 's'} ready to upload.`}
+            : documentCountLabel}
         </SkipNote>
       </Form>
     </StepContainer>
