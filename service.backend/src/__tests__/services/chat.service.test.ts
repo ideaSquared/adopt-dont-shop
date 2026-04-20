@@ -13,6 +13,11 @@ vi.mock('../../services/content-moderation.service', () => ({
     HIGH: 'high',
     CRITICAL: 'critical',
   },
+  MessageModerationStatus: {
+    PENDING_REVIEW: 'pending_review',
+    APPROVED: 'approved',
+    REJECTED: 'rejected',
+  },
 }));
 
 // Mock moderation service (singleton)

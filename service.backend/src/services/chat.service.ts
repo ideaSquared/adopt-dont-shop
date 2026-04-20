@@ -9,6 +9,7 @@ import { NotificationPriority, NotificationType } from '../models/Notification';
 import sequelize from '../sequelize';
 import {
   ContentModerationService,
+  MessageModerationStatus,
   ScanSeverity,
 } from './content-moderation.service';
 import moderationService, { ReportCategory, ReportSeverity } from './moderation.service';
@@ -602,7 +603,7 @@ export class ChatService {
             is_flagged: true,
             flag_reason: scanResult.reason,
             flag_severity: scanResult.severity,
-            moderation_status: 'pending_review' as const,
+            moderation_status: MessageModerationStatus.PENDING_REVIEW,
             flagged_at: new Date(),
           }
         : {};
