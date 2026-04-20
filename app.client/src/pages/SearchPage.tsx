@@ -656,9 +656,7 @@ export const SearchPage: React.FC = () => {
           {geolocation.status === 'unavailable' && (
             <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
           )}
-          {geocodeError && (
-            <LocationStatus $variant='error'>{geocodeError}</LocationStatus>
-          )}
+          {geocodeError && <LocationStatus $variant='error'>{geocodeError}</LocationStatus>}
         </LocationFilterRow>
 
         <FilterActions>
