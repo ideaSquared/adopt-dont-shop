@@ -161,8 +161,6 @@ export const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
     onComplete(pendingDocuments);
   };
 
-  const fileObjects = pendingDocuments.map(doc => doc.file);
-
   return (
     <StepContainer>
       <StepTitle>Supporting Documents</StepTitle>
@@ -179,9 +177,7 @@ export const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
             maxSize={MAX_FILE_SIZE}
             maxFiles={MAX_FILES}
             fullWidth
-            files={fileObjects}
             onFilesSelect={handleFilesSelect}
-            onFileRemove={handleFileRemove}
             onError={setUploadError}
             error={uploadError}
             label='Upload Documents'

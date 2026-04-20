@@ -12,30 +12,20 @@
  * - Not exceed the maximum number of files
  */
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { vi } from 'vitest';
+import { lightTheme } from '@adopt-dont-shop/lib.components';
 import { DocumentUploadStep } from '../components/application/steps/DocumentUploadStep';
-
-const mockTheme = {
-  text: { primary: '#111', secondary: '#666' },
-  background: { primary: '#fff', secondary: '#f9f9f9', tertiary: '#f0f0f0' },
-  border: { color: { primary: '#e5e7eb', secondary: '#d1d5db' } },
-  colors: {
-    semantic: {
-      error: { 100: '#fee2e2', 500: '#ef4444' },
-    },
-  },
-};
 
 const renderStep = (props: Partial<React.ComponentProps<typeof DocumentUploadStep>> = {}) => {
   const onComplete = vi.fn();
   render(
-    <ThemeProvider theme={mockTheme}>
+    <StyledThemeProvider theme={lightTheme}>
       <DocumentUploadStep onComplete={onComplete} {...props} />
-    </ThemeProvider>
+    </StyledThemeProvider>
   );
   return { onComplete };
 };
@@ -46,8 +36,7 @@ const createFile = (name: string, size: number, type: string) => {
   return file;
 };
 
-const getFileInput = () =>
-  document.querySelector('input[type="file"]') as HTMLInputElement;
+const getFileInput = () => document.querySelector('input[type="file"]') as HTMLInputElement;
 
 describe('Document Upload Step — applicant experience', () => {
   describe('when the step first loads', () => {
@@ -58,7 +47,7 @@ describe('Document Upload Step — applicant experience', () => {
 
     it('shows supported file formats', () => {
       renderStep();
-      expect(screen.getByText(/PDF.*JPG.*PNG.*DOC.*DOCX/i)).toBeInTheDocument();
+      expect(screen.getByText(/PDF, JPG, PNG, DOC, DOCX/i)).toBeInTheDocument();
     });
 
     it('shows the maximum file size', () => {
@@ -68,7 +57,7 @@ describe('Document Upload Step — applicant experience', () => {
 
     it('shows a note that documents are optional', () => {
       renderStep();
-      expect(screen.getByText(/optional|skip/i)).toBeInTheDocument();
+      expect(screen.getByText(/optional/i)).toBeInTheDocument();
     });
 
     it('does not show any document cards before files are added', () => {
@@ -152,7 +141,6 @@ describe('Document Upload Step — applicant experience', () => {
 
   describe('when a file exceeds the size limit', () => {
     it('shows an error and does not add the file', () => {
-      const onError = vi.fn();
       renderStep();
       const oversized = createFile('huge.pdf', 6 * 1024 * 1024, 'application/pdf');
       fireEvent.change(getFileInput(), { target: { files: [oversized] } });
@@ -169,7 +157,7 @@ describe('Document Upload Step — applicant experience', () => {
 
       fireEvent.submit(document.querySelector('form')!);
 
-      expect(onComplete).toHaveBeenCalledOnce();
+      expect(onComplete).toHaveBeenCalledTimes(1);
       const [docs] = onComplete.mock.calls[0];
       expect(docs).toHaveLength(1);
       expect(docs[0].file.name).toBe('reference.pdf');
