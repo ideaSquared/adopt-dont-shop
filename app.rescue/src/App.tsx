@@ -29,7 +29,7 @@ const PageLoader = () => (
       minHeight: '60vh',
     }}
   >
-    <Spinner size='lg' label='Loading page' />
+    <Spinner size="lg" label="Loading page" />
   </div>
 );
 

@@ -88,10 +88,7 @@ describe('ApplicationController — document upload behaviour', () => {
         (FileUploadService.uploadFile as Mock).mockResolvedValue(mockUploadResult);
         (ApplicationService.addDocument as Mock).mockResolvedValue(mockApplication);
 
-        await controller.addDocument(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response
-        );
+        await controller.addDocument(mockRequest as AuthenticatedRequest, mockResponse as Response);
 
         expect(FileUploadService.uploadFile).toHaveBeenCalledWith(
           mockRequest.file,
@@ -133,10 +130,7 @@ describe('ApplicationController — document upload behaviour', () => {
         (FileUploadService.uploadFile as Mock).mockResolvedValue(mockUploadResult);
         (ApplicationService.addDocument as Mock).mockResolvedValue(mockApplication);
 
-        await controller.addDocument(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response
-        );
+        await controller.addDocument(mockRequest as AuthenticatedRequest, mockResponse as Response);
 
         expect(ApplicationService.addDocument).toHaveBeenCalledWith(
           'app-001',
@@ -151,10 +145,7 @@ describe('ApplicationController — document upload behaviour', () => {
         mockRequest.params = { applicationId: 'app-001' };
         mockRequest.file = undefined;
 
-        await controller.addDocument(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response
-        );
+        await controller.addDocument(mockRequest as AuthenticatedRequest, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(400);
         expect(mockResponse.json).toHaveBeenCalledWith(
@@ -177,10 +168,7 @@ describe('ApplicationController — document upload behaviour', () => {
           new Error('Application not found')
         );
 
-        await controller.addDocument(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response
-        );
+        await controller.addDocument(mockRequest as AuthenticatedRequest, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(404);
       });
@@ -194,10 +182,7 @@ describe('ApplicationController — document upload behaviour', () => {
         (FileUploadService.uploadFile as Mock).mockResolvedValue(mockUploadResult);
         (ApplicationService.addDocument as Mock).mockRejectedValue(new Error('Access denied'));
 
-        await controller.addDocument(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response
-        );
+        await controller.addDocument(mockRequest as AuthenticatedRequest, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(403);
       });
@@ -216,10 +201,7 @@ describe('ApplicationController — document upload behaviour', () => {
           upload: null,
         });
 
-        await controller.addDocument(
-          mockRequest as AuthenticatedRequest,
-          mockResponse as Response
-        );
+        await controller.addDocument(mockRequest as AuthenticatedRequest, mockResponse as Response);
 
         expect(mockResponse.status).toHaveBeenCalledWith(500);
         const jsonCall = (mockResponse.json as Mock).mock.calls[0][0];
@@ -248,9 +230,7 @@ describe('ApplicationController — document upload behaviour', () => {
           'user-123'
         );
         expect(mockResponse.status).toHaveBeenCalledWith(200);
-        expect(mockResponse.json).toHaveBeenCalledWith(
-          expect.objectContaining({ success: true })
-        );
+        expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
       });
     });
 
@@ -275,9 +255,7 @@ describe('ApplicationController — document upload behaviour', () => {
       it('returns 403', async () => {
         mockRequest.params = { applicationId: 'app-other', documentId: 'doc-xyz' };
 
-        (ApplicationService.removeDocument as Mock).mockRejectedValue(
-          new Error('Access denied')
-        );
+        (ApplicationService.removeDocument as Mock).mockRejectedValue(new Error('Access denied'));
 
         await controller.removeDocument(
           mockRequest as AuthenticatedRequest,
