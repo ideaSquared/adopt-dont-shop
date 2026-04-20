@@ -1,5 +1,16 @@
 import '@testing-library/jest-dom';
 import React from 'react';
+
+// MSW v2 requires web streams APIs that are available in Node.js 18+ but not
+// exposed to the jsdom global scope. Polyfill them so MSW can load correctly.
+const { ReadableStream: NodeReadableStream, WritableStream: NodeWritableStream, TransformStream: NodeTransformStream } = await import('node:stream/web');
+if (typeof globalThis.WritableStream === 'undefined') {
+  Object.assign(globalThis, {
+    ReadableStream: NodeReadableStream,
+    WritableStream: NodeWritableStream,
+    TransformStream: NodeTransformStream,
+  });
+}
 import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
