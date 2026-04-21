@@ -28,7 +28,12 @@ vi.mock('../hooks', () => ({
 }));
 
 const mockMetrics: PlatformMetrics = {
-  users: { total: 12543, active: 9800, newThisMonth: 284, byRole: { adopter: 11000, rescue_staff: 1543 } },
+  users: {
+    total: 12543,
+    active: 9800,
+    newThisMonth: 284,
+    byRole: { adopter: 11000, rescue_staff: 1543 },
+  },
   rescues: { total: 90, verified: 74, pending: 16, newThisMonth: 2 },
   pets: { total: 2800, available: 1892, adopted: 456, newThisMonth: 180 },
   applications: { total: 310, pending: 187, approved: 89, newThisMonth: 110 },
@@ -59,8 +64,22 @@ const mockAnalytics: DashboardAnalytics = {
       { date: '2026-04-03', value: 15 },
     ],
     rescuePerformance: [
-      { rescueId: 'r1', rescueName: 'Paws & Claws Rescue', adoptions: 234, averageTimeToAdoption: 4.5, adoptionRate: 25, totalPets: 45 },
-      { rescueId: 'r2', rescueName: 'Happy Tails Haven', adoptions: 198, averageTimeToAdoption: 5.1, adoptionRate: 21, totalPets: 38 },
+      {
+        rescueId: 'r1',
+        rescueName: 'Paws & Claws Rescue',
+        adoptions: 234,
+        averageTimeToAdoption: 4.5,
+        adoptionRate: 25,
+        totalPets: 45,
+      },
+      {
+        rescueId: 'r2',
+        rescueName: 'Happy Tails Haven',
+        adoptions: 198,
+        averageTimeToAdoption: 5.1,
+        adoptionRate: 21,
+        totalPets: 38,
+      },
     ],
   },
   applications: {
@@ -75,8 +94,18 @@ const mockAnalytics: DashboardAnalytics = {
 
 describe('Analytics page', () => {
   beforeEach(() => {
-    mockUsePlatformMetrics.mockReturnValue({ data: mockMetrics, isLoading: false, isError: false, error: null });
-    mockUseDashboardAnalytics.mockReturnValue({ data: mockAnalytics, isLoading: false, isError: false, error: null });
+    mockUsePlatformMetrics.mockReturnValue({
+      data: mockMetrics,
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+    mockUseDashboardAnalytics.mockReturnValue({
+      data: mockAnalytics,
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
   });
 
   describe('page structure', () => {
@@ -126,8 +155,18 @@ describe('Analytics page', () => {
 
   describe('loading state', () => {
     it('shows loading skeletons for stat cards while data loads', () => {
-      mockUsePlatformMetrics.mockReturnValue({ data: undefined, isLoading: true, isError: false, error: null });
-      mockUseDashboardAnalytics.mockReturnValue({ data: undefined, isLoading: true, isError: false, error: null });
+      mockUsePlatformMetrics.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+      });
+      mockUseDashboardAnalytics.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+      });
       renderWithProviders(<Analytics />);
       expect(screen.queryByText('12,543')).not.toBeInTheDocument();
     });
@@ -135,7 +174,12 @@ describe('Analytics page', () => {
 
   describe('error state', () => {
     it('shows an error banner when analytics data fails to load', () => {
-      mockUseDashboardAnalytics.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: new Error('Server error') });
+      mockUseDashboardAnalytics.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        error: new Error('Server error'),
+      });
       renderWithProviders(<Analytics />);
       expect(screen.getByRole('alert')).toHaveTextContent(/failed to load analytics data/i);
     });

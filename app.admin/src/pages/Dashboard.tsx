@@ -104,7 +104,9 @@ const ErrorBanner = styled.div`
 const formatNumber = (n: number): string => n.toLocaleString();
 
 const formatGrowthLabel = (current: number, previous: number, label: string): string => {
-  if (previous === 0) return `${label}`;
+  if (previous === 0) {
+    return `${label}`;
+  }
   const pct = Math.round(((current - previous) / previous) * 100);
   const sign = pct >= 0 ? '+' : '';
   return `${sign}${pct}% from last month`;
@@ -127,7 +129,11 @@ const Dashboard: React.FC = () => {
           icon: '👥',
           label: 'Total Users',
           value: formatNumber(data.users.total),
-          change: formatGrowthLabel(data.users.newThisMonth, 0, `${formatNumber(data.users.newThisMonth)} new this month`),
+          change: formatGrowthLabel(
+            data.users.newThisMonth,
+            0,
+            `${formatNumber(data.users.newThisMonth)} new this month`
+          ),
           positive: data.users.newThisMonth >= 0,
         },
         {

@@ -93,10 +93,16 @@ const getPlatformMetrics = async (): Promise<PlatformMetrics> => {
   return response.data;
 };
 
-const getDashboardAnalytics = async (options?: DashboardAnalyticsOptions): Promise<DashboardAnalytics> => {
+const getDashboardAnalytics = async (
+  options?: DashboardAnalyticsOptions
+): Promise<DashboardAnalytics> => {
   const params: Record<string, string> = {};
-  if (options?.startDate) params.startDate = options.startDate.toISOString();
-  if (options?.endDate) params.endDate = options.endDate.toISOString();
+  if (options?.startDate) {
+    params.startDate = options.startDate.toISOString();
+  }
+  if (options?.endDate) {
+    params.endDate = options.endDate.toISOString();
+  }
 
   const response = await apiService.get<{ success: boolean; data: DashboardAnalytics }>(
     '/api/v1/admin/analytics/dashboard',

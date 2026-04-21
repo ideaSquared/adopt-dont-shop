@@ -417,7 +417,9 @@ const Analytics: React.FC = () => {
             )}
             <MetricChange $positive={true}>
               <FiTrendingUp />
-              {metricsData ? `${metricsData.users.newThisMonth.toLocaleString()} new this month` : '—'}
+              {metricsData
+                ? `${metricsData.users.newThisMonth.toLocaleString()} new this month`
+                : '—'}
             </MetricChange>
           </StatDetails>
         </StatCard>
@@ -502,7 +504,16 @@ const Analytics: React.FC = () => {
                   ))}
                 </BarChart>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: '0.875rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#9ca3af',
+                    fontSize: '0.875rem',
+                  }}
+                >
                   No adoption data for this period
                 </div>
               )}
@@ -520,16 +531,22 @@ const Analytics: React.FC = () => {
                 <SkeletonBlock $height='100%' />
               ) : analyticsData ? (
                 (() => {
-                  const statusData = Object.entries(analyticsData.applications.statusMetrics).map(([status, count], i) => ({
-                    status,
-                    count: count as number,
-                    color: ['#10b981', '#f59e0b', '#ef4444', '#667eea', '#8b5cf6'][i % 5],
-                  }));
+                  const statusData = Object.entries(analyticsData.applications.statusMetrics).map(
+                    ([status, count], i) => ({
+                      status,
+                      count: count as number,
+                      color: ['#10b981', '#f59e0b', '#ef4444', '#667eea', '#8b5cf6'][i % 5],
+                    })
+                  );
                   const maxCount = Math.max(...statusData.map(s => s.count), 1);
                   return (
                     <BarChart>
                       {statusData.map(s => (
-                        <Bar key={s.status} $height={Math.max((s.count / maxCount) * 100, 2)} $color={s.color}>
+                        <Bar
+                          key={s.status}
+                          $height={Math.max((s.count / maxCount) * 100, 2)}
+                          $color={s.color}
+                        >
                           <BarValue>{s.count}</BarValue>
                           <BarLabel style={{ textTransform: 'capitalize' }}>{s.status}</BarLabel>
                         </Bar>
@@ -538,7 +555,16 @@ const Analytics: React.FC = () => {
                   );
                 })()
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af', fontSize: '0.875rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#9ca3af',
+                    fontSize: '0.875rem',
+                  }}
+                >
                   No application data available
                 </div>
               )}

@@ -342,7 +342,9 @@ export class AdminController {
       const { AnalyticsService } = await import('../services/analytics.service');
 
       const options = {
-        startDate: startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        startDate: startDate
+          ? new Date(startDate as string)
+          : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
         endDate: endDate ? new Date(endDate as string) : new Date(),
       };
 

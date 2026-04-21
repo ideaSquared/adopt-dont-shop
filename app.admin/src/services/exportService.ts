@@ -11,7 +11,9 @@ export type ExportFormat = 'csv' | 'pdf';
 
 const getCellValue = <T>(row: T, accessor: ExportColumn<T>['accessor']): string => {
   const raw = typeof accessor === 'function' ? accessor(row) : row[accessor];
-  if (raw === null || raw === undefined) return '';
+  if (raw === null || raw === undefined) {
+    return '';
+  }
   return String(raw);
 };
 
@@ -26,11 +28,7 @@ const triggerDownload = (blob: Blob, filename: string): void => {
   URL.revokeObjectURL(url);
 };
 
-export const exportToCSV = <T>(
-  data: T[],
-  columns: ExportColumn<T>[],
-  filename: string
-): void => {
+export const exportToCSV = <T>(data: T[], columns: ExportColumn<T>[], filename: string): void => {
   const rows = data.map(row =>
     columns.reduce<Record<string, string>>((acc, col) => {
       acc[col.header] = getCellValue(row, col.accessor);

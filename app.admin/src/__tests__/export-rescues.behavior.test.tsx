@@ -44,8 +44,11 @@ vi.mock('@/services/exportService', () => ({
     title: string,
     format: string
   ) => {
-    if (format === 'csv') mockExportToCSV({ data, columns, filename, title });
-    else mockExportToPDF({ data, columns, filename, title });
+    if (format === 'csv') {
+      mockExportToCSV({ data, columns, filename, title });
+    } else {
+      mockExportToPDF({ data, columns, filename, title });
+    }
   },
 }));
 

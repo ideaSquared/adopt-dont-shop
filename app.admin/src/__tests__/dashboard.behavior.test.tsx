@@ -21,7 +21,12 @@ vi.mock('../hooks', () => ({
 }));
 
 const mockMetrics: PlatformMetrics = {
-  users: { total: 5000, active: 3200, newThisMonth: 120, byRole: { adopter: 4500, rescue_staff: 500 } },
+  users: {
+    total: 5000,
+    active: 3200,
+    newThisMonth: 120,
+    byRole: { adopter: 4500, rescue_staff: 500 },
+  },
   rescues: { total: 90, verified: 75, pending: 15, newThisMonth: 3 },
   pets: { total: 800, available: 350, adopted: 42, newThisMonth: 60 },
   applications: { total: 210, pending: 38, approved: 55, newThisMonth: 70 },
@@ -51,14 +56,26 @@ describe('Dashboard page', () => {
 
   describe('loading state', () => {
     it('shows skeleton cards while data is loading', () => {
-      mockUsePlatformMetrics.mockReturnValue({ data: undefined, isLoading: true, isError: false, error: null });
+      mockUsePlatformMetrics.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+      });
       renderWithProviders(<Dashboard />);
-      const busyCards = screen.getAllByRole('generic', { hidden: false }).filter(el => el.getAttribute('aria-busy') === 'true');
+      const busyCards = screen
+        .getAllByRole('generic', { hidden: false })
+        .filter(el => el.getAttribute('aria-busy') === 'true');
       expect(busyCards.length).toBeGreaterThan(0);
     });
 
     it('does not show metric values while loading', () => {
-      mockUsePlatformMetrics.mockReturnValue({ data: undefined, isLoading: true, isError: false, error: null });
+      mockUsePlatformMetrics.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+      });
       renderWithProviders(<Dashboard />);
       expect(screen.queryByText('Total Users')).not.toBeInTheDocument();
     });
@@ -91,7 +108,12 @@ describe('Dashboard page', () => {
 
   describe('platform metrics with live data', () => {
     beforeEach(() => {
-      mockUsePlatformMetrics.mockReturnValue({ data: mockMetrics, isLoading: false, isError: false, error: null });
+      mockUsePlatformMetrics.mockReturnValue({
+        data: mockMetrics,
+        isLoading: false,
+        isError: false,
+        error: null,
+      });
     });
 
     it('shows the Total Users metric with real value', () => {
