@@ -180,7 +180,15 @@ export class PetController {
       .withMessage('Gender must be male, female, or unknown'),
     query('sortBy')
       .optional()
-      .isIn(['name', 'ageYears', 'createdAt', 'created_at', 'adoptionFee', 'adoption_fee', 'distance'])
+      .isIn([
+        'name',
+        'ageYears',
+        'createdAt',
+        'created_at',
+        'adoptionFee',
+        'adoption_fee',
+        'distance',
+      ])
       .withMessage('Invalid sort field'),
     query('sortOrder')
       .optional()
@@ -289,7 +297,9 @@ export class PetController {
       const options = {
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
-        sortBy: ((req.query.sortBy as string) || 'createdAt').replace('created_at', 'createdAt').replace('adoption_fee', 'adoptionFee'),
+        sortBy: ((req.query.sortBy as string) || 'createdAt')
+          .replace('created_at', 'createdAt')
+          .replace('adoption_fee', 'adoptionFee'),
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
       };
 

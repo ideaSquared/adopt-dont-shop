@@ -273,7 +273,11 @@ export class DiscoveryController {
         return;
       }
 
-      const { filters = {}, userId, limit = 20 } = req.body as {
+      const {
+        filters = {},
+        userId,
+        limit = 20,
+      } = req.body as {
         filters?: DiscoveryFilters;
         userId?: string;
         limit?: number;
