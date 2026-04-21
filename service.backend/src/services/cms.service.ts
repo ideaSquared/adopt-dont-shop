@@ -186,15 +186,32 @@ class CmsService {
     const updatedContent = input.content ?? item.content;
     const updatedExcerpt = input.excerpt !== undefined ? input.excerpt : item.excerpt;
 
-    item.addVersion(updatedTitle, updatedContent, updatedExcerpt, input.modifiedBy, input.changeNote);
+    item.addVersion(
+      updatedTitle,
+      updatedContent,
+      updatedExcerpt,
+      input.modifiedBy,
+      input.changeNote
+    );
 
-    if (input.metaTitle !== undefined) item.metaTitle = input.metaTitle;
-    if (input.metaDescription !== undefined) item.metaDescription = input.metaDescription;
-    if (input.metaKeywords !== undefined) item.metaKeywords = input.metaKeywords;
-    if (input.featuredImageUrl !== undefined) item.featuredImageUrl = input.featuredImageUrl;
-    if (input.scheduledPublishAt !== undefined) item.scheduledPublishAt = input.scheduledPublishAt;
-    if (input.scheduledUnpublishAt !== undefined)
+    if (input.metaTitle !== undefined) {
+      item.metaTitle = input.metaTitle;
+    }
+    if (input.metaDescription !== undefined) {
+      item.metaDescription = input.metaDescription;
+    }
+    if (input.metaKeywords !== undefined) {
+      item.metaKeywords = input.metaKeywords;
+    }
+    if (input.featuredImageUrl !== undefined) {
+      item.featuredImageUrl = input.featuredImageUrl;
+    }
+    if (input.scheduledPublishAt !== undefined) {
+      item.scheduledPublishAt = input.scheduledPublishAt;
+    }
+    if (input.scheduledUnpublishAt !== undefined) {
       item.scheduledUnpublishAt = input.scheduledUnpublishAt;
+    }
 
     await item.save();
     logger.info('CMS content updated', { contentId, version: item.currentVersion });
@@ -251,9 +268,7 @@ class CmsService {
     logger.info('CMS content deleted', { contentId });
   }
 
-  async getContentVersionHistory(
-    contentId: string
-  ): Promise<Content['versions']> {
+  async getContentVersionHistory(contentId: string): Promise<Content['versions']> {
     const item = await this.getContentById(contentId);
     return item.versions;
   }
@@ -319,7 +334,12 @@ class CmsService {
   // Navigation Menu
 
   async listNavigationMenus(): Promise<NavigationMenu[]> {
-    return NavigationMenu.findAll({ order: [['location', 'ASC'], ['name', 'ASC']] });
+    return NavigationMenu.findAll({
+      order: [
+        ['location', 'ASC'],
+        ['name', 'ASC'],
+      ],
+    });
   }
 
   async getNavigationMenuById(menuId: string): Promise<NavigationMenu> {
@@ -350,10 +370,18 @@ class CmsService {
   ): Promise<NavigationMenu> {
     const menu = await this.getNavigationMenuById(menuId);
 
-    if (input.name !== undefined) menu.name = input.name;
-    if (input.location !== undefined) menu.location = input.location;
-    if (input.items !== undefined) menu.items = input.items;
-    if (input.isActive !== undefined) menu.isActive = input.isActive;
+    if (input.name !== undefined) {
+      menu.name = input.name;
+    }
+    if (input.location !== undefined) {
+      menu.location = input.location;
+    }
+    if (input.items !== undefined) {
+      menu.items = input.items;
+    }
+    if (input.isActive !== undefined) {
+      menu.isActive = input.isActive;
+    }
     menu.lastModifiedBy = input.modifiedBy;
 
     await menu.save();

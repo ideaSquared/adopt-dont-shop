@@ -493,9 +493,7 @@ const ContentManagement: React.FC = () => {
       metaKeywords: (item.metaKeywords ?? []).join(', '),
       featuredImageUrl: item.featuredImageUrl ?? '',
       scheduledPublishAt: item.scheduledPublishAt ? item.scheduledPublishAt.slice(0, 16) : '',
-      scheduledUnpublishAt: item.scheduledUnpublishAt
-        ? item.scheduledUnpublishAt.slice(0, 16)
-        : '',
+      scheduledUnpublishAt: item.scheduledUnpublishAt ? item.scheduledUnpublishAt.slice(0, 16) : '',
       changeNote: '',
     });
     setFormError(null);
@@ -869,9 +867,7 @@ const ContentManagement: React.FC = () => {
                 <FormInput
                   value={contentForm.title}
                   onChange={e => setContentForm(f => ({ ...f, title: e.target.value }))}
-                  onBlur={() =>
-                    !editingContent && !contentForm.slug && handleSlugGenerate()
-                  }
+                  onBlur={() => !editingContent && !contentForm.slug && handleSlugGenerate()}
                   placeholder='Enter content title'
                 />
               </FormGroup>
@@ -938,9 +934,7 @@ const ContentManagement: React.FC = () => {
                   <FormTextarea
                     style={{ minHeight: '70px' }}
                     value={contentForm.metaDescription}
-                    onChange={e =>
-                      setContentForm(f => ({ ...f, metaDescription: e.target.value }))
-                    }
+                    onChange={e => setContentForm(f => ({ ...f, metaDescription: e.target.value }))}
                     placeholder='SEO description'
                   />
                 </FormGroup>
@@ -948,9 +942,7 @@ const ContentManagement: React.FC = () => {
                   <FormLabel>Meta Keywords (comma-separated)</FormLabel>
                   <FormInput
                     value={contentForm.metaKeywords}
-                    onChange={e =>
-                      setContentForm(f => ({ ...f, metaKeywords: e.target.value }))
-                    }
+                    onChange={e => setContentForm(f => ({ ...f, metaKeywords: e.target.value }))}
                     placeholder='keyword1, keyword2, keyword3'
                   />
                 </FormGroup>
@@ -959,9 +951,7 @@ const ContentManagement: React.FC = () => {
                 <FormLabel>Featured Image URL</FormLabel>
                 <FormInput
                   value={contentForm.featuredImageUrl}
-                  onChange={e =>
-                    setContentForm(f => ({ ...f, featuredImageUrl: e.target.value }))
-                  }
+                  onChange={e => setContentForm(f => ({ ...f, featuredImageUrl: e.target.value }))}
                   placeholder='https://…'
                 />
               </FormGroup>

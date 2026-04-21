@@ -3,8 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ContentManagement from './ContentManagement';
-import { cmsService } from '../services/cmsService';
-import type { Content, NavigationMenu } from '../services/cmsService';
+import { cmsService, type Content, type NavigationMenu } from '../services/cmsService';
 
 vi.mock('../services/cmsService', () => ({
   cmsService: {
@@ -89,7 +88,12 @@ const mockMenus: NavigationMenu[] = [
   },
 ];
 
-const renderPage = () => render(<MemoryRouter><ContentManagement /></MemoryRouter>);
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <ContentManagement />
+    </MemoryRouter>
+  );
 
 describe('ContentManagement page', () => {
   beforeEach(() => {

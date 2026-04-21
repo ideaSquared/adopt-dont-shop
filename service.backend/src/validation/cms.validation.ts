@@ -9,14 +9,8 @@ const menuLocationValues = ['header', 'footer', 'sidebar'];
 
 export const cmsValidation = {
   listContent: [
-    query('contentType')
-      .optional()
-      .isIn(contentTypeValues)
-      .withMessage('Invalid content type'),
-    query('status')
-      .optional()
-      .isIn(contentStatusValues)
-      .withMessage('Invalid status'),
+    query('contentType').optional().isIn(contentTypeValues).withMessage('Invalid content type'),
+    query('status').optional().isIn(contentStatusValues).withMessage('Invalid status'),
     query('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer'),
     query('limit')
       .optional()
@@ -34,7 +28,10 @@ export const cmsValidation = {
   ],
 
   createContent: [
-    body('title').notEmpty().isLength({ max: 500 }).withMessage('title is required (max 500 chars)'),
+    body('title')
+      .notEmpty()
+      .isLength({ max: 500 })
+      .withMessage('title is required (max 500 chars)'),
     body('slug')
       .optional()
       .matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
@@ -81,9 +78,7 @@ export const cmsValidation = {
     param('version').isInt({ min: 1 }).withMessage('version must be a positive integer'),
   ],
 
-  generateSlug: [
-    query('title').notEmpty().withMessage('title query parameter is required'),
-  ],
+  generateSlug: [query('title').notEmpty().withMessage('title query parameter is required')],
 
   listMenus: [],
   getMenu: [menuIdParam],

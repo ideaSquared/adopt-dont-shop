@@ -114,11 +114,7 @@ NavigationMenu.init(
     timestamps: true,
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
-    indexes: [
-      { fields: ['location'] },
-      { fields: ['is_active'] },
-      { fields: ['created_by'] },
-    ],
+    indexes: [{ fields: ['location'] }, { fields: ['is_active'] }, { fields: ['created_by'] }],
   }
 );
 

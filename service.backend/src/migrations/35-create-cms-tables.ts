@@ -98,12 +98,19 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
     },
   });
 
-  await queryInterface.addIndex('cms_content', ['slug'], { unique: true, name: 'cms_content_slug_unique' });
+  await queryInterface.addIndex('cms_content', ['slug'], {
+    unique: true,
+    name: 'cms_content_slug_unique',
+  });
   await queryInterface.addIndex('cms_content', ['content_type'], { name: 'cms_content_type_idx' });
   await queryInterface.addIndex('cms_content', ['status'], { name: 'cms_content_status_idx' });
   await queryInterface.addIndex('cms_content', ['author_id'], { name: 'cms_content_author_idx' });
-  await queryInterface.addIndex('cms_content', ['published_at'], { name: 'cms_content_published_at_idx' });
-  await queryInterface.addIndex('cms_content', ['scheduled_publish_at'], { name: 'cms_content_scheduled_publish_idx' });
+  await queryInterface.addIndex('cms_content', ['published_at'], {
+    name: 'cms_content_published_at_idx',
+  });
+  await queryInterface.addIndex('cms_content', ['scheduled_publish_at'], {
+    name: 'cms_content_scheduled_publish_idx',
+  });
 
   await queryInterface.createTable('cms_navigation_menus', {
     menu_id: {
@@ -150,8 +157,12 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
     },
   });
 
-  await queryInterface.addIndex('cms_navigation_menus', ['location'], { name: 'cms_nav_location_idx' });
-  await queryInterface.addIndex('cms_navigation_menus', ['is_active'], { name: 'cms_nav_active_idx' });
+  await queryInterface.addIndex('cms_navigation_menus', ['location'], {
+    name: 'cms_nav_location_idx',
+  });
+  await queryInterface.addIndex('cms_navigation_menus', ['is_active'], {
+    name: 'cms_nav_active_idx',
+  });
 }
 
 export async function down(queryInterface: QueryInterface): Promise<void> {

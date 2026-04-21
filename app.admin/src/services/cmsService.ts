@@ -126,24 +126,17 @@ class CmsService {
   }
 
   async getContent(contentId: string): Promise<Content> {
-    const response = await apiService.get<{ content: Content }>(
-      `/api/v1/cms/content/${contentId}`
-    );
+    const response = await apiService.get<{ content: Content }>(`/api/v1/cms/content/${contentId}`);
     return response.content;
   }
 
   async getContentBySlug(slug: string): Promise<Content> {
-    const response = await apiService.get<{ content: Content }>(
-      `/api/v1/cms/content/slug/${slug}`
-    );
+    const response = await apiService.get<{ content: Content }>(`/api/v1/cms/content/slug/${slug}`);
     return response.content;
   }
 
   async createContent(input: CreateContentInput): Promise<Content> {
-    const response = await apiService.post<{ content: Content }>(
-      '/api/v1/cms/content',
-      input
-    );
+    const response = await apiService.post<{ content: Content }>('/api/v1/cms/content', input);
     return response.content;
   }
 
@@ -209,9 +202,7 @@ class CmsService {
   }
 
   async getMenu(menuId: string): Promise<NavigationMenu> {
-    const response = await apiService.get<{ menu: NavigationMenu }>(
-      `/api/v1/cms/menus/${menuId}`
-    );
+    const response = await apiService.get<{ menu: NavigationMenu }>(`/api/v1/cms/menus/${menuId}`);
     return response.menu;
   }
 

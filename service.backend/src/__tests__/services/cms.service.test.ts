@@ -156,9 +156,9 @@ describe('CmsService – content management', () => {
         authorId: 'author-1',
       });
       await CmsService.publishContent(item.contentId, 'author-1');
-      await expect(
-        CmsService.publishContent(item.contentId, 'author-1')
-      ).rejects.toThrow(/already published/i);
+      await expect(CmsService.publishContent(item.contentId, 'author-1')).rejects.toThrow(
+        /already published/i
+      );
     });
 
     it('unpublishes published content back to draft', async () => {
@@ -354,9 +354,9 @@ describe('CmsService – navigation menus', () => {
   });
 
   it('throws 404 for non-existent menu', async () => {
-    await expect(
-      CmsService.getNavigationMenuById('nonexistent-id')
-    ).rejects.toThrow('Navigation menu not found');
+    await expect(CmsService.getNavigationMenuById('nonexistent-id')).rejects.toThrow(
+      'Navigation menu not found'
+    );
   });
 
   it('generates a slug from a title', () => {
