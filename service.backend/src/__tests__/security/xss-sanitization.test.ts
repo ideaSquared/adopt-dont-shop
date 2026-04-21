@@ -89,15 +89,23 @@ describe('ApplicationController - XSS sanitization', () => {
     vi.clearAllMocks();
     controller = new ApplicationController();
     res = mockRes();
-    vi.mocked(ApplicationService.createApplication).mockResolvedValue(
-      { applicationId: 'app-123' } as unknown as ReturnType<typeof ApplicationService.createApplication> extends Promise<infer T> ? T : never
-    );
-    vi.mocked(ApplicationService.updateApplication).mockResolvedValue(
-      { applicationId: 'app-123' } as unknown as ReturnType<typeof ApplicationService.updateApplication> extends Promise<infer T> ? T : never
-    );
-    vi.mocked(ApplicationService.updateApplicationStatus).mockResolvedValue(
-      { applicationId: 'app-123' } as unknown as ReturnType<typeof ApplicationService.updateApplicationStatus> extends Promise<infer T> ? T : never
-    );
+    vi.mocked(ApplicationService.createApplication).mockResolvedValue({
+      applicationId: 'app-123',
+    } as unknown as ReturnType<typeof ApplicationService.createApplication> extends Promise<infer T>
+      ? T
+      : never);
+    vi.mocked(ApplicationService.updateApplication).mockResolvedValue({
+      applicationId: 'app-123',
+    } as unknown as ReturnType<typeof ApplicationService.updateApplication> extends Promise<infer T>
+      ? T
+      : never);
+    vi.mocked(ApplicationService.updateApplicationStatus).mockResolvedValue({
+      applicationId: 'app-123',
+    } as unknown as ReturnType<typeof ApplicationService.updateApplicationStatus> extends Promise<
+      infer T
+    >
+      ? T
+      : never);
   });
 
   describe('createApplication', () => {
@@ -200,12 +208,16 @@ describe('RescueController - XSS sanitization', () => {
     vi.clearAllMocks();
     controller = new RescueController();
     res = mockRes();
-    vi.mocked(RescueService.createRescue).mockResolvedValue(
-      { rescueId: 'rescue-123' } as unknown as ReturnType<typeof RescueService.createRescue> extends Promise<infer T> ? T : never
-    );
-    vi.mocked(RescueService.updateRescue).mockResolvedValue(
-      { rescueId: 'rescue-123' } as unknown as ReturnType<typeof RescueService.updateRescue> extends Promise<infer T> ? T : never
-    );
+    vi.mocked(RescueService.createRescue).mockResolvedValue({
+      rescueId: 'rescue-123',
+    } as unknown as ReturnType<typeof RescueService.createRescue> extends Promise<infer T>
+      ? T
+      : never);
+    vi.mocked(RescueService.updateRescue).mockResolvedValue({
+      rescueId: 'rescue-123',
+    } as unknown as ReturnType<typeof RescueService.updateRescue> extends Promise<infer T>
+      ? T
+      : never);
   });
 
   describe('createRescue', () => {
@@ -269,15 +281,24 @@ describe('SupportTicketController - XSS sanitization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     res = mockRes();
-    vi.mocked(SupportTicketService.createTicket).mockResolvedValue(
-      { ticketId: 'ticket-123', toJSON: vi.fn().mockReturnValue({ ticketId: 'ticket-123', createdAt: new Date(), updatedAt: new Date() }) } as unknown as Awaited<ReturnType<typeof SupportTicketService.createTicket>>
-    );
-    vi.mocked(SupportTicketService.updateTicket).mockResolvedValue(
-      { ticketId: 'ticket-123', toJSON: vi.fn().mockReturnValue({ ticketId: 'ticket-123', createdAt: new Date(), updatedAt: new Date() }) } as unknown as Awaited<ReturnType<typeof SupportTicketService.updateTicket>>
-    );
-    vi.mocked(SupportTicketService.addResponse).mockResolvedValue(
-      { ticketId: 'ticket-123', toJSON: vi.fn().mockReturnValue({ ticketId: 'ticket-123', createdAt: new Date(), updatedAt: new Date() }) } as unknown as Awaited<ReturnType<typeof SupportTicketService.addResponse>>
-    );
+    vi.mocked(SupportTicketService.createTicket).mockResolvedValue({
+      ticketId: 'ticket-123',
+      toJSON: vi
+        .fn()
+        .mockReturnValue({ ticketId: 'ticket-123', createdAt: new Date(), updatedAt: new Date() }),
+    } as unknown as Awaited<ReturnType<typeof SupportTicketService.createTicket>>);
+    vi.mocked(SupportTicketService.updateTicket).mockResolvedValue({
+      ticketId: 'ticket-123',
+      toJSON: vi
+        .fn()
+        .mockReturnValue({ ticketId: 'ticket-123', createdAt: new Date(), updatedAt: new Date() }),
+    } as unknown as Awaited<ReturnType<typeof SupportTicketService.updateTicket>>);
+    vi.mocked(SupportTicketService.addResponse).mockResolvedValue({
+      ticketId: 'ticket-123',
+      toJSON: vi
+        .fn()
+        .mockReturnValue({ ticketId: 'ticket-123', createdAt: new Date(), updatedAt: new Date() }),
+    } as unknown as Awaited<ReturnType<typeof SupportTicketService.addResponse>>);
   });
 
   describe('createTicket', () => {
@@ -329,12 +350,13 @@ describe('NotificationController - XSS sanitization', () => {
     vi.clearAllMocks();
     controller = new NotificationController();
     res = mockRes();
-    vi.mocked(NotificationService.createNotification).mockResolvedValue(
-      { notificationId: 'notif-123' } as unknown as Awaited<ReturnType<typeof NotificationService.createNotification>>
-    );
-    vi.mocked(NotificationService.createBulkNotifications).mockResolvedValue(
-      { count: 1, notifications: [] } as unknown as Awaited<ReturnType<typeof NotificationService.createBulkNotifications>>
-    );
+    vi.mocked(NotificationService.createNotification).mockResolvedValue({
+      notificationId: 'notif-123',
+    } as unknown as Awaited<ReturnType<typeof NotificationService.createNotification>>);
+    vi.mocked(NotificationService.createBulkNotifications).mockResolvedValue({
+      count: 1,
+      notifications: [],
+    } as unknown as Awaited<ReturnType<typeof NotificationService.createBulkNotifications>>);
   });
 
   describe('createNotification', () => {
@@ -390,12 +412,12 @@ describe('EmailController - XSS sanitization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     res = mockRes();
-    vi.mocked(emailService.createTemplate).mockResolvedValue(
-      { templateId: 'tmpl-123' } as unknown as Awaited<ReturnType<typeof emailService.createTemplate>>
-    );
-    vi.mocked(emailService.updateTemplate).mockResolvedValue(
-      { templateId: 'tmpl-123' } as unknown as Awaited<ReturnType<typeof emailService.updateTemplate>>
-    );
+    vi.mocked(emailService.createTemplate).mockResolvedValue({
+      templateId: 'tmpl-123',
+    } as unknown as Awaited<ReturnType<typeof emailService.createTemplate>>);
+    vi.mocked(emailService.updateTemplate).mockResolvedValue({
+      templateId: 'tmpl-123',
+    } as unknown as Awaited<ReturnType<typeof emailService.updateTemplate>>);
   });
 
   describe('createTemplate', () => {

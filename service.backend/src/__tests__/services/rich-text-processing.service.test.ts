@@ -28,9 +28,7 @@ describe('RichTextProcessingService.sanitize', () => {
     });
 
     it('strips javascript: protocol from anchor hrefs', () => {
-      const result = RichTextProcessingService.sanitize(
-        '<a href="javascript:alert(1)">click</a>'
-      );
+      const result = RichTextProcessingService.sanitize('<a href="javascript:alert(1)">click</a>');
       expect(result).not.toContain('javascript:');
     });
 
@@ -68,7 +66,9 @@ describe('RichTextProcessingService.sanitize', () => {
     });
 
     it('preserves list elements', () => {
-      const result = RichTextProcessingService.sanitize('<ul><li>Item one</li><li>Item two</li></ul>');
+      const result = RichTextProcessingService.sanitize(
+        '<ul><li>Item one</li><li>Item two</li></ul>'
+      );
       expect(result).toContain('<ul>');
       expect(result).toContain('<li>');
       expect(result).toContain('Item one');
