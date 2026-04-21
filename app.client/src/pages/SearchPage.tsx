@@ -228,15 +228,15 @@ const PET_STATUS = [
 ];
 
 const SORT_OPTIONS = [
-  { value: 'createdAt:DESC', label: 'Newest First' },
-  { value: 'createdAt:ASC', label: 'Oldest First' },
-  { value: 'distance:ASC', label: 'Distance: Nearest First' },
-  { value: 'name:ASC', label: 'Name A-Z' },
-  { value: 'name:DESC', label: 'Name Z-A' },
-  { value: 'ageYears:ASC', label: 'Youngest First' },
-  { value: 'ageYears:DESC', label: 'Oldest First' },
-  { value: 'adoptionFee:ASC', label: 'Price Low to High' },
-  { value: 'adoptionFee:DESC', label: 'Price High to Low' },
+  { value: 'createdAt:desc', label: 'Newest First' },
+  { value: 'createdAt:asc', label: 'Oldest First' },
+  { value: 'distance:asc', label: 'Distance: Nearest First' },
+  { value: 'name:asc', label: 'Name A-Z' },
+  { value: 'name:desc', label: 'Name Z-A' },
+  { value: 'ageYears:asc', label: 'Youngest First' },
+  { value: 'ageYears:desc', label: 'Oldest First' },
+  { value: 'adoptionFee:asc', label: 'Price Low to High' },
+  { value: 'adoptionFee:desc', label: 'Price High to Low' },
 ];
 
 export const SearchPage: React.FC = () => {
@@ -265,9 +265,9 @@ export const SearchPage: React.FC = () => {
     sortBy: SORT_OPTIONS.some(o => o.value.startsWith(`${searchParams.get('sortBy')}:`))
       ? (searchParams.get('sortBy') as string)
       : 'createdAt',
-    sortOrder: (['ASC', 'DESC'].includes(searchParams.get('sortOrder') ?? '')
+    sortOrder: (['asc', 'desc'].includes(searchParams.get('sortOrder') ?? '')
       ? searchParams.get('sortOrder')
-      : 'DESC') as 'ASC' | 'DESC',
+      : 'desc') as 'asc' | 'desc',
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -494,7 +494,7 @@ export const SearchPage: React.FC = () => {
       page: 1,
       limit: 12,
       sortBy: 'createdAt',
-      sortOrder: 'DESC',
+      sortOrder: 'desc',
     });
     setSearchQuery('');
     geolocation.clearLocation();
