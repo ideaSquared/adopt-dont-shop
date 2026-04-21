@@ -190,13 +190,6 @@ export const ApplicationPage: React.FC = () => {
       const petData = await petService.getPetById(petId);
       setPet(petData);
 
-      // Restore saved draft if available (takes priority over pre-population)
-      if (loadedDraft) {
-        setApplicationData(loadedDraft.applicationData);
-        setCurrentStep(loadedDraft.currentStep);
-        return;
-      }
-
       // Phase 1: Check quick application capability
       const quickAppCapability = await applicationProfileService.canUseQuickApplication(petId);
       setQuickApplicationCapability(quickAppCapability);
@@ -224,7 +217,15 @@ export const ApplicationPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [petId, usePrePopulation, populateFormWithData, loadedDraft]);
+  }, [petId, usePrePopulation, populateFormWithData]);
+
+  useEffect(() => {
+    if (!loadedDraft) {
+      return;
+    }
+    setApplicationData(loadedDraft.applicationData);
+    setCurrentStep(loadedDraft.currentStep);
+  }, [loadedDraft]);
 
   useEffect(() => {
     if (authLoading) {
