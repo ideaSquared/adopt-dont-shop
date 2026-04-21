@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Button, Card, Alert, SelectInput } from '@adopt-dont-shop/lib.components';
+import { Button, Card, Alert } from '@adopt-dont-shop/lib.components';
 import { apiService } from '../../services/libraryServices';
 import { getApiBaseUrl } from '../../utils/env';
 
@@ -1013,7 +1013,7 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                   <ActionButtons>
                     <Button
                       variant="secondary"
-                      size="small"
+                      size="sm"
                       onClick={() => handleToggleEnabled(question)}
                       data-testid={`toggle-${question.questionId}`}
                     >
@@ -1021,7 +1021,7 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                     </Button>
                     <Button
                       variant="secondary"
-                      size="small"
+                      size="sm"
                       onClick={() => handleOpenEdit(question)}
                       data-testid={`edit-${question.questionId}`}
                     >
@@ -1029,7 +1029,7 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                     </Button>
                     <Button
                       variant="danger"
-                      size="small"
+                      size="sm"
                       onClick={() => handleDelete(question)}
                       data-testid={`delete-${question.questionId}`}
                     >
