@@ -238,6 +238,7 @@ const messageData = [
 export async function seedMessages() {
   for (const message of messageData) {
     await Message.findOrCreate({
+      paranoid: false,
       where: { message_id: message.message_id },
       defaults: message,
     });

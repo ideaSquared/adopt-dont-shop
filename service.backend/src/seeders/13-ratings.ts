@@ -86,6 +86,7 @@ const ratingData = [
 export async function seedRatings() {
   for (const rating of ratingData) {
     await Rating.findOrCreate({
+      paranoid: false,
       where: { rating_id: rating.rating_id },
       defaults: rating,
     });

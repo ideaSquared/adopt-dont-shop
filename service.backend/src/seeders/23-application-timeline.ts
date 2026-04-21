@@ -261,6 +261,7 @@ const timelineData = [
 export async function seedApplicationTimeline() {
   for (const timelineEvent of timelineData) {
     await ApplicationTimeline.findOrCreate({
+      paranoid: false,
       where: { timeline_id: timelineEvent.timeline_id },
       defaults: {
         ...timelineEvent,
