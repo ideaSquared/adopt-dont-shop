@@ -288,7 +288,7 @@ const Pets: React.FC = () => {
         </HeaderLeft>
       </PageHeader>
 
-      {error && <ErrorMessage>Failed to load pets: {(error as Error).message}</ErrorMessage>}
+      {error instanceof Error && <ErrorMessage>Failed to load pets: {error.message}</ErrorMessage>}
 
       <FilterBar>
         <SearchInputWrapper>

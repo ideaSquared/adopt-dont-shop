@@ -267,8 +267,8 @@ const Applications: React.FC = () => {
         </HeaderLeft>
       </PageHeader>
 
-      {error && (
-        <ErrorMessage>Failed to load applications: {(error as Error).message}</ErrorMessage>
+      {error instanceof Error && (
+        <ErrorMessage>Failed to load applications: {error.message}</ErrorMessage>
       )}
 
       <FilterBar>
