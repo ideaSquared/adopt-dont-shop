@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  ContentModerationService,
-  ScanSeverity,
-} from '../../services/content-moderation.service';
+import { ContentModerationService, ScanSeverity } from '../../services/content-moderation.service';
 
 describe('ContentModerationService', () => {
   describe('scanContent', () => {
@@ -28,9 +25,7 @@ describe('ContentModerationService', () => {
 
     describe('CRITICAL severity — animal trafficking and abuse', () => {
       it('should flag selling a pet for money', () => {
-        const result = ContentModerationService.scanContent(
-          'I am selling a puppy for $500'
-        );
+        const result = ContentModerationService.scanContent('I am selling a puppy for $500');
 
         expect(result.isFlagged).toBe(true);
         expect(result.severity).toBe(ScanSeverity.CRITICAL);
@@ -47,9 +42,7 @@ describe('ContentModerationService', () => {
       });
 
       it('should flag Western Union mentions', () => {
-        const result = ContentModerationService.scanContent(
-          'Send payment via Western Union'
-        );
+        const result = ContentModerationService.scanContent('Send payment via Western Union');
 
         expect(result.isFlagged).toBe(true);
         expect(result.severity).toBe(ScanSeverity.CRITICAL);
@@ -95,9 +88,7 @@ describe('ContentModerationService', () => {
       });
 
       it('should flag threats of physical harm', () => {
-        const result = ContentModerationService.scanContent(
-          "I'll hurt you if you don't comply"
-        );
+        const result = ContentModerationService.scanContent("I'll hurt you if you don't comply");
 
         expect(result.isFlagged).toBe(true);
         expect(result.severity).toBe(ScanSeverity.HIGH);
@@ -125,9 +116,7 @@ describe('ContentModerationService', () => {
       });
 
       it('should flag scammer accusations', () => {
-        const result = ContentModerationService.scanContent(
-          'You are a scammer, I know it'
-        );
+        const result = ContentModerationService.scanContent('You are a scammer, I know it');
 
         expect(result.isFlagged).toBe(true);
         expect(result.severity).toBe(ScanSeverity.MEDIUM);
@@ -145,9 +134,7 @@ describe('ContentModerationService', () => {
 
     describe('LOW severity — off-platform contact attempts', () => {
       it('should flag phone number sharing', () => {
-        const result = ContentModerationService.scanContent(
-          'Call me at 555-123-4567 anytime'
-        );
+        const result = ContentModerationService.scanContent('Call me at 555-123-4567 anytime');
 
         expect(result.isFlagged).toBe(true);
         expect(result.severity).toBe(ScanSeverity.LOW);
