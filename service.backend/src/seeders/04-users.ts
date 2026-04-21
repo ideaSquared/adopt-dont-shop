@@ -303,6 +303,8 @@ export async function seedUsers() {
     });
   }
 
-  // eslint-disable-next-line no-console
-  console.log(`✅ Created ${testUsers.length} test users (password: DevPassword123!)`);
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.log(`✅ Created ${testUsers.length} test users (password: DevPassword123!)`);
+  }
 }
