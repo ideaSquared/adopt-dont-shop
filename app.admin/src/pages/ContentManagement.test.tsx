@@ -34,7 +34,17 @@ const mockContent: Content[] = [
     contentType: 'page',
     status: 'draft',
     content: '<h1>Welcome</h1>',
-    versions: [{ version: 1, title: 'Welcome Page', content: '<h1>Welcome</h1>', excerpt: undefined, changedBy: 'u1', changeNote: undefined, createdAt: '2024-01-01' }],
+    versions: [
+      {
+        version: 1,
+        title: 'Welcome Page',
+        content: '<h1>Welcome</h1>',
+        excerpt: undefined,
+        changedBy: 'u1',
+        changeNote: undefined,
+        createdAt: '2024-01-01',
+      },
+    ],
     currentVersion: 1,
     authorId: 'u1',
     createdAt: '2024-01-01T00:00:00.000Z',
@@ -47,7 +57,17 @@ const mockContent: Content[] = [
     contentType: 'help_article',
     status: 'published',
     content: '<p>Guide</p>',
-    versions: [{ version: 1, title: 'Adoption Guide', content: '<p>Guide</p>', excerpt: undefined, changedBy: 'u1', changeNote: undefined, createdAt: '2024-01-02' }],
+    versions: [
+      {
+        version: 1,
+        title: 'Adoption Guide',
+        content: '<p>Guide</p>',
+        excerpt: undefined,
+        changedBy: 'u1',
+        changeNote: undefined,
+        createdAt: '2024-01-02',
+      },
+    ],
     currentVersion: 1,
     authorId: 'u1',
     publishedAt: '2024-01-02T00:00:00.000Z',
@@ -75,7 +95,11 @@ describe('ContentManagement page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(cmsService.listContent).mockResolvedValue({
-      content: mockContent, total: 2, page: 1, limit: 20, totalPages: 1,
+      content: mockContent,
+      total: 2,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
     });
     vi.mocked(cmsService.listMenus).mockResolvedValue(mockMenus);
   });
@@ -102,7 +126,13 @@ describe('ContentManagement page', () => {
   });
 
   it('shows empty state when no content exists', async () => {
-    vi.mocked(cmsService.listContent).mockResolvedValue({ content: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+    vi.mocked(cmsService.listContent).mockResolvedValue({
+      content: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 0,
+    });
     renderPage();
     await waitFor(() => {
       expect(screen.getByText(/no content found/i)).toBeInTheDocument();
@@ -133,8 +163,12 @@ describe('ContentManagement page', () => {
     await waitFor(() => screen.getByText('Welcome Page'));
 
     fireEvent.click(screen.getByText('New Content'));
-    fireEvent.change(screen.getByPlaceholderText('Enter content title'), { target: { value: 'New Page' } });
-    fireEvent.change(screen.getByPlaceholderText('Enter HTML content…'), { target: { value: '<p>Hello</p>' } });
+    fireEvent.change(screen.getByPlaceholderText('Enter content title'), {
+      target: { value: 'New Page' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter HTML content…'), {
+      target: { value: '<p>Hello</p>' },
+    });
     fireEvent.click(screen.getByText('Create Content'));
 
     await waitFor(() => {
@@ -155,7 +189,10 @@ describe('ContentManagement page', () => {
   });
 
   it('calls publishContent when Publish button is clicked', async () => {
-    vi.mocked(cmsService.publishContent).mockResolvedValue({ ...mockContent[0], status: 'published' });
+    vi.mocked(cmsService.publishContent).mockResolvedValue({
+      ...mockContent[0],
+      status: 'published',
+    });
     renderPage();
     await waitFor(() => screen.getByText('Welcome Page'));
     fireEvent.click(screen.getAllByTitle('Publish')[0]);
@@ -210,7 +247,9 @@ describe('ContentManagement page', () => {
       fireEvent.click(screen.getByText('Navigation Menus'));
       await waitFor(() => screen.getByText('Main Navigation'));
       fireEvent.click(screen.getByText('New Menu'));
-      fireEvent.change(screen.getByPlaceholderText('e.g. Main Navigation'), { target: { value: 'Test Menu' } });
+      fireEvent.change(screen.getByPlaceholderText('e.g. Main Navigation'), {
+        target: { value: 'Test Menu' },
+      });
       fireEvent.click(screen.getByText('Create Menu'));
       await waitFor(() => {
         expect(cmsService.createMenu).toHaveBeenCalledWith(

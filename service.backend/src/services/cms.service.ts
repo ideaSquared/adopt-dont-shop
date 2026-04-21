@@ -1,6 +1,7 @@
 import { Op, WhereOptions } from 'sequelize';
 import Content, { ContentStatus, ContentType } from '../models/Content';
 import NavigationMenu, { MenuLocation } from '../models/NavigationMenu';
+import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
 
 type ListContentOptions = {
@@ -22,7 +23,7 @@ type ListContentResult = {
 
 type CreateContentInput = {
   title: string;
-  slug: string;
+  slug?: string;
   contentType: ContentType;
   content: string;
   excerpt?: string;
@@ -89,11 +90,12 @@ class CmsService {
       Object.assign(where, { authorId });
     }
     if (search) {
+      const likeOp = sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
       Object.assign(where, {
         [Op.or]: [
-          { title: { [Op.iLike]: `%${search}%` } },
-          { excerpt: { [Op.iLike]: `%${search}%` } },
-          { slug: { [Op.iLike]: `%${search}%` } },
+          { title: { [likeOp]: `%${search}%` } },
+          { excerpt: { [likeOp]: `%${search}%` } },
+          { slug: { [likeOp]: `%${search}%` } },
         ],
       });
     }

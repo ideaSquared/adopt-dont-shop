@@ -27,13 +27,29 @@ const PageHeader = styled.div`
 `;
 
 const HeaderLeft = styled.div`
-  h1 { font-size: 2rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; }
-  p { font-size: 1rem; color: #6b7280; margin: 0; }
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+  }
+  p {
+    font-size: 1rem;
+    color: #6b7280;
+    margin: 0;
+  }
 `;
 
-const HeaderActions = styled.div`display: flex; gap: 0.75rem;`;
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`;
 
-const TabBar = styled.div`display: flex; gap: 0; border-bottom: 2px solid #e5e7eb;`;
+const TabBar = styled.div`
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e5e7eb;
+`;
 
 const Tab = styled.button<{ $active: boolean }>`
   padding: 0.75rem 1.5rem;
@@ -57,43 +73,91 @@ const Card = styled.div`
   padding: 1.5rem;
 `;
 
-const FilterBar = styled.div`display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;`;
-
-const FilterGroup = styled.div`
-  display: flex; flex-direction: column; gap: 0.4rem; min-width: 160px;
+const FilterBar = styled.div`
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
 `;
 
-const FilterLabel = styled.label`font-size: 0.8rem; font-weight: 500; color: #374151;`;
+const FilterGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 160px;
+`;
+
+const FilterLabel = styled.label`
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+`;
 
 const Select = styled.select`
-  padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;
-  font-size: 0.875rem; background: #fff; color: #111827; cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
 `;
 
 const SearchWrapper = styled.div`
-  position: relative; flex: 2; min-width: 220px;
-  svg { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+  position: relative;
+  flex: 2;
+  min-width: 220px;
+  svg {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+  }
 `;
 
 const SearchInput = styled.input`
-  width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.25rem;
-  border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.875rem; box-sizing: border-box;
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  box-sizing: border-box;
 `;
 
-const Table = styled.table`width: 100%; border-collapse: collapse; margin-top: 1rem;`;
-const Th = styled.th`
-  text-align: left; padding: 0.75rem 1rem; font-size: 0.75rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280;
-  border-bottom: 1px solid #e5e7eb; background: #f9fafb;
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
 `;
+
+const Th = styled.th`
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+`;
+
 const Td = styled.td`
-  padding: 0.875rem 1rem; border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem; color: #374151; vertical-align: middle;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  color: #374151;
+  vertical-align: middle;
 `;
 
 const StatusBadge = styled.span<{ $status: string }>`
-  display: inline-flex; align-items: center; padding: 0.25rem 0.625rem;
-  border-radius: 9999px; font-size: 0.75rem; font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
   background: ${p => {
     if (p.$status === 'published') return '#d1fae5';
     if (p.$status === 'draft') return '#fef3c7';
@@ -108,97 +172,206 @@ const StatusBadge = styled.span<{ $status: string }>`
   }};
 `;
 
-const ActionGroup = styled.div`display: flex; gap: 0.5rem; align-items: center;`;
+const ActionGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`;
 
 const IconButton = styled.button<{ $variant?: 'danger' | 'primary' | 'default' }>`
-  display: flex; align-items: center; justify-content: center; padding: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem;
   border-radius: 6px;
-  border: 1px solid ${p => p.$variant === 'danger' ? '#fca5a5' : p.$variant === 'primary' ? '#93c5fd' : '#e5e7eb'};
-  background: ${p => p.$variant === 'danger' ? '#fef2f2' : p.$variant === 'primary' ? '#eff6ff' : '#fff'};
-  color: ${p => p.$variant === 'danger' ? '#dc2626' : p.$variant === 'primary' ? '#2563eb' : '#6b7280'};
+  border: 1px solid
+    ${p => {
+      if (p.$variant === 'danger') return '#fca5a5';
+      if (p.$variant === 'primary') return '#93c5fd';
+      return '#e5e7eb';
+    }};
+  background: ${p =>
+    p.$variant === 'danger' ? '#fef2f2' : p.$variant === 'primary' ? '#eff6ff' : '#fff'};
+  color: ${p =>
+    p.$variant === 'danger' ? '#dc2626' : p.$variant === 'primary' ? '#2563eb' : '#6b7280'};
   cursor: pointer;
-  &:hover { opacity: 0.8; }
+  &:hover {
+    opacity: 0.8;
+  }
 `;
 
 const PrimaryButton = styled.button`
-  display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.25rem;
-  background: #2563eb; color: #fff; border: none; border-radius: 8px;
-  font-size: 0.875rem; font-weight: 500; cursor: pointer;
-  &:hover { background: #1d4ed8; }
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  &:hover {
+    background: #1d4ed8;
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const Overlay = styled.div`
-  position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200;
-  display: flex; align-items: center; justify-content: center; padding: 1rem;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
 `;
 
 const Modal = styled.div`
-  background: #fff; border-radius: 16px; width: 100%; max-width: 760px;
-  max-height: 90vh; overflow-y: auto; padding: 2rem;
-  display: flex; flex-direction: column; gap: 1.25rem;
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 760px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 `;
 
 const ModalHeader = styled.div`
-  display: flex; justify-content: space-between; align-items: center;
-  h2 { margin: 0; font-size: 1.25rem; color: #111827; }
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #111827;
+  }
 `;
 
 const CloseButton = styled.button`
-  background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280; line-height: 1;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  line-height: 1;
 `;
 
 const FormGrid = styled.div`
-  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
-  @media (max-width: 600px) { grid-template-columns: 1fr; }
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const FormGroup = styled.div<{ $full?: boolean }>`
-  display: flex; flex-direction: column; gap: 0.4rem;
-  ${p => p.$full ? 'grid-column: 1 / -1;' : ''}
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  ${p => (p.$full ? 'grid-column: 1 / -1;' : '')}
 `;
 
-const FormLabel = styled.label`font-size: 0.8rem; font-weight: 600; color: #374151;`;
+const FormLabel = styled.label`
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+`;
 
 const FormInput = styled.input`
-  padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.875rem;
-  &:focus { outline: none; border-color: #2563eb; }
-  &:disabled { background: #f9fafb; color: #9ca3af; }
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+  }
+  &:disabled {
+    background: #f9fafb;
+    color: #9ca3af;
+  }
 `;
 
 const FormTextarea = styled.textarea`
-  padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;
-  font-size: 0.875rem; resize: vertical; min-height: 200px; font-family: monospace;
-  &:focus { outline: none; border-color: #2563eb; }
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 200px;
+  font-family: monospace;
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+  }
 `;
 
 const FormSelect = styled.select`
-  padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;
-  font-size: 0.875rem; background: #fff;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: #fff;
 `;
 
 const ModalActions = styled.div`
-  display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
   border-top: 1px solid #e5e7eb;
 `;
 
 const SecondaryButton = styled.button`
-  padding: 0.625rem 1.25rem; border: 1px solid #d1d5db; background: #fff;
-  color: #374151; border-radius: 8px; font-size: 0.875rem; cursor: pointer;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  cursor: pointer;
 `;
 
 const EmptyState = styled.div`
-  padding: 3rem; text-align: center; color: #9ca3af; font-size: 0.95rem;
+  padding: 3rem;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.95rem;
 `;
 
-const ErrorMessage = styled.p`color: #dc2626; font-size: 0.875rem; margin: 0;`;
+const ErrorMessage = styled.p`
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin: 0;
+`;
 
 const SeoSection = styled.div`
-  border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem;
-  background: #f9fafb; grid-column: 1 / -1; display: flex; flex-direction: column; gap: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #f9fafb;
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 `;
 
-const SeoTitle = styled.p`font-size: 0.875rem; font-weight: 600; color: #374151; margin: 0;`;
+const SeoTitle = styled.p`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+`;
 
 type ActiveTab = 'content' | 'menus';
 
@@ -224,12 +397,26 @@ type ContentFormState = {
 };
 
 const emptyContentForm = (): ContentFormState => ({
-  title: '', slug: '', contentType: 'page', content: '', excerpt: '',
-  metaTitle: '', metaDescription: '', metaKeywords: '', featuredImageUrl: '',
-  scheduledPublishAt: '', scheduledUnpublishAt: '', changeNote: '',
+  title: '',
+  slug: '',
+  contentType: 'page',
+  content: '',
+  excerpt: '',
+  metaTitle: '',
+  metaDescription: '',
+  metaKeywords: '',
+  featuredImageUrl: '',
+  scheduledPublishAt: '',
+  scheduledUnpublishAt: '',
+  changeNote: '',
 });
 
-type MenuFormState = { name: string; location: 'header' | 'footer' | 'sidebar'; isActive: boolean; };
+type MenuFormState = {
+  name: string;
+  location: 'header' | 'footer' | 'sidebar';
+  isActive: boolean;
+};
+
 const emptyMenuForm = (): MenuFormState => ({ name: '', location: 'header', isActive: true });
 
 const ContentManagement: React.FC = () => {
@@ -278,8 +465,13 @@ const ContentManagement: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => { fetchContent(); }, [fetchContent]);
-  useEffect(() => { if (activeTab === 'menus') fetchMenus(); }, [activeTab, fetchMenus]);
+  useEffect(() => {
+    fetchContent();
+  }, [fetchContent]);
+
+  useEffect(() => {
+    if (activeTab === 'menus') fetchMenus();
+  }, [activeTab, fetchMenus]);
 
   const openCreateContent = () => {
     setEditingContent(null);
@@ -301,7 +493,9 @@ const ContentManagement: React.FC = () => {
       metaKeywords: (item.metaKeywords ?? []).join(', '),
       featuredImageUrl: item.featuredImageUrl ?? '',
       scheduledPublishAt: item.scheduledPublishAt ? item.scheduledPublishAt.slice(0, 16) : '',
-      scheduledUnpublishAt: item.scheduledUnpublishAt ? item.scheduledUnpublishAt.slice(0, 16) : '',
+      scheduledUnpublishAt: item.scheduledUnpublishAt
+        ? item.scheduledUnpublishAt.slice(0, 16)
+        : '',
       changeNote: '',
     });
     setFormError(null);
@@ -313,7 +507,9 @@ const ContentManagement: React.FC = () => {
     try {
       const slug = await cmsService.generateSlug(contentForm.title);
       setContentForm(f => ({ ...f, slug }));
-    } catch { /* ignore */ }
+    } catch {
+      // ignore
+    }
   };
 
   const handleSaveContent = async () => {
@@ -325,12 +521,16 @@ const ContentManagement: React.FC = () => {
     setFormError(null);
     try {
       const keywords = contentForm.metaKeywords
-        ? contentForm.metaKeywords.split(',').map(k => k.trim()).filter(Boolean)
+        ? contentForm.metaKeywords
+            .split(',')
+            .map(k => k.trim())
+            .filter(Boolean)
         : [];
 
       if (editingContent) {
         const input: UpdateContentInput = {
-          title: contentForm.title, content: contentForm.content,
+          title: contentForm.title,
+          content: contentForm.content,
           excerpt: contentForm.excerpt || undefined,
           metaTitle: contentForm.metaTitle || undefined,
           metaDescription: contentForm.metaDescription || undefined,
@@ -343,8 +543,10 @@ const ContentManagement: React.FC = () => {
         await cmsService.updateContent(editingContent.contentId, input);
       } else {
         const input: CreateContentInput = {
-          title: contentForm.title, slug: contentForm.slug || undefined,
-          contentType: contentForm.contentType, content: contentForm.content,
+          title: contentForm.title,
+          slug: contentForm.slug || undefined,
+          contentType: contentForm.contentType,
+          content: contentForm.content,
           excerpt: contentForm.excerpt || undefined,
           metaTitle: contentForm.metaTitle || undefined,
           metaDescription: contentForm.metaDescription || undefined,
@@ -365,21 +567,41 @@ const ContentManagement: React.FC = () => {
   };
 
   const handlePublish = async (item: Content) => {
-    try { await cmsService.publishContent(item.contentId); fetchContent(); } catch { /* ignore */ }
+    try {
+      await cmsService.publishContent(item.contentId);
+      fetchContent();
+    } catch {
+      // ignore
+    }
   };
 
   const handleUnpublish = async (item: Content) => {
-    try { await cmsService.unpublishContent(item.contentId); fetchContent(); } catch { /* ignore */ }
+    try {
+      await cmsService.unpublishContent(item.contentId);
+      fetchContent();
+    } catch {
+      // ignore
+    }
   };
 
   const handleArchive = async (item: Content) => {
     if (!window.confirm(`Archive "${item.title}"?`)) return;
-    try { await cmsService.archiveContent(item.contentId); fetchContent(); } catch { /* ignore */ }
+    try {
+      await cmsService.archiveContent(item.contentId);
+      fetchContent();
+    } catch {
+      // ignore
+    }
   };
 
   const handleDeleteContent = async (item: Content) => {
     if (!window.confirm(`Permanently delete "${item.title}"?`)) return;
-    try { await cmsService.deleteContent(item.contentId); fetchContent(); } catch { /* ignore */ }
+    try {
+      await cmsService.deleteContent(item.contentId);
+      fetchContent();
+    } catch {
+      // ignore
+    }
   };
 
   const openCreateMenu = () => {
@@ -401,7 +623,12 @@ const ContentManagement: React.FC = () => {
       if (editingMenu) {
         await cmsService.updateMenu(editingMenu.menuId, menuForm);
       } else {
-        const input: CreateMenuInput = { name: menuForm.name, location: menuForm.location, isActive: menuForm.isActive, items: [] };
+        const input: CreateMenuInput = {
+          name: menuForm.name,
+          location: menuForm.location,
+          isActive: menuForm.isActive,
+          items: [],
+        };
         await cmsService.createMenu(input);
       }
       setShowMenuModal(false);
@@ -413,7 +640,12 @@ const ContentManagement: React.FC = () => {
 
   const handleDeleteMenu = async (menu: NavigationMenu) => {
     if (!window.confirm(`Delete menu "${menu.name}"?`)) return;
-    try { await cmsService.deleteMenu(menu.menuId); fetchMenus(); } catch { /* ignore */ }
+    try {
+      await cmsService.deleteMenu(menu.menuId);
+      fetchMenus();
+    } catch {
+      // ignore
+    }
   };
 
   return (
@@ -425,18 +657,27 @@ const ContentManagement: React.FC = () => {
         </HeaderLeft>
         <HeaderActions>
           {activeTab === 'content' && (
-            <PrimaryButton onClick={openCreateContent}><FiPlus size={16} />New Content</PrimaryButton>
+            <PrimaryButton onClick={openCreateContent}>
+              <FiPlus size={16} />
+              New Content
+            </PrimaryButton>
           )}
           {activeTab === 'menus' && (
-            <PrimaryButton onClick={openCreateMenu}><FiPlus size={16} />New Menu</PrimaryButton>
+            <PrimaryButton onClick={openCreateMenu}>
+              <FiPlus size={16} />
+              New Menu
+            </PrimaryButton>
           )}
         </HeaderActions>
       </PageHeader>
 
       <TabBar>
-        <Tab $active={activeTab === 'content'} onClick={() => setActiveTab('content')}>Content</Tab>
+        <Tab $active={activeTab === 'content'} onClick={() => setActiveTab('content')}>
+          Content
+        </Tab>
         <Tab $active={activeTab === 'menus'} onClick={() => setActiveTab('menus')}>
-          <FiMenu size={14} />Navigation Menus
+          <FiMenu size={14} />
+          Navigation Menus
         </Tab>
       </TabBar>
 
@@ -446,28 +687,34 @@ const ContentManagement: React.FC = () => {
             <SearchWrapper>
               <FiSearch size={16} />
               <SearchInput
-                placeholder="Search by title or slug…"
+                placeholder='Search by title or slug…'
                 value={contentSearch}
                 onChange={e => setContentSearch(e.target.value)}
               />
             </SearchWrapper>
             <FilterGroup>
               <FilterLabel>Type</FilterLabel>
-              <Select value={contentTypeFilter} onChange={e => setContentTypeFilter(e.target.value as ContentType | '')}>
-                <option value="">All types</option>
-                <option value="page">Page</option>
-                <option value="blog_post">Blog Post</option>
-                <option value="help_article">Help Article</option>
+              <Select
+                value={contentTypeFilter}
+                onChange={e => setContentTypeFilter(e.target.value as ContentType | '')}
+              >
+                <option value=''>All types</option>
+                <option value='page'>Page</option>
+                <option value='blog_post'>Blog Post</option>
+                <option value='help_article'>Help Article</option>
               </Select>
             </FilterGroup>
             <FilterGroup>
               <FilterLabel>Status</FilterLabel>
-              <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value as ContentStatus | '')}>
-                <option value="">All statuses</option>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="archived">Archived</option>
+              <Select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value as ContentStatus | '')}
+              >
+                <option value=''>All statuses</option>
+                <option value='draft'>Draft</option>
+                <option value='published'>Published</option>
+                <option value='scheduled'>Scheduled</option>
+                <option value='archived'>Archived</option>
               </Select>
             </FilterGroup>
           </FilterBar>
@@ -482,39 +729,63 @@ const ContentManagement: React.FC = () => {
             <Table>
               <thead>
                 <tr>
-                  <Th>Title</Th><Th>Slug</Th><Th>Type</Th><Th>Status</Th><Th>Version</Th><Th>Updated</Th><Th>Actions</Th>
+                  <Th>Title</Th>
+                  <Th>Slug</Th>
+                  <Th>Type</Th>
+                  <Th>Status</Th>
+                  <Th>Version</Th>
+                  <Th>Updated</Th>
+                  <Th>Actions</Th>
                 </tr>
               </thead>
               <tbody>
                 {contentList.map(item => (
                   <tr key={item.contentId}>
-                    <Td><strong>{item.title}</strong></Td>
-                    <Td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#6b7280' }}>/{item.slug}</Td>
+                    <Td>
+                      <strong>{item.title}</strong>
+                    </Td>
+                    <Td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#6b7280' }}>
+                      /{item.slug}
+                    </Td>
                     <Td>{CONTENT_TYPE_LABELS[item.contentType]}</Td>
-                    <Td><StatusBadge $status={item.status}>{item.status}</StatusBadge></Td>
+                    <Td>
+                      <StatusBadge $status={item.status}>{item.status}</StatusBadge>
+                    </Td>
                     <Td>v{item.currentVersion}</Td>
                     <Td>{new Date(item.updatedAt).toLocaleDateString()}</Td>
                     <Td>
                       <ActionGroup>
-                        <IconButton $variant="primary" title="Edit" onClick={() => openEditContent(item)}>
+                        <IconButton
+                          $variant='primary'
+                          title='Edit'
+                          onClick={() => openEditContent(item)}
+                        >
                           <FiEdit2 size={14} />
                         </IconButton>
                         {item.status !== 'published' && (
-                          <IconButton $variant="primary" title="Publish" onClick={() => handlePublish(item)}>
+                          <IconButton
+                            $variant='primary'
+                            title='Publish'
+                            onClick={() => handlePublish(item)}
+                          >
                             <FiEye size={14} />
                           </IconButton>
                         )}
                         {item.status === 'published' && (
-                          <IconButton title="Unpublish" onClick={() => handleUnpublish(item)}>
+                          <IconButton title='Unpublish' onClick={() => handleUnpublish(item)}>
                             <FiEye size={14} />
                           </IconButton>
                         )}
                         {item.status !== 'archived' && (
-                          <IconButton title="Archive" onClick={() => handleArchive(item)}>
+                          <IconButton title='Archive' onClick={() => handleArchive(item)}>
                             <FiArchive size={14} />
                           </IconButton>
                         )}
-                        <IconButton $variant="danger" title="Delete" onClick={() => handleDeleteContent(item)}>
+                        <IconButton
+                          $variant='danger'
+                          title='Delete'
+                          onClick={() => handleDeleteContent(item)}
+                        >
                           <FiTrash2 size={14} />
                         </IconButton>
                       </ActionGroup>
@@ -537,13 +808,20 @@ const ContentManagement: React.FC = () => {
             <Table>
               <thead>
                 <tr>
-                  <Th>Name</Th><Th>Location</Th><Th>Items</Th><Th>Active</Th><Th>Updated</Th><Th>Actions</Th>
+                  <Th>Name</Th>
+                  <Th>Location</Th>
+                  <Th>Items</Th>
+                  <Th>Active</Th>
+                  <Th>Updated</Th>
+                  <Th>Actions</Th>
                 </tr>
               </thead>
               <tbody>
                 {menus.map(menu => (
                   <tr key={menu.menuId}>
-                    <Td><strong>{menu.name}</strong></Td>
+                    <Td>
+                      <strong>{menu.name}</strong>
+                    </Td>
                     <Td style={{ textTransform: 'capitalize' }}>{menu.location}</Td>
                     <Td>{menu.items.length} items</Td>
                     <Td>
@@ -554,10 +832,18 @@ const ContentManagement: React.FC = () => {
                     <Td>{new Date(menu.updatedAt).toLocaleDateString()}</Td>
                     <Td>
                       <ActionGroup>
-                        <IconButton $variant="primary" title="Edit" onClick={() => openEditMenu(menu)}>
+                        <IconButton
+                          $variant='primary'
+                          title='Edit'
+                          onClick={() => openEditMenu(menu)}
+                        >
                           <FiEdit2 size={14} />
                         </IconButton>
-                        <IconButton $variant="danger" title="Delete" onClick={() => handleDeleteMenu(menu)}>
+                        <IconButton
+                          $variant='danger'
+                          title='Delete'
+                          onClick={() => handleDeleteMenu(menu)}
+                        >
                           <FiTrash2 size={14} />
                         </IconButton>
                       </ActionGroup>
@@ -583,86 +869,130 @@ const ContentManagement: React.FC = () => {
                 <FormInput
                   value={contentForm.title}
                   onChange={e => setContentForm(f => ({ ...f, title: e.target.value }))}
-                  onBlur={() => !editingContent && !contentForm.slug && handleSlugGenerate()}
-                  placeholder="Enter content title"
+                  onBlur={() =>
+                    !editingContent && !contentForm.slug && handleSlugGenerate()
+                  }
+                  placeholder='Enter content title'
                 />
               </FormGroup>
               <FormGroup>
                 <FormLabel>Slug</FormLabel>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <FormInput style={{ flex: 1 }} value={contentForm.slug}
+                  <FormInput
+                    style={{ flex: 1 }}
+                    value={contentForm.slug}
                     onChange={e => setContentForm(f => ({ ...f, slug: e.target.value }))}
-                    placeholder="auto-generated" disabled={!!editingContent} />
+                    placeholder='auto-generated'
+                    disabled={!!editingContent}
+                  />
                   {!editingContent && (
-                    <SecondaryButton type="button" onClick={handleSlugGenerate}>Generate</SecondaryButton>
+                    <SecondaryButton type='button' onClick={handleSlugGenerate}>
+                      Generate
+                    </SecondaryButton>
                   )}
                 </div>
               </FormGroup>
               <FormGroup>
                 <FormLabel>Content Type</FormLabel>
-                <FormSelect value={contentForm.contentType}
-                  onChange={e => setContentForm(f => ({ ...f, contentType: e.target.value as ContentType }))}
-                  disabled={!!editingContent}>
-                  <option value="page">Page</option>
-                  <option value="blog_post">Blog Post</option>
-                  <option value="help_article">Help Article</option>
+                <FormSelect
+                  value={contentForm.contentType}
+                  onChange={e =>
+                    setContentForm(f => ({ ...f, contentType: e.target.value as ContentType }))
+                  }
+                  disabled={!!editingContent}
+                >
+                  <option value='page'>Page</option>
+                  <option value='blog_post'>Blog Post</option>
+                  <option value='help_article'>Help Article</option>
                 </FormSelect>
               </FormGroup>
               <FormGroup $full>
                 <FormLabel>Content (HTML) *</FormLabel>
-                <FormTextarea value={contentForm.content}
+                <FormTextarea
+                  value={contentForm.content}
                   onChange={e => setContentForm(f => ({ ...f, content: e.target.value }))}
-                  placeholder="Enter HTML content…" />
+                  placeholder='Enter HTML content…'
+                />
               </FormGroup>
               <FormGroup $full>
                 <FormLabel>Excerpt</FormLabel>
-                <FormTextarea style={{ minHeight: '80px' }} value={contentForm.excerpt}
+                <FormTextarea
+                  style={{ minHeight: '80px' }}
+                  value={contentForm.excerpt}
                   onChange={e => setContentForm(f => ({ ...f, excerpt: e.target.value }))}
-                  placeholder="Short summary for listings and SEO" />
+                  placeholder='Short summary for listings and SEO'
+                />
               </FormGroup>
               <SeoSection>
                 <SeoTitle>SEO Settings</SeoTitle>
                 <FormGroup $full>
                   <FormLabel>Meta Title</FormLabel>
-                  <FormInput value={contentForm.metaTitle}
+                  <FormInput
+                    value={contentForm.metaTitle}
                     onChange={e => setContentForm(f => ({ ...f, metaTitle: e.target.value }))}
-                    placeholder="SEO title (defaults to content title)" />
+                    placeholder='SEO title (defaults to content title)'
+                  />
                 </FormGroup>
                 <FormGroup $full>
                   <FormLabel>Meta Description</FormLabel>
-                  <FormTextarea style={{ minHeight: '70px' }} value={contentForm.metaDescription}
-                    onChange={e => setContentForm(f => ({ ...f, metaDescription: e.target.value }))}
-                    placeholder="SEO description" />
+                  <FormTextarea
+                    style={{ minHeight: '70px' }}
+                    value={contentForm.metaDescription}
+                    onChange={e =>
+                      setContentForm(f => ({ ...f, metaDescription: e.target.value }))
+                    }
+                    placeholder='SEO description'
+                  />
                 </FormGroup>
                 <FormGroup $full>
                   <FormLabel>Meta Keywords (comma-separated)</FormLabel>
-                  <FormInput value={contentForm.metaKeywords}
-                    onChange={e => setContentForm(f => ({ ...f, metaKeywords: e.target.value }))}
-                    placeholder="keyword1, keyword2, keyword3" />
+                  <FormInput
+                    value={contentForm.metaKeywords}
+                    onChange={e =>
+                      setContentForm(f => ({ ...f, metaKeywords: e.target.value }))
+                    }
+                    placeholder='keyword1, keyword2, keyword3'
+                  />
                 </FormGroup>
               </SeoSection>
               <FormGroup>
                 <FormLabel>Featured Image URL</FormLabel>
-                <FormInput value={contentForm.featuredImageUrl}
-                  onChange={e => setContentForm(f => ({ ...f, featuredImageUrl: e.target.value }))}
-                  placeholder="https://…" />
+                <FormInput
+                  value={contentForm.featuredImageUrl}
+                  onChange={e =>
+                    setContentForm(f => ({ ...f, featuredImageUrl: e.target.value }))
+                  }
+                  placeholder='https://…'
+                />
               </FormGroup>
               <FormGroup>
                 <FormLabel>Schedule Publish At</FormLabel>
-                <FormInput type="datetime-local" value={contentForm.scheduledPublishAt}
-                  onChange={e => setContentForm(f => ({ ...f, scheduledPublishAt: e.target.value }))} />
+                <FormInput
+                  type='datetime-local'
+                  value={contentForm.scheduledPublishAt}
+                  onChange={e =>
+                    setContentForm(f => ({ ...f, scheduledPublishAt: e.target.value }))
+                  }
+                />
               </FormGroup>
               <FormGroup>
                 <FormLabel>Schedule Unpublish At</FormLabel>
-                <FormInput type="datetime-local" value={contentForm.scheduledUnpublishAt}
-                  onChange={e => setContentForm(f => ({ ...f, scheduledUnpublishAt: e.target.value }))} />
+                <FormInput
+                  type='datetime-local'
+                  value={contentForm.scheduledUnpublishAt}
+                  onChange={e =>
+                    setContentForm(f => ({ ...f, scheduledUnpublishAt: e.target.value }))
+                  }
+                />
               </FormGroup>
               {editingContent && (
                 <FormGroup>
                   <FormLabel>Change Note</FormLabel>
-                  <FormInput value={contentForm.changeNote}
+                  <FormInput
+                    value={contentForm.changeNote}
                     onChange={e => setContentForm(f => ({ ...f, changeNote: e.target.value }))}
-                    placeholder="Describe what changed (optional)" />
+                    placeholder='Describe what changed (optional)'
+                  />
                 </FormGroup>
               )}
             </FormGrid>
@@ -687,25 +1017,36 @@ const ContentManagement: React.FC = () => {
             <FormGrid>
               <FormGroup $full>
                 <FormLabel>Menu Name *</FormLabel>
-                <FormInput value={menuForm.name}
+                <FormInput
+                  value={menuForm.name}
                   onChange={e => setMenuForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Main Navigation" />
+                  placeholder='e.g. Main Navigation'
+                />
               </FormGroup>
               <FormGroup>
                 <FormLabel>Location</FormLabel>
-                <FormSelect value={menuForm.location}
-                  onChange={e => setMenuForm(f => ({ ...f, location: e.target.value as MenuFormState['location'] }))}>
-                  <option value="header">Header</option>
-                  <option value="footer">Footer</option>
-                  <option value="sidebar">Sidebar</option>
+                <FormSelect
+                  value={menuForm.location}
+                  onChange={e =>
+                    setMenuForm(f => ({
+                      ...f,
+                      location: e.target.value as MenuFormState['location'],
+                    }))
+                  }
+                >
+                  <option value='header'>Header</option>
+                  <option value='footer'>Footer</option>
+                  <option value='sidebar'>Sidebar</option>
                 </FormSelect>
               </FormGroup>
               <FormGroup>
                 <FormLabel>Active</FormLabel>
-                <FormSelect value={menuForm.isActive ? 'true' : 'false'}
-                  onChange={e => setMenuForm(f => ({ ...f, isActive: e.target.value === 'true' }))}>
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
+                <FormSelect
+                  value={menuForm.isActive ? 'true' : 'false'}
+                  onChange={e => setMenuForm(f => ({ ...f, isActive: e.target.value === 'true' }))}
+                >
+                  <option value='true'>Active</option>
+                  <option value='false'>Inactive</option>
                 </FormSelect>
               </FormGroup>
             </FormGrid>
