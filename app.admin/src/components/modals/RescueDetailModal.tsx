@@ -605,7 +605,10 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
 
         <ModalBody>
           {loading && (
-            <div aria-label='Loading rescue details' style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div
+              aria-label='Loading rescue details'
+              style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <Skeleton width='4rem' height='4rem' radius='50%' />
                 <div style={{ flex: 1 }}>
@@ -840,12 +843,27 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                     )}
 
                     {loadingStaff && (
-                      <div aria-label='Loading staff' style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem 0' }}>
+                      <div
+                        aria-label='Loading staff'
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem',
+                          padding: '1rem 0',
+                        }}
+                      >
                         {Array.from({ length: 3 }, (_, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div
+                            key={i}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                          >
                             <Skeleton width='2.5rem' height='2.5rem' radius='50%' />
                             <div style={{ flex: 1 }}>
-                              <Skeleton height='0.875rem' width='40%' style={{ marginBottom: '0.25rem' }} />
+                              <Skeleton
+                                height='0.875rem'
+                                width='40%'
+                                style={{ marginBottom: '0.25rem' }}
+                              />
                               <Skeleton height='0.75rem' width='60%' />
                             </div>
                           </div>

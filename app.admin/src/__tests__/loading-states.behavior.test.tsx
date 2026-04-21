@@ -59,33 +59,21 @@ describe('DataTable loading states', () => {
     });
 
     it('does not show actual row data during loading', () => {
-      renderWithProviders(
-        <DataTable columns={simpleColumns} data={simpleRows} loading={true} />
-      );
+      renderWithProviders(<DataTable columns={simpleColumns} data={simpleRows} loading={true} />);
       expect(screen.queryByText('Alice')).not.toBeInTheDocument();
       expect(screen.queryByText('Bob')).not.toBeInTheDocument();
     });
 
     it('does not show the empty state message during loading', () => {
       renderWithProviders(
-        <DataTable
-          columns={simpleColumns}
-          data={[]}
-          loading={true}
-          emptyMessage='No items found'
-        />
+        <DataTable columns={simpleColumns} data={[]} loading={true} emptyMessage='No items found' />
       );
       expect(screen.queryByText('No items found')).not.toBeInTheDocument();
     });
 
     it('shows skeleton rows for a selectable table', () => {
       const { container } = renderWithProviders(
-        <DataTable
-          columns={simpleColumns}
-          data={[]}
-          loading={true}
-          selectable={true}
-        />
+        <DataTable columns={simpleColumns} data={[]} loading={true} selectable={true} />
       );
       const skeletonRows = container.querySelectorAll('[data-testid="skeleton-row"]');
       expect(skeletonRows.length).toBeGreaterThan(0);
@@ -94,9 +82,7 @@ describe('DataTable loading states', () => {
 
   describe('after data loads', () => {
     it('shows actual row data once loading is complete', () => {
-      renderWithProviders(
-        <DataTable columns={simpleColumns} data={simpleRows} loading={false} />
-      );
+      renderWithProviders(<DataTable columns={simpleColumns} data={simpleRows} loading={false} />);
       expect(screen.getByText('Alice')).toBeInTheDocument();
       expect(screen.getByText('Bob')).toBeInTheDocument();
     });
@@ -124,9 +110,7 @@ describe('DataTable loading states', () => {
 
   describe('column headers', () => {
     it('always shows column headers regardless of loading state', () => {
-      renderWithProviders(
-        <DataTable columns={simpleColumns} data={[]} loading={true} />
-      );
+      renderWithProviders(<DataTable columns={simpleColumns} data={[]} loading={true} />);
       expect(screen.getByText('Name')).toBeInTheDocument();
       expect(screen.getByText('Status')).toBeInTheDocument();
     });

@@ -24,7 +24,13 @@ type SkeletonProps = {
 };
 
 export const Skeleton: React.FC<SkeletonProps> = ({ width, height, radius, className, style }) => (
-  <SkeletonBase $width={width} $height={height} $radius={radius} className={className} style={style} />
+  <SkeletonBase
+    $width={width}
+    $height={height}
+    $radius={radius}
+    className={className}
+    style={style}
+  />
 );
 
 const TextLine = styled(SkeletonBase)`
@@ -43,11 +49,7 @@ type SkeletonTextProps = {
 export const SkeletonText: React.FC<SkeletonTextProps> = ({ lines = 3, lastLineWidth = '60%' }) => (
   <div>
     {Array.from({ length: lines }, (_, i) => (
-      <TextLine
-        key={i}
-        $height='0.875rem'
-        $width={i === lines - 1 ? lastLineWidth : '100%'}
-      />
+      <TextLine key={i} $height='0.875rem' $width={i === lines - 1 ? lastLineWidth : '100%'} />
     ))}
   </div>
 );

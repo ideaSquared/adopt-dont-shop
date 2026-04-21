@@ -307,11 +307,7 @@ export function DataTable<T extends Record<string, any>>({
           <Tbody>
             {loading ? (
               Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
-                <SkeletonTableRow
-                  key={i}
-                  columnCount={columns.length}
-                  hasCheckbox={selectable}
-                />
+                <SkeletonTableRow key={i} columnCount={columns.length} hasCheckbox={selectable} />
               ))
             ) : data.length === 0 ? (
               <EmptyRow>

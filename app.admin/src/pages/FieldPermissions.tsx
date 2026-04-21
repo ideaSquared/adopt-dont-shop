@@ -418,9 +418,20 @@ const FieldPermissions: React.FC = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div aria-label='Loading field permissions' style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div
+              aria-label='Loading field permissions'
+              style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+            >
               {Array.from({ length: 6 }, (_, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+                <div
+                  key={i}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr 1fr 1fr',
+                    gap: '1rem',
+                    alignItems: 'center',
+                  }}
+                >
                   <Skeleton height='0.875rem' width={i % 2 === 0 ? '70%' : '50%'} />
                   <Skeleton height='1.5rem' width='80%' radius='6px' />
                   <Skeleton height='1.5rem' width='80%' radius='6px' />
