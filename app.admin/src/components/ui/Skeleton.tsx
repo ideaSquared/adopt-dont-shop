@@ -20,10 +20,11 @@ type SkeletonProps = {
   height?: string;
   radius?: string;
   className?: string;
+  style?: React.CSSProperties;
 };
 
-export const Skeleton: React.FC<SkeletonProps> = ({ width, height, radius, className }) => (
-  <SkeletonBase $width={width} $height={height} $radius={radius} className={className} />
+export const Skeleton: React.FC<SkeletonProps> = ({ width, height, radius, className, style }) => (
+  <SkeletonBase $width={width} $height={height} $radius={radius} className={className} style={style} />
 );
 
 const TextLine = styled(SkeletonBase)`
