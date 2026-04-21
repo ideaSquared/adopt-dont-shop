@@ -1,12 +1,13 @@
 import { ApplicationData } from '@/services';
 import { Input } from '@adopt-dont-shop/lib.components';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import styled from 'styled-components';
 
 interface LivingSituationStepProps {
   data: Partial<ApplicationData['livingsituation']>;
   onComplete: (data: ApplicationData['livingsituation']) => void;
+  onChange?: (data: Partial<ApplicationData['livingsituation']>) => void;
 }
 
 interface LivingSituationFormData {
@@ -74,8 +75,12 @@ const CheckboxGroup = styled.div`
   gap: 0.5rem;
 `;
 
-export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({ data, onComplete }) => {
-  const { register, handleSubmit } = useForm<LivingSituationFormData>({
+export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({
+  data,
+  onComplete,
+  onChange,
+}) => {
+  const { register, handleSubmit, watch } = useForm<LivingSituationFormData>({
     defaultValues: {
       housingType: (data.housingType as 'house' | 'apartment' | 'condo' | 'other') || 'house',
       isOwned: data.isOwned || false,
@@ -89,6 +94,13 @@ export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({ data, 
       allergyDetails: data.allergyDetails || '',
     },
   });
+
+  useEffect(() => {
+    const { unsubscribe } = watch((value) => {
+      onChange?.(value as Partial<ApplicationData['livingsituation']>);
+    });
+    return () => unsubscribe();
+  }, [watch, onChange]);
 
   const onSubmit = (formData: LivingSituationFormData) => {
     onComplete(formData as ApplicationData['livingsituation']);

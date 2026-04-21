@@ -11,6 +11,10 @@ import {
   ReviewStep,
 } from './steps';
 
+export type PartialApplicationData = {
+  [K in keyof ApplicationData]?: Partial<ApplicationData[K]>;
+};
+
 interface ApplicationFormProps {
   step: number;
   data: Partial<ApplicationData>;
@@ -19,6 +23,7 @@ interface ApplicationFormProps {
   onStepBack: () => void;
   onSubmit: () => void;
   onSaveDraft: () => void;
+  onDataChange: (stepData: PartialApplicationData) => void;
   isSubmitting: boolean;
   isUpdate: boolean;
   saveStatus: SaveStatus;
@@ -121,6 +126,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   onStepBack,
   onSubmit,
   onSaveDraft,
+  onDataChange,
   isSubmitting,
   isUpdate,
   saveStatus,
@@ -135,6 +141,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
             onComplete={(personalInfo: ApplicationData['personalInfo']) =>
               onStepComplete({ personalInfo })
             }
+            onChange={personalInfo => onDataChange({ personalInfo })}
           />
         );
       case 2:
@@ -144,6 +151,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
             onComplete={(livingsituation: ApplicationData['livingsituation']) =>
               onStepComplete({ livingsituation })
             }
+            onChange={livingsituation => onDataChange({ livingsituation })}
           />
         );
       case 3:

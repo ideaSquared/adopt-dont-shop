@@ -1,12 +1,13 @@
 import { ApplicationData } from '@/services';
 import { Input } from '@adopt-dont-shop/lib.components';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import styled from 'styled-components';
 
 interface BasicInfoStepProps {
   data: Partial<ApplicationData['personalInfo']>;
   onComplete: (data: ApplicationData['personalInfo']) => void;
+  onChange?: (data: Partial<ApplicationData['personalInfo']>) => void;
 }
 
 const StepContainer = styled.div`
@@ -42,14 +43,22 @@ const Description = styled.p`
   line-height: 1.6;
 `;
 
-export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete }) => {
+export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete, onChange }) => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ApplicationData['personalInfo']>({
     defaultValues: data,
   });
+
+  useEffect(() => {
+    const { unsubscribe } = watch((value) => {
+      onChange?.(value);
+    });
+    return () => unsubscribe();
+  }, [watch, onChange]);
 
   const onSubmit = (formData: ApplicationData['personalInfo']) => {
     onComplete(formData);

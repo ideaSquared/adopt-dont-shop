@@ -13,8 +13,9 @@ import {
   ApplicationPrePopulationData,
   QuickApplicationCapability,
 } from '@/types';
+import { PartialApplicationData } from '@/components/application/ApplicationForm';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -272,6 +273,24 @@ export const ApplicationPage: React.FC = () => {
     // If skip, continue with regular form
   };
 
+  const applicationDataRef = useRef(applicationData);
+  applicationDataRef.current = applicationData;
+
+  const currentStepRef = useRef(currentStep);
+  currentStepRef.current = currentStep;
+
+  const handleFormDataChange = useCallback(
+    (stepData: PartialApplicationData) => {
+      // Merge with current data; nested partial values are safe to store to localStorage
+      const updatedData = {
+        ...applicationDataRef.current,
+        ...stepData,
+      } as Partial<ApplicationData>;
+      scheduleSave(updatedData, currentStepRef.current);
+    },
+    [scheduleSave]
+  );
+
   const handleStepComplete = async (stepData: Partial<ApplicationData>) => {
     try {
       const updatedData = { ...applicationData, ...stepData };
@@ -490,6 +509,7 @@ export const ApplicationPage: React.FC = () => {
         onStepBack={handleStepBack}
         onSubmit={handleSubmit}
         onSaveDraft={saveNow}
+        onDataChange={handleFormDataChange}
         isSubmitting={isSubmitting}
         isUpdate={false}
         saveStatus={saveStatus}
