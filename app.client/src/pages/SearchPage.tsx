@@ -265,7 +265,11 @@ export const SearchPage: React.FC = () => {
     sortBy: SORT_OPTIONS.some(o => o.value.startsWith(`${searchParams.get('sortBy')}:`))
       ? (searchParams.get('sortBy') as string)
       : 'createdAt',
-    sortOrder: (['ASC', 'DESC'].includes(searchParams.get('sortOrder') ?? '') ? searchParams.get('sortOrder') : 'DESC') as 'ASC' | 'DESC',
+    sortOrder: (
+      ['ASC', 'DESC'].includes(searchParams.get('sortOrder') ?? '')
+        ? searchParams.get('sortOrder')
+        : 'DESC'
+    ) as 'ASC' | 'DESC',
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
