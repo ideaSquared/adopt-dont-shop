@@ -42,16 +42,29 @@ type PaginatedPetsResponse = {
 class PetService {
   private baseUrl = '/api/v1/pets';
 
-  async getAll(
-    filters: PetFilters = {}
-  ): Promise<{ data: AdminPet[]; pagination: { page: number; limit: number; total: number; pages: number } }> {
+  async getAll(filters: PetFilters = {}): Promise<{
+    data: AdminPet[];
+    pagination: { page: number; limit: number; total: number; pages: number };
+  }> {
     const params: Record<string, string> = {};
-    if (filters.search) params.search = filters.search;
-    if (filters.status) params.status = filters.status;
-    if (filters.rescueId) params.rescueId = filters.rescueId;
-    if (filters.archived !== undefined) params.archived = String(filters.archived);
-    if (filters.page) params.page = String(filters.page);
-    if (filters.limit) params.limit = String(filters.limit);
+    if (filters.search) {
+      params.search = filters.search;
+    }
+    if (filters.status) {
+      params.status = filters.status;
+    }
+    if (filters.rescueId) {
+      params.rescueId = filters.rescueId;
+    }
+    if (filters.archived !== undefined) {
+      params.archived = String(filters.archived);
+    }
+    if (filters.page) {
+      params.page = String(filters.page);
+    }
+    if (filters.limit) {
+      params.limit = String(filters.limit);
+    }
 
     const response = await apiService.get<PaginatedPetsResponse>(this.baseUrl, params);
     return { data: response.data, pagination: response.pagination };

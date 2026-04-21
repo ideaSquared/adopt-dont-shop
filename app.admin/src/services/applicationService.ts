@@ -38,15 +38,26 @@ type PaginatedApplicationsResponse = {
 class ApplicationServiceClient {
   private baseUrl = '/api/v1/applications';
 
-  async getAll(
-    filters: ApplicationFilters = {}
-  ): Promise<{ data: AdminApplication[]; pagination: { page: number; limit: number; total: number; pages: number } }> {
+  async getAll(filters: ApplicationFilters = {}): Promise<{
+    data: AdminApplication[];
+    pagination: { page: number; limit: number; total: number; pages: number };
+  }> {
     const params: Record<string, string> = {};
-    if (filters.search) params.search = filters.search;
-    if (filters.status) params.status = filters.status;
-    if (filters.rescueId) params.rescueId = filters.rescueId;
-    if (filters.page) params.page = String(filters.page);
-    if (filters.limit) params.limit = String(filters.limit);
+    if (filters.search) {
+      params.search = filters.search;
+    }
+    if (filters.status) {
+      params.status = filters.status;
+    }
+    if (filters.rescueId) {
+      params.rescueId = filters.rescueId;
+    }
+    if (filters.page) {
+      params.page = String(filters.page);
+    }
+    if (filters.limit) {
+      params.limit = String(filters.limit);
+    }
 
     const response = await apiService.get<PaginatedApplicationsResponse>(this.baseUrl, params);
     return { data: response.data, pagination: response.pagination };
