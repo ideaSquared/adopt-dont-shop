@@ -380,6 +380,7 @@ export async function seedEmilyAttachmentTest() {
   try {
     // Create the chat
     await Chat.findOrCreate({
+      paranoid: false,
       where: { chat_id: emilyAttachmentTestData.chat.chat_id },
       defaults: emilyAttachmentTestData.chat,
     });
@@ -387,6 +388,7 @@ export async function seedEmilyAttachmentTest() {
     // Create chat participants
     for (const participant of emilyAttachmentTestData.participants) {
       await ChatParticipant.findOrCreate({
+        paranoid: false,
         where: {
           chat_id: participant.chat_id,
           participant_id: participant.participant_id,
@@ -398,6 +400,7 @@ export async function seedEmilyAttachmentTest() {
     // Create messages
     for (const message of emilyAttachmentTestData.messages) {
       await Message.findOrCreate({
+        paranoid: false,
         where: { message_id: message.message_id },
         defaults: message,
       });
@@ -406,6 +409,7 @@ export async function seedEmilyAttachmentTest() {
     // Create file attachments
     for (const attachment of emilyAttachmentTestData.attachments) {
       await FileUpload.findOrCreate({
+        paranoid: false,
         where: { stored_filename: attachment.stored_filename },
         defaults: attachment,
       });

@@ -818,6 +818,7 @@ export async function seedApplications() {
     };
 
     await Application.findOrCreate({
+      paranoid: false,
       where: { applicationId: appData.applicationId },
       // Type assertion justified: Application form data structure is intentionally flexible
       // to support various rescue organization requirements and nested JSON structures

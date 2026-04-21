@@ -142,6 +142,7 @@ const permissions = [
 export async function seedPermissions() {
   for (const permissionName of permissions) {
     await Permission.findOrCreate({
+      paranoid: false,
       where: { permissionName: permissionName },
       defaults: {
         permissionName: permissionName,

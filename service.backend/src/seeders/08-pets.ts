@@ -331,6 +331,7 @@ const petProfiles = [
 export async function seedPets() {
   for (const petData of petProfiles) {
     await Pet.findOrCreate({
+      paranoid: false,
       where: { petId: petData.petId },
       defaults: {
         ...petData,
