@@ -53,6 +53,10 @@ import HomeVisit from './HomeVisit';
 // Field-Level Permissions
 import FieldPermission from './FieldPermission';
 
+// CMS Models
+import Content from './Content';
+import NavigationMenu from './NavigationMenu';
+
 // Define all models
 const models = {
   User,
@@ -89,6 +93,8 @@ const models = {
   FieldPermission,
   FileUpload,
   HomeVisit,
+  Content,
+  NavigationMenu,
 };
 
 // Setup associations (done explicitly below instead of using associate methods)
@@ -325,6 +331,13 @@ try {
   HomeVisit.belongsTo(Application, { foreignKey: 'application_id', as: 'Application' });
   User.hasMany(FileUpload, { foreignKey: 'uploaded_by', as: 'UploadedFiles' });
   FileUpload.belongsTo(User, { foreignKey: 'uploaded_by', as: 'Uploader' });
+
+  // CMS associations
+  User.hasMany(Content, { foreignKey: 'author_id', as: 'AuthoredContent' });
+  Content.belongsTo(User, { foreignKey: 'author_id', as: 'Author' });
+
+  User.hasMany(NavigationMenu, { foreignKey: 'created_by', as: 'CreatedMenus' });
+  NavigationMenu.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
 } catch (error) {
   // Silently ignore association errors in test environments where models may be loaded multiple times
   if (process.env.NODE_ENV !== 'test') {
@@ -368,6 +381,8 @@ export {
   UserFavorite,
   UserRole,
   UserSanction,
+  Content,
+  NavigationMenu,
 };
 
 export default models;

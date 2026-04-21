@@ -21,6 +21,7 @@ import {
   Reports,
   AccountSettings,
   FieldPermissions,
+  ContentManagement,
 } from './pages';
 
 const AdminApp: React.FC = () => {
@@ -108,6 +109,10 @@ const AdminApp: React.FC = () => {
 
             {/* Field-Level Permissions */}
             <Route path='/field-permissions' element={<FieldPermissions />} />
+
+            {/* Content Management */}
+            <Route path='/content' element={<ContentManagement />} />
+            <Route path='/content/:contentId' element={<ContentManagement />} />
 
             {/* Audit & Monitoring */}
             <Route path='/audit' element={<Audit />} />

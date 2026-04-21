@@ -17,3 +17,4 @@ export { default as Messages } from './Messages';
 export { default as Reports } from './Reports';
 export { default as AccountSettings } from './AccountSettings';
 export { default as FieldPermissions } from './FieldPermissions';
+export { default as ContentManagement } from './ContentManagement';
