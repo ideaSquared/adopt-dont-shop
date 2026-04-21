@@ -48,7 +48,7 @@ router.post(
       res.status(201).json(result);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error accepting invitation:', { error: errorMessage, token: req.body.token });
+      logger.error('Error accepting invitation:', { error: errorMessage });
 
       if (errorMessage.includes('not found') || errorMessage.includes('expired')) {
         return res.status(404).json({
@@ -109,10 +109,7 @@ router.get(
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error getting invitation details:', {
-        error: errorMessage,
-        token: req.params.token,
-      });
+      logger.error('Error getting invitation details:', { error: errorMessage });
 
       res.status(500).json({
         success: false,
