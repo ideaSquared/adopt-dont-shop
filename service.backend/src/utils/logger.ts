@@ -349,23 +349,29 @@ if (isProduction) {
 // Graceful shutdown handling
 process.on('SIGINT', () => {
   logger.info('Received SIGINT, shutting down gracefully');
-  logger.end();
 });
 
 process.on('SIGTERM', () => {
   logger.info('Received SIGTERM, shutting down gracefully');
-  logger.end();
 });
 
 // Uncaught exception handling
 process.on('uncaughtException', error => {
-  logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
+  try {
+    logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
+  } catch {
+    console.error('Uncaught Exception (logger unavailable):', error);
+  }
   // eslint-disable-next-line no-process-exit
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection', { reason, promise });
+  try {
+    logger.error('Unhandled Rejection', { reason, promise });
+  } catch {
+    console.error('Unhandled Rejection (logger unavailable):', reason);
+  }
 });
 
 export default logger;
