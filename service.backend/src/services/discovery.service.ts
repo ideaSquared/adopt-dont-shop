@@ -166,7 +166,7 @@ export class DiscoveryService {
           literal(`CASE WHEN jsonb_array_length("Pet"."images") > 2 THEN 0 ELSE 1 END`),
 
           // 4. Boost puppies and kittens (young pets are popular)
-          literal(`CASE WHEN "Pet"."ageGroup" IN ('baby', 'young') THEN 0 ELSE 1 END`),
+          literal(`CASE WHEN "Pet"."age_group" IN ('baby', 'young') THEN 0 ELSE 1 END`),
 
           // 5. Random factor for diversity
           fn('RANDOM'),

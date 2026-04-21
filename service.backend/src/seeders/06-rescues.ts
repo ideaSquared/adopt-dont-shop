@@ -152,6 +152,7 @@ const rescueOrganizations = [
 export async function seedRescues() {
   for (const rescueData of rescueOrganizations) {
     await Rescue.findOrCreate({
+      paranoid: false,
       where: { email: rescueData.email },
       defaults: {
         ...rescueData,

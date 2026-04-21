@@ -390,6 +390,7 @@ export async function seedRolePermissions() {
       }
 
       await RolePermission.findOrCreate({
+        paranoid: false,
         where: {
           roleId: role.roleId,
           permissionId: permission.permissionId,

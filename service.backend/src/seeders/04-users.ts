@@ -191,7 +191,8 @@ export async function seedUsers() {
 
   for (const userData of testUsers) {
     await User.findOrCreate({
-      where: { email: userData.email },
+      paranoid: false,
+      where: { userId: userData.userId },
       defaults: {
         ...userData,
         password: plainPassword,
