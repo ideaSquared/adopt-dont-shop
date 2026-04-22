@@ -75,6 +75,10 @@ describe('PetsService', () => {
       expect(result).toBeDefined();
       expect(result.data).toHaveLength(1);
       expect(result.data[0].name).toBe('Buddy');
+      // camelCase API response is normalised to snake_case Pet type
+      expect(result.data[0].pet_id).toBe('1');
+      expect(result.data[0].age_years).toBe(3);
+      expect(result.data[0].age_months).toBe(6);
       expect(result.pagination.page).toBe(1);
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets', { type: 'dog' });
     });
