@@ -419,13 +419,19 @@ const startServer = async () => {
           await runAllSeeders();
           logger.info('Database seeding completed.');
         } else {
-          // Check if database is empty before deciding whether to sync
-          const UserModule = await import('./models/User');
-          const User = UserModule.default;
-          const userCount = await User.count();
+          // Check if database is already populated to avoid slow HMR rebuilds
+          let userCount = 0;
+          try {
+            const UserModule = await import('./models/User');
+            const User = UserModule.default;
+            userCount = await User.count();
+          } catch {
+            // Table doesn't exist yet — treat as empty DB
+            userCount = 0;
+          }
 
           if (userCount === 0) {
-            // Empty DB — sync schema and seed
+            // Empty DB or schema not yet created — sync and seed
             await sequelize.sync({ alter: true });
             logger.info('Database models synchronized (schema updated, data preserved).');
             logger.info('Empty database detected - running seeders...');
