@@ -5,7 +5,7 @@ import UserFavorite from '../models/UserFavorite';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../models/Report';
 import sequelize from '../sequelize';
 import { SequelizeOperatorFilter } from '../types/database';
-import { isValidCoordinates, milesToKilometers } from '../utils/geolocation';
+import { calculateDistance, isValidCoordinates, milesToKilometers } from '../utils/geolocation';
 import {
   BreedStats,
   BulkPetOperation,
@@ -257,18 +257,6 @@ export class PetService {
         orderClause.push([sortBy, sortOrder] as [string, 'ASC' | 'DESC']);
       }
 
-      // Build attributes - include computed distance if location provided
-      const attributes: string[] | { include: ReturnType<typeof literal>[] } | undefined =
-        hasValidLocation && isPostgres
-          ? {
-              include: [
-                literal(
-                  `ST_Distance(location, ST_SetSRID(ST_MakePoint(${Number(longitude)}, ${Number(latitude)}), 4326)::geography) / 1609.344 AS distance`
-                ),
-              ],
-            }
-          : undefined;
-
       // Execute query
       const queryOptions: Record<string, unknown> = {
         where: whereConditions,
@@ -277,13 +265,30 @@ export class PetService {
         offset,
       };
 
-      if (attributes) {
-        queryOptions.attributes = {
-          include: (attributes as { include: ReturnType<typeof literal>[] }).include,
-        };
-      }
-
       const { rows: pets, count: total } = await Pet.findAndCountAll(queryOptions);
+
+      // Compute distance in JS using Haversine — reliable on all databases
+      type PetWithDistance = (typeof pets)[number] & { distance?: number };
+      const petsWithDistance: PetWithDistance[] = hasValidLocation
+        ? pets.map(pet => {
+            const loc = pet.location as
+              | { type: string; coordinates: [number, number] }
+              | null
+              | undefined;
+            if (!loc?.coordinates) return pet;
+            const [petLng, petLat] = loc.coordinates;
+            const dist = calculateDistance(
+              Number(latitude),
+              Number(longitude),
+              petLat,
+              petLng,
+              'miles'
+            );
+            return Object.assign(Object.create(Object.getPrototypeOf(pet)), pet, {
+              distance: Math.round(dist * 10) / 10,
+            });
+          })
+        : pets;
 
       const totalPages = Math.ceil(total / limit);
 
@@ -295,7 +300,7 @@ export class PetService {
       });
 
       return {
-        pets,
+        pets: petsWithDistance,
         total,
         page,
         totalPages,

@@ -305,20 +305,12 @@ export class PetController {
 
       const result = await this.petService.searchPets(filters, options);
 
-      // Map pets to include distance field from computed column.
-      // Sequelize stores literal computed attributes in dataValues, not as direct
-      // property getters, so we read from dataValues before calling toJSON().
+      // Distance is computed by the service layer (Haversine). Preserve it through toJSON().
       const petsData = result.pets.map(pet => {
-        const dataValues = (pet as unknown as { dataValues: Record<string, unknown> }).dataValues;
-        const rawDistance = dataValues?.distance;
-        const petJson = pet.toJSON ? pet.toJSON() : pet;
-        if (rawDistance !== undefined && rawDistance !== null) {
-          const distance = Number(rawDistance);
-          if (!isNaN(distance)) {
-            return { ...petJson, distance: Math.round(distance * 10) / 10 };
-          }
-        }
-        return petJson;
+        const rawPet = pet as unknown as Record<string, unknown>;
+        const distance = typeof rawPet.distance === 'number' ? rawPet.distance : undefined;
+        const petJson = (pet.toJSON ? pet.toJSON() : pet) as unknown as Record<string, unknown>;
+        return distance !== undefined ? { ...petJson, distance } : petJson;
       });
 
       res.status(200).json({
