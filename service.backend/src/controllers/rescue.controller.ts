@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
-import { RescueService } from '../services/rescue.service';
+import { RescueService, BulkRescueAction } from '../services/rescue.service';
 import { InvitationService } from '../services/invitation.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
@@ -936,6 +936,40 @@ export class RescueController {
         success: false,
         message: 'Failed to send email',
         error: errorMessage,
+      });
+    }
+  };
+
+  bulkUpdateRescues = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { rescueIds, action, reason } = req.body as {
+        rescueIds: string[];
+        action: BulkRescueAction;
+        reason?: string;
+      };
+      const performedBy = req.user!.userId;
+
+      const result = await RescueService.bulkUpdateRescues(rescueIds, action, performedBy, reason);
+
+      res.status(200).json({
+        success: true,
+        message: 'Bulk rescue update completed',
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Bulk rescue update failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to perform bulk update',
       });
     }
   };

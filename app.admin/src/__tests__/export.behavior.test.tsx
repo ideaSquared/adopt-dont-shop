@@ -32,6 +32,13 @@ vi.mock('../hooks', () => ({
   useUnsuspendUser: () => mockUseUnsuspendUser(),
   useVerifyUser: () => mockUseVerifyUser(),
   useDeleteUser: () => mockUseDeleteUser(),
+  useBulkUpdateUsers: () => ({
+    mutateAsync: vi.fn(),
+    isLoading: false,
+    isError: false,
+    isSuccess: false,
+    reset: vi.fn(),
+  }),
 }));
 
 vi.mock('../services/libraryServices', () => ({
@@ -43,6 +50,7 @@ vi.mock('../components/modals', () => ({
   EditUserModal: () => null,
   CreateSupportTicketModal: () => null,
   UserActionsMenu: () => null,
+  BulkConfirmationModal: () => null,
 }));
 
 const mockExportToCSV = vi.fn();

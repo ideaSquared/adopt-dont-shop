@@ -2,6 +2,9 @@
 export { api, apiService } from './libraryServices';
 export { authService } from './authService';
 export { userManagementService } from './userManagementService';
+export { rescueService } from './rescueService';
+export { petService } from './petService';
+export { applicationService } from './applicationService';
 
 // Export types
 export type {

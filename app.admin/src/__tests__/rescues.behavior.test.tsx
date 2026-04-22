@@ -25,6 +25,16 @@ import type { AdminRescue } from '@/types/rescue';
 
 const mockGetAll = vi.fn();
 
+vi.mock('@/hooks', () => ({
+  useBulkUpdateRescues: () => ({
+    mutateAsync: vi.fn(),
+    isLoading: false,
+    isError: false,
+    isSuccess: false,
+    reset: vi.fn(),
+  }),
+}));
+
 vi.mock('@/services/rescueService', () => ({
   rescueService: {
     getAll: (...args: unknown[]) => mockGetAll(...args),
@@ -81,6 +91,7 @@ vi.mock('@/components/modals', () => ({
         <button onClick={onClose}>Close</button>
       </div>
     ) : null,
+  BulkConfirmationModal: () => null,
 }));
 
 vi.mock('react-router-dom', async importOriginal => {
