@@ -50,6 +50,7 @@ vi.mock('../components/modals', () => ({
   EditUserModal: () => null,
   CreateSupportTicketModal: () => null,
   UserActionsMenu: () => null,
+  BulkConfirmationModal: () => null,
 }));
 
 const mockExportToCSV = vi.fn();

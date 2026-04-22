@@ -31,6 +31,7 @@ vi.mock('@/components/modals', () => ({
   RescueDetailModal: () => null,
   RescueVerificationModal: () => null,
   SendEmailModal: () => null,
+  BulkConfirmationModal: () => null,
 }));
 
 const mockExportToCSV = vi.fn();
