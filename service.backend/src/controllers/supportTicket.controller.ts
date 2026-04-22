@@ -6,6 +6,7 @@ import SupportTicket, {
   TicketCategory,
 } from '../models/SupportTicket';
 import { logger } from '../utils/logger';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/api';
 
 // Type for serialized ticket data
@@ -264,7 +265,7 @@ export class SupportTicketController {
         userEmail,
         userName,
         subject,
-        description,
+        description: RichTextProcessingService.sanitize(description),
         category,
         priority,
         tags,
@@ -374,7 +375,7 @@ export class SupportTicketController {
       const ticket = await SupportTicketService.addResponse(ticketId, {
         responderId: responderId!,
         responderType: 'staff',
-        content,
+        content: RichTextProcessingService.sanitize(content),
         attachments,
         isInternal: isInternal || false,
       });

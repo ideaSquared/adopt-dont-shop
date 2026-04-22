@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import { RescueService } from '../services/rescue.service';
 import { InvitationService } from '../services/invitation.service';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 import { AdoptionPolicy } from '../types/rescue';
@@ -118,7 +119,10 @@ export class RescueController {
         postcode: req.body.zipCode,
         country: req.body.country,
         website: req.body.website,
-        description: req.body.description,
+        description:
+          typeof req.body.description === 'string'
+            ? RichTextProcessingService.sanitize(req.body.description)
+            : req.body.description,
         mission: req.body.mission,
         ein: req.body.ein,
         registrationNumber: req.body.registrationNumber,
@@ -169,9 +173,11 @@ export class RescueController {
       }
 
       const { rescueId } = req.params;
-      const updateData = req.body;
+      if (typeof req.body.description === 'string') {
+        req.body.description = RichTextProcessingService.sanitize(req.body.description);
+      }
 
-      const rescue = await RescueService.updateRescue(rescueId, updateData, req.user!.userId);
+      const rescue = await RescueService.updateRescue(rescueId, req.body, req.user!.userId);
 
       res.status(200).json({
         success: true,
