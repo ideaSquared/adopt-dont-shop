@@ -169,10 +169,10 @@ describe('Rescue Management page', () => {
       });
     });
 
-    it('shows the Export Data button', async () => {
+    it('shows the Export button', async () => {
       renderWithProviders(<Rescues />);
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /export data/i })).toBeInTheDocument();
+        expect(screen.getByTestId('export-button')).toBeInTheDocument();
       });
     });
 

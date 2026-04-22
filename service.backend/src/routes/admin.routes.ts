@@ -242,6 +242,13 @@ router.get(
   AdminController.getUsageAnalytics
 );
 
+router.get(
+  '/analytics/dashboard',
+  requirePermission(PERMISSIONS.ADMIN_ANALYTICS_READ),
+  generalLimiter,
+  AdminController.getDashboardAnalytics
+);
+
 // System health and monitoring
 
 /**
