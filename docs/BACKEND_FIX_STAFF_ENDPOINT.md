@@ -43,7 +43,7 @@ npm run dev
 Or if running via Docker:
 
 ```bash
-docker-compose restart backend
+docker compose restart service-backend
 ```
 
 ### 2. Test the Endpoint

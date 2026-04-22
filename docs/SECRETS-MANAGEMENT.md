@@ -30,14 +30,15 @@ cp .env.example .env
 ### 2. Generate Strong Secrets
 
 ```bash
-# Generate all required secrets automatically
-make generate-secrets
+# Generate all required secrets (cross-platform — uses Node's crypto module)
+npm run secrets:generate
 
-# Or generate individually
-openssl rand -base64 32  # For JWT_SECRET
-openssl rand -base64 32  # For JWT_REFRESH_SECRET
-openssl rand -base64 32  # For SESSION_SECRET
-openssl rand -hex 32     # For ENCRYPTION_KEY
+# Append directly to your .env:
+npm run secrets:generate >> .env
+
+# If you need ad-hoc generation, Node works on any platform:
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"   # base64
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"      # hex (for ENCRYPTION_KEY)
 ```
 
 ### 3. Update .env File
@@ -308,7 +309,7 @@ Before deploying to production:
 - [ ] Generated strong, unique secrets for all required variables
 - [ ] No default/example values remain in `.env`
 - [ ] Secrets are different from development environment
-- [ ] All required secrets are set (check with `make validate-env`)
+- [ ] All required secrets are set (check with `npm run validate:env`)
 - [ ] Secrets are stored in secure location (secrets manager)
 - [ ] Access to secrets is logged and audited
 - [ ] Team members understand secrets management procedures
@@ -317,10 +318,7 @@ Before deploying to production:
 
 ```bash
 # Validate all required secrets are set
-make validate-env
-
-# Check for weak or default passwords
-make check-secrets-strength
+npm run validate:env
 ```
 
 ### CI/CD Integration
@@ -354,12 +352,12 @@ jobs:
 
 **Method 1: Environment Variables (Simplest)**
 ```bash
-POSTGRES_PASSWORD=xxx JWT_SECRET=xxx docker-compose up -d
+POSTGRES_PASSWORD=xxx JWT_SECRET=xxx docker compose up -d
 ```
 
 **Method 2: .env File (Recommended for Development)**
 ```bash
-docker-compose --env-file .env.prod up -d
+docker compose --env-file .env.prod up -d
 ```
 
 **Method 3: Docker Secrets (Recommended for Production)**
@@ -391,7 +389,7 @@ cp .env.example .env
 vim .env
 
 # Verify variables are exported
-docker-compose config | grep POSTGRES_PASSWORD
+docker compose config | grep POSTGRES_PASSWORD
 ```
 
 ### Secrets Not Loading in Container
@@ -403,12 +401,12 @@ docker-compose config | grep POSTGRES_PASSWORD
 # Verify .env file is in project root
 ls -la .env
 
-# Check docker-compose reads the file
-docker-compose config
+# Check docker compose reads the file
+docker compose config
 
 # Restart containers to pick up changes
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 ```
 
 ### Docker Secrets Not Found

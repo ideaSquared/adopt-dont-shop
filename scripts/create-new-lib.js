@@ -1090,10 +1090,10 @@ For isolated library development and testing:
 
 \`\`\`bash
 # Build and run the library in isolation
-docker-compose -f docker-compose.lib.yml up lib-${libName}
+docker compose -f docker-compose.lib.yml up lib-${libName}
 
 # Run tests in Docker
-docker-compose -f docker-compose.lib.yml run lib-${libName}-test
+docker compose -f docker-compose.lib.yml run lib-${libName}-test
 \`\`\`
 
 ### Integration with Apps
@@ -1643,7 +1643,7 @@ async function createNewLibrary() {
 
     log('', 'reset');
     log('🐳 Standalone development:', 'bright');
-    log(`   docker-compose -f lib.${libName}/docker-compose.lib.yml up`, 'cyan');
+    log(`   docker compose -f lib.${libName}/docker-compose.lib.yml up`, 'cyan');
     log('', 'reset');
     log('📦 Use in apps:', 'bright');
     log('   Add to package.json dependencies:', 'cyan');

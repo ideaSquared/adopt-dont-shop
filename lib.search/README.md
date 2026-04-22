@@ -597,13 +597,13 @@ app.get('/api/search/example', async (req, res) => {
 
 ```bash
 # From workspace root
-docker-compose -f docker-compose.lib.yml up lib-search
+docker compose -f docker-compose.lib.yml up lib-search
 ```
 
 2. **Run tests:**
 
 ```bash
-docker-compose -f docker-compose.lib.yml run lib-search-test
+docker compose -f docker-compose.lib.yml run lib-search-test
 ```
 
 ### Using in App Containers

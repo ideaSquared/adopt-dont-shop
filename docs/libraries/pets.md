@@ -559,7 +559,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-pets
+npx turbo test --filter=@adopt-dont-shop/lib.pets
 ```
 
 ## 🚀 Key Features

@@ -214,13 +214,13 @@ app.get('/api/validation/example', async (req, res) => {
 
 ```bash
 # From workspace root
-docker-compose -f docker-compose.lib.yml up lib-validation
+docker compose -f docker-compose.lib.yml up lib-validation
 ```
 
 2. **Run tests:**
 
 ```bash
-docker-compose -f docker-compose.lib.yml run lib-validation-test
+docker compose -f docker-compose.lib.yml run lib-validation-test
 ```
 
 ### Using in App Containers

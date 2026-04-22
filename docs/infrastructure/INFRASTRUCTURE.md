@@ -129,26 +129,26 @@ See [Libraries Documentation](../libraries/README.md) for details.
 
 ```bash
 # Start all services
-docker-compose up
+docker compose up
 
 # Start specific service
-docker-compose up service.backend
+docker compose up service.backend
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Rebuild
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Production
 
 ```bash
 # Build optimized images
-docker-compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml build
 
 # Deploy
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ### Subdomain Routing
@@ -179,7 +179,7 @@ npm install
 cp .env.example .env
 
 # Start with Docker
-docker-compose up
+docker compose up
 
 # Or start individual services
 npm run dev:client
@@ -357,10 +357,10 @@ taskkill /PID <pid> /F
 
 ```bash
 # Check PostgreSQL is running
-docker-compose ps database
+docker compose ps database
 
 # View logs
-docker-compose logs database
+docker compose logs database
 ```
 
 **Build Errors:**
@@ -370,8 +370,8 @@ docker-compose logs database
 rm -rf node_modules && npm install
 
 # Clear Docker cache
-docker-compose down -v
-docker-compose build --no-cache
+docker compose down -v
+docker compose build --no-cache
 ```
 
 ## Additional Resources
