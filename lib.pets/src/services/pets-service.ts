@@ -2,6 +2,17 @@ import { ApiService, ApiResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetSearchFilters, PaginatedResponse, PetStats, PetsServiceConfig } from '../types';
 import { PETS_ENDPOINTS } from '../constants/endpoints';
 
+const camelToSnake = (key: string): string =>
+  key.replace(/([A-Z])/g, m => `_${m.toLowerCase()}`);
+
+const normalisePet = (raw: Record<string, unknown>): Pet => {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    result[camelToSnake(key)] = value;
+  }
+  return result as unknown as Pet;
+};
+
 /**
  * Pet Service
  *
@@ -121,7 +132,7 @@ export class PetsService {
       // Transform according to the actual API response structure
       if (response.success && response.data && response.meta) {
         return {
-          data: response.data,
+          data: response.data.map(p => normalisePet(p as unknown as Record<string, unknown>)),
           pagination: {
             page: response.meta.page || 1,
             limit: typeof apiFilters.limit === 'number' ? apiFilters.limit : 12,
@@ -163,7 +174,7 @@ export class PetsService {
       const response = await this.apiService.get<ApiResponse<Pet>>(PETS_ENDPOINTS.PET_BY_ID(id));
 
       if (response.success && response.data) {
-        return response.data;
+        return normalisePet(response.data as unknown as Record<string, unknown>);
       } else {
         throw new Error('Invalid API response structure');
       }
@@ -183,7 +194,7 @@ export class PetsService {
       const response = await this.apiService.get<ApiResponse<Pet[]>>(PETS_ENDPOINTS.FEATURED_PETS, {
         limit,
       });
-      return response.data || [];
+      return (response.data || []).map(p => normalisePet(p as unknown as Record<string, unknown>));
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to fetch featured pets:', error);
@@ -200,7 +211,7 @@ export class PetsService {
       const response = await this.apiService.get<ApiResponse<Pet[]>>(PETS_ENDPOINTS.RECENT_PETS, {
         limit,
       });
-      return response.data || [];
+      return (response.data || []).map(p => normalisePet(p as unknown as Record<string, unknown>));
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to fetch recent pets:', error);
@@ -230,7 +241,7 @@ export class PetsService {
       });
 
       return {
-        data: response.data || [],
+        data: (response.data || []).map(p => normalisePet(p as unknown as Record<string, unknown>)),
         pagination: {
           page: response.meta?.page || page,
           limit: 20,
@@ -317,9 +328,10 @@ export class PetsService {
       >(PETS_ENDPOINTS.USER_FAVORITES);
 
       // Transform the response to match the Pet interface
-      const pets = (response.data?.pets || []).map(
-        (pet: BackendPetWithRescue): Pet => ({
-          ...pet,
+      const pets = (response.data?.pets || []).map((pet: BackendPetWithRescue): Pet => {
+        const normalised = normalisePet(pet as unknown as Record<string, unknown>);
+        return {
+          ...normalised,
           // Transform Rescue object to rescue format expected by frontend
           rescue: pet.Rescue
             ? {
@@ -327,8 +339,8 @@ export class PetsService {
                 location: `${pet.Rescue.city}, ${pet.Rescue.state}`,
               }
             : undefined,
-        })
-      );
+        };
+      });
 
       return pets;
     } catch (error) {
@@ -365,7 +377,7 @@ export class PetsService {
           limit,
         }
       );
-      return response.data || [];
+      return (response.data || []).map(p => normalisePet(p as unknown as Record<string, unknown>));
     } catch (error) {
       if (this.config.debug) {
         console.error(`Failed to fetch similar pets for ${petId}:`, error);

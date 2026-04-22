@@ -1,4 +1,5 @@
 import { ApplicationData, Pet } from '@/services';
+import type { SaveStatus } from '@/hooks/use-auto-save';
 import { Button } from '@adopt-dont-shop/lib.components';
 import React from 'react';
 import styled from 'styled-components';
@@ -10,6 +11,10 @@ import {
   ReviewStep,
 } from './steps';
 
+export type PartialApplicationData = {
+  [K in keyof ApplicationData]?: Partial<ApplicationData[K]>;
+};
+
 interface ApplicationFormProps {
   step: number;
   data: Partial<ApplicationData>;
@@ -17,8 +22,12 @@ interface ApplicationFormProps {
   onStepComplete: (stepData: Partial<ApplicationData>) => void;
   onStepBack: () => void;
   onSubmit: () => void;
+  onSaveDraft: () => void;
+  onDataChange: (stepData: PartialApplicationData) => void;
   isSubmitting: boolean;
   isUpdate: boolean;
+  saveStatus: SaveStatus;
+  lastSaved: Date | null;
 }
 
 const FormContainer = styled.div`
@@ -52,6 +61,63 @@ const ButtonGroup = styled.div`
   }
 `;
 
+const SaveIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+`;
+
+const SaveStatusText = styled.span<{ $status: SaveStatus }>`
+  font-size: 0.8125rem;
+  color: ${props => {
+    switch (props.$status) {
+      case 'saved':
+        return props.theme.colors.semantic.success[600];
+      case 'saving':
+        return props.theme.colors.neutral[500];
+      case 'error':
+        return props.theme.colors.semantic.error[600];
+      default:
+        return props.theme.colors.neutral[400];
+    }
+  }};
+`;
+
+const formatLastSaved = (date: Date): string => {
+  const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (diffSeconds < 60) {
+    return 'just now';
+  }
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes === 1) {
+    return '1 minute ago';
+  }
+  return `${diffMinutes} minutes ago`;
+};
+
+const SaveStatusMessage: React.FC<{ status: SaveStatus; lastSaved: Date | null }> = ({
+  status,
+  lastSaved,
+}) => {
+  if (status === 'saving') {
+    return <SaveStatusText $status={status}>Saving draft…</SaveStatusText>;
+  }
+  if (status === 'saved' && lastSaved) {
+    return (
+      <SaveStatusText $status={status}>Draft saved {formatLastSaved(lastSaved)}</SaveStatusText>
+    );
+  }
+  if (status === 'error') {
+    return <SaveStatusText $status={status}>Failed to save draft</SaveStatusText>;
+  }
+  return null;
+};
+
 export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   step,
   data,
@@ -59,8 +125,12 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   onStepComplete,
   onStepBack,
   onSubmit,
+  onSaveDraft,
+  onDataChange,
   isSubmitting,
   isUpdate,
+  saveStatus,
+  lastSaved,
 }) => {
   const renderStep = () => {
     switch (step) {
@@ -71,6 +141,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
             onComplete={(personalInfo: ApplicationData['personalInfo']) =>
               onStepComplete({ personalInfo })
             }
+            onChange={personalInfo => onDataChange({ personalInfo })}
           />
         );
       case 2:
@@ -80,6 +151,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
             onComplete={(livingsituation: ApplicationData['livingsituation']) =>
               onStepComplete({ livingsituation })
             }
+            onChange={livingsituation => onDataChange({ livingsituation })}
           />
         );
       case 3:
@@ -133,6 +205,18 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
         </div>
 
         <ButtonGroup>
+          <SaveIndicator>
+            <SaveStatusMessage status={saveStatus} lastSaved={lastSaved} />
+            <Button
+              variant='ghost'
+              onClick={onSaveDraft}
+              disabled={isSubmitting || saveStatus === 'saving'}
+              aria-label='Save draft'
+            >
+              Save draft
+            </Button>
+          </SaveIndicator>
+
           {isLastStep ? (
             <Button
               variant='primary'
