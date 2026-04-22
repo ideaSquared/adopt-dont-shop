@@ -419,24 +419,22 @@ const startServer = async () => {
           await runAllSeeders();
           logger.info('Database seeding completed.');
         } else {
-          // Use alter mode to preserve data while updating schema
-          await sequelize.sync({ alter: true });
-          logger.info('Database models synchronized (schema updated, data preserved).');
-
-          // Check if database is empty and needs seeding
+          // Check if database is empty before deciding whether to sync
           const UserModule = await import('./models/User');
           const User = UserModule.default;
           const userCount = await User.count();
 
           if (userCount === 0) {
+            // Empty DB — sync schema and seed
+            await sequelize.sync({ alter: true });
+            logger.info('Database models synchronized (schema updated, data preserved).');
             logger.info('Empty database detected - running seeders...');
             const { runAllSeeders } = await import('./seeders');
             await runAllSeeders();
             logger.info('Database seeding completed.');
           } else {
-            logger.info(
-              `Database already populated (${userCount} users found) - skipping seeders.`
-            );
+            // DB already populated — skip sync entirely to avoid slow HMR rebuilds
+            logger.info(`Database already populated (${userCount} users found) - skipping sync.`);
             logger.info(
               '💡 Tip: Use "npm run dev:fresh" to reset database or "npm run seed:dev" to re-seed.'
             );
