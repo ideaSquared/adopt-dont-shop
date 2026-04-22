@@ -159,10 +159,31 @@ const LocationFilterRow = styled.div`
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
+  flex-wrap: wrap;
 
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: stretch;
+  }
+`;
+
+const LocationInputGroup = styled.div`
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 160px;
+`;
+
+const OrLabel = styled.span`
+  font-size: 0.875rem;
+  color: ${props => props.theme.text.secondary};
+  white-space: nowrap;
+  padding-bottom: 10px;
+
+  @media (max-width: 768px) {
+    padding-bottom: 0;
+    text-align: center;
   }
 `;
 
@@ -596,13 +617,6 @@ export const SearchPage: React.FC = () => {
             options={PET_STATUS}
           />
 
-          <TextInput
-            label='Location'
-            value={filters.location || ''}
-            onChange={e => handleFilterChange('location', e.target.value)}
-            placeholder='City, State, or ZIP code'
-          />
-
           <SelectInput
             label='Distance'
             value={filters.maxDistance?.toString() || ''}
@@ -631,16 +645,31 @@ export const SearchPage: React.FC = () => {
                 ? 'Update My Location'
                 : 'Use My Location'}
           </LocationButton>
-          {filters.location?.trim() && (
-            <LocationButton
-              variant='outline'
-              size='sm'
-              onClick={handleUseLocationText}
-              disabled={isGeocodingLocation}
-            >
-              {isGeocodingLocation ? 'Finding...' : 'Use as Location'}
-            </LocationButton>
-          )}
+          <OrLabel>or</OrLabel>
+          <LocationInputGroup>
+            <TextInput
+              label='Location'
+              value={filters.location || ''}
+              onChange={e => handleFilterChange('location', e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key === 'Enter' && filters.location?.trim()) {
+                  e.preventDefault();
+                  handleUseLocationText();
+                }
+              }}
+              placeholder='City or postcode...'
+            />
+            {filters.location?.trim() && (
+              <LocationButton
+                variant='outline'
+                size='sm'
+                onClick={handleUseLocationText}
+                disabled={isGeocodingLocation}
+              >
+                {isGeocodingLocation ? 'Finding...' : 'Search nearby'}
+              </LocationButton>
+            )}
+          </LocationInputGroup>
           {geolocation.hasLocation && (
             <LocationButton variant='outline' size='sm' onClick={geolocation.clearLocation}>
               Clear Location
@@ -651,13 +680,9 @@ export const SearchPage: React.FC = () => {
               Location detected - distance search enabled
             </LocationStatus>
           )}
-          {geolocation.status === 'denied' && (
-            <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
-          )}
-          {geolocation.status === 'error' && (
-            <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
-          )}
-          {geolocation.status === 'unavailable' && (
+          {(geolocation.status === 'denied' ||
+            geolocation.status === 'error' ||
+            geolocation.status === 'unavailable') && (
             <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
           )}
           {geocodeError && <LocationStatus $variant='error'>{geocodeError}</LocationStatus>}

@@ -314,7 +314,7 @@ describe('Distance Sorting - Behavioral Tests', () => {
   });
 
   describe('Manual Location Entry', () => {
-    it('shows "Use as Location" button when location text is entered', async () => {
+    it('shows "Search nearby" button when location text is entered', async () => {
       renderWithProviders(<SearchPage />);
 
       const locationInput = await screen.findByLabelText(/^location$/i);
@@ -322,7 +322,7 @@ describe('Distance Sorting - Behavioral Tests', () => {
       await user.type(locationInput, 'New York, NY');
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /use as location/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /search nearby/i })).toBeInTheDocument();
       });
     });
 
@@ -341,7 +341,7 @@ describe('Distance Sorting - Behavioral Tests', () => {
       const user = userEvent.setup();
       await user.type(locationInput, 'New York, NY');
 
-      const useAsLocationButton = await screen.findByRole('button', { name: /use as location/i });
+      const useAsLocationButton = await screen.findByRole('button', { name: /search nearby/i });
       await user.click(useAsLocationButton);
 
       await waitFor(() => {
@@ -362,7 +362,7 @@ describe('Distance Sorting - Behavioral Tests', () => {
       const user = userEvent.setup();
       await user.type(locationInput, 'XYZ999InvalidPlace');
 
-      const useAsLocationButton = await screen.findByRole('button', { name: /use as location/i });
+      const useAsLocationButton = await screen.findByRole('button', { name: /search nearby/i });
       await user.click(useAsLocationButton);
 
       await waitFor(() => {

@@ -73,7 +73,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-97.7431, 30.2672] as [number, number] }, // Austin, TX
+    location: { type: 'Point', coordinates: [-0.1278, 51.5074] as [number, number] }, // London, UK
     availableSince: new Date('2024-01-22'),
     viewCount: 145,
     favoriteCount: 23,
@@ -135,7 +135,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-122.6587, 45.5152] as [number, number] }, // Portland, OR
+    location: { type: 'Point', coordinates: [-2.2426, 53.4808] as [number, number] }, // Manchester, UK
     availableSince: new Date('2024-02-10'),
     viewCount: 67,
     favoriteCount: 12,
@@ -197,7 +197,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-80.1918, 25.7617] as [number, number] }, // Miami, FL
+    location: { type: 'Point', coordinates: [-1.8904, 52.4862] as [number, number] }, // Birmingham, UK
     availableSince: new Date('2024-01-15'),
     viewCount: 89,
     favoriteCount: 18,
@@ -258,7 +258,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-97.7431, 30.2672] as [number, number] }, // Austin, TX
+    location: { type: 'Point', coordinates: [-2.5879, 51.4545] as [number, number] }, // Bristol, UK
     availableSince: new Date('2023-12-01'),
     viewCount: 234,
     favoriteCount: 45,
@@ -319,7 +319,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
     ],
-    location: { type: 'Point', coordinates: [-97.7431, 30.2672] as [number, number] }, // Austin, TX
+    location: { type: 'Point', coordinates: [-3.1883, 55.9533] as [number, number] }, // Edinburgh, UK
     availableSince: new Date('2024-02-20'),
     viewCount: 98,
     favoriteCount: 15,
