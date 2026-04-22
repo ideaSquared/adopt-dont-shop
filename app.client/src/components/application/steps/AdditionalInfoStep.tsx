@@ -122,7 +122,7 @@ export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   });
 
   useEffect(() => {
-    const { unsubscribe } = watch((value) => {
+    const { unsubscribe } = watch(value => {
       onChange?.(value as Partial<ApplicationData['additionalInfo']>);
     });
     return () => unsubscribe();

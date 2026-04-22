@@ -54,7 +54,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete, 
   });
 
   useEffect(() => {
-    const { unsubscribe } = watch((value) => {
+    const { unsubscribe } = watch(value => {
       onChange?.(value);
     });
     return () => unsubscribe();

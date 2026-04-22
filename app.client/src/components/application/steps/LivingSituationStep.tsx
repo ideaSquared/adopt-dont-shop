@@ -96,7 +96,7 @@ export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({
   });
 
   useEffect(() => {
-    const { unsubscribe } = watch((value) => {
+    const { unsubscribe } = watch(value => {
       onChange?.(value as Partial<ApplicationData['livingsituation']>);
     });
     return () => unsubscribe();
