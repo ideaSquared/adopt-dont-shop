@@ -4,6 +4,7 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService, PaginatedResponse, Pet, PetSearchFilters } from '@/services';
+import { geocodeLocation } from '@/utils/geocoding';
 import {
   Button,
   Card,
@@ -158,6 +159,7 @@ const LocationFilterRow = styled.div`
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
+  flex-wrap: wrap;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -165,9 +167,35 @@ const LocationFilterRow = styled.div`
   }
 `;
 
+const LocationInputGroup = styled.div`
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 160px;
+`;
+
+const OrLabel = styled.span`
+  font-size: 0.875rem;
+  color: ${props => props.theme.text.secondary};
+  white-space: nowrap;
+  padding-bottom: 10px;
+
+  @media (max-width: 768px) {
+    padding-bottom: 0;
+    text-align: center;
+  }
+`;
+
 const LocationButton = styled(Button)`
   white-space: nowrap;
   min-height: 42px;
+`;
+
+const LocationHint = styled.p`
+  font-size: 0.85rem;
+  color: ${props => props.theme.text.secondary};
+  margin: 0 0 0.75rem 0;
 `;
 
 const LocationStatus = styled.div<{ $variant?: 'success' | 'error' | 'info' }>`
@@ -228,15 +256,15 @@ const PET_STATUS = [
 ];
 
 const SORT_OPTIONS = [
-  { value: 'created_at:desc', label: 'Newest First' },
-  { value: 'created_at:asc', label: 'Oldest First' },
+  { value: 'createdAt:desc', label: 'Newest First' },
+  { value: 'createdAt:asc', label: 'Oldest First' },
   { value: 'distance:asc', label: 'Distance: Nearest First' },
   { value: 'name:asc', label: 'Name A-Z' },
   { value: 'name:desc', label: 'Name Z-A' },
-  { value: 'age_years:asc', label: 'Youngest First' },
-  { value: 'age_years:desc', label: 'Oldest First' },
-  { value: 'adoption_fee:asc', label: 'Price Low to High' },
-  { value: 'adoption_fee:desc', label: 'Price High to Low' },
+  { value: 'ageYears:asc', label: 'Youngest First' },
+  { value: 'ageYears:desc', label: 'Oldest First' },
+  { value: 'adoptionFee:asc', label: 'Price Low to High' },
+  { value: 'adoptionFee:desc', label: 'Price High to Low' },
 ];
 
 export const SearchPage: React.FC = () => {
@@ -262,11 +290,17 @@ export const SearchPage: React.FC = () => {
     status: searchParams.get('status') || '',
     page: parseInt(searchParams.get('page') || '1'),
     limit: 12,
-    sortBy: searchParams.get('sortBy') || 'created_at',
-    sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
+    sortBy: SORT_OPTIONS.some(o => o.value.startsWith(`${searchParams.get('sortBy')}:`))
+      ? (searchParams.get('sortBy') as string)
+      : 'createdAt',
+    sortOrder: (['asc', 'desc'].includes(searchParams.get('sortOrder') ?? '')
+      ? searchParams.get('sortOrder')
+      : 'desc') as 'asc' | 'desc',
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [isGeocodingLocation, setIsGeocodingLocation] = useState(false);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
   // Log page view
   useEffect(() => {
@@ -461,6 +495,9 @@ export const SearchPage: React.FC = () => {
   }, [loadPets]);
 
   const handleFilterChange = (field: keyof PetSearchFilters, value: string) => {
+    if (field === 'location') {
+      setGeocodeError(null);
+    }
     setFilters(prev => ({
       ...prev,
       [field]: value,
@@ -485,14 +522,35 @@ export const SearchPage: React.FC = () => {
     }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  const handleUseLocationText = async () => {
+    if (!filters.location?.trim()) return;
+
+    setIsGeocodingLocation(true);
+    setGeocodeError(null);
+
+    try {
+      const result = await geocodeLocation(filters.location);
+      if (result) {
+        geolocation.setManualLocation(result.latitude, result.longitude);
+      } else {
+        setGeocodeError('Location not found. Please try a more specific location.');
+      }
+    } catch {
+      setGeocodeError('Failed to look up location. Please try again.');
+    } finally {
+      setIsGeocodingLocation(false);
+    }
+  };
+
   const clearFilters = () => {
     setFilters({
       page: 1,
       limit: 12,
-      sortBy: 'created_at',
+      sortBy: 'createdAt',
       sortOrder: 'desc',
     });
     setSearchQuery('');
+    setGeocodeError(null);
     geolocation.clearLocation();
   };
 
@@ -565,13 +623,6 @@ export const SearchPage: React.FC = () => {
             options={PET_STATUS}
           />
 
-          <TextInput
-            label='Location'
-            value={filters.location || ''}
-            onChange={e => handleFilterChange('location', e.target.value)}
-            placeholder='City, State, or ZIP code'
-          />
-
           <SelectInput
             label='Distance'
             value={filters.maxDistance?.toString() || ''}
@@ -600,6 +651,31 @@ export const SearchPage: React.FC = () => {
                 ? 'Update My Location'
                 : 'Use My Location'}
           </LocationButton>
+          <OrLabel>or</OrLabel>
+          <LocationInputGroup>
+            <TextInput
+              label='Location'
+              value={filters.location || ''}
+              onChange={e => handleFilterChange('location', e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key === 'Enter' && filters.location?.trim()) {
+                  e.preventDefault();
+                  handleUseLocationText();
+                }
+              }}
+              placeholder='City or postcode...'
+            />
+            {filters.location?.trim() && (
+              <LocationButton
+                variant='outline'
+                size='sm'
+                onClick={handleUseLocationText}
+                disabled={isGeocodingLocation}
+              >
+                {isGeocodingLocation ? 'Finding...' : 'Search nearby'}
+              </LocationButton>
+            )}
+          </LocationInputGroup>
           {geolocation.hasLocation && (
             <LocationButton variant='outline' size='sm' onClick={geolocation.clearLocation}>
               Clear Location
@@ -610,15 +686,12 @@ export const SearchPage: React.FC = () => {
               Location detected - distance search enabled
             </LocationStatus>
           )}
-          {geolocation.status === 'denied' && (
+          {(geolocation.status === 'denied' ||
+            geolocation.status === 'error' ||
+            geolocation.status === 'unavailable') && (
             <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
           )}
-          {geolocation.status === 'error' && (
-            <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
-          )}
-          {geolocation.status === 'unavailable' && (
-            <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
-          )}
+          {geocodeError && <LocationStatus $variant='error'>{geocodeError}</LocationStatus>}
         </LocationFilterRow>
 
         <FilterActions>
@@ -667,7 +740,14 @@ export const SearchPage: React.FC = () => {
             {hasActiveFilters && <Button onClick={clearFilters}>Clear All Filters</Button>}
           </EmptyState>
         ) : (
-          <PetGrid>{pets && pets.map(pet => <PetCard key={pet.pet_id} pet={pet} />)}</PetGrid>
+          <>
+            {!geolocation.hasLocation && (
+              <LocationHint>
+                Enable your location above to see how far away each pet is.
+              </LocationHint>
+            )}
+            <PetGrid>{pets && pets.map(pet => <PetCard key={pet.pet_id} pet={pet} />)}</PetGrid>
+          </>
         )}
 
         {/* Pagination */}

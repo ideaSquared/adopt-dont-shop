@@ -218,8 +218,8 @@ describe('Distance Sorting - Behavioral Tests', () => {
       renderWithProviders(<SearchPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/5.2 mi away/)).toBeInTheDocument();
-        expect(screen.getByText(/12.8 mi away/)).toBeInTheDocument();
+        expect(screen.getByText(/5\.2 mi/)).toBeInTheDocument();
+        expect(screen.getByText(/12\.8 mi/)).toBeInTheDocument();
       });
     });
 
@@ -309,6 +309,64 @@ describe('Distance Sorting - Behavioral Tests', () => {
       await waitFor(() => {
         const clearButton = screen.getByRole('button', { name: /clear filters/i });
         expect(clearButton).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Manual Location Entry', () => {
+    it('shows "Search nearby" button when location text is entered', async () => {
+      renderWithProviders(<SearchPage />);
+
+      const locationInput = await screen.findByLabelText(/^location$/i);
+      const user = userEvent.setup();
+      await user.type(locationInput, 'New York, NY');
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /search nearby/i })).toBeInTheDocument();
+      });
+    });
+
+    it('detects location after successfully geocoding typed location', async () => {
+      server.use(
+        http.get('https://nominatim.openstreetmap.org/search', () => {
+          return HttpResponse.json([
+            { lat: '40.7128', lon: '-74.0060', display_name: 'New York, NY, USA' },
+          ]);
+        })
+      );
+
+      renderWithProviders(<SearchPage />);
+
+      const locationInput = await screen.findByLabelText(/^location$/i);
+      const user = userEvent.setup();
+      await user.type(locationInput, 'New York, NY');
+
+      const useAsLocationButton = await screen.findByRole('button', { name: /search nearby/i });
+      await user.click(useAsLocationButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/location detected/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows error when typed location cannot be geocoded', async () => {
+      server.use(
+        http.get('https://nominatim.openstreetmap.org/search', () => {
+          return HttpResponse.json([]);
+        })
+      );
+
+      renderWithProviders(<SearchPage />);
+
+      const locationInput = await screen.findByLabelText(/^location$/i);
+      const user = userEvent.setup();
+      await user.type(locationInput, 'XYZ999InvalidPlace');
+
+      const useAsLocationButton = await screen.findByRole('button', { name: /search nearby/i });
+      await user.click(useAsLocationButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/location not found/i)).toBeInTheDocument();
       });
     });
   });

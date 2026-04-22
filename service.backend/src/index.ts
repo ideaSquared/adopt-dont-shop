@@ -166,9 +166,17 @@ if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
   app.use(
     '/uploads',
     (req, res, next) => {
-      // Set CORS headers for uploaded files
+      // Set CORS headers for uploaded files - restrict to configured allowed origins
+      const origin = req.headers.origin;
+      const allowedOrigins = Array.isArray(config.cors.origin)
+        ? config.cors.origin
+        : [config.cors.origin];
+
+      if (origin !== undefined && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
+
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       res.setHeader(
         'Access-Control-Allow-Headers',

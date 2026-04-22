@@ -193,10 +193,11 @@ describe('Rescue Management page', () => {
   });
 
   describe('loading state', () => {
-    it('shows a loading indicator while fetching rescues', () => {
+    it('shows skeleton rows while fetching rescues', () => {
       mockGetAll.mockReturnValue(new Promise(() => {}));
-      renderWithProviders(<Rescues />);
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      const { container } = renderWithProviders(<Rescues />);
+      const skeletonRows = container.querySelectorAll('[data-testid="skeleton-row"]');
+      expect(skeletonRows.length).toBeGreaterThan(0);
     });
   });
 

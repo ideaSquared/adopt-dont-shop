@@ -193,7 +193,7 @@ describe('Content Moderation page', () => {
   });
 
   describe('loading state', () => {
-    it('shows a loading indicator while fetching reports', () => {
+    it('shows skeleton rows while fetching reports', () => {
       mockUseReports.mockReturnValue({
         data: undefined,
         isLoading: true,
@@ -201,8 +201,9 @@ describe('Content Moderation page', () => {
         refetch: vi.fn(),
       });
 
-      renderWithProviders(<Moderation />);
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      const { container } = renderWithProviders(<Moderation />);
+      const skeletonRows = container.querySelectorAll('[data-testid="skeleton-row"]');
+      expect(skeletonRows.length).toBeGreaterThan(0);
     });
   });
 

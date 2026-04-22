@@ -77,6 +77,8 @@ export async function runAllSeeders() {
     // eslint-disable-next-line no-console
     console.log('✅ Database connection established');
 
+    await clearAllData();
+
     for (let i = 0; i < seeders.length; i++) {
       const { name, seeder } = seeders[i];
       // eslint-disable-next-line no-console
@@ -131,10 +133,12 @@ export async function clearAllData() {
       'email_templates',
       'email_queue',
       'email_preferences',
+      'application_timeline',
+      'file_uploads',
     ];
 
     for (const tableName of clearOrder) {
-      await sequelize.query(`TRUNCATE TABLE ${tableName} RESTART IDENTITY CASCADE;`);
+      await sequelize.query(`TRUNCATE TABLE "${tableName}" RESTART IDENTITY CASCADE;`);
       // eslint-disable-next-line no-console
       console.log(`✅ Cleared ${tableName}`);
     }

@@ -177,6 +177,7 @@ const notificationData: NotificationSeedData[] = [
 export async function seedNotifications() {
   for (const notification of notificationData) {
     await Notification.findOrCreate({
+      paranoid: false,
       where: { notification_id: notification.notification_id },
       defaults: notification,
     });

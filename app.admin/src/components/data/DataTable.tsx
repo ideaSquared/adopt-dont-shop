@@ -8,6 +8,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from 'react-icons/fi';
+import { SkeletonTableRow } from '../ui/Skeleton';
 
 export interface Column<T> {
   id: string;
@@ -131,13 +132,7 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   accent-color: ${props => props.theme.colors.primary[600]};
 `;
 
-const LoadingRow = styled.tr`
-  td {
-    padding: 3rem;
-    text-align: center;
-    color: #6b7280;
-  }
-`;
+const SKELETON_ROW_COUNT = 5;
 
 const EmptyRow = styled.tr`
   td {
@@ -311,9 +306,9 @@ export function DataTable<T extends Record<string, any>>({
           </Thead>
           <Tbody>
             {loading ? (
-              <LoadingRow>
-                <td colSpan={columns.length + (selectable ? 1 : 0)}>Loading...</td>
-              </LoadingRow>
+              Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
+                <SkeletonTableRow key={i} columnCount={columns.length} hasCheckbox={selectable} />
+              ))
             ) : data.length === 0 ? (
               <EmptyRow>
                 <td colSpan={columns.length + (selectable ? 1 : 0)}>{emptyMessage}</td>
