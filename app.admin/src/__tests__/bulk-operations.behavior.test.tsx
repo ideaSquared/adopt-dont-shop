@@ -60,6 +60,10 @@ vi.mock('../services/libraryServices', () => ({
   },
 }));
 
+vi.mock('@/services/exportService', () => ({
+  exportData: vi.fn(),
+}));
+
 vi.mock('../components/modals', () => ({
   UserDetailModal: () => null,
   EditUserModal: () => null,
