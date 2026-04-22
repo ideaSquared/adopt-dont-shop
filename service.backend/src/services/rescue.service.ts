@@ -2,6 +2,9 @@ import { Op, Order, WhereOptions } from 'sequelize';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { validateSortField } from '../utils/sort-validation';
+
+const RESCUE_PET_SORT_FIELDS = ['createdAt', 'updatedAt', 'name'] as const;
 import sequelize from '../sequelize';
 import { AdoptionPolicy } from '../types/rescue';
 
@@ -944,6 +947,7 @@ export class RescueService {
     try {
       const { page = 1, limit = 20, status, sortBy = 'createdAt', sortOrder = 'DESC' } = options;
       const offset = (page - 1) * limit;
+      const safeSortBy = validateSortField(sortBy, RESCUE_PET_SORT_FIELDS, 'createdAt');
 
       const whereClause: WhereOptions = { rescue_id: rescueId };
       if (status) {
@@ -951,7 +955,7 @@ export class RescueService {
       }
 
       const orderClause =
-        sortBy === 'createdAt' ? [['created_at', sortOrder]] : [[sortBy, sortOrder]];
+        safeSortBy === 'createdAt' ? [['created_at', sortOrder]] : [[safeSortBy, sortOrder]];
 
       const { count, rows: pets } = await Pet.findAndCountAll({
         where: whereClause,

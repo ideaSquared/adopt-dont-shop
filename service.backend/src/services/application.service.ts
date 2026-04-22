@@ -1,6 +1,9 @@
 import { Includeable, Op, Order, WhereOptions } from 'sequelize';
 import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
+import { validateSortField } from '../utils/sort-validation';
+
+const APPLICATION_SORT_FIELDS = ['createdAt', 'updatedAt', 'status', 'actioned_at'] as const;
 import ApplicationQuestion, { QuestionCategory } from '../models/ApplicationQuestion';
 import ApplicationStatusTransition from '../models/ApplicationStatusTransition';
 import Pet from '../models/Pet';
@@ -444,7 +447,8 @@ export class ApplicationService {
       }
 
       // Build order
-      const order: Order = [[sortBy, sortOrder]];
+      const safeSortBy = validateSortField(sortBy, APPLICATION_SORT_FIELDS, 'createdAt');
+      const order: Order = [[safeSortBy, sortOrder]];
 
       // Calculate offset
       const offset = (page - 1) * limit;

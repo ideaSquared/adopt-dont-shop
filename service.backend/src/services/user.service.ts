@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { JsonObject } from '../types/common';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
+import { validateSortField } from '../utils/sort-validation';
+
+const USER_SORT_FIELDS = ['createdAt', 'updatedAt', 'email', 'firstName', 'lastName', 'status'] as const;
 import Application from '../models/Application';
 import { AuditLog } from '../models/AuditLog';
 import Chat from '../models/Chat';
@@ -360,11 +363,12 @@ export class UserService {
 
       // Calculate offset
       const offset = (page - 1) * limit;
+      const safeSortBy = validateSortField(sortBy, USER_SORT_FIELDS, 'createdAt');
 
       // Execute query
       const { rows: users, count: total } = await User.findAndCountAll({
         where: whereConditions,
-        order: [[sortBy, sortOrder]],
+        order: [[safeSortBy, sortOrder]],
         limit,
         offset,
         include: [
