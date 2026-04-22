@@ -305,15 +305,12 @@ export class PetController {
 
       const result = await this.petService.searchPets(filters, options);
 
-      // Map pets to include distance field from computed column
+      // Distance is computed by the service layer (Haversine). Preserve it through toJSON().
       const petsData = result.pets.map(pet => {
-        const petJson = pet.toJSON ? pet.toJSON() : pet;
         const rawPet = pet as unknown as Record<string, unknown>;
-        const distance = rawPet.distance !== undefined ? Number(rawPet.distance) : undefined;
-        if (distance !== undefined && !isNaN(distance)) {
-          return { ...petJson, distance: Math.round(distance * 10) / 10 };
-        }
-        return petJson;
+        const distance = typeof rawPet.distance === 'number' ? rawPet.distance : undefined;
+        const petJson = (pet.toJSON ? pet.toJSON() : pet) as unknown as Record<string, unknown>;
+        return distance !== undefined ? { ...petJson, distance } : petJson;
       });
 
       res.status(200).json({

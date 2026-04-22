@@ -57,6 +57,8 @@ export default defineConfig({
       '@adopt-dont-shop/lib.search': path.resolve(__dirname, '../lib.search/src/index.ts'),
       '@adopt-dont-shop/lib.validation': path.resolve(__dirname, '../lib.validation/src/index.ts'),
       '@adopt-dont-shop/lib.utils': path.resolve(__dirname, '../lib.utils/src/index.ts'),
+      '@adopt-dont-shop/lib.rescue': path.resolve(__dirname, '../lib.rescue/src/index.ts'),
+      '@adopt-dont-shop/lib.types': path.resolve(__dirname, '../lib.types/src/index.ts'),
     },
   },
 });
