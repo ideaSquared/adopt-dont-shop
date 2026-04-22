@@ -279,10 +279,17 @@ describe('User Management page', () => {
   });
 
   describe('loading state', () => {
-    it('shows a loading indicator while fetching users', () => {
+    it('shows skeleton rows while fetching users', () => {
+      setupLoadingState();
+      const { container } = renderWithProviders(<Users />);
+      const skeletonRows = container.querySelectorAll('[data-testid="skeleton-row"]');
+      expect(skeletonRows.length).toBeGreaterThan(0);
+    });
+
+    it('does not show user data while loading', () => {
       setupLoadingState();
       renderWithProviders(<Users />);
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(screen.queryByText('john.doe@example.com')).not.toBeInTheDocument();
     });
   });
 
