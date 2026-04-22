@@ -2,8 +2,7 @@ import { ApiService, ApiResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetSearchFilters, PaginatedResponse, PetStats, PetsServiceConfig } from '../types';
 import { PETS_ENDPOINTS } from '../constants/endpoints';
 
-const camelToSnake = (key: string): string =>
-  key.replace(/([A-Z])/g, m => `_${m.toLowerCase()}`);
+const camelToSnake = (key: string): string => key.replace(/([A-Z])/g, (m) => `_${m.toLowerCase()}`);
 
 const normalisePet = (raw: Record<string, unknown>): Pet => {
   const result: Record<string, unknown> = {};
@@ -132,7 +131,7 @@ export class PetsService {
       // Transform according to the actual API response structure
       if (response.success && response.data && response.meta) {
         return {
-          data: response.data.map(p => normalisePet(p as unknown as Record<string, unknown>)),
+          data: response.data.map((p) => normalisePet(p as unknown as Record<string, unknown>)),
           pagination: {
             page: response.meta.page || 1,
             limit: typeof apiFilters.limit === 'number' ? apiFilters.limit : 12,
@@ -194,7 +193,9 @@ export class PetsService {
       const response = await this.apiService.get<ApiResponse<Pet[]>>(PETS_ENDPOINTS.FEATURED_PETS, {
         limit,
       });
-      return (response.data || []).map(p => normalisePet(p as unknown as Record<string, unknown>));
+      return (response.data || []).map((p) =>
+        normalisePet(p as unknown as Record<string, unknown>)
+      );
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to fetch featured pets:', error);
@@ -211,7 +212,9 @@ export class PetsService {
       const response = await this.apiService.get<ApiResponse<Pet[]>>(PETS_ENDPOINTS.RECENT_PETS, {
         limit,
       });
-      return (response.data || []).map(p => normalisePet(p as unknown as Record<string, unknown>));
+      return (response.data || []).map((p) =>
+        normalisePet(p as unknown as Record<string, unknown>)
+      );
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to fetch recent pets:', error);
@@ -241,7 +244,9 @@ export class PetsService {
       });
 
       return {
-        data: (response.data || []).map(p => normalisePet(p as unknown as Record<string, unknown>)),
+        data: (response.data || []).map((p) =>
+          normalisePet(p as unknown as Record<string, unknown>)
+        ),
         pagination: {
           page: response.meta?.page || page,
           limit: 20,
@@ -377,7 +382,9 @@ export class PetsService {
           limit,
         }
       );
-      return (response.data || []).map(p => normalisePet(p as unknown as Record<string, unknown>));
+      return (response.data || []).map((p) =>
+        normalisePet(p as unknown as Record<string, unknown>)
+      );
     } catch (error) {
       if (this.config.debug) {
         console.error(`Failed to fetch similar pets for ${petId}:`, error);
