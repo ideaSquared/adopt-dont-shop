@@ -214,10 +214,10 @@ For isolated library development and testing:
 
 ```bash
 # Build and run the library in isolation
-docker-compose -f docker-compose.lib.yml up lib-invitations
+docker compose -f docker-compose.lib.yml up lib-invitations
 
 # Run tests in Docker
-docker-compose -f docker-compose.lib.yml run lib-invitations-test
+docker compose -f docker-compose.lib.yml run lib-invitations-test
 ```
 
 ### Integration with Apps

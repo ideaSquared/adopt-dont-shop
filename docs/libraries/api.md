@@ -410,7 +410,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-api
+npx turbo test --filter=@adopt-dont-shop/lib.api
 ```
 
 ### Testing with Domain Libraries

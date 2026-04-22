@@ -214,13 +214,13 @@ app.get('/api/dev-tools/example', async (req, res) => {
 
 ```bash
 # From workspace root
-docker-compose -f docker-compose.lib.yml up lib-dev-tools
+docker compose -f docker-compose.lib.yml up lib-dev-tools
 ```
 
 2. **Run tests:**
 
 ```bash
-docker-compose -f docker-compose.lib.yml run lib-dev-tools-test
+docker compose -f docker-compose.lib.yml run lib-dev-tools-test
 ```
 
 ### Using in App Containers

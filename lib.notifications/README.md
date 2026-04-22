@@ -481,13 +481,13 @@ app.get('/api/notifications/example', async (req, res) => {
 
 ```bash
 # From workspace root
-docker-compose -f docker-compose.lib.yml up lib-notifications
+docker compose -f docker-compose.lib.yml up lib-notifications
 ```
 
 2. **Run tests:**
 
 ```bash
-docker-compose -f docker-compose.lib.yml run lib-notifications-test
+docker compose -f docker-compose.lib.yml run lib-notifications-test
 ```
 
 ### Using in App Containers

@@ -213,7 +213,7 @@ server {
 
 ```bash
 # With Docker
-docker-compose up app.{name}
+docker compose up app.{name}
 
 # Or locally
 cd app.{name}
@@ -294,11 +294,11 @@ rm -rf node_modules && npm install
 
 ```bash
 # Clear Docker cache
-docker-compose down -v
+docker compose down -v
 docker system prune -a
 
 # Rebuild without cache
-docker-compose build --no-cache app.{name}
+docker compose build --no-cache app.{name}
 ```
 
 ## Additional Resources

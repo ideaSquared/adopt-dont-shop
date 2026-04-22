@@ -863,9 +863,9 @@ npm run db:seed            # Seed database
 npm run db:reset           # Reset database
 
 # Docker management
-docker-compose up -d        # Start services
-docker-compose logs -f      # View logs
-docker-compose down         # Stop services
+docker compose up -d        # Start services
+docker compose logs -f      # View logs
+docker compose down         # Stop services
 
 # Process management
 pm2 start app.js           # Start with PM2

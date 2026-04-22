@@ -586,7 +586,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-rescue
+npx turbo test --filter=@adopt-dont-shop/lib.rescue
 ```
 
 ## 🚀 Key Features

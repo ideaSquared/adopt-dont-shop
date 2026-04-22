@@ -649,7 +649,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-search
+npx turbo test --filter=@adopt-dont-shop/lib.search
 ```
 
 ## 🚀 Key Features

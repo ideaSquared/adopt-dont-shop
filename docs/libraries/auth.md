@@ -214,13 +214,13 @@ app.get('/api/auth/example', async (req, res) => {
 
 ```bash
 # From workspace root
-docker-compose -f docker-compose.lib.yml up lib-auth
+docker compose -f docker-compose.lib.yml up lib-auth
 ```
 
 2. **Run tests:**
 
 ```bash
-docker-compose -f docker-compose.lib.yml run lib-auth-test
+docker compose -f docker-compose.lib.yml run lib-auth-test
 ```
 
 ### Using in App Containers
