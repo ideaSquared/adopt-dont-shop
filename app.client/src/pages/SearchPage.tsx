@@ -192,6 +192,12 @@ const LocationButton = styled(Button)`
   min-height: 42px;
 `;
 
+const LocationHint = styled.p`
+  font-size: 0.85rem;
+  color: ${props => props.theme.text.secondary};
+  margin: 0 0 0.75rem 0;
+`;
+
 const LocationStatus = styled.div<{ $variant?: 'success' | 'error' | 'info' }>`
   font-size: 0.8rem;
   margin-top: 0.25rem;
@@ -734,7 +740,14 @@ export const SearchPage: React.FC = () => {
             {hasActiveFilters && <Button onClick={clearFilters}>Clear All Filters</Button>}
           </EmptyState>
         ) : (
-          <PetGrid>{pets && pets.map(pet => <PetCard key={pet.pet_id} pet={pet} />)}</PetGrid>
+          <>
+            {!geolocation.hasLocation && (
+              <LocationHint>
+                Enable your location above to see how far away each pet is.
+              </LocationHint>
+            )}
+            <PetGrid>{pets && pets.map(pet => <PetCard key={pet.pet_id} pet={pet} />)}</PetGrid>
+          </>
         )}
 
         {/* Pagination */}
