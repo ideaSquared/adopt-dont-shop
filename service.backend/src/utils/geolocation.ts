@@ -5,8 +5,7 @@
  * two points on Earth's surface given their latitude and longitude.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const wkx = require('wkx') as { Geometry: { parse(buf: Buffer): { toGeoJSON(opts?: object): unknown } } };
+import { Geometry } from 'wkx';
 
 const EARTH_RADIUS_KM = 6371;
 const EARTH_RADIUS_MILES = 3959;
@@ -99,12 +98,16 @@ type GeoJsonPoint = { type: string; coordinates: [number, number] };
  * Returns null if the value cannot be parsed.
  */
 export const extractCoordinates = (location: unknown): GeoCoords | null => {
-  if (!location) return null;
+  if (!location) {
+    return null;
+  }
 
   // GeoJSON object
   if (typeof location === 'object' && 'coordinates' in (location as object)) {
     const [lng, lat] = (location as GeoJsonPoint).coordinates;
-    if (isValidLatitude(lat) && isValidLongitude(lng)) return { lat, lng };
+    if (isValidLatitude(lat) && isValidLongitude(lng)) {
+      return { lat, lng };
+    }
     return null;
   }
 
@@ -115,21 +118,29 @@ export const extractCoordinates = (location: unknown): GeoCoords | null => {
         const parsed = JSON.parse(location) as GeoJsonPoint;
         if (parsed?.coordinates) {
           const [lng, lat] = parsed.coordinates;
-          if (isValidLatitude(lat) && isValidLongitude(lng)) return { lat, lng };
+          if (isValidLatitude(lat) && isValidLongitude(lng)) {
+            return { lat, lng };
+          }
         }
-      } catch { /* not JSON */ }
+      } catch {
+        /* not JSON */
+      }
       return null;
     }
 
     // WKB hex string — use wkx to parse
     try {
-      const geom = wkx.Geometry.parse(Buffer.from(location, 'hex'));
+      const geom = Geometry.parse(Buffer.from(location, 'hex'));
       const gj = geom.toGeoJSON({ shortCrs: true }) as GeoJsonPoint;
       if (gj?.coordinates) {
         const [lng, lat] = gj.coordinates;
-        if (isValidLatitude(lat) && isValidLongitude(lng)) return { lat, lng };
+        if (isValidLatitude(lat) && isValidLongitude(lng)) {
+          return { lat, lng };
+        }
       }
-    } catch { /* not a valid WKB */ }
+    } catch {
+      /* not a valid WKB */
+    }
   }
 
   return null;

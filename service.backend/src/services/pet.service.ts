@@ -5,7 +5,12 @@ import UserFavorite from '../models/UserFavorite';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../models/Report';
 import sequelize from '../sequelize';
 import { SequelizeOperatorFilter } from '../types/database';
-import { calculateDistance, extractCoordinates, isValidCoordinates, milesToKilometers } from '../utils/geolocation';
+import {
+  calculateDistance,
+  extractCoordinates,
+  isValidCoordinates,
+  milesToKilometers,
+} from '../utils/geolocation';
 import {
   BreedStats,
   BulkPetOperation,
@@ -275,7 +280,9 @@ export class PetService {
       const petsWithDistance: PetWithDistance[] = hasValidLocation
         ? pets.map(pet => {
             const coords = extractCoordinates(pet.location);
-            if (!coords) return pet;
+            if (!coords) {
+              return pet;
+            }
             const dist = calculateDistance(
               Number(latitude),
               Number(longitude),
