@@ -425,11 +425,7 @@ export const PetCard: React.FC<PetCardProps> = ({
 
         {pet.short_description && <Description>{pet.short_description}</Description>}
 
-        {pet.rescue_id && (
-          <RescueInfo>
-            Rescue ID: {pet.rescue_id}
-          </RescueInfo>
-        )}
+        {pet.rescue_id && <RescueInfo>Rescue ID: {pet.rescue_id}</RescueInfo>}
 
         <CardActions>
           <Button size='sm' variant='primary' style={{ flex: 1 }}>
