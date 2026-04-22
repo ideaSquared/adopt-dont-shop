@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
+import {
+  Heading,
+  Text,
+  Button,
+  Input,
+  useToast,
+  Toast,
+  ToastContainer,
+  type ToastMessage,
+} from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail, FiShield } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { useUsers, useSuspendUser, useUnsuspendUser, useVerifyUser, useDeleteUser } from '../hooks';
@@ -239,6 +248,7 @@ const Users: React.FC = () => {
   const unsuspendUser = useUnsuspendUser();
   const verifyUser = useVerifyUser();
   const deleteUser = useDeleteUser();
+  const { toasts, showToast, hideToast } = useToast();
 
   // Load user from URL parameter
   useEffect(() => {
@@ -316,16 +326,18 @@ const Users: React.FC = () => {
   const handleSuspendUser = async (userId: string, reason?: string) => {
     try {
       await suspendUser.mutateAsync({ userId, reason });
+      showToast('User suspended successfully', 'success');
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to suspend user');
+      showToast(err instanceof Error ? err.message : 'Failed to suspend user', 'error');
     }
   };
 
   const handleUnsuspendUser = async (userId: string) => {
     try {
       await unsuspendUser.mutateAsync(userId);
+      showToast('User unsuspended successfully', 'success');
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to unsuspend user');
+      showToast(err instanceof Error ? err.message : 'Failed to unsuspend user', 'error');
     }
   };
 
@@ -588,6 +600,12 @@ const Users: React.FC = () => {
         user={selectedUser}
         onCreate={handleCreateSupportTicket}
       />
+
+      <ToastContainer position='top-right'>
+        {toasts.map((toast: ToastMessage) => (
+          <Toast key={toast.id} {...toast} onClose={hideToast} position='top-right' />
+        ))}
+      </ToastContainer>
     </PageContainer>
   );
 };

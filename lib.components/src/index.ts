@@ -11,6 +11,7 @@ export { ThemeProvider, useTheme } from './styles/ThemeProvider';
 export { useConfirm } from './hooks/useConfirm';
 export type { ConfirmOptions, UseConfirmReturn } from './hooks/useConfirm';
 export { useToast } from './hooks/useToast';
+export type { ToastMessage, UseToastReturn } from './hooks/useToast';
 
 // Foundation Components
 export { Avatar } from './components/ui/Avatar';
@@ -57,7 +58,8 @@ export { Navbar } from './components/navigation/Navbar';
 // export * from './components/ui/EmptyState';
 // export * from './components/ui/Pagination';
 // export * from './components/ui/ProgressBar';
-// export * from './components/ui/Toast';
+export { Toast, ToastContainer } from './components/ui/Toast';
+export type { ToastContainerProps, ToastPosition, ToastProps } from './components/ui/Toast';
 
 // Types - only export working ones
 export type {
