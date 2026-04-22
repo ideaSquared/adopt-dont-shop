@@ -218,8 +218,8 @@ describe('Distance Sorting - Behavioral Tests', () => {
       renderWithProviders(<SearchPage />);
 
       await waitFor(() => {
-        expect(screen.getByText(/5.2 mi away/)).toBeInTheDocument();
-        expect(screen.getByText(/12.8 mi away/)).toBeInTheDocument();
+        expect(screen.getByText(/5\.2 mi/)).toBeInTheDocument();
+        expect(screen.getByText(/12\.8 mi/)).toBeInTheDocument();
       });
     });
 
