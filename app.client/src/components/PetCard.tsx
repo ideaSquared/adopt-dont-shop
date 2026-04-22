@@ -4,7 +4,7 @@ import { useStatsig } from '@/hooks/useStatsig';
 import { Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
-import { MdFavorite, MdFavoriteBorder } from 'react-icons/md';
+import { MdFavorite, MdFavoriteBorder, MdLocationOn } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { resolveFileUrl } from '../utils/fileUtils';
@@ -169,18 +169,28 @@ const RescueInfo = styled.div`
   border-top: 1px solid ${props => props.theme.border.color.primary};
 `;
 
-const DistanceBadge = styled.span`
+const DistanceBadge = styled.div`
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #2563eb;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   border-radius: 9999px;
-  padding: 0.125rem 0.5rem;
-  margin-bottom: 0.5rem;
+  padding: 0.25rem 0.6rem 0.25rem 0.45rem;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+
+  svg {
+    flex-shrink: 0;
+    color: #6ee7b7;
+  }
 `;
 
 interface PetCardProps {
@@ -367,6 +377,13 @@ export const PetCard: React.FC<PetCardProps> = ({
 
         <StatusBadge variant={getStatusColor(pet.status)}>{getStatusLabel(pet.status)}</StatusBadge>
 
+        {pet.distance !== undefined && pet.distance !== null && (
+          <DistanceBadge>
+            <MdLocationOn size={13} />
+            {pet.distance} mi
+          </DistanceBadge>
+        )}
+
         {showFavoriteButton && isAuthenticated && (
           <FavoriteButton
             onClick={handleFavoriteClick}
@@ -405,10 +422,6 @@ export const PetCard: React.FC<PetCardProps> = ({
             <span className='value'>{pet.gender}</span>
           </div>
         </PetDetails>
-
-        {pet.distance !== undefined && pet.distance !== null && (
-          <DistanceBadge>📍 {pet.distance} mi away</DistanceBadge>
-        )}
 
         {pet.short_description && <Description>{pet.short_description}</Description>}
 
