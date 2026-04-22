@@ -169,6 +169,20 @@ const RescueInfo = styled.div`
   border-top: 1px solid ${props => props.theme.border.color.primary};
 `;
 
+const DistanceBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  margin-bottom: 0.5rem;
+`;
+
 interface PetCardProps {
   pet: Pet;
   showFavoriteButton?: boolean;
@@ -392,12 +406,15 @@ export const PetCard: React.FC<PetCardProps> = ({
           </div>
         </PetDetails>
 
+        {pet.distance !== undefined && pet.distance !== null && (
+          <DistanceBadge>📍 {pet.distance} mi away</DistanceBadge>
+        )}
+
         {pet.short_description && <Description>{pet.short_description}</Description>}
 
         {pet.rescue_id && (
           <RescueInfo>
             Rescue ID: {pet.rescue_id}
-            {pet.distance !== undefined && ` • ${pet.distance} mi away`}
           </RescueInfo>
         )}
 

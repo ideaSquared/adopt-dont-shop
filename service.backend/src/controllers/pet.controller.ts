@@ -305,13 +305,18 @@ export class PetController {
 
       const result = await this.petService.searchPets(filters, options);
 
-      // Map pets to include distance field from computed column
+      // Map pets to include distance field from computed column.
+      // Sequelize stores literal computed attributes in dataValues, not as direct
+      // property getters, so we read from dataValues before calling toJSON().
       const petsData = result.pets.map(pet => {
+        const dataValues = (pet as unknown as { dataValues: Record<string, unknown> }).dataValues;
+        const rawDistance = dataValues?.distance;
         const petJson = pet.toJSON ? pet.toJSON() : pet;
-        const rawPet = pet as unknown as Record<string, unknown>;
-        const distance = rawPet.distance !== undefined ? Number(rawPet.distance) : undefined;
-        if (distance !== undefined && !isNaN(distance)) {
-          return { ...petJson, distance: Math.round(distance * 10) / 10 };
+        if (rawDistance !== undefined && rawDistance !== null) {
+          const distance = Number(rawDistance);
+          if (!isNaN(distance)) {
+            return { ...petJson, distance: Math.round(distance * 10) / 10 };
+          }
         }
         return petJson;
       });
