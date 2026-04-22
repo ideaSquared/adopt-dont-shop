@@ -90,6 +90,7 @@ const sampleFileUploads = [
 export async function seedFileUploads() {
   for (const fileUploadData of sampleFileUploads) {
     await FileUpload.findOrCreate({
+      paranoid: false,
       where: {
         original_filename: fileUploadData.original_filename,
         uploaded_by: fileUploadData.uploaded_by,

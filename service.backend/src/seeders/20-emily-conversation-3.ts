@@ -239,6 +239,7 @@ export async function seedEmilyConversation3() {
     // Create the chat
 
     await Chat.findOrCreate({
+      paranoid: false,
       where: { chat_id: emilyConversation3Data.chat.chat_id },
 
       defaults: emilyConversation3Data.chat,
@@ -248,6 +249,7 @@ export async function seedEmilyConversation3() {
 
     for (const participant of emilyConversation3Data.participants) {
       await ChatParticipant.findOrCreate({
+        paranoid: false,
         where: {
           chat_id: participant.chat_id,
 
@@ -262,6 +264,7 @@ export async function seedEmilyConversation3() {
 
     for (const message of emilyConversation3Data.messages) {
       await Message.findOrCreate({
+        paranoid: false,
         where: { message_id: message.message_id },
 
         defaults: message,

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
-import { DiscoveryService } from '../services/discovery.service';
+import { DiscoveryService, DiscoveryFilters } from '../services/discovery.service';
 import { SwipeService } from '../services/swipe.service';
 import { logger } from '../utils/logger';
 
@@ -259,7 +259,7 @@ export class DiscoveryController {
   };
 
   /**
-   * Add items to discovery queue
+   * Get discovery queue via POST (filters passed in request body)
    */
   addToQueue = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -273,25 +273,36 @@ export class DiscoveryController {
         return;
       }
 
-      // For now, just acknowledge the request
-      // In the future, this could queue pets for discovery or update user preferences
+      const {
+        filters = {},
+        userId,
+        limit = 20,
+      } = req.body as {
+        filters?: DiscoveryFilters;
+        userId?: string;
+        limit?: number;
+      };
+
       logger.info('Discovery queue request received', {
         service: 'discovery',
         type: 'queue_request',
-        data: req.body,
+        data: { filters, limit },
         ip: req.ip,
       });
 
+      const discoveryQueue = await this.discoveryService.getDiscoveryQueue(filters, limit, userId);
+
       res.status(200).json({
-        success: true,
-        message: 'Added to discovery queue',
-        timestamp: new Date().toISOString(),
+        pets: discoveryQueue.pets,
+        currentIndex: 0,
+        hasMore: discoveryQueue.hasMore,
+        nextBatchSize: limit,
       });
     } catch (error) {
-      logger.error('Error adding to discovery queue:', error);
+      logger.error('Error getting discovery queue:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to add to discovery queue',
+        message: 'Failed to get discovery queue',
         timestamp: new Date().toISOString(),
       });
     }
