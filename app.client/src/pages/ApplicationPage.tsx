@@ -191,10 +191,13 @@ export const ApplicationPage: React.FC = () => {
       setIsSubmitting(true);
       setError(null);
 
-      const result = await apiService.post<{ data: { id: string } }>('/api/v1/applications', {
-        petId: pet.pet_id,
-        answers,
-      });
+      const result = await apiService.post<{ data: { applicationId: string } }>(
+        '/api/v1/applications',
+        {
+          petId: pet.pet_id,
+          answers,
+        }
+      );
 
       clearDraft();
       setSuccessMessage(
@@ -203,7 +206,7 @@ export const ApplicationPage: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       setTimeout(() => {
-        navigate(`/applications/${result.data.id}`, {
+        navigate(`/applications/${result.data.applicationId}`, {
           state: { message: 'Application submitted successfully!' },
         });
       }, 3000);
