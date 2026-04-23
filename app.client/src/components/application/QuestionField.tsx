@@ -1,6 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
+import { BooleanTiles } from './BooleanTiles';
 import { HouseholdMembersField } from './HouseholdMembersField';
+import { OptionTiles, getIconFor, hasIconMapping } from './OptionTiles';
 import { PreFilledBadge } from './PreFilledBadge';
 
 export type QuestionType =
@@ -158,26 +160,27 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
     switch (questionType) {
       case 'boolean':
         return (
-          <Select
-            $hasError={!!error}
-            value={value === true ? 'yes' : value === false ? 'no' : ''}
-            onChange={e => {
-              if (e.target.value === 'yes') {
-                onChange(true);
-              } else if (e.target.value === 'no') {
-                onChange(false);
-              } else {
-                onChange(undefined);
-              }
-            }}
-          >
-            <option value=''>Select an option…</option>
-            <option value='yes'>Yes</option>
-            <option value='no'>No</option>
-          </Select>
+          <BooleanTiles
+            name={questionKey}
+            value={typeof value === 'boolean' ? value : undefined}
+            onChange={onChange}
+            hasError={!!error}
+          />
         );
 
       case 'select':
+        if (options && hasIconMapping(questionKey)) {
+          return (
+            <OptionTiles
+              name={questionKey}
+              options={options}
+              value={asString(value) || undefined}
+              onChange={next => onChange(next)}
+              iconFor={getIconFor(questionKey)}
+              hasError={!!error}
+            />
+          );
+        }
         return (
           <Select
             $hasError={!!error}

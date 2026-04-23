@@ -14,3 +14,5 @@ export { PreFilledBadge } from './PreFilledBadge';
 export { PreFilledSectionCard } from './PreFilledSectionCard';
 export { PetHeroCard } from './PetHeroCard';
 export { QuickApplyView } from './QuickApplyView';
+export { BooleanTiles } from './BooleanTiles';
+export { OptionTiles } from './OptionTiles';
