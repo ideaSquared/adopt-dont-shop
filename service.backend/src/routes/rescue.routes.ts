@@ -1100,11 +1100,10 @@ router.post(
 );
 
 // Application Questions management
-// GET is readable by any authenticated user (adopters need it to fill in the application form)
+// GET requires only authentication — any user filling in an application needs to read questions
 router.get(
   '/:rescueId/questions',
   validateRescueId,
-  requirePermission('rescues.read'),
   questionController.getQuestions.bind(questionController)
 );
 
