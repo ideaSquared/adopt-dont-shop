@@ -339,6 +339,18 @@ export function ChatProvider({
 
   const markAsRead = useCallback(
     async (conversationId: string) => {
+      // Optimistic update: clear the unread badge for this conversation
+      // immediately. Without this the badge only clears when the backend
+      // emits a read_status socket event back at the reader — which most
+      // implementations don't, since you don't need to tell yourself that
+      // you just read your own mail. We deliberately don't touch
+      // message.status here: that field tracks delivery to *other*
+      // participants (sent/delivered/read) and has nothing to do with
+      // the current user clearing their own unread counter.
+      setConversations((prev) =>
+        prev.map((conv) => (conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv))
+      );
+
       try {
         await chatService.markAsRead(conversationId);
       } catch (err) {

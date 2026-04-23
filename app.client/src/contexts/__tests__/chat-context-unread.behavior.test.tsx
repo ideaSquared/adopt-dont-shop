@@ -135,6 +135,11 @@ describe('ChatContext unreadMessageCount', () => {
   });
 
   it('does not increment unreadCount when a message arrives in the active conversation', async () => {
+    // Selecting a conversation now optimistically zeroes its unread count
+    // (the provider no longer waits for a server read_status echo that most
+    // backends never send back to the reader). A message that then arrives
+    // in the active conversation must still not increment unread — that's
+    // the behavior under test here.
     const { result } = renderHook(() => useChat(), { wrapper });
     await waitFor(() => {
       expect(result.current.conversations).toHaveLength(3);
@@ -148,13 +153,17 @@ describe('ChatContext unreadMessageCount', () => {
     await waitFor(() => {
       expect(result.current.activeConversation?.id).toBe('c1');
     });
+    // c1's 2 unread should have been cleared by the optimistic markAsRead.
+    expect(result.current.conversations.find(c => c.id === 'c1')?.unreadCount).toBe(0);
+    expect(result.current.unreadMessageCount).toBe(3);
 
     act(() => {
       messageHandlers[0](buildMessage('c1', 'm-active'));
     });
 
-    expect(result.current.conversations.find(c => c.id === 'c1')?.unreadCount).toBe(2);
-    expect(result.current.unreadMessageCount).toBe(5);
+    // New message in active chat doesn't bump the count.
+    expect(result.current.conversations.find(c => c.id === 'c1')?.unreadCount).toBe(0);
+    expect(result.current.unreadMessageCount).toBe(3);
   });
 
   it('resets a conversation unreadCount to zero on readStatus update', async () => {

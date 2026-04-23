@@ -43,7 +43,7 @@ const NavItem = styled.li`
   margin: 0.25rem 0;
 `;
 
-const NavLink = styled(Link)<{ $isActive: boolean }>`
+const NavLink = styled(Link)<{ $isActive: boolean; $hasUnread?: boolean }>`
   display: flex;
   align-items: center;
   padding: 0.75rem 1.5rem;
@@ -65,6 +65,14 @@ const NavLink = styled(Link)<{ $isActive: boolean }>`
     color: white;
     font-weight: 600;
   `}
+
+  ${props =>
+    props.$hasUnread &&
+    !props.$isActive &&
+    `
+    color: white;
+    font-weight: 600;
+  `}
 `;
 
 const NavIcon = styled.span`
@@ -80,9 +88,9 @@ const NavLabel = styled.span`
 `;
 
 const badgePulse = keyframes`
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 `;
 
 const NavBadge = styled.span`
@@ -99,8 +107,11 @@ const NavBadge = styled.span`
   font-weight: 700;
   line-height: 1;
   margin-left: 0.5rem;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15);
-  animation: ${badgePulse} 2.2s ease-out 1;
+  animation: ${badgePulse} 2s ease-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const NavFooter = styled.div`
@@ -220,22 +231,28 @@ const Navigation: React.FC = () => {
       </NavHeader>
 
       <NavList>
-        {navItems.map(item => (
-          <NavItem key={item.path}>
-            <NavLink to={item.path} $isActive={location.pathname === item.path}>
-              <NavIcon>{item.icon}</NavIcon>
-              <NavLabel>{item.label}</NavLabel>
-              {item.badge && item.badge > 0 && (
-                <NavBadge
-                  key={item.badge}
-                  aria-label={`${item.badge} unread message${item.badge === 1 ? '' : 's'}`}
-                >
-                  {item.badge > 99 ? '99+' : item.badge}
-                </NavBadge>
-              )}
-            </NavLink>
-          </NavItem>
-        ))}
+        {navItems.map(item => {
+          const hasUnread = typeof item.badge === 'number' && item.badge > 0;
+          return (
+            <NavItem key={item.path}>
+              <NavLink
+                to={item.path}
+                $isActive={location.pathname === item.path}
+                $hasUnread={hasUnread}
+              >
+                <NavIcon>{item.icon}</NavIcon>
+                <NavLabel>{item.label}</NavLabel>
+                {hasUnread && (
+                  <NavBadge
+                    aria-label={`${item.badge} unread message${item.badge === 1 ? '' : 's'}`}
+                  >
+                    {item.badge! > 99 ? '99+' : item.badge}
+                  </NavBadge>
+                )}
+              </NavLink>
+            </NavItem>
+          );
+        })}
       </NavList>
 
       <NavFooter>
