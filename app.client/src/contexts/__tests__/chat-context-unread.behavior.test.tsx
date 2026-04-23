@@ -51,6 +51,13 @@ vi.mock('@/services', () => ({
       readStatusHandlers.push(cb);
     }),
     off: vi.fn(),
+    getConnectionStatus: vi.fn(() => 'connected'),
+    getReconnectionAttempts: vi.fn(() => 0),
+    onConnectionStatusChange: vi.fn(),
+    offConnectionStatusChange: vi.fn(),
+  },
+  authService: {
+    getToken: vi.fn(() => 'test-token'),
   },
   useConnectionStatus: () => ({
     status: 'connected',
