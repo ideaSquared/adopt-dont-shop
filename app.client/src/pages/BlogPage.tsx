@@ -42,7 +42,9 @@ const PostCard = styled(Link)`
   border-radius: 12px;
   overflow: hidden;
   text-decoration: none;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 
   &:hover {
     transform: translateY(-4px);

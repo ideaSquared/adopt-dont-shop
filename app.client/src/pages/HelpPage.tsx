@@ -43,7 +43,9 @@ const ArticleCard = styled(Link)`
   border: 1px solid ${props => props.theme.border.color.primary};
   border-radius: 10px;
   text-decoration: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 
   &:hover {
     border-color: #2563eb;

@@ -156,9 +156,7 @@ export const BlogPostPage: React.FC = () => {
     <PageContainer>
       <BackLink to='/blog'>← Back to Blog</BackLink>
 
-      {post.featuredImageUrl && (
-        <FeaturedImage src={post.featuredImageUrl} alt={post.title} />
-      )}
+      {post.featuredImageUrl && <FeaturedImage src={post.featuredImageUrl} alt={post.title} />}
 
       <PostTitle>{post.title}</PostTitle>
       <PostMeta>
