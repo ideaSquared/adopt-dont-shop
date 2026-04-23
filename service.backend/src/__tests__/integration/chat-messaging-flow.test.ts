@@ -134,6 +134,15 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
     // Setup default notification service mocks
     MockedNotificationService.createNotification = vi.fn().mockResolvedValue(undefined as never);
+
+    // Default: the caller is a participant. Tests that specifically exercise
+    // the "not a participant" rejection path override this with
+    // mockResolvedValueOnce(null).
+    MockedChatParticipant.findOne = vi.fn().mockResolvedValue({
+      chat_participant_id: 'p-default',
+      chat_id: 'chat-default',
+      participant_id: 'user-default',
+    } as never);
   });
 
   describe('Chat Creation', () => {
@@ -364,7 +373,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
         };
 
         await expect(ChatService.sendMessage(messageData)).rejects.toThrow(
-          'Chat not found or user is not a participant'
+          'User is not a participant in this chat'
         );
       });
 
