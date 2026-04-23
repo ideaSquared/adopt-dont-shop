@@ -34,7 +34,11 @@ export interface ReadStatusUpdateEvent {
  * ChatService - Handles chat operations
  */
 export class ChatService {
-  private config: Required<ChatServiceConfig>;
+  // csrfToken legitimately stays optional — apps without CSRF protection
+  // don't wire it. Everything else in ChatServiceConfig has a default so
+  // it's safe to widen to Required<...>.
+  private config: Required<Omit<ChatServiceConfig, 'csrfToken'>> &
+    Pick<ChatServiceConfig, 'csrfToken'>;
   private cache: Map<string, unknown> = new Map();
   private socket: Socket | null = null;
   private connectionStatus: ConnectionStatus = 'disconnected';
