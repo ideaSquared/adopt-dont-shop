@@ -106,11 +106,10 @@ const BadgeOverlay = styled.span<{ $hasCount: boolean }>`
   right: -2px;
   pointer-events: none;
 
-  /* Custom count bubble: red semantic-500, 2px navbar-colored ring so it
-     separates cleanly from the dark purple icon background, 18px minimum
-     so the digit meets WCAG minimum target-size guidance and stays
-     readable at a glance. Overrides the library Badge defaults which
-     were too small and lacked the ring. */
+  /* Overrides the shared Badge's defaults: bigger, heavier, with a ring in
+     the surrounding navbar color so the bubble separates cleanly from the
+     dark icon underneath. Colors come from the theme so the bubble follows
+     light/dark/custom themes rather than being pinned to a specific red. */
   span[role='status'] {
     min-width: 18px;
     min-height: 18px;
@@ -119,9 +118,9 @@ const BadgeOverlay = styled.span<{ $hasCount: boolean }>`
     font-weight: 800;
     line-height: 1;
     letter-spacing: 0.02em;
-    background: #dc2626;
-    color: #fff;
-    border: 2px solid ${({ theme }) => theme.colors.primary[700] || '#4f46e5'};
+    background: ${({ theme }) => theme.colors.semantic.error[600]};
+    color: ${({ theme }) => theme.text.inverse};
+    border: 2px solid ${({ theme }) => theme.colors.primary[700]};
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
 `;

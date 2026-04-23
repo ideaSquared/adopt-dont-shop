@@ -132,7 +132,7 @@ const Avatar = styled.div<{ $hasUnread?: boolean }>`
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: #ef4444;
+      background: ${props.theme.colors.semantic.error[500]};
       box-shadow: 0 0 0 2px ${props.theme.background.primary};
     }
   `}
@@ -179,13 +179,25 @@ const PetInfo = styled.div`
   letter-spacing: 0.04em;
 `;
 
+/**
+ * Pulse ring color is derived from theme.colors.semantic.error[500] at ~55%
+ * alpha via CSS color-mix (widely supported since 2023). This keeps the
+ * halo tracking the theme's error accent instead of being pinned to a
+ * hardcoded red.
+ */
 const badgePulse = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
-  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% { box-shadow: 0 0 0 0 var(--chat-unread-halo); }
+  70% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 `;
 
 const UnreadBadge = styled.span`
+  --chat-unread-halo: color-mix(
+    in srgb,
+    ${(props) => props.theme.colors.semantic.error[500]} 55%,
+    transparent
+  );
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -193,13 +205,17 @@ const UnreadBadge = styled.span`
   height: 22px;
   padding: 0 7px;
   border-radius: 11px;
-  background: #ef4444;
-  color: white;
+  background: ${(props) => props.theme.colors.semantic.error[500]};
+  color: ${(props) => props.theme.text.inverse};
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1;
   flex: 0 0 auto;
   animation: ${badgePulse} 2s ease-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const BottomRow = styled.div`

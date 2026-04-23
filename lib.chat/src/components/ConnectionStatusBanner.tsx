@@ -21,15 +21,15 @@ const Banner = styled.div<{ variant: 'info' | 'warning' | 'error' }>`
   background: ${(props) => {
     switch (props.variant) {
       case 'warning':
-        return props.theme.colors.semantic.warning?.[500] || '#f59e0b';
+        return props.theme.colors.semantic.warning[500];
       case 'error':
-        return props.theme.colors.semantic.error[500] || '#ef4444';
+        return props.theme.colors.semantic.error[500];
       case 'info':
       default:
-        return props.theme.colors.primary[500] || '#3b82f6';
+        return props.theme.colors.primary[500];
     }
   }};
-  color: white;
+  color: ${(props) => props.theme.text.inverse};
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   animation: ${pulse} 2s ease-in-out infinite;
 
@@ -43,15 +43,17 @@ const StatusDot = styled.span<{ variant: 'info' | 'warning' | 'error' }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  /* Lighter shade of the banner color for the dot — tracks the theme
+     automatically instead of hardcoding pastel hex values. */
   background: ${(props) => {
     switch (props.variant) {
       case 'warning':
-        return '#fef3c7';
+        return props.theme.colors.semantic.warning[100];
       case 'error':
-        return '#fecaca';
+        return props.theme.colors.semantic.error[100];
       case 'info':
       default:
-        return '#dbeafe';
+        return props.theme.colors.primary[100];
     }
   }};
   animation: ${pulse} 1.5s ease-in-out infinite;

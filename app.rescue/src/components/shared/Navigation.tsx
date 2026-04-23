@@ -88,12 +88,19 @@ const NavLabel = styled.span`
 `;
 
 const badgePulse = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-  70% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% { box-shadow: 0 0 0 0 var(--nav-badge-halo); }
+  70% { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 `;
 
 const NavBadge = styled.span`
+  /* Halo tracks the theme's error color instead of a hardcoded red. */
+  --nav-badge-halo: color-mix(
+    in srgb,
+    ${props => props.theme.colors.semantic.error[500]} 60%,
+    transparent
+  );
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -101,8 +108,8 @@ const NavBadge = styled.span`
   height: 22px;
   padding: 0 7px;
   border-radius: 11px;
-  background: #ef4444;
-  color: white;
+  background: ${props => props.theme.colors.semantic.error[500]};
+  color: ${props => props.theme.text.inverse};
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1;
