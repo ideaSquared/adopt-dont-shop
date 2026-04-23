@@ -1,4 +1,4 @@
-import { ProfileEditForm, SettingsForm } from '@/components/profile';
+import { AdopterProfileSummary, ProfileEditForm, SettingsForm } from '@/components/profile';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, authService, Application, User } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
@@ -421,6 +421,7 @@ export const ProfilePage: React.FC = () => {
               <div style={{ marginTop: '2rem' }}>
                 <Button onClick={() => setIsEditingProfile(true)}>Edit Profile</Button>
               </div>
+              {user.userType === 'adopter' && <AdopterProfileSummary />}
             </>
           )}
         </>
