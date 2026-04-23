@@ -201,7 +201,7 @@ export const ApplicationPage: React.FC = () => {
       setError(
         message?.includes('validation failed')
           ? `Some required fields are missing. Please review your answers and ensure all required fields are completed.`
-          : message ?? 'Failed to submit application. Please try again.'
+          : (message ?? 'Failed to submit application. Please try again.')
       );
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {

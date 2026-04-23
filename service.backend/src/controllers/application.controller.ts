@@ -23,8 +23,7 @@ export class ApplicationController extends BaseController {
     body('petId').isString().notEmpty().withMessage('Valid pet ID is required'),
     body('answers').isObject().withMessage('Answers must be an object'),
     body('references')
-      .optional()
-      .isArray({ max: 5 })
+      .optional().isArray({ max: 5 })
       .withMessage('Maximum 5 references allowed'),
     body('references.*.name')
       .optional()
