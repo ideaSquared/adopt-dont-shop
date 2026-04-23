@@ -43,6 +43,7 @@ import userSupportRoutes from './routes/userSupport.routes';
 import moderationRoutes from './routes/moderation.routes';
 import userRoutes from './routes/user.routes';
 import fieldPermissionsRoutes from './routes/field-permissions.routes';
+import cmsRoutes from './routes/cms.routes';
 
 // Import additional routes for PRD compliance
 import path from 'path';
@@ -232,6 +233,7 @@ app.use('/api/v1/admin/moderation', moderationRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/config', configRoutes);
 app.use('/api/v1/field-permissions', fieldPermissionsRoutes);
+app.use('/api/v1/cms', cmsRoutes);
 
 // Simple health check (no dependencies)
 app.get('/api/v1/health/simple', (req, res) => {

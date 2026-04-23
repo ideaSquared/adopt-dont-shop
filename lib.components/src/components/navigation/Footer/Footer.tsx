@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 const StyledFooter = styled.footer`
@@ -28,7 +29,7 @@ const FooterLinks = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
 
-const FooterLink = styled.a`
+const FooterLink = styled(Link)`
   color: ${({ theme }) => theme.text.secondary};
   text-decoration: none;
   font-size: ${({ theme }) => theme.typography.size.sm};
@@ -47,10 +48,12 @@ export const Footer: React.FC<FooterProps> = ({ className }) => {
     <StyledFooter className={className}>
       <FooterContainer>
         <FooterLinks>
-          <FooterLink href='/about'>About</FooterLink>
-          <FooterLink href='/privacy'>Privacy</FooterLink>
-          <FooterLink href='/terms'>Terms</FooterLink>
-          <FooterLink href='/contact'>Contact</FooterLink>
+          <FooterLink to='/blog'>Blog</FooterLink>
+          <FooterLink to='/help'>Help</FooterLink>
+          <FooterLink to='/about'>About</FooterLink>
+          <FooterLink to='/privacy'>Privacy</FooterLink>
+          <FooterLink to='/terms'>Terms</FooterLink>
+          <FooterLink to='/contact'>Contact</FooterLink>
         </FooterLinks>
         <FooterText>
           © {new Date().getFullYear()} Adopt Don&apos;t Shop. All rights reserved.

@@ -24,6 +24,7 @@ const Messages = lazy(() => import('./pages/Messages'));
 const Reports = lazy(() => import('./pages/Reports'));
 const AccountSettings = lazy(() => import('./pages/AccountSettings'));
 const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
+const ContentManagement = lazy(() => import('./pages/ContentManagement'));
 
 const PageLoader = () => (
   <div
@@ -110,6 +111,9 @@ const AdminApp: React.FC = () => {
               <Route path='/configuration/features' element={<Configuration />} />
               <Route path='/configuration/settings' element={<Configuration />} />
               <Route path='/configuration/questions' element={<Configuration />} />
+
+              {/* Content Management */}
+              <Route path='/content' element={<ContentManagement />} />
 
               {/* Field-Level Permissions */}
               <Route path='/field-permissions' element={<FieldPermissions />} />

@@ -16,6 +16,7 @@ import {
   FiActivity,
   FiLock,
   FiSliders,
+  FiLayout,
 } from 'react-icons/fi';
 
 interface SidebarProps {
@@ -252,6 +253,17 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           <StyledNavLink to='/messages' $collapsed={collapsed}>
             <FiMessageSquare />
             <span>Messages</span>
+          </StyledNavLink>
+        </NavSection>
+
+        <NavDivider $collapsed={collapsed} />
+
+        {/* Content Section */}
+        <NavSection $collapsed={collapsed}>
+          <NavSectionTitle $collapsed={collapsed}>Content</NavSectionTitle>
+          <StyledNavLink to='/content' $collapsed={collapsed}>
+            <FiLayout />
+            <span>Content Management</span>
           </StyledNavLink>
         </NavSection>
 
