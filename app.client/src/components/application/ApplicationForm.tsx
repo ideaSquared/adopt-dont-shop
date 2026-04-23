@@ -1,37 +1,88 @@
-import { ApplicationData, Pet } from '@/services';
-import type { SaveStatus } from '@/hooks/use-auto-save';
-import { Button } from '@adopt-dont-shop/lib.components';
 import React from 'react';
 import styled from 'styled-components';
-import {
-  BasicInfoStep,
-  LivingSituationStep,
-  PetExperienceStep,
-  ReferencesStep,
-  ReviewStep,
-} from './steps';
+import { Button } from '@adopt-dont-shop/lib.components';
+import type { SaveStatus } from '@/hooks/use-auto-save';
+import type { Pet } from '@/services';
+import { QuestionCategoryStep } from './QuestionCategoryStep';
+import type { Question } from './QuestionField';
+import { formatHouseholdMembers, parseHouseholdMembers } from './HouseholdMembersField';
 
-export type PartialApplicationData = {
-  [K in keyof ApplicationData]?: Partial<ApplicationData[K]>;
+export type CategoryGroup = {
+  category: string;
+  title: string;
+  description?: string;
+  questions: Question[];
 };
 
-interface ApplicationFormProps {
-  step: number;
-  data: Partial<ApplicationData>;
+type ApplicationFormProps = {
+  categories: CategoryGroup[];
+  currentStep: number;
+  answers: Record<string, unknown>;
   pet: Pet | null;
-  onStepComplete: (stepData: Partial<ApplicationData>) => void;
+  onStepComplete: (answers: Record<string, unknown>) => void;
   onStepBack: () => void;
   onSubmit: () => void;
   onSaveDraft: () => void;
-  onDataChange: (stepData: PartialApplicationData) => void;
+  onChange: (answers: Record<string, unknown>) => void;
   isSubmitting: boolean;
-  isUpdate: boolean;
   saveStatus: SaveStatus;
   lastSaved: Date | null;
-}
+};
 
 const FormContainer = styled.div`
   min-height: 400px;
+`;
+
+const ReviewContainer = styled.div`
+  max-width: 640px;
+`;
+
+const ReviewTitle = styled.h2`
+  font-size: 1.5rem;
+  color: ${props => props.theme.text.primary};
+  margin: 0 0 0.5rem 0;
+`;
+
+const ReviewDescription = styled.p`
+  color: ${props => props.theme.text.secondary};
+  margin: 0 0 2rem 0;
+`;
+
+const ReviewCategory = styled.div`
+  margin-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: ${props => props.theme.background.secondary};
+  border-radius: 0.5rem;
+`;
+
+const ReviewCategoryTitle = styled.h3`
+  font-size: 1rem;
+  font-weight: 600;
+  color: ${props => props.theme.text.primary};
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid ${props => props.theme.border.color.primary};
+`;
+
+const ReviewItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.5rem 0;
+
+  & + & {
+    border-top: 1px solid ${props => props.theme.border.color.primary};
+  }
+`;
+
+const ReviewLabel = styled.span`
+  font-size: 0.8125rem;
+  color: ${props => props.theme.text.secondary};
+`;
+
+const ReviewValue = styled.span`
+  font-size: 0.9375rem;
+  color: ${props => props.theme.text.primary};
 `;
 
 const NavigationButtons = styled.div`
@@ -54,7 +105,6 @@ const ButtonGroup = styled.div`
 
   @media (max-width: 768px) {
     width: 100%;
-
     button {
       flex: 1;
     }
@@ -94,10 +144,7 @@ const formatLastSaved = (date: Date): string => {
     return 'just now';
   }
   const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes === 1) {
-    return '1 minute ago';
-  }
-  return `${diffMinutes} minutes ago`;
+  return diffMinutes === 1 ? '1 minute ago' : `${diffMinutes} minutes ago`;
 };
 
 const SaveStatusMessage: React.FC<{ status: SaveStatus; lastSaved: Date | null }> = ({
@@ -118,78 +165,97 @@ const SaveStatusMessage: React.FC<{ status: SaveStatus; lastSaved: Date | null }
   return null;
 };
 
+const formatAnswerValue = (value: unknown): string => {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+  if (value === true) {
+    return 'Yes';
+  }
+  if (value === false) {
+    return 'No';
+  }
+  if (Array.isArray(value)) {
+    const householdMembers = parseHouseholdMembers(value);
+    if (householdMembers.length > 0) {
+      return formatHouseholdMembers(householdMembers);
+    }
+    return value.join(', ');
+  }
+  return String(value);
+};
+
+const ReviewStep: React.FC<{ categories: CategoryGroup[]; answers: Record<string, unknown> }> = ({
+  categories,
+  answers,
+}) => (
+  <ReviewContainer>
+    <ReviewTitle>Review your application</ReviewTitle>
+    <ReviewDescription>
+      Please check your answers before submitting. You can go back to any section to make changes.
+    </ReviewDescription>
+    {categories.map(({ category, title, questions }) => {
+      const answeredQuestions = questions.filter(
+        q => answers[q.questionKey] !== undefined && answers[q.questionKey] !== ''
+      );
+      if (answeredQuestions.length === 0) {
+        return null;
+      }
+      return (
+        <ReviewCategory key={category}>
+          <ReviewCategoryTitle>{title}</ReviewCategoryTitle>
+          {answeredQuestions.map(q => (
+            <ReviewItem key={q.questionId}>
+              <ReviewLabel>{q.questionText}</ReviewLabel>
+              <ReviewValue>{formatAnswerValue(answers[q.questionKey])}</ReviewValue>
+            </ReviewItem>
+          ))}
+        </ReviewCategory>
+      );
+    })}
+  </ReviewContainer>
+);
+
 export const ApplicationForm: React.FC<ApplicationFormProps> = ({
-  step,
-  data,
-  pet,
+  categories,
+  currentStep,
+  answers,
+  pet: _pet,
   onStepComplete,
   onStepBack,
   onSubmit,
   onSaveDraft,
-  onDataChange,
+  onChange,
   isSubmitting,
-  isUpdate,
   saveStatus,
   lastSaved,
 }) => {
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <BasicInfoStep
-            data={data.personalInfo || {}}
-            onComplete={(personalInfo: ApplicationData['personalInfo']) =>
-              onStepComplete({ personalInfo })
-            }
-            onChange={personalInfo => onDataChange({ personalInfo })}
-          />
-        );
-      case 2:
-        return (
-          <LivingSituationStep
-            data={data.livingsituation || {}}
-            onComplete={(livingsituation: ApplicationData['livingsituation']) =>
-              onStepComplete({ livingsituation })
-            }
-            onChange={livingsituation => onDataChange({ livingsituation })}
-          />
-        );
-      case 3:
-        return (
-          <PetExperienceStep
-            data={data.petExperience || {}}
-            onComplete={(petExperience: ApplicationData['petExperience']) =>
-              onStepComplete({ petExperience })
-            }
-          />
-        );
-      case 4:
-        return (
-          <ReferencesStep
-            data={data.references || {}}
-            onComplete={(references: ApplicationData['references']) =>
-              onStepComplete({ references })
-            }
-          />
-        );
-      case 5:
-        return (
-          <ReviewStep
-            data={data}
-            pet={pet}
-            onComplete={(additionalInfo: ApplicationData['additionalInfo']) =>
-              onStepComplete({ additionalInfo })
-            }
-            isUpdate={isUpdate}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  const totalSteps = categories.length + 1; // categories + review
+  const isFirstStep = currentStep === 1;
+  const isReviewStep = currentStep === totalSteps;
 
-  const isFirstStep = step === 1;
-  const isLastStep = step === 5;
+  const renderStep = () => {
+    if (isReviewStep) {
+      return <ReviewStep categories={categories} answers={answers} />;
+    }
+
+    const categoryGroup = categories[currentStep - 1];
+    if (!categoryGroup) {
+      return null;
+    }
+
+    return (
+      <QuestionCategoryStep
+        stepId={String(currentStep)}
+        title={categoryGroup.title}
+        description={categoryGroup.description}
+        questions={categoryGroup.questions}
+        answers={answers}
+        onComplete={onStepComplete}
+        onChange={onChange}
+      />
+    );
+  };
 
   return (
     <FormContainer>
@@ -217,17 +283,17 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
             </Button>
           </SaveIndicator>
 
-          {isLastStep ? (
+          {isReviewStep ? (
             <Button
               variant='primary'
               onClick={onSubmit}
               disabled={isSubmitting}
               isLoading={isSubmitting}
             >
-              {isUpdate ? 'Update Application' : 'Submit Application'}
+              Submit Application
             </Button>
           ) : (
-            <Button variant='primary' type='submit' form={`step-${step}-form`}>
+            <Button variant='primary' type='submit' form={`step-${currentStep}-form`}>
               Continue
             </Button>
           )}

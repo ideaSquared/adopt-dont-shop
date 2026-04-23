@@ -400,6 +400,44 @@ describe('ApiService', () => {
       await expect(apiService.get('/test')).rejects.toThrow('Network error');
     });
 
+    it('should call onUnauthorized callback when receiving a 401 response', async () => {
+      const onUnauthorized = jest.fn();
+      apiService = new ApiService({
+        apiUrl: 'https://api.example.com',
+        onUnauthorized,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: new Headers(),
+        json: () => Promise.resolve({ message: 'Token expired' }),
+      } as Response);
+
+      await expect(apiService.get('/protected')).rejects.toThrow('Token expired');
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onUnauthorized for non-401 errors', async () => {
+      const onUnauthorized = jest.fn();
+      apiService = new ApiService({
+        apiUrl: 'https://api.example.com',
+        onUnauthorized,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        headers: new Headers(),
+        json: () => Promise.resolve({ message: 'Access denied' }),
+      } as Response);
+
+      await expect(apiService.get('/protected')).rejects.toThrow('Access denied');
+      expect(onUnauthorized).not.toHaveBeenCalled();
+    });
+
     it('should handle timeout errors', async () => {
       // Mock AbortController
       const mockAbort = jest.fn();

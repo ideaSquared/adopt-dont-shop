@@ -462,7 +462,7 @@ router.patch(
 /**
  * @swagger
  * /api/v1/applications/{applicationId}/withdraw:
- *   post:
+ *   put:
  *     tags: [Application Management]
  *     summary: Withdraw application
  *     description: Withdraw a submitted application. Only the application owner can withdraw their own application.
@@ -514,7 +514,7 @@ router.patch(
  *         $ref: '#/components/responses/NotFoundError'
  */
 // Withdraw application (owner only)
-router.post(
+router.put(
   '/:applicationId/withdraw',
   ApplicationController.validateApplicationId,
   applicationController.withdrawApplication

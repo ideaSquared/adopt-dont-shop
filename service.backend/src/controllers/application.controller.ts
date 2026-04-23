@@ -20,20 +20,21 @@ import { BaseController } from './base.controller';
 export class ApplicationController extends BaseController {
   // Validation rules
   static validateCreateApplication = [
-    body('petId').isUUID().withMessage('Valid pet ID is required'),
+    body('petId').isString().notEmpty().withMessage('Valid pet ID is required'),
     body('answers').isObject().withMessage('Answers must be an object'),
-    body('references')
-      .isArray({ min: 1, max: 5 })
-      .withMessage('At least 1 reference is required, maximum 5'),
+    body('references').optional().isArray({ max: 5 }).withMessage('Maximum 5 references allowed'),
     body('references.*.name')
+      .optional()
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Reference name must be between 2 and 100 characters'),
     body('references.*.relationship')
+      .optional()
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Reference relationship must be between 2 and 100 characters'),
     body('references.*.phone')
+      .optional()
       .matches(/^[+]?[1-9]?[0-9]{7,15}$/)
       .withMessage('Valid reference phone number is required'),
     body('references.*.email')
@@ -121,9 +122,9 @@ export class ApplicationController extends BaseController {
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
-    query('userId').optional().isUUID().withMessage('Valid user ID required'),
-    query('petId').optional().isUUID().withMessage('Valid pet ID required'),
-    query('rescueId').optional().isUUID().withMessage('Valid rescue ID required'),
+    query('userId').optional().isString().notEmpty().withMessage('Valid user ID required'),
+    query('petId').optional().isString().notEmpty().withMessage('Valid pet ID required'),
+    query('rescueId').optional().isString().notEmpty().withMessage('Valid rescue ID required'),
     query('status')
       .optional()
       .isIn(Object.values(ApplicationStatus))
