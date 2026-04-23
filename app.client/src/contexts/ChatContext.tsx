@@ -16,8 +16,12 @@ import {
   type OfflineSyncCallback,
   type ConnectionQuality,
 } from '@adopt-dont-shop/lib.chat';
-import type { Conversation as LibConversation, Message as LibMessage } from '@/services';
-import { authService, chatService } from '@/services';
+import {
+  authService,
+  chatService,
+  type Conversation as LibConversation,
+  type Message as LibMessage,
+} from '@/services';
 import {
   getConnectionQuality,
   isCurrentlyOnline,
