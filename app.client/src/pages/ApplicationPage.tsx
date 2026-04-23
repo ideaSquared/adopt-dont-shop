@@ -9,7 +9,10 @@ import type { Question } from '@/components/application/QuestionField';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { petService, apiService, type Pet } from '@/services';
 import { applicationProfileService } from '@/services/applicationProfileService';
-import { buildInitialAnswers } from '@/utils/applicationFieldMapping';
+import {
+  buildInitialAnswers,
+  splitAnswersForPersistence,
+} from '@/utils/applicationFieldMapping';
 import type { ApplicationDefaults } from '@/types';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -214,6 +217,25 @@ export const ApplicationPage: React.FC = () => {
           answers,
         }
       );
+
+      // Fire-and-forget: persist the reusable parts of this application back
+      // into the user's applicationDefaults so the next application pre-fills.
+      // A failure here shouldn't block the successful submission.
+      const allQuestions = categories.flatMap(c => c.questions);
+      const { defaultsUpdate, customAnswers } = splitAnswersForPersistence(answers, allQuestions);
+      const hasStructuredUpdate = Object.keys(defaultsUpdate).length > 0;
+      const hasCustomUpdate = Object.keys(customAnswers).length > 0;
+      if (hasStructuredUpdate || hasCustomUpdate) {
+        applicationProfileService
+          .updateApplicationDefaults({
+            ...defaultsUpdate,
+            ...(hasCustomUpdate ? { customAnswers } : {}),
+          })
+          .catch(err => {
+            // Non-fatal — log and move on.
+            console.warn('Failed to persist application defaults:', err);
+          });
+      }
 
       clearDraft();
       setSuccessMessage(

@@ -374,6 +374,7 @@ export class ApplicationProfileService {
         personal: updates.references?.personal || current.references?.personal || [],
       },
       additionalInfo: { ...current.additionalInfo, ...updates.additionalInfo },
+      customAnswers: { ...current.customAnswers, ...updates.customAnswers },
     };
   }
 
