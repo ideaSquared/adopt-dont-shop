@@ -777,8 +777,12 @@ export class ChatService {
         page,
       });
 
-      // Transform messages to ChatMessage format
-      const transformedMessages: ChatMessage[] = messages.map(msg => ({
+      // Transform messages to ChatMessage format.
+      // IMPORTANT: keep the Sender association attached. The controller's
+      // toFrontendMessage helper reads msg.Sender to produce the
+      // frontend-facing senderName. Dropping it here was why every
+      // message arrived on the client as "Unknown User".
+      const transformedMessages = messages.map(msg => ({
         message_id: msg.message_id,
         chat_id: msg.chat_id,
         sender_id: msg.sender_id,
@@ -794,7 +798,8 @@ export class ChatService {
         })),
         created_at: msg.created_at.toISOString(),
         updated_at: msg.updated_at.toISOString(),
-      }));
+        Sender: msg.Sender,
+      })) as unknown as ChatMessage[];
 
       return {
         messages: transformedMessages,
