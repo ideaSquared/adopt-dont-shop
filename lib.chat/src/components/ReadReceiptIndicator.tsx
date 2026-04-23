@@ -1,25 +1,26 @@
 import styled from 'styled-components';
 import type { MessageDeliveryStatus } from '../types';
 
-const ReceiptWrapper = styled.span<{ $isOwn: boolean }>`
+/**
+ * Read receipts live in the message meta row below the bubble (not inside
+ * a colored bubble anymore), so colors here are tuned for a neutral
+ * background. $filled messages (read/delivered) pick up the primary
+ * accent; everything else stays subtle via theme.text.tertiary.
+ */
+const ReceiptWrapper = styled.span`
   display: inline-flex;
   align-items: center;
-  margin-left: 0.25rem;
+  margin-left: 0.125rem;
   font-size: 0.7rem;
-  color: ${(props) => (props.$isOwn ? 'rgba(255, 255, 255, 0.85)' : props.theme.text.secondary)};
+  color: ${(props) => props.theme.text.tertiary};
   user-select: none;
 `;
 
-const CheckIcon = styled.span<{ $filled: boolean; $isOwn: boolean }>`
+const CheckIcon = styled.span<{ $filled: boolean }>`
   font-size: 0.75rem;
+  font-weight: 700;
   color: ${(props) =>
-    props.$filled
-      ? props.$isOwn
-        ? 'rgba(255, 255, 255, 0.95)'
-        : props.theme.colors.primary[500]
-      : props.$isOwn
-        ? 'rgba(255, 255, 255, 0.6)'
-        : props.theme.text.tertiary};
+    props.$filled ? props.theme.colors.primary[500] : props.theme.text.tertiary};
 `;
 
 type ReadReceiptIndicatorProps = {
@@ -45,10 +46,8 @@ export function ReadReceiptIndicator({ status, isOwn, readCount }: ReadReceiptIn
   const { icon, filled, label } = statusIcons[status];
 
   return (
-    <ReceiptWrapper $isOwn={isOwn} aria-label={label} title={label}>
-      <CheckIcon $filled={filled} $isOwn={isOwn}>
-        {icon}
-      </CheckIcon>
+    <ReceiptWrapper aria-label={label} title={label}>
+      <CheckIcon $filled={filled}>{icon}</CheckIcon>
       {status === 'read' && readCount !== undefined && readCount > 1 && (
         <span style={{ marginLeft: '0.125rem', fontSize: '0.625rem' }}>{readCount}</span>
       )}
