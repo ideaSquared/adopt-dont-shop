@@ -79,6 +79,54 @@ const getUserFullName = (user: User | SerializedUser | undefined | null): string
   return fullName || 'Unknown User';
 };
 
+/**
+ * Canonical "frontend message" shape that matches lib.chat's Message type.
+ * All three send-paths (POST /messages, GET /messages, new_message socket
+ * broadcast) now funnel through this so the frontend always sees the same
+ * camelCase keys with a populated senderName — no more
+ * getSenderName-on-missing-association showing up as "Unknown User" because
+ * one path serialized the Sequelize instance raw.
+ */
+export const toFrontendMessage = (
+  raw: MessageWithSender | SerializedMessage
+): {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  timestamp: string;
+  type: string;
+  status: string;
+  attachments: unknown[];
+  isEdited: boolean;
+  metadata: Record<string, never>;
+} => {
+  const msg: SerializedMessage =
+    typeof (raw as MessageWithSender).toJSON === 'function'
+      ? (raw as MessageWithSender).toJSON!()
+      : (raw as SerializedMessage);
+
+  // Sequelize's default toJSON on an instance with eager-loaded associations
+  // usually serializes Sender too, but some model setups (or test fixtures)
+  // include Sender only on the raw instance. Prefer whichever has it.
+  const sender = msg.Sender ?? (raw as MessageWithSender).Sender;
+
+  return {
+    id: msg.message_id,
+    conversationId: msg.chat_id,
+    senderId: msg.sender_id,
+    senderName: getUserFullName(sender),
+    content: msg.content || '',
+    timestamp: msg.created_at,
+    type: msg.content_format || 'text',
+    status: 'sent',
+    attachments: msg.attachments || [],
+    isEdited: false,
+    metadata: {},
+  };
+};
+
 export class ChatController {
   /**
    * Create a new chat conversation
@@ -472,16 +520,12 @@ export class ChatController {
         attachments,
       });
 
-      // Get sender's full name using the helper function
-      const messageWithSender = message as unknown as MessageWithSender;
-      const senderName = getUserFullName(messageWithSender.Sender);
-
+      // Return the message in the canonical frontend shape so senders see
+      // the same fields (camelCase keys, populated senderName) they'd get
+      // back from GET /messages or from the `new_message` socket event.
       res.status(201).json({
         success: true,
-        data: {
-          ...message.toJSON(),
-          sender_name: senderName,
-        },
+        data: toFrontendMessage(message as unknown as MessageWithSender),
         message: 'Message sent successfully',
       });
     } catch (error) {
@@ -519,30 +563,10 @@ export class ChatController {
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      // Transform messages to match frontend Message interface
-      const transformedMessages = result.messages.map(msg => {
-        const msgObj: SerializedMessage =
-          typeof (msg as MessageWithSender).toJSON === 'function'
-            ? (msg as MessageWithSender).toJSON!()
-            : (msg as unknown as SerializedMessage);
-
-        // Get sender name using the helper function
-        const senderName = getUserFullName(msgObj.Sender);
-
-        return {
-          id: msgObj.message_id,
-          conversationId: msgObj.chat_id,
-          senderId: msgObj.sender_id,
-          senderName,
-          content: msgObj.content || '',
-          timestamp: msgObj.created_at,
-          type: msgObj.content_format || 'text',
-          status: 'sent',
-          attachments: msgObj.attachments || [],
-          isEdited: false,
-          metadata: {},
-        };
-      });
+      // Canonical frontend shape — same helper the POST /messages path uses.
+      const transformedMessages = result.messages.map(msg =>
+        toFrontendMessage(msg as unknown as MessageWithSender)
+      );
 
       res.json({
         success: true,

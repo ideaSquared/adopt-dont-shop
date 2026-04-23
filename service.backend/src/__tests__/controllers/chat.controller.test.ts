@@ -384,12 +384,18 @@ describe('ChatController', () => {
         );
 
         expect(mockResponse.status).toHaveBeenCalledWith(201);
+        // POST /messages now returns the canonical frontend Message shape
+        // (same as GET /messages and the new_message socket broadcast), so
+        // id/senderId/senderName are camelCase flat fields.
         expect(mockResponse.json).toHaveBeenCalledWith(
           expect.objectContaining({
             success: true,
             data: expect.objectContaining({
-              message_id: 'msg-001',
-              sender_name: 'John Doe',
+              id: 'msg-001',
+              conversationId: 'chat-001',
+              senderId: 'user-123',
+              senderName: 'John Doe',
+              content: 'Hello there!',
             }),
             message: 'Message sent successfully',
           })

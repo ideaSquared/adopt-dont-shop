@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import { config } from '../config';
+import { toFrontendMessage } from '../controllers/chat.controller';
 import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
 import { getMessageBroker } from '../services/messageBroker.service';
@@ -262,9 +263,13 @@ export class SocketHandlers {
             replyToId,
           });
 
-          // Broadcast message to all participants in the chat
+          // Broadcast the canonical frontend message shape — same helper
+          // used by the REST send/get paths — so clients see camelCase keys
+          // and a populated senderName instead of a raw Sequelize instance
+          // with a nested Sender association.
           this.io.to(`chat:${chatId}`).emit('new_message', {
-            message,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            message: toFrontendMessage(message as any),
             chatId,
             timestamp: new Date(),
           });
