@@ -66,8 +66,7 @@ export const api = globalApiService;
 // which is the Vite dev server on port 3000). The docker-compose dev config sets
 // VITE_WS_BASE_URL specifically for this; in prod, fall back to the REST base URL
 // because the backend + socket share a host.
-const wsBaseUrl =
-  (import.meta.env.VITE_WS_BASE_URL as string | undefined) || baseUrl || undefined;
+const wsBaseUrl = (import.meta.env.VITE_WS_BASE_URL as string | undefined) || baseUrl || undefined;
 export const chatService = new ChatService({
   ...serviceConfig,
   socketUrl: wsBaseUrl,
