@@ -30,6 +30,23 @@ import {
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 
+const PET_SEARCH_SORT_FIELDS = [
+  'createdAt',
+  'updatedAt',
+  'name',
+  'breed',
+  'ageYears',
+  'adoptionFee',
+  'distance',
+] as const;
+const PET_RESCUE_LIST_SORT_FIELDS = [
+  'createdAt',
+  'updatedAt',
+  'name',
+  'age',
+  'adoptionFee',
+] as const;
+
 /**
  * Helper to get the appropriate LIKE operator based on database dialect
  * PostgreSQL supports case-insensitive iLike, SQLite needs uppercase conversion

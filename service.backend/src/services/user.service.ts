@@ -2,8 +2,6 @@ import { z } from 'zod';
 import { JsonObject } from '../types/common';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import { validateSortField } from '../utils/sort-validation';
-
-const USER_SORT_FIELDS = ['createdAt', 'updatedAt', 'email', 'firstName', 'lastName', 'status'] as const;
 import Application from '../models/Application';
 import { AuditLog } from '../models/AuditLog';
 import Chat from '../models/Chat';
@@ -23,6 +21,15 @@ import {
 import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+
+const USER_SORT_FIELDS = [
+  'createdAt',
+  'updatedAt',
+  'email',
+  'firstName',
+  'lastName',
+  'status',
+] as const;
 
 // Safe wrapper for loggerHelpers to prevent test failures
 const safeLoggerHelpers = {
