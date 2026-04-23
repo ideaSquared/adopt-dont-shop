@@ -117,6 +117,18 @@ export const ApplicationPage: React.FC = () => {
       const petData = await petService.getPetById(petId);
       setPet(petData);
 
+      // Check for an existing active application for this pet before showing the form
+      const existing = await apiService.get<{
+        data: { id: string; status: string }[];
+      }>(`/api/v1/applications?petId=${encodeURIComponent(petId)}`);
+      const active = existing.data.find(a => a.status !== 'withdrawn' && a.status !== 'rejected');
+      if (active) {
+        navigate(`/applications/${active.id}`, {
+          state: { message: 'You already have an active application for this pet.' },
+        });
+        return;
+      }
+
       const response = await apiService.get<{ questions: Question[] }>(
         `/api/v1/rescues/${petData.rescue_id}/questions`
       );
@@ -129,7 +141,7 @@ export const ApplicationPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [petId]);
+  }, [petId, navigate]);
 
   useEffect(() => {
     if (!loadedDraft) {

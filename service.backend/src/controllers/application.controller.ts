@@ -122,9 +122,9 @@ export class ApplicationController extends BaseController {
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
-    query('userId').optional().isUUID().withMessage('Valid user ID required'),
-    query('petId').optional().isUUID().withMessage('Valid pet ID required'),
-    query('rescueId').optional().isUUID().withMessage('Valid rescue ID required'),
+    query('userId').optional().isString().notEmpty().withMessage('Valid user ID required'),
+    query('petId').optional().isString().notEmpty().withMessage('Valid pet ID required'),
+    query('rescueId').optional().isString().notEmpty().withMessage('Valid rescue ID required'),
     query('status')
       .optional()
       .isIn(Object.values(ApplicationStatus))
