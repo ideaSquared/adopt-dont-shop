@@ -22,6 +22,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -48,6 +49,9 @@ interface ChatContextType {
   isOnline: boolean;
   connectionQuality: 'excellent' | 'good' | 'poor' | 'offline';
   pendingMessageCount: number;
+
+  // Aggregate unread count across all conversations (excludes the active one).
+  unreadMessageCount: number;
 
   // Actions
   setActiveConversation: (conversation: Conversation | null) => void;
@@ -97,6 +101,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const initializedRef = useRef<string | null>(null);
   const lastMarkedAsReadRef = useRef<string | null>(null);
   const lastLoadedMessagesRef = useRef<string | null>(null);
+  // Tracks the active conversation id for socket handlers that live across re-renders.
+  const activeConversationIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversation?.id ?? null;
+  }, [activeConversation]);
 
   const loadConversations = useCallback(async () => {
     if (!isAuthenticated) {
@@ -142,13 +151,19 @@ export function ChatProvider({ children }: ChatProviderProps) {
           return [...currentMessages, message];
         });
 
-        // Update conversation list with latest message
+        // Update conversation list with latest message and bump unread count
+        // when the incoming message targets a conversation that is not currently active.
         setConversations(prev =>
-          (prev || []).map(conv =>
-            conv.id === message.conversationId
-              ? { ...conv, lastMessage: message, updatedAt: message.timestamp }
-              : conv
-          )
+          (prev || []).map(conv => {
+            if (conv.id !== message.conversationId) return conv;
+            const isActive = activeConversationIdRef.current === conv.id;
+            return {
+              ...conv,
+              lastMessage: message,
+              updatedAt: message.timestamp,
+              unreadCount: isActive ? conv.unreadCount : (conv.unreadCount ?? 0) + 1,
+            };
+          })
         );
       };
 
@@ -204,6 +219,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
                   ],
                 }
               : msg
+          )
+        );
+        // Zero out unread count on the conversation that was marked read.
+        setConversations(prev =>
+          (prev || []).map(conv =>
+            conv.id === event.chatId ? { ...conv, unreadCount: 0 } : conv
           )
         );
       };
@@ -590,6 +611,11 @@ export function ChatProvider({ children }: ChatProviderProps) {
     };
   }, []);
 
+  const unreadMessageCount = useMemo(
+    () => (conversations ?? []).reduce((sum, c) => sum + (c.unreadCount ?? 0), 0),
+    [conversations]
+  );
+
   const value: ChatContextType = {
     conversations,
     activeConversation,
@@ -606,6 +632,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     isOnline,
     connectionQuality,
     pendingMessageCount,
+    unreadMessageCount,
     setActiveConversation: handleSetActiveConversation,
     sendMessage,
     markAsRead,

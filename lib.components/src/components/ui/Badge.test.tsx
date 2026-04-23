@@ -107,4 +107,39 @@ describe('Badge', () => {
     const badge = screen.getByTestId('small-dot');
     expect(badge).toBeInTheDocument();
   });
+
+  describe('count variant', () => {
+    it('renders a numeric count', () => {
+      renderWithTheme(<Badge variant='count'>3</Badge>);
+      expect(screen.getByText('3')).toBeInTheDocument();
+    });
+
+    it('clamps numeric children above the max to "{max}+"', () => {
+      renderWithTheme(
+        <Badge variant='count' max={99}>
+          150
+        </Badge>
+      );
+      expect(screen.getByText('99+')).toBeInTheDocument();
+      expect(screen.queryByText('150')).not.toBeInTheDocument();
+    });
+
+    it('renders numeric children equal to max without clamping', () => {
+      renderWithTheme(
+        <Badge variant='count' max={99}>
+          99
+        </Badge>
+      );
+      expect(screen.getByText('99')).toBeInTheDocument();
+    });
+
+    it('ignores max when children is not numeric', () => {
+      renderWithTheme(
+        <Badge variant='count' max={5}>
+          NEW
+        </Badge>
+      );
+      expect(screen.getByText('NEW')).toBeInTheDocument();
+    });
+  });
 });
