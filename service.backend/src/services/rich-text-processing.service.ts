@@ -255,6 +255,15 @@ export class RichTextProcessingService {
   }
 
   /**
+   * Sanitize user-supplied HTML to remove XSS vectors before persistence.
+   * Safe tags and attributes are preserved; scripts, event handlers, and
+   * dangerous protocols are stripped.
+   */
+  static sanitize(html: string, options: RichTextOptions = {}): string {
+    return this.sanitizeHtml(html, { ...this.DEFAULT_OPTIONS, ...options });
+  }
+
+  /**
    * Sanitize HTML content
    */
   private static sanitizeHtml(html: string, options: RichTextOptions): string {

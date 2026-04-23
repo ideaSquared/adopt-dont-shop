@@ -43,11 +43,11 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 
 ### Shared Libraries
 
-- `@adopt-dont-shop/components` - UI components
-- `@adopt-dont-shop/lib-api` - API client
-- `@adopt-dont-shop/lib-auth` - Authentication
-- `@adopt-dont-shop/lib-chat` - Real-time messaging
-- `@adopt-dont-shop/lib-validation` - Form validation
+- `@adopt-dont-shop/lib.components` - UI components
+- `@adopt-dont-shop/lib.api` - API client
+- `@adopt-dont-shop/lib.auth` - Authentication
+- `@adopt-dont-shop/lib.chat` - Real-time messaging
+- `@adopt-dont-shop/lib.validation` - Form validation
 
 ### Communication Layer
 

@@ -64,12 +64,12 @@ service.backend/
 │   ├── config/         # Configuration
 │   ├── types/          # TypeScript type definitions
 │   └── index.ts        # Entry point
-├── tests/              # Unit and integration tests
+├── __tests__/          # Vitest tests (co-located with src)
 ├── .env.example        # Environment template
 ├── SECURITY.md         # Security guidelines
 ├── package.json
 ├── tsconfig.json
-└── jest.config.js
+└── vitest.config.ts
 ```
 
 ## 🛡️ Security Features
@@ -202,14 +202,13 @@ npm run lint
 
 ## Testing
 
+Tests run under Vitest (not Jest — despite the `Jest` library being listed in root devDependencies for lib.* packages).
+
 ```bash
-# Run all tests
-npm run test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Current test coverage: 83 tests passing
+npm run test           # Vitest run mode
+npm run test:watch     # Vitest watch mode
+npm run test:ui        # Vitest UI
+npm run test:coverage  # Vitest with coverage
 ```
 
 ## Production Deployment
@@ -243,8 +242,10 @@ RATE_LIMIT_MAX_REQUESTS=100
 
 ### Docker Deployment
 
+The production image is built by `service.backend/Dockerfile` against `node:20-alpine`. A minimal illustrative alternative:
+
 ```dockerfile
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -371,7 +372,7 @@ See [SECURITY.md](./SECURITY.md) for:
 
 ## Support
 
-- **Documentation**: [Backend PRD](../docs/service-backend-prd.md)
+- **Documentation**: [Backend PRD](../docs/backend/service-backend-prd.md) and [API Endpoints](../docs/backend/api-endpoints.md)
 - **Security**: [Security Guide](./SECURITY.md)
 - **Issues**: GitHub Issues
 - **Security Reports**: security@adoptdontshop.com

@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-notifications
+# @adopt-dont-shop/lib.notifications
 
 Production-ready multi-channel notification system for user alerts and updates
 
@@ -6,12 +6,12 @@ Production-ready multi-channel notification system for user alerts and updates
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-notifications
+npm install @adopt-dont-shop/lib.notifications
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-notifications": "workspace:*"
+    "@adopt-dont-shop/lib.notifications": "*"
   }
 }
 ```
@@ -19,7 +19,7 @@ npm install @adopt-dont-shop/lib-notifications
 ## 🚀 Quick Start
 
 ```typescript
-import { NotificationsService, NotificationRequest } from '@adopt-dont-shop/lib-notifications';
+import { NotificationsService, NotificationRequest } from '@adopt-dont-shop/lib.notifications';
 
 // Initialize the service
 const notificationsService = new NotificationsService({
@@ -401,7 +401,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-notifications": "workspace:*"
+    "@adopt-dont-shop/lib.notifications": "*"
   }
 }
 ```
@@ -410,7 +410,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { notificationsService } from '@adopt-dont-shop/lib-notifications';
+export { notificationsService } from '@adopt-dont-shop/lib.notifications';
 
 // In your component
 import { notificationsService } from '@/services';
@@ -444,7 +444,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-notifications": "workspace:*"
+    "@adopt-dont-shop/lib.notifications": "*"
   }
 }
 ```
@@ -453,7 +453,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/notifications.service.ts
-import { NotificationsService } from '@adopt-dont-shop/lib-notifications';
+import { NotificationsService } from '@adopt-dont-shop/lib.notifications';
 
 export const notificationsService = new NotificationsService({
   apiUrl: process.env.API_URL,
@@ -481,13 +481,13 @@ app.get('/api/notifications/example', async (req, res) => {
 
 ```bash
 # From workspace root
-docker-compose -f docker-compose.lib.yml up lib-notifications
+docker compose -f docker-compose.lib.yml up lib-notifications
 ```
 
 2. **Run tests:**
 
 ```bash
-docker-compose -f docker-compose.lib.yml run lib-notifications-test
+docker compose -f docker-compose.lib.yml run lib-notifications-test
 ```
 
 ### Using in App Containers
@@ -499,7 +499,7 @@ Add to your app's Dockerfile:
 COPY lib.notifications /workspace/lib.notifications
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-notifications@workspace:*
+RUN npm install @adopt-dont-shop/lib.notifications
 ```
 
 ### Multi-stage Build for Production
@@ -617,9 +617,9 @@ lib.notifications/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { notificationsService } from '@adopt-dont-shop/lib-notifications';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { notificationsService } from '@adopt-dont-shop/lib.notifications';
 
 // Configure with shared dependencies
 notificationsService.updateConfig({
@@ -633,7 +633,7 @@ notificationsService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { notificationsService, ErrorResponse } from '@adopt-dont-shop/lib-notifications';
+import { notificationsService, ErrorResponse } from '@adopt-dont-shop/lib.notifications';
 
 try {
   const result = await notificationsService.exampleMethod(data);
@@ -666,7 +666,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-notifications": "workspace:*"
+    "@adopt-dont-shop/lib.notifications": "*"
   }
 }
 ```

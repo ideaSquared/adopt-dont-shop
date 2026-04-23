@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-notifications
+# @adopt-dont-shop/lib.notifications
 
 Multi-channel notification system with real-time delivery, user preferences, and comprehensive template management
 
@@ -6,12 +6,12 @@ Multi-channel notification system with real-time delivery, user preferences, and
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-notifications
+npm install @adopt-dont-shop/lib.notifications
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-notifications": "workspace:*"
+    "@adopt-dont-shop/lib.notifications": "*"
   }
 }
 ```
@@ -22,10 +22,10 @@ npm install @adopt-dont-shop/lib-notifications
 import {
   NotificationsService,
   NotificationsServiceConfig,
-} from '@adopt-dont-shop/lib-notifications';
+} from '@adopt-dont-shop/lib.notifications';
 
 // Using the singleton instance
-import { notificationsService } from '@adopt-dont-shop/lib-notifications';
+import { notificationsService } from '@adopt-dont-shop/lib.notifications';
 
 // Send a single notification
 await notificationsService.sendNotification({
@@ -273,7 +273,7 @@ const stats = await notificationsService.getDeliveryStats({
 ```typescript
 // Notification Context Provider
 import { createContext, useContext, useEffect, useState } from 'react';
-import { NotificationsService } from '@adopt-dont-shop/lib-notifications';
+import { NotificationsService } from '@adopt-dont-shop/lib.notifications';
 
 const NotificationsContext = createContext<{
   service: NotificationsService;
@@ -331,7 +331,7 @@ function NotificationBell() {
 
 ```typescript
 // src/services/notifications.service.ts
-import { NotificationsService } from '@adopt-dont-shop/lib-notifications';
+import { NotificationsService } from '@adopt-dont-shop/lib.notifications';
 
 export const notificationsService = new NotificationsService({
   apiUrl: process.env.API_URL,
@@ -380,7 +380,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-notifications
+npx turbo test --filter=@adopt-dont-shop/lib.notifications
 ```
 
 ## 🚀 Key Features

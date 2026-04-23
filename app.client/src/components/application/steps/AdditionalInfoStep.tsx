@@ -1,11 +1,12 @@
 import { ApplicationData } from '@/types';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import styled from 'styled-components';
 
 interface AdditionalInfoStepProps {
   data: ApplicationData['additionalInfo'];
   onComplete: (data: ApplicationData['additionalInfo']) => void;
+  onChange?: (data: Partial<ApplicationData['additionalInfo']>) => void;
 }
 
 interface AdditionalInfoFormData {
@@ -101,10 +102,15 @@ const CheckboxInput = styled.input<{ hasError?: boolean }>`
   }
 `;
 
-export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({ data, onComplete }) => {
+export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
+  data,
+  onComplete,
+  onChange,
+}) => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<AdditionalInfoFormData>({
     defaultValues: {
@@ -114,6 +120,13 @@ export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({ data, on
       agreement: data?.agreement || false,
     },
   });
+
+  useEffect(() => {
+    const { unsubscribe } = watch(value => {
+      onChange?.(value as Partial<ApplicationData['additionalInfo']>);
+    });
+    return () => unsubscribe();
+  }, [watch, onChange]);
 
   const onSubmit = (formData: AdditionalInfoFormData) => {
     if (import.meta.env.DEV) {

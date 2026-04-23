@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import styled from 'styled-components';
+import React, { useState, useMemo } from 'react';
+import styled, { keyframes } from 'styled-components';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
   FiTrendingDown,
   FiDownload,
-  FiCalendar,
   FiUsers,
   FiHeart,
   FiMessageSquare,
@@ -27,9 +26,9 @@ import {
   StatValue,
   FilterBar,
   FilterGroup,
-  FilterLabel,
   Select,
 } from '../components/ui';
+import { usePlatformMetrics, useDashboardAnalytics } from '../hooks';
 
 const HeaderActions = styled.div`
   display: flex;
@@ -269,114 +268,111 @@ const TopItemValue = styled.div`
   color: #111827;
 `;
 
-// Mock data for charts
-const userGrowthData = [
-  { month: 'Jan', adopters: 450, rescues: 35 },
-  { month: 'Feb', adopters: 520, rescues: 42 },
-  { month: 'Mar', adopters: 680, rescues: 51 },
-  { month: 'Apr', adopters: 790, rescues: 58 },
-  { month: 'May', adopters: 920, rescues: 67 },
-  { month: 'Jun', adopters: 1050, rescues: 74 },
-];
+const shimmer = keyframes`
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+`;
 
-const adoptionData = [
-  { day: 'Mon', adoptions: 12 },
-  { day: 'Tue', adoptions: 18 },
-  { day: 'Wed', adoptions: 15 },
-  { day: 'Thu', adoptions: 22 },
-  { day: 'Fri', adoptions: 28 },
-  { day: 'Sat', adoptions: 35 },
-  { day: 'Sun', adoptions: 30 },
-];
+const SkeletonBlock = styled.div<{ $width?: string; $height?: string }>`
+  width: ${props => props.$width ?? '100%'};
+  height: ${props => props.$height ?? '1rem'};
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: ${shimmer} 1.4s infinite linear;
+`;
 
-const petTypeDistribution = [
-  { type: 'Dogs', count: 1245, color: '#667eea' },
-  { type: 'Cats', count: 980, color: '#f59e0b' },
-  { type: 'Rabbits', count: 234, color: '#ec4899' },
-  { type: 'Birds', count: 156, color: '#14b8a6' },
-  { type: 'Other', count: 89, color: '#8b5cf6' },
-];
+const ErrorBanner = styled.div`
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #991b1b;
+  font-size: 0.875rem;
+`;
 
-const topRescues = [
-  { name: 'Paws & Claws Rescue', location: 'London', adoptions: 234, listings: 45 },
-  { name: 'Happy Tails Haven', location: 'Manchester', adoptions: 198, listings: 38 },
-  { name: 'Second Chance Animals', location: 'Birmingham', adoptions: 176, listings: 42 },
-  { name: 'Forever Home Rescue', location: 'Leeds', adoptions: 154, listings: 31 },
-  { name: 'Animal Angels UK', location: 'Bristol', adoptions: 142, listings: 29 },
-];
+const PIE_COLORS = ['#667eea', '#f59e0b', '#ec4899', '#14b8a6', '#8b5cf6'];
+
+const timeRangeToDates = (range: string): { startDate: Date; endDate: Date } => {
+  const endDate = new Date();
+  const startDate = new Date();
+  switch (range) {
+    case '7days':
+      startDate.setDate(endDate.getDate() - 7);
+      break;
+    case '90days':
+      startDate.setDate(endDate.getDate() - 90);
+      break;
+    case '12months':
+      startDate.setFullYear(endDate.getFullYear() - 1);
+      break;
+    default:
+      startDate.setDate(endDate.getDate() - 30);
+  }
+  return { startDate, endDate };
+};
+
+const polarToCartesian = (cx: number, cy: number, r: number, deg: number) => {
+  const rad = ((deg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+};
+
+const describePieArc = (x: number, y: number, r: number, start: number, end: number) => {
+  const s = polarToCartesian(x, y, r, end);
+  const e = polarToCartesian(x, y, r, start);
+  const large = end - start <= 180 ? '0' : '1';
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 0 ${e.x} ${e.y} L ${x} ${y} Z`;
+};
 
 const Analytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30days');
 
-  const totalAdopters = userGrowthData[userGrowthData.length - 1].adopters;
-  const totalRescues = userGrowthData[userGrowthData.length - 1].rescues;
-  const weeklyAdoptions = adoptionData.reduce((sum, day) => sum + day.adoptions, 0);
-  const totalListings = petTypeDistribution.reduce((sum, pet) => sum + pet.count, 0);
+  const dateRange = useMemo(() => timeRangeToDates(timeRange), [timeRange]);
 
-  const maxAdoptionValue = Math.max(...adoptionData.map(d => d.adoptions));
+  const { data: metricsData, isLoading: metricsLoading } = usePlatformMetrics();
+  const {
+    data: analyticsData,
+    isLoading: analyticsLoading,
+    isError: analyticsError,
+  } = useDashboardAnalytics(dateRange);
 
-  const calculatePieSlices = () => {
-    const total = petTypeDistribution.reduce((sum, item) => sum + item.count, 0);
-    let currentAngle = 0;
+  const isLoading = metricsLoading || analyticsLoading;
 
-    return petTypeDistribution.map(item => {
-      const percentage = item.count / total;
-      const angle = percentage * 360;
+  const adoptionTrends = analyticsData?.adoptions.adoptionTrends ?? [];
+  const topRescues = analyticsData?.adoptions.rescuePerformance.slice(0, 5) ?? [];
+  const popularPetTypes = analyticsData?.adoptions.popularPetTypes ?? [];
+
+  const maxAdoptionValue = adoptionTrends.length
+    ? Math.max(...adoptionTrends.map(d => d.value), 1)
+    : 1;
+
+  const totalListings = metricsData?.pets.available ?? 0;
+  const totalAdopters = metricsData?.users.total ?? 0;
+  const activeRescues = metricsData?.rescues.verified ?? 0;
+  const weeklyAdoptions = analyticsData?.adoptions.totalAdoptions ?? 0;
+
+  const petPieSlices = useMemo(() => {
+    const total = popularPetTypes.reduce((s, p) => s + p.count, 0) || 1;
+    let angle = 0;
+    return popularPetTypes.map((p, i) => {
+      const pct = p.count / total;
       const slice = {
-        ...item,
-        percentage: (percentage * 100).toFixed(1),
-        startAngle: currentAngle,
-        endAngle: currentAngle + angle,
+        type: p.type,
+        count: p.count,
+        color: PIE_COLORS[i % PIE_COLORS.length],
+        percentage: (pct * 100).toFixed(1),
+        startAngle: angle,
+        endAngle: angle + pct * 360,
       };
-      currentAngle += angle;
+      angle += pct * 360;
       return slice;
     });
+  }, [popularPetTypes]);
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
   };
-
-  const polarToCartesian = (
-    centerX: number,
-    centerY: number,
-    radius: number,
-    angleInDegrees: number
-  ) => {
-    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
-    return {
-      x: centerX + radius * Math.cos(angleInRadians),
-      y: centerY + radius * Math.sin(angleInRadians),
-    };
-  };
-
-  const describePieArc = (
-    x: number,
-    y: number,
-    radius: number,
-    startAngle: number,
-    endAngle: number
-  ) => {
-    const start = polarToCartesian(x, y, radius, endAngle);
-    const end = polarToCartesian(x, y, radius, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
-
-    return [
-      'M',
-      start.x,
-      start.y,
-      'A',
-      radius,
-      radius,
-      0,
-      largeArcFlag,
-      0,
-      end.x,
-      end.y,
-      'L',
-      x,
-      y,
-      'Z',
-    ].join(' ');
-  };
-
-  const pieSlices = calculatePieSlices();
 
   return (
     <PageContainer>
@@ -403,17 +399,27 @@ const Analytics: React.FC = () => {
         </HeaderActions>
       </PageHeader>
 
+      {analyticsError && (
+        <ErrorBanner role='alert'>Failed to load analytics data. Please try again.</ErrorBanner>
+      )}
+
       <StatsBar>
         <StatCard>
           <StatIcon $color='#667eea'>
             <FiUsers />
           </StatIcon>
           <StatDetails>
-            <StatLabel>Total Adopters</StatLabel>
-            <StatValue>{totalAdopters.toLocaleString()}</StatValue>
+            <StatLabel>Total Users</StatLabel>
+            {isLoading ? (
+              <SkeletonBlock $width='80px' $height='1.5rem' />
+            ) : (
+              <StatValue>{totalAdopters.toLocaleString()}</StatValue>
+            )}
             <MetricChange $positive={true}>
               <FiTrendingUp />
-              +14.2% vs last period
+              {metricsData
+                ? `${metricsData.users.newThisMonth.toLocaleString()} new this month`
+                : '—'}
             </MetricChange>
           </StatDetails>
         </StatCard>
@@ -424,10 +430,14 @@ const Analytics: React.FC = () => {
           </StatIcon>
           <StatDetails>
             <StatLabel>Active Rescues</StatLabel>
-            <StatValue>{totalRescues}</StatValue>
+            {isLoading ? (
+              <SkeletonBlock $width='60px' $height='1.5rem' />
+            ) : (
+              <StatValue>{activeRescues.toLocaleString()}</StatValue>
+            )}
             <MetricChange $positive={true}>
               <FiTrendingUp />
-              +10.4% vs last period
+              {metricsData ? `${metricsData.rescues.total} total` : '—'}
             </MetricChange>
           </StatDetails>
         </StatCard>
@@ -438,10 +448,16 @@ const Analytics: React.FC = () => {
           </StatIcon>
           <StatDetails>
             <StatLabel>Weekly Adoptions</StatLabel>
-            <StatValue>{weeklyAdoptions}</StatValue>
-            <MetricChange $positive={false}>
-              <FiTrendingDown />
-              -3.8% vs last week
+            {isLoading ? (
+              <SkeletonBlock $width='60px' $height='1.5rem' />
+            ) : (
+              <StatValue>{weeklyAdoptions.toLocaleString()}</StatValue>
+            )}
+            <MetricChange $positive={weeklyAdoptions > 0}>
+              {weeklyAdoptions > 0 ? <FiTrendingUp /> : <FiTrendingDown />}
+              {analyticsData
+                ? `${(analyticsData.adoptions.adoptionRate ?? 0).toFixed(1)}% adoption rate`
+                : '—'}
             </MetricChange>
           </StatDetails>
         </StatCard>
@@ -452,10 +468,14 @@ const Analytics: React.FC = () => {
           </StatIcon>
           <StatDetails>
             <StatLabel>Active Listings</StatLabel>
-            <StatValue>{totalListings.toLocaleString()}</StatValue>
+            {isLoading ? (
+              <SkeletonBlock $width='80px' $height='1.5rem' />
+            ) : (
+              <StatValue>{totalListings.toLocaleString()}</StatValue>
+            )}
             <MetricChange $positive={true}>
               <FiTrendingUp />
-              +8.3% vs last period
+              {metricsData ? `${metricsData.pets.total} total pets` : '—'}
             </MetricChange>
           </StatDetails>
         </StatCard>
@@ -464,78 +484,90 @@ const Analytics: React.FC = () => {
       <AnalyticsGrid>
         <ChartCard>
           <CardHeader>
-            <CardTitle>User Growth Trend</CardTitle>
+            <CardTitle>Adoption Trends</CardTitle>
           </CardHeader>
           <CardContent>
             <ChartContainer>
-              <LineChart>
-                <LineChartGrid>
-                  {[1000, 750, 500, 250, 0].map(value => (
-                    <GridLine key={value}>
-                      <span>{value}</span>
-                    </GridLine>
+              {isLoading ? (
+                <SkeletonBlock $height='100%' />
+              ) : adoptionTrends.length > 0 ? (
+                <BarChart>
+                  {adoptionTrends.map(d => (
+                    <Bar
+                      key={d.date}
+                      $height={Math.max((d.value / maxAdoptionValue) * 100, 2)}
+                      $color='#10b981'
+                    >
+                      <BarValue>{d.value}</BarValue>
+                      <BarLabel>{formatDate(d.date)}</BarLabel>
+                    </Bar>
                   ))}
-                </LineChartGrid>
-                <LineChartSVG>
-                  <polyline
-                    fill='none'
-                    stroke='#667eea'
-                    strokeWidth='3'
-                    points={userGrowthData
-                      .map((d, i) => {
-                        const x = (i / (userGrowthData.length - 1)) * 100;
-                        const y = 100 - (d.adopters / 1000) * 100;
-                        return `${x}%,${y}%`;
-                      })
-                      .join(' ')}
-                  />
-                  {userGrowthData.map((d, i) => {
-                    const x = (i / (userGrowthData.length - 1)) * 100;
-                    const y = 100 - (d.adopters / 1000) * 100;
-                    return <circle key={i} cx={`${x}%`} cy={`${y}%`} r='4' fill='#667eea' />;
-                  })}
-                  <polyline
-                    fill='none'
-                    stroke='#10b981'
-                    strokeWidth='3'
-                    strokeDasharray='5,5'
-                    points={userGrowthData
-                      .map((d, i) => {
-                        const x = (i / (userGrowthData.length - 1)) * 100;
-                        const y = 100 - (d.rescues / 100) * 100;
-                        return `${x}%,${y}%`;
-                      })
-                      .join(' ')}
-                  />
-                </LineChartSVG>
-                <LineChartLabels>
-                  {userGrowthData.map(d => (
-                    <span key={d.month}>{d.month}</span>
-                  ))}
-                </LineChartLabels>
-              </LineChart>
+                </BarChart>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#9ca3af',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  No adoption data for this period
+                </div>
+              )}
             </ChartContainer>
           </CardContent>
         </ChartCard>
 
         <ChartCard>
           <CardHeader>
-            <CardTitle>Weekly Adoptions</CardTitle>
+            <CardTitle>Applications by Status</CardTitle>
           </CardHeader>
           <CardContent>
             <ChartContainer>
-              <BarChart>
-                {adoptionData.map(day => (
-                  <Bar
-                    key={day.day}
-                    $height={(day.adoptions / maxAdoptionValue) * 100}
-                    $color={day.day === 'Sat' || day.day === 'Sun' ? '#667eea' : '#10b981'}
-                  >
-                    <BarValue>{day.adoptions}</BarValue>
-                    <BarLabel>{day.day}</BarLabel>
-                  </Bar>
-                ))}
-              </BarChart>
+              {isLoading ? (
+                <SkeletonBlock $height='100%' />
+              ) : analyticsData ? (
+                (() => {
+                  const statusData = Object.entries(analyticsData.applications.statusMetrics).map(
+                    ([status, count], i) => ({
+                      status,
+                      count: count as number,
+                      color: ['#10b981', '#f59e0b', '#ef4444', '#667eea', '#8b5cf6'][i % 5],
+                    })
+                  );
+                  const maxCount = Math.max(...statusData.map(s => s.count), 1);
+                  return (
+                    <BarChart>
+                      {statusData.map(s => (
+                        <Bar
+                          key={s.status}
+                          $height={Math.max((s.count / maxCount) * 100, 2)}
+                          $color={s.color}
+                        >
+                          <BarValue>{s.count}</BarValue>
+                          <BarLabel style={{ textTransform: 'capitalize' }}>{s.status}</BarLabel>
+                        </Bar>
+                      ))}
+                    </BarChart>
+                  );
+                })()
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#9ca3af',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  No application data available
+                </div>
+              )}
             </ChartContainer>
           </CardContent>
         </ChartCard>
@@ -546,26 +578,36 @@ const Analytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <PieChartContainer>
-              <PieChart viewBox='0 0 200 200'>
-                {pieSlices.map((slice, i) => (
-                  <path
-                    key={i}
-                    d={describePieArc(100, 100, 80, slice.startAngle, slice.endAngle)}
-                    fill={slice.color}
-                    stroke='#ffffff'
-                    strokeWidth='2'
-                  />
-                ))}
-              </PieChart>
-              <PieLegend>
-                {pieSlices.map(slice => (
-                  <LegendItem key={slice.type}>
-                    <LegendColor $color={slice.color} />
-                    <LegendLabel>{slice.type}</LegendLabel>
-                    <LegendValue>{slice.percentage}%</LegendValue>
-                  </LegendItem>
-                ))}
-              </PieLegend>
+              {isLoading ? (
+                <SkeletonBlock $width='200px' $height='200px' style={{ borderRadius: '50%' }} />
+              ) : petPieSlices.length > 0 ? (
+                <>
+                  <PieChart viewBox='0 0 200 200'>
+                    {petPieSlices.map((slice, i) => (
+                      <path
+                        key={i}
+                        d={describePieArc(100, 100, 80, slice.startAngle, slice.endAngle)}
+                        fill={slice.color}
+                        stroke='#ffffff'
+                        strokeWidth='2'
+                      />
+                    ))}
+                  </PieChart>
+                  <PieLegend>
+                    {petPieSlices.map(slice => (
+                      <LegendItem key={slice.type}>
+                        <LegendColor $color={slice.color} />
+                        <LegendLabel>{slice.type}</LegendLabel>
+                        <LegendValue>{slice.percentage}%</LegendValue>
+                      </LegendItem>
+                    ))}
+                  </PieLegend>
+                </>
+              ) : (
+                <div style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
+                  No pet type data for this period
+                </div>
+              )}
             </PieChartContainer>
           </CardContent>
         </ChartCard>
@@ -575,20 +617,34 @@ const Analytics: React.FC = () => {
             <CardTitle>Top Performing Rescues</CardTitle>
           </CardHeader>
           <CardContent>
-            <TopItemsList>
-              {topRescues.map((rescue, index) => (
-                <TopItem key={rescue.name}>
-                  <TopItemRank>{index + 1}</TopItemRank>
-                  <TopItemInfo>
-                    <TopItemName>{rescue.name}</TopItemName>
-                    <TopItemMeta>
-                      {rescue.location} • {rescue.listings} active listings
-                    </TopItemMeta>
-                  </TopItemInfo>
-                  <TopItemValue>{rescue.adoptions}</TopItemValue>
-                </TopItem>
-              ))}
-            </TopItemsList>
+            {isLoading ? (
+              <TopItemsList>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <SkeletonBlock key={i} $height='3rem' />
+                ))}
+              </TopItemsList>
+            ) : topRescues.length > 0 ? (
+              <TopItemsList>
+                {topRescues.map((rescue, index) => (
+                  <TopItem key={rescue.rescueId}>
+                    <TopItemRank>{index + 1}</TopItemRank>
+                    <TopItemInfo>
+                      <TopItemName>{rescue.rescueName}</TopItemName>
+                      <TopItemMeta>
+                        {rescue.averageTimeToAdoption > 0
+                          ? `avg ${rescue.averageTimeToAdoption.toFixed(1)} days to adopt`
+                          : 'adoption data pending'}
+                      </TopItemMeta>
+                    </TopItemInfo>
+                    <TopItemValue>{rescue.adoptions}</TopItemValue>
+                  </TopItem>
+                ))}
+              </TopItemsList>
+            ) : (
+              <div style={{ color: '#9ca3af', fontSize: '0.875rem', padding: '1rem 0' }}>
+                No rescue performance data for this period
+              </div>
+            )}
           </CardContent>
         </ChartCard>
       </AnalyticsGrid>

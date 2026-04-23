@@ -76,6 +76,12 @@ export interface ApplicationDefaults {
       preferredTime?: 'morning' | 'afternoon' | 'evening';
     };
   };
+  /**
+   * Rescue-specific and otherwise-unstructured question answers, keyed by
+   * `questionKey`. Lets returning users skip re-answering custom questions
+   * a rescue has configured. Merged shallowly by key.
+   */
+  customAnswers?: Record<string, unknown>;
 }
 
 export interface ProfileCompletionStatus {

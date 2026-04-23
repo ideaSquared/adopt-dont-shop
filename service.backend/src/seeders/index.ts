@@ -30,6 +30,7 @@ import { seedReports } from './26-reports';
 import { seedModeratorActions } from './27-moderator-actions';
 import { seedUserSanctions } from './28-user-sanctions';
 import { up as seedAuditLogs } from './29-audit-logs';
+import { seedApplicationQuestions } from './30-application-questions';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -63,6 +64,7 @@ const seeders = [
   { name: 'Swipe Sessions', seeder: () => seedSwipeSessions(sequelize.getQueryInterface()) },
   { name: 'Swipe Actions', seeder: () => seedSwipeActions(sequelize.getQueryInterface()) },
   { name: 'Audit Logs', seeder: seedAuditLogs },
+  { name: 'Application Questions', seeder: seedApplicationQuestions },
 ];
 
 export async function runAllSeeders() {
@@ -76,6 +78,8 @@ export async function runAllSeeders() {
     await sequelize.authenticate();
     // eslint-disable-next-line no-console
     console.log('✅ Database connection established');
+
+    await clearAllData();
 
     for (let i = 0; i < seeders.length; i++) {
       const { name, seeder } = seeders[i];
@@ -120,6 +124,7 @@ export async function clearAllData() {
       'support_tickets',
       'invitations',
       'staff_members',
+      'application_questions',
       'applications',
       'pets',
       'user_roles',
@@ -131,10 +136,12 @@ export async function clearAllData() {
       'email_templates',
       'email_queue',
       'email_preferences',
+      'application_timeline',
+      'file_uploads',
     ];
 
     for (const tableName of clearOrder) {
-      await sequelize.query(`TRUNCATE TABLE ${tableName} RESTART IDENTITY CASCADE;`);
+      await sequelize.query(`TRUNCATE TABLE "${tableName}" RESTART IDENTITY CASCADE;`);
       // eslint-disable-next-line no-console
       console.log(`✅ Cleared ${tableName}`);
     }

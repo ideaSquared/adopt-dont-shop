@@ -53,7 +53,7 @@ grep -r "authService" app.client/src/ | head -10
 
 The login call is likely coming from one of these:
 
-- `@adopt-dont-shop/lib-auth` (new library)
+- `@adopt-dont-shop/lib.auth` (new library)
 - `app.client/src/services/api.ts` (legacy service)
 
 ### Step 4: URL Construction Analysis
@@ -82,7 +82,7 @@ This suggests:
 
 ```bash
 # Check what VITE_API_URL is actually set to in the running container
-docker-compose exec app-client env | grep VITE_API_URL
+docker compose exec app-client env | grep VITE_API_URL
 ```
 
 #### 5.2 Service Configuration Check
@@ -149,7 +149,7 @@ const testDirectCall = async () => {
 
 ### Primary Hypothesis
 
-The `@adopt-dont-shop/lib-auth` service is not receiving the correct `apiUrl` configuration and is falling back to a default that includes `/api`.
+The `@adopt-dont-shop/lib.auth` service is not receiving the correct `apiUrl` configuration and is falling back to a default that includes `/api`.
 
 ### Secondary Hypothesis
 
@@ -164,7 +164,7 @@ There might be multiple auth services in use (legacy vs new library) causing con
 
 ## 🎯 Root Cause Identified ✅
 
-**Problem**: The `AuthService` from `@adopt-dont-shop/lib-auth` imports and uses the **global `apiService`** from `lib-api`, which has a default configuration:
+**Problem**: The `AuthService` from `@adopt-dont-shop/lib.auth` imports and uses the **global `apiService`** from `lib-api`, which has a default configuration:
 
 ```typescript
 // In lib.api/src/services/api-service.ts
@@ -188,7 +188,7 @@ Configure the global `apiService` to use the correct API URL:
 
 ```typescript
 // In app.client/src/services/libraryServices.ts
-import { apiService as globalApiService } from '@adopt-dont-shop/lib-api';
+import { apiService as globalApiService } from '@adopt-dont-shop/lib.api';
 globalApiService.updateConfig({
   apiUrl: import.meta.env.VITE_API_URL || '',
   debug: true,

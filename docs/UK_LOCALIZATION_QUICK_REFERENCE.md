@@ -23,17 +23,17 @@ import {
   formatDateTime,
   formatTime,
   formatRelativeDate,
-} from '@adopt-dont-shop/lib-utils';
+} from '@adopt-dont-shop/lib.utils';
 
 // Currency formatting
-import { formatCurrency, formatCurrencyWhole, formatNumber } from '@adopt-dont-shop/lib-utils';
+import { formatCurrency, formatCurrencyWhole, formatNumber } from '@adopt-dont-shop/lib.utils';
 
 // Phone formatting
 import {
   formatPhoneNumber,
   validatePhoneNumber,
   getPhonePlaceholder,
-} from '@adopt-dont-shop/lib-utils';
+} from '@adopt-dont-shop/lib.utils';
 
 // Address formatting
 import {
@@ -41,10 +41,10 @@ import {
   formatPostcode,
   getPostcodePlaceholder,
   UK_COUNTIES,
-} from '@adopt-dont-shop/lib-utils';
+} from '@adopt-dont-shop/lib.utils';
 
 // Configuration
-import { LOCALE_CONFIG } from '@adopt-dont-shop/lib-utils';
+import { LOCALE_CONFIG } from '@adopt-dont-shop/lib.utils';
 ```
 
 ---
@@ -302,7 +302,7 @@ address.postcode; // instead of address.zipCode
 
 ```typescript
 // Make sure you're importing from lib-utils, not using direct date-fns
-import { formatDate } from '@adopt-dont-shop/lib-utils'; // ✅ Correct
+import { formatDate } from '@adopt-dont-shop/lib.utils'; // ✅ Correct
 import { format } from 'date-fns'; // ❌ Wrong (will use default formatting)
 ```
 
@@ -312,7 +312,7 @@ import { format } from 'date-fns'; // ❌ Wrong (will use default formatting)
 
 When updating a component to use UK localization:
 
-- [ ] Update imports to use `@adopt-dont-shop/lib-utils`
+- [ ] Update imports to use `@adopt-dont-shop/lib.utils`
 - [ ] Replace `state` with `county` in address handling
 - [ ] Replace `zipCode` with `postcode` in address handling
 - [ ] Use `formatDate()` instead of direct `format()` calls

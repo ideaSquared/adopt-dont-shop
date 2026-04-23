@@ -43,13 +43,13 @@ This library provides a complete analytics solution for the adopt-dont-shop plat
 ## Installation
 
 ```bash
-npm install @adopt-dont-shop/lib-analytics
+npm install @adopt-dont-shop/lib.analytics
 ```
 
 ## Quick Start
 
 ```typescript
-import { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
+import { AnalyticsService } from '@adopt-dont-shop/lib.analytics';
 
 // Initialize with default configuration
 const analytics = new AnalyticsService({
@@ -284,7 +284,7 @@ await analytics.trackError('API_RATE_LIMIT', {
 ```typescript
 // Context provider for React apps
 import { createContext, useContext } from 'react';
-import { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
+import { AnalyticsService } from '@adopt-dont-shop/lib.analytics';
 
 const AnalyticsContext = createContext<AnalyticsService | null>(null);
 
@@ -332,7 +332,7 @@ function PetCard({ pet }: { pet: Pet }) {
 
 ```typescript
 // Express.js middleware
-import { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
+import { AnalyticsService } from '@adopt-dont-shop/lib.analytics';
 
 const analytics = new AnalyticsService({
   apiUrl: process.env.ANALYTICS_API_URL,
@@ -559,9 +559,9 @@ MIT License - see the LICENSE file for details.
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { analyticsService } from '@adopt-dont-shop/lib-analytics';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { analyticsService } from '@adopt-dont-shop/lib.analytics';
 
 // Configure with shared dependencies
 analyticsService.updateConfig({
@@ -575,7 +575,7 @@ analyticsService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { analyticsService, ErrorResponse } from '@adopt-dont-shop/lib-analytics';
+import { analyticsService, ErrorResponse } from '@adopt-dont-shop/lib.analytics';
 
 try {
   const result = await analyticsService.exampleMethod(data);
@@ -608,7 +608,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-analytics": "workspace:*"
+    "@adopt-dont-shop/lib.analytics": "*"
   }
 }
 ```

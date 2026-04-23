@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-permissions
+# @adopt-dont-shop/lib.permissions
 
 Role-based access control (RBAC) system with hierarchical permissions, resource-based authorization, and comprehensive API integration
 
@@ -6,12 +6,12 @@ Role-based access control (RBAC) system with hierarchical permissions, resource-
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-permissions
+npm install @adopt-dont-shop/lib.permissions
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-permissions": "workspace:*"
+    "@adopt-dont-shop/lib.permissions": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-permissions
 ## 🚀 Quick Start
 
 ```typescript
-import { PermissionsService, PermissionsServiceConfig } from '@adopt-dont-shop/lib-permissions';
+import { PermissionsService, PermissionsServiceConfig } from '@adopt-dont-shop/lib.permissions';
 
 // Using the singleton instance
-import { permissionsService } from '@adopt-dont-shop/lib-permissions';
+import { permissionsService } from '@adopt-dont-shop/lib.permissions';
 
 // Basic permission check
 const canEditPets = await permissionsService.hasPermission('pets:edit');
@@ -276,7 +276,7 @@ await permissionsService.bulkAssignRoles([
 ```typescript
 // Permissions Context
 import { createContext, useContext, useEffect, useState } from 'react';
-import { PermissionsService } from '@adopt-dont-shop/lib-permissions';
+import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
 
 const PermissionsContext = createContext<PermissionsService | null>(null);
 
@@ -380,7 +380,7 @@ function PetManagement({ petId }: { petId: string }) {
 
 ```typescript
 // src/services/permissions.service.ts
-import { PermissionsService } from '@adopt-dont-shop/lib-permissions';
+import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
 
 export const permissionsService = new PermissionsService({
   apiUrl: process.env.API_URL,
@@ -475,7 +475,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-permissions
+npx turbo test --filter=@adopt-dont-shop/lib.permissions
 ```
 
 ## 🚀 Key Features

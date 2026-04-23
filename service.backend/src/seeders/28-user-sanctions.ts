@@ -266,13 +266,15 @@ export async function seedUserSanctions() {
       return cleaned;
     };
 
+    const validSanctions = sanctions.filter(s => s.userId !== undefined);
+
     await UserSanction.bulkCreate(
-      sanctions.map(sanction => ({
+      validSanctions.map(sanction => ({
         ...sanction,
         metadata: cleanMetadata(sanction.metadata || {}),
       }))
     );
-    console.log(`✅ Created ${sanctions.length} user sanctions`);
+    console.log(`✅ Created ${validSanctions.length} user sanctions`);
   } catch (error) {
     console.error('Error seeding user sanctions:', error);
     throw error;

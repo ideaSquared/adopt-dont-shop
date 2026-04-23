@@ -11,7 +11,7 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 ```
 ┌─────────────────────────────────────────────────────┐
 │              Shared Libraries (npm workspace)        │
-│  @adopt-dont-shop/lib-api, lib-auth, lib-chat...   │
+│  @adopt-dont-shop/lib.api, lib-auth, lib-chat...   │
 └─────────────────────────────────────────────────────┘
                            │
                     workspace:* dependency
@@ -188,14 +188,14 @@ npm install -D typescript @types/node
 // package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*",
-    "@adopt-dont-shop/lib-auth": "workspace:*"
+    "@adopt-dont-shop/lib.api": "workspace:*",
+    "@adopt-dont-shop/lib.auth": "workspace:*"
   }
 }
 
 // Import in code
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
 
 const pets = await apiService.exampleMethod({ endpoint: '/pets' });
 const user = authService.getCurrentUser();

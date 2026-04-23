@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-invitations
+# @adopt-dont-shop/lib.invitations
 
 Shared invitations functionality for the pet adoption platform
 
@@ -6,12 +6,12 @@ Shared invitations functionality for the pet adoption platform
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-invitations
+npm install @adopt-dont-shop/lib.invitations
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-invitations": "workspace:*"
+    "@adopt-dont-shop/lib.invitations": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-invitations
 ## 🚀 Quick Start
 
 ```typescript
-import { InvitationsService, InvitationsServiceConfig } from '@adopt-dont-shop/lib-invitations';
+import { InvitationsService, InvitationsServiceConfig } from '@adopt-dont-shop/lib.invitations';
 
 // Using the singleton instance
-import { invitationsService } from '@adopt-dont-shop/lib-invitations';
+import { invitationsService } from '@adopt-dont-shop/lib.invitations';
 
 // Basic usage
 const result = await invitationsService.exampleMethod({ test: 'data' });
@@ -134,7 +134,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-invitations": "workspace:*"
+    "@adopt-dont-shop/lib.invitations": "*"
   }
 }
 ```
@@ -143,7 +143,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { invitationsService } from '@adopt-dont-shop/lib-invitations';
+export { invitationsService } from '@adopt-dont-shop/lib.invitations';
 
 // In your component
 import { invitationsService } from '@/services';
@@ -177,7 +177,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-invitations": "workspace:*"
+    "@adopt-dont-shop/lib.invitations": "*"
   }
 }
 ```
@@ -186,7 +186,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/invitations.service.ts
-import { InvitationsService } from '@adopt-dont-shop/lib-invitations';
+import { InvitationsService } from '@adopt-dont-shop/lib.invitations';
 
 export const invitationsService = new InvitationsService({
   apiUrl: process.env.API_URL,
@@ -214,10 +214,10 @@ For isolated library development and testing:
 
 ```bash
 # Build and run the library in isolation
-docker-compose -f docker-compose.lib.yml up lib-invitations
+docker compose -f docker-compose.lib.yml up lib-invitations
 
 # Run tests in Docker
-docker-compose -f docker-compose.lib.yml run lib-invitations-test
+docker compose -f docker-compose.lib.yml run lib-invitations-test
 ```
 
 ### Integration with Apps
@@ -307,9 +307,9 @@ lib.invitations/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { invitationsService } from '@adopt-dont-shop/lib-invitations';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { invitationsService } from '@adopt-dont-shop/lib.invitations';
 
 // Configure with shared dependencies
 invitationsService.updateConfig({
@@ -323,7 +323,7 @@ invitationsService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { invitationsService, ErrorResponse } from '@adopt-dont-shop/lib-invitations';
+import { invitationsService, ErrorResponse } from '@adopt-dont-shop/lib.invitations';
 
 try {
   const result = await invitationsService.exampleMethod(data);
@@ -356,7 +356,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-invitations": "workspace:*"
+    "@adopt-dont-shop/lib.invitations": "*"
   }
 }
 ```

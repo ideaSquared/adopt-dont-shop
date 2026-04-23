@@ -128,12 +128,10 @@ Recommended branch protection rules for `main`:
 
 - ✅ Require status checks to pass before merging
 - ✅ Require branches to be up to date before merging
-- ✅ Required status checks:
-  - `Backend Tests`
-  - `Frontend Tests`
-  - `Client App Tests`
-  - `Code Quality`
-  - `Build Check`
+- ✅ Required status checks (names taken directly from the workflow files):
+  - `Detect Changes` (from `ci.yml`)
+  - `Backend Tests` (from `ci.yml`, gated by path filter)
+  - `Frontend App Tests (Vitest)` (from `ci.yml`, gated by path filter)
 
 ---
 
@@ -142,14 +140,14 @@ Recommended branch protection rules for `main`:
 ### Running Tests Locally
 
 ```bash
-# Backend tests
-cd service.backend && npm test
-
-# Frontend tests
-cd app.admin && npm test
-
-# All linting
+# Everything (Turbo-filtered)
+npm run test
 npm run lint
+npm run type-check
+
+# One package only
+npx turbo test --filter=@adopt-dont-shop/service-backend
+npx turbo test --filter=@adopt-dont-shop/app.admin
 ```
 
 ### Manual Deployment

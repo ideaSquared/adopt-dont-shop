@@ -4,6 +4,7 @@ import { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import { HomeVisitStatus } from '../models/HomeVisit';
 import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
+import { FileUploadService } from '../services/file-upload.service';
 import { AuthenticatedRequest } from '../types';
 import {
   ApplicationDocument,
@@ -14,25 +15,27 @@ import {
   FrontendApplication,
 } from '../types/application';
 import { logger } from '../utils/logger';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { BaseController } from './base.controller';
 
 export class ApplicationController extends BaseController {
   // Validation rules
   static validateCreateApplication = [
-    body('petId').isUUID().withMessage('Valid pet ID is required'),
+    body('petId').isString().notEmpty().withMessage('Valid pet ID is required'),
     body('answers').isObject().withMessage('Answers must be an object'),
-    body('references')
-      .isArray({ min: 1, max: 5 })
-      .withMessage('At least 1 reference is required, maximum 5'),
+    body('references').optional().isArray({ max: 5 }).withMessage('Maximum 5 references allowed'),
     body('references.*.name')
+      .optional()
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Reference name must be between 2 and 100 characters'),
     body('references.*.relationship')
+      .optional()
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Reference relationship must be between 2 and 100 characters'),
     body('references.*.phone')
+      .optional()
       .matches(/^[+]?[1-9]?[0-9]{7,15}$/)
       .withMessage('Valid reference phone number is required'),
     body('references.*.email')
@@ -120,9 +123,9 @@ export class ApplicationController extends BaseController {
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
-    query('userId').optional().isUUID().withMessage('Valid user ID required'),
-    query('petId').optional().isUUID().withMessage('Valid pet ID required'),
-    query('rescueId').optional().isUUID().withMessage('Valid rescue ID required'),
+    query('userId').optional().isString().notEmpty().withMessage('Valid user ID required'),
+    query('petId').optional().isString().notEmpty().withMessage('Valid pet ID required'),
+    query('rescueId').optional().isString().notEmpty().withMessage('Valid rescue ID required'),
     query('status')
       .optional()
       .isIn(Object.values(ApplicationStatus))
@@ -160,14 +163,12 @@ export class ApplicationController extends BaseController {
       .isLength({ min: 1, max: 255 })
       .withMessage('Valid application ID is required'),
     body('documentType')
+      .optional()
       .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Document type is required and must be less than 100 characters'),
-    body('fileName')
-      .trim()
-      .isLength({ min: 1, max: 255 })
-      .withMessage('File name is required and must be less than 255 characters'),
-    body('fileUrl').isURL().withMessage('Valid file URL is required'),
+      .isIn(['REFERENCE', 'VETERINARY_RECORD', 'PROOF_OF_RESIDENCE', 'OTHER'])
+      .withMessage(
+        'Document type must be one of: REFERENCE, VETERINARY_RECORD, PROOF_OF_RESIDENCE, OTHER'
+      ),
   ];
 
   static validateReferenceUpdate = [
@@ -436,7 +437,10 @@ export class ApplicationController extends BaseController {
         answers: req.body.answers,
         references: req.body.references,
         priority: req.body.priority,
-        notes: req.body.notes,
+        notes:
+          req.body.notes !== undefined
+            ? RichTextProcessingService.sanitize(req.body.notes)
+            : undefined,
         tags: req.body.tags,
       };
 
@@ -553,6 +557,15 @@ export class ApplicationController extends BaseController {
       }
 
       const { applicationId } = req.params;
+      if (typeof req.body.notes === 'string') {
+        req.body.notes = RichTextProcessingService.sanitize(req.body.notes);
+      }
+      if (typeof req.body.interviewNotes === 'string') {
+        req.body.interviewNotes = RichTextProcessingService.sanitize(req.body.interviewNotes);
+      }
+      if (typeof req.body.homeVisitNotes === 'string') {
+        req.body.homeVisitNotes = RichTextProcessingService.sanitize(req.body.homeVisitNotes);
+      }
       const application = await ApplicationService.updateApplication(
         applicationId,
         req.body,
@@ -669,8 +682,14 @@ export class ApplicationController extends BaseController {
       const statusUpdate: ApplicationStatusUpdateRequest = {
         status: req.body.status,
         actionedBy: req.user!.userId,
-        rejectionReason: req.body.rejectionReason,
-        notes: req.body.notes,
+        rejectionReason:
+          typeof req.body.rejectionReason === 'string'
+            ? RichTextProcessingService.sanitize(req.body.rejectionReason)
+            : req.body.rejectionReason,
+        notes:
+          typeof req.body.notes === 'string'
+            ? RichTextProcessingService.sanitize(req.body.notes)
+            : req.body.notes,
         followUpDate: req.body.followUpDate,
       };
 
@@ -779,16 +798,50 @@ export class ApplicationController extends BaseController {
         });
       }
 
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded. Supported formats: PDF, JPG, PNG, DOC, DOCX (max 5MB)',
+        });
+      }
+
       const { applicationId } = req.params;
+      const documentType: string = req.body.documentType || 'OTHER';
+
+      const uploadResult = await FileUploadService.uploadFile(req.file, 'applications', {
+        uploadedBy: req.user!.userId,
+        entityId: applicationId,
+        entityType: 'application',
+        purpose: 'document',
+      });
+
+      if (!uploadResult.success || !uploadResult.upload) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to store uploaded file',
+        });
+      }
+
       const application = await ApplicationService.addDocument(
         applicationId,
-        req.body,
+        {
+          documentType,
+          fileName: uploadResult.upload.original_filename,
+          fileUrl: uploadResult.upload.url,
+        },
         req.user!.userId
       );
 
-      res.status(200).json({
+      res.status(201).json({
         success: true,
-        message: 'Document added successfully',
+        message: 'Document uploaded successfully',
+        document: {
+          documentId: uploadResult.upload.upload_id,
+          fileName: uploadResult.upload.original_filename,
+          fileType: uploadResult.upload.mime_type,
+          url: uploadResult.upload.url,
+          uploadedAt: new Date().toISOString(),
+        },
         data: application,
       });
     } catch (error) {
@@ -812,6 +865,43 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to add document',
+        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      });
+    }
+  };
+
+  // Remove document from application
+  removeDocument = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { applicationId, documentId } = req.params;
+
+      await ApplicationService.removeDocument(applicationId, documentId, req.user!.userId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Document removed successfully',
+      });
+    } catch (error) {
+      logger.error('Error removing document:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage === 'Application not found' || errorMessage === 'Document not found') {
+        return res.status(404).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
+      if (errorMessage === 'Access denied') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied',
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to remove document',
         error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
       });
     }

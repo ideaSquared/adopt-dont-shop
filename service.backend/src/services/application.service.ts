@@ -84,11 +84,13 @@ export class ApplicationService {
       }
 
       // Prepare references with default status
-      const processedReferences: ApplicationReference[] = applicationData.references.map(ref => ({
-        ...ref,
-        status: 'pending' as const,
-        contacted_at: undefined,
-      }));
+      const processedReferences: ApplicationReference[] = (applicationData.references ?? []).map(
+        ref => ({
+          ...ref,
+          status: 'pending' as const,
+          contacted_at: undefined,
+        })
+      );
 
       // Create application
       const application = await Application.create({
@@ -847,6 +849,54 @@ export class ApplicationService {
       return (await application.reload()) as ApplicationData;
     } catch (error) {
       logger.error('Add document failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove document from application
+   */
+  static async removeDocument(
+    applicationId: string,
+    documentId: string,
+    userId: string
+  ): Promise<void> {
+    try {
+      const application = await Application.findByPk(applicationId);
+      if (!application) {
+        throw new Error('Application not found');
+      }
+
+      if (application.userId !== userId) {
+        throw new Error('Access denied');
+      }
+
+      const documentIndex = application.documents.findIndex(
+        (doc: { documentId: string }) => doc.documentId === documentId
+      );
+
+      if (documentIndex === -1) {
+        throw new Error('Document not found');
+      }
+
+      const removedDoc = application.documents[documentIndex];
+      const updatedDocuments = application.documents.filter(
+        (_: unknown, idx: number) => idx !== documentIndex
+      );
+
+      await application.update({ documents: updatedDocuments });
+
+      await AuditLogService.log({
+        action: 'DOCUMENT_REMOVE',
+        entity: 'Application',
+        entityId: applicationId,
+        details: { document_id: documentId, document_type: removedDoc.documentType },
+        userId,
+      });
+
+      logger.info('Document removed from application', { applicationId, documentId, userId });
+    } catch (error) {
+      logger.error('Remove document failed:', error);
       throw error;
     }
   }

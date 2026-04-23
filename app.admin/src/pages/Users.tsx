@@ -1,16 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail, FiShield } from 'react-icons/fi';
+import {
+  Heading,
+  Text,
+  Button,
+  Input,
+  useToast,
+  Toast,
+  ToastContainer,
+  type ToastMessage,
+} from '@adopt-dont-shop/lib.components';
+import { FiSearch, FiFilter, FiUserPlus, FiEdit2, FiMail } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
-import { useUsers, useSuspendUser, useUnsuspendUser, useVerifyUser, useDeleteUser } from '../hooks';
+import {
+  useUsers,
+  useSuspendUser,
+  useUnsuspendUser,
+  useVerifyUser,
+  useDeleteUser,
+  useBulkUpdateUsers,
+} from '../hooks';
 import { apiService, type AdminUser } from '../services/libraryServices';
+import { exportData, type ExportColumn } from '../services/exportService';
+import { ExportButton, BulkActionToolbar } from '../components/ui';
 import {
   UserDetailModal,
   EditUserModal,
   CreateSupportTicketModal,
   UserActionsMenu,
+  BulkConfirmationModal,
 } from '../components/modals';
 
 const PageContainer = styled.div`
@@ -213,6 +232,8 @@ const IconButton = styled.button`
   }
 `;
 
+type BulkActionType = 'activate' | 'deactivate' | 'delete';
+
 const Users: React.FC = () => {
   const { userId } = useParams<{ userId?: string }>();
   const navigate = useNavigate();
@@ -227,10 +248,16 @@ const Users: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
+  // Bulk selection state
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<BulkActionType | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const bulkUpdateUsers = useBulkUpdateUsers();
+
   const { data, isLoading, error, refetch } = useUsers({
     search: searchQuery,
-    userType: userTypeFilter !== 'all' ? (userTypeFilter as any) : undefined,
-    status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
+    userType: userTypeFilter !== 'all' ? userTypeFilter : undefined,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
     page: 1,
     limit: 20,
   });
@@ -239,6 +266,7 @@ const Users: React.FC = () => {
   const unsuspendUser = useUnsuspendUser();
   const verifyUser = useVerifyUser();
   const deleteUser = useDeleteUser();
+  const { toasts, showToast, hideToast } = useToast();
 
   // Load user from URL parameter
   useEffect(() => {
@@ -316,16 +344,18 @@ const Users: React.FC = () => {
   const handleSuspendUser = async (userId: string, reason?: string) => {
     try {
       await suspendUser.mutateAsync({ userId, reason });
+      showToast('User suspended successfully', 'success');
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to suspend user');
+      showToast(err instanceof Error ? err.message : 'Failed to suspend user', 'error');
     }
   };
 
   const handleUnsuspendUser = async (userId: string) => {
     try {
       await unsuspendUser.mutateAsync(userId);
+      showToast('User unsuspended successfully', 'success');
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to unsuspend user');
+      showToast(err instanceof Error ? err.message : 'Failed to unsuspend user', 'error');
     }
   };
 
@@ -343,6 +373,45 @@ const Users: React.FC = () => {
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to delete user');
     }
+  };
+
+  const handleBulkConfirm = async (reason?: string) => {
+    if (!bulkAction) {
+      return;
+    }
+
+    const userIds = Array.from(selectedRows);
+    let result: { successCount?: number; failedCount?: number; success?: number; failed?: number };
+
+    if (bulkAction === 'activate') {
+      result = await bulkUpdateUsers.mutateAsync({
+        userIds,
+        updates: { is_active: true },
+      });
+    } else if (bulkAction === 'deactivate') {
+      result = await bulkUpdateUsers.mutateAsync({
+        userIds,
+        updates: { is_active: false },
+      });
+    } else {
+      result = await Promise.all(
+        userIds.map(id => deleteUser.mutateAsync({ userId: id, reason }).catch(() => null))
+      ).then(results => ({
+        successCount: results.filter(r => r !== null).length,
+        failedCount: results.filter(r => r === null).length,
+      }));
+    }
+
+    setBulkResult({
+      succeeded: result.successCount ?? result.success ?? 0,
+      failed: result.failedCount ?? result.failed ?? 0,
+    });
+    setSelectedRows(new Set());
+  };
+
+  const handleBulkModalClose = () => {
+    setBulkAction(null);
+    setBulkResult(null);
   };
 
   if (error) {
@@ -372,21 +441,21 @@ const Users: React.FC = () => {
 
   const users = data?.data || [];
 
-  // Filter users based on search and filters
-  const filteredUsers = (users || []).filter((user: AdminUser) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      user.firstName?.toLowerCase() ||
-      ''.includes(searchQuery.toLowerCase()) ||
-      user.lastName?.toLowerCase() ||
-      ''.includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+  const userExportColumns: ExportColumn<AdminUser>[] = [
+    { header: 'First Name', accessor: 'firstName' },
+    { header: 'Last Name', accessor: 'lastName' },
+    { header: 'Email', accessor: 'email' },
+    { header: 'Type', accessor: 'userType' },
+    { header: 'Status', accessor: 'status' },
+    { header: 'Rescue', accessor: row => row.rescueName ?? '' },
+    { header: 'Email Verified', accessor: row => (row.emailVerified ? 'Yes' : 'No') },
+    { header: 'Joined', accessor: 'createdAt' },
+    { header: 'Last Login', accessor: row => row.lastLogin ?? 'Never' },
+  ];
 
-    const matchesUserType = userTypeFilter === 'all' || user.userType === userTypeFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-
-    return matchesSearch && matchesUserType && matchesStatus;
-  });
+  const handleExport = (format: 'csv' | 'pdf') => {
+    exportData(users, userExportColumns, 'users-export', 'User Management Export', format);
+  };
 
   const getUserInitials = (
     firstName: string | null | undefined,
@@ -515,10 +584,7 @@ const Users: React.FC = () => {
           <Text>Manage all platform users and permissions</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant='outline' size='md'>
-            <FiFilter style={{ marginRight: '0.5rem' }} />
-            Export
-          </Button>
+          <ExportButton onExport={handleExport} disabled={isLoading || users.length === 0} />
           <Button variant='primary' size='md'>
             <FiUserPlus style={{ marginRight: '0.5rem' }} />
             Add User
@@ -559,12 +625,39 @@ const Users: React.FC = () => {
         </FilterGroup>
       </FilterBar>
 
+      <BulkActionToolbar
+        selectedCount={selectedRows.size}
+        totalCount={users.length}
+        onSelectAll={() => setSelectedRows(new Set(users.map((u: AdminUser) => u.userId)))}
+        onClearSelection={() => setSelectedRows(new Set())}
+        actions={[
+          {
+            label: 'Activate',
+            variant: 'primary',
+            onClick: () => setBulkAction('activate'),
+          },
+          {
+            label: 'Deactivate',
+            variant: 'warning',
+            onClick: () => setBulkAction('deactivate'),
+          },
+          {
+            label: 'Delete',
+            variant: 'danger',
+            onClick: () => setBulkAction('delete'),
+          },
+        ]}
+      />
+
       <DataTable
         columns={columns}
         data={users}
         loading={isLoading}
         emptyMessage='No users found matching your criteria'
         onRowClick={handleRowClick}
+        selectable
+        selectedRows={selectedRows}
+        onSelectionChange={setSelectedRows}
         getRowId={user => user.userId}
       />
 
@@ -588,6 +681,48 @@ const Users: React.FC = () => {
         user={selectedUser}
         onCreate={handleCreateSupportTicket}
       />
+
+      <BulkConfirmationModal
+        isOpen={bulkAction !== null}
+        onClose={handleBulkModalClose}
+        onConfirm={handleBulkConfirm}
+        title={
+          bulkAction === 'delete'
+            ? 'Delete Users'
+            : bulkAction === 'activate'
+              ? 'Activate Users'
+              : 'Deactivate Users'
+        }
+        description={
+          bulkAction === 'delete'
+            ? 'This will permanently delete the selected users. This action cannot be undone.'
+            : bulkAction === 'activate'
+              ? 'Activate the selected user accounts.'
+              : 'Deactivate the selected user accounts. They will be unable to log in.'
+        }
+        selectedCount={selectedRows.size}
+        confirmLabel={
+          bulkAction === 'delete'
+            ? 'Delete Users'
+            : bulkAction === 'activate'
+              ? 'Activate Users'
+              : 'Deactivate Users'
+        }
+        variant={
+          bulkAction === 'delete' ? 'danger' : bulkAction === 'deactivate' ? 'warning' : 'info'
+        }
+        requireReason={bulkAction === 'delete'}
+        reasonLabel='Reason for deletion'
+        reasonPlaceholder='Explain why these users are being deleted...'
+        isLoading={bulkUpdateUsers.isLoading || deleteUser.isLoading}
+        resultSummary={bulkResult}
+      />
+
+      <ToastContainer position='top-right'>
+        {toasts.map((toast: ToastMessage) => (
+          <Toast key={toast.id} {...toast} onClose={hideToast} position='top-right' />
+        ))}
+      </ToastContainer>
     </PageContainer>
   );
 };

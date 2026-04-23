@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import { RescueController } from '../controllers/rescue.controller';
+import { QuestionController } from '../controllers/question.controller';
 import { authenticateToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { isUKPostcode, isUKPhoneNumber } from '../utils/uk-validators-middleware';
@@ -8,6 +9,7 @@ import { requirePermission } from '../middleware/rbac';
 
 const router = Router();
 const rescueController = new RescueController();
+const questionController = new QuestionController();
 
 // Validation middleware
 const validateRescueId = param('rescueId').isUUID().withMessage('Invalid rescue ID format');
@@ -1079,6 +1081,63 @@ router.post(
   validateSendEmail,
   requirePermission('rescues.update'),
   rescueController.sendEmail
+);
+
+// Bulk update rescues (admin only)
+router.post(
+  '/bulk-update',
+  authenticateToken,
+  [
+    body('rescueIds').isArray({ min: 1 }).withMessage('rescueIds must be a non-empty array'),
+    body('rescueIds.*').isUUID().withMessage('Each rescue ID must be a valid UUID'),
+    body('action')
+      .isIn(['approve', 'suspend', 'verify'])
+      .withMessage('Action must be approve, suspend, or verify'),
+    body('reason').optional().isString().isLength({ max: 500 }),
+  ],
+  requirePermission('rescues.verify'),
+  rescueController.bulkUpdateRescues
+);
+
+// Application Questions management
+// GET requires only authentication — any user filling in an application needs to read questions
+router.get(
+  '/:rescueId/questions',
+  validateRescueId,
+  questionController.getQuestions.bind(questionController)
+);
+
+router.post(
+  '/:rescueId/questions',
+  validateRescueId,
+  QuestionController.validateCreateQuestion,
+  requirePermission('rescues.update'),
+  questionController.createQuestion.bind(questionController)
+);
+
+router.put(
+  '/:rescueId/questions/:questionId',
+  validateRescueId,
+  QuestionController.validateQuestionId,
+  QuestionController.validateUpdateQuestion,
+  requirePermission('rescues.update'),
+  questionController.updateQuestion.bind(questionController)
+);
+
+router.delete(
+  '/:rescueId/questions/:questionId',
+  validateRescueId,
+  QuestionController.validateQuestionId,
+  requirePermission('rescues.update'),
+  questionController.deleteQuestion.bind(questionController)
+);
+
+router.patch(
+  '/:rescueId/questions/reorder',
+  validateRescueId,
+  QuestionController.validateReorderQuestions,
+  requirePermission('rescues.update'),
+  questionController.reorderQuestions.bind(questionController)
 );
 
 export default router;

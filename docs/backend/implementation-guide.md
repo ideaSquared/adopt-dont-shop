@@ -265,16 +265,16 @@ Shows:
 
 ```bash
 # Start all services
-docker-compose up
+docker compose up
 
 # Build and start
-docker-compose up --build
+docker compose up --build
 
 # Start specific service
-docker-compose up service-backend
+docker compose up service-backend
 
 # View logs
-docker-compose logs -f service-backend
+docker compose logs -f service-backend
 ```
 
 ### Production
@@ -329,7 +329,7 @@ docker run -p 5000:5000 \
 
 ```bash
 # Check PostgreSQL is running
-docker-compose ps database
+docker compose ps database
 
 # Reset database
 npm run db:drop

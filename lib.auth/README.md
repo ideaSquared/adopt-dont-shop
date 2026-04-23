@@ -1,443 +1,151 @@
-# Auth Library
+# @adopt-dont-shop/lib.auth
 
-Authentication and authorization functionality.
+Authentication and authorization for the Adopt Don't Shop monorepo. Wraps `lib.api` with user-facing auth flows (login, registration, sessions, two-factor), a React `AuthProvider` + `useAuth` hook, and drop-in login/register components.
 
-## Documentation
-
-See the centralized documentation: [docs/libraries/auth.md](../docs/libraries/auth.md)
+Detailed doc page: [docs/libraries/auth.md](../docs/libraries/auth.md)
 
 ## Installation
 
-```bash
-npm install @adopt-dont-shop/lib-auth
-```
-
-## 🚀 Quick Start
-
-```typescript
-import { AuthService, AuthServiceConfig } from '@adopt-dont-shop/lib-auth';
-
-// Using the singleton instance
-import { authService } from '@adopt-dont-shop/lib-auth';
-
-// Basic usage
-const result = await authService.exampleMethod({ test: 'data' });
-console.log(result);
-
-// Or create a custom instance
-const config: AuthServiceConfig = {
-  apiUrl: 'https://api.example.com',
-  debug: true,
-};
-
-const customService = new AuthService(config);
-const customResult = await customService.exampleMethod({ custom: 'data' });
-```
-
-## 🔧 Configuration
-
-### AuthServiceConfig
-
-| Property  | Type                     | Default                                  | Description                 |
-| --------- | ------------------------ | ---------------------------------------- | --------------------------- |
-| `apiUrl`  | `string`                 | `process.env.VITE_API_URL`               | Base API URL                |
-| `debug`   | `boolean`                | `process.env.NODE_ENV === 'development'` | Enable debug logging        |
-| `headers` | `Record<string, string>` | `{}`                                     | Custom headers for requests |
-
-### Environment Variables
-
-```bash
-# API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
-
-# Development
-NODE_ENV=development
-```
-
-## 📖 API Reference
-
-### AuthService
-
-#### Constructor
-
-```typescript
-new AuthService(config?: AuthServiceConfig)
-```
-
-#### Methods
-
-##### `exampleMethod(data, options)`
-
-Example method that demonstrates the library's capabilities.
-
-```typescript
-await service.exampleMethod(
-  { key: 'value' },
-  {
-    timeout: 5000,
-    useCache: true,
-    metadata: { requestId: 'abc123' },
-  }
-);
-```
-
-**Parameters:**
-
-- `data` (Record<string, unknown>): Input data
-- `options` (AuthServiceOptions): Operation options
-
-**Returns:** `Promise<BaseResponse>`
-
-##### `updateConfig(config)`
-
-Update the service configuration.
-
-```typescript
-service.updateConfig({ debug: true, apiUrl: 'https://new-api.com' });
-```
-
-##### `getConfig()`
-
-Get current configuration.
-
-```typescript
-const config = service.getConfig();
-```
-
-##### `clearCache()`
-
-Clear the internal cache.
-
-```typescript
-service.clearCache();
-```
-
-##### `healthCheck()`
-
-Check service health.
-
-```typescript
-const isHealthy = await service.healthCheck();
-```
-
-## 🏗️ Usage in Apps
-
-### React/Vite Apps (app.client, app.admin, app.rescue)
-
-1. **Add to package.json:**
+Workspace package — add to a consumer's `package.json` and `npm install` at the repo root:
 
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-auth": "workspace:*"
+    "@adopt-dont-shop/lib.auth": "*"
   }
 }
 ```
 
-2. **Import and use:**
+## Exports
+
+From `@adopt-dont-shop/lib.auth`:
+
+**Services**
+
+- `AuthService` — the class
+- `authService` — default singleton
+
+**React integration**
+
+- `AuthProvider`, `AuthContext` — provider + raw context
+- `useAuth()` — hook that throws if used outside `AuthProvider`
+- `AuthLayout`, `LoginForm`, `RegisterForm`, `TwoFactorSettings` — UI components (plus `*Props` types)
+
+**Types**
+
+- `User`, `LoginRequest`, `RegisterRequest`, `AuthResponse`, `ChangePasswordRequest`, `RefreshTokenRequest`, `RefreshTokenResponse`
+- `TwoFactorSetupResponse`, `TwoFactorEnableResponse`, `TwoFactorDisableResponse`, `TwoFactorBackupCodesResponse`
+- `Rescue`, `RescueRole`, `Permission`, `rolePermissions`
+- And everything re-exported from `./types`
+
+## Quick Start
+
+### React app
+
+```tsx
+import { AuthProvider, useAuth, LoginForm } from '@adopt-dont-shop/lib.auth';
+
+export function App() {
+  return (
+    <AuthProvider>
+      <Routes />
+    </AuthProvider>
+  );
+}
+
+function Profile() {
+  const { user, logout, isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <LoginForm />;
+  return (
+    <div>
+      <p>Hello, {user?.firstName}</p>
+      <button onClick={logout}>Log out</button>
+    </div>
+  );
+}
+```
+
+### Direct service use
 
 ```typescript
-// src/services/index.ts
-export { authService } from '@adopt-dont-shop/lib-auth';
+import { authService } from '@adopt-dont-shop/lib.auth';
 
-// In your component
-import { authService } from '@/services';
-
-function MyComponent() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await authService.exampleMethod({
-          component: 'MyComponent'
-        });
-        setData(result.data);
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  return <div>{/* Your JSX */}</div>;
-}
+await authService.login({ email: 'user@example.com', password: '…' });
+const user = authService.getCurrentUser();
+if (authService.isAuthenticated()) { /* … */ }
+await authService.logout();
 ```
 
-### Node.js Backend (service.backend)
+## AuthService methods
 
-1. **Add to package.json:**
+Session:
 
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-auth": "workspace:*"
-  }
-}
-```
+- `login(credentials: LoginRequest): Promise<AuthResponse>`
+- `register(userData: RegisterRequest): Promise<AuthResponse>`
+- `logout(): Promise<void>`
+- `refreshToken(): Promise<string>`
+- `getCurrentUser(): User | null`
+- `isAuthenticated(): boolean`
 
-2. **Import and use:**
+Profile:
 
-```typescript
-// src/services/auth.service.ts
-import { AuthService } from '@adopt-dont-shop/lib-auth';
+- `getProfile(): Promise<User>`
+- `updateProfile(partial: Partial<User>): Promise<User>`
+- `deleteAccount(reason?: string): Promise<void>`
 
-export const authService = new AuthService({
-  apiUrl: process.env.API_URL,
-  debug: process.env.NODE_ENV === 'development',
-});
+Password / email:
 
-// In your routes or controllers
-import { authService } from '../services/auth.service';
+- `forgotPassword(email: string): Promise<void>`
+- `resetPassword(token: string, newPassword: string): Promise<void>`
+- `changePassword(data: ChangePasswordRequest): Promise<void>`
+- `verifyEmail(token: string): Promise<void>`
+- `resendVerificationEmail(): Promise<void>`
 
-app.get('/api/auth/example', async (req, res) => {
-  try {
-    const result = await authService.exampleMethod(req.body);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-```
+Two-factor:
 
-## 🐳 Docker Integration
+- `twoFactorSetup(): Promise<TwoFactorSetupResponse>`
+- `twoFactorEnable(secret: string, token: string): Promise<TwoFactorEnableResponse>`
+- `twoFactorDisable(token: string): Promise<TwoFactorDisableResponse>`
+- `twoFactorRegenerateBackupCodes(): Promise<TwoFactorBackupCodesResponse>`
 
-### Development with Docker Compose
+Token storage (local):
 
-1. **Build the library:**
+- `getToken(): string | null`
+- `getRefreshToken(): string | null`
+- `setToken(token: string): void`
+- `clearTokens(): void`
 
-```bash
-# From workspace root
-docker-compose -f docker-compose.lib.yml up lib-auth
-```
+## useAuth hook
 
-2. **Run tests:**
+`useAuth()` returns the full `AuthContextType`. Throws if called outside `AuthProvider`. See `src/contexts/AuthContext.tsx` for the exact shape.
 
-```bash
-docker-compose -f docker-compose.lib.yml run lib-auth-test
-```
-
-### Using in App Containers
-
-Add to your app's Dockerfile:
-
-```dockerfile
-# Copy shared libraries
-COPY lib.auth /workspace/lib.auth
-
-# Install dependencies
-RUN npm install @adopt-dont-shop/lib-auth@workspace:*
-```
-
-### Multi-stage Build for Production
-
-```dockerfile
-# In your app's Dockerfile
-FROM node:20-alpine AS deps
-
-WORKDIR /app
-
-# Copy shared library
-COPY lib.auth ./lib.auth
-
-# Copy app package files
-COPY app.client/package*.json ./app.client/
-
-# Install dependencies
-RUN cd lib.auth && npm ci && npm run build
-RUN cd app.client && npm ci
-
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-COPY --from=deps /app ./
-
-# Copy app source
-COPY app.client ./app.client
-
-# Build app
-RUN cd app.client && npm run build
-```
-
-## 🧪 Testing
-
-### Run Tests
-
-```bash
-# Unit tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage
-npm run test:coverage
-```
-
-### Test Structure
-
-```
-src/
-├── services/
-│   ├── auth-service.ts
-│   └── __tests__/
-│       └── auth-service.test.ts
-└── types/
-    └── index.ts
-```
-
-## 🏗️ Development
-
-### Build the Library
-
-```bash
-# Development build with watch
-npm run dev
-
-# Production build
-npm run build
-
-# Clean build artifacts
-npm run clean
-```
-
-### Code Quality
-
-```bash
-# Lint
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Type checking
-npm run type-check
-```
-
-## 📁 Project Structure
+## Project structure
 
 ```
 lib.auth/
 ├── src/
-│   ├── services/
-│   │   ├── auth-service.ts     # Main service implementation
-│   │   └── __tests__/
-│   │       └── auth-service.test.ts
-│   ├── types/
-│   │   └── index.ts                  # TypeScript type definitions
-│   └── index.ts                      # Main entry point
-├── dist/                             # Built output (generated)
-├── docker-compose.lib.yml           # Docker compose for development
-├── Dockerfile                       # Multi-stage Docker build
-├── jest.config.js                   # Jest test configuration
-├── package.json                     # Package configuration
-├── tsconfig.json                    # TypeScript configuration
-├── .eslintrc.json                   # ESLint configuration
-├── .prettierrc.json                 # Prettier configuration
-└── README.md                        # This file
+│   ├── components/          AuthLayout, LoginForm, RegisterForm, TwoFactorSettings
+│   ├── contexts/            AuthContext + AuthProvider
+│   ├── hooks/               useAuth
+│   ├── services/            AuthService + singleton
+│   ├── types/               shared types
+│   └── index.ts             public entrypoint
+├── package.json
+├── tsconfig.json
+└── README.md                this file
 ```
 
-## 🔗 Integration Examples
+## Development
 
-### With Other Libraries
-
-```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { authService } from '@adopt-dont-shop/lib-auth';
-
-// Configure with shared dependencies
-authService.updateConfig({
-  apiUrl: apiService.getConfig().baseUrl,
-  headers: {
-    Authorization: `Bearer ${authService.getToken()}`,
-  },
-});
-```
-
-### Error Handling
-
-```typescript
-import { authService, ErrorResponse } from '@adopt-dont-shop/lib-auth';
-
-try {
-  const result = await authService.exampleMethod(data);
-  // Handle success
-} catch (error) {
-  const errorResponse = error as ErrorResponse;
-  console.error('Error:', errorResponse.error);
-  console.error('Code:', errorResponse.code);
-  console.error('Details:', errorResponse.details);
-}
-```
-
-## 🚀 Deployment
-
-### NPM Package (if publishing externally)
+From the repo root:
 
 ```bash
-# Build and test
-npm run build
-npm run test
-
-# Publish
-npm publish
+npx turbo build --filter=@adopt-dont-shop/lib.auth
+npx turbo test  --filter=@adopt-dont-shop/lib.auth
+npx turbo lint  --filter=@adopt-dont-shop/lib.auth
 ```
 
-### Workspace Integration
+## Related
 
-The library is already integrated into the workspace. Apps can import it using:
-
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib-auth": "workspace:*"
-  }
-}
-```
-
-## 🤝 Contributing
-
-1. Make changes to the library
-2. Add/update tests
-3. Run `npm run build` to ensure it builds correctly
-4. Run `npm test` to ensure tests pass
-5. Update documentation as needed
-
-## 📄 License
-
-MIT License - see the LICENSE file for details.
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Module not found**
-   - Ensure the library is built: `npm run build`
-   - Check workspace dependencies are installed: `npm install`
-
-2. **Type errors**
-   - Run type checking: `npm run type-check`
-   - Ensure TypeScript version compatibility
-
-3. **Build failures**
-   - Clean and rebuild: `npm run clean && npm run build`
-   - Check for circular dependencies
-
-### Debug Mode
-
-Enable debug logging:
-
-```typescript
-authService.updateConfig({ debug: true });
-```
-
-Or set environment variable:
-
-```bash
-NODE_ENV=development
-```
+- [`@adopt-dont-shop/lib.api`](../lib.api/README.md) — HTTP transport this library builds on
+- [`@adopt-dont-shop/lib.permissions`](../lib.permissions/README.md) — role-based access control

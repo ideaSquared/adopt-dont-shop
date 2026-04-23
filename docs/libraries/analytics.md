@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-analytics
+# @adopt-dont-shop/lib.analytics
 
 User behavior tracking and analytics for adoption insights and platform optimization
 
@@ -6,12 +6,12 @@ User behavior tracking and analytics for adoption insights and platform optimiza
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-analytics
+npm install @adopt-dont-shop/lib.analytics
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-analytics": "workspace:*"
+    "@adopt-dont-shop/lib.analytics": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-analytics
 ## 🚀 Quick Start
 
 ```typescript
-import { AnalyticsService, AnalyticsServiceConfig } from '@adopt-dont-shop/lib-analytics';
+import { AnalyticsService, AnalyticsServiceConfig } from '@adopt-dont-shop/lib.analytics';
 
 // Using the singleton instance
-import { analyticsService } from '@adopt-dont-shop/lib-analytics';
+import { analyticsService } from '@adopt-dont-shop/lib.analytics';
 
 // Track user events
 await analyticsService.trackEvent({
@@ -178,7 +178,7 @@ const performance = await analyticsService.getPerformanceMetrics();
 ```typescript
 // Context provider for React apps
 import { createContext, useContext } from 'react';
-import { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
+import { AnalyticsService } from '@adopt-dont-shop/lib.analytics';
 
 const AnalyticsContext = createContext<AnalyticsService | null>(null);
 
@@ -222,7 +222,7 @@ function PetCard({ pet }: { pet: Pet }) {
 
 ```typescript
 // src/services/analytics.service.ts
-import { AnalyticsService } from '@adopt-dont-shop/lib-analytics';
+import { AnalyticsService } from '@adopt-dont-shop/lib.analytics';
 
 export const analyticsService = new AnalyticsService({
   provider: 'mixpanel',
@@ -265,7 +265,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-analytics
+npx turbo test --filter=@adopt-dont-shop/lib.analytics
 ```
 
 ## 🚀 Key Features

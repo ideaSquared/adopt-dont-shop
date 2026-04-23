@@ -1423,4 +1423,13 @@ router.post(
   petController.reportPet
 );
 
+// Bulk update pets (admin only)
+router.post(
+  '/bulk-update',
+  authenticateToken,
+  requirePermission('pets.update'),
+  PetController.validateBulkUpdate,
+  petController.bulkUpdatePets
+);
+
 export default router;

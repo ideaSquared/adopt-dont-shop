@@ -78,7 +78,7 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
 
 **PostgreSQL** - Primary database
 
-- Version: 15+ with PostGIS extension
+- Version: `postgis/postgis:16-3.4` (PostgreSQL 16 with PostGIS 3.4)
 - Port: 5432
 - Features: User data, pets, applications, messaging
 
@@ -92,34 +92,45 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
 - Development: Local uploads directory
 - Production: AWS S3 with CloudFront CDN
 
-## Shared Libraries (16 libraries)
+## Shared Libraries (21 libraries)
 
-All libraries follow ESM-only architecture with TypeScript:
+All libraries follow ESM-only architecture with TypeScript strict mode. Package names are scoped as `@adopt-dont-shop/lib.<name>` (dots, matching the directory names).
 
-**Core Services:**
+**Core & Transport:**
 
-- `@adopt-dont-shop/lib-api` - API client
-- `@adopt-dont-shop/lib-auth` - Authentication
-- `@adopt-dont-shop/lib-validation` - Validation schemas
+- `@adopt-dont-shop/lib.api` - HTTP client
+- `@adopt-dont-shop/lib.types` - Shared TypeScript types
+- `@adopt-dont-shop/lib.validation` - Zod schemas and validators
 
-**Feature Libraries:**
+**Authentication & Access:**
 
-- `@adopt-dont-shop/lib-applications` - Application management
-- `@adopt-dont-shop/lib-chat` - Real-time messaging
-- `@adopt-dont-shop/lib-discovery` - Pet discovery
-- `@adopt-dont-shop/lib-email` - Email system
-- `@adopt-dont-shop/lib-invitations` - Staff invitations
-- `@adopt-dont-shop/lib-notifications` - Notifications
-- `@adopt-dont-shop/lib-pets` - Pet management
-- `@adopt-dont-shop/lib-rescues` - Rescue organizations
-- `@adopt-dont-shop/lib-search` - Search functionality
-- `@adopt-dont-shop/lib-storage` - File storage
-- `@adopt-dont-shop/lib-users` - User management
+- `@adopt-dont-shop/lib.auth` - Authentication hooks/session
+- `@adopt-dont-shop/lib.permissions` - Role-based access control
+- `@adopt-dont-shop/lib.invitations` - Staff/user invitations
+
+**Domain Services:**
+
+- `@adopt-dont-shop/lib.applications` - Adoption application lifecycle
+- `@adopt-dont-shop/lib.chat` - Real-time messaging
+- `@adopt-dont-shop/lib.discovery` - Pet discovery / swipe sessions
+- `@adopt-dont-shop/lib.notifications` - Multi-channel notifications
+- `@adopt-dont-shop/lib.pets` - Pet management
+- `@adopt-dont-shop/lib.rescue` - Rescue organizations
+- `@adopt-dont-shop/lib.search` - Search and filters
+- `@adopt-dont-shop/lib.moderation` - Reporting and moderation
+- `@adopt-dont-shop/lib.support-tickets` - Support tickets
+- `@adopt-dont-shop/lib.audit-logs` - Audit logging
+
+**UI & Analytics:**
+
+- `@adopt-dont-shop/lib.components` - Shared React components
+- `@adopt-dont-shop/lib.analytics` - Event tracking
+- `@adopt-dont-shop/lib.feature-flags` - Feature flags
 
 **Utilities:**
 
-- `@adopt-dont-shop/lib-analytics` - Analytics
-- `@adopt-dont-shop/lib-common` - Common utilities
+- `@adopt-dont-shop/lib.utils` - Shared helpers
+- `@adopt-dont-shop/lib.dev-tools` - Development tooling
 
 See [Libraries Documentation](../libraries/README.md) for details.
 
@@ -129,26 +140,30 @@ See [Libraries Documentation](../libraries/README.md) for details.
 
 ```bash
 # Start all services
-docker-compose up
+docker compose up
 
 # Start specific service
-docker-compose up service.backend
+docker compose up service.backend
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Rebuild
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Production
 
+Production uses the prod overlay on top of the base compose file — both `-f` flags are required, or use the root `prod:*` npm scripts.
+
 ```bash
 # Build optimized images
-docker-compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+# or: npm run prod:build
 
 # Deploy
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# or: npm run prod:up
 ```
 
 ### Subdomain Routing
@@ -179,13 +194,12 @@ npm install
 cp .env.example .env
 
 # Start with Docker
-docker-compose up
+docker compose up
 
-# Or start individual services
-npm run dev:client
-npm run dev:admin
-npm run dev:rescue
-npm run dev:backend
+# Or start subsets via Turbo filters
+npm run dev:apps           # all React apps in parallel
+npm run dev:backend        # backend only
+npx turbo dev --filter=@adopt-dont-shop/app.admin   # one app
 ```
 
 ### Working with Libraries
@@ -207,14 +221,18 @@ cd lib.api && npm run dev
 ### Database Migrations
 
 ```bash
-# Run migrations
-cd service.backend && npm run db:migrate
+# From the repo root (containers must be running):
+npm run db:migrate                     # run migrations
+npm run db:seed                        # run seeders
+npm run db:reset                       # migrate + seed
 
-# Create migration
-npm run migration:create -- --name add-new-field
+# From inside service.backend directly:
+npm run migrate                        # sequelize-cli db:migrate
+npm run seed                           # sequelize-cli db:seed:all
 
-# Rollback
-npm run db:migrate:undo
+# Create / rollback migrations via sequelize-cli directly:
+npx sequelize-cli migration:generate --name add-new-field
+npx sequelize-cli db:migrate:undo
 ```
 
 ## CI/CD Pipeline
@@ -357,10 +375,10 @@ taskkill /PID <pid> /F
 
 ```bash
 # Check PostgreSQL is running
-docker-compose ps database
+docker compose ps database
 
 # View logs
-docker-compose logs database
+docker compose logs database
 ```
 
 **Build Errors:**
@@ -370,8 +388,8 @@ docker-compose logs database
 rm -rf node_modules && npm install
 
 # Clear Docker cache
-docker-compose down -v
-docker-compose build --no-cache
+docker compose down -v
+docker compose build --no-cache
 ```
 
 ## Additional Resources

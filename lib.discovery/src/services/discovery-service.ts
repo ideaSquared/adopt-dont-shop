@@ -39,7 +39,7 @@ export class DiscoveryService {
     };
 
     this.apiService = new ApiService({
-      apiUrl: config.apiUrl || '/api',
+      apiUrl: config.apiUrl ?? '',
       debug: config.debug,
       timeout: 30000,
     });

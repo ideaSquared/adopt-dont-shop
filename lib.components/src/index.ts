@@ -11,6 +11,7 @@ export { ThemeProvider, useTheme } from './styles/ThemeProvider';
 export { useConfirm } from './hooks/useConfirm';
 export type { ConfirmOptions, UseConfirmReturn } from './hooks/useConfirm';
 export { useToast } from './hooks/useToast';
+export type { ToastMessage, UseToastReturn } from './hooks/useToast';
 
 // Foundation Components
 export { Avatar } from './components/ui/Avatar';
@@ -49,15 +50,16 @@ export { Navbar } from './components/navigation/Navbar';
 // Data Display Components - commenting out for now
 // export { Table } from './components/data/Table';
 
-// Form components - commenting out problematic ones
-// export * from './components/form/FileUpload';
+// Form components
+export * from './components/form/FileUpload';
 // export * from './components/form/RadioInput';
 
 // UI components - commenting out problematic ones
 // export * from './components/ui/EmptyState';
 // export * from './components/ui/Pagination';
 // export * from './components/ui/ProgressBar';
-// export * from './components/ui/Toast';
+export { Toast, ToastContainer } from './components/ui/Toast';
+export type { ToastContainerProps, ToastPosition, ToastProps } from './components/ui/Toast';
 
 // Types - only export working ones
 export type {

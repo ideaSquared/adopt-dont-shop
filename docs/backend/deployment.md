@@ -324,16 +324,16 @@ networks:
 
 ```bash
 # Development
-docker-compose -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up --build
 
 # Production
-docker-compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build
 
 # View logs
-docker-compose logs -f api
+docker compose logs -f api
 
 # Scale the API service
-docker-compose up -d --scale api=3
+docker compose up -d --scale api=3
 ```
 
 ## Kubernetes Deployment

@@ -9,7 +9,7 @@
 # Usage:
 #   1. cp docker-compose.override.yml.example docker-compose.override.yml
 #   2. Edit docker-compose.override.yml with your local settings
-#   3. docker-compose up (automatically includes override file)
+#   3. docker compose up (automatically includes override file)
 #
 # Note: docker-compose.override.yml is gitignored by default
 # ============================================================================

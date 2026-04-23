@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
@@ -14,7 +14,15 @@ import {
 import { DataTable, type Column } from '../components/data';
 import type { AdminRescue } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
-import { RescueDetailModal, RescueVerificationModal, SendEmailModal } from '@/components/modals';
+import { exportData, type ExportColumn } from '@/services/exportService';
+import {
+  RescueDetailModal,
+  RescueVerificationModal,
+  SendEmailModal,
+  BulkConfirmationModal,
+} from '@/components/modals';
+import { ExportButton, BulkActionToolbar } from '@/components/ui';
+import { useBulkUpdateRescues } from '@/hooks';
 
 const PageContainer = styled.div`
   display: flex;
@@ -229,9 +237,7 @@ const Rescues: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
   // Modal states
@@ -240,6 +246,12 @@ const Rescues: React.FC = () => {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationAction, setVerificationAction] = useState<'approve' | 'reject'>('approve');
   const [showEmailModal, setShowEmailModal] = useState(false);
+
+  // Bulk selection state
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [bulkRescueAction, setBulkRescueAction] = useState<'approve' | 'suspend' | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const bulkUpdateRescues = useBulkUpdateRescues();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -263,7 +275,7 @@ const Rescues: React.FC = () => {
     });
   };
 
-  const fetchRescues = async (): Promise<void> => {
+  const fetchRescues = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -279,19 +291,17 @@ const Rescues: React.FC = () => {
       });
 
       setRescues(result.data);
-      setTotalPages(result.pagination.pages);
-      setTotalItems(result.pagination.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch rescues');
       setRescues([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, searchQuery, statusFilter]);
 
   useEffect(() => {
     fetchRescues();
-  }, [currentPage, itemsPerPage, searchQuery, statusFilter]);
+  }, [fetchRescues]);
 
   // Load rescue from URL parameter
   useEffect(() => {
@@ -344,6 +354,36 @@ const Rescues: React.FC = () => {
 
   const handleVerificationSuccess = (): void => {
     fetchRescues();
+  };
+
+  const rescueExportColumns: ExportColumn<AdminRescue>[] = [
+    { header: 'Name', accessor: 'name' },
+    { header: 'Email', accessor: 'email' },
+    { header: 'City', accessor: 'city' },
+    { header: 'State', accessor: 'state' },
+    { header: 'Status', accessor: 'status' },
+    { header: 'Registered', accessor: 'createdAt' },
+    { header: 'Verified', accessor: row => row.verifiedAt ?? '' },
+  ];
+
+  const handleExport = (format: 'csv' | 'pdf') => {
+    exportData(rescues, rescueExportColumns, 'rescues-export', 'Rescue Management Export', format);
+  };
+
+  const handleBulkRescueConfirm = async (): Promise<void> => {
+    if (!bulkRescueAction) {
+      return;
+    }
+    const rescueIds = Array.from(selectedRows);
+    const result = await bulkUpdateRescues.mutateAsync({ rescueIds, action: bulkRescueAction });
+    setBulkResult({ succeeded: result.successCount, failed: result.failedCount });
+    setSelectedRows(new Set());
+    fetchRescues();
+  };
+
+  const handleBulkModalClose = (): void => {
+    setBulkRescueAction(null);
+    setBulkResult(null);
   };
 
   const columns: Column<AdminRescue>[] = [
@@ -430,9 +470,7 @@ const Rescues: React.FC = () => {
           <Text>Manage rescue organizations and verification status</Text>
         </HeaderLeft>
         <HeaderActions>
-          <Button variant='outline' size='md'>
-            Export Data
-          </Button>
+          <ExportButton onExport={handleExport} disabled={loading || rescues.length === 0} />
         </HeaderActions>
       </PageHeader>
 
@@ -465,12 +503,34 @@ const Rescues: React.FC = () => {
         </FilterGroup>
       </FilterBar>
 
+      <BulkActionToolbar
+        selectedCount={selectedRows.size}
+        totalCount={rescues.length}
+        onSelectAll={() => setSelectedRows(new Set(rescues.map((r: AdminRescue) => r.rescueId)))}
+        onClearSelection={() => setSelectedRows(new Set())}
+        actions={[
+          {
+            label: 'Approve',
+            variant: 'primary',
+            onClick: () => setBulkRescueAction('approve'),
+          },
+          {
+            label: 'Suspend',
+            variant: 'danger',
+            onClick: () => setBulkRescueAction('suspend'),
+          },
+        ]}
+      />
+
       <DataTable
         columns={columns}
         data={rescues}
         loading={loading}
         emptyMessage='No rescue organizations found matching your criteria'
         onRowClick={rescue => handleViewDetails(rescue.rescueId)}
+        selectable
+        selectedRows={selectedRows}
+        onSelectionChange={setSelectedRows}
         getRowId={rescue => rescue.rescueId}
       />
 
@@ -499,6 +559,23 @@ const Rescues: React.FC = () => {
           onSuccess={() => {}}
         />
       )}
+
+      <BulkConfirmationModal
+        isOpen={bulkRescueAction !== null}
+        onClose={handleBulkModalClose}
+        onConfirm={handleBulkRescueConfirm}
+        title={bulkRescueAction === 'approve' ? 'Approve Rescues' : 'Suspend Rescues'}
+        description={
+          bulkRescueAction === 'approve'
+            ? 'Verify and approve the selected rescue organizations on the platform.'
+            : 'Suspend the selected rescue organizations. They will be unable to operate on the platform.'
+        }
+        selectedCount={selectedRows.size}
+        confirmLabel={bulkRescueAction === 'approve' ? 'Approve Rescues' : 'Suspend Rescues'}
+        variant={bulkRescueAction === 'suspend' ? 'danger' : 'info'}
+        isLoading={bulkUpdateRescues.isLoading}
+        resultSummary={bulkResult}
+      />
     </PageContainer>
   );
 };
