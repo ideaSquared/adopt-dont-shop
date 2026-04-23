@@ -593,10 +593,7 @@ export class ChatController {
         chatId: req.params.chatId,
         duration: Date.now() - startTime,
       });
-      if (
-        error instanceof Error &&
-        error.message === 'User is not a participant in this chat'
-      ) {
+      if (error instanceof Error && error.message === 'User is not a participant in this chat') {
         return res.status(403).json({
           error: 'Access denied',
           message: error.message,
@@ -648,10 +645,7 @@ export class ChatController {
       });
     } catch (error) {
       logger.error('Error getting unread count:', error);
-      if (
-        error instanceof Error &&
-        error.message === 'User is not a participant in this chat'
-      ) {
+      if (error instanceof Error && error.message === 'User is not a participant in this chat') {
         return res.status(403).json({
           error: 'Access denied',
           message: error.message,
