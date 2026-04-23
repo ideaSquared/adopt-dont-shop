@@ -113,7 +113,7 @@ const AdminApp: React.FC = () => {
               <Route path='/configuration/questions' element={<Configuration />} />
 
               {/* Content Management */}
-              <Route path='/cms' element={<ContentManagement />} />
+              <Route path='/content' element={<ContentManagement />} />
 
               {/* Field-Level Permissions */}
               <Route path='/field-permissions' element={<FieldPermissions />} />
