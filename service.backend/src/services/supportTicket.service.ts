@@ -11,7 +11,13 @@ import { logger } from '../utils/logger';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
 
-const SUPPORT_TICKET_SORT_FIELDS = ['createdAt', 'updatedAt', 'status', 'priority', 'category'] as const;
+const SUPPORT_TICKET_SORT_FIELDS = [
+  'createdAt',
+  'updatedAt',
+  'status',
+  'priority',
+  'category',
+] as const;
 
 interface TicketFilters {
   status?: TicketStatus | TicketStatus[];

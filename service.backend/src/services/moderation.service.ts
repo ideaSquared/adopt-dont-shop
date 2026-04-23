@@ -232,7 +232,11 @@ class ModerationService {
       Object.assign(whereClause, { [Op.or]: orConditions });
     }
 
-    const safeSortBy = validateSortField(options.sortBy || 'createdAt', REPORT_SORT_FIELDS, 'createdAt');
+    const safeSortBy = validateSortField(
+      options.sortBy || 'createdAt',
+      REPORT_SORT_FIELDS,
+      'createdAt'
+    );
     const orderClause = [[safeSortBy, options.sortOrder || 'DESC']];
 
     const { count, rows } = await Report.findAndCountAll({
