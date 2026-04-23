@@ -135,7 +135,8 @@ npx turbo test --filter=@adopt-dont-shop/service-backend
 
 #### Testing Tools
 
-- **Jest** for testing framework
+- **Jest** — used by Node libraries under `lib.*` (e.g. `lib.auth`, `lib.api`)
+- **Vitest** — used by the React apps (`app.admin`, `app.client`, `app.rescue`) and by `service.backend`
 - **React Testing Library** for React components
 - **MSW (Mock Service Worker)** for API mocking when needed
 - All test code must follow the same TypeScript strict mode rules as production code
