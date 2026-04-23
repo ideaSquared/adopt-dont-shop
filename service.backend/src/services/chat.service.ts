@@ -235,17 +235,22 @@ export class ChatService {
         status: ChatStatus.ACTIVE,
       });
 
-      // Create chat participants
+      // Create chat participants. For rescue-role participants, scope them to
+      // the chat's rescue so authorization code can later enforce that rescue
+      // staff only act on chats for their own rescue.
       if (chatData.participantIds && chatData.participantIds.length > 0) {
         const participantPromises = chatData.participantIds
-          .filter(participantId => participantId && participantId.trim()) // Filter out null/undefined/empty values
-          .map(participantId =>
-            ChatParticipant.create({
+          .filter(participantId => participantId && participantId.trim())
+          .map(participantId => {
+            const role =
+              participantId === createdBy ? ParticipantRole.USER : ParticipantRole.RESCUE;
+            return ChatParticipant.create({
               chat_id: chat.chat_id,
               participant_id: participantId,
-              role: participantId === createdBy ? ParticipantRole.USER : ParticipantRole.RESCUE,
-            })
-          );
+              role,
+              rescue_id: role === ParticipantRole.RESCUE ? chatData.rescueId || null : null,
+            });
+          });
         await Promise.all(participantPromises);
       }
 

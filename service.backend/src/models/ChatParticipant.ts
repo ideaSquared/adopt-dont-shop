@@ -8,13 +8,21 @@ interface ChatParticipantAttributes {
   chat_id: string;
   participant_id: string;
   role: ParticipantRole;
+  /**
+   * For rescue-role participants, the rescue this participant represents.
+   * Nullable because existing (pre-migration) rows have not been backfilled.
+   */
+  rescue_id?: string | null;
   last_read_at: Date;
   created_at?: Date;
   updated_at?: Date;
 }
 
 interface ChatParticipantCreationAttributes
-  extends Optional<ChatParticipantAttributes, 'chat_participant_id' | 'last_read_at'> {}
+  extends Optional<
+    ChatParticipantAttributes,
+    'chat_participant_id' | 'last_read_at' | 'rescue_id'
+  > {}
 
 export class ChatParticipant
   extends Model<ChatParticipantAttributes, ChatParticipantCreationAttributes>
@@ -24,6 +32,7 @@ export class ChatParticipant
   public chat_id!: string;
   public participant_id!: string;
   public role!: ParticipantRole;
+  public rescue_id!: string | null;
   public last_read_at!: Date;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -69,6 +78,14 @@ ChatParticipant.init(
     role: {
       type: DataTypes.ENUM(...Object.values(ParticipantRole)),
       allowNull: false,
+    },
+    rescue_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      references: {
+        model: 'rescues',
+        key: 'rescue_id',
+      },
     },
     last_read_at: {
       type: DataTypes.DATE,
