@@ -30,6 +30,7 @@ import { seedReports } from './26-reports';
 import { seedModeratorActions } from './27-moderator-actions';
 import { seedUserSanctions } from './28-user-sanctions';
 import { up as seedAuditLogs } from './29-audit-logs';
+import { seedApplicationQuestions } from './30-application-questions';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -63,6 +64,7 @@ const seeders = [
   { name: 'Swipe Sessions', seeder: () => seedSwipeSessions(sequelize.getQueryInterface()) },
   { name: 'Swipe Actions', seeder: () => seedSwipeActions(sequelize.getQueryInterface()) },
   { name: 'Audit Logs', seeder: seedAuditLogs },
+  { name: 'Application Questions', seeder: seedApplicationQuestions },
 ];
 
 export async function runAllSeeders() {
@@ -122,6 +124,7 @@ export async function clearAllData() {
       'support_tickets',
       'invitations',
       'staff_members',
+      'application_questions',
       'applications',
       'pets',
       'user_roles',
