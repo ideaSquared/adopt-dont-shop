@@ -79,7 +79,7 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
     const newErrors: Record<string, string> = {};
     for (const q of questions) {
       if (q.isRequired && !hasAnswer(answers[q.questionKey])) {
-        newErrors[q.questionKey] = 'This field is required';
+        newErrors[q.questionKey] = "Don't forget this one 👀";
       }
     }
 

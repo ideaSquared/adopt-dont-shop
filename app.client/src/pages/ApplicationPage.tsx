@@ -319,13 +319,13 @@ export const ApplicationPage: React.FC = () => {
 
       clearDraft();
       setSuccessMessage(
-        'Application submitted successfully! You will be redirected to your application details shortly.'
+        `You're in! 🎉 We've sent your application to ${pet.name}'s rescue — taking you to your application details now.`
       );
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       setTimeout(() => {
         navigate(`/applications/${result.data.applicationId}`, {
-          state: { message: 'Application submitted successfully!' },
+          state: { message: `Application for ${pet.name} sent! 🐾` },
         });
       }, 3000);
     } catch (err) {
@@ -333,8 +333,8 @@ export const ApplicationPage: React.FC = () => {
       const message = err instanceof Error ? err.message : null;
       setError(
         message?.includes('validation failed')
-          ? `Some required fields are missing. Please review your answers and ensure all required fields are completed.`
-          : (message ?? 'Failed to submit application. Please try again.')
+          ? `A few required answers are still missing — pop back through and double-check each section.`
+          : (message ?? "Something went wrong sending your application. Mind giving it another go?")
       );
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
@@ -392,7 +392,7 @@ export const ApplicationPage: React.FC = () => {
           <p>A few quick questions and {pet?.name}&apos;s rescue will take it from there.</p>
           {loadedDraft && (
             <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
-              Your draft has been restored. Continue where you left off.
+              Welcome back — we picked up where you left off. ✨
             </p>
           )}
         </Header>

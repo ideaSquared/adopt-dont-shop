@@ -191,9 +191,9 @@ const ReviewStep: React.FC<{ categories: CategoryGroup[]; answers: Record<string
   answers,
 }) => (
   <ReviewContainer>
-    <ReviewTitle>Review your application</ReviewTitle>
+    <ReviewTitle>One last look 👀</ReviewTitle>
     <ReviewDescription>
-      Please check your answers before submitting. You can go back to any section to make changes.
+      Everything checked? You can pop back to any section to tweak an answer before we send it off.
     </ReviewDescription>
     {categories.map(({ category, title, questions }) => {
       const answeredQuestions = questions.filter(
@@ -280,9 +280,9 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
               variant='ghost'
               onClick={onSaveDraft}
               disabled={isSubmitting || saveStatus === 'saving'}
-              aria-label='Save draft'
+              aria-label='Save for later'
             >
-              Save draft
+              Save for later
             </Button>
           </SaveIndicator>
 
@@ -293,11 +293,11 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
               disabled={isSubmitting}
               isLoading={isSubmitting}
             >
-              Submit Application
+              Send my application 💌
             </Button>
           ) : (
             <Button variant='primary' type='submit' form={`step-${currentStep}-form`}>
-              Continue
+              Continue →
             </Button>
           )}
         </ButtonGroup>
