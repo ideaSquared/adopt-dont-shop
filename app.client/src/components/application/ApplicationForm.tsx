@@ -6,6 +6,8 @@ import type { Pet } from '@/services';
 import { QuestionCategoryStep } from './QuestionCategoryStep';
 import type { Question } from './QuestionField';
 import { formatHouseholdMembers, parseHouseholdMembers } from './HouseholdMembersField';
+import { formatCurrentPets, parseCurrentPets } from './CurrentPetsField';
+import { shouldShowQuestion } from './questionConditions';
 
 export type CategoryGroup = {
   category: string;
@@ -19,6 +21,7 @@ type ApplicationFormProps = {
   currentStep: number;
   answers: Record<string, unknown>;
   pet: Pet | null;
+  prefilledKeys?: ReadonlySet<string>;
   onStepComplete: (answers: Record<string, unknown>) => void;
   onStepBack: () => void;
   onSubmit: () => void;
@@ -180,6 +183,10 @@ const formatAnswerValue = (value: unknown): string => {
     if (householdMembers.length > 0) {
       return formatHouseholdMembers(householdMembers);
     }
+    const currentPets = parseCurrentPets(value);
+    if (currentPets.length > 0) {
+      return formatCurrentPets(currentPets);
+    }
     return value.join(', ');
   }
   return String(value);
@@ -190,13 +197,16 @@ const ReviewStep: React.FC<{ categories: CategoryGroup[]; answers: Record<string
   answers,
 }) => (
   <ReviewContainer>
-    <ReviewTitle>Review your application</ReviewTitle>
+    <ReviewTitle>One last look 👀</ReviewTitle>
     <ReviewDescription>
-      Please check your answers before submitting. You can go back to any section to make changes.
+      Everything checked? You can pop back to any section to tweak an answer before we send it off.
     </ReviewDescription>
     {categories.map(({ category, title, questions }) => {
       const answeredQuestions = questions.filter(
-        q => answers[q.questionKey] !== undefined && answers[q.questionKey] !== ''
+        q =>
+          shouldShowQuestion(q, answers) &&
+          answers[q.questionKey] !== undefined &&
+          answers[q.questionKey] !== ''
       );
       if (answeredQuestions.length === 0) {
         return null;
@@ -221,6 +231,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   currentStep,
   answers,
   pet: _pet,
+  prefilledKeys,
   onStepComplete,
   onStepBack,
   onSubmit,
@@ -251,6 +262,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
         description={categoryGroup.description}
         questions={categoryGroup.questions}
         answers={answers}
+        prefilledKeys={prefilledKeys}
         onComplete={onStepComplete}
         onChange={onChange}
       />
@@ -277,9 +289,9 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
               variant='ghost'
               onClick={onSaveDraft}
               disabled={isSubmitting || saveStatus === 'saving'}
-              aria-label='Save draft'
+              aria-label='Save for later'
             >
-              Save draft
+              Save for later
             </Button>
           </SaveIndicator>
 
@@ -290,11 +302,11 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
               disabled={isSubmitting}
               isLoading={isSubmitting}
             >
-              Submit Application
+              Send my application 💌
             </Button>
           ) : (
             <Button variant='primary' type='submit' form={`step-${currentStep}-form`}>
-              Continue
+              Continue →
             </Button>
           )}
         </ButtonGroup>

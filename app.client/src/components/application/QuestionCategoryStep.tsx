@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Question, QuestionField } from './QuestionField';
+import { shouldShowQuestion } from './questionConditions';
 
 type QuestionCategoryStepProps = {
   stepId: string;
@@ -8,6 +9,7 @@ type QuestionCategoryStepProps = {
   description?: string;
   questions: Question[];
   answers: Record<string, unknown>;
+  prefilledKeys?: ReadonlySet<string>;
   onComplete: (answers: Record<string, unknown>) => void;
   onChange: (answers: Record<string, unknown>) => void;
 };
@@ -49,16 +51,26 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
   description,
   questions,
   answers,
+  prefilledKeys,
   onComplete,
   onChange,
 }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touchedKeys, setTouchedKeys] = useState<Set<string>>(() => new Set());
 
   const handleFieldChange = (questionKey: string, value: unknown) => {
     const updated = { ...answers, [questionKey]: value };
     if (errors[questionKey]) {
       setErrors(prev => ({ ...prev, [questionKey]: '' }));
     }
+    setTouchedKeys(prev => {
+      if (prev.has(questionKey)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(questionKey);
+      return next;
+    });
     onChange(updated);
   };
 
@@ -67,8 +79,9 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
 
     const newErrors: Record<string, string> = {};
     for (const q of questions) {
+      if (!shouldShowQuestion(q, answers)) continue;
       if (q.isRequired && !hasAnswer(answers[q.questionKey])) {
-        newErrors[q.questionKey] = 'This field is required';
+        newErrors[q.questionKey] = "Don't forget this one 👀";
       }
     }
 
@@ -84,7 +97,8 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
     onComplete(answers);
   };
 
-  const hasRequired = questions.some(q => q.isRequired);
+  const visibleQuestions = questions.filter(q => shouldShowQuestion(q, answers));
+  const hasRequired = visibleQuestions.some(q => q.isRequired);
 
   return (
     <StepContainer>
@@ -93,16 +107,22 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
       {hasRequired && <RequiredNote>Fields marked with * are required.</RequiredNote>}
 
       <form id={`step-${stepId}-form`} onSubmit={handleSubmit} noValidate>
-        {questions.map(question => (
-          <div id={`field-${question.questionKey}`} key={question.questionId}>
-            <QuestionField
-              question={question}
-              value={answers[question.questionKey]}
-              onChange={value => handleFieldChange(question.questionKey, value)}
-              error={errors[question.questionKey]}
-            />
-          </div>
-        ))}
+        {visibleQuestions.map(question => {
+          const isPrefilled =
+            !touchedKeys.has(question.questionKey) &&
+            (prefilledKeys?.has(question.questionKey) ?? false);
+          return (
+            <div id={`field-${question.questionKey}`} key={question.questionId}>
+              <QuestionField
+                question={question}
+                value={answers[question.questionKey]}
+                onChange={value => handleFieldChange(question.questionKey, value)}
+                error={errors[question.questionKey]}
+                isPrefilled={isPrefilled}
+              />
+            </div>
+          );
+        })}
       </form>
     </StepContainer>
   );
