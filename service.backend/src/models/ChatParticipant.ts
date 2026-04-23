@@ -8,10 +8,7 @@ interface ChatParticipantAttributes {
   chat_id: string;
   participant_id: string;
   role: ParticipantRole;
-  /**
-   * For rescue-role participants, the rescue this participant represents.
-   * Nullable because existing (pre-migration) rows have not been backfilled.
-   */
+  /** For rescue-role participants, the rescue this participant represents. */
   rescue_id?: string | null;
   last_read_at: Date;
   created_at?: Date;
@@ -79,10 +76,6 @@ ChatParticipant.init(
       type: DataTypes.ENUM(...Object.values(ParticipantRole)),
       allowNull: false,
     },
-    // FK constraint is enforced by migration 36-add-rescue-id-to-chat-participants,
-    // not the model. Keeping references here would force sequelize.sync({alter: true})
-    // to participate in FK ordering that it can't infer (no .belongsTo(Rescue) on
-    // this model) and has caused alter-table hangs in dev/CI sync runs.
     rescue_id: {
       type: DataTypes.STRING,
       allowNull: true,
