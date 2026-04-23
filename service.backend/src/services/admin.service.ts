@@ -822,13 +822,13 @@ class AdminService {
     try {
       const roleCounts = (await sequelize.query(
         `
-        SELECT 
-          r.name as role_name,
+        SELECT
+          r.role_name as role_name,
           COUNT(ur.user_id) as count
         FROM roles r
         LEFT JOIN user_roles ur ON r.role_id = ur.role_id
-        GROUP BY r.role_id, r.name
-        ORDER BY r.name
+        GROUP BY r.role_id, r.role_name
+        ORDER BY r.role_name
       `,
         {
           type: QueryTypes.SELECT,
