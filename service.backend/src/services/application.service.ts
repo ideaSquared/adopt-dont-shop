@@ -84,11 +84,13 @@ export class ApplicationService {
       }
 
       // Prepare references with default status
-      const processedReferences: ApplicationReference[] = applicationData.references.map(ref => ({
-        ...ref,
-        status: 'pending' as const,
-        contacted_at: undefined,
-      }));
+      const processedReferences: ApplicationReference[] = (applicationData.references ?? []).map(
+        ref => ({
+          ...ref,
+          status: 'pending' as const,
+          contacted_at: undefined,
+        })
+      );
 
       // Create application
       const application = await Application.create({

@@ -197,7 +197,12 @@ export const ApplicationPage: React.FC = () => {
       }, 3000);
     } catch (err) {
       console.error('Failed to submit application:', err);
-      setError('Failed to submit application. Please try again.');
+      const message = err instanceof Error ? err.message : null;
+      setError(
+        message?.includes('validation failed')
+          ? `Some required fields are missing. Please review your answers and ensure all required fields are completed.`
+          : message ?? 'Failed to submit application. Please try again.'
+      );
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
@@ -272,7 +277,13 @@ export const ApplicationPage: React.FC = () => {
         </div>
       )}
 
-      <ApplicationProgress steps={steps} currentStep={currentStep} onStepClick={setCurrentStep} />
+      <ApplicationProgress
+        steps={steps}
+        currentStep={currentStep}
+        onStepClick={step => {
+          if (step < currentStep) setCurrentStep(step);
+        }}
+      />
 
       {categories.length > 0 ? (
         <ApplicationForm
