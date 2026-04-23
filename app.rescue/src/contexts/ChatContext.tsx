@@ -18,6 +18,7 @@ import {
 } from '@adopt-dont-shop/lib.chat';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { authService, chatService } from '../services/libraryServices';
+import { resolveFileUrl } from '../utils/fileUtils';
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
@@ -31,6 +32,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       user={chatUser}
       isAuthenticated={isAuthenticated}
       tokenProvider={tokenProvider}
+      resolveFileUrl={resolveFileUrl}
     >
       {children}
     </LibChatProvider>

@@ -10,6 +10,7 @@ import {
   ChatProvider as LibChatProvider,
   useChat as useLibChat,
   type ChatContextValue,
+  type FeatureFlagsAdapter,
   type OfflineAdapter,
   type OfflineState,
   type OfflineStateListener,
@@ -31,6 +32,8 @@ import {
   removeOfflineStateListener,
   type OfflineState as AppOfflineState,
 } from '@/utils/offlineManager';
+import { useStatsig } from '@/hooks/useStatsig';
+import { resolveFileUrl } from '@/utils/fileUtils';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 
 const toLibOfflineState = (state: AppOfflineState): OfflineState => ({
@@ -82,8 +85,23 @@ const buildOfflineAdapter = (): OfflineAdapter => {
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
+  const { checkGate, logEvent } = useStatsig();
   const offlineAdapter = useMemo(() => buildOfflineAdapter(), []);
   const tokenProvider = useMemo(() => () => authService.getToken(), []);
+
+  const featureFlags = useMemo<FeatureFlagsAdapter>(
+    () => ({
+      checkGate: (name: string) => checkGate(name),
+      logEvent: (name: string, value?: number, metadata?: Record<string, unknown>) => {
+        // Statsig accepts string/number values + a Record<string, string>. Stringify here
+        // rather than widening Statsig's signature — chat metadata is small and always flat.
+        const stringMetadata =
+          metadata && Object.fromEntries(Object.entries(metadata).map(([k, v]) => [k, String(v)]));
+        logEvent(name, value, stringMetadata);
+      },
+    }),
+    [checkGate, logEvent]
+  );
 
   const chatUser = user ? { userId: user.userId, firstName: user.firstName } : null;
 
@@ -94,6 +112,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       isAuthenticated={isAuthenticated}
       tokenProvider={tokenProvider}
       offlineAdapter={offlineAdapter}
+      featureFlags={featureFlags}
+      resolveFileUrl={resolveFileUrl}
     >
       {children}
     </LibChatProvider>

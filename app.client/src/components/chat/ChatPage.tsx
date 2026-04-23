@@ -1,12 +1,10 @@
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useChat } from '@/contexts/ChatContext';
 import { Spinner } from '@adopt-dont-shop/lib.components';
+import { ChatWindow, ConnectionStatusBanner, ConversationList } from '@adopt-dont-shop/lib.chat';
 import { useEffect, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { ChatWindow } from './ChatWindow';
-import { ConversationList } from './ConversationList';
-import { ConnectionStatusBanner } from './ConnectionStatusBanner';
 
 const ChatContainer = styled.div`
   display: flex;
@@ -192,6 +190,7 @@ export function ChatPage() {
   const { conversationId } = useParams<{ conversationId?: string }>();
   const { conversations, activeConversation, setActiveConversation, isLoading, error } = useChat();
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const lastSetConversationId = useRef<string | null>(null);
 
   // Set active conversation from URL
@@ -251,15 +250,27 @@ export function ChatPage() {
           {/* Desktop View - Always show both panels */}
           <DesktopView>
             <ConversationPanel>
-              <ConversationList />
+              <ConversationList
+                emptyStateDescription="Start a conversation with a rescue organization when you're interested in a pet."
+                emptyAction={{ label: 'Discover Pets', onClick: () => navigate('/discover') }}
+                onConversationSelect={c => navigate(`/chat/${c.id}`)}
+              />
             </ConversationPanel>
             <Divider />
-            <ChatWindow />
+            <ChatWindow onBack={() => navigate('/chat')} />
           </DesktopView>
 
           {/* Mobile View - Show conversation list or chat window */}
           <MobileConversationView>
-            {!activeConversation || !conversationId ? <ConversationList /> : <ChatWindow />}
+            {!activeConversation || !conversationId ? (
+              <ConversationList
+                emptyStateDescription="Start a conversation with a rescue organization when you're interested in a pet."
+                emptyAction={{ label: 'Discover Pets', onClick: () => navigate('/discover') }}
+                onConversationSelect={c => navigate(`/chat/${c.id}`)}
+              />
+            ) : (
+              <ChatWindow onBack={() => navigate('/chat')} />
+            )}
           </MobileConversationView>
         </ChatLayout>
       )}
