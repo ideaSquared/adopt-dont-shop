@@ -71,9 +71,13 @@ export const authService = new AuthService();
 // Uses the canonical authService.getToken() abstraction to stay in sync with
 // how the rest of the app reads auth tokens. Reading localStorage directly
 // caused silent Socket.IO auth failures when the token shape/location changed.
+// Socket.IO can't use a relative/empty URL — it would default to the Vite dev
+// server origin. VITE_WS_BASE_URL points directly at the backend.
+const wsBaseUrl =
+  (import.meta.env.VITE_WS_BASE_URL as string | undefined) || baseUrl || undefined;
 export const chatService = new ChatService({
   ...serviceConfig,
-  socketUrl: baseUrl, // Socket.IO connects directly to base URL
+  socketUrl: wsBaseUrl,
   headers: {
     Authorization: () => {
       const token = authService.getToken();
