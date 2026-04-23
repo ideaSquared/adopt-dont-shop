@@ -63,13 +63,20 @@ export const applicationService = new ApplicationsService(globalApiService, serv
 export const petService = new PetsService(globalApiService);
 export const rescueService = new RescueService(globalApiService, serviceConfig);
 
-// ✅ Configure chatService with Socket.IO URL and authentication headers
+// AuthService uses the pre-configured global apiService. Must be declared
+// before chatService so the chat Authorization resolver can reference it.
+export const authService = new AuthService();
+
+// ✅ Configure chatService with Socket.IO URL and authentication headers.
+// Uses the canonical authService.getToken() abstraction to stay in sync with
+// how the rest of the app reads auth tokens. Reading localStorage directly
+// caused silent Socket.IO auth failures when the token shape/location changed.
 export const chatService = new ChatService({
   ...serviceConfig,
   socketUrl: baseUrl, // Socket.IO connects directly to base URL
   headers: {
     Authorization: () => {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
+      const token = authService.getToken();
       return token ? `Bearer ${token}` : '';
     },
   },
@@ -79,9 +86,6 @@ export const notificationsService = new NotificationsService(serviceConfig);
 export const permissionsService = new PermissionsService(serviceConfig, globalApiService);
 export const validationService = new ValidationService(serviceConfig);
 export const invitationService = new InvitationsService(globalApiService, serviceConfig);
-
-// AuthService uses the pre-configured global apiService
-export const authService = new AuthService();
 
 // Export the configured API service for direct use
 export const apiService = globalApiService;

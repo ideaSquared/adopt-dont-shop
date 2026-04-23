@@ -182,7 +182,7 @@ export function ChatWindow() {
 
     try {
       setIsSending(true);
-      await sendMessage(messageText.trim(), activeConversation.id);
+      await sendMessage(messageText.trim(), attachments);
       setMessageText('');
     } catch (err) {
       console.error('Failed to send message:', err);
