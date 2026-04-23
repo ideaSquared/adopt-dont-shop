@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-feature-flags
+# @adopt-dont-shop/lib.feature-flags
 
 Comprehensive feature flag management with backend integration, Statsig support, intelligent caching, and A/B testing capabilities
 
@@ -6,12 +6,12 @@ Comprehensive feature flag management with backend integration, Statsig support,
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-feature-flags
+npm install @adopt-dont-shop/lib.feature-flags
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-feature-flags": "workspace:*"
+    "@adopt-dont-shop/lib.feature-flags": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-feature-flags
 ## 🚀 Quick Start
 
 ```typescript
-import { FeatureFlagsService, FeatureFlagsServiceConfig } from '@adopt-dont-shop/lib-feature-flags';
+import { FeatureFlagsService, FeatureFlagsServiceConfig } from '@adopt-dont-shop/lib.feature-flags';
 
 // Using the singleton instance
-import { featureFlagsService } from '@adopt-dont-shop/lib-feature-flags';
+import { featureFlagsService } from '@adopt-dont-shop/lib.feature-flags';
 
 // Basic feature flag check
 const isNewDashboardEnabled = await featureFlagsService.isFeatureEnabled('new_dashboard');
@@ -144,7 +144,7 @@ const publicFlags = await featureFlagsService.getPublicFlags();
 Set user context for Statsig personalization.
 
 ```typescript
-import { StatsigUser } from '@adopt-dont-shop/lib-feature-flags';
+import { StatsigUser } from '@adopt-dont-shop/lib.feature-flags';
 
 const user: StatsigUser = {
   userID: 'user_12345',
@@ -239,7 +239,7 @@ const recentEvents = featureFlagsService.getRecentEvents(50);
 ```typescript
 // Feature Flags Hook
 import { createContext, useContext, useEffect, useState } from 'react';
-import { FeatureFlagsService } from '@adopt-dont-shop/lib-feature-flags';
+import { FeatureFlagsService } from '@adopt-dont-shop/lib.feature-flags';
 
 const FeatureFlagsContext = createContext<FeatureFlagsService | null>(null);
 
@@ -325,7 +325,7 @@ function Dashboard() {
 
 ```typescript
 // src/services/feature-flags.service.ts
-import { FeatureFlagsService } from '@adopt-dont-shop/lib-feature-flags';
+import { FeatureFlagsService } from '@adopt-dont-shop/lib.feature-flags';
 
 export const featureFlagsService = new FeatureFlagsService({
   apiUrl: process.env.API_URL,

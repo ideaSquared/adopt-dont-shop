@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-feature-flags
+# @adopt-dont-shop/lib.feature-flags
 
 Simplified feature flag library providing type definitions and constants for Statsig integration.
 
@@ -24,7 +24,7 @@ Use `@statsig/react-bindings` directly in your app:
 
 ```typescript
 import { useGate, useDynamicConfig } from '@statsig/react-bindings';
-import { KNOWN_GATES, KNOWN_CONFIGS } from '@adopt-dont-shop/lib-feature-flags';
+import { KNOWN_GATES, KNOWN_CONFIGS } from '@adopt-dont-shop/lib.feature-flags';
 
 // Check a feature gate
 const { value: isEnabled } = useGate(KNOWN_GATES.ENABLE_REAL_TIME_MESSAGING);
@@ -40,7 +40,7 @@ Use `statsig-node` SDK:
 
 ```typescript
 import Statsig from 'statsig-node';
-import { KNOWN_GATES } from '@adopt-dont-shop/lib-feature-flags';
+import { KNOWN_GATES } from '@adopt-dont-shop/lib.feature-flags';
 
 // Initialize once at startup
 await Statsig.initialize(process.env.STATSIG_SERVER_SECRET_KEY);
@@ -90,7 +90,7 @@ export const KNOWN_CONFIGS = {
 The library provides strongly-typed interfaces for each dynamic config:
 
 ```typescript
-import type { ApplicationSettingsConfig } from '@adopt-dont-shop/lib-feature-flags';
+import type { ApplicationSettingsConfig } from '@adopt-dont-shop/lib.feature-flags';
 
 const config = useDynamicConfig(KNOWN_CONFIGS.APPLICATION_SETTINGS);
 

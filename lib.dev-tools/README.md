@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-dev-tools
+# @adopt-dont-shop/lib.dev-tools
 
 A
 
@@ -6,12 +6,12 @@ A
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-dev-tools
+npm install @adopt-dont-shop/lib.dev-tools
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-dev-tools": "workspace:*"
+    "@adopt-dont-shop/lib.dev-tools": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-dev-tools
 ## 🚀 Quick Start
 
 ```typescript
-import { DevToolsService, DevToolsServiceConfig } from '@adopt-dont-shop/lib-dev-tools';
+import { DevToolsService, DevToolsServiceConfig } from '@adopt-dont-shop/lib.dev-tools';
 
 // Using the singleton instance
-import { dev-toolsService } from '@adopt-dont-shop/lib-dev-tools';
+import { dev-toolsService } from '@adopt-dont-shop/lib.dev-tools';
 
 // Basic usage
 const result = await dev-toolsService.exampleMethod({ test: 'data' });
@@ -134,7 +134,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-dev-tools": "workspace:*"
+    "@adopt-dont-shop/lib.dev-tools": "*"
   }
 }
 ```
@@ -143,7 +143,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { dev-toolsService } from '@adopt-dont-shop/lib-dev-tools';
+export { dev-toolsService } from '@adopt-dont-shop/lib.dev-tools';
 
 // In your component
 import { dev-toolsService } from '@/services';
@@ -177,7 +177,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-dev-tools": "workspace:*"
+    "@adopt-dont-shop/lib.dev-tools": "*"
   }
 }
 ```
@@ -186,7 +186,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/dev-tools.service.ts
-import { DevToolsService } from '@adopt-dont-shop/lib-dev-tools';
+import { DevToolsService } from '@adopt-dont-shop/lib.dev-tools';
 
 export const devToolsService = new DevToolsService({
   apiUrl: process.env.API_URL,
@@ -232,7 +232,7 @@ Add to your app's Dockerfile:
 COPY lib.dev-tools /workspace/lib.dev-tools
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-dev-tools@workspace:*
+RUN npm install @adopt-dont-shop/lib.dev-tools
 ```
 
 ### Multi-stage Build for Production
@@ -350,9 +350,9 @@ lib.dev-tools/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { dev-toolsService } from '@adopt-dont-shop/lib-dev-tools';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { dev-toolsService } from '@adopt-dont-shop/lib.dev-tools';
 
 // Configure with shared dependencies
 dev-toolsService.updateConfig({
@@ -366,7 +366,7 @@ dev-toolsService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { dev-toolsService, ErrorResponse } from '@adopt-dont-shop/lib-dev-tools';
+import { dev-toolsService, ErrorResponse } from '@adopt-dont-shop/lib.dev-tools';
 
 try {
   const result = await dev-toolsService.exampleMethod(data);
@@ -399,7 +399,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-dev-tools": "workspace:*"
+    "@adopt-dont-shop/lib.dev-tools": "*"
   }
 }
 ```

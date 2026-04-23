@@ -9,7 +9,7 @@ See the centralized documentation: [docs/libraries/chat.md](../docs/libraries/ch
 ## Installation
 
 ````bash
-npm install @adopt-dont-shop/lib-chat
+npm install @adopt-dont-shop/lib.chat
 ```p/lib-chat
 
 Real-time chat and messaging functionality
@@ -18,12 +18,12 @@ Real-time chat and messaging functionality
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-chat
+npm install @adopt-dont-shop/lib.chat
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-chat": "workspace:*"
+    "@adopt-dont-shop/lib.chat": "*"
   }
 }
 ````
@@ -31,10 +31,10 @@ npm install @adopt-dont-shop/lib-chat
 ## 🚀 Quick Start
 
 ```typescript
-import { ChatService, ChatServiceConfig } from '@adopt-dont-shop/lib-chat';
+import { ChatService, ChatServiceConfig } from '@adopt-dont-shop/lib.chat';
 
 // Using the singleton instance
-import { chatService } from '@adopt-dont-shop/lib-chat';
+import { chatService } from '@adopt-dont-shop/lib.chat';
 
 // Basic usage
 const result = await chatService.exampleMethod({ test: 'data' });
@@ -92,7 +92,7 @@ The library provides full Socket.IO support for real-time chat functionality wit
 ### Basic Connection
 
 ```typescript
-import { ChatService } from '@adopt-dont-shop/lib-chat';
+import { ChatService } from '@adopt-dont-shop/lib.chat';
 
 const chatService = new ChatService({
   socketUrl: 'https://api.example.com',
@@ -188,7 +188,7 @@ chatService.off('typing');
 Use the provided hook to track connection status in React components:
 
 ```typescript
-import { useConnectionStatus } from '@adopt-dont-shop/lib-chat';
+import { useConnectionStatus } from '@adopt-dont-shop/lib.chat';
 
 function ChatComponent() {
   const {
@@ -224,7 +224,7 @@ function ChatComponent() {
 ### Full Example
 
 ```typescript
-import { ChatService, useConnectionStatus } from '@adopt-dont-shop/lib-chat';
+import { ChatService, useConnectionStatus } from '@adopt-dont-shop/lib.chat';
 import { useEffect, useState } from 'react';
 
 // Initialize service
@@ -383,7 +383,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-chat": "workspace:*"
+    "@adopt-dont-shop/lib.chat": "*"
   }
 }
 ```
@@ -392,7 +392,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { chatService } from '@adopt-dont-shop/lib-chat';
+export { chatService } from '@adopt-dont-shop/lib.chat';
 
 // In your component
 import { chatService } from '@/services';
@@ -426,7 +426,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-chat": "workspace:*"
+    "@adopt-dont-shop/lib.chat": "*"
   }
 }
 ```
@@ -435,7 +435,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/chat.service.ts
-import { ChatService } from '@adopt-dont-shop/lib-chat';
+import { ChatService } from '@adopt-dont-shop/lib.chat';
 
 export const chatService = new ChatService({
   apiUrl: process.env.API_URL,
@@ -481,7 +481,7 @@ Add to your app's Dockerfile:
 COPY lib.chat /workspace/lib.chat
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-chat@workspace:*
+RUN npm install @adopt-dont-shop/lib.chat
 ```
 
 ### Multi-stage Build for Production
@@ -599,9 +599,9 @@ lib.chat/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { chatService } from '@adopt-dont-shop/lib-chat';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { chatService } from '@adopt-dont-shop/lib.chat';
 
 // Configure with shared dependencies
 chatService.updateConfig({
@@ -615,7 +615,7 @@ chatService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { chatService, ErrorResponse } from '@adopt-dont-shop/lib-chat';
+import { chatService, ErrorResponse } from '@adopt-dont-shop/lib.chat';
 
 try {
   const result = await chatService.exampleMethod(data);
@@ -648,7 +648,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-chat": "workspace:*"
+    "@adopt-dont-shop/lib.chat": "*"
   }
 }
 ```

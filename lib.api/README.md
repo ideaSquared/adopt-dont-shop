@@ -1,118 +1,79 @@
-# @adopt-dont-shop/lib-api
+# @adopt-dont-shop/lib.api
 
-A **pure HTTP transport layer** for the Adopt Don't Shop application ecosystem. This library provides the foundation for all domain-specific API libraries with type-safe HTTP client functionality, authentication, interceptors, and error handling.
+A **pure HTTP transport layer** for the Adopt Don't Shop monorepo. Provides a typed `ApiService` with interceptors, authentication token injection, CSRF handling, error types, and PostGIS/pet data transformation. Domain-specific libraries (`lib.auth`, `lib.pets`, `lib.chat`, …) build on top of this.
 
-## 🏗️ Architecture
-
-`lib.api` is designed as the **infrastructure layer** that other domain libraries build upon:
+## Architecture
 
 ```
 ┌─────────────────────────────────────────┐
-│        Application Layer                 │
+│        Application Layer                │
 │  app.client │ app.rescue │ app.admin    │
 └─────────────────────────────────────────┘
                     │
 ┌─────────────────────────────────────────┐
-│         Domain Libraries                 │
-│ lib.pets │ lib.auth │ lib.rescue │ ... │
+│         Domain Libraries                │
+│  lib.auth │ lib.pets │ lib.rescue │ …   │
 └─────────────────────────────────────────┘
                     │
 ┌─────────────────────────────────────────┐
 │       Infrastructure Layer              │
 │              lib.api                    │
-│   HTTP • Auth • Interceptors • Errors  │
+│   HTTP • Auth • Interceptors • Errors   │
 └─────────────────────────────────────────┘
 ```
 
 ## Features
 
-- ✅ **Pure HTTP Transport**: GET, POST, PUT, PATCH, DELETE methods
-- ✅ **Request/Response Interceptors**: Extensible middleware system
-- ✅ **Error Handling**: Structured error types with HTTP status mapping
-- ✅ **Authentication**: Automatic token injection and management
-- ✅ **Timeout Management**: Configurable request timeouts with AbortController
-- ✅ **Development Tools**: Debug logging and request tracking
-- ✅ **TypeScript**: Full type safety and IntelliSense support
-
-- **Type-safe API client** with TypeScript support
-- **Authentication management** with token handling and refresh
-- **Automatic data transformation** for pet data (snake_case ↔ camelCase)
-- **Request/response interceptors** for consistent error handling
-- **File upload support** with FormData handling
-- **Caching capabilities** for improved performance
-- **Environment variable support** for different deployment scenarios
-- **PostGIS geometry handling** for location data
+- HTTP methods: `get`, `post`, `put`, `patch`, `delete`, `fetch`, `fetchWithAuth`, `uploadFile`, `healthCheck`
+- Request/response interceptor pipeline
+- Automatic auth token injection (pluggable `getAuthToken` callback)
+- CSRF token fetching and injection for state-changing requests
+- Configurable timeout with `AbortController`
+- Structured error types with HTTP status mapping
+- Pet data transformation (snake_case ↔ camelCase, PostGIS geometry → readable strings)
+- Small in-memory cache with manual invalidation
+- Debug logging toggle
+- Full TypeScript types
 
 ## Installation
 
-```bash
-npm install @adopt-dont-shop/lib-api
+This is a workspace package — add to a consumer's `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@adopt-dont-shop/lib.api": "*"
+  }
+}
 ```
+
+Then run `npm install` at the repo root to link.
 
 ## Quick Start
 
-### Basic API Usage
-
 ```typescript
-import { apiService, authService } from '@adopt-dont-shop/lib-api';
+import { apiService, ApiService, API_PATHS, buildApiPath } from '@adopt-dont-shop/lib.api';
 
-// Configure the API service
+// Configure the default singleton
 apiService.updateConfig({
-  apiUrl: 'https://api.adopt-dont-shop.com',
-  debug: true,
+  apiUrl: import.meta.env.VITE_API_BASE_URL ?? '',
+  debug: import.meta.env.DEV,
   timeout: 15000,
+  getAuthToken: () => localStorage.getItem('accessToken'),
 });
 
-// Make authenticated requests
-const pets = await apiService.get('/api/v1/pets');
-const pet = await apiService.get('/api/v1/pets/123');
+// Make requests
+const pets = await apiService.get('/api/v1/pets', { page: 1, limit: 20 });
+const pet = await apiService.get(`/api/v1/pets/${id}`);
 ```
 
-### Authentication
+For authentication flows (login, register, session, refresh), use [`@adopt-dont-shop/lib.auth`](../lib.auth/README.md) — it wraps `lib.api` with the full auth surface. Do not look for `authService` in this package; it does not export one.
+
+## File Uploads
 
 ```typescript
-import { authService } from '@adopt-dont-shop/lib-api';
-
-// Login
-const authResponse = await authService.login({
-  email: 'user@example.com',
-  password: 'password123',
-});
-
-// Check authentication status
-if (authService.isAuthenticated()) {
-  const currentUser = authService.getCurrentUser();
-  console.log('Logged in as:', currentUser?.email);
-}
-
-// Register new user
-const newUser = await authService.register({
-  email: 'newuser@example.com',
-  password: 'password123',
-  firstName: 'John',
-  lastName: 'Doe',
-  agreeToTerms: true,
-  agreeToPrivacyPolicy: true,
-});
-```
-
-### Pet Data Management
-
-```typescript
-// Fetch pets with automatic data transformation
-const petsResponse = await apiService.get('/api/v1/pets', {
-  page: 1,
-  limit: 20,
-  species: 'dog',
-});
-
-// Data is automatically transformed from snake_case to camelCase
-// pet.short_description becomes pet.shortDescription
-// pet.images becomes pet.photos with proper typing
-
-// Upload pet photo
-const file = new File(['...'], 'pet-photo.jpg', { type: 'image/jpeg' });
-const uploadResponse = await apiService.uploadFile('/api/v1/pets/123/photos', file, {
+const file = new File(['…'], 'pet-photo.jpg', { type: 'image/jpeg' });
+const response = await apiService.uploadFile('/api/v1/pets/123/photos', file, {
   caption: 'Cute photo of Max',
   isPrimary: true,
 });
@@ -120,182 +81,112 @@ const uploadResponse = await apiService.uploadFile('/api/v1/pets/123/photos', fi
 
 ## API Reference
 
-### ApiService
+### Exports
 
-The main API client for making HTTP requests.
+From `@adopt-dont-shop/lib.api`:
 
-#### Methods
+- `ApiService` — the class
+- `apiService` — default singleton instance
+- `api` — convenience alias
+- `API_PATHS`, `buildApiPath` — URL helpers
+- `*` from `./interceptors` — interceptor utilities
+- `*` from `./errors` — error types
+- Type exports: `ApiServiceConfig`, `ApiServiceOptions`, `FetchOptions`, `BaseResponse`, `ErrorResponse`, `ApiResponse`, `PaginatedResponse`, `ApiPet`, `TransformedPet`, `PetImage`, `PetLocation`, `PetRescue` (and all other types re-exported from `./types`)
 
-- `get<T>(url: string, params?: object): Promise<T>` - GET request with query parameters
-- `post<T>(url: string, data?: unknown): Promise<T>` - POST request with JSON body
-- `put<T>(url: string, data?: unknown): Promise<T>` - PUT request with JSON body
-- `patch<T>(url: string, data?: unknown): Promise<T>` - PATCH request with JSON body
-- `delete<T>(url: string): Promise<T>` - DELETE request
-- `uploadFile<T>(url: string, file: File, additionalData?: object): Promise<T>` - File upload
-- `healthCheck(): Promise<boolean>` - Check API health status
+### ApiService methods
 
-#### Configuration
+- `get<T>(url, params?)` — GET with query-string params
+- `post<T>(url, data?)` — POST with JSON body
+- `put<T>(url, data?)` — PUT with JSON body
+- `patch<T>(url, data?)` — PATCH with JSON body
+- `delete<T>(url, data?)` — DELETE
+- `fetch<T>(url, options?)` — low-level fetch
+- `fetchWithAuth<T>(url, options?)` — fetch with auth header
+- `uploadFile<T>(url, file, additionalData?)` — multipart upload
+- `healthCheck()` — resolves to `boolean`
+- `updateConfig(partial)` — merge config
+- `getConfig()` — return current config
+- `clearCache()` — clear the in-memory request cache
+- `clearCsrfToken()` — force re-fetch of CSRF on next write
+
+### Configuration
 
 ```typescript
-interface ApiServiceConfig {
-  apiUrl?: string; // Base API URL
-  debug?: boolean; // Enable debug logging
-  timeout?: number; // Request timeout in milliseconds
-  headers?: Record<string, string>; // Default headers
-}
+type ApiServiceConfig = {
+  apiUrl?: string;                                // Base API URL
+  debug?: boolean;                                // Debug logging
+  timeout?: number;                               // Request timeout (ms)
+  headers?: Record<string, string>;               // Default headers
+  getAuthToken?: () => string | null | Promise<string | null>;
+  // … see src/types for the full type
+};
 ```
-
-### AuthService
-
-Handles authentication and user management.
-
-#### Methods
-
-- `login(credentials: LoginRequest): Promise<AuthResponse>` - User login
-- `register(userData: RegisterRequest): Promise<AuthResponse>` - User registration
-- `logout(): Promise<void>` - User logout
-- `getCurrentUser(): User | null` - Get current user from storage
-- `isAuthenticated(): boolean` - Check authentication status
-- `refreshToken(): Promise<AuthResponse | null>` - Refresh access token
-- `verifyToken(): Promise<boolean>` - Verify token validity
-- `updateProfile(userData: Partial<User>): Promise<User>` - Update user profile
-- `changePassword(oldPassword: string, newPassword: string): Promise<void>` - Change password
 
 ## Data Transformation
 
-The library automatically transforms data between different naming conventions:
-
-### Pet Data Transformation
+Responses that contain pet objects are automatically normalised from API snake_case to camelCase, and PostGIS geometry is converted to a readable `"lat, lng"` string. See `src/transformers` for the precise mapping.
 
 ```typescript
 // API Response (snake_case)
 {
-  pet_id: "123",
-  short_description: "Friendly dog",
-  images: [
-    {
-      image_id: "456",
-      is_primary: true,
-      order_index: 0
-    }
-  ],
-  created_at: "2023-01-01T00:00:00Z"
+  pet_id: '123',
+  short_description: 'Friendly dog',
+  images: [{ image_id: '456', is_primary: true, order_index: 0 }],
+  location: { type: 'Point', coordinates: [-122.4194, 37.7749] },
+  created_at: '2023-01-01T00:00:00Z',
 }
 
-// Transformed Data (camelCase)
+// Transformed
 {
-  petId: "123",
-  shortDescription: "Friendly dog",
-  photos: [
-    {
-      photoId: "456",
-      isPrimary: true,
-      order: 0
-    }
-  ],
-  createdAt: "2023-01-01T00:00:00Z"
-}
-```
-
-### Location Handling
-
-PostGIS geometry objects are automatically converted to readable strings:
-
-```typescript
-// API Response
-{
-  location: {
-    type: "Point",
-    coordinates: [-122.4194, 37.7749]
-  }
-}
-
-// Transformed Data
-{
-  location: "37.7749, -122.4194"
+  petId: '123',
+  shortDescription: 'Friendly dog',
+  photos: [{ photoId: '456', isPrimary: true, order: 0 }],
+  location: '37.7749, -122.4194',
+  createdAt: '2023-01-01T00:00:00Z',
 }
 ```
 
 ## Environment Variables
 
-The library supports multiple environment variable naming conventions:
+The library reads API URL from (in order):
 
-- `VITE_API_URL` - Vite-based applications
-- `REACT_APP_API_URL` - Create React App applications
-- `NODE_ENV` - Determines debug mode
+- `VITE_API_BASE_URL` / `VITE_API_URL` (Vite apps)
+- `REACT_APP_API_URL` (CRA apps)
+- Fallback derivation via `getBaseUrl()`
 
 ## Error Handling
 
-The library provides comprehensive error handling:
+Errors are thrown as `ApiError` subclasses with HTTP status attached. Import from the package and narrow with `instanceof`:
 
 ```typescript
+import { apiService, ApiError } from '@adopt-dont-shop/lib.api';
+
 try {
-  const pets = await apiService.get('/api/v1/pets');
-} catch (error) {
-  if (error.message.includes('401')) {
-    // Handle authentication error
-    await authService.logout();
-    // Redirect to login
-  } else {
-    // Handle other errors
-    console.error('API Error:', error.message);
+  await apiService.get('/api/v1/pets');
+} catch (err) {
+  if (err instanceof ApiError && err.status === 401) {
+    // handle unauthenticated
   }
+  throw err;
 }
 ```
 
-## TypeScript Support
-
-The library is written in TypeScript and provides full type safety:
-
-```typescript
-import type { User, Pet, AuthResponse, PaginatedResponse } from '@adopt-dont-shop/lib-api';
-
-// Fully typed responses
-const user: User = await authService.getCurrentUser();
-const pets: PaginatedResponse<Pet> = await apiService.get('/api/v1/pets');
-```
+See `src/errors` for the concrete error classes.
 
 ## Development
 
-### Building
+From the repo root:
+
+```bash
+npx turbo build --filter=@adopt-dont-shop/lib.api
+npx turbo test  --filter=@adopt-dont-shop/lib.api
+npx turbo lint  --filter=@adopt-dont-shop/lib.api
+```
+
+Or from `lib.api/`:
 
 ```bash
 npm run build
-```
-
-### Testing
-
-```bash
 npm test
-```
-
-### Linting
-
-```bash
 npm run lint
 ```
-
-## Migration from app.client
-
-If you're migrating from the original `app.client` API code, the usage patterns remain the same:
-
-```typescript
-// Before (app.client)
-import { apiService } from '../services/api';
-
-// After (lib.api)
-import { apiService } from '@adopt-dont-shop/lib-api';
-
-// All method signatures and functionality remain identical
-```
-
-## Contributing
-
-1. Follow the existing code style and patterns
-2. Add appropriate TypeScript types for new features
-3. Update this README for any new functionality
-4. Test your changes thoroughly
-
-## License
-
-This package is part of the Adopt Don't Shop project.

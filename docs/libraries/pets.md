@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-pets
+# @adopt-dont-shop/lib.pets
 
 Comprehensive pet management system with breed data, medical records, adoption tracking, and media management
 
@@ -6,12 +6,12 @@ Comprehensive pet management system with breed data, medical records, adoption t
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-pets
+npm install @adopt-dont-shop/lib.pets
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-pets": "workspace:*"
+    "@adopt-dont-shop/lib.pets": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-pets
 ## 🚀 Quick Start
 
 ```typescript
-import { PetsService, PetsServiceConfig } from '@adopt-dont-shop/lib-pets';
+import { PetsService, PetsServiceConfig } from '@adopt-dont-shop/lib.pets';
 
 // Using the singleton instance
-import { petsService } from '@adopt-dont-shop/lib-pets';
+import { petsService } from '@adopt-dont-shop/lib.pets';
 
 // Basic pet operations
 const pets = await petsService.getAllPets({ status: 'available' });
@@ -359,7 +359,7 @@ const featuredPets = await petsService.getFeaturedPets({
 ```typescript
 // Pets Context
 import { createContext, useContext, useState } from 'react';
-import { PetsService } from '@adopt-dont-shop/lib-pets';
+import { PetsService } from '@adopt-dont-shop/lib.pets';
 
 const PetsContext = createContext<PetsService | null>(null);
 
@@ -497,7 +497,7 @@ function PetProfile({ petId }: { petId: string }) {
 
 ```typescript
 // src/services/pets.service.ts
-import { PetsService } from '@adopt-dont-shop/lib-pets';
+import { PetsService } from '@adopt-dont-shop/lib.pets';
 
 export const petsService = new PetsService({
   apiUrl: process.env.API_URL,

@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-auth
+# @adopt-dont-shop/lib.auth
 
 Authentication and authorization functionality
 
@@ -6,12 +6,12 @@ Authentication and authorization functionality
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-auth
+npm install @adopt-dont-shop/lib.auth
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-auth": "workspace:*"
+    "@adopt-dont-shop/lib.auth": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-auth
 ## 🚀 Quick Start
 
 ```typescript
-import { AuthService, AuthServiceConfig } from '@adopt-dont-shop/lib-auth';
+import { AuthService, AuthServiceConfig } from '@adopt-dont-shop/lib.auth';
 
 // Using the singleton instance
-import { authService } from '@adopt-dont-shop/lib-auth';
+import { authService } from '@adopt-dont-shop/lib.auth';
 
 // Basic usage
 const result = await authService.exampleMethod({ test: 'data' });
@@ -134,7 +134,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-auth": "workspace:*"
+    "@adopt-dont-shop/lib.auth": "*"
   }
 }
 ```
@@ -143,7 +143,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { authService } from '@adopt-dont-shop/lib-auth';
+export { authService } from '@adopt-dont-shop/lib.auth';
 
 // In your component
 import { authService } from '@/services';
@@ -177,7 +177,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-auth": "workspace:*"
+    "@adopt-dont-shop/lib.auth": "*"
   }
 }
 ```
@@ -186,7 +186,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/auth.service.ts
-import { AuthService } from '@adopt-dont-shop/lib-auth';
+import { AuthService } from '@adopt-dont-shop/lib.auth';
 
 export const authService = new AuthService({
   apiUrl: process.env.API_URL,
@@ -232,7 +232,7 @@ Add to your app's Dockerfile:
 COPY lib.auth /workspace/lib.auth
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-auth@workspace:*
+RUN npm install @adopt-dont-shop/lib.auth
 ```
 
 ### Multi-stage Build for Production
@@ -350,9 +350,9 @@ lib.auth/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { authService } from '@adopt-dont-shop/lib-auth';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { authService } from '@adopt-dont-shop/lib.auth';
 
 // Configure with shared dependencies
 authService.updateConfig({
@@ -366,7 +366,7 @@ authService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { authService, ErrorResponse } from '@adopt-dont-shop/lib-auth';
+import { authService, ErrorResponse } from '@adopt-dont-shop/lib.auth';
 
 try {
   const result = await authService.exampleMethod(data);
@@ -399,7 +399,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-auth": "workspace:*"
+    "@adopt-dont-shop/lib.auth": "*"
   }
 }
 ```
