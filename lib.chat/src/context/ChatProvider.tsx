@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactionUpdateEvent, ReadStatusUpdateEvent } from '../services/chat-service';
 import type { Conversation, Message, TypingIndicator } from '../types';
 import { ChatContext } from './chat-context';
-import type { ChatContextValue, ChatProviderProps } from './chat-context-types';
+import type {
+  ChatContextValue,
+  ChatProviderProps,
+  FeatureFlagsAdapter,
+  ResolveFileUrl,
+} from './chat-context-types';
 import type {
   ConnectionQuality,
   OfflineState,
@@ -18,6 +23,13 @@ type ConversationApiResponse = Conversation & { chat_id?: string };
 const mapConversationIds = (list: ReadonlyArray<ConversationApiResponse>): Conversation[] =>
   list.map((conv) => ({ ...conv, id: conv.id || conv.chat_id || '' }) as Conversation);
 
+// Defaults used when the host app doesn't supply these adapters.
+const DEFAULT_FEATURE_FLAGS: FeatureFlagsAdapter = {
+  checkGate: () => true,
+  logEvent: () => {},
+};
+const DEFAULT_RESOLVE_FILE_URL: ResolveFileUrl = (url) => url;
+
 export function ChatProvider({
   children,
   chatService,
@@ -25,6 +37,8 @@ export function ChatProvider({
   isAuthenticated,
   tokenProvider,
   offlineAdapter,
+  featureFlags,
+  resolveFileUrl,
 }: ChatProviderProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -453,7 +467,14 @@ export function ChatProvider({
     [conversations]
   );
 
+  const resolvedFeatureFlags = featureFlags ?? DEFAULT_FEATURE_FLAGS;
+  const resolvedResolveFileUrl = resolveFileUrl ?? DEFAULT_RESOLVE_FILE_URL;
+
   const value: ChatContextValue = {
+    currentUser: user,
+    isAuthenticated,
+    featureFlags: resolvedFeatureFlags,
+    resolveFileUrl: resolvedResolveFileUrl,
     conversations,
     activeConversation,
     messages,

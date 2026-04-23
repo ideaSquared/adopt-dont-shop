@@ -11,7 +11,33 @@ export type ChatUser = {
   firstName?: string;
 };
 
+/**
+ * Optional feature-flag + analytics surface. Apps that use a feature-flag
+ * system (e.g. Statsig) pass an adapter; otherwise gates are treated as
+ * "on" and events are dropped. Keeps lib.chat free of any specific vendor.
+ */
+export type FeatureFlagsAdapter = {
+  checkGate: (gateName: string) => boolean;
+  logEvent: (eventName: string, value?: number, metadata?: Record<string, unknown>) => void;
+};
+
+/**
+ * Resolves an attachment URL to an absolute URL. Typically used to turn a
+ * backend-relative `/uploads/xyz.png` into a fully qualified URL using the
+ * app's API base. Apps without this concern can omit the prop.
+ */
+export type ResolveFileUrl = (url: string | undefined) => string | undefined;
+
 export type ChatContextValue = {
+  /** The current authenticated user, or null when logged out. */
+  currentUser: ChatUser | null;
+  /** Whether the current session is authenticated. */
+  isAuthenticated: boolean;
+  /** Feature-flag / analytics adapter; always defined — no-ops when the app didn't pass one. */
+  featureFlags: FeatureFlagsAdapter;
+  /** URL resolver for attachment paths; identity when the app didn't pass one. */
+  resolveFileUrl: ResolveFileUrl;
+
   conversations: Conversation[];
   activeConversation: Conversation | null;
   messages: Message[];
@@ -57,4 +83,8 @@ export type ChatProviderProps = {
   tokenProvider: () => string | null;
   /** Optional richer offline behavior. Without it, `navigator.onLine` is used. */
   offlineAdapter?: OfflineAdapter;
+  /** Optional feature-flag + analytics adapter (e.g. Statsig). */
+  featureFlags?: FeatureFlagsAdapter;
+  /** Optional attachment URL resolver (e.g. turn `/uploads/x.png` into an absolute URL). */
+  resolveFileUrl?: ResolveFileUrl;
 };
