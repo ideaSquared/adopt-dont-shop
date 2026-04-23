@@ -31,10 +31,11 @@ adopt-dont-shop/
 ├── app.client/         # Client-facing app (React + Vite)
 ├── app.rescue/         # Rescue organization app (React + Vite)
 ├── service.backend/    # API server (Express + Sequelize)
-└── lib.*/             # Shared libraries (17 packages)
+└── lib.*/             # Shared libraries (21 packages)
     ├── lib.analytics
     ├── lib.api
     ├── lib.applications
+    ├── lib.audit-logs
     ├── lib.auth
     ├── lib.chat
     ├── lib.components
@@ -42,11 +43,14 @@ adopt-dont-shop/
     ├── lib.discovery
     ├── lib.feature-flags
     ├── lib.invitations
+    ├── lib.moderation
     ├── lib.notifications
     ├── lib.permissions
     ├── lib.pets
     ├── lib.rescue
     ├── lib.search
+    ├── lib.support-tickets
+    ├── lib.types
     ├── lib.utils
     └── lib.validation
 ```
@@ -55,38 +59,66 @@ adopt-dont-shop/
 
 **All packages are scoped under `@adopt-dont-shop/`:**
 
-- Apps: `@adopt-dont-shop/app-*`
-- Libraries: `@adopt-dont-shop/lib-*`
-- Service: `@adopt-dont-shop/service-backend`
+- Apps: `@adopt-dont-shop/app.*` (e.g. `@adopt-dont-shop/app.admin`)
+- Libraries: `@adopt-dont-shop/lib.*` (e.g. `@adopt-dont-shop/lib.api`)
+- Service: `@adopt-dont-shop/service-backend` (hyphen, not dot)
 
 **Key Scripts:**
 
 ```bash
-# Development
-npm run dev                    # Run all packages
-npm run dev:apps              # Run all apps only
-npm run dev:backend           # Run backend service only
-npm run dev:admin             # Run admin app only
-npm run dev:lib-auth          # Run specific library
+# Docker dev (primary workflow — full stack with HMR)
+npm run docker:dev             # Start all containers in foreground
+npm run docker:dev:build       # Rebuild images then start
+npm run docker:dev:detach      # Start in background
+npm run docker:down            # Stop containers
+npm run docker:reset           # Stop and wipe volumes (incl. DB)
+npm run docker:logs            # Follow logs
+npm run docker:shell:backend   # Shell into backend container
+npm run docker:shell:db        # Open psql in database container
+npm run docker:rebuild:types   # Rebuild lib.types into backend (after editing lib.types/src)
 
-# Testing
-npm run test                  # Test all packages
-npm run test:libs             # Test all libraries
-npm run test:backend          # Test backend only
+# Native dev (no Docker — fastest HMR but you must run Postgres yourself)
+npm run dev                    # Run everything via Turbo
+npm run dev:apps               # Frontend apps only
+npm run dev:backend            # Backend only
 
-# Building
-npm run build                 # Build all packages
-npm run build:libs            # Build libraries first (required!)
-npm run build:apps            # Build applications
+# Build / test / quality
+npm run build                  # Build everything (Turbo handles ordering)
+npm run build:libs             # Libraries only
+npm run build:apps             # Apps only
+npm run test                   # Test everything
+npm run lint / lint:fix        # Lint
+npm run type-check             # TypeScript type-check
+npm run format / format:check  # Prettier
+
+# Database (run inside backend container — requires docker:dev to be running)
+npm run db:migrate             # Run migrations
+npm run db:seed                # Seed database
+npm run db:reset               # Migrate + seed
+
+# Production (Docker)
+npm run prod:build             # Build production images
+npm run prod:up                # Start production stack (detached)
+npm run prod:down              # Stop production stack
+
+# Utilities
+npm run secrets:generate       # Print fresh JWT/session/CSRF secrets for .env
+npm run validate:env           # Validate .env against required vars
+
+# Per-package commands — use Turbo's --filter flag directly:
+npx turbo dev --filter=@adopt-dont-shop/lib.api
+npx turbo build --filter=@adopt-dont-shop/app.admin
+npx turbo test --filter=@adopt-dont-shop/service-backend
 ```
 
 **Important Monorepo Rules:**
 
-1. **Always build libraries before apps** - apps depend on built library artifacts
-2. Use `turbo` commands for optimal caching and parallel execution
-3. Reference workspace packages with `*` version (e.g., `"@adopt-dont-shop/lib-api": "*"`)
-4. Changes to shared libraries affect multiple consumers - test thoroughly
-5. Each package has its own `package.json`, `tsconfig.json`, and tests
+1. **Turbo handles build ordering automatically** via `dependsOn: ["^build"]` — `npm run build` builds libs before apps. No need to manually sequence.
+2. **In Docker dev, lib.types is special**: it's built into backend node_modules at container start. If you edit `lib.types/src/*`, run `npm run docker:rebuild:types` (no container restart needed).
+3. **Other libs (lib.api, lib.auth, etc.) hot-reload automatically** in dev — Vite aliases point at their `src/` directories.
+4. Reference workspace packages with `*` version (e.g., `"@adopt-dont-shop/lib.api": "*"`)
+5. Changes to shared libraries affect multiple consumers — test thoroughly
+6. Each package has its own `package.json`, `tsconfig.json`, and tests
 
 ---
 
@@ -103,7 +135,8 @@ npm run build:apps            # Build applications
 
 #### Testing Tools
 
-- **Jest** for testing framework
+- **Jest** — used by Node libraries under `lib.*` (e.g. `lib.auth`, `lib.api`)
+- **Vitest** — used by the React apps (`app.admin`, `app.client`, `app.rescue`) and by `service.backend`
 - **React Testing Library** for React components
 - **MSW (Mock Service Worker)** for API mocking when needed
 - All test code must follow the same TypeScript strict mode rules as production code

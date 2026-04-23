@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-utils
+# @adopt-dont-shop/lib.utils
 
 Comprehensive utility library with data validation, formatting, date handling, and common helper functions
 
@@ -6,12 +6,12 @@ Comprehensive utility library with data validation, formatting, date handling, a
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-utils
+npm install @adopt-dont-shop/lib.utils
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-utils": "workspace:*"
+    "@adopt-dont-shop/lib.utils": "*"
   }
 }
 ```
@@ -26,7 +26,7 @@ import {
   debounce,
   formatCurrency,
   sanitizeInput,
-} from '@adopt-dont-shop/lib-utils';
+} from '@adopt-dont-shop/lib.utils';
 
 // Date formatting
 const formatted = formatDate(new Date(), 'YYYY-MM-DD');
@@ -56,7 +56,7 @@ const clean = sanitizeInput(userInput);
 Format dates with various patterns and timezone support.
 
 ```typescript
-import { formatDate } from '@adopt-dont-shop/lib-utils';
+import { formatDate } from '@adopt-dont-shop/lib.utils';
 
 // Basic formatting
 formatDate(new Date(), 'YYYY-MM-DD'); // '2024-01-15'
@@ -80,7 +80,7 @@ formatDate(new Date(), 'YYYY-MM-DD HH:mm', 'America/Los_Angeles');
 Get human-readable relative time.
 
 ```typescript
-import { timeAgo } from '@adopt-dont-shop/lib-utils';
+import { timeAgo } from '@adopt-dont-shop/lib.utils';
 
 timeAgo(new Date(Date.now() - 60000)); // '1 minute ago'
 timeAgo(new Date(Date.now() - 3600000)); // '1 hour ago'
@@ -99,7 +99,7 @@ timeAgo(pastDate, {
 Calculate age in years, months, or days.
 
 ```typescript
-import { calculateAge } from '@adopt-dont-shop/lib-utils';
+import { calculateAge } from '@adopt-dont-shop/lib.utils';
 
 const age = calculateAge('2020-03-15'); // { years: 3, months: 10, days: 1 }
 const ageInYears = calculateAge('2020-03-15', { unit: 'years' }); // 3
@@ -111,7 +111,7 @@ const ageInMonths = calculateAge('2020-03-15', { unit: 'months' }); // 46
 Check if a value is a valid date.
 
 ```typescript
-import { isValidDate } from '@adopt-dont-shop/lib-utils';
+import { isValidDate } from '@adopt-dont-shop/lib.utils';
 
 isValidDate(new Date()); // true
 isValidDate('2024-01-15'); // true
@@ -126,7 +126,7 @@ isValidDate(null); // false
 Validate email addresses with comprehensive pattern matching.
 
 ```typescript
-import { validateEmail } from '@adopt-dont-shop/lib-utils';
+import { validateEmail } from '@adopt-dont-shop/lib.utils';
 
 validateEmail('user@example.com'); // true
 validateEmail('user.name+tag@example.co.uk'); // true
@@ -139,7 +139,7 @@ validateEmail(''); // false
 Validate phone numbers with international support.
 
 ```typescript
-import { validatePhone } from '@adopt-dont-shop/lib-utils';
+import { validatePhone } from '@adopt-dont-shop/lib.utils';
 
 validatePhone('555-123-4567'); // true
 validatePhone('(555) 123-4567'); // true
@@ -152,7 +152,7 @@ validatePhone('+44 20 7946 0958', 'UK'); // true
 Validate URLs with protocol and domain checking.
 
 ```typescript
-import { validateUrl } from '@adopt-dont-shop/lib-utils';
+import { validateUrl } from '@adopt-dont-shop/lib.utils';
 
 validateUrl('https://example.com'); // true
 validateUrl('http://localhost:3000'); // true
@@ -170,7 +170,7 @@ validateUrl('https://example.com', {
 Validate input against custom rules.
 
 ```typescript
-import { validateInput } from '@adopt-dont-shop/lib-utils';
+import { validateInput } from '@adopt-dont-shop/lib.utils';
 
 const rules = {
   required: true,
@@ -194,7 +194,7 @@ const invalidResult = validateInput('X', rules);
 Sanitize user input to prevent XSS and injection attacks.
 
 ```typescript
-import { sanitizeInput } from '@adopt-dont-shop/lib-utils';
+import { sanitizeInput } from '@adopt-dont-shop/lib.utils';
 
 sanitizeInput('<script>alert("xss")</script>Hello'); // 'Hello'
 sanitizeInput('User "name" & data'); // 'User &quot;name&quot; &amp; data'
@@ -212,7 +212,7 @@ sanitizeInput(input, {
 Convert text to URL-friendly slugs.
 
 ```typescript
-import { slugify } from '@adopt-dont-shop/lib-utils';
+import { slugify } from '@adopt-dont-shop/lib.utils';
 
 slugify('Happy Tails Rescue'); // 'happy-tails-rescue'
 slugify('Adoption Event @ Central Park!'); // 'adoption-event-central-park'
@@ -231,7 +231,7 @@ slugify('Text with Émojis 🐕', {
 Truncate text with smart word boundaries.
 
 ```typescript
-import { truncateText } from '@adopt-dont-shop/lib-utils';
+import { truncateText } from '@adopt-dont-shop/lib.utils';
 
 truncateText('This is a long description that needs truncating', 20);
 // 'This is a long...'
@@ -249,7 +249,7 @@ truncateText(text, 20, {
 Capitalize text with various strategies.
 
 ```typescript
-import { capitalizeText } from '@adopt-dont-shop/lib-utils';
+import { capitalizeText } from '@adopt-dont-shop/lib.utils';
 
 capitalizeText('hello world'); // 'Hello World'
 capitalizeText('HELLO WORLD', { type: 'sentence' }); // 'Hello world'
@@ -264,7 +264,7 @@ capitalizeText('hello_world', { type: 'snake' }); // 'Hello_World'
 Format currency values with localization support.
 
 ```typescript
-import { formatCurrency } from '@adopt-dont-shop/lib-utils';
+import { formatCurrency } from '@adopt-dont-shop/lib.utils';
 
 formatCurrency(250); // '$250.00'
 formatCurrency(250, 'EUR'); // '€250.00'
@@ -280,7 +280,7 @@ formatCurrency(0.05, 'BTC'); // '₿0.05000000'
 Format numbers with various options.
 
 ```typescript
-import { formatNumber } from '@adopt-dont-shop/lib-utils';
+import { formatNumber } from '@adopt-dont-shop/lib.utils';
 
 formatNumber(1234567.89); // '1,234,567.89'
 formatNumber(0.1234, { precision: 2 }); // '0.12'
@@ -293,7 +293,7 @@ formatNumber(0.75, { style: 'percent' }); // '75%'
 Parse strings to numbers with validation.
 
 ```typescript
-import { parseNumber } from '@adopt-dont-shop/lib-utils';
+import { parseNumber } from '@adopt-dont-shop/lib.utils';
 
 parseNumber('123.45'); // 123.45
 parseNumber('$250.00'); // 250
@@ -311,7 +311,7 @@ parseNumber('123', { min: 0, max: 1000, integer: true }); // 123
 Group array items by a property or function.
 
 ```typescript
-import { groupBy } from '@adopt-dont-shop/lib-utils';
+import { groupBy } from '@adopt-dont-shop/lib.utils';
 
 const pets = [
   { name: 'Buddy', species: 'dog', age: 3 },
@@ -331,7 +331,7 @@ const byAgeGroup = groupBy(pets, pet => (pet.age < 3 ? 'young' : 'adult'));
 Sort arrays by property or function.
 
 ```typescript
-import { sortBy } from '@adopt-dont-shop/lib-utils';
+import { sortBy } from '@adopt-dont-shop/lib.utils';
 
 const pets = [
   { name: 'Buddy', age: 3 },
@@ -349,7 +349,7 @@ sortBy(pets, pet => pet.age * -1); // Custom sort function
 Deep merge objects with nested property support.
 
 ```typescript
-import { deepMerge } from '@adopt-dont-shop/lib-utils';
+import { deepMerge } from '@adopt-dont-shop/lib.utils';
 
 const base = { user: { name: 'John', settings: { theme: 'dark' } } };
 const updates = { user: { age: 30, settings: { language: 'en' } } };
@@ -363,7 +363,7 @@ const merged = deepMerge(base, updates);
 Pick specific properties from an object.
 
 ```typescript
-import { pick } from '@adopt-dont-shop/lib-utils';
+import { pick } from '@adopt-dont-shop/lib.utils';
 
 const user = { id: 1, name: 'John', email: 'john@example.com', password: 'secret' };
 const publicData = pick(user, ['id', 'name', 'email']);
@@ -375,7 +375,7 @@ const publicData = pick(user, ['id', 'name', 'email']);
 Omit specific properties from an object.
 
 ```typescript
-import { omit } from '@adopt-dont-shop/lib-utils';
+import { omit } from '@adopt-dont-shop/lib.utils';
 
 const user = { id: 1, name: 'John', email: 'john@example.com', password: 'secret' };
 const safeData = omit(user, ['password']);
@@ -389,7 +389,7 @@ const safeData = omit(user, ['password']);
 Debounce function execution.
 
 ```typescript
-import { debounce } from '@adopt-dont-shop/lib-utils';
+import { debounce } from '@adopt-dont-shop/lib.utils';
 
 const searchPets = debounce(query => {
   // API call
@@ -408,7 +408,7 @@ const debouncedSave = debounce(saveFunction, 1000, {
 Throttle function execution.
 
 ```typescript
-import { throttle } from '@adopt-dont-shop/lib-utils';
+import { throttle } from '@adopt-dont-shop/lib.utils';
 
 const handleScroll = throttle(() => {
   // Handle scroll event
@@ -422,7 +422,7 @@ window.addEventListener('scroll', handleScroll);
 Retry function execution with exponential backoff.
 
 ```typescript
-import { retry } from '@adopt-dont-shop/lib-utils';
+import { retry } from '@adopt-dont-shop/lib.utils';
 
 const apiCall = () => fetch('/api/data');
 
@@ -441,7 +441,7 @@ const result = await retry(apiCall, {
 Generate unique IDs with various formats.
 
 ```typescript
-import { generateId } from '@adopt-dont-shop/lib-utils';
+import { generateId } from '@adopt-dont-shop/lib.utils';
 
 generateId(); // 'xyz123abc'
 generateId('pet'); // 'pet_xyz123abc'
@@ -459,7 +459,7 @@ generateId('session', { includeTimestamp: true }); // 'session_1642234567_abc123
 Generate secure tokens for authentication and verification.
 
 ```typescript
-import { generateToken } from '@adopt-dont-shop/lib-utils';
+import { generateToken } from '@adopt-dont-shop/lib.utils';
 
 generateToken(); // Secure random token
 generateToken({ length: 32 }); // 32-character token
@@ -474,7 +474,7 @@ generateToken({ type: 'base64' }); // Base64 token
 Get current environment information.
 
 ```typescript
-import { getEnvironment } from '@adopt-dont-shop/lib-utils';
+import { getEnvironment } from '@adopt-dont-shop/lib.utils';
 
 const env = getEnvironment();
 // {
@@ -491,7 +491,7 @@ const env = getEnvironment();
 Load and merge configuration from various sources.
 
 ```typescript
-import { loadConfig } from '@adopt-dont-shop/lib-utils';
+import { loadConfig } from '@adopt-dont-shop/lib.utils';
 
 const config = loadConfig(
   {
@@ -511,7 +511,7 @@ const config = loadConfig(
 Create structured error objects.
 
 ```typescript
-import { createError } from '@adopt-dont-shop/lib-utils';
+import { createError } from '@adopt-dont-shop/lib.utils';
 
 throw createError('Validation failed', {
   code: 'VALIDATION_ERROR',
@@ -525,7 +525,7 @@ throw createError('Validation failed', {
 Check if a value is an error of specific type.
 
 ```typescript
-import { isError } from '@adopt-dont-shop/lib-utils';
+import { isError } from '@adopt-dont-shop/lib.utils';
 
 isError(new Error()); // true
 isError(new TypeError(), 'TypeError'); // true
@@ -548,7 +548,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-utils
+npx turbo test --filter=@adopt-dont-shop/lib.utils
 ```
 
 ## 🚀 Key Features
@@ -608,7 +608,7 @@ npm run test:lib-utils
 Most utilities include optional logging for debugging:
 
 ```typescript
-import { debugMode } from '@adopt-dont-shop/lib-utils';
+import { debugMode } from '@adopt-dont-shop/lib.utils';
 
 debugMode.enable(); // Enable debug logging for all utilities
 ```

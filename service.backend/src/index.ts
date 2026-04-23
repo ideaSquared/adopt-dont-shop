@@ -166,9 +166,17 @@ if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
   app.use(
     '/uploads',
     (req, res, next) => {
-      // Set CORS headers for uploaded files
+      // Set CORS headers for uploaded files - restrict to configured allowed origins
+      const origin = req.headers.origin;
+      const allowedOrigins = Array.isArray(config.cors.origin)
+        ? config.cors.origin
+        : [config.cors.origin];
+
+      if (origin !== undefined && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
+
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       res.setHeader(
         'Access-Control-Allow-Headers',
@@ -411,24 +419,28 @@ const startServer = async () => {
           await runAllSeeders();
           logger.info('Database seeding completed.');
         } else {
-          // Use alter mode to preserve data while updating schema
-          await sequelize.sync({ alter: true });
-          logger.info('Database models synchronized (schema updated, data preserved).');
-
-          // Check if database is empty and needs seeding
-          const UserModule = await import('./models/User');
-          const User = UserModule.default;
-          const userCount = await User.count();
+          // Check if database is already populated to avoid slow HMR rebuilds
+          let userCount = 0;
+          try {
+            const UserModule = await import('./models/User');
+            const User = UserModule.default;
+            userCount = await User.count();
+          } catch {
+            // Table doesn't exist yet — treat as empty DB
+            userCount = 0;
+          }
 
           if (userCount === 0) {
+            // Empty DB or schema not yet created — sync and seed
+            await sequelize.sync({ alter: true });
+            logger.info('Database models synchronized (schema updated, data preserved).');
             logger.info('Empty database detected - running seeders...');
             const { runAllSeeders } = await import('./seeders');
             await runAllSeeders();
             logger.info('Database seeding completed.');
           } else {
-            logger.info(
-              `Database already populated (${userCount} users found) - skipping seeders.`
-            );
+            // DB already populated — skip sync entirely to avoid slow HMR rebuilds
+            logger.info(`Database already populated (${userCount} users found) - skipping sync.`);
             logger.info(
               '💡 Tip: Use "npm run dev:fresh" to reset database or "npm run seed:dev" to re-seed.'
             );

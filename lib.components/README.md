@@ -9,7 +9,7 @@ See the centralized documentation: [docs/libraries/components.md](../docs/librar
 ## Installation
 
 ```bash
-npm install @adopt-dont-shop/lib-components
+npm install @adopt-dont-shop/lib.components
 ```
 
 ## Structure

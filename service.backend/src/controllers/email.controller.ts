@@ -3,6 +3,7 @@ import { NotificationType } from '../models/EmailPreference';
 import { EmailPriority, EmailType } from '../models/EmailQueue';
 import { TemplateType, TemplateCategory, TemplateStatus } from '../models/EmailTemplate';
 import emailService from '../services/email.service';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 
@@ -58,6 +59,9 @@ export const getTemplate = async (req: AuthenticatedRequest, res: Response): Pro
 
 export const createTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
+    if (typeof req.body.htmlContent === 'string') {
+      req.body.htmlContent = RichTextProcessingService.sanitize(req.body.htmlContent);
+    }
     const template = await emailService.createTemplate({
       ...req.body,
       createdBy: req.user!.userId,
@@ -78,6 +82,9 @@ export const createTemplate = async (req: AuthenticatedRequest, res: Response): 
 export const updateTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { templateId } = req.params;
+    if (typeof req.body.htmlContent === 'string') {
+      req.body.htmlContent = RichTextProcessingService.sanitize(req.body.htmlContent);
+    }
     const template = await emailService.updateTemplate(templateId, req.body, req.user!.userId);
 
     res.json({

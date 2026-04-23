@@ -2,6 +2,10 @@ import '@testing-library/jest-dom';
 import { expect, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
+import { ReadableStream, WritableStream, TransformStream } from 'node:stream/web';
+
+// MSW 2.x requires the Web Streams API, which jsdom does not provide
+Object.assign(globalThis, { ReadableStream, WritableStream, TransformStream });
 
 // Extend Vitest's expect with @testing-library/jest-dom matchers
 expect.extend(matchers);

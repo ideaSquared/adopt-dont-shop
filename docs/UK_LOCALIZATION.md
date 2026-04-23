@@ -57,7 +57,7 @@ Date and time formatting utilities:
 **Example Usage:**
 
 ```typescript
-import { formatDate, formatDateTime } from '@adopt-dont-shop/lib-utils';
+import { formatDate, formatDateTime } from '@adopt-dont-shop/lib.utils';
 
 // Format a date
 const displayDate = formatDate(new Date()); // "19/01/2025"
@@ -78,7 +78,7 @@ GBP currency formatting utilities:
 **Example Usage:**
 
 ```typescript
-import { formatCurrency } from '@adopt-dont-shop/lib-utils';
+import { formatCurrency } from '@adopt-dont-shop/lib.utils';
 
 // Format adoption fee
 const feeDisplay = formatCurrency(150.0); // "£150.00"
@@ -95,7 +95,7 @@ UK phone number formatting and validation:
 **Example Usage:**
 
 ```typescript
-import { formatPhoneNumber, getPhonePlaceholder } from '@adopt-dont-shop/lib-utils';
+import { formatPhoneNumber, getPhonePlaceholder } from '@adopt-dont-shop/lib.utils';
 
 // Format phone number
 const display = formatPhoneNumber('02012345678'); // "020 1234 5678"
@@ -117,7 +117,7 @@ UK address formatting and validation:
 **Example Usage:**
 
 ```typescript
-import { validatePostcode, formatPostcode, UK_COUNTIES } from '@adopt-dont-shop/lib-utils';
+import { validatePostcode, formatPostcode, UK_COUNTIES } from '@adopt-dont-shop/lib.utils';
 
 // Validate postcode
 const isValid = validatePostcode('SW1A1AA'); // true
@@ -220,7 +220,7 @@ postcode: {
 **Imports:**
 
 ```typescript
-import { getPhonePlaceholder, getPostcodePlaceholder } from '@adopt-dont-shop/lib-utils';
+import { getPhonePlaceholder, getPostcodePlaceholder } from '@adopt-dont-shop/lib.utils';
 ```
 
 **Postcode Auto-Uppercase:**
@@ -241,7 +241,7 @@ onChange={(e) => handleChange('address.postcode', e.target.value.toUpperCase())}
 **Imports:**
 
 ```typescript
-import { formatCurrency } from '@adopt-dont-shop/lib-utils';
+import { formatCurrency } from '@adopt-dont-shop/lib.utils';
 ```
 
 ---
@@ -297,7 +297,7 @@ No API endpoint changes required.
 ### Example 1: Display Rescue Address
 
 ```typescript
-import { formatPostcode } from '@adopt-dont-shop/lib-utils';
+import { formatPostcode } from '@adopt-dont-shop/lib.utils';
 
 function RescueAddressDisplay({ rescue }: { rescue: RescueProfile }) {
   return (
@@ -315,7 +315,7 @@ function RescueAddressDisplay({ rescue }: { rescue: RescueProfile }) {
 ### Example 2: Format Phone Number for Display
 
 ```typescript
-import { formatPhoneNumber } from '@adopt-dont-shop/lib-utils';
+import { formatPhoneNumber } from '@adopt-dont-shop/lib.utils';
 
 function ContactInfo({ phone }: { phone: string }) {
   return (
@@ -329,7 +329,7 @@ function ContactInfo({ phone }: { phone: string }) {
 ### Example 3: Display Adoption Fee
 
 ```typescript
-import { formatCurrency } from '@adopt-dont-shop/lib-utils';
+import { formatCurrency } from '@adopt-dont-shop/lib.utils';
 
 function AdoptionFeeDisplay({ fee }: { fee: number }) {
   return (
@@ -343,7 +343,7 @@ function AdoptionFeeDisplay({ fee }: { fee: number }) {
 ### Example 4: Format Application Date
 
 ```typescript
-import { formatDate, formatRelativeDate } from '@adopt-dont-shop/lib-utils';
+import { formatDate, formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 
 function ApplicationDate({ application }: { application: Application }) {
   return (
@@ -402,7 +402,7 @@ To update existing date displays throughout the app:
 1. Import utilities:
 
 ```typescript
-import { formatDate, formatDateTime } from '@adopt-dont-shop/lib-utils';
+import { formatDate, formatDateTime } from '@adopt-dont-shop/lib.utils';
 ```
 
 2. Replace date-fns calls:
@@ -413,7 +413,7 @@ import { format } from 'date-fns';
 const display = format(date, 'MM/dd/yyyy');
 
 // After
-import { formatDate } from '@adopt-dont-shop/lib-utils';
+import { formatDate } from '@adopt-dont-shop/lib.utils';
 const display = formatDate(date); // Uses DD/MM/YYYY
 ```
 

@@ -111,9 +111,9 @@ Frontend apps include:
 {
   "name": "@adopt-dont-shop/app.{name}",
   "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*",
-    "@adopt-dont-shop/lib-auth": "workspace:*",
-    "@adopt-dont-shop/lib-validation": "workspace:*",
+    "@adopt-dont-shop/lib.api": "workspace:*",
+    "@adopt-dont-shop/lib.auth": "workspace:*",
+    "@adopt-dont-shop/lib.validation": "workspace:*",
     "react": "^18.2.0",
     "react-router-dom": "^6.x",
     "@tanstack/react-query": "^4.x"
@@ -213,7 +213,7 @@ server {
 
 ```bash
 # With Docker
-docker-compose up app.{name}
+docker compose up app.{name}
 
 # Or locally
 cd app.{name}
@@ -229,8 +229,8 @@ Edit `package.json` to add libraries:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-storage": "workspace:*",
-    "@adopt-dont-shop/lib-email": "workspace:*"
+    "@adopt-dont-shop/lib.storage": "workspace:*",
+    "@adopt-dont-shop/lib.email": "workspace:*"
   }
 }
 ```
@@ -294,11 +294,11 @@ rm -rf node_modules && npm install
 
 ```bash
 # Clear Docker cache
-docker-compose down -v
+docker compose down -v
 docker system prune -a
 
 # Rebuild without cache
-docker-compose build --no-cache app.{name}
+docker compose build --no-cache app.{name}
 ```
 
 ## Additional Resources

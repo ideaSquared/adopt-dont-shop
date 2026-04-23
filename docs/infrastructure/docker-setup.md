@@ -10,10 +10,9 @@ The application consists of multiple services:
 - **app.client** - Public-facing React application (port 3000)
 - **app.admin** - Admin dashboard React application (port 3001)
 - **app.rescue** - Rescue management React application (port 3002)
-- **lib.components** - Shared React component library
-- **database** - PostgreSQL database
+- **database** - PostgreSQL (with PostGIS)
 - **redis** - Redis for caching and sessions
-- **nginx** - Reverse proxy (production only)
+- **nginx** - Reverse proxy for subdomain routing (runs in dev and prod)
 
 ## Quick Start
 
@@ -53,7 +52,7 @@ Modern browsers automatically resolve `*.localhost` subdomains to `127.0.0.1`, s
    # Edit .env with your configuration
 
    # Start all services
-   docker-compose up
+   docker compose up
    ```
 
 3. **Access Applications**
@@ -152,11 +151,15 @@ chmod -R 755 ./uploads
 ### Using Production Compose File
 
 ```bash
-# Build and start production services
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Build and start production services (applies the prod overlay on top
+# of the base compose file — both flags are required).
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Or via npm script
+npm run prod:up
 
 # Check service status
-docker-compose ps
+docker compose ps
 ```
 
 ### SSL/TLS Setup
@@ -175,19 +178,19 @@ cp your-domain.key nginx/ssl/
 
 ```bash
 # Development
-docker-compose up                    # Start all services
-docker-compose up -d                 # Start in background
-docker-compose down                  # Stop all services
-docker-compose logs service-name     # View service logs
-docker-compose exec service-name bash # Access container shell
+docker compose up                    # Start all services
+docker compose up -d                 # Start in background
+docker compose down                  # Stop all services
+docker compose logs service-name     # View service logs
+docker compose exec service-name bash # Access container shell
 
-# Production
-docker-compose -f docker-compose.prod.yml up -d
-docker-compose -f docker-compose.prod.yml down
+# Production (both -f flags required — prod overlays on top of base)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 
 # Maintenance
-docker-compose build                 # Rebuild all images
-docker-compose pull                  # Update base images
+docker compose build                 # Rebuild all images
+docker compose pull                  # Update base images
 docker system prune                  # Clean up unused resources
 ```
 
@@ -210,11 +213,11 @@ docker system prune                  # Clean up unused resources
 
 ```bash
 # View all logs
-docker-compose logs -f
+docker compose logs -f
 
 # View specific service logs
-docker-compose logs -f service-backend
-docker-compose logs -f app-client
+docker compose logs -f service-backend
+docker compose logs -f app-client
 
 # Monitor resource usage
 docker stats
@@ -223,5 +226,5 @@ docker stats
 ## Next Steps
 
 - Review [Infrastructure Documentation](./INFRASTRUCTURE.md) for complete system overview
-- Check [Infrastructure Recommendations](./recommendations-infra.md) for production optimizations
 - See [MICROSERVICES-STANDARDS.md](./MICROSERVICES-STANDARDS.md) for architecture patterns
+- See [../DOCKER.md](../DOCKER.md) for the Docker infrastructure deep dive

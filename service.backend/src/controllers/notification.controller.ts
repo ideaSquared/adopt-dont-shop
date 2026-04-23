@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import { NotificationService } from '../services/notification.service';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 
@@ -113,7 +114,10 @@ export class NotificationController {
         userId: req.body.userId,
         type: req.body.type,
         title: req.body.title,
-        message: req.body.message,
+        message:
+          typeof req.body.message === 'string'
+            ? RichTextProcessingService.sanitize(req.body.message)
+            : req.body.message,
         data: req.body.data,
         priority: req.body.priority || 'medium',
         category: req.body.category || 'general',
@@ -376,6 +380,10 @@ export class NotificationController {
           success: false,
           message: 'userIds must be a non-empty array',
         });
+      }
+
+      if (typeof notificationData.message === 'string') {
+        notificationData.message = RichTextProcessingService.sanitize(notificationData.message);
       }
 
       const result = await NotificationService.createBulkNotifications(

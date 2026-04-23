@@ -667,6 +667,7 @@ Thank you for joining!`,
 export async function seedEmailTemplates() {
   for (const template of emailTemplateData) {
     await EmailTemplate.findOrCreate({
+      paranoid: false,
       where: { templateId: template.templateId },
       defaults: template,
     });

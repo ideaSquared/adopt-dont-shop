@@ -268,3 +268,59 @@ describe('Security Headers', () => {
     });
   });
 });
+
+describe('Uploads CORS Headers', () => {
+  const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+  let uploadsApp: express.Application;
+
+  beforeEach(() => {
+    uploadsApp = express();
+
+    uploadsApp.use('/uploads', (req, res, next) => {
+      const origin = req.headers.origin;
+      const allowedOriginList = Array.isArray(allowedOrigins) ? allowedOrigins : [allowedOrigins];
+
+      if (origin !== undefined && allowedOriginList.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
+
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      next();
+    });
+
+    uploadsApp.get('/uploads/test.jpg', (_req, res) => {
+      res.json({ file: 'test' });
+    });
+  });
+
+  it('should set Access-Control-Allow-Origin to the specific allowed origin, not a wildcard', async () => {
+    const response = await request(uploadsApp)
+      .get('/uploads/test.jpg')
+      .set('Origin', 'http://localhost:3000');
+
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(response.headers['access-control-allow-origin']).not.toBe('*');
+  });
+
+  it('should reflect the specific allowed origin in the response header', async () => {
+    const response = await request(uploadsApp)
+      .get('/uploads/test.jpg')
+      .set('Origin', 'http://localhost:3001');
+
+    expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3001');
+  });
+
+  it('should not set Access-Control-Allow-Origin for disallowed origins', async () => {
+    const response = await request(uploadsApp)
+      .get('/uploads/test.jpg')
+      .set('Origin', 'http://evil.com');
+
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
+  });
+
+  it('should not set Access-Control-Allow-Origin when no origin header is provided', async () => {
+    const response = await request(uploadsApp).get('/uploads/test.jpg');
+
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
+  });
+});

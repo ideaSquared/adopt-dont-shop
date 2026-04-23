@@ -1,124 +1,60 @@
-# Rescue Application
+# @adopt-dont-shop/app.rescue
 
-A React TypeScript application for the Adopt Don't Shop platform.
+Rescue organization portal for the Adopt Don't Shop platform.
 
-## Features
+See the full product spec: [docs/frontend/app-rescue-prd.md](../docs/frontend/app-rescue-prd.md).
 
-- ⚛️ React 18 with TypeScript
-- 🏃‍♂️ Vite for fast development and building
-- 🧪 Jest + Testing Library for comprehensive testing
-- 🎨 Modern CSS with responsive design
-- 📦 Component-based architecture
-- 🔍 ESLint for code quality
-- 🐳 Docker support for development and production
+## Stack
 
-## Getting Started
+- React 18 + TypeScript (strict)
+- Vite
+- Vitest + React Testing Library
+- ESLint + Prettier
+- Docker (multi-stage build for dev and prod)
 
-### Prerequisites
+## Quick Start
 
-- Node.js 18 or higher
-- npm 9 or higher
-
-### Installation
-
-1. Install dependencies:
+From the repo root:
 
 ```bash
-npm install
+# Full stack (recommended) — rescue app is exposed at http://localhost:3002
+npm run docker:dev
+
+# All React apps only (no backend, Docker, or DB)
+npm run dev:apps
+
+# Just this app via Turbo
+npx turbo dev --filter=@adopt-dont-shop/app.rescue
 ```
 
-2. Start the development server:
+Or from this directory: `npm run dev` — Vite serves on http://localhost:3000 (container internal port; Docker maps it to 3002 externally).
 
-```bash
-npm run dev
-```
+## Scripts
 
-3. Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-## Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm test` - Run tests
-- `npm run test:watch` - Run tests in watch mode
-- `npm run test:coverage` - Run tests with coverage
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint errors
-- `npm run type-check` - Run TypeScript type checking
+- `npm run dev` — Vite dev server
+- `npm run build` — `tsc && vite build`
+- `npm run preview` — preview the production build
+- `npm test` — Vitest (run mode)
+- `npm run test:watch` — Vitest watch mode
+- `npm run test:coverage` — Vitest with coverage
+- `npm run lint` / `lint:fix` — ESLint
+- `npm run type-check` — TypeScript type check
 
 ## Project Structure
 
 ```
 src/
-├── components/          # Reusable UI components
-├── pages/              # Page components
-├── hooks/              # Custom React hooks
-├── services/           # API and external services
-├── utils/              # Utility functions
-├── types/              # TypeScript type definitions
-├── test-utils/         # Testing utilities and setup
-├── __tests__/          # Test files
-├── App.tsx             # Main App component
-├── main.tsx            # Application entry point
-└── index.css           # Global styles
-```
-
-## Testing
-
-This application uses Jest with Testing Library for comprehensive testing:
-
-- **Unit Tests**: Test individual components and functions
-- **Integration Tests**: Test component interactions
-- **Mocking**: Automatic mocking of external dependencies
-- **Coverage**: Track test coverage across the codebase
-
-### Test Setup
-
-The test environment includes:
-
-- Global fetch mocking
-- localStorage mocking
-- React Router mocking
-- Window API mocking (matchMedia, IntersectionObserver)
-
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
+├── components/     Reusable UI components
+├── pages/          Route-level components
+├── hooks/          Custom React hooks
+├── services/       API clients and external services
+├── utils/          Utility helpers
+├── types/          TypeScript type definitions
+├── App.tsx         Main App component
+├── main.tsx        Application entry point
+└── index.css       Global styles
 ```
 
 ## Docker
 
-### Development
-
-```bash
-docker build --target development -t app.rescue:dev .
-docker run -p 3000:3000 -v $(pwd):/app app.rescue:dev
-```
-
-### Production
-
-```bash
-docker build --target production -t app.rescue:prod .
-docker run -p 80:80 app.rescue:prod
-```
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
-## License
-
-Private - Adopt Don't Shop Platform
+The root `docker-compose.yml` wires this app up automatically — no per-app commands needed. The app container exposes port 3000 internally and is mapped to 3002 on the host.

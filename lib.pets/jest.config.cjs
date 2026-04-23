@@ -8,7 +8,7 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/src/test-utils/setup-tests.ts'],
   moduleNameMapper: {
-    '^@adopt-dont-shop/lib-api$': '<rootDir>/../lib.api/src',
+    '^@adopt-dont-shop/lib\\.api$': '<rootDir>/../lib.api/src',
   },
   collectCoverageFrom: [
     'src/**/*.ts',

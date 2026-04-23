@@ -6,7 +6,8 @@ import { createHttpError, TimeoutError, NetworkError } from '../errors';
  * ApiService - Pure HTTP transport layer with interceptors and error handling
  */
 export class ApiService {
-  private config: Required<ApiServiceConfig>;
+  private config: Required<Omit<ApiServiceConfig, 'onUnauthorized'>>;
+  private onUnauthorized: (() => void) | undefined;
   private cache: Map<string, unknown> = new Map();
   private baseURL: string;
   private defaultTimeout: number = 10000;
@@ -25,6 +26,7 @@ export class ApiService {
       headers: config.headers ?? {},
       getAuthToken: config.getAuthToken ?? (() => null),
     };
+    this.onUnauthorized = config.onUnauthorized;
 
     this.interceptors = new InterceptorManager();
     this.setupDefaultInterceptors();
@@ -79,6 +81,11 @@ export class ApiService {
           // If we can't parse error as JSON, use the default message
         }
 
+        // Notify caller on 401 so auth state can be cleared without an API call
+        if (response.status === 401) {
+          this.onUnauthorized?.();
+        }
+
         // Clear CSRF token on 403 errors (invalid CSRF token)
         if (response.status === 403 && errorMessage.toLowerCase().includes('csrf')) {
           if (this.config.debug) {
@@ -129,7 +136,12 @@ export class ApiService {
    * Update service configuration
    */
   updateConfig(config: Partial<ApiServiceConfig>): void {
-    this.config = { ...this.config, ...config };
+    const { onUnauthorized, ...rest } = config;
+    this.config = { ...this.config, ...rest };
+
+    if ('onUnauthorized' in config) {
+      this.onUnauthorized = onUnauthorized;
+    }
 
     // ✅ FIX: Also update baseURL when apiUrl changes
     if (config.apiUrl) {
@@ -147,7 +159,7 @@ export class ApiService {
    * Get current configuration
    */
   getConfig(): ApiServiceConfig {
-    return { ...this.config };
+    return { ...this.config, onUnauthorized: this.onUnauthorized };
   }
 
   /**

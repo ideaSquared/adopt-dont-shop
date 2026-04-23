@@ -1,26 +1,61 @@
-import {
-  ApplicationForm,
-  ApplicationProgress,
-  ProfileCompletionPrompt,
-  QuickApplicationPrompt,
-} from '@/components/application';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { applicationService, petService, ApplicationData, Pet } from '@/services';
-import { applicationProfileService } from '@/services/applicationProfileService';
-import {
-  ApplicationDefaults,
-  ApplicationPrePopulationData,
-  QuickApplicationCapability,
-} from '@/types';
-import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { ApplicationForm, ApplicationProgress, QuickApplyView } from '@/components/application';
+import type { CategoryGroup } from '@/components/application/ApplicationForm';
+import type { Question } from '@/components/application/QuestionField';
+import { useAutoSave } from '@/hooks/use-auto-save';
+import { petService, apiService, type Pet } from '@/services';
+import { applicationProfileService } from '@/services/applicationProfileService';
+import {
+  buildInitialAnswers,
+  canQuickApply,
+  splitAnswersForPersistence,
+} from '@/utils/applicationFieldMapping';
+import { applyConditionalDefaults } from '@/components/application/questionConditions';
+import type { ApplicationDefaults } from '@/types';
 
-/**
- * Application Page
- * Features smart pre-population and quick application based on user profile
- */
+type MacroStepDef = {
+  id: string;
+  title: string;
+  description: (petName?: string) => string;
+  categories: readonly string[];
+};
+
+const MACRO_STEPS: readonly MacroStepDef[] = [
+  {
+    id: 'about_you',
+    title: 'About you 👋',
+    description: () => 'A few quick details so we know who you are.',
+    categories: ['personal_information'],
+  },
+  {
+    id: 'your_home',
+    title: 'Your home 🏠',
+    description: () => 'Tell us where your new companion would be living.',
+    categories: ['household_information'],
+  },
+  {
+    id: 'pet_experience',
+    title: 'Your pet experience 🐾',
+    description: () => 'Your history with pets — good, messy, and everything in between.',
+    categories: [
+      'pet_ownership_experience',
+      'lifestyle_compatibility',
+      'pet_care_commitment',
+      'references_verification',
+    ],
+  },
+  {
+    id: 'this_pet',
+    title: 'About {petName} ❤️',
+    description: petName =>
+      `Last bit! Just a few questions about ${petName ?? 'this pet'} and we're done.`,
+    categories: ['final_acknowledgments'],
+  },
+];
 
 const Container = styled.div`
   max-width: 800px;
@@ -50,355 +85,281 @@ const LoadingContainer = styled.div`
   min-height: 200px;
 `;
 
-const steps = [
-  { id: 1, title: 'Basic Information', description: 'Tell us about yourself' },
-  { id: 2, title: 'Living Situation', description: 'Your home environment' },
-  { id: 3, title: 'Pet Experience', description: 'Your experience with pets' },
-  { id: 4, title: 'References', description: 'Veterinary and personal references' },
-  { id: 5, title: 'Additional Information', description: 'Why do you want to adopt?' },
-  { id: 6, title: 'Review & Submit', description: 'Review your application' },
+const CATEGORY_ORDER = [
+  'personal_information',
+  'household_information',
+  'pet_ownership_experience',
+  'lifestyle_compatibility',
+  'pet_care_commitment',
+  'references_verification',
+  'final_acknowledgments',
 ];
+
+const groupQuestionsByMacroStep = (questions: Question[], petName?: string): CategoryGroup[] => {
+  const byCategory = new Map<string, Question[]>();
+  for (const q of questions) {
+    const existing = byCategory.get(q.category);
+    if (existing) {
+      existing.push(q);
+    } else {
+      byCategory.set(q.category, [q]);
+    }
+  }
+  for (const qs of byCategory.values()) {
+    qs.sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  const usedCategories = new Set<string>();
+  const groups: CategoryGroup[] = [];
+
+  for (const step of MACRO_STEPS) {
+    const stepQuestions: Question[] = [];
+    for (const category of step.categories) {
+      const catQuestions = byCategory.get(category);
+      if (catQuestions) {
+        stepQuestions.push(...catQuestions);
+        usedCategories.add(category);
+      }
+    }
+    if (stepQuestions.length === 0) {
+      continue;
+    }
+    groups.push({
+      category: step.id,
+      title: step.title.replace('{petName}', petName ?? 'this pet'),
+      description: step.description(petName),
+      questions: stepQuestions,
+    });
+  }
+
+  // Any categories the rescue has enabled questions in that we didn't already
+  // slot into a macro-step become a final "extras" step before acknowledgments.
+  const leftovers: Question[] = [];
+  for (const category of CATEGORY_ORDER) {
+    if (usedCategories.has(category)) {
+      continue;
+    }
+    const catQuestions = byCategory.get(category);
+    if (catQuestions) {
+      leftovers.push(...catQuestions);
+    }
+  }
+  for (const [category, catQuestions] of byCategory) {
+    if (usedCategories.has(category)) {
+      continue;
+    }
+    if (CATEGORY_ORDER.includes(category)) {
+      continue;
+    }
+    leftovers.push(...catQuestions);
+  }
+  if (leftovers.length > 0) {
+    // Insert just before the last macro-step (acknowledgments), since those
+    // should always be the final thing the user sees.
+    const extrasGroup: CategoryGroup = {
+      category: 'extras',
+      title: 'A few extras 🧩',
+      description: 'A couple of additional questions from this rescue.',
+      questions: leftovers,
+    };
+    const insertAt = Math.max(0, groups.length - 1);
+    groups.splice(insertAt, 0, extrasGroup);
+  }
+
+  return groups;
+};
 
 export const ApplicationPage: React.FC = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
-  // Component state
   const [pet, setPet] = useState<Pet | null>(null);
+  const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+  const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
-  const [applicationData, setApplicationData] = useState<Partial<ApplicationData>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const [prefilledKeys, setPrefilledKeys] = useState<Set<string>>(() => new Set());
+  const [viewMode, setViewMode] = useState<'quick' | 'guided'>('guided');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Phase 1 enhanced state
-  const [quickApplicationCapability, setQuickApplicationCapability] =
-    useState<QuickApplicationCapability | null>(null);
-  const [prePopulationData, setPrePopulationData] = useState<ApplicationPrePopulationData | null>(
-    null
-  );
-  const [showQuickApplicationPrompt, setShowQuickApplicationPrompt] = useState(false);
-  const [showProfileCompletionPrompt, setShowProfileCompletionPrompt] = useState(false);
-  const [usePrePopulation] = useState(true);
+  const { saveStatus, lastSaved, scheduleSave, saveNow, clearDraft, loadedDraft } =
+    useAutoSave<Record<string, unknown>>(petId);
 
-  const populateFormWithData = useCallback(
-    (data: ApplicationPrePopulationData) => {
-      const populatedData: Partial<ApplicationData> = {
-        petId: petId!,
-        userId: user!.userId,
-        personalInfo: {
-          firstName: data.defaults.personalInfo?.firstName || user!.firstName,
-          lastName: data.defaults.personalInfo?.lastName || user!.lastName,
-          email: data.defaults.personalInfo?.email || user!.email,
-          phone: data.defaults.personalInfo?.phone || user!.phoneNumber || '',
-          address: data.defaults.personalInfo?.address || user!.addressLine1 || '',
-          city: data.defaults.personalInfo?.city || user!.city || '',
-          state: data.defaults.personalInfo?.state || '',
-          zipCode: data.defaults.personalInfo?.zipCode || '',
-          county: data.defaults.personalInfo?.county || '', // County is specific to the application, not stored in user profile
-          postcode: data.defaults.personalInfo?.postcode || user!.postalCode || '',
-          country: data.defaults.personalInfo?.country || user!.country || 'United Kingdom',
-          dateOfBirth: data.defaults.personalInfo?.dateOfBirth || '',
-          occupation: data.defaults.personalInfo?.occupation || '',
-        },
-        // Use type assertion for partial data with required fields
-        livingsituation: {
-          housingType: data.defaults.livingSituation?.housingType || 'apartment',
-          isOwned: data.defaults.livingSituation?.isOwned || false,
-          hasYard: data.defaults.livingSituation?.hasYard || false,
-          ...data.defaults.livingSituation,
-        } as ApplicationData['livingsituation'],
-        petExperience: {
-          hasPetsCurrently: data.defaults.petExperience?.hasPetsCurrently || false,
-          experienceLevel: data.defaults.petExperience?.experienceLevel || 'beginner',
-          willingToTrain: data.defaults.petExperience?.willingToTrain || true,
-          hoursAloneDaily: data.defaults.petExperience?.hoursAloneDaily || 0,
-          exercisePlans: data.defaults.petExperience?.exercisePlans || '',
-          ...data.defaults.petExperience,
-        } as ApplicationData['petExperience'],
-        references: {
-          personal: data.defaults.references?.personal || [],
-          ...data.defaults.references,
-        } as ApplicationData['references'],
-      };
+  const currentStepRef = useRef(currentStep);
+  currentStepRef.current = currentStep;
 
-      setApplicationData(populatedData);
-
-      // Note: lastSavedStep is not part of ApplicationDefaults,
-      // step progression will be handled by the application flow
-    },
-    [petId, user]
-  );
-
-  const populateFormWithDefaults = useCallback(
-    (defaults: ApplicationDefaults) => {
-      const populatedData: Partial<ApplicationData> = {
-        petId: petId!,
-        userId: user!.userId,
-        personalInfo: {
-          firstName: defaults.personalInfo?.firstName || user!.firstName,
-          lastName: defaults.personalInfo?.lastName || user!.lastName,
-          email: defaults.personalInfo?.email || user!.email,
-          phone: defaults.personalInfo?.phone || user!.phoneNumber || '',
-          address: defaults.personalInfo?.address || user!.addressLine1 || '',
-          city: defaults.personalInfo?.city || user!.city || '',
-          state: defaults.personalInfo?.state || '',
-          zipCode: defaults.personalInfo?.zipCode || '',
-          county: defaults.personalInfo?.county || '',
-          postcode: defaults.personalInfo?.postcode || user!.postalCode || '',
-          country: defaults.personalInfo?.country || user!.country || 'United Kingdom',
-          dateOfBirth: defaults.personalInfo?.dateOfBirth || '',
-          occupation: defaults.personalInfo?.occupation || '',
-        },
-        livingsituation: {
-          housingType: defaults.livingSituation?.housingType || 'apartment',
-          isOwned: defaults.livingSituation?.isOwned || false,
-          hasYard: defaults.livingSituation?.hasYard || false,
-          ...defaults.livingSituation,
-        } as ApplicationData['livingsituation'],
-        petExperience: {
-          hasPetsCurrently: defaults.petExperience?.hasPetsCurrently || false,
-          experienceLevel: defaults.petExperience?.experienceLevel || 'beginner',
-          willingToTrain: defaults.petExperience?.willingToTrain || true,
-          hoursAloneDaily: defaults.petExperience?.hoursAloneDaily || 0,
-          exercisePlans: defaults.petExperience?.exercisePlans || '',
-          ...defaults.petExperience,
-        } as ApplicationData['petExperience'],
-        references: {
-          personal: defaults.references?.personal || [],
-          ...defaults.references,
-        } as ApplicationData['references'],
-      };
-
-      setApplicationData(populatedData);
-    },
-    [petId, user]
-  );
-
-  const loadApplicationData = useCallback(async () => {
+  const loadData = useCallback(async () => {
+    if (!petId) {
+      return;
+    }
     try {
       setIsLoading(true);
-      if (!petId) {
-        throw new Error('Pet ID is required');
-      }
-
-      // Load pet data
       const petData = await petService.getPetById(petId);
       setPet(petData);
 
-      // Phase 1: Check quick application capability
-      const quickAppCapability = await applicationProfileService.canUseQuickApplication(petId);
-      setQuickApplicationCapability(quickAppCapability);
-
-      // Phase 1: Get pre-population data
-      const prePopData = await applicationProfileService.getPrePopulationData(petId);
-      setPrePopulationData(prePopData);
-
-      // Phase 1: Determine what prompts to show
-      if (quickAppCapability.canProceed && !quickAppCapability.missingFields?.length) {
-        setShowQuickApplicationPrompt(true);
-      } else if (quickAppCapability.missingFields?.length) {
-        setShowProfileCompletionPrompt(true);
+      // Check for an existing active application for this pet before showing the form
+      const existing = await apiService.get<{
+        data: { id: string; status: string }[];
+      }>(`/api/v1/applications?petId=${encodeURIComponent(petId)}`);
+      const active = existing.data.find(a => a.status !== 'withdrawn' && a.status !== 'rejected');
+      if (active) {
+        navigate(`/applications/${active.id}`, {
+          state: { message: 'You already have an active application for this pet.' },
+        });
+        return;
       }
 
-      // Phase 1: Pre-populate form with available data
-      if (usePrePopulation && prePopData) {
-        populateFormWithData(prePopData);
-      }
-    } catch (error) {
-      console.error('Failed to load application data:', error);
+      const [questionsResponse, defaults] = await Promise.all([
+        apiService.get<{ questions: Question[] }>(`/api/v1/rescues/${petData.rescue_id}/questions`),
+        applicationProfileService.getApplicationDefaults().catch(() => null),
+      ]);
+      const enabledQuestions = questionsResponse.questions.filter((q: Question) => q.isEnabled);
+      setAllQuestions(enabledQuestions);
+      setCategories(groupQuestionsByMacroStep(enabledQuestions, petData.name));
+
+      const sources = {
+        user: user ?? null,
+        defaults: (defaults as ApplicationDefaults | null) ?? null,
+        customAnswers: (defaults as ApplicationDefaults | null)?.customAnswers ?? null,
+      };
+      const prePop = buildInitialAnswers(enabledQuestions, sources);
+      setAnswers(applyConditionalDefaults(prePop.answers));
+      setPrefilledKeys(prePop.prefilledKeys);
+      setViewMode(canQuickApply(enabledQuestions, sources) ? 'quick' : 'guided');
+    } catch (err) {
+      console.error('Failed to load application data:', err);
       setError('Failed to load application information. Please try again.');
-      // Scroll to top so user sees the error notification
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsLoading(false);
     }
-  }, [petId, usePrePopulation, populateFormWithData]);
+  }, [petId, navigate, user]);
+
+  useEffect(() => {
+    if (!loadedDraft) {
+      return;
+    }
+    setAnswers(loadedDraft.applicationData);
+    setCurrentStep(loadedDraft.currentStep);
+    // A restored draft implies mid-flow editing — use the guided view so the
+    // saved `currentStep` makes sense, and drop the badge state since the
+    // draft reflects the user's own typed answers.
+    setPrefilledKeys(new Set());
+    setViewMode('guided');
+  }, [loadedDraft]);
 
   useEffect(() => {
     if (authLoading) {
       return;
     }
-
     if (!isAuthenticated) {
       navigate(`/login?redirect=/apply/${petId}`);
       return;
     }
+    loadData();
+  }, [petId, isAuthenticated, authLoading, navigate, loadData]);
 
-    loadApplicationData();
-  }, [petId, isAuthenticated, authLoading, navigate, loadApplicationData]);
+  const handleChange = useCallback(
+    (updated: Record<string, unknown>) => {
+      const normalised = applyConditionalDefaults(updated);
+      setAnswers(normalised);
+      scheduleSave(normalised, currentStepRef.current);
+    },
+    [scheduleSave]
+  );
 
-  const handleQuickApplicationAccept = async () => {
-    try {
-      setShowQuickApplicationPrompt(false);
+  const handleStepComplete = useCallback(
+    (updatedAnswers: Record<string, unknown>) => {
+      const normalised = applyConditionalDefaults(updatedAnswers);
+      setAnswers(normalised);
+      scheduleSave(normalised, currentStepRef.current);
+      setCurrentStep(prev => prev + 1);
+    },
+    [scheduleSave]
+  );
 
-      if (prePopulationData?.defaults) {
-        populateFormWithDefaults(prePopulationData.defaults);
-        // Jump to additional info step so user can add personal motivation
-        setCurrentStep(5);
-      }
-    } catch (error) {
-      console.error('Failed to set up quick application:', error);
-      setError('Failed to set up quick application. Please try the regular form.');
-      // Scroll to top so user sees the error notification
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleQuickApplicationDecline = () => {
-    setShowQuickApplicationPrompt(false);
-    // Continue with regular form flow
-  };
-
-  const handleProfileCompletionAction = async (action: 'complete' | 'skip') => {
-    setShowProfileCompletionPrompt(false);
-
-    if (action === 'complete') {
-      // Navigate to profile completion page
-      navigate('/profile/setup?returnTo=' + encodeURIComponent(`/apply/${petId}`));
-    }
-    // If skip, continue with regular form
-  };
-
-  const handleStepComplete = async (stepData: Partial<ApplicationData>) => {
-    // Phase 1: Auto-save progress
-    try {
-      const updatedData = { ...applicationData, ...stepData };
-      setApplicationData(updatedData);
-
-      // Auto-save progress (if enabled in user preferences)
-      // await applicationProgressService.saveProgress({
-      //   petId: petId!,
-      //   stepNumber: currentStep,
-      //   totalSteps: steps.length,
-      //   stepData: updatedData,
-      // });
-
-      if (currentStep < steps.length) {
-        setCurrentStep(prev => prev + 1);
-        setSuccessMessage(null); // Clear any success messages when moving to next step
-      }
-    } catch (error) {
-      console.error('Failed to save progress:', error);
-      // Don't block the user, just log the error
-    }
-  };
-
-  const handleStepBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
-      setSuccessMessage(null); // Clear any success messages when going back
-    }
-  };
+  const handleStepBack = useCallback(() => {
+    setCurrentStep(prev => Math.max(1, prev - 1));
+  }, []);
 
   const handleSubmit = async () => {
+    if (!pet) {
+      return;
+    }
     try {
       setIsSubmitting(true);
       setError(null);
-      setSuccessMessage(null);
 
-      if (!pet || !user || !applicationData.personalInfo) {
-        throw new Error('Application data is incomplete');
-      }
-
-      // Format data to match backend expectations
-      const references = [];
-
-      // Add veterinarian reference if provided
-      if (
-        applicationData.references?.veterinarian?.name &&
-        applicationData.references?.veterinarian?.phone
-      ) {
-        const vet = applicationData.references.veterinarian;
-        references.push({
-          name: vet.name,
-          relationship: 'Veterinarian',
-          phone: vet.phone,
-          email: vet.email || '',
-        });
-      }
-
-      // Add personal references if provided
-      if (applicationData.references?.personal && applicationData.references.personal.length > 0) {
-        applicationData.references.personal.forEach(ref => {
-          // Only add references that have required fields
-          if (ref.name && ref.relationship && ref.phone) {
-            references.push({
-              name: ref.name,
-              relationship: ref.relationship,
-              phone: ref.phone,
-              email: ref.email || '',
-            });
-          }
-        });
-      }
-
-      // References are now optional - no need to add placeholder
-
-      // Format answers object containing all application data
-      const answers = {
-        personal_info: applicationData.personalInfo || {},
-        living_situation: applicationData.livingsituation || {},
-        pet_experience: applicationData.petExperience || {},
-        additional_info: applicationData.additionalInfo || {},
-      };
-
-      const submissionData = {
-        pet_id: pet.pet_id,
-        answers,
-        ...(references.length > 0 && { references }),
-        priority: 'normal' as const,
-      };
-
-      // Type assertion needed because backend expects different structure than ApplicationData type
-      const result = await applicationService.submitApplication(
-        submissionData as unknown as ApplicationData
+      const result = await apiService.post<{ data: { applicationId: string } }>(
+        '/api/v1/applications',
+        {
+          petId: pet.pet_id,
+          answers,
+        }
       );
 
-      // Phase 1: Mark progress as completed
-      // await applicationProgressService.completeProgress(petId!);
+      // Fire-and-forget: persist the reusable parts of this application back
+      // into the user's applicationDefaults so the next application pre-fills.
+      // A failure here shouldn't block the successful submission.
+      const { defaultsUpdate, customAnswers } = splitAnswersForPersistence(answers, allQuestions);
+      const hasStructuredUpdate = Object.keys(defaultsUpdate).length > 0;
+      const hasCustomUpdate = Object.keys(customAnswers).length > 0;
+      if (hasStructuredUpdate || hasCustomUpdate) {
+        applicationProfileService
+          .updateApplicationDefaults({
+            ...defaultsUpdate,
+            ...(hasCustomUpdate ? { customAnswers } : {}),
+          })
+          .catch(err => {
+            // Non-fatal — log and move on.
+            console.warn('Failed to persist application defaults:', err);
+          });
+      }
 
-      // Phase 1: Save successful application data as defaults for future use
-      await applicationProfileService.updateApplicationDefaults({
-        personalInfo: applicationData.personalInfo,
-        livingSituation: applicationData.livingsituation,
-        petExperience: applicationData.petExperience,
-        references: applicationData.references,
-      });
-
-      // Show success message
+      clearDraft();
       setSuccessMessage(
-        'Application submitted successfully! You will be redirected to your application details page shortly.'
+        `You're in! 🎉 We've sent your application to ${pet.name}'s rescue — taking you to your application details now.`
       );
-      setError(null);
-
-      // Scroll to top so user sees the success notification
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // Navigate after a longer delay to let user see the success message and feel confident
       setTimeout(() => {
-        navigate(`/applications/${result.id}`, {
-          state: {
-            message: 'Application submitted successfully!',
-          },
+        navigate(`/applications/${result.data.applicationId}`, {
+          state: { message: `Application for ${pet.name} sent! 🐾` },
         });
       }, 3000);
-    } catch (error) {
-      console.error('Failed to submit application:', error);
-      setError('Failed to submit application. Please try again.');
-      setSuccessMessage(null);
-
-      // Scroll to top so user sees the error notification
+    } catch (err) {
+      console.error('Failed to submit application:', err);
+      const message = err instanceof Error ? err.message : null;
+      setError(
+        message?.includes('validation failed')
+          ? `A few required answers are still missing — pop back through and double-check each section.`
+          : (message ?? 'Something went wrong sending your application. Mind giving it another go?')
+      );
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const steps = [
+    ...categories.map((c, i) => ({
+      id: i + 1,
+      title: c.title,
+      description: c.description ?? '',
+    })),
+    {
+      id: categories.length + 1,
+      title: 'Review & send 💌',
+      description: 'One quick look before we send it off.',
+    },
+  ];
+
   if (!isAuthenticated) {
-    return null; // Will redirect to login
+    return null;
   }
 
   if (isLoading) {
@@ -424,37 +385,20 @@ export const ApplicationPage: React.FC = () => {
     );
   }
 
+  const showQuickApply = viewMode === 'quick' && pet && allQuestions.length > 0;
+
   return (
     <Container>
-      <Header>
-        <h1>Adoption Application</h1>
-        <p>Complete your application to adopt {pet?.name}</p>
-        {prePopulationData && (
-          <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
-            Form data has been pre-populated from your profile
-          </p>
-        )}
-      </Header>
-
-      {/* Phase 1: Quick Application Prompt */}
-      {showQuickApplicationPrompt && quickApplicationCapability && (
-        <QuickApplicationPrompt
-          capability={quickApplicationCapability}
-          onQuickApply={handleQuickApplicationAccept}
-          onRegularApply={handleQuickApplicationDecline}
-          petName={pet?.name}
-        />
-      )}
-
-      {/* Phase 1: Profile Completion Prompt */}
-      {showProfileCompletionPrompt && quickApplicationCapability?.missingFields && (
-        <ProfileCompletionPrompt
-          completionPercentage={quickApplicationCapability.completionPercentage || 0}
-          missingFields={quickApplicationCapability.missingFields}
-          onCompleteProfile={() => handleProfileCompletionAction('complete')}
-          onSkip={() => handleProfileCompletionAction('skip')}
-          onDismiss={() => setShowProfileCompletionPrompt(false)}
-        />
+      {!showQuickApply && (
+        <Header>
+          <h1>Let&apos;s get you adopting {pet?.name} 🐾</h1>
+          <p>A few quick questions and {pet?.name}&apos;s rescue will take it from there.</p>
+          {loadedDraft && (
+            <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
+              Welcome back — we picked up where you left off. ✨
+            </p>
+          )}
+        </Header>
       )}
 
       {error && (
@@ -473,18 +417,55 @@ export const ApplicationPage: React.FC = () => {
         </div>
       )}
 
-      <ApplicationProgress steps={steps} currentStep={currentStep} onStepClick={setCurrentStep} />
+      {showQuickApply ? (
+        <QuickApplyView
+          pet={pet}
+          firstName={user?.firstName}
+          questions={allQuestions}
+          answers={answers}
+          prefilledKeys={prefilledKeys}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          onSwitchToGuided={() => setViewMode('guided')}
+          isSubmitting={isSubmitting}
+          saveStatus={saveStatus}
+        />
+      ) : (
+        <>
+          <ApplicationProgress
+            steps={steps}
+            currentStep={currentStep}
+            onStepClick={step => {
+              if (step < currentStep) {
+                setCurrentStep(step);
+              }
+            }}
+          />
 
-      <ApplicationForm
-        step={currentStep}
-        data={applicationData}
-        pet={pet}
-        onStepComplete={handleStepComplete}
-        onStepBack={handleStepBack}
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        isUpdate={false}
-      />
+          {categories.length > 0 ? (
+            <ApplicationForm
+              categories={categories}
+              currentStep={currentStep}
+              answers={answers}
+              pet={pet}
+              prefilledKeys={prefilledKeys}
+              onStepComplete={handleStepComplete}
+              onStepBack={handleStepBack}
+              onSubmit={handleSubmit}
+              onSaveDraft={saveNow}
+              onChange={handleChange}
+              isSubmitting={isSubmitting}
+              saveStatus={saveStatus}
+              lastSaved={lastSaved}
+            />
+          ) : (
+            <Alert variant='error' title='No questions available'>
+              This rescue hasn&apos;t set up their application questions yet — try reaching out to
+              them directly.
+            </Alert>
+          )}
+        </>
+      )}
     </Container>
   );
 };

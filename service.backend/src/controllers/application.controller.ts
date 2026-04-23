@@ -15,25 +15,27 @@ import {
   FrontendApplication,
 } from '../types/application';
 import { logger } from '../utils/logger';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { BaseController } from './base.controller';
 
 export class ApplicationController extends BaseController {
   // Validation rules
   static validateCreateApplication = [
-    body('petId').isUUID().withMessage('Valid pet ID is required'),
+    body('petId').isString().notEmpty().withMessage('Valid pet ID is required'),
     body('answers').isObject().withMessage('Answers must be an object'),
-    body('references')
-      .isArray({ min: 1, max: 5 })
-      .withMessage('At least 1 reference is required, maximum 5'),
+    body('references').optional().isArray({ max: 5 }).withMessage('Maximum 5 references allowed'),
     body('references.*.name')
+      .optional()
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Reference name must be between 2 and 100 characters'),
     body('references.*.relationship')
+      .optional()
       .trim()
       .isLength({ min: 2, max: 100 })
       .withMessage('Reference relationship must be between 2 and 100 characters'),
     body('references.*.phone')
+      .optional()
       .matches(/^[+]?[1-9]?[0-9]{7,15}$/)
       .withMessage('Valid reference phone number is required'),
     body('references.*.email')
@@ -121,9 +123,9 @@ export class ApplicationController extends BaseController {
       .optional()
       .isInt({ min: 1, max: 100 })
       .withMessage('Limit must be between 1 and 100'),
-    query('userId').optional().isUUID().withMessage('Valid user ID required'),
-    query('petId').optional().isUUID().withMessage('Valid pet ID required'),
-    query('rescueId').optional().isUUID().withMessage('Valid rescue ID required'),
+    query('userId').optional().isString().notEmpty().withMessage('Valid user ID required'),
+    query('petId').optional().isString().notEmpty().withMessage('Valid pet ID required'),
+    query('rescueId').optional().isString().notEmpty().withMessage('Valid rescue ID required'),
     query('status')
       .optional()
       .isIn(Object.values(ApplicationStatus))
@@ -435,7 +437,10 @@ export class ApplicationController extends BaseController {
         answers: req.body.answers,
         references: req.body.references,
         priority: req.body.priority,
-        notes: req.body.notes,
+        notes:
+          req.body.notes !== undefined
+            ? RichTextProcessingService.sanitize(req.body.notes)
+            : undefined,
         tags: req.body.tags,
       };
 
@@ -552,6 +557,15 @@ export class ApplicationController extends BaseController {
       }
 
       const { applicationId } = req.params;
+      if (typeof req.body.notes === 'string') {
+        req.body.notes = RichTextProcessingService.sanitize(req.body.notes);
+      }
+      if (typeof req.body.interviewNotes === 'string') {
+        req.body.interviewNotes = RichTextProcessingService.sanitize(req.body.interviewNotes);
+      }
+      if (typeof req.body.homeVisitNotes === 'string') {
+        req.body.homeVisitNotes = RichTextProcessingService.sanitize(req.body.homeVisitNotes);
+      }
       const application = await ApplicationService.updateApplication(
         applicationId,
         req.body,
@@ -668,8 +682,14 @@ export class ApplicationController extends BaseController {
       const statusUpdate: ApplicationStatusUpdateRequest = {
         status: req.body.status,
         actionedBy: req.user!.userId,
-        rejectionReason: req.body.rejectionReason,
-        notes: req.body.notes,
+        rejectionReason:
+          typeof req.body.rejectionReason === 'string'
+            ? RichTextProcessingService.sanitize(req.body.rejectionReason)
+            : req.body.rejectionReason,
+        notes:
+          typeof req.body.notes === 'string'
+            ? RichTextProcessingService.sanitize(req.body.notes)
+            : req.body.notes,
         followUpDate: req.body.followUpDate,
       };
 

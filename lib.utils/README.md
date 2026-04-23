@@ -1,4 +1,4 @@
-# lib.utils
+# @adopt-dont-shop/lib.utils
 
 A comprehensive shared utility library providing common functions used across the adopt-dont-shop platform.
 
@@ -48,14 +48,22 @@ This library provides over 25 utility functions organized into five main categor
 
 ## Installation
 
-```bash
-npm install @adopt-dont-shop/lib-utils
+Workspace package — add to a consumer's `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@adopt-dont-shop/lib.utils": "*"
+  }
+}
 ```
+
+Then `npm install` at the repo root.
 
 ## Usage
 
 ```typescript
-import { UtilsService } from '@adopt-dont-shop/lib-utils';
+import { UtilsService } from '@adopt-dont-shop/lib.utils';
 
 const utils = new UtilsService({
   debug: false,
@@ -149,13 +157,15 @@ const config = utils.getConfig();
 
 ## Testing
 
+From the repo root:
+
 ```bash
-npm test        # Run all tests
-npm run lint    # Run TypeScript linting
-npm run build   # Build the library
+npx turbo test  --filter=@adopt-dont-shop/lib.utils
+npx turbo lint  --filter=@adopt-dont-shop/lib.utils
+npx turbo build --filter=@adopt-dont-shop/lib.utils
 ```
 
-The library includes 55+ comprehensive tests covering all utility functions with edge cases and error handling.
+Or from `lib.utils/`: `npm test`, `npm run lint`, `npm run build`.
 
 ## TypeScript Support
 

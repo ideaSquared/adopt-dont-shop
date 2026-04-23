@@ -1,5 +1,20 @@
 import '@testing-library/jest-dom';
 import React from 'react';
+
+// MSW v2 requires web streams APIs that are available in Node.js 18+ but not
+// exposed to the jsdom global scope. Polyfill them so MSW can load correctly.
+const {
+  ReadableStream: NodeReadableStream,
+  WritableStream: NodeWritableStream,
+  TransformStream: NodeTransformStream,
+} = await import('node:stream/web');
+if (typeof globalThis.WritableStream === 'undefined') {
+  Object.assign(globalThis, {
+    ReadableStream: NodeReadableStream,
+    WritableStream: NodeWritableStream,
+    TransformStream: NodeTransformStream,
+  });
+}
 import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
@@ -103,7 +118,20 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
   Container: ({ children, ...props }: any) => React.createElement('div', props, children),
   Card: ({ children, ...props }: any) => React.createElement('div', props, children),
+  CardHeader: ({ children, ...props }: any) => React.createElement('div', props, children),
+  CardContent: ({ children, ...props }: any) => React.createElement('div', props, children),
+  CardFooter: ({ children, ...props }: any) => React.createElement('div', props, children),
   Button: ({ children, ...props }: any) => React.createElement('button', props, children),
   Text: ({ children, ...props }: any) => React.createElement('span', props, children),
   Heading: ({ children, ...props }: any) => React.createElement('h1', props, children),
+  Alert: ({ children, ...props }: any) =>
+    React.createElement('div', { role: 'alert', ...props }, children),
+  CheckboxInput: ({ children, ...props }: any) =>
+    React.createElement('input', { type: 'checkbox', ...props }, children),
+  SelectInput: ({ children, ...props }: any) => React.createElement('select', props, children),
+  Badge: ({ children, ...props }: any) => React.createElement('span', props, children),
+  Stack: ({ children, ...props }: any) => React.createElement('div', props, children),
+  TextInput: ({ children, ...props }: any) =>
+    React.createElement('input', { type: 'text', ...props }),
+  TextArea: ({ children, ...props }: any) => React.createElement('textarea', props, children),
 }));

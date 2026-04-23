@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-api
+# @adopt-dont-shop/lib.api
 
 Pure HTTP transport layer providing the foundation for all domain-specific libraries with authentication, error handling, and interceptors
 
@@ -6,12 +6,12 @@ Pure HTTP transport layer providing the foundation for all domain-specific libra
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-api
+npm install @adopt-dont-shop/lib.api
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*"
+    "@adopt-dont-shop/lib.api": "*"
   }
 }
 ```
@@ -19,7 +19,7 @@ npm install @adopt-dont-shop/lib-api
 ## 🚀 Quick Start
 
 ```typescript
-import { apiService, ApiServiceConfig } from '@adopt-dont-shop/lib-api';
+import { apiService, ApiServiceConfig } from '@adopt-dont-shop/lib.api';
 
 // Basic API calls
 const data = await apiService.get('/api/pets');
@@ -276,7 +276,7 @@ import {
   AuthenticationError,
   NetworkError,
   ValidationError,
-} from '@adopt-dont-shop/lib-api';
+} from '@adopt-dont-shop/lib.api';
 
 try {
   const data = await apiService.get('/api/protected');
@@ -318,7 +318,7 @@ try {
 
 ```typescript
 // Example: lib.pets
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
 export class PetService {
   constructor(private api = apiService) {}
@@ -350,7 +350,7 @@ export class PetService {
 
 ```typescript
 // app.client/src/services/index.ts
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Configure API for client app
 apiService.updateConfig({
@@ -372,7 +372,7 @@ apiService.interceptors.addRequestInterceptor(async config => {
 
 ```typescript
 // app.rescue/src/services/index.ts
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Configure API for rescue app
 apiService.updateConfig({
@@ -385,7 +385,7 @@ apiService.updateConfig({
 
 ```typescript
 // app.admin/src/services/index.ts
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Configure API for admin app with longer timeouts
 apiService.updateConfig({
@@ -410,18 +410,18 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-api
+npx turbo test --filter=@adopt-dont-shop/lib.api
 ```
 
 ### Testing with Domain Libraries
 
 ```typescript
 // Testing pet service with mocked API
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { PetService } from '@adopt-dont-shop/lib-pets';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { PetService } from '@adopt-dont-shop/lib.pets';
 
 // Mock the API service
-jest.mock('@adopt-dont-shop/lib-api');
+jest.mock('@adopt-dont-shop/lib.api');
 const mockApiService = apiService as jest.Mocked<typeof apiService>;
 
 describe('PetService', () => {

@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-rescue
+# @adopt-dont-shop/lib.rescue
 
 Rescue organization management system with comprehensive profiles, volunteer coordination, and operational tools
 
@@ -6,12 +6,12 @@ Rescue organization management system with comprehensive profiles, volunteer coo
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-rescue
+npm install @adopt-dont-shop/lib.rescue
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-rescue": "workspace:*"
+    "@adopt-dont-shop/lib.rescue": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-rescue
 ## 🚀 Quick Start
 
 ```typescript
-import { RescueService, RescueServiceConfig } from '@adopt-dont-shop/lib-rescue';
+import { RescueService, RescueServiceConfig } from '@adopt-dont-shop/lib.rescue';
 
 // Using the singleton instance
-import { rescueService } from '@adopt-dont-shop/lib-rescue';
+import { rescueService } from '@adopt-dont-shop/lib.rescue';
 
 // Basic rescue operations
 const rescues = await rescueService.getAllRescues({ verified: true });
@@ -420,7 +420,7 @@ const expenses = await rescueService.getExpenses('rescue_123', {
 ```typescript
 // Rescue Context
 import { createContext, useContext, useState } from 'react';
-import { RescueService } from '@adopt-dont-shop/lib-rescue';
+import { RescueService } from '@adopt-dont-shop/lib.rescue';
 
 const RescueContext = createContext<RescueService | null>(null);
 
@@ -522,7 +522,7 @@ function VolunteerDashboard({ rescueId }: { rescueId: string }) {
 
 ```typescript
 // src/services/rescue.service.ts
-import { RescueService } from '@adopt-dont-shop/lib-rescue';
+import { RescueService } from '@adopt-dont-shop/lib.rescue';
 
 export const rescueService = new RescueService({
   apiUrl: process.env.API_URL,
@@ -586,7 +586,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-rescue
+npx turbo test --filter=@adopt-dont-shop/lib.rescue
 ```
 
 ## 🚀 Key Features

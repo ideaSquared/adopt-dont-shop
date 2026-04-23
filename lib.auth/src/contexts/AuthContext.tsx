@@ -1,4 +1,5 @@
 import React, { createContext, ReactNode, useEffect, useState } from 'react';
+import { apiService } from '@adopt-dont-shop/lib.api';
 import { authService } from '../services/auth-service';
 import { LoginRequest, RegisterRequest, User } from '../types';
 
@@ -106,6 +107,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
     initializeAuth();
   }, [allowedUserTypes]);
+
+  // Register a 401 handler so any API call that gets Unauthorized automatically
+  // clears local auth state without making an additional logout API call
+  // (which would itself get a 401 and recurse).
+  useEffect(() => {
+    apiService.updateConfig({
+      onUnauthorized: () => {
+        authService.clearTokens();
+        setUser(null);
+      },
+    });
+    return () => {
+      apiService.updateConfig({ onUnauthorized: undefined });
+    };
+  }, []);
 
   const login = async (credentials: LoginRequest) => {
     setIsLoading(true);

@@ -7,6 +7,7 @@ import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import RescueProfileForm from '../components/rescue/RescueProfileForm';
 import AdoptionPolicyForm from '../components/rescue/AdoptionPolicyForm';
 import NotificationPreferencesForm from '../components/rescue/NotificationPreferencesForm';
+import QuestionsBuilder from '../components/rescue/QuestionsBuilder';
 import type { RescueProfile, AdoptionPolicy } from '../types/rescue';
 
 const PageContainer = styled.div`
@@ -286,13 +287,14 @@ const RescueSettings: React.FC = () => {
       </TabPanel>
 
       <TabPanel $active={activeTab === 'questions'}>
-        <PlaceholderSection>
-          <h2>📝 Custom Application Questions</h2>
-          <p>
-            This feature is coming soon. You'll be able to create custom questions for your adoption
-            applications.
-          </p>
-        </PlaceholderSection>
+        {rescue?.rescueId ? (
+          <QuestionsBuilder rescueId={rescue.rescueId} />
+        ) : (
+          <PlaceholderSection>
+            <h2>Custom Application Questions</h2>
+            <p>Loading rescue information...</p>
+          </PlaceholderSection>
+        )}
       </TabPanel>
 
       <TabPanel $active={activeTab === 'preferences'}>

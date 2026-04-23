@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-pets
+# @adopt-dont-shop/lib.pets
 
 Pet data management and search functionality
 
@@ -6,12 +6,12 @@ Pet data management and search functionality
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-pets
+npm install @adopt-dont-shop/lib.pets
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-pets": "workspace:*"
+    "@adopt-dont-shop/lib.pets": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-pets
 ## 🚀 Quick Start
 
 ```typescript
-import { PetsService, PetsServiceConfig } from '@adopt-dont-shop/lib-pets';
+import { PetsService, PetsServiceConfig } from '@adopt-dont-shop/lib.pets';
 
 // Using the singleton instance
-import { petsService } from '@adopt-dont-shop/lib-pets';
+import { petsService } from '@adopt-dont-shop/lib.pets';
 
 // Basic usage
 const result = await petsService.exampleMethod({ test: 'data' });
@@ -134,7 +134,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-pets": "workspace:*"
+    "@adopt-dont-shop/lib.pets": "*"
   }
 }
 ```
@@ -143,7 +143,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { petsService } from '@adopt-dont-shop/lib-pets';
+export { petsService } from '@adopt-dont-shop/lib.pets';
 
 // In your component
 import { petsService } from '@/services';
@@ -177,7 +177,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-pets": "workspace:*"
+    "@adopt-dont-shop/lib.pets": "*"
   }
 }
 ```
@@ -186,7 +186,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/pets.service.ts
-import { PetsService } from '@adopt-dont-shop/lib-pets';
+import { PetsService } from '@adopt-dont-shop/lib.pets';
 
 export const petsService = new PetsService({
   apiUrl: process.env.API_URL,
@@ -214,13 +214,13 @@ app.get('/api/pets/example', async (req, res) => {
 
 ```bash
 # From workspace root
-docker-compose -f docker-compose.lib.yml up lib-pets
+docker compose -f docker-compose.lib.yml up lib-pets
 ```
 
 2. **Run tests:**
 
 ```bash
-docker-compose -f docker-compose.lib.yml run lib-pets-test
+docker compose -f docker-compose.lib.yml run lib-pets-test
 ```
 
 ### Using in App Containers
@@ -232,7 +232,7 @@ Add to your app's Dockerfile:
 COPY lib.pets /workspace/lib.pets
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-pets@workspace:*
+RUN npm install @adopt-dont-shop/lib.pets
 ```
 
 ### Multi-stage Build for Production
@@ -350,9 +350,9 @@ lib.pets/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { petsService } from '@adopt-dont-shop/lib-pets';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { petsService } from '@adopt-dont-shop/lib.pets';
 
 // Configure with shared dependencies
 petsService.updateConfig({
@@ -366,7 +366,7 @@ petsService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { petsService, ErrorResponse } from '@adopt-dont-shop/lib-pets';
+import { petsService, ErrorResponse } from '@adopt-dont-shop/lib.pets';
 
 try {
   const result = await petsService.exampleMethod(data);
@@ -399,7 +399,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-pets": "workspace:*"
+    "@adopt-dont-shop/lib.pets": "*"
   }
 }
 ```

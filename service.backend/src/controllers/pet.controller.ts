@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { PetType, Size, Gender, PetStatus, AgeGroup } from '../models/Pet';
 import PetService, { PetSearchFilters } from '../services/pet.service';
+import type { BulkPetOperation } from '../types/pet';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
 
@@ -180,7 +181,15 @@ export class PetController {
       .withMessage('Gender must be male, female, or unknown'),
     query('sortBy')
       .optional()
-      .isIn(['name', 'ageYears', 'createdAt', 'adoptionFee', 'distance'])
+      .isIn([
+        'name',
+        'ageYears',
+        'createdAt',
+        'created_at',
+        'adoptionFee',
+        'adoption_fee',
+        'distance',
+      ])
       .withMessage('Invalid sort field'),
     query('sortOrder')
       .optional()
@@ -289,21 +298,20 @@ export class PetController {
       const options = {
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
-        sortBy: (req.query.sortBy as string) || 'createdAt',
+        sortBy: ((req.query.sortBy as string) || 'createdAt')
+          .replace('created_at', 'createdAt')
+          .replace('adoption_fee', 'adoptionFee'),
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
       };
 
       const result = await this.petService.searchPets(filters, options);
 
-      // Map pets to include distance field from computed column
+      // Distance is computed by the service layer (Haversine). Preserve it through toJSON().
       const petsData = result.pets.map(pet => {
-        const petJson = pet.toJSON ? pet.toJSON() : pet;
         const rawPet = pet as unknown as Record<string, unknown>;
-        const distance = rawPet.distance !== undefined ? Number(rawPet.distance) : undefined;
-        if (distance !== undefined && !isNaN(distance)) {
-          return { ...petJson, distance: Math.round(distance * 10) / 10 };
-        }
-        return petJson;
+        const distance = typeof rawPet.distance === 'number' ? rawPet.distance : undefined;
+        const petJson = (pet.toJSON ? pet.toJSON() : pet) as unknown as Record<string, unknown>;
+        return distance !== undefined ? { ...petJson, distance } : petJson;
       });
 
       res.status(200).json({
@@ -1099,6 +1107,45 @@ export class PetController {
           error instanceof Error && error.message === 'Pet not found'
             ? 'Pet not found'
             : 'Failed to submit pet report',
+      });
+    }
+  };
+  static validateBulkUpdate = [
+    body('petIds').isArray({ min: 1 }).withMessage('petIds must be a non-empty array'),
+    body('petIds.*').isString().withMessage('Each pet ID must be a string'),
+    body('operation')
+      .isIn(['update_status', 'archive', 'feature', 'delete'])
+      .withMessage('Invalid operation'),
+    body('data').optional().isObject(),
+    body('reason').optional().isString().isLength({ max: 500 }),
+  ];
+
+  bulkUpdatePets = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const updatedBy = req.user!.userId;
+      const operation: BulkPetOperation = req.body;
+
+      const result = await this.petService.bulkUpdatePets(operation, updatedBy);
+
+      res.status(200).json({
+        success: true,
+        message: 'Bulk pet operation completed',
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Bulk pet update failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to perform bulk update',
       });
     }
   };

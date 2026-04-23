@@ -11,3 +11,7 @@ export { UserActionsMenu } from './UserActionsMenu';
 
 // Chat modals
 export { ChatDetailModal } from './ChatDetailModal';
+
+// Bulk operations
+export { BulkConfirmationModal } from './BulkConfirmationModal';
+export type { BulkConfirmationVariant } from './BulkConfirmationModal';

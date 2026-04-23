@@ -22,7 +22,8 @@ Core system architecture, deployment, and DevOps.
 | [Infrastructure Overview](./infrastructure/INFRASTRUCTURE.md)          | Complete system architecture     |
 | [Docker Setup](./infrastructure/docker-setup.md)                       | Development and production setup |
 | [Microservices Standards](./infrastructure/MICROSERVICES-STANDARDS.md) | Architecture patterns            |
-| [Docker Optimization](./infrastructure/DOCKER-OPTIMIZATION-RESULTS.md) | Performance achievements         |
+| [New App Generator](./infrastructure/new-app-generator.md)             | Scaffolding new apps in the monorepo |
+| [Docker Infrastructure](./DOCKER.md)                                   | Docker deep dive                 |
 
 ### Backend Services
 
@@ -35,7 +36,7 @@ API, database, and server-side functionality.
 | [API Endpoints](./backend/api-endpoints.md)               | Complete API reference |
 | [Database Schema](./backend/database-schema.md)           | Database structure     |
 | [Testing Guide](./backend/testing.md)                     | Testing strategies     |
-| [Authentication](./backend/authentication.md)             | Auth and authorization |
+| [Auth Library](./libraries/auth.md)                       | Auth and authorization (lib.auth) |
 | [Deployment](./backend/deployment.md)                     | Deployment guide       |
 | [Troubleshooting](./backend/troubleshooting.md)           | Common issues          |
 
@@ -50,7 +51,7 @@ React applications, UI components, and client-side functionality.
 | [Admin App PRD](./frontend/app-admin-prd.md)                         | Administration interface   |
 | [Technical Architecture](./frontend/technical-architecture.md)       | Frontend architecture      |
 | [Implementation Plan](./frontend/implementation-plan.md)             | Development roadmap        |
-| [Swipe Interface](./frontend/swipe-interface-implementation-plan.md) | Mobile interaction design  |
+| [Implementation Status](./frontend/IMPLEMENTATION_STATUS.md)         | Current progress           |
 
 ### Shared Libraries
 
@@ -58,7 +59,7 @@ Reusable packages and utilities across the platform.
 
 | Document                                            | Description                                                                                                                            |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| [Libraries Overview](./libraries/README.md)         | All 16 shared libraries                                                                                                                |
+| [Libraries Overview](./libraries/README.md)         | Shared libraries index (21 libraries in the workspace)                                                                                 |
 | [Ecosystem Status](./libraries/ecosystem-status.md) | Library validation status                                                                                                              |
 | Individual Libraries                                | [api](./libraries/api.md), [auth](./libraries/auth.md), [chat](./libraries/chat.md), [components](./libraries/components.md), and more |
 
@@ -69,7 +70,7 @@ Reusable packages and utilities across the platform.
 1. [Component Library](./libraries/components.md)
 2. [Client App PRD](./frontend/app-client-prd.md)
 3. [Technical Architecture](./frontend/technical-architecture.md)
-4. [Swipe Interface](./frontend/swipe-interface-implementation-plan.md)
+4. [Implementation Status](./frontend/IMPLEMENTATION_STATUS.md)
 
 ### Backend Developer
 
@@ -83,7 +84,7 @@ Reusable packages and utilities across the platform.
 1. [Infrastructure Overview](./infrastructure/INFRASTRUCTURE.md)
 2. [Docker Setup](./infrastructure/docker-setup.md)
 3. [Deployment Guide](./backend/deployment.md)
-4. [Docker Optimization](./infrastructure/DOCKER-OPTIMIZATION-RESULTS.md)
+4. [Docker Infrastructure Deep Dive](./DOCKER.md)
 
 ### Product Manager
 
@@ -104,11 +105,11 @@ Reusable packages and utilities across the platform.
 
 ### Technical Highlights
 
-- **16 Shared Libraries**: Fully validated with 8/8 tests each
+- **21 Shared Libraries**: Reusable packages for API, auth, UI, validation, and more
 - **ESM-Only Architecture**: Modern module system throughout
-- **TypeScript**: 100% type coverage
-- **Docker**: Optimized multi-stage builds
-- **Testing**: 80%+ code coverage
+- **TypeScript Strict Mode**: Enforced across all packages
+- **Docker**: Multi-stage builds with BuildKit
+- **Testing**: Jest + React Testing Library with behaviour-focused tests
 
 ## Contributing
 

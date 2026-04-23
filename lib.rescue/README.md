@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-rescue
+# @adopt-dont-shop/lib.rescue
 
 Rescue organization data and management
 
@@ -6,12 +6,12 @@ Rescue organization data and management
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-rescue
+npm install @adopt-dont-shop/lib.rescue
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-rescue": "workspace:*"
+    "@adopt-dont-shop/lib.rescue": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-rescue
 ## 🚀 Quick Start
 
 ```typescript
-import { RescueService, RescueServiceConfig } from '@adopt-dont-shop/lib-rescue';
+import { RescueService, RescueServiceConfig } from '@adopt-dont-shop/lib.rescue';
 
 // Using the singleton instance
-import { rescueService } from '@adopt-dont-shop/lib-rescue';
+import { rescueService } from '@adopt-dont-shop/lib.rescue';
 
 // Basic usage
 const result = await rescueService.exampleMethod({ test: 'data' });
@@ -134,7 +134,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-rescue": "workspace:*"
+    "@adopt-dont-shop/lib.rescue": "*"
   }
 }
 ```
@@ -143,7 +143,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { rescueService } from '@adopt-dont-shop/lib-rescue';
+export { rescueService } from '@adopt-dont-shop/lib.rescue';
 
 // In your component
 import { rescueService } from '@/services';
@@ -177,7 +177,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-rescue": "workspace:*"
+    "@adopt-dont-shop/lib.rescue": "*"
   }
 }
 ```
@@ -186,7 +186,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/rescue.service.ts
-import { RescueService } from '@adopt-dont-shop/lib-rescue';
+import { RescueService } from '@adopt-dont-shop/lib.rescue';
 
 export const rescueService = new RescueService({
   apiUrl: process.env.API_URL,
@@ -214,13 +214,13 @@ app.get('/api/rescue/example', async (req, res) => {
 
 ```bash
 # From workspace root
-docker-compose -f docker-compose.lib.yml up lib-rescue
+docker compose -f docker-compose.lib.yml up lib-rescue
 ```
 
 2. **Run tests:**
 
 ```bash
-docker-compose -f docker-compose.lib.yml run lib-rescue-test
+docker compose -f docker-compose.lib.yml run lib-rescue-test
 ```
 
 ### Using in App Containers
@@ -232,7 +232,7 @@ Add to your app's Dockerfile:
 COPY lib.rescue /workspace/lib.rescue
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-rescue@workspace:*
+RUN npm install @adopt-dont-shop/lib.rescue
 ```
 
 ### Multi-stage Build for Production
@@ -350,9 +350,9 @@ lib.rescue/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { rescueService } from '@adopt-dont-shop/lib-rescue';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { rescueService } from '@adopt-dont-shop/lib.rescue';
 
 // Configure with shared dependencies
 rescueService.updateConfig({
@@ -366,7 +366,7 @@ rescueService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { rescueService, ErrorResponse } from '@adopt-dont-shop/lib-rescue';
+import { rescueService, ErrorResponse } from '@adopt-dont-shop/lib.rescue';
 
 try {
   const result = await rescueService.exampleMethod(data);
@@ -399,7 +399,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-rescue": "workspace:*"
+    "@adopt-dont-shop/lib.rescue": "*"
   }
 }
 ```

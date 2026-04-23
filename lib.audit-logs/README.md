@@ -1,11 +1,11 @@
-# @adopt-dont-shop/lib-audit-logs
+# @adopt-dont-shop/lib.audit-logs
 
 Audit logs service for the Adopt Don't Shop platform. Provides type-safe access to audit log data with filtering, pagination, and date range support.
 
 ## Installation
 
 ```bash
-npm install @adopt-dont-shop/lib-audit-logs
+npm install @adopt-dont-shop/lib.audit-logs
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ npm install @adopt-dont-shop/lib-audit-logs
 ### Basic Usage
 
 ```typescript
-import { AuditLogsService } from '@adopt-dont-shop/lib-audit-logs';
+import { AuditLogsService } from '@adopt-dont-shop/lib.audit-logs';
 
 // Fetch audit logs with default 7-day date range
 const response = await AuditLogsService.getAuditLogs();
@@ -25,7 +25,7 @@ console.log(response.pagination); // Pagination info
 ### With Filters
 
 ```typescript
-import { AuditLogsService, AuditLogLevel, AuditLogStatus } from '@adopt-dont-shop/lib-audit-logs';
+import { AuditLogsService, AuditLogLevel, AuditLogStatus } from '@adopt-dont-shop/lib.audit-logs';
 
 const response = await AuditLogsService.getAuditLogs({
   action: 'LOGIN',
