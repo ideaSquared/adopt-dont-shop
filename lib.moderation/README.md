@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-moderation
+# @adopt-dont-shop/lib.moderation
 
 Content moderation and reporting functionality for Adopt Don't Shop platform.
 
@@ -12,7 +12,7 @@ Content moderation and reporting functionality for Adopt Don't Shop platform.
 ## Installation
 
 ```bash
-npm install @adopt-dont-shop/lib-moderation
+npm install @adopt-dont-shop/lib.moderation
 ```
 
 ## Usage
@@ -20,7 +20,7 @@ npm install @adopt-dont-shop/lib-moderation
 ### Types and Schemas
 
 ```typescript
-import { ReportSchema, type Report } from '@adopt-dont-shop/lib-moderation';
+import { ReportSchema, type Report } from '@adopt-dont-shop/lib.moderation';
 
 // Validate report data
 const report = ReportSchema.parse(data);
@@ -29,7 +29,7 @@ const report = ReportSchema.parse(data);
 ### API Service
 
 ```typescript
-import { moderationService } from '@adopt-dont-shop/lib-moderation';
+import { moderationService } from '@adopt-dont-shop/lib.moderation';
 
 // Fetch reports
 const reports = await moderationService.getReports({
@@ -48,7 +48,7 @@ await moderationService.takeAction(reportId, {
 ### React Hooks
 
 ```typescript
-import { useReports, useReportDetail } from '@adopt-dont-shop/lib-moderation';
+import { useReports, useReportDetail } from '@adopt-dont-shop/lib.moderation';
 
 function ModerationDashboard() {
   const {

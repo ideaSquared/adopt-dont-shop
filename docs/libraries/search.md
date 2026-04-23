@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-search
+# @adopt-dont-shop/lib.search
 
 Advanced search capabilities with Elasticsearch integration, AI-powered recommendations, and intelligent filtering
 
@@ -6,12 +6,12 @@ Advanced search capabilities with Elasticsearch integration, AI-powered recommen
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-search
+npm install @adopt-dont-shop/lib.search
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-search": "workspace:*"
+    "@adopt-dont-shop/lib.search": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-search
 ## 🚀 Quick Start
 
 ```typescript
-import { SearchService, SearchServiceConfig } from '@adopt-dont-shop/lib-search';
+import { SearchService, SearchServiceConfig } from '@adopt-dont-shop/lib.search';
 
 // Using the singleton instance
-import { searchService } from '@adopt-dont-shop/lib-search';
+import { searchService } from '@adopt-dont-shop/lib.search';
 
 // Basic search
 const results = await searchService.search('friendly golden retriever', {
@@ -424,7 +424,7 @@ await searchService.optimizeIndex();
 ```typescript
 // Search Context
 import { createContext, useContext, useState } from 'react';
-import { SearchService } from '@adopt-dont-shop/lib-search';
+import { SearchService } from '@adopt-dont-shop/lib.search';
 
 const SearchContext = createContext<SearchService | null>(null);
 
@@ -583,7 +583,7 @@ function RecommendedPets({ userId }: { userId: string }) {
 
 ```typescript
 // src/services/search.service.ts
-import { SearchService } from '@adopt-dont-shop/lib-search';
+import { SearchService } from '@adopt-dont-shop/lib.search';
 
 export const searchService = new SearchService({
   apiUrl: process.env.API_URL,

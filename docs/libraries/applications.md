@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-applications
+# @adopt-dont-shop/lib.applications
 
 Adoption application management system with workflow automation, application tracking, and comprehensive evaluation tools
 
@@ -6,12 +6,12 @@ Adoption application management system with workflow automation, application tra
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-applications
+npm install @adopt-dont-shop/lib.applications
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-applications": "workspace:*"
+    "@adopt-dont-shop/lib.applications": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-applications
 ## 🚀 Quick Start
 
 ```typescript
-import { ApplicationsService, ApplicationsServiceConfig } from '@adopt-dont-shop/lib-applications';
+import { ApplicationsService, ApplicationsServiceConfig } from '@adopt-dont-shop/lib.applications';
 
 // Using the singleton instance
-import { applicationsService } from '@adopt-dont-shop/lib-applications';
+import { applicationsService } from '@adopt-dont-shop/lib.applications';
 
 // Basic application operations
 const applications = await applicationsService.getAllApplications({ status: 'pending' });
@@ -457,7 +457,7 @@ const performance = await applicationsService.getPerformanceMetrics('counselor_4
 ```typescript
 // Applications Context
 import { createContext, useContext, useState } from 'react';
-import { ApplicationsService } from '@adopt-dont-shop/lib-applications';
+import { ApplicationsService } from '@adopt-dont-shop/lib.applications';
 
 const ApplicationsContext = createContext<ApplicationsService | null>(null);
 
@@ -644,7 +644,7 @@ function ApplicationReviewDashboard() {
 
 ```typescript
 // src/services/applications.service.ts
-import { ApplicationsService } from '@adopt-dont-shop/lib-applications';
+import { ApplicationsService } from '@adopt-dont-shop/lib.applications';
 
 export const applicationsService = new ApplicationsService({
   apiUrl: process.env.API_URL,

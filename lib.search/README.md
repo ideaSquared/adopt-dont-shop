@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-search
+# @adopt-dont-shop/lib.search
 
 Advanced search library with intelligent caching, faceted search, and comprehensive analytics for pet and message search functionality.
 
@@ -21,7 +21,7 @@ This library provides comprehensive search functionality including pet search wi
 ## Installation
 
 ```bash
-npm install @adopt-dont-shop/lib-search
+npm install @adopt-dont-shop/lib.search
 ```
 
 ## Usage
@@ -29,7 +29,7 @@ npm install @adopt-dont-shop/lib-search
 ### Basic Setup
 
 ```typescript
-import { SearchService } from '@adopt-dont-shop/lib-search';
+import { SearchService } from '@adopt-dont-shop/lib.search';
 
 const searchService = new SearchService({
   apiUrl: 'https://api.example.com',
@@ -40,7 +40,7 @@ const searchService = new SearchService({
 ### Pet Search
 
 ```typescript
-import { PetSearchFilters } from '@adopt-dont-shop/lib-search';
+import { PetSearchFilters } from '@adopt-dont-shop/lib.search';
 
 const filters: PetSearchFilters = {
   type: 'dog',
@@ -61,7 +61,7 @@ console.log(`Found ${results.pagination.total} pets`);
 ### Message Search
 
 ```typescript
-import { MessageSearchOptions } from '@adopt-dont-shop/lib-search';
+import { MessageSearchOptions } from '@adopt-dont-shop/lib.search';
 
 const searchOptions: MessageSearchOptions = {
   query: 'friendly dog',
@@ -88,7 +88,7 @@ console.log('Search suggestions:', suggestions);
 ### Faceted Search
 
 ```typescript
-import { AdvancedSearchOptions } from '@adopt-dont-shop/lib-search';
+import { AdvancedSearchOptions } from '@adopt-dont-shop/lib.search';
 
 const advancedOptions: AdvancedSearchOptions = {
   includeTypes: ['pet'],
@@ -517,7 +517,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-search": "workspace:*"
+    "@adopt-dont-shop/lib.search": "*"
   }
 }
 ```
@@ -526,7 +526,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { searchService } from '@adopt-dont-shop/lib-search';
+export { searchService } from '@adopt-dont-shop/lib.search';
 
 // In your component
 import { searchService } from '@/services';
@@ -560,7 +560,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-search": "workspace:*"
+    "@adopt-dont-shop/lib.search": "*"
   }
 }
 ```
@@ -569,7 +569,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/search.service.ts
-import { SearchService } from '@adopt-dont-shop/lib-search';
+import { SearchService } from '@adopt-dont-shop/lib.search';
 
 export const searchService = new SearchService({
   apiUrl: process.env.API_URL,
@@ -615,7 +615,7 @@ Add to your app's Dockerfile:
 COPY lib.search /workspace/lib.search
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-search@workspace:*
+RUN npm install @adopt-dont-shop/lib.search
 ```
 
 ### Multi-stage Build for Production
@@ -733,9 +733,9 @@ lib.search/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { searchService } from '@adopt-dont-shop/lib-search';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { searchService } from '@adopt-dont-shop/lib.search';
 
 // Configure with shared dependencies
 searchService.updateConfig({
@@ -749,7 +749,7 @@ searchService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { searchService, ErrorResponse } from '@adopt-dont-shop/lib-search';
+import { searchService, ErrorResponse } from '@adopt-dont-shop/lib.search';
 
 try {
   const result = await searchService.exampleMethod(data);
@@ -782,7 +782,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-search": "workspace:*"
+    "@adopt-dont-shop/lib.search": "*"
   }
 }
 ```

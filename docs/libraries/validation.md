@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-validation
+# @adopt-dont-shop/lib.validation
 
 Form validation and data validation utilities
 
@@ -6,12 +6,12 @@ Form validation and data validation utilities
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-validation
+npm install @adopt-dont-shop/lib.validation
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-validation": "workspace:*"
+    "@adopt-dont-shop/lib.validation": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-validation
 ## 🚀 Quick Start
 
 ```typescript
-import { ValidationService, ValidationServiceConfig } from '@adopt-dont-shop/lib-validation';
+import { ValidationService, ValidationServiceConfig } from '@adopt-dont-shop/lib.validation';
 
 // Using the singleton instance
-import { validationService } from '@adopt-dont-shop/lib-validation';
+import { validationService } from '@adopt-dont-shop/lib.validation';
 
 // Basic usage
 const result = await validationService.exampleMethod({ test: 'data' });
@@ -134,7 +134,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-validation": "workspace:*"
+    "@adopt-dont-shop/lib.validation": "*"
   }
 }
 ```
@@ -143,7 +143,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { validationService } from '@adopt-dont-shop/lib-validation';
+export { validationService } from '@adopt-dont-shop/lib.validation';
 
 // In your component
 import { validationService } from '@/services';
@@ -177,7 +177,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-validation": "workspace:*"
+    "@adopt-dont-shop/lib.validation": "*"
   }
 }
 ```
@@ -186,7 +186,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/validation.service.ts
-import { ValidationService } from '@adopt-dont-shop/lib-validation';
+import { ValidationService } from '@adopt-dont-shop/lib.validation';
 
 export const validationService = new ValidationService({
   apiUrl: process.env.API_URL,
@@ -232,7 +232,7 @@ Add to your app's Dockerfile:
 COPY lib.validation /workspace/lib.validation
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-validation@workspace:*
+RUN npm install @adopt-dont-shop/lib.validation
 ```
 
 ### Multi-stage Build for Production
@@ -350,9 +350,9 @@ lib.validation/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { validationService } from '@adopt-dont-shop/lib-validation';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { validationService } from '@adopt-dont-shop/lib.validation';
 
 // Configure with shared dependencies
 validationService.updateConfig({
@@ -366,7 +366,7 @@ validationService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { validationService, ErrorResponse } from '@adopt-dont-shop/lib-validation';
+import { validationService, ErrorResponse } from '@adopt-dont-shop/lib.validation';
 
 try {
   const result = await validationService.exampleMethod(data);
@@ -399,7 +399,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-validation": "workspace:*"
+    "@adopt-dont-shop/lib.validation": "*"
   }
 }
 ```

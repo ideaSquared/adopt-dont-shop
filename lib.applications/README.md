@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-applications
+# @adopt-dont-shop/lib.applications
 
 Adoption application workflow and document management
 
@@ -6,12 +6,12 @@ Adoption application workflow and document management
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-applications
+npm install @adopt-dont-shop/lib.applications
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-applications": "workspace:*"
+    "@adopt-dont-shop/lib.applications": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-applications
 ## 🚀 Quick Start
 
 ```typescript
-import { ApplicationsService, ApplicationsServiceConfig } from '@adopt-dont-shop/lib-applications';
+import { ApplicationsService, ApplicationsServiceConfig } from '@adopt-dont-shop/lib.applications';
 
 // Using the singleton instance
-import { applicationsService } from '@adopt-dont-shop/lib-applications';
+import { applicationsService } from '@adopt-dont-shop/lib.applications';
 
 // Basic usage
 const result = await applicationsService.exampleMethod({ test: 'data' });
@@ -134,7 +134,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-applications": "workspace:*"
+    "@adopt-dont-shop/lib.applications": "*"
   }
 }
 ```
@@ -143,7 +143,7 @@ const isHealthy = await service.healthCheck();
 
 ```typescript
 // src/services/index.ts
-export { applicationsService } from '@adopt-dont-shop/lib-applications';
+export { applicationsService } from '@adopt-dont-shop/lib.applications';
 
 // In your component
 import { applicationsService } from '@/services';
@@ -177,7 +177,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-applications": "workspace:*"
+    "@adopt-dont-shop/lib.applications": "*"
   }
 }
 ```
@@ -186,7 +186,7 @@ function MyComponent() {
 
 ```typescript
 // src/services/applications.service.ts
-import { ApplicationsService } from '@adopt-dont-shop/lib-applications';
+import { ApplicationsService } from '@adopt-dont-shop/lib.applications';
 
 export const applicationsService = new ApplicationsService({
   apiUrl: process.env.API_URL,
@@ -232,7 +232,7 @@ Add to your app's Dockerfile:
 COPY lib.applications /workspace/lib.applications
 
 # Install dependencies
-RUN npm install @adopt-dont-shop/lib-applications@workspace:*
+RUN npm install @adopt-dont-shop/lib.applications
 ```
 
 ### Multi-stage Build for Production
@@ -350,9 +350,9 @@ lib.applications/
 ### With Other Libraries
 
 ```typescript
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { applicationsService } from '@adopt-dont-shop/lib-applications';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { applicationsService } from '@adopt-dont-shop/lib.applications';
 
 // Configure with shared dependencies
 applicationsService.updateConfig({
@@ -366,7 +366,7 @@ applicationsService.updateConfig({
 ### Error Handling
 
 ```typescript
-import { applicationsService, ErrorResponse } from '@adopt-dont-shop/lib-applications';
+import { applicationsService, ErrorResponse } from '@adopt-dont-shop/lib.applications';
 
 try {
   const result = await applicationsService.exampleMethod(data);
@@ -399,7 +399,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-applications": "workspace:*"
+    "@adopt-dont-shop/lib.applications": "*"
   }
 }
 ```

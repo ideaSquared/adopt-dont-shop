@@ -111,9 +111,9 @@ Frontend apps include:
 {
   "name": "@adopt-dont-shop/app.{name}",
   "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*",
-    "@adopt-dont-shop/lib-auth": "workspace:*",
-    "@adopt-dont-shop/lib-validation": "workspace:*",
+    "@adopt-dont-shop/lib.api": "workspace:*",
+    "@adopt-dont-shop/lib.auth": "workspace:*",
+    "@adopt-dont-shop/lib.validation": "workspace:*",
     "react": "^18.2.0",
     "react-router-dom": "^6.x",
     "@tanstack/react-query": "^4.x"
@@ -229,8 +229,8 @@ Edit `package.json` to add libraries:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-storage": "workspace:*",
-    "@adopt-dont-shop/lib-email": "workspace:*"
+    "@adopt-dont-shop/lib.storage": "workspace:*",
+    "@adopt-dont-shop/lib.email": "workspace:*"
   }
 }
 ```

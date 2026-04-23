@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-discovery
+# @adopt-dont-shop/lib.discovery
 
 Content discovery and recommendation engine with intelligent feed generation, trending content, and user engagement tracking
 
@@ -6,12 +6,12 @@ Content discovery and recommendation engine with intelligent feed generation, tr
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-discovery
+npm install @adopt-dont-shop/lib.discovery
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-discovery": "workspace:*"
+    "@adopt-dont-shop/lib.discovery": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-discovery
 ## 🚀 Quick Start
 
 ```typescript
-import { DiscoveryService, DiscoveryServiceConfig } from '@adopt-dont-shop/lib-discovery';
+import { DiscoveryService, DiscoveryServiceConfig } from '@adopt-dont-shop/lib.discovery';
 
 // Using the singleton instance
-import { discoveryService } from '@adopt-dont-shop/lib-discovery';
+import { discoveryService } from '@adopt-dont-shop/lib.discovery';
 
 // Get personalized feed
 const feed = await discoveryService.getPersonalizedFeed('user_123', {
@@ -437,7 +437,7 @@ const prediction = await discoveryService.getContentPerformancePrediction('conte
 ```typescript
 // Discovery Context
 import { createContext, useContext, useState } from 'react';
-import { DiscoveryService } from '@adopt-dont-shop/lib-discovery';
+import { DiscoveryService } from '@adopt-dont-shop/lib.discovery';
 
 const DiscoveryContext = createContext<DiscoveryService | null>(null);
 
@@ -605,7 +605,7 @@ function DiscoveryDashboard() {
 
 ```typescript
 // src/services/discovery.service.ts
-import { DiscoveryService } from '@adopt-dont-shop/lib-discovery';
+import { DiscoveryService } from '@adopt-dont-shop/lib.discovery';
 
 export const discoveryService = new DiscoveryService({
   apiUrl: process.env.API_URL,

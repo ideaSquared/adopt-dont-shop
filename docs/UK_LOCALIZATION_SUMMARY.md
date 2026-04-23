@@ -277,7 +277,7 @@ Before deployment, test:
 
 When creating new components:
 
-1. Import utilities from `@adopt-dont-shop/lib-utils`
+1. Import utilities from `@adopt-dont-shop/lib.utils`
 2. Use `formatDate()`, `formatCurrency()`, etc.
 3. Use UK placeholders and labels
 4. Reference documentation for examples
