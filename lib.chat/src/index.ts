@@ -47,3 +47,18 @@ export type {
   PendingAction,
   PendingMessage,
 } from './context/offline-adapter';
+export type { FeatureFlagsAdapter, ResolveFileUrl } from './context/chat-context-types';
+
+// Presentational components (batch 1 — leaf UI pieces)
+// Note: the TypingIndicator event type already occupies that export name
+// in `types`, so the component is exported as TypingIndicatorBubble.
+export { AvatarComponent } from './components/AvatarComponent';
+export { ImageLightbox } from './components/ImageLightbox';
+export { PDFPreview } from './components/PDFPreview';
+export { ReactionDisplay } from './components/ReactionDisplay';
+export { ReactionPicker } from './components/ReactionPicker';
+export { ReadReceiptIndicator } from './components/ReadReceiptIndicator';
+export { TypingIndicator as TypingIndicatorBubble } from './components/TypingIndicator';
+
+// Utilities
+export { safeFormatDistanceToNow } from './utils/date-helpers';
