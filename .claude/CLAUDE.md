@@ -31,10 +31,11 @@ adopt-dont-shop/
 ├── app.client/         # Client-facing app (React + Vite)
 ├── app.rescue/         # Rescue organization app (React + Vite)
 ├── service.backend/    # API server (Express + Sequelize)
-└── lib.*/             # Shared libraries (17 packages)
+└── lib.*/             # Shared libraries (21 packages)
     ├── lib.analytics
     ├── lib.api
     ├── lib.applications
+    ├── lib.audit-logs
     ├── lib.auth
     ├── lib.chat
     ├── lib.components
@@ -42,11 +43,14 @@ adopt-dont-shop/
     ├── lib.discovery
     ├── lib.feature-flags
     ├── lib.invitations
+    ├── lib.moderation
     ├── lib.notifications
     ├── lib.permissions
     ├── lib.pets
     ├── lib.rescue
     ├── lib.search
+    ├── lib.support-tickets
+    ├── lib.types
     ├── lib.utils
     └── lib.validation
 ```
@@ -55,9 +59,9 @@ adopt-dont-shop/
 
 **All packages are scoped under `@adopt-dont-shop/`:**
 
-- Apps: `@adopt-dont-shop/app-*`
-- Libraries: `@adopt-dont-shop/lib-*`
-- Service: `@adopt-dont-shop/service-backend`
+- Apps: `@adopt-dont-shop/app.*` (e.g. `@adopt-dont-shop/app.admin`)
+- Libraries: `@adopt-dont-shop/lib.*` (e.g. `@adopt-dont-shop/lib.api`)
+- Service: `@adopt-dont-shop/service-backend` (hyphen, not dot)
 
 **Key Scripts:**
 
@@ -112,7 +116,7 @@ npx turbo test --filter=@adopt-dont-shop/service-backend
 1. **Turbo handles build ordering automatically** via `dependsOn: ["^build"]` — `npm run build` builds libs before apps. No need to manually sequence.
 2. **In Docker dev, lib.types is special**: it's built into backend node_modules at container start. If you edit `lib.types/src/*`, run `npm run docker:rebuild:types` (no container restart needed).
 3. **Other libs (lib.api, lib.auth, etc.) hot-reload automatically** in dev — Vite aliases point at their `src/` directories.
-4. Reference workspace packages with `*` version (e.g., `"@adopt-dont-shop/lib-api": "*"`)
+4. Reference workspace packages with `*` version (e.g., `"@adopt-dont-shop/lib.api": "*"`)
 5. Changes to shared libraries affect multiple consumers — test thoroughly
 6. Each package has its own `package.json`, `tsconfig.json`, and tests
 

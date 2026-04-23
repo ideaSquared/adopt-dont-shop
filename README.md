@@ -137,7 +137,7 @@ VITE_WS_BASE_URL=ws://localhost:5000
 
 CORS origins are defined once in the root `.env` (`CORS_ORIGIN`), covering both direct container access and nginx-proxied subdomains. After changing CORS, restart the backend: `docker compose restart service-backend`.
 
-All API endpoints live under `/api/v1/` (e.g. `/api/v1/auth/login`). Swagger UI: http://api.localhost:5000/api/docs.
+All API endpoints live under `/api/v1/` (e.g. `/api/v1/auth/login`). Swagger UI: http://localhost:5000/api/docs (or http://api.localhost/api/docs via the nginx proxy).
 
 ## Documentation
 
