@@ -523,7 +523,9 @@ export const SearchPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const handleUseLocationText = async () => {
-    if (!filters.location?.trim()) return;
+    if (!filters.location?.trim()) {
+      return;
+    }
 
     setIsGeocodingLocation(true);
     setGeocodeError(null);

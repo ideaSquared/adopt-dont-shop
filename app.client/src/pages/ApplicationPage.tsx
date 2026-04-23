@@ -334,7 +334,7 @@ export const ApplicationPage: React.FC = () => {
       setError(
         message?.includes('validation failed')
           ? `A few required answers are still missing — pop back through and double-check each section.`
-          : (message ?? "Something went wrong sending your application. Mind giving it another go?")
+          : (message ?? 'Something went wrong sending your application. Mind giving it another go?')
       );
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {

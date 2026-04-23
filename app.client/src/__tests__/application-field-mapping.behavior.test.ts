@@ -116,7 +116,9 @@ describe('Adoption application pre-population', () => {
   });
 
   it('leaves always-fresh questions empty even when an answer could be derived', () => {
-    const questions = Array.from(ALWAYS_FRESH_QUESTION_KEYS).map(key => makeQuestion({ questionKey: key }));
+    const questions = Array.from(ALWAYS_FRESH_QUESTION_KEYS).map(key =>
+      makeQuestion({ questionKey: key })
+    );
 
     const { answers, prefilledKeys } = buildInitialAnswers(questions, {
       user: baseUser,
