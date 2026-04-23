@@ -77,8 +77,26 @@ export function ChatProvider({
       setReconnectionAttempts(chatService.getReconnectionAttempts());
     };
     chatService.onConnectionStatusChange(listener);
+
+    // Re-read after registering in case the status transitioned between the
+    // useState initializer and this effect firing (e.g. an HMR reload, or
+    // connect() having already been called on a shared ChatService instance).
+    setConnectionStatus(chatService.getConnectionStatus());
+    setReconnectionAttempts(chatService.getReconnectionAttempts());
+
+    // Surface socket connection errors through the provider's `error` state so
+    // the UI can explain why the chat isn't connecting instead of showing a
+    // perpetual "Connecting…" banner. The ChatService still drives its own
+    // retry loop via onConnectionStatusChange → 'error' → 'reconnecting'.
+    const errorListener = (err: Error) => {
+      setError(err.message || 'Chat connection error');
+    };
+    chatService.onConnectionError(errorListener);
+
     return () => {
       chatService.offConnectionStatusChange(listener);
+      // ChatService has no offConnectionError helper; clearing is not
+      // critical because the listener body is a stable setState.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatService]);
@@ -113,10 +131,25 @@ export function ChatProvider({
       return;
     }
 
+    const token = tokenProvider();
+    if (!token) {
+      // Auth flipped to authenticated before the token landed in storage
+      // (or the token provider is misconfigured). Don't mark the user as
+      // initialized so the effect retries on the next auth/tokenProvider
+      // dependency change.
+      setError('Waiting for authentication token before connecting chat…');
+      return;
+    }
+
     initializedUserIdRef.current = user.userId;
 
-    const token = tokenProvider() ?? '';
-    chatService.connect(user.userId, token);
+    try {
+      chatService.connect(user.userId, token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start chat connection');
+      initializedUserIdRef.current = null;
+      return;
+    }
 
     const handleMessage = (message: Message) => {
       setMessages((prev) => {
