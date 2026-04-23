@@ -87,6 +87,27 @@ export const restoreVersion = async (req: AuthenticatedRequest, res: Response): 
   res.json({ success: true, message: `Restored to version ${version}`, content: item });
 };
 
+export const listPublicContent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const { contentType, search, page, limit } = req.query as Record<string, string | undefined>;
+  const result = await CmsService.listContent({
+    contentType: contentType as ContentType | undefined,
+    status: 'published' as ContentStatus,
+    search,
+    page: page ? parseInt(page, 10) : undefined,
+    limit: limit ? parseInt(limit, 10) : undefined,
+  });
+  res.json({ success: true, ...result });
+};
+
+export const getPublicContentBySlug = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const item = await CmsService.getContentBySlug(req.params.slug);
+  if (item.status !== 'published') {
+    res.status(404).json({ success: false, error: 'Content not found' });
+    return;
+  }
+  res.json({ success: true, content: item });
+};
+
 export const generateSlug = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { title } = req.query as { title?: string };
   if (!title) {

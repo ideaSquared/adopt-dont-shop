@@ -8,6 +8,10 @@ const router = Router();
 
 const adminRoles = ['admin', 'super_admin'];
 
+// Public routes - published content only, no auth required
+router.get('/public/content', cmsController.listPublicContent);
+router.get('/public/content/:slug', cmsController.getPublicContentBySlug);
+
 // Slug generation (utility, read-only)
 router.get(
   '/slug',
