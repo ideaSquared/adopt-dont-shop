@@ -118,6 +118,12 @@ export interface ApiServiceConfig {
    * Function to get authentication token
    */
   getAuthToken?: () => string | null;
+
+  /**
+   * Called when a 401 Unauthorized response is received.
+   * Use this to clear auth state and redirect to login.
+   */
+  onUnauthorized?: () => void;
 }
 
 export interface FetchOptions {
