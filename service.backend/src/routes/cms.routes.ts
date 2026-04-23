@@ -6,7 +6,7 @@ import { cmsValidation } from '../validation/cms.validation';
 
 const router = Router();
 
-const adminRoles = ['ADMIN', 'SUPER_ADMIN'];
+const adminRoles = ['admin', 'super_admin'];
 
 // Slug generation (utility, read-only)
 router.get(
