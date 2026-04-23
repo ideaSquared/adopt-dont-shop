@@ -10,6 +10,8 @@ export type { Question, QuestionType } from './QuestionField';
 export { QuestionCategoryStep } from './QuestionCategoryStep';
 export { HouseholdMembersField } from './HouseholdMembersField';
 export type { HouseholdMember, MemberType } from './HouseholdMembersField';
+export { CurrentPetsField, formatCurrentPets, parseCurrentPets } from './CurrentPetsField';
+export type { CurrentPet, PetKind } from './CurrentPetsField';
 export { PreFilledBadge } from './PreFilledBadge';
 export { PreFilledSectionCard } from './PreFilledSectionCard';
 export { PetHeroCard } from './PetHeroCard';

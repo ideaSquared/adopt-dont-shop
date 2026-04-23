@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { QuestionField, type Question } from './QuestionField';
 import { formatHouseholdMembers, parseHouseholdMembers } from './HouseholdMembersField';
+import { formatCurrentPets, parseCurrentPets } from './CurrentPetsField';
 import { shouldShowQuestion } from './questionConditions';
 
 type Props = {
@@ -119,6 +120,10 @@ const formatAnswerPreview = (value: unknown): string => {
     const members = parseHouseholdMembers(value);
     if (members.length > 0) {
       return formatHouseholdMembers(members);
+    }
+    const pets = parseCurrentPets(value);
+    if (pets.length > 0) {
+      return formatCurrentPets(pets);
     }
     return value.join(', ');
   }

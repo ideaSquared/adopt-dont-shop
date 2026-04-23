@@ -100,6 +100,37 @@ describe('Adoption application pre-population', () => {
     expect(prefilledKeys.size).toBe(7);
   });
 
+  it('pre-fills current_pets as a structured pet list, not a free-text string', () => {
+    const defaults: ApplicationDefaults = {
+      petExperience: {
+        hasPetsCurrently: true,
+        currentPets: [
+          { type: 'dog', breed: 'Labrador', age: 3, spayedNeutered: true, vaccinated: true },
+          { type: 'cat', age: 5, spayedNeutered: false, vaccinated: true },
+          { type: 'hamster', age: 1, spayedNeutered: false, vaccinated: false },
+        ],
+      },
+    };
+    const questions = [
+      makeQuestion({ questionKey: 'has_pets', questionType: 'boolean' }),
+      makeQuestion({ questionKey: 'current_pets' }),
+    ];
+
+    const { answers } = buildInitialAnswers(questions, {
+      user: baseUser,
+      defaults,
+      customAnswers: null,
+    });
+
+    const pets = answers.current_pets;
+    expect(Array.isArray(pets)).toBe(true);
+    expect(pets).toHaveLength(3);
+    expect((pets as Array<{ kind: string }>)[0].kind).toBe('dog');
+    expect((pets as Array<{ kind: string }>)[1].kind).toBe('cat');
+    // 'hamster' isn't a first-class kind — should coerce to the 'small' bucket.
+    expect((pets as Array<{ kind: string }>)[2].kind).toBe('small');
+  });
+
   it('pre-fills rescue-specific questions from customAnswers', () => {
     const questions = [
       makeQuestion({
@@ -313,6 +344,32 @@ describe('Persistence split', () => {
     const { customAnswers } = splitAnswersForPersistence(answers, questions);
 
     expect(customAnswers).toEqual({ anxious_dog_experience: 'Yes' });
+  });
+
+  it('maps the structured current_pets array back to petExperience.currentPets', () => {
+    const petfulAnswers: Record<string, unknown> = {
+      has_pets: true,
+      current_pets: [
+        { id: 'p1', kind: 'dog', age: 4, neutered: true },
+        { id: 'p2', kind: 'cat', age: 2 },
+      ],
+    };
+    const petfulQuestions: Question[] = [
+      makeQuestion({ questionKey: 'has_pets', questionType: 'boolean' }),
+      makeQuestion({ questionKey: 'current_pets' }),
+    ];
+
+    const { defaultsUpdate, customAnswers } = splitAnswersForPersistence(
+      petfulAnswers,
+      petfulQuestions
+    );
+
+    expect(defaultsUpdate.petExperience?.currentPets).toEqual([
+      { type: 'dog', age: 4, spayedNeutered: true, vaccinated: false },
+      { type: 'cat', age: 2, spayedNeutered: false, vaccinated: false },
+    ]);
+    // current_pets is a known core key — it must not leak into customAnswers.
+    expect(customAnswers).not.toHaveProperty('current_pets');
   });
 
   it('never persists always-fresh acknowledgments or why-adopt text', () => {

@@ -6,6 +6,7 @@ import type { Pet } from '@/services';
 import { QuestionCategoryStep } from './QuestionCategoryStep';
 import type { Question } from './QuestionField';
 import { formatHouseholdMembers, parseHouseholdMembers } from './HouseholdMembersField';
+import { formatCurrentPets, parseCurrentPets } from './CurrentPetsField';
 import { shouldShowQuestion } from './questionConditions';
 
 export type CategoryGroup = {
@@ -181,6 +182,10 @@ const formatAnswerValue = (value: unknown): string => {
     const householdMembers = parseHouseholdMembers(value);
     if (householdMembers.length > 0) {
       return formatHouseholdMembers(householdMembers);
+    }
+    const currentPets = parseCurrentPets(value);
+    if (currentPets.length > 0) {
+      return formatCurrentPets(currentPets);
     }
     return value.join(', ');
   }

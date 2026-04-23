@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { BooleanTiles } from './BooleanTiles';
+import { CurrentPetsField } from './CurrentPetsField';
 import { HouseholdMembersField } from './HouseholdMembersField';
 import { OptionTiles, getIconFor, hasIconMapping } from './OptionTiles';
 import { PreFilledBadge } from './PreFilledBadge';
@@ -155,6 +156,10 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
   const renderInput = () => {
     if (questionKey === 'household_members') {
       return <HouseholdMembersField value={value} onChange={onChange} hasError={!!error} />;
+    }
+
+    if (questionKey === 'current_pets') {
+      return <CurrentPetsField value={value} onChange={onChange} hasError={!!error} />;
     }
 
     switch (questionType) {

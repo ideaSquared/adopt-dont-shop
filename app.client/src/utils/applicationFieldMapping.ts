@@ -5,6 +5,45 @@ import {
   applyConditionalDefaults,
   shouldShowQuestion,
 } from '@/components/application/questionConditions';
+import type { PetKind } from '@/components/application/CurrentPetsField';
+
+const PET_KINDS: readonly PetKind[] = [
+  'dog',
+  'cat',
+  'rabbit',
+  'bird',
+  'small',
+  'reptile',
+  'fish',
+  'other',
+];
+
+const coerceToPetKind = (raw: string): PetKind => {
+  const normalised = raw.toLowerCase().trim();
+  if ((PET_KINDS as readonly string[]).includes(normalised)) return normalised as PetKind;
+  if (normalised.includes('dog') || normalised.includes('puppy')) return 'dog';
+  if (normalised.includes('cat') || normalised.includes('kitten')) return 'cat';
+  if (normalised.includes('rabbit') || normalised.includes('bunny')) return 'rabbit';
+  if (normalised.includes('bird') || normalised.includes('parrot')) return 'bird';
+  if (normalised.includes('fish')) return 'fish';
+  if (
+    normalised.includes('reptile') ||
+    normalised.includes('lizard') ||
+    normalised.includes('snake') ||
+    normalised.includes('gecko')
+  ) {
+    return 'reptile';
+  }
+  if (
+    normalised.includes('hamster') ||
+    normalised.includes('guinea') ||
+    normalised.includes('mouse') ||
+    normalised.includes('rat')
+  ) {
+    return 'small';
+  }
+  return 'other';
+};
 
 /**
  * Keys that must always be answered fresh for each application — they describe
@@ -169,15 +208,13 @@ const resolveForKey = (
     }
     case 'current_pets': {
       if (experience?.currentPets && experience.currentPets.length > 0) {
-        const formatted = experience.currentPets
-          .map(p => {
-            const age = p.age ? `${p.age}-year-old ` : '';
-            const breed = p.breed ? ` ${p.breed}` : '';
-            const status = p.spayedNeutered ? ' (neutered/spayed)' : '';
-            return `${age}${p.type}${breed}${status}`.trim();
-          })
-          .join('; ');
-        return { value: formatted, source: 'defaults' };
+        const structured = experience.currentPets.map((p, i) => ({
+          id: `prefill-${i}`,
+          kind: coerceToPetKind(p.type),
+          age: typeof p.age === 'number' ? p.age : undefined,
+          neutered: p.spayedNeutered === true ? true : undefined,
+        }));
+        return { value: structured, source: 'defaults' };
       }
       return undefined;
     }
@@ -447,6 +484,24 @@ export const splitAnswersForPersistence = (
   if (typeof get('has_pets') === 'boolean') {
     petExperience.hasPetsCurrently = get('has_pets') as boolean;
   }
+  if (Array.isArray(get('current_pets'))) {
+    const raw = get('current_pets') as Array<{
+      kind?: unknown;
+      age?: unknown;
+      neutered?: unknown;
+    }>;
+    const mapped = raw
+      .filter(p => typeof p === 'object' && p !== null && typeof p.kind === 'string')
+      .map(p => ({
+        type: String(p.kind),
+        age: typeof p.age === 'number' ? p.age : 0,
+        spayedNeutered: p.neutered === true,
+        vaccinated: false,
+      }));
+    if (mapped.length > 0) {
+      petExperience.currentPets = mapped;
+    }
+  }
   if (present('hours_alone')) {
     const raw = String(get('hours_alone'));
     const approximation: Record<string, number> = {
@@ -502,6 +557,7 @@ export const splitAnswersForPersistence = (
     'household_members',
     'experience_level',
     'has_pets',
+    'current_pets',
     'hours_alone',
     'exercise_plan',
     'reference_name',
