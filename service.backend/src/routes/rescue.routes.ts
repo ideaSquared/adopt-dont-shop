@@ -1099,11 +1099,12 @@ router.post(
   rescueController.bulkUpdateRescues
 );
 
-// Application Questions management (rescue staff only)
+// Application Questions management
+// GET is readable by any authenticated user (adopters need it to fill in the application form)
 router.get(
   '/:rescueId/questions',
   validateRescueId,
-  requirePermission('rescues.update'),
+  requirePermission('rescues.read'),
   questionController.getQuestions.bind(questionController)
 );
 
