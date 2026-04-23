@@ -52,9 +52,9 @@ const FloatingContainer = styled.div<{ $show: boolean }>`
   gap: 1rem;
   animation: ${slideUp} 0.5s ease-out;
 
+  /* Hidden on mobile — BottomTabBar already surfaces the Discover destination. */
   @media (max-width: 768px) {
-    bottom: 5rem;
-    right: 1rem;
+    display: none;
   }
 `;
 

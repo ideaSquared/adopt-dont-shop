@@ -38,7 +38,8 @@ export type BadgeVariant =
   | 'warning'
   | 'info'
   | 'neutral'
-  | 'outline';
+  | 'outline'
+  | 'count';
 
 export type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
 
@@ -63,6 +64,11 @@ export type BadgeProps = {
    * Whether the badge should have a dot indicator
    */
   dot?: boolean;
+  /**
+   * When children is a number, clamp values above max to "{max}+".
+   * Useful with variant="count" for unread-count bubbles.
+   */
+  max?: number;
 };
 
 const getSizeStyles = (size: BadgeSize, theme: Theme) => {
@@ -191,6 +197,17 @@ const getVariantStyles = (variant: BadgeVariant, theme: Theme) => {
         color: ${theme.text.secondary};
         border-color: ${theme.border.color.secondary};
       `}
+    `,
+    count: css`
+      background: ${theme.colors.semantic.error[500]};
+      color: #fff;
+      border: none;
+      border-radius: ${theme.border.radius.full};
+      font-weight: 700;
+      padding: 0 ${theme.spacing[1.5]};
+      min-width: ${theme.spacing[5]};
+      min-height: ${theme.spacing[5]};
+      justify-content: center;
     `,
   };
   return variants[variant];
@@ -365,6 +382,18 @@ const CloseIcon = () => (
   </svg>
 );
 
+const clampCount = (children: React.ReactNode, max: number | undefined): React.ReactNode => {
+  if (max === undefined) return children;
+  const numeric =
+    typeof children === 'number'
+      ? children
+      : typeof children === 'string' && /^-?\d+$/.test(children.trim())
+        ? Number(children)
+        : null;
+  if (numeric === null) return children;
+  return numeric > max ? `${max}+` : String(numeric);
+};
+
 export const Badge: React.FC<BadgeProps> = ({
   children,
   variant = 'neutral',
@@ -377,6 +406,7 @@ export const Badge: React.FC<BadgeProps> = ({
   icon,
   rounded = false,
   dot = false,
+  max,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleRemove = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -385,6 +415,8 @@ export const Badge: React.FC<BadgeProps> = ({
       onRemove();
     }
   };
+
+  const displayChildren = clampCount(children, max);
 
   return (
     <StyledBadge
@@ -397,11 +429,13 @@ export const Badge: React.FC<BadgeProps> = ({
       $dot={dot}
       data-testid={dataTestId}
       role='status'
-      aria-label={typeof children === 'string' ? children : undefined}
+      aria-label={typeof displayChildren === 'string' ? displayChildren : undefined}
     >
       {icon && <IconContainer $size={size}>{icon}</IconContainer>}
 
-      {children && <span>{children}</span>}
+      {displayChildren !== undefined && displayChildren !== null && displayChildren !== '' && (
+        <span>{displayChildren}</span>
+      )}
 
       {removable && (
         <RemoveButton
