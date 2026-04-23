@@ -76,6 +76,10 @@ export const chatService = new ChatService({
       return token ? `Bearer ${token}` : '';
     },
   },
+  // Share the global apiService's CSRF token cache so chatService's
+  // mutating requests (send message, mark-as-read, reactions, etc.) pass
+  // the double-submit-cookie check in the backend middleware.
+  csrfToken: () => globalApiService.getCsrfToken(),
 });
 
 export const searchService = new SearchService({

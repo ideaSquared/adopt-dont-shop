@@ -189,10 +189,14 @@ export class ApiService {
   }
 
   /**
-   * Get CSRF token - fetches from server if not cached
-   * Uses promise caching to prevent multiple simultaneous requests
+   * Get the CSRF token — fetches from the server on first call and caches
+   * the result. Safe to call concurrently (promise is deduplicated).
+   *
+   * Public so other services (e.g. lib.chat's ChatService) that don't
+   * route through this class can still reuse the same cached token rather
+   * than fetching their own.
    */
-  private async getCsrfToken(): Promise<string> {
+  async getCsrfToken(): Promise<string> {
     // Return cached token if available
     if (this.csrfToken) {
       return this.csrfToken;

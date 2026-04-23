@@ -556,9 +556,16 @@ export class ChatController {
       const parsedPage = parseInt(page as string);
       const parsedLimit = parseInt(limit as string);
 
+      const userId = req.user!.userId;
+      const userType = req.user!.userType;
+      const isAdmin = userType === UserType.ADMIN;
+
+      // Admins bypass the participant check; everyone else must be a
+      // participant of this chat to read its messages.
       const result = await ChatService.getMessages(chatId, {
         page: parsedPage,
         limit: parsedLimit,
+        userId: isAdmin ? undefined : userId,
       });
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
@@ -586,6 +593,15 @@ export class ChatController {
         chatId: req.params.chatId,
         duration: Date.now() - startTime,
       });
+      if (
+        error instanceof Error &&
+        error.message === 'User is not a participant in this chat'
+      ) {
+        return res.status(403).json({
+          error: 'Access denied',
+          message: error.message,
+        });
+      }
       res.status(500).json({
         error: 'Failed to get messages',
         message: error instanceof Error ? error.message : 'Unknown error',
@@ -632,6 +648,15 @@ export class ChatController {
       });
     } catch (error) {
       logger.error('Error getting unread count:', error);
+      if (
+        error instanceof Error &&
+        error.message === 'User is not a participant in this chat'
+      ) {
+        return res.status(403).json({
+          error: 'Access denied',
+          message: error.message,
+        });
+      }
       res.status(500).json({
         error: 'Failed to get unread count',
         message: error instanceof Error ? error.message : 'Unknown error',

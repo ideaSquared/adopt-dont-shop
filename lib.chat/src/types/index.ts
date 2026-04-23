@@ -88,6 +88,15 @@ export interface ChatServiceConfig {
    * Maximum number of messages to queue
    */
   maxQueueSize?: number;
+
+  /**
+   * Async provider that returns the current CSRF token for the session.
+   * Required by the backend's double-submit-cookie CSRF middleware on
+   * state-changing requests (POST, PUT, PATCH, DELETE). Apps typically
+   * wire this to `apiService.getCsrfToken()` so both libraries share
+   * one cached token.
+   */
+  csrfToken?: () => Promise<string | null>;
 }
 
 /**

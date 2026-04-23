@@ -101,6 +101,14 @@ const mockCreateNotification = NotificationService.createNotification as vi.Mock
 describe('ChatService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: the caller is a participant. Individual tests that are
+    // specifically exercising the "not a participant" rejection path
+    // override this with mockResolvedValueOnce(null).
+    (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue({
+      chat_participant_id: 'p-default',
+      chat_id: 'chat-default',
+      participant_id: 'user-default',
+    });
   });
 
   describe('Creating chats', () => {
@@ -463,7 +471,7 @@ describe('ChatService', () => {
             senderId,
             content: 'This should fail',
           })
-        ).rejects.toThrow('Chat not found or user is not a participant');
+        ).rejects.toThrow('User is not a participant in this chat');
 
         expect(MockedMessage.create).not.toHaveBeenCalled();
       });

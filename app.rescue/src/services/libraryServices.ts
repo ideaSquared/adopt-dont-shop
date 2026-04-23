@@ -83,6 +83,9 @@ export const chatService = new ChatService({
       return token ? `Bearer ${token}` : '';
     },
   },
+  // Share the global apiService's CSRF token cache so chatService's
+  // mutating requests pass the backend CSRF middleware.
+  csrfToken: () => globalApiService.getCsrfToken(),
 });
 
 export const notificationsService = new NotificationsService(serviceConfig);

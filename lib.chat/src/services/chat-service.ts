@@ -71,12 +71,35 @@ export class ChatService {
       },
       enableMessageQueue: config.enableMessageQueue ?? true,
       maxQueueSize: config.maxQueueSize ?? 50,
+      csrfToken: config.csrfToken,
       ...config,
     };
 
     if (this.config.debug) {
       console.log(`${ChatService.name} initialized with config:`, this.config);
     }
+  }
+
+  /**
+   * Resolve headers for state-changing requests (POST/PUT/PATCH/DELETE).
+   * Adds the CSRF token the backend's double-submit-cookie middleware
+   * expects on top of the standard headers.
+   */
+  private async getMutatingHeaders(): Promise<Record<string, string>> {
+    const headers = this.getHeaders();
+    if (this.config.csrfToken) {
+      try {
+        const token = await this.config.csrfToken();
+        if (token) {
+          headers['x-csrf-token'] = token;
+        }
+      } catch (error) {
+        if (this.config.debug) {
+          console.warn(`${ChatService.name} failed to resolve CSRF token:`, error);
+        }
+      }
+    }
+    return headers;
   }
 
   /**
@@ -485,6 +508,7 @@ export class ChatService {
   async getConversations(): Promise<Conversation[]> {
     try {
       const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
+        credentials: 'include',
         headers: this.getHeaders(),
       });
 
@@ -518,6 +542,7 @@ export class ChatService {
       const response = await fetch(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages?${params}`,
         {
+          credentials: 'include',
           headers: this.getHeaders(),
         }
       );
@@ -599,7 +624,7 @@ export class ChatService {
         });
       }
 
-      const headers = this.getHeaders();
+      const headers = await this.getMutatingHeaders();
       // Don't set Content-Type for FormData, let browser set it
       delete headers['Content-Type'];
 
@@ -607,6 +632,7 @@ export class ChatService {
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages`,
         {
           method: 'POST',
+          credentials: 'include',
           body: formData,
           headers,
         }
@@ -633,7 +659,8 @@ export class ChatService {
     try {
       const response = await fetch(`${this.config.apiUrl}/api/v1/chats/${conversationId}/read`, {
         method: 'POST',
-        headers: this.getHeaders(),
+        credentials: 'include',
+        headers: await this.getMutatingHeaders(),
       });
 
       if (!response.ok) {
@@ -658,7 +685,8 @@ export class ChatService {
     try {
       const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
         method: 'POST',
-        headers: this.getHeaders(),
+        credentials: 'include',
+        headers: await this.getMutatingHeaders(),
         body: JSON.stringify(data),
       });
 
@@ -684,7 +712,7 @@ export class ChatService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const headers = this.getHeaders();
+      const headers = await this.getMutatingHeaders();
       // Don't set Content-Type for FormData, let browser set it
       delete headers['Content-Type'];
 
@@ -692,6 +720,7 @@ export class ChatService {
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/attachments`,
         {
           method: 'POST',
+          credentials: 'include',
           body: formData,
           headers,
         }
@@ -738,7 +767,8 @@ export class ChatService {
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
         {
           method: 'POST',
-          headers: this.getHeaders(),
+          credentials: 'include',
+          headers: await this.getMutatingHeaders(),
           body: JSON.stringify({ emoji }),
         }
       );
@@ -763,7 +793,8 @@ export class ChatService {
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
         {
           method: 'DELETE',
-          headers: this.getHeaders(),
+          credentials: 'include',
+          headers: await this.getMutatingHeaders(),
           body: JSON.stringify({ emoji }),
         }
       );

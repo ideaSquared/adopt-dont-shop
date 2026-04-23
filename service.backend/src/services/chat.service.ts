@@ -155,6 +155,28 @@ export class ChatService {
   }
 
   /**
+   * Shared authz check: confirms the given user is a participant of the
+   * given chat. Throws "User is not a participant in this chat" on
+   * failure; the controller layer maps that to a 403. Skipped when
+   * userId is undefined, which is the admin / server-to-server bypass
+   * (those paths are gated by route-level RBAC).
+   */
+  private static async requireChatParticipant(
+    chatId: string,
+    userId: string | undefined
+  ): Promise<void> {
+    if (!userId) {
+      return;
+    }
+    const participant = await ChatParticipant.findOne({
+      where: { chat_id: chatId, participant_id: userId },
+    });
+    if (!participant) {
+      throw new Error('User is not a participant in this chat');
+    }
+  }
+
+  /**
    * Get chat by ID with messages.
    *
    * When `userId` is supplied, the caller is required to be a participant
@@ -194,13 +216,8 @@ export class ChatService {
         ],
       });
 
-      if (chat && userId) {
-        const participant = await ChatParticipant.findOne({
-          where: { chat_id: chatId, participant_id: userId },
-        });
-        if (!participant) {
-          throw new Error('Chat not found or user is not a participant');
-        }
+      if (chat) {
+        await this.requireChatParticipant(chatId, userId);
       }
 
       loggerHelpers.logDatabase('READ', {
@@ -530,7 +547,7 @@ export class ChatService {
       });
 
       if (!chat) {
-        throw new Error('Chat not found or user is not a participant');
+        throw new Error('User is not a participant in this chat');
       }
 
       // Check for rate limiting
@@ -730,12 +747,13 @@ export class ChatService {
       limit?: number;
       before?: Date;
       after?: Date;
+      userId?: string;
     } = {}
   ): Promise<MessageListResponse> {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 50, before, after } = options;
+      const { page = 1, limit = 50, before, after, userId } = options;
 
       // Validate inputs
       if (page < 1) {
@@ -744,6 +762,11 @@ export class ChatService {
       if (limit < 1 || limit > 100) {
         throw new Error('Limit must be between 1 and 100');
       }
+
+      // Only participants can read a chat's messages. Calls without userId
+      // skip the check (admin / server-to-server); route-level RBAC gates
+      // those paths.
+      await this.requireChatParticipant(chatId, userId);
 
       const whereConditions: WhereOptions = { chat_id: chatId }; // Fix: use snake_case
 
@@ -822,6 +845,7 @@ export class ChatService {
    */
   static async markMessagesAsRead(chatId: string, userId: string) {
     try {
+      await this.requireChatParticipant(chatId, userId);
       // Update read status using the model's instance method
       const messages = await Message.findAll({
         where: {
@@ -849,6 +873,7 @@ export class ChatService {
    */
   static async getUnreadMessageCount(chatId: string, userId: string) {
     try {
+      await this.requireChatParticipant(chatId, userId);
       const messages = await Message.findAll({
         where: {
           chat_id: chatId,
@@ -1072,17 +1097,7 @@ export class ChatService {
         throw new Error('Message not found');
       }
 
-      // Verify user is a participant in the chat
-      const participant = await ChatParticipant.findOne({
-        where: {
-          chat_id: message.chat_id,
-          participant_id: userId,
-        },
-      });
-
-      if (!participant) {
-        throw new Error('User is not a participant in this chat');
-      }
+      await this.requireChatParticipant(message.chat_id, userId);
 
       // Add reaction using the model's instance method
       message.addReaction(userId, emoji);
@@ -1104,6 +1119,11 @@ export class ChatService {
       if (!message) {
         throw new Error('Message not found');
       }
+
+      // Previously this check was missing — anyone with a JWT and a
+      // messageId could mutate their own reaction on any chat's message.
+      // Now gated on participation.
+      await this.requireChatParticipant(message.chat_id, userId);
 
       // Remove reaction using the model's instance method
       message.removeReaction(userId, emoji);
