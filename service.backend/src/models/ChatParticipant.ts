@@ -79,13 +79,13 @@ ChatParticipant.init(
       type: DataTypes.ENUM(...Object.values(ParticipantRole)),
       allowNull: false,
     },
+    // FK constraint is enforced by migration 36-add-rescue-id-to-chat-participants,
+    // not the model. Keeping references here would force sequelize.sync({alter: true})
+    // to participate in FK ordering that it can't infer (no .belongsTo(Rescue) on
+    // this model) and has caused alter-table hangs in dev/CI sync runs.
     rescue_id: {
       type: DataTypes.STRING,
       allowNull: true,
-      references: {
-        model: 'rescues',
-        key: 'rescue_id',
-      },
     },
     last_read_at: {
       type: DataTypes.DATE,
