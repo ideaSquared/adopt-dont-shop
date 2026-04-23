@@ -15,34 +15,44 @@ import {
 } from '@/utils/applicationFieldMapping';
 import type { ApplicationDefaults } from '@/types';
 
-const CATEGORY_LABELS: Record<string, string> = {
-  personal_information: 'Personal Information',
-  household_information: 'Household Information',
-  pet_ownership_experience: 'Pet Ownership Experience',
-  lifestyle_compatibility: 'Lifestyle Compatibility',
-  pet_care_commitment: 'Pet Care Commitment',
-  references_verification: 'References & Verification',
-  final_acknowledgments: 'Final Acknowledgments',
+type MacroStepDef = {
+  id: string;
+  title: string;
+  description: (petName?: string) => string;
+  categories: readonly string[];
 };
 
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  personal_information: 'Tell us about your work schedule and availability.',
-  household_information: 'Describe your home environment.',
-  pet_ownership_experience: 'Share your experience with animals.',
-  lifestyle_compatibility: 'Help us understand your daily routine.',
-  pet_care_commitment: 'Show us you are prepared for the responsibility.',
-  references_verification: 'Provide a reference who knows you well.',
-  final_acknowledgments: 'Almost there — a few final questions.',
-};
-
-const CATEGORY_ORDER = [
-  'personal_information',
-  'household_information',
-  'pet_ownership_experience',
-  'lifestyle_compatibility',
-  'pet_care_commitment',
-  'references_verification',
-  'final_acknowledgments',
+const MACRO_STEPS: readonly MacroStepDef[] = [
+  {
+    id: 'about_you',
+    title: 'About you 👋',
+    description: () => 'A few quick details so we know who you are.',
+    categories: ['personal_information'],
+  },
+  {
+    id: 'your_home',
+    title: 'Your home 🏠',
+    description: () => 'Tell us where your new companion would be living.',
+    categories: ['household_information'],
+  },
+  {
+    id: 'pet_experience',
+    title: 'Your pet experience 🐾',
+    description: () => "Your history with pets — good, messy, and everything in between.",
+    categories: [
+      'pet_ownership_experience',
+      'lifestyle_compatibility',
+      'pet_care_commitment',
+      'references_verification',
+    ],
+  },
+  {
+    id: 'this_pet',
+    title: 'About {petName} ❤️',
+    description: petName =>
+      `Last bit! Just a few questions about ${petName ?? 'this pet'} and we're done.`,
+    categories: ['final_acknowledgments'],
+  },
 ];
 
 const Container = styled.div`
@@ -73,25 +83,81 @@ const LoadingContainer = styled.div`
   min-height: 200px;
 `;
 
-const groupQuestionsByCategory = (questions: Question[]): CategoryGroup[] => {
-  const grouped = new Map<string, Question[]>();
+const CATEGORY_ORDER = [
+  'personal_information',
+  'household_information',
+  'pet_ownership_experience',
+  'lifestyle_compatibility',
+  'pet_care_commitment',
+  'references_verification',
+  'final_acknowledgments',
+];
+
+const groupQuestionsByMacroStep = (
+  questions: Question[],
+  petName?: string
+): CategoryGroup[] => {
+  const byCategory = new Map<string, Question[]>();
   for (const q of questions) {
-    const existing = grouped.get(q.category);
+    const existing = byCategory.get(q.category);
     if (existing) {
       existing.push(q);
     } else {
-      grouped.set(q.category, [q]);
+      byCategory.set(q.category, [q]);
     }
   }
-  for (const qs of grouped.values()) {
+  for (const qs of byCategory.values()) {
     qs.sort((a, b) => a.displayOrder - b.displayOrder);
   }
-  return CATEGORY_ORDER.filter(cat => grouped.has(cat)).map(cat => ({
-    category: cat,
-    title: CATEGORY_LABELS[cat] ?? cat,
-    description: CATEGORY_DESCRIPTIONS[cat],
-    questions: grouped.get(cat) ?? [],
-  }));
+
+  const usedCategories = new Set<string>();
+  const groups: CategoryGroup[] = [];
+
+  for (const step of MACRO_STEPS) {
+    const stepQuestions: Question[] = [];
+    for (const category of step.categories) {
+      const catQuestions = byCategory.get(category);
+      if (catQuestions) {
+        stepQuestions.push(...catQuestions);
+        usedCategories.add(category);
+      }
+    }
+    if (stepQuestions.length === 0) continue;
+    groups.push({
+      category: step.id,
+      title: step.title.replace('{petName}', petName ?? 'this pet'),
+      description: step.description(petName),
+      questions: stepQuestions,
+    });
+  }
+
+  // Any categories the rescue has enabled questions in that we didn't already
+  // slot into a macro-step become a final "extras" step before acknowledgments.
+  const leftovers: Question[] = [];
+  for (const category of CATEGORY_ORDER) {
+    if (usedCategories.has(category)) continue;
+    const catQuestions = byCategory.get(category);
+    if (catQuestions) leftovers.push(...catQuestions);
+  }
+  for (const [category, catQuestions] of byCategory) {
+    if (usedCategories.has(category)) continue;
+    if (CATEGORY_ORDER.includes(category)) continue;
+    leftovers.push(...catQuestions);
+  }
+  if (leftovers.length > 0) {
+    // Insert just before the last macro-step (acknowledgments), since those
+    // should always be the final thing the user sees.
+    const extrasGroup: CategoryGroup = {
+      category: 'extras',
+      title: 'A few extras 🧩',
+      description: 'A couple of additional questions from this rescue.',
+      questions: leftovers,
+    };
+    const insertAt = Math.max(0, groups.length - 1);
+    groups.splice(insertAt, 0, extrasGroup);
+  }
+
+  return groups;
 };
 
 export const ApplicationPage: React.FC = () => {
@@ -141,7 +207,7 @@ export const ApplicationPage: React.FC = () => {
         applicationProfileService.getApplicationDefaults().catch(() => null),
       ]);
       const enabledQuestions = questionsResponse.questions.filter((q: Question) => q.isEnabled);
-      setCategories(groupQuestionsByCategory(enabledQuestions));
+      setCategories(groupQuestionsByMacroStep(enabledQuestions, petData.name));
 
       const prePop = buildInitialAnswers(enabledQuestions, {
         user: user ?? null,
@@ -270,8 +336,8 @@ export const ApplicationPage: React.FC = () => {
     })),
     {
       id: categories.length + 1,
-      title: 'Review & Submit',
-      description: 'Review your application before submitting',
+      title: 'Review & send 💌',
+      description: 'One quick look before we send it off.',
     },
   ];
 
