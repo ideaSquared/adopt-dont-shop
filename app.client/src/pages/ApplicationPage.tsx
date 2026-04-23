@@ -14,6 +14,7 @@ import {
   canQuickApply,
   splitAnswersForPersistence,
 } from '@/utils/applicationFieldMapping';
+import { applyConditionalDefaults } from '@/components/application/questionConditions';
 import type { ApplicationDefaults } from '@/types';
 
 type MacroStepDef = {
@@ -226,7 +227,7 @@ export const ApplicationPage: React.FC = () => {
         customAnswers: (defaults as ApplicationDefaults | null)?.customAnswers ?? null,
       };
       const prePop = buildInitialAnswers(enabledQuestions, sources);
-      setAnswers(prePop.answers);
+      setAnswers(applyConditionalDefaults(prePop.answers));
       setPrefilledKeys(prePop.prefilledKeys);
       setViewMode(canQuickApply(enabledQuestions, sources) ? 'quick' : 'guided');
     } catch (err) {
@@ -264,16 +265,18 @@ export const ApplicationPage: React.FC = () => {
 
   const handleChange = useCallback(
     (updated: Record<string, unknown>) => {
-      setAnswers(updated);
-      scheduleSave(updated, currentStepRef.current);
+      const normalised = applyConditionalDefaults(updated);
+      setAnswers(normalised);
+      scheduleSave(normalised, currentStepRef.current);
     },
     [scheduleSave]
   );
 
   const handleStepComplete = useCallback(
     (updatedAnswers: Record<string, unknown>) => {
-      setAnswers(updatedAnswers);
-      scheduleSave(updatedAnswers, currentStepRef.current);
+      const normalised = applyConditionalDefaults(updatedAnswers);
+      setAnswers(normalised);
+      scheduleSave(normalised, currentStepRef.current);
       setCurrentStep(prev => prev + 1);
     },
     [scheduleSave]

@@ -1,6 +1,10 @@
 import type { User } from '@adopt-dont-shop/lib.auth';
 import type { Question } from '@/components/application/QuestionField';
 import type { ApplicationDefaults } from '@/types';
+import {
+  applyConditionalDefaults,
+  shouldShowQuestion,
+} from '@/components/application/questionConditions';
 
 /**
  * Keys that must always be answered fresh for each application — they describe
@@ -319,12 +323,15 @@ const hasValue = (v: unknown): boolean => {
 /**
  * True when every required question on the rescue's form has a pre-filled
  * answer we can trust — the user could submit without touching the form.
+ * Conditional questions (e.g. "If you rent…") are only required when their
+ * trigger is met; otherwise they contribute no requirement.
  */
 export const canQuickApply = (
   questions: readonly Question[],
   sources: PrePopulationSources
 ): boolean => {
   const { answers } = buildInitialAnswers(questions, sources);
+  const resolved = applyConditionalDefaults(answers);
   for (const q of questions) {
     if (!q.isEnabled || !q.isRequired) {
       continue;
@@ -332,7 +339,10 @@ export const canQuickApply = (
     if (ALWAYS_FRESH_QUESTION_KEYS.has(q.questionKey)) {
       continue;
     }
-    if (!hasValue(answers[q.questionKey])) {
+    if (!shouldShowQuestion(q, resolved)) {
+      continue;
+    }
+    if (!hasValue(resolved[q.questionKey])) {
       return false;
     }
   }

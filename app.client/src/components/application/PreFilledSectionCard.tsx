@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { QuestionField, type Question } from './QuestionField';
 import { formatHouseholdMembers, parseHouseholdMembers } from './HouseholdMembersField';
+import { shouldShowQuestion } from './questionConditions';
 
 type Props = {
   icon: string;
@@ -149,7 +150,10 @@ export const PreFilledSectionCard: React.FC<Props> = ({
   initiallyExpanded = false,
   emptyHint,
 }) => {
-  const missingRequired = questions.some(q => q.isRequired && !hasAnswer(answers[q.questionKey]));
+  const visibleQuestions = questions.filter(q => shouldShowQuestion(q, answers));
+  const missingRequired = visibleQuestions.some(
+    q => q.isRequired && !hasAnswer(answers[q.questionKey])
+  );
   const [expanded, setExpanded] = useState(initiallyExpanded || missingRequired);
   const [touchedKeys, setTouchedKeys] = useState<Set<string>>(() => new Set());
 
@@ -165,7 +169,8 @@ export const PreFilledSectionCard: React.FC<Props> = ({
     onChange({ ...answers, [questionKey]: value });
   };
 
-  const summary = questions.length === 0 ? (emptyHint ?? '') : buildSummary(questions, answers);
+  const summary =
+    visibleQuestions.length === 0 ? (emptyHint ?? '') : buildSummary(visibleQuestions, answers);
 
   return (
     <Card>
@@ -184,7 +189,7 @@ export const PreFilledSectionCard: React.FC<Props> = ({
       </Header>
       {expanded && (
         <Body>
-          {questions.map(question => {
+          {visibleQuestions.map(question => {
             const isPrefilled =
               !touchedKeys.has(question.questionKey) && prefilledKeys.has(question.questionKey);
             return (

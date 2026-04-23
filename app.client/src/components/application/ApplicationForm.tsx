@@ -6,6 +6,7 @@ import type { Pet } from '@/services';
 import { QuestionCategoryStep } from './QuestionCategoryStep';
 import type { Question } from './QuestionField';
 import { formatHouseholdMembers, parseHouseholdMembers } from './HouseholdMembersField';
+import { shouldShowQuestion } from './questionConditions';
 
 export type CategoryGroup = {
   category: string;
@@ -197,7 +198,10 @@ const ReviewStep: React.FC<{ categories: CategoryGroup[]; answers: Record<string
     </ReviewDescription>
     {categories.map(({ category, title, questions }) => {
       const answeredQuestions = questions.filter(
-        q => answers[q.questionKey] !== undefined && answers[q.questionKey] !== ''
+        q =>
+          shouldShowQuestion(q, answers) &&
+          answers[q.questionKey] !== undefined &&
+          answers[q.questionKey] !== ''
       );
       if (answeredQuestions.length === 0) {
         return null;

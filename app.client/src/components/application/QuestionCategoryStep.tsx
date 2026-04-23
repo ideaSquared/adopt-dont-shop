@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Question, QuestionField } from './QuestionField';
+import { shouldShowQuestion } from './questionConditions';
 
 type QuestionCategoryStepProps = {
   stepId: string;
@@ -78,6 +79,7 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
 
     const newErrors: Record<string, string> = {};
     for (const q of questions) {
+      if (!shouldShowQuestion(q, answers)) continue;
       if (q.isRequired && !hasAnswer(answers[q.questionKey])) {
         newErrors[q.questionKey] = "Don't forget this one 👀";
       }
@@ -95,7 +97,8 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
     onComplete(answers);
   };
 
-  const hasRequired = questions.some(q => q.isRequired);
+  const visibleQuestions = questions.filter(q => shouldShowQuestion(q, answers));
+  const hasRequired = visibleQuestions.some(q => q.isRequired);
 
   return (
     <StepContainer>
@@ -104,7 +107,7 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
       {hasRequired && <RequiredNote>Fields marked with * are required.</RequiredNote>}
 
       <form id={`step-${stepId}-form`} onSubmit={handleSubmit} noValidate>
-        {questions.map(question => {
+        {visibleQuestions.map(question => {
           const isPrefilled =
             !touchedKeys.has(question.questionKey) &&
             (prefilledKeys?.has(question.questionKey) ?? false);

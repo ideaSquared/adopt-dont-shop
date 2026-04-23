@@ -23,6 +23,10 @@ import {
   canQuickApply,
   splitAnswersForPersistence,
 } from '@/utils/applicationFieldMapping';
+import {
+  applyConditionalDefaults,
+  shouldShowQuestion,
+} from '@/components/application/questionConditions';
 
 const makeQuestion = (overrides: Partial<Question> & Pick<Question, 'questionKey'>): Question => ({
   questionId: `q-${overrides.questionKey}`,
@@ -317,5 +321,112 @@ describe('Persistence split', () => {
     expect(customAnswers).not.toHaveProperty('why_adopt');
     expect(customAnswers).not.toHaveProperty('agree_terms');
     expect(JSON.stringify(defaultsUpdate)).not.toContain('Because Luna');
+  });
+});
+
+describe('Conditional questions', () => {
+  const landlordPermissionQ = makeQuestion({
+    questionKey: 'landlord_permission',
+    questionType: 'boolean',
+    isRequired: false,
+  });
+  const currentPetsQ = makeQuestion({ questionKey: 'current_pets' });
+  const vetPracticeQ = makeQuestion({ questionKey: 'vet_practice' });
+
+  it('shows landlord_permission only when the applicant rents', () => {
+    expect(shouldShowQuestion(landlordPermissionQ, { home_ownership: 'Rent' })).toBe(true);
+    expect(shouldShowQuestion(landlordPermissionQ, { home_ownership: 'Own' })).toBe(false);
+    expect(shouldShowQuestion(landlordPermissionQ, {})).toBe(false);
+  });
+
+  it('shows current_pets only when has_pets is true', () => {
+    expect(shouldShowQuestion(currentPetsQ, { has_pets: true })).toBe(true);
+    expect(shouldShowQuestion(currentPetsQ, { has_pets: false })).toBe(false);
+    expect(shouldShowQuestion(currentPetsQ, {})).toBe(false);
+  });
+
+  it('shows vet_practice only when vet_registered is true', () => {
+    expect(shouldShowQuestion(vetPracticeQ, { vet_registered: true })).toBe(true);
+    expect(shouldShowQuestion(vetPracticeQ, { vet_registered: false })).toBe(false);
+  });
+
+  it('always shows unconditional questions', () => {
+    const q = makeQuestion({ questionKey: 'employment_status', questionType: 'select' });
+    expect(shouldShowQuestion(q, {})).toBe(true);
+  });
+
+  it('defaults landlord_permission to false when the applicant does not rent', () => {
+    const result = applyConditionalDefaults({ home_ownership: 'Own' });
+    expect(result.landlord_permission).toBe(false);
+  });
+
+  it('clears text dependents when their trigger is not met', () => {
+    const result = applyConditionalDefaults({
+      has_pets: false,
+      current_pets: 'A fluffy poodle',
+      vet_registered: false,
+      vet_practice: 'Some Clinic',
+    });
+    expect(result).not.toHaveProperty('current_pets');
+    expect(result).not.toHaveProperty('vet_practice');
+  });
+
+  it('keeps dependent answers when the trigger is met', () => {
+    const result = applyConditionalDefaults({
+      home_ownership: 'Rent',
+      landlord_permission: true,
+      has_pets: true,
+      current_pets: 'A fluffy poodle',
+    });
+    expect(result.landlord_permission).toBe(true);
+    expect(result.current_pets).toBe('A fluffy poodle');
+  });
+
+  it('is idempotent — applying twice produces the same result', () => {
+    const input = { home_ownership: 'Own', has_pets: false, current_pets: 'stale' };
+    const once = applyConditionalDefaults(input);
+    const twice = applyConditionalDefaults(once);
+    expect(twice).toEqual(once);
+  });
+
+  it('does not block quick-apply when an owner-applicant has no landlord_permission stored', () => {
+    const ownerDefaults: ApplicationDefaults = {
+      personalInfo: { occupation: 'Employed full-time' },
+      livingSituation: {
+        housingType: 'house',
+        isOwned: true,
+        yardFenced: true,
+        householdMembers: [{ name: 'Sam', age: 32, relationship: 'partner' }],
+      },
+      petExperience: {
+        experienceLevel: 'experienced',
+        hasPetsCurrently: false,
+        hoursAloneDaily: 3,
+        exercisePlans: 'Two walks a day',
+      },
+    };
+    const questions: Question[] = [
+      makeQuestion({ questionKey: 'employment_status', questionType: 'select', isRequired: true }),
+      makeQuestion({ questionKey: 'housing_type', questionType: 'select', isRequired: true }),
+      makeQuestion({ questionKey: 'home_ownership', questionType: 'select', isRequired: true }),
+      makeQuestion({
+        questionKey: 'landlord_permission',
+        questionType: 'boolean',
+        isRequired: true,
+      }),
+      makeQuestion({ questionKey: 'yard_fenced', questionType: 'boolean', isRequired: true }),
+      makeQuestion({ questionKey: 'household_members', isRequired: true }),
+      makeQuestion({ questionKey: 'experience_level', questionType: 'select', isRequired: true }),
+      makeQuestion({ questionKey: 'has_pets', questionType: 'boolean', isRequired: true }),
+      makeQuestion({ questionKey: 'hours_alone', questionType: 'select', isRequired: true }),
+      makeQuestion({ questionKey: 'exercise_plan', isRequired: true }),
+    ];
+    expect(
+      canQuickApply(questions, {
+        user: baseUser,
+        defaults: ownerDefaults,
+        customAnswers: null,
+      })
+    ).toBe(true);
   });
 });

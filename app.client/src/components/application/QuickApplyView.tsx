@@ -6,6 +6,7 @@ import type { SaveStatus } from '@/hooks/use-auto-save';
 import { PetHeroCard } from './PetHeroCard';
 import { PreFilledSectionCard } from './PreFilledSectionCard';
 import { QuestionField, type Question } from './QuestionField';
+import { shouldShowQuestion } from './questionConditions';
 
 type SectionDef = {
   id: string;
@@ -173,7 +174,11 @@ export const QuickApplyView: React.FC<Props> = ({
 
   const handleSubmit = () => {
     const missing = questions.filter(
-      q => q.isEnabled && q.isRequired && !hasAnswer(answers[q.questionKey])
+      q =>
+        q.isEnabled &&
+        q.isRequired &&
+        shouldShowQuestion(q, answers) &&
+        !hasAnswer(answers[q.questionKey])
     );
     if (missing.length > 0) {
       setValidationError(
@@ -240,19 +245,21 @@ export const QuickApplyView: React.FC<Props> = ({
         <FinalDescription>
           Last bit! Just a few questions about {pet.name} and we&apos;re done.
         </FinalDescription>
-        {acknowledgmentQuestions.map(question => {
-          const isPrefilled =
-            !ackTouchedKeys.has(question.questionKey) && prefilledKeys.has(question.questionKey);
-          return (
-            <QuestionField
-              key={question.questionId}
-              question={question}
-              value={answers[question.questionKey]}
-              onChange={value => handleAckChange(question.questionKey, value)}
-              isPrefilled={isPrefilled}
-            />
-          );
-        })}
+        {acknowledgmentQuestions
+          .filter(q => shouldShowQuestion(q, answers))
+          .map(question => {
+            const isPrefilled =
+              !ackTouchedKeys.has(question.questionKey) && prefilledKeys.has(question.questionKey);
+            return (
+              <QuestionField
+                key={question.questionId}
+                question={question}
+                value={answers[question.questionKey]}
+                onChange={value => handleAckChange(question.questionKey, value)}
+                isPrefilled={isPrefilled}
+              />
+            );
+          })}
       </FinalStep>
 
       <Actions>
