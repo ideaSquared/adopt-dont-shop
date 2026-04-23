@@ -8,3 +8,5 @@ export { WithdrawApplicationModal } from './WithdrawApplicationModal';
 export { QuestionField } from './QuestionField';
 export type { Question, QuestionType } from './QuestionField';
 export { QuestionCategoryStep } from './QuestionCategoryStep';
+export { HouseholdMembersField } from './HouseholdMembersField';
+export type { HouseholdMember, MemberType } from './HouseholdMembersField';

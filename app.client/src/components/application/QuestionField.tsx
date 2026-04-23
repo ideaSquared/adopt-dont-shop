@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { HouseholdMembersField } from './HouseholdMembersField';
 
 export type QuestionType =
   | 'text'
@@ -143,9 +144,14 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
   onChange,
   error,
 }) => {
-  const { questionType, questionText, helpText, placeholder, options, isRequired } = question;
+  const { questionType, questionKey, questionText, helpText, placeholder, options, isRequired } =
+    question;
 
   const renderInput = () => {
+    if (questionKey === 'household_members') {
+      return <HouseholdMembersField value={value} onChange={onChange} hasError={!!error} />;
+    }
+
     switch (questionType) {
       case 'boolean':
         return (

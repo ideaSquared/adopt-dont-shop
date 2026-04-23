@@ -5,6 +5,7 @@ import type { SaveStatus } from '@/hooks/use-auto-save';
 import type { Pet } from '@/services';
 import { QuestionCategoryStep } from './QuestionCategoryStep';
 import type { Question } from './QuestionField';
+import { formatHouseholdMembers, parseHouseholdMembers } from './HouseholdMembersField';
 
 export type CategoryGroup = {
   category: string;
@@ -175,6 +176,10 @@ const formatAnswerValue = (value: unknown): string => {
     return 'No';
   }
   if (Array.isArray(value)) {
+    const householdMembers = parseHouseholdMembers(value);
+    if (householdMembers.length > 0) {
+      return formatHouseholdMembers(householdMembers);
+    }
     return value.join(', ');
   }
   return String(value);
