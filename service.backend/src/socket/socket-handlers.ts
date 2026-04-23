@@ -35,6 +35,19 @@ interface TypingUser {
 const userPresence = new Map<string, UserPresence>();
 const typingUsers = new Map<string, Map<string, TypingUser>>(); // chatId -> userId -> TypingUser
 
+/**
+ * Returns true when the given user has at least one active socket connection.
+ * Safe to call from anywhere in the process; reads from the same in-memory
+ * map that SocketHandlers maintains.
+ *
+ * NOTE: single-instance presence only. Multi-instance deploys need a Redis-
+ * backed registry to be accurate across replicas.
+ */
+export function isUserOnline(userId: string): boolean {
+  const presence = userPresence.get(userId);
+  return !!presence && presence.status !== 'offline' && presence.socketIds.length > 0;
+}
+
 export class SocketHandlers {
   private io: SocketIOServer;
   private messageBroker = getMessageBroker();

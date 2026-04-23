@@ -3,6 +3,7 @@ import { ChatParticipant } from '../models/ChatParticipant';
 import User, { UserType } from '../models/User';
 import { ChatService } from '../services/chat.service';
 import { FileUploadService } from '../services/file-upload.service';
+import { isUserOnline } from '../socket/socket-handlers';
 import { ChatMessage } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
 
@@ -213,7 +214,7 @@ export class ChatController {
               p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
                 ? p.User.profileImageUrl
                 : undefined,
-            isOnline: false,
+            isOnline: isUserOnline(p.participant_id),
           };
         }) || [];
 
@@ -332,7 +333,7 @@ export class ChatController {
                 p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
                   ? p.User.profileImageUrl
                   : undefined,
-              isOnline: false, // TODO: Implement online status
+              isOnline: isUserOnline(p.participant_id),
             })) || [];
 
           const unreadCount = isAdmin
