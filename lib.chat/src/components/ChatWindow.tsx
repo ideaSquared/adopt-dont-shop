@@ -49,15 +49,35 @@ const BackButton = styled(Button)`
   justify-content: center;
 `;
 
+const HeaderAvatar = styled.div`
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: ${(props) => props.theme.colors.primary[700]};
+  background: linear-gradient(
+    135deg,
+    ${(props) => props.theme.colors.primary[100]},
+    ${(props) => props.theme.colors.primary[200]}
+  );
+  box-shadow: inset 0 0 0 2px ${(props) => props.theme.background.primary};
+`;
+
 const ConversationInfo = styled.div`
   flex: 1;
   min-width: 0;
 
   h3 {
     margin: 0;
-    font-size: 1.125rem;
+    font-size: 1.05rem;
     color: ${(props) => props.theme.text.primary};
     font-weight: 700;
+    letter-spacing: -0.01em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -90,20 +110,30 @@ const EmptyState = styled.div`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 2rem 1rem;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
   text-align: center;
   color: ${(props) => props.theme.text.secondary};
 
+  .illustration {
+    font-size: 3.5rem;
+    opacity: 0.75;
+    line-height: 1;
+  }
+
   h3 {
-    margin: 0 0 0.5rem 0;
+    margin: 0;
     color: ${(props) => props.theme.text.primary};
     font-size: 1.2rem;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
 
   p {
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    max-width: 24rem;
+    line-height: 1.5;
   }
 `;
 
@@ -259,8 +289,11 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
     return (
       <ChatContainer>
         <EmptyState>
-          <h3>Select a conversation</h3>
-          <p>Choose a conversation from the list to start messaging</p>
+          <div className="illustration" aria-hidden>
+            {'\u{1F4AC}'}
+          </div>
+          <h3>No conversation selected</h3>
+          <p>Pick a conversation from the list to start messaging.</p>
         </EmptyState>
       </ChatContainer>
     );
@@ -290,6 +323,17 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
     rescueName = 'Rescue Organization';
   }
 
+  const initials = (() => {
+    const parts = rescueName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) {
+      return '?';
+    }
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  })();
+
   return (
     <ChatContainer>
       <ChatHeader>
@@ -301,6 +345,8 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
         >
           <MdArrowBack size={20} />
         </BackButton>
+
+        <HeaderAvatar aria-hidden>{initials}</HeaderAvatar>
 
         <ConversationInfo>
           <h3>{rescueName}</h3>

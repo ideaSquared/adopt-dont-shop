@@ -1,5 +1,5 @@
 import { Button, Spinner } from '@adopt-dont-shop/lib.components';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useChat } from '../context/use-chat';
 import type { Conversation } from '../types';
 import { safeFormatDistanceToNow } from '../utils/date-helpers';
@@ -21,117 +21,217 @@ const ConversationContainer = styled.div`
 `;
 
 const Header = styled.div`
-  padding: 1.25rem 1rem 1rem 1rem;
+  padding: 1.5rem 1.25rem 1rem 1.25rem;
   border-bottom: 1px solid ${(props) => props.theme.border.color.tertiary};
   background: ${(props) => props.theme.background.primary};
   position: sticky;
   top: 0;
   z-index: 10;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
 
   h3 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     font-weight: 700;
     color: ${(props) => props.theme.text.primary};
-    letter-spacing: -0.025em;
+    letter-spacing: -0.02em;
   }
+`;
+
+const HeaderCount = styled.span`
+  font-size: 0.8125rem;
+  color: ${(props) => props.theme.text.tertiary};
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 `;
 
 const ConversationsList = styled.div`
   flex: 1;
   overflow-y: auto;
+  padding: 0.5rem 0;
 `;
 
-const ConversationItem = styled.div<{ $isActive?: boolean }>`
+const ConversationItem = styled.button<{ $isActive?: boolean; $hasUnread?: boolean }>`
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
   padding: 0.75rem 1rem;
   cursor: pointer;
-  transition: all 0.15s ease;
-  background: ${(props) => (props.$isActive ? props.theme.colors.primary[50] : 'transparent')};
-  border-left: ${(props) =>
-    props.$isActive ? `3px solid ${props.theme.colors.primary[500]}` : '3px solid transparent'};
+  transition:
+    background 0.12s ease,
+    transform 0.12s ease;
+  background: ${(props) =>
+    props.$isActive
+      ? props.theme.colors.primary[50]
+      : props.$hasUnread
+        ? props.theme.background.secondary
+        : 'transparent'};
+  border: none;
+  border-left: 3px solid
+    ${(props) => (props.$isActive ? props.theme.colors.primary[500] : 'transparent')};
+  border-bottom: 1px solid ${(props) => props.theme.border.color.tertiary};
+  color: inherit;
+  font: inherit;
   position: relative;
 
   &:hover {
-    background: ${(props) => props.theme.background.secondary};
+    background: ${(props) =>
+      props.$isActive ? props.theme.colors.primary[100] : props.theme.background.secondary};
   }
 
-  &:active {
-    background: ${(props) => props.theme.colors.primary[50]};
-  }
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${(props) => props.theme.border.color.tertiary};
+  &:focus-visible {
+    outline: 2px solid ${(props) => props.theme.colors.primary[500]};
+    outline-offset: -2px;
   }
 `;
 
-const ConversationHeader = styled.div`
+const ConversationBody = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ConversationHeaderRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.375rem;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
 `;
 
-const RescueName = styled.h4`
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: ${(props) => props.theme.text.primary};
+const Avatar = styled.div<{ $hasUnread?: boolean }>`
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${(props) => props.theme.colors.primary[700]};
+  background: linear-gradient(
+    135deg,
+    ${(props) => props.theme.colors.primary[100]},
+    ${(props) => props.theme.colors.primary[200]}
+  );
+  box-shadow: inset 0 0 0 2px ${(props) => props.theme.background.primary};
+  position: relative;
+
+  ${(props) =>
+    props.$hasUnread &&
+    `
+    &::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 0 2px ${props.theme.background.primary};
+    }
+  `}
 `;
 
-const Timestamp = styled.span`
-  font-size: 0.75rem;
-  color: ${(props) => props.theme.text.tertiary};
-  font-weight: 500;
-`;
-
-const LastMessage = styled.p`
+const RescueName = styled.h4<{ $hasUnread?: boolean }>`
   margin: 0;
-  font-size: 0.875rem;
-  color: ${(props) => props.theme.text.secondary};
+  font-size: 0.95rem;
+  font-weight: ${(props) => (props.$hasUnread ? 700 : 600)};
+  color: ${(props) => props.theme.text.primary};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.3;
+  min-width: 0;
+  flex: 1;
+`;
+
+const Timestamp = styled.span<{ $hasUnread?: boolean }>`
+  font-size: 0.75rem;
+  color: ${(props) =>
+    props.$hasUnread ? props.theme.colors.primary[600] : props.theme.text.tertiary};
+  font-weight: ${(props) => (props.$hasUnread ? 600 : 500)};
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+`;
+
+const LastMessage = styled.p<{ $hasUnread?: boolean }>`
+  margin: 0;
+  font-size: 0.8125rem;
+  color: ${(props) => (props.$hasUnread ? props.theme.text.primary : props.theme.text.secondary)};
+  font-weight: ${(props) => (props.$hasUnread ? 500 : 400)};
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
 `;
 
 const PetInfo = styled.div`
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: ${(props) => props.theme.colors.primary[600]};
-  margin-top: 0.25rem;
-  font-weight: 500;
+  margin-top: 0.375rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`;
+
+const badgePulse = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 `;
 
 const UnreadBadge = styled.span`
-  background: ${(props) => props.theme.colors.primary[500]};
-  color: ${(props) => props.theme.text.inverse};
-  border-radius: 12px;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.6875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.75rem;
   font-weight: 700;
-  min-width: 20px;
-  text-align: center;
-  line-height: 1.2;
+  line-height: 1;
+  flex: 0 0 auto;
+  animation: ${badgePulse} 2s ease-out infinite;
+`;
+
+const BottomRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 `;
 
 const EmptyState = styled.div`
-  padding: 3rem 2rem;
+  padding: 3.5rem 2rem;
   text-align: center;
   color: ${(props) => props.theme.text.secondary};
 
+  .illustration {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.8;
+  }
+
   h4 {
-    margin: 0 0 0.75rem 0;
+    margin: 0 0 0.5rem 0;
     color: ${(props) => props.theme.text.primary};
-    font-size: 1.125rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
 
   p {
     margin: 0 0 1.5rem 0;
-    font-size: 0.9375rem;
-    line-height: 1.5;
+    font-size: 0.9rem;
+    line-height: 1.55;
   }
 `;
 
@@ -141,6 +241,17 @@ const LoadingContainer = styled.div`
   align-items: center;
   height: 200px;
 `;
+
+const computeInitials = (name: string): string => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return '?';
+  }
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
 
 type ConversationListProps = {
   /**
@@ -176,6 +287,8 @@ export function ConversationList({
 
   const getUnreadCount = (conversation: Conversation) => conversation.unreadCount || 0;
 
+  const totalUnread = (conversations || []).reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+
   if (isLoading && (!conversations || conversations.length === 0)) {
     return (
       <ConversationContainer>
@@ -190,10 +303,14 @@ export function ConversationList({
     <ConversationContainer>
       <Header>
         <h3>{title}</h3>
+        {totalUnread > 0 && <HeaderCount>{totalUnread} unread</HeaderCount>}
       </Header>
 
       {!conversations || conversations.length === 0 ? (
         <EmptyState>
+          <div className="illustration" aria-hidden>
+            {'\u{1F4AC}'}
+          </div>
           <h4>No conversations yet</h4>
           <p>{emptyStateDescription}</p>
           {emptyAction && (
@@ -208,6 +325,7 @@ export function ConversationList({
             const conversation = conversationRaw as ConversationWithRescueName;
             const unreadCount = getUnreadCount(conversation);
             const isActive = activeConversation?.id === conversation.id;
+            const hasUnread = unreadCount > 0 && !isActive;
 
             let rescueName = '';
             if (conversation.rescueName) {
@@ -224,23 +342,38 @@ export function ConversationList({
               <ConversationItem
                 key={conversation.id}
                 $isActive={isActive}
+                $hasUnread={hasUnread}
                 onClick={() => handleConversationClick(conversation)}
+                aria-label={`${rescueName}${hasUnread ? `, ${unreadCount} unread message${unreadCount === 1 ? '' : 's'}` : ''}`}
               >
-                <ConversationHeader>
-                  <RescueName>
-                    {rescueName}
-                    {unreadCount > 0 && <UnreadBadge>{unreadCount}</UnreadBadge>}
-                  </RescueName>
-                  <Timestamp>
-                    {safeFormatDistanceToNow(conversation.updatedAt, 'Recently')}
-                  </Timestamp>
-                </ConversationHeader>
+                <Avatar $hasUnread={hasUnread}>{computeInitials(rescueName)}</Avatar>
+                <ConversationBody>
+                  <ConversationHeaderRow>
+                    <RescueName $hasUnread={hasUnread}>{rescueName}</RescueName>
+                    <Timestamp $hasUnread={hasUnread}>
+                      {safeFormatDistanceToNow(conversation.updatedAt, 'just now')}
+                    </Timestamp>
+                  </ConversationHeaderRow>
 
-                {conversation.lastMessage && (
-                  <LastMessage>{conversation.lastMessage.content}</LastMessage>
-                )}
+                  <BottomRow>
+                    {conversation.lastMessage ? (
+                      <LastMessage $hasUnread={hasUnread}>
+                        {conversation.lastMessage.content}
+                      </LastMessage>
+                    ) : (
+                      <LastMessage $hasUnread={false}>
+                        <em>No messages yet</em>
+                      </LastMessage>
+                    )}
+                    {hasUnread && (
+                      <UnreadBadge aria-hidden>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </UnreadBadge>
+                    )}
+                  </BottomRow>
 
-                {conversation.petId && <PetInfo>About: Pet #{conversation.petId}</PetInfo>}
+                  {conversation.petId && <PetInfo>Pet #{conversation.petId}</PetInfo>}
+                </ConversationBody>
               </ConversationItem>
             );
           })}
