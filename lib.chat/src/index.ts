@@ -49,11 +49,16 @@ export type {
 } from './context/offline-adapter';
 export type { FeatureFlagsAdapter, ResolveFileUrl } from './context/chat-context-types';
 
-// Presentational components (batch 1 — leaf UI pieces)
+// Chat UI components
 // Note: the TypingIndicator event type already occupies that export name
 // in `types`, so the component is exported as TypingIndicatorBubble.
 export { AvatarComponent } from './components/AvatarComponent';
+export { ConnectionStatusBanner } from './components/ConnectionStatusBanner';
 export { ImageLightbox } from './components/ImageLightbox';
+export { MessageBubbleComponent } from './components/MessageBubbleComponent';
+export { MessageInput } from './components/MessageInput';
+export { MessageItemComponent } from './components/MessageItemComponent';
+export { MessageList } from './components/MessageList';
 export { PDFPreview } from './components/PDFPreview';
 export { ReactionDisplay } from './components/ReactionDisplay';
 export { ReactionPicker } from './components/ReactionPicker';

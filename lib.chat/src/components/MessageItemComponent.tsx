@@ -1,0 +1,62 @@
+import styled from 'styled-components';
+import type { Message } from '../types';
+import { AvatarComponent } from './AvatarComponent';
+import { MessageBubbleComponent } from './MessageBubbleComponent';
+
+const MessageItem = styled.div<{ $isOwn: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: ${(props) => (props.$isOwn ? 'flex-end' : 'flex-start')};
+  gap: 0.1rem;
+  width: 100%;
+`;
+
+const MessageRow = styled.div<{ $isOwn: boolean }>`
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: ${(props) => (props.$isOwn ? 'flex-end' : 'flex-start')};
+  gap: 0.5rem;
+  width: 100%;
+`;
+
+type MessageItemProps = {
+  message: Message;
+  isOwn: boolean;
+  currentUserId?: string;
+  onToggleReaction?: (messageId: string, emoji: string) => void;
+};
+
+export function MessageItemComponent({
+  message,
+  isOwn,
+  currentUserId,
+  onToggleReaction,
+}: MessageItemProps) {
+  let initials = '';
+  if (!isOwn) {
+    if (message.senderName) {
+      initials = message.senderName
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+    } else {
+      initials = (message.senderId || '?').toString().slice(0, 2).toUpperCase();
+    }
+  }
+  return (
+    <MessageItem key={message.id} $isOwn={isOwn}>
+      <MessageRow $isOwn={isOwn}>
+        {!isOwn && <AvatarComponent initials={initials} />}
+        <MessageBubbleComponent
+          message={message}
+          isOwn={isOwn}
+          currentUserId={currentUserId}
+          onToggleReaction={onToggleReaction}
+        />
+      </MessageRow>
+    </MessageItem>
+  );
+}
