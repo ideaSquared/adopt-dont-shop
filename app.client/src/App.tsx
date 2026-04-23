@@ -53,6 +53,14 @@ const ForgotPasswordPage = lazy(() =>
 const ResetPasswordPage = lazy(() =>
   import('@/pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage }))
 );
+const BlogPage = lazy(() => import('@/pages/BlogPage').then(m => ({ default: m.BlogPage })));
+const BlogPostPage = lazy(() =>
+  import('@/pages/BlogPostPage').then(m => ({ default: m.BlogPostPage }))
+);
+const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.HelpPage })));
+const HelpArticlePage = lazy(() =>
+  import('@/pages/HelpArticlePage').then(m => ({ default: m.HelpArticlePage }))
+);
 
 const PageLoader = () => (
   <div
@@ -98,6 +106,10 @@ function App() {
                       <Route path='/verify-email' element={<VerifyEmailPage />} />
                       <Route path='/forgot-password' element={<ForgotPasswordPage />} />
                       <Route path='/reset-password' element={<ResetPasswordPage />} />
+                      <Route path='/blog' element={<BlogPage />} />
+                      <Route path='/blog/:slug' element={<BlogPostPage />} />
+                      <Route path='/help' element={<HelpPage />} />
+                      <Route path='/help/:slug' element={<HelpArticlePage />} />
                     </Routes>
                   </Suspense>
                 </main>

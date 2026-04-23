@@ -1,7 +1,11 @@
 export { ApplicationDetailsPage } from './ApplicationDetailsPage';
 export { ApplicationPage } from './ApplicationPage';
+export { BlogPage } from './BlogPage';
+export { BlogPostPage } from './BlogPostPage';
 export { FavoritesPage } from './FavoritesPage';
 export { ForgotPasswordPage } from './ForgotPasswordPage';
+export { HelpArticlePage } from './HelpArticlePage';
+export { HelpPage } from './HelpPage';
 export { HomePage } from './HomePage';
 export { LoginPage } from './LoginPage';
 export { NotificationsPage } from './NotificationsPage';
