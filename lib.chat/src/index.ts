@@ -33,3 +33,17 @@ export {
   useAdminSearchChats,
   useAdminChatMutations,
 } from './services/admin-chat-hooks';
+
+// Context + provider for React apps
+export { ChatProvider } from './context/ChatProvider';
+export { useChat } from './context/use-chat';
+export type { ChatContextValue, ChatProviderProps, ChatUser } from './context/chat-context-types';
+export type {
+  ConnectionQuality,
+  OfflineAdapter,
+  OfflineState,
+  OfflineStateListener,
+  OfflineSyncCallback,
+  PendingAction,
+  PendingMessage,
+} from './context/offline-adapter';

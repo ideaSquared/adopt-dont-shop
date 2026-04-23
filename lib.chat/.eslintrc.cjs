@@ -1,5 +1,4 @@
-// Library ESLint configuration
-// Extends the shared base TypeScript config
+// Library ESLint configuration for React + TypeScript
 module.exports = {
-  extends: ['@adopt-dont-shop/eslint-config-base'],
+  extends: ['@adopt-dont-shop/eslint-config-react'],
 };
