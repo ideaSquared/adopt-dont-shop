@@ -531,6 +531,12 @@ export interface ApplicationDefaults {
     emergencyPlan?: string;
     agreement?: boolean;
   };
+  /**
+   * Rescue-specific and otherwise-unstructured question answers, keyed by
+   * `questionKey`. Lets returning users skip re-answering custom questions
+   * a rescue has configured.
+   */
+  customAnswers?: Record<string, unknown>;
 }
 
 export interface ApplicationPreferences {

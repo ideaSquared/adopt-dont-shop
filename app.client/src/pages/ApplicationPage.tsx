@@ -8,6 +8,9 @@ import type { CategoryGroup } from '@/components/application/ApplicationForm';
 import type { Question } from '@/components/application/QuestionField';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { petService, apiService, type Pet } from '@/services';
+import { applicationProfileService } from '@/services/applicationProfileService';
+import { buildInitialAnswers } from '@/utils/applicationFieldMapping';
+import type { ApplicationDefaults } from '@/types';
 
 const CATEGORY_LABELS: Record<string, string> = {
   personal_information: 'Personal Information',
@@ -91,12 +94,13 @@ const groupQuestionsByCategory = (questions: Question[]): CategoryGroup[] => {
 export const ApplicationPage: React.FC = () => {
   const { petId } = useParams<{ petId: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [pet, setPet] = useState<Pet | null>(null);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const [prefilledKeys, setPrefilledKeys] = useState<Set<string>>(() => new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,11 +133,20 @@ export const ApplicationPage: React.FC = () => {
         return;
       }
 
-      const response = await apiService.get<{ questions: Question[] }>(
-        `/api/v1/rescues/${petData.rescue_id}/questions`
-      );
-      const enabledQuestions = response.questions.filter((q: Question) => q.isEnabled);
+      const [questionsResponse, defaults] = await Promise.all([
+        apiService.get<{ questions: Question[] }>(`/api/v1/rescues/${petData.rescue_id}/questions`),
+        applicationProfileService.getApplicationDefaults().catch(() => null),
+      ]);
+      const enabledQuestions = questionsResponse.questions.filter((q: Question) => q.isEnabled);
       setCategories(groupQuestionsByCategory(enabledQuestions));
+
+      const prePop = buildInitialAnswers(enabledQuestions, {
+        user: user ?? null,
+        defaults: (defaults as ApplicationDefaults | null) ?? null,
+        customAnswers: (defaults as ApplicationDefaults | null)?.customAnswers ?? null,
+      });
+      setAnswers(prePop.answers);
+      setPrefilledKeys(prePop.prefilledKeys);
     } catch (err) {
       console.error('Failed to load application data:', err);
       setError('Failed to load application information. Please try again.');
@@ -141,7 +154,7 @@ export const ApplicationPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [petId, navigate]);
+  }, [petId, navigate, user]);
 
   useEffect(() => {
     if (!loadedDraft) {
@@ -149,6 +162,9 @@ export const ApplicationPage: React.FC = () => {
     }
     setAnswers(loadedDraft.applicationData);
     setCurrentStep(loadedDraft.currentStep);
+    // The draft contains the user's own edits, so "pre-filled" is no longer
+    // an accurate label for any field — clear the badge state.
+    setPrefilledKeys(new Set());
   }, [loadedDraft]);
 
   useEffect(() => {
@@ -296,7 +312,9 @@ export const ApplicationPage: React.FC = () => {
         steps={steps}
         currentStep={currentStep}
         onStepClick={step => {
-          if (step < currentStep) setCurrentStep(step);
+          if (step < currentStep) {
+            setCurrentStep(step);
+          }
         }}
       />
 
@@ -306,6 +324,7 @@ export const ApplicationPage: React.FC = () => {
           currentStep={currentStep}
           answers={answers}
           pet={pet}
+          prefilledKeys={prefilledKeys}
           onStepComplete={handleStepComplete}
           onStepBack={handleStepBack}
           onSubmit={handleSubmit}

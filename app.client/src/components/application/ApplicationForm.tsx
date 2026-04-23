@@ -19,6 +19,7 @@ type ApplicationFormProps = {
   currentStep: number;
   answers: Record<string, unknown>;
   pet: Pet | null;
+  prefilledKeys?: ReadonlySet<string>;
   onStepComplete: (answers: Record<string, unknown>) => void;
   onStepBack: () => void;
   onSubmit: () => void;
@@ -221,6 +222,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   currentStep,
   answers,
   pet: _pet,
+  prefilledKeys,
   onStepComplete,
   onStepBack,
   onSubmit,
@@ -251,6 +253,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
         description={categoryGroup.description}
         questions={categoryGroup.questions}
         answers={answers}
+        prefilledKeys={prefilledKeys}
         onComplete={onStepComplete}
         onChange={onChange}
       />

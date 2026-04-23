@@ -8,6 +8,7 @@ type QuestionCategoryStepProps = {
   description?: string;
   questions: Question[];
   answers: Record<string, unknown>;
+  prefilledKeys?: ReadonlySet<string>;
   onComplete: (answers: Record<string, unknown>) => void;
   onChange: (answers: Record<string, unknown>) => void;
 };
@@ -49,16 +50,26 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
   description,
   questions,
   answers,
+  prefilledKeys,
   onComplete,
   onChange,
 }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touchedKeys, setTouchedKeys] = useState<Set<string>>(() => new Set());
 
   const handleFieldChange = (questionKey: string, value: unknown) => {
     const updated = { ...answers, [questionKey]: value };
     if (errors[questionKey]) {
       setErrors(prev => ({ ...prev, [questionKey]: '' }));
     }
+    setTouchedKeys(prev => {
+      if (prev.has(questionKey)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(questionKey);
+      return next;
+    });
     onChange(updated);
   };
 
@@ -93,16 +104,22 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
       {hasRequired && <RequiredNote>Fields marked with * are required.</RequiredNote>}
 
       <form id={`step-${stepId}-form`} onSubmit={handleSubmit} noValidate>
-        {questions.map(question => (
-          <div id={`field-${question.questionKey}`} key={question.questionId}>
-            <QuestionField
-              question={question}
-              value={answers[question.questionKey]}
-              onChange={value => handleFieldChange(question.questionKey, value)}
-              error={errors[question.questionKey]}
-            />
-          </div>
-        ))}
+        {questions.map(question => {
+          const isPrefilled =
+            !touchedKeys.has(question.questionKey) &&
+            (prefilledKeys?.has(question.questionKey) ?? false);
+          return (
+            <div id={`field-${question.questionKey}`} key={question.questionId}>
+              <QuestionField
+                question={question}
+                value={answers[question.questionKey]}
+                onChange={value => handleFieldChange(question.questionKey, value)}
+                error={errors[question.questionKey]}
+                isPrefilled={isPrefilled}
+              />
+            </div>
+          );
+        })}
       </form>
     </StepContainer>
   );

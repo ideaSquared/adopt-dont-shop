@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { HouseholdMembersField } from './HouseholdMembersField';
+import { PreFilledBadge } from './PreFilledBadge';
 
 export type QuestionType =
   | 'text'
@@ -34,6 +35,7 @@ type QuestionFieldProps = {
   value: unknown;
   onChange: (value: unknown) => void;
   error?: string;
+  isPrefilled?: boolean;
 };
 
 const FieldGroup = styled.div`
@@ -143,6 +145,7 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
   value,
   onChange,
   error,
+  isPrefilled = false,
 }) => {
   const { questionType, questionKey, questionText, helpText, placeholder, options, isRequired } =
     question;
@@ -294,6 +297,7 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
       <Label>
         {questionText}
         {isRequired && <RequiredMark aria-hidden='true'>*</RequiredMark>}
+        {isPrefilled && <PreFilledBadge />}
       </Label>
       {helpText && <HelpText>{helpText}</HelpText>}
       {renderInput()}
