@@ -1,6 +1,10 @@
 export { ApplicationForm } from './ApplicationForm';
+export type { CategoryGroup } from './ApplicationForm';
 export { ApplicationProgress } from './ApplicationProgress';
 export { PetSummary } from './PetSummary';
 export { ProfileCompletionPrompt } from './ProfileCompletionPrompt';
 export { QuickApplicationPrompt } from './QuickApplicationPrompt';
 export { WithdrawApplicationModal } from './WithdrawApplicationModal';
+export { QuestionField } from './QuestionField';
+export type { Question, QuestionType } from './QuestionField';
+export { QuestionCategoryStep } from './QuestionCategoryStep';
