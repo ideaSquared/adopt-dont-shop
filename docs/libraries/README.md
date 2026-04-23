@@ -2,366 +2,175 @@
 
 ## Overview
 
-Comprehensive collection of 16 shared libraries for the Adopt Don't Shop platform. All libraries follow consistent ESM-only architecture with full TypeScript support and comprehensive testing.
+The Adopt Don't Shop monorepo includes **21 shared libraries** under `@adopt-dont-shop/lib.*`. They follow an ESM-only TypeScript architecture and are consumed by the three apps (`app.admin`, `app.client`, `app.rescue`) and the backend (`service.backend`).
 
-## Ecosystem Status
-
-**All 16 libraries fully validated:**
-
-- TypeScript compilation: 100% passing
-- Jest test suites: 8/8 tests per library passing
-- PRD compliance: Full backend service alignment
-- Architecture: ESM-only with consistent patterns
-
-View detailed status: [ecosystem-status.md](ecosystem-status.md)
+For per-library validation status, see [ecosystem-status.md](ecosystem-status.md).
 
 ## Library Architecture
 
 ### Standards
 
-- **Module System**: ES Modules only (no CommonJS)
-- **Build Tool**: TypeScript Compiler (tsc)
-- **Testing**: Jest with TypeScript
-- **Code Quality**: ESLint + Prettier
-- **Docker**: Multi-stage builds
-- **CI/CD**: Integrated with Turbo
+- **Module System**: ES Modules (no CommonJS)
+- **Language**: TypeScript strict mode
+- **Build Tool**: TypeScript Compiler (`tsc`) orchestrated via Turborepo
+- **Testing**: Jest (Node libraries) / Vitest or Jest (React libraries)
+- **Lint/Format**: ESLint + Prettier
 
 ### Structure Template
+
+Most libraries follow a shape similar to:
 
 ```
 lib.{name}/
 ├── src/
-│   ├── services/{name}-service.ts
-│   ├── services/__tests__/{name}-service.test.ts
-│   ├── types/index.ts
-│   └── index.ts
-├── dist/ (auto-generated)
-├── Dockerfile
-├── package.json (ESM-only)
+│   ├── index.ts
+│   ├── services/ | hooks/ | components/   # depending on library type
+│   └── types/index.ts
+├── dist/                                   # build output (generated)
+├── package.json
 ├── tsconfig.json
 └── README.md
 ```
 
 ## Available Libraries
 
-### Core Services
+All packages are scoped as `@adopt-dont-shop/lib.<name>`. The authoritative list lives in the root `package.json` workspaces.
 
-**lib.api** - API client functionality
+### Transport & Data
 
-- HTTP client with authentication
-- Request/response interceptors
-- Error handling and retry logic
-- Package: `@adopt-dont-shop/lib-api`
+- **lib.api** — HTTP client, interceptors, auth token handling
+- **lib.types** — shared type definitions used across frontend and backend
+- **lib.validation** — Zod schemas and validation helpers
 
-**lib.auth** - Authentication and authorization
+### Authentication & Access
 
-- JWT token management
-- User session handling
-- Role-based permissions
-- Package: `@adopt-dont-shop/lib-auth`
+- **lib.auth** — JWT session handling, auth context, login/logout flows
+- **lib.permissions** — role-based access control and permission checks
+- **lib.invitations** — staff/user invitation creation and redemption
 
-**lib.validation** - Form and data validation
+### Domain Services
 
-- Schema validation (Zod)
-- Custom validators
-- Error formatting
-- Package: `@adopt-dont-shop/lib-validation`
+- **lib.applications** — adoption application lifecycle and stage transitions
+- **lib.chat** — real-time messaging (WebSocket) and conversation state
+- **lib.discovery** — swipe-based pet discovery and recommendation sessions
+- **lib.notifications** — multi-channel notification delivery and preferences
+- **lib.pets** — pet profile management
+- **lib.rescue** — rescue organization profiles, staff, and settings
+- **lib.search** — search filters and query building
+- **lib.moderation** — reporting and moderation workflow
+- **lib.support-tickets** — support ticket creation and tracking
+- **lib.audit-logs** — audit logging for sensitive actions
 
-### Feature Libraries
+### UI & Analytics
 
-**lib.applications** - Application management
+- **lib.components** — shared React components (styled-components)
+- **lib.analytics** — event tracking and reporting helpers
+- **lib.feature-flags** — feature flag evaluation
 
-- Application lifecycle
-- Status transitions
-- Timeline tracking
-- Package: `@adopt-dont-shop/lib-applications`
+### Utilities
 
-**lib.chat** - Real-time messaging
-
-- WebSocket communication
-- Message history
-- Conversation management
-- Package: `@adopt-dont-shop/lib-chat`
-
-**lib.discovery** - Pet discovery
-
-- Swipe actions
-- Smart recommendations
-- Session analytics
-- Package: `@adopt-dont-shop/lib-discovery`
-
-**lib.email** - Email management
-
-- Template system
-- Queue management
-- Delivery tracking
-- Package: `@adopt-dont-shop/lib-email`
-
-**lib.invitations** - Staff invitation system
-
-- Invitation creation
-- Token management
-- Status tracking
-- Package: `@adopt-dont-shop/lib-invitations`
-
-**lib.notifications** - Notification system
-
-- Multi-channel delivery
-- Preference management
-- Real-time alerts
-- Package: `@adopt-dont-shop/lib-notifications`
-
-**lib.pets** - Pet management
-
-- Pet profiles
-- Status tracking
-- Search functionality
-- Package: `@adopt-dont-shop/lib-pets`
-
-**lib.rescues** - Rescue organization management
-
-- Organization profiles
-- Staff management
-- Settings configuration
-- Package: `@adopt-dont-shop/lib-rescues`
-
-**lib.search** - Advanced search
-
-- Filter management
-- Query building
-- Result ranking
-- Package: `@adopt-dont-shop/lib-search`
-
-**lib.storage** - File storage
-
-- Upload handling
-- Cloud storage integration
-- CDN management
-- Package: `@adopt-dont-shop/lib-storage`
-
-**lib.users** - User management
-
-- Profile management
-- Preference handling
-- Account operations
-- Package: `@adopt-dont-shop/lib-users`
-
-### Utility Libraries
-
-**lib.analytics** - Analytics and tracking
-
-- Event tracking
-- User behavior analytics
-- Report generation
-- Package: `@adopt-dont-shop/lib-analytics`
-
-**lib.common** - Common utilities
-
-- Shared helpers
-- Date/time utilities
-- String formatters
-- Package: `@adopt-dont-shop/lib-common`
+- **lib.utils** — shared helpers (formatters, date, string utilities)
+- **lib.dev-tools** — development-only tooling
 
 ## Quick Start
 
 ### Installation
 
-Add to your package.json:
+Shared libraries are workspace dependencies referenced with `"*"`:
 
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-api": "workspace:*",
-    "@adopt-dont-shop/lib-auth": "workspace:*"
+    "@adopt-dont-shop/lib.api": "*",
+    "@adopt-dont-shop/lib.auth": "*"
   }
 }
 ```
 
-Then run:
-
-```bash
-npm install
-```
+Run `npm install` at the repo root to link workspaces.
 
 ### Basic Usage
 
 ```typescript
-// Import from libraries
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { PetService } from '@adopt-dont-shop/lib-pets';
-
-// Use services
-const pets = await apiService.exampleMethod({ endpoint: '/pets' });
-const user = authService.getCurrentUser();
-const petService = new PetService();
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 ```
+
+Refer to each library's `README.md` for its public API.
 
 ## Development
 
-### Building Libraries
+### Building
+
+Turborepo handles build ordering (`dependsOn: ["^build"]`):
 
 ```bash
-# Build all libraries
-npm run build
-
-# Build specific library
-cd lib.api && npm run build
-
-# Watch mode
-npm run dev
+npm run build            # build everything
+npm run build:libs       # libraries only
+npx turbo build --filter=@adopt-dont-shop/lib.api
 ```
 
 ### Testing
 
 ```bash
-# Test all libraries
-npm test
-
-# Test specific library
-cd lib.api && npm test
-
-# Watch mode
-npm run test:watch
-```
-
-### Development Environment
-
-```bash
-# Start with Docker
-cd lib.api
-docker compose -f docker-compose.lib.yml up
-
-# Development mode
-npm run dev
+npm run test                                                # everything
+npx turbo test --filter=@adopt-dont-shop/lib.auth           # one library
 ```
 
 ## Integration Patterns
 
-### Backend Integration
+### Backend
 
 ```typescript
-// service.backend/src/services/pet.service.ts
-import { PetService } from '@adopt-dont-shop/lib-pets';
-import { apiService } from '@adopt-dont-shop/lib-api';
-
-export class BackendPetService extends PetService {
-  async getAllPets() {
-    return await apiService.exampleMethod({ endpoint: '/pets' });
-  }
-}
+// service.backend/src/services/example.ts
+import { validateUser } from '@adopt-dont-shop/lib.validation';
 ```
 
-### Frontend Integration
+### Frontend
 
 ```typescript
-// app.client/src/hooks/usePets.ts
-import { PetService } from '@adopt-dont-shop/lib-pets';
-import { useQuery } from '@tanstack/react-query';
-
-export const usePets = () => {
-  const petService = new PetService();
-
-  return useQuery({
-    queryKey: ['pets'],
-    queryFn: () => petService.getAllPets(),
-  });
-};
+// app.client/src/hooks/useAuthSession.ts
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 ```
-
-## Testing Standards
-
-Each library includes 8 comprehensive tests:
-
-1. Service initialization
-2. Configuration validation
-3. Method functionality
-4. Error handling
-5. Edge cases
-6. Async operations
-7. State management
-8. Integration scenarios
-
-## Best Practices
-
-### Library Usage
-
-- Import only what you need
-- Use singleton instances where appropriate
-- Handle errors gracefully
-- Follow TypeScript type definitions
-
-### Development
-
-- Run tests before committing
-- Update documentation for API changes
-- Maintain backward compatibility
-- Use semantic versioning
-
-### Performance
-
-- Tree-shake unused code
-- Lazy load heavy libraries
-- Cache service instances
-- Monitor bundle sizes
 
 ## Troubleshooting
 
-### Common Issues
-
-**Import Errors**
+**Workspace imports not resolving**
 
 ```bash
-# Ensure workspace dependencies installed
-npm install
-
-# Rebuild libraries
-npm run build
+npm install              # relink workspaces
+npm run build:libs       # rebuild library dist/ folders
 ```
 
-**Type Errors**
+**`lib.types` changes not picked up in `service.backend` (Docker dev)**
 
 ```bash
-# Regenerate TypeScript declarations
-npm run build
-
-# Check tsconfig.json paths
-```
-
-**Test Failures**
-
-```bash
-# Clear Jest cache
-npm run test -- --clearCache
-
-# Run tests in sequence
-npm run test -- --runInBand
+npm run docker:rebuild:types
 ```
 
 ## Additional Resources
 
-**Detailed Guides:**
-
-- [Library Architecture](../infrastructure/MICROSERVICES-STANDARDS.md)
+- [Microservices Standards](../infrastructure/MICROSERVICES-STANDARDS.md)
 - [Testing Guide](../backend/testing.md)
 - [API Documentation](../backend/api-endpoints.md)
 - [Ecosystem Status](./ecosystem-status.md)
 
-**Individual Library Docs:**
+### Individual Library Docs
 
-- [lib.api](./api.md)
-- [lib.auth](./auth.md)
-- [lib.applications](./applications.md)
-- [lib.chat](./chat.md)
-- [lib.discovery](./discovery.md)
-- [lib.email](./email.md)
-- [lib.invitations](./invitations.md)
-- [lib.notifications](./notifications.md)
-- [lib.pets](./pets.md)
-- [lib.rescues](./rescues.md)
-- [lib.search](./search.md)
-- [lib.storage](./storage.md)
-- [lib.users](./users.md)
+Documentation pages exist for the following libraries (others live only in their `lib.*/README.md`):
+
 - [lib.analytics](./analytics.md)
-- [lib.common](./common.md)
+- [lib.api](./api.md)
+- [lib.applications](./applications.md)
+- [lib.auth](./auth.md)
+- [lib.chat](./chat.md)
+- [lib.components](./components.md)
+- [lib.discovery](./discovery.md)
+- [lib.feature-flags](./feature-flags.md)
+- [lib.notifications](./notifications.md)
+- [lib.permissions](./permissions.md)
+- [lib.pets](./pets.md)
+- [lib.rescue](./rescue.md)
+- [lib.search](./search.md)
+- [lib.utils](./utils.md)
 - [lib.validation](./validation.md)
