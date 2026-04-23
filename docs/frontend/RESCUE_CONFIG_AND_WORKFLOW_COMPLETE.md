@@ -32,7 +32,7 @@ import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { apiService } from '../services/libraryServices';
-import { RESCUE_UPDATE } from '@adopt-dont-shop/lib-permissions';
+import { RESCUE_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import RescueProfileForm from '../components/rescue/RescueProfileForm';
 import AdoptionPolicyForm from '../components/rescue/AdoptionPolicyForm';
 import type { RescueProfile, AdoptionPolicy } from '../types/rescue';
