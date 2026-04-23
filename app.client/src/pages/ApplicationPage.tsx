@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { ApplicationForm, ApplicationProgress } from '@/components/application';
+import { ApplicationForm, ApplicationProgress, QuickApplyView } from '@/components/application';
 import type { CategoryGroup } from '@/components/application/ApplicationForm';
 import type { Question } from '@/components/application/QuestionField';
 import { useAutoSave } from '@/hooks/use-auto-save';
@@ -11,6 +11,7 @@ import { petService, apiService, type Pet } from '@/services';
 import { applicationProfileService } from '@/services/applicationProfileService';
 import {
   buildInitialAnswers,
+  canQuickApply,
   splitAnswersForPersistence,
 } from '@/utils/applicationFieldMapping';
 import type { ApplicationDefaults } from '@/types';
@@ -38,7 +39,7 @@ const MACRO_STEPS: readonly MacroStepDef[] = [
   {
     id: 'pet_experience',
     title: 'Your pet experience 🐾',
-    description: () => "Your history with pets — good, messy, and everything in between.",
+    description: () => 'Your history with pets — good, messy, and everything in between.',
     categories: [
       'pet_ownership_experience',
       'lifestyle_compatibility',
@@ -93,10 +94,7 @@ const CATEGORY_ORDER = [
   'final_acknowledgments',
 ];
 
-const groupQuestionsByMacroStep = (
-  questions: Question[],
-  petName?: string
-): CategoryGroup[] => {
+const groupQuestionsByMacroStep = (questions: Question[], petName?: string): CategoryGroup[] => {
   const byCategory = new Map<string, Question[]>();
   for (const q of questions) {
     const existing = byCategory.get(q.category);
@@ -122,7 +120,9 @@ const groupQuestionsByMacroStep = (
         usedCategories.add(category);
       }
     }
-    if (stepQuestions.length === 0) continue;
+    if (stepQuestions.length === 0) {
+      continue;
+    }
     groups.push({
       category: step.id,
       title: step.title.replace('{petName}', petName ?? 'this pet'),
@@ -135,13 +135,21 @@ const groupQuestionsByMacroStep = (
   // slot into a macro-step become a final "extras" step before acknowledgments.
   const leftovers: Question[] = [];
   for (const category of CATEGORY_ORDER) {
-    if (usedCategories.has(category)) continue;
+    if (usedCategories.has(category)) {
+      continue;
+    }
     const catQuestions = byCategory.get(category);
-    if (catQuestions) leftovers.push(...catQuestions);
+    if (catQuestions) {
+      leftovers.push(...catQuestions);
+    }
   }
   for (const [category, catQuestions] of byCategory) {
-    if (usedCategories.has(category)) continue;
-    if (CATEGORY_ORDER.includes(category)) continue;
+    if (usedCategories.has(category)) {
+      continue;
+    }
+    if (CATEGORY_ORDER.includes(category)) {
+      continue;
+    }
     leftovers.push(...catQuestions);
   }
   if (leftovers.length > 0) {
@@ -166,10 +174,12 @@ export const ApplicationPage: React.FC = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [pet, setPet] = useState<Pet | null>(null);
+  const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [prefilledKeys, setPrefilledKeys] = useState<Set<string>>(() => new Set());
+  const [viewMode, setViewMode] = useState<'quick' | 'guided'>('guided');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -207,15 +217,18 @@ export const ApplicationPage: React.FC = () => {
         applicationProfileService.getApplicationDefaults().catch(() => null),
       ]);
       const enabledQuestions = questionsResponse.questions.filter((q: Question) => q.isEnabled);
+      setAllQuestions(enabledQuestions);
       setCategories(groupQuestionsByMacroStep(enabledQuestions, petData.name));
 
-      const prePop = buildInitialAnswers(enabledQuestions, {
+      const sources = {
         user: user ?? null,
         defaults: (defaults as ApplicationDefaults | null) ?? null,
         customAnswers: (defaults as ApplicationDefaults | null)?.customAnswers ?? null,
-      });
+      };
+      const prePop = buildInitialAnswers(enabledQuestions, sources);
       setAnswers(prePop.answers);
       setPrefilledKeys(prePop.prefilledKeys);
+      setViewMode(canQuickApply(enabledQuestions, sources) ? 'quick' : 'guided');
     } catch (err) {
       console.error('Failed to load application data:', err);
       setError('Failed to load application information. Please try again.');
@@ -231,9 +244,11 @@ export const ApplicationPage: React.FC = () => {
     }
     setAnswers(loadedDraft.applicationData);
     setCurrentStep(loadedDraft.currentStep);
-    // The draft contains the user's own edits, so "pre-filled" is no longer
-    // an accurate label for any field — clear the badge state.
+    // A restored draft implies mid-flow editing — use the guided view so the
+    // saved `currentStep` makes sense, and drop the badge state since the
+    // draft reflects the user's own typed answers.
     setPrefilledKeys(new Set());
+    setViewMode('guided');
   }, [loadedDraft]);
 
   useEffect(() => {
@@ -287,7 +302,6 @@ export const ApplicationPage: React.FC = () => {
       // Fire-and-forget: persist the reusable parts of this application back
       // into the user's applicationDefaults so the next application pre-fills.
       // A failure here shouldn't block the successful submission.
-      const allQuestions = categories.flatMap(c => c.questions);
       const { defaultsUpdate, customAnswers } = splitAnswersForPersistence(answers, allQuestions);
       const hasStructuredUpdate = Object.keys(defaultsUpdate).length > 0;
       const hasCustomUpdate = Object.keys(customAnswers).length > 0;
@@ -368,17 +382,21 @@ export const ApplicationPage: React.FC = () => {
     );
   }
 
+  const showQuickApply = viewMode === 'quick' && pet && allQuestions.length > 0;
+
   return (
     <Container>
-      <Header>
-        <h1>Adoption Application</h1>
-        <p>Complete your application to adopt {pet?.name}</p>
-        {loadedDraft && (
-          <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
-            Your draft has been restored. Continue where you left off.
-          </p>
-        )}
-      </Header>
+      {!showQuickApply && (
+        <Header>
+          <h1>Let&apos;s get you adopting {pet?.name} 🐾</h1>
+          <p>A few quick questions and {pet?.name}&apos;s rescue will take it from there.</p>
+          {loadedDraft && (
+            <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
+              Your draft has been restored. Continue where you left off.
+            </p>
+          )}
+        </Header>
+      )}
 
       {error && (
         <div style={{ marginBottom: '2rem' }}>
@@ -396,36 +414,54 @@ export const ApplicationPage: React.FC = () => {
         </div>
       )}
 
-      <ApplicationProgress
-        steps={steps}
-        currentStep={currentStep}
-        onStepClick={step => {
-          if (step < currentStep) {
-            setCurrentStep(step);
-          }
-        }}
-      />
-
-      {categories.length > 0 ? (
-        <ApplicationForm
-          categories={categories}
-          currentStep={currentStep}
-          answers={answers}
+      {showQuickApply ? (
+        <QuickApplyView
           pet={pet}
+          firstName={user?.firstName}
+          questions={allQuestions}
+          answers={answers}
           prefilledKeys={prefilledKeys}
-          onStepComplete={handleStepComplete}
-          onStepBack={handleStepBack}
-          onSubmit={handleSubmit}
-          onSaveDraft={saveNow}
           onChange={handleChange}
+          onSubmit={handleSubmit}
+          onSwitchToGuided={() => setViewMode('guided')}
           isSubmitting={isSubmitting}
           saveStatus={saveStatus}
-          lastSaved={lastSaved}
         />
       ) : (
-        <Alert variant='error' title='No questions available'>
-          This rescue has not configured any application questions. Please contact them directly.
-        </Alert>
+        <>
+          <ApplicationProgress
+            steps={steps}
+            currentStep={currentStep}
+            onStepClick={step => {
+              if (step < currentStep) {
+                setCurrentStep(step);
+              }
+            }}
+          />
+
+          {categories.length > 0 ? (
+            <ApplicationForm
+              categories={categories}
+              currentStep={currentStep}
+              answers={answers}
+              pet={pet}
+              prefilledKeys={prefilledKeys}
+              onStepComplete={handleStepComplete}
+              onStepBack={handleStepBack}
+              onSubmit={handleSubmit}
+              onSaveDraft={saveNow}
+              onChange={handleChange}
+              isSubmitting={isSubmitting}
+              saveStatus={saveStatus}
+              lastSaved={lastSaved}
+            />
+          ) : (
+            <Alert variant='error' title='No questions available'>
+              This rescue hasn&apos;t set up their application questions yet — try reaching out to
+              them directly.
+            </Alert>
+          )}
+        </>
       )}
     </Container>
   );
