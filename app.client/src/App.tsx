@@ -6,6 +6,7 @@ import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppShell } from './components/layout/AppShell';
 import { PublicAuthLayout } from './components/layout/PublicAuthLayout';
 
@@ -83,6 +84,7 @@ function App() {
         <NotificationsProvider>
           <ChatProvider>
             <FavoritesProvider>
+              <DevLoginPanel />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route element={<PublicAuthLayout />}>

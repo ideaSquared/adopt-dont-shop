@@ -109,7 +109,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({ className }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   const fullName = `${user.firstName} ${user.lastName}`.trim();
 
@@ -124,11 +126,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({ className }) => {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <TriggerButton
-          type='button'
-          aria-label={`User menu for ${fullName}`}
-          className={className}
-        >
+        <TriggerButton type='button' aria-label={`User menu for ${fullName}`} className={className}>
           <Avatar name={fullName} src={user.profileImageUrl} size='sm' />
         </TriggerButton>
       </DropdownMenu.Trigger>
@@ -173,4 +171,3 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = ({ className }) => {
     </DropdownMenu.Root>
   );
 };
-

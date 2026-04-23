@@ -4,7 +4,6 @@ import styled from 'styled-components';
 import { Footer } from '@adopt-dont-shop/lib.components';
 import { AppNavbar } from '@/components/navigation/AppNavbar';
 import { BottomTabBar } from '@/components/navigation/BottomTabBar';
-import { DevLoginPanel } from '@/components/dev/DevLoginPanel';
 import { SwipeOnboarding } from '@/components/onboarding/SwipeOnboarding';
 import { SwipeFloatingButton } from '@/components/ui/SwipeFloatingButton';
 
@@ -29,7 +28,6 @@ export const AppShell: React.FC = () => {
       </Main>
       <SwipeFloatingButton />
       <BottomTabBar />
-      <DevLoginPanel />
       {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
       <Footer />
     </Shell>

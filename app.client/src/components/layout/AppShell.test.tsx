@@ -36,10 +36,6 @@ vi.mock('@/components/ui/SwipeFloatingButton', () => ({
   SwipeFloatingButton: () => <div data-testid='swipe-fab' />,
 }));
 
-vi.mock('@/components/dev/DevLoginPanel', () => ({
-  DevLoginPanel: () => null,
-}));
-
 vi.mock('@/components/onboarding/SwipeOnboarding', () => ({
   SwipeOnboarding: () => null,
 }));

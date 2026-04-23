@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  MdChat,
-  MdFavoriteBorder,
-  MdOutlineSearch,
-  MdSwipe,
-} from 'react-icons/md';
+import { MdChat, MdFavoriteBorder, MdOutlineSearch, MdSwipe } from 'react-icons/md';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { Badge } from '@adopt-dont-shop/lib.components';
@@ -93,7 +88,9 @@ export const BottomTabBar: React.FC = () => {
   const { unreadMessageCount } = useChat();
   const location = useLocation();
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const tabs: TabDef[] = [
     { to: '/discover', label: 'Discover', icon: <MdSwipe aria-hidden='true' /> },

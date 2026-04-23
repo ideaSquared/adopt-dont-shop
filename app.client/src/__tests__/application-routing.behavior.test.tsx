@@ -36,7 +36,6 @@ vi.mock('@/components/ui/SwipeFloatingButton', () => ({
   SwipeFloatingButton: () => null,
 }));
 
-vi.mock('@/components/dev/DevLoginPanel', () => ({ DevLoginPanel: () => null }));
 vi.mock('@/components/onboarding/SwipeOnboarding', () => ({ SwipeOnboarding: () => null }));
 
 vi.mock('@/pages/ApplicationDashboard', () => ({

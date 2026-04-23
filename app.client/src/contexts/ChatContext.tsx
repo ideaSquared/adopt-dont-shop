@@ -155,7 +155,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
         // when the incoming message targets a conversation that is not currently active.
         setConversations(prev =>
           (prev || []).map(conv => {
-            if (conv.id !== message.conversationId) return conv;
+            if (conv.id !== message.conversationId) {
+              return conv;
+            }
             const isActive = activeConversationIdRef.current === conv.id;
             return {
               ...conv,
@@ -223,9 +225,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
         );
         // Zero out unread count on the conversation that was marked read.
         setConversations(prev =>
-          (prev || []).map(conv =>
-            conv.id === event.chatId ? { ...conv, unreadCount: 0 } : conv
-          )
+          (prev || []).map(conv => (conv.id === event.chatId ? { ...conv, unreadCount: 0 } : conv))
         );
       };
 
