@@ -53,7 +53,9 @@ export type { FeatureFlagsAdapter, ResolveFileUrl } from './context/chat-context
 // Note: the TypingIndicator event type already occupies that export name
 // in `types`, so the component is exported as TypingIndicatorBubble.
 export { AvatarComponent } from './components/AvatarComponent';
+export { ChatWindow } from './components/ChatWindow';
 export { ConnectionStatusBanner } from './components/ConnectionStatusBanner';
+export { ConversationList } from './components/ConversationList';
 export { ImageLightbox } from './components/ImageLightbox';
 export { MessageBubbleComponent } from './components/MessageBubbleComponent';
 export { MessageInput } from './components/MessageInput';
