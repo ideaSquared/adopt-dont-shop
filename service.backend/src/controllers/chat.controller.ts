@@ -223,12 +223,16 @@ export class ChatController {
         participants: participants.map(p => ({ id: p.id, name: p.name })),
       });
 
+      const unreadCount = userId
+        ? await ChatService.getUnreadMessageCount(chatObj.chat_id, userId)
+        : 0;
+
       // Transform to match frontend Conversation interface
       const transformedChat = {
         id: chatObj.chat_id,
         chat_id: chatObj.chat_id,
         participants,
-        unreadCount: 0, // TODO: Calculate unread count
+        unreadCount,
         updatedAt: chatObj.updated_at,
         createdAt: chatObj.created_at,
         isActive: chatObj.status === 'active',
@@ -297,55 +301,62 @@ export class ChatController {
         totalCount: result.pagination.total,
       });
 
-      // Add rescueName and lastMessage to each chat in the response
-      const chatsWithRescueName = result.chats.map(chat => {
-        const chatObj = chat.toJSON();
-        // Get the latest message (should be first in Messages array due to DESC order)
-        let lastMessage = null;
-        if (Array.isArray(chatObj.Messages) && chatObj.Messages.length > 0) {
-          const msg = chatObj.Messages[0];
-          lastMessage = {
-            id: msg.message_id,
-            content:
-              typeof msg.content === 'string' && msg.content.length > 120
-                ? msg.content.slice(0, 120) + '...'
-                : msg.content,
-            senderId: msg.sender_id,
-            createdAt: msg.created_at,
-            // Add more fields if needed
+      // Add rescueName, lastMessage, and real unread count to each chat.
+      // Unread is resolved per-chat in parallel; admin listings (no userId)
+      // skip the count since admins don't have an unread-mailbox view.
+      const chatsWithRescueName = await Promise.all(
+        result.chats.map(async chat => {
+          const chatObj = chat.toJSON();
+          // Get the latest message (should be first in Messages array due to DESC order)
+          let lastMessage = null;
+          if (Array.isArray(chatObj.Messages) && chatObj.Messages.length > 0) {
+            const msg = chatObj.Messages[0];
+            lastMessage = {
+              id: msg.message_id,
+              content:
+                typeof msg.content === 'string' && msg.content.length > 120
+                  ? msg.content.slice(0, 120) + '...'
+                  : msg.content,
+              senderId: msg.sender_id,
+              createdAt: msg.created_at,
+            };
+          }
+
+          // Transform participants to match frontend Participant interface
+          const participants =
+            (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => ({
+              id: p.participant_id,
+              name: getUserFullName(p.User),
+              type: p.role === 'admin' ? 'admin' : 'user',
+              avatarUrl:
+                p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
+                  ? p.User.profileImageUrl
+                  : undefined,
+              isOnline: false, // TODO: Implement online status
+            })) || [];
+
+          const unreadCount = isAdmin
+            ? 0
+            : await ChatService.getUnreadMessageCount(chatObj.chat_id, userId);
+
+          return {
+            id: chatObj.chat_id,
+            userId: undefined, // No user_id field in chat model
+            rescueId: chatObj.rescue_id,
+            petId: chatObj.pet_id,
+            applicationId: chatObj.application_id,
+            type: 'general', // Default type since not in model
+            status: chatObj.status,
+            participants,
+            unreadCount,
+            isTyping: [],
+            createdAt: chatObj.created_at,
+            updatedAt: chatObj.updated_at,
+            rescueName: chat.rescue?.name || null,
+            lastMessage,
           };
-        }
-
-        // Transform participants to match frontend Participant interface
-        const participants =
-          (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => ({
-            id: p.participant_id,
-            name: getUserFullName(p.User),
-            type: p.role === 'admin' ? 'admin' : 'user',
-            avatarUrl:
-              p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
-                ? p.User.profileImageUrl
-                : undefined,
-            isOnline: false, // TODO: Implement online status
-          })) || [];
-
-        return {
-          id: chatObj.chat_id,
-          userId: undefined, // No user_id field in chat model
-          rescueId: chatObj.rescue_id,
-          petId: chatObj.pet_id,
-          applicationId: chatObj.application_id,
-          type: 'general', // Default type since not in model
-          status: chatObj.status,
-          participants,
-          unreadCount: 0, // TODO: Calculate unread count
-          isTyping: [],
-          createdAt: chatObj.created_at,
-          updatedAt: chatObj.updated_at,
-          rescueName: chat.rescue?.name || null,
-          lastMessage,
-        };
-      });
+        })
+      );
       res.json({
         success: true,
         data: chatsWithRescueName,
