@@ -5,7 +5,12 @@ import UserFavorite from '../models/UserFavorite';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../models/Report';
 import sequelize from '../sequelize';
 import { SequelizeOperatorFilter } from '../types/database';
-import { isValidCoordinates, milesToKilometers } from '../utils/geolocation';
+import {
+  calculateDistance,
+  extractCoordinates,
+  isValidCoordinates,
+  milesToKilometers,
+} from '../utils/geolocation';
 import {
   BreedStats,
   BulkPetOperation,
@@ -257,18 +262,6 @@ export class PetService {
         orderClause.push([sortBy, sortOrder] as [string, 'ASC' | 'DESC']);
       }
 
-      // Build attributes - include computed distance if location provided
-      const attributes: string[] | { include: ReturnType<typeof literal>[] } | undefined =
-        hasValidLocation && isPostgres
-          ? {
-              include: [
-                literal(
-                  `ST_Distance(location, ST_SetSRID(ST_MakePoint(${Number(longitude)}, ${Number(latitude)}), 4326)::geography) / 1609.344 AS distance`
-                ),
-              ],
-            }
-          : undefined;
-
       // Execute query
       const queryOptions: Record<string, unknown> = {
         where: whereConditions,
@@ -277,13 +270,31 @@ export class PetService {
         offset,
       };
 
-      if (attributes) {
-        queryOptions.attributes = {
-          include: (attributes as { include: ReturnType<typeof literal>[] }).include,
-        };
-      }
-
       const { rows: pets, count: total } = await Pet.findAndCountAll(queryOptions);
+
+      // Compute distance in JS using Haversine.
+      // extractCoordinates handles GeoJSON objects, WKB hex strings (returned by
+      // PostGIS when Sequelize's type parser isn't registered for the OID), and
+      // JSON strings, so this works regardless of how the location was serialised.
+      type PetWithDistance = (typeof pets)[number] & { distance?: number };
+      const petsWithDistance: PetWithDistance[] = hasValidLocation
+        ? pets.map(pet => {
+            const coords = extractCoordinates(pet.location);
+            if (!coords) {
+              return pet;
+            }
+            const dist = calculateDistance(
+              Number(latitude),
+              Number(longitude),
+              coords.lat,
+              coords.lng,
+              'miles'
+            );
+            return Object.assign(Object.create(Object.getPrototypeOf(pet)), pet, {
+              distance: Math.round(dist * 10) / 10,
+            });
+          })
+        : pets;
 
       const totalPages = Math.ceil(total / limit);
 
@@ -295,7 +306,7 @@ export class PetService {
       });
 
       return {
-        pets,
+        pets: petsWithDistance,
         total,
         page,
         totalPages,

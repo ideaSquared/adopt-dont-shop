@@ -1083,6 +1083,22 @@ router.post(
   rescueController.sendEmail
 );
 
+// Bulk update rescues (admin only)
+router.post(
+  '/bulk-update',
+  authenticateToken,
+  [
+    body('rescueIds').isArray({ min: 1 }).withMessage('rescueIds must be a non-empty array'),
+    body('rescueIds.*').isUUID().withMessage('Each rescue ID must be a valid UUID'),
+    body('action')
+      .isIn(['approve', 'suspend', 'verify'])
+      .withMessage('Action must be approve, suspend, or verify'),
+    body('reason').optional().isString().isLength({ max: 500 }),
+  ],
+  requirePermission('rescues.verify'),
+  rescueController.bulkUpdateRescues
+);
+
 // Application Questions management (rescue staff only)
 router.get(
   '/:rescueId/questions',

@@ -34,6 +34,7 @@ export async function seedUserRoles() {
       }
 
       await UserRole.findOrCreate({
+        paranoid: false,
         where: {
           userId: user.userId,
           roleId: role.roleId,
@@ -70,6 +71,7 @@ export async function seedUserRoles() {
       // If no role exists, assign it
       if (!existingRole) {
         await UserRole.findOrCreate({
+          paranoid: false,
           where: {
             userId: user.userId,
             roleId: rescueStaffRole.roleId,

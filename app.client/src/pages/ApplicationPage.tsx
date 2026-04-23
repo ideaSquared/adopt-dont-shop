@@ -4,6 +4,7 @@ import {
   ProfileCompletionPrompt,
   QuickApplicationPrompt,
 } from '@/components/application';
+import { useAutoSave } from '@/hooks/use-auto-save';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, petService, ApplicationData, Pet } from '@/services';
 import { applicationProfileService } from '@/services/applicationProfileService';
@@ -12,14 +13,15 @@ import {
   ApplicationPrePopulationData,
   QuickApplicationCapability,
 } from '@/types';
+import { PartialApplicationData } from '@/components/application/ApplicationForm';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 /**
  * Application Page
- * Features smart pre-population and quick application based on user profile
+ * Features smart pre-population, quick application based on user profile, and auto-save.
  */
 
 const Container = styled.div`
@@ -83,6 +85,10 @@ export const ApplicationPage: React.FC = () => {
   const [showProfileCompletionPrompt, setShowProfileCompletionPrompt] = useState(false);
   const [usePrePopulation] = useState(true);
 
+  // Auto-save — typed to match the page's own ApplicationData to avoid cross-package type conflicts
+  const { saveStatus, lastSaved, scheduleSave, saveNow, clearDraft, loadedDraft } =
+    useAutoSave<Partial<ApplicationData>>(petId);
+
   const populateFormWithData = useCallback(
     (data: ApplicationPrePopulationData) => {
       const populatedData: Partial<ApplicationData> = {
@@ -125,9 +131,6 @@ export const ApplicationPage: React.FC = () => {
       };
 
       setApplicationData(populatedData);
-
-      // Note: lastSavedStep is not part of ApplicationDefaults,
-      // step progression will be handled by the application flow
     },
     [petId, user]
   );
@@ -218,6 +221,14 @@ export const ApplicationPage: React.FC = () => {
   }, [petId, usePrePopulation, populateFormWithData]);
 
   useEffect(() => {
+    if (!loadedDraft) {
+      return;
+    }
+    setApplicationData(loadedDraft.applicationData);
+    setCurrentStep(loadedDraft.currentStep);
+  }, [loadedDraft]);
+
+  useEffect(() => {
     if (authLoading) {
       return;
     }
@@ -262,19 +273,29 @@ export const ApplicationPage: React.FC = () => {
     // If skip, continue with regular form
   };
 
+  const applicationDataRef = useRef(applicationData);
+  applicationDataRef.current = applicationData;
+
+  const currentStepRef = useRef(currentStep);
+  currentStepRef.current = currentStep;
+
+  const handleFormDataChange = useCallback(
+    (stepData: PartialApplicationData) => {
+      // Merge with current data; nested partial values are safe to store to localStorage
+      const updatedData = {
+        ...applicationDataRef.current,
+        ...stepData,
+      } as Partial<ApplicationData>;
+      scheduleSave(updatedData, currentStepRef.current);
+    },
+    [scheduleSave]
+  );
+
   const handleStepComplete = async (stepData: Partial<ApplicationData>) => {
-    // Phase 1: Auto-save progress
     try {
       const updatedData = { ...applicationData, ...stepData };
       setApplicationData(updatedData);
-
-      // Auto-save progress (if enabled in user preferences)
-      // await applicationProgressService.saveProgress({
-      //   petId: petId!,
-      //   stepNumber: currentStep,
-      //   totalSteps: steps.length,
-      //   stepData: updatedData,
-      // });
+      scheduleSave(updatedData, currentStep);
 
       if (currentStep < steps.length) {
         setCurrentStep(prev => prev + 1);
@@ -357,8 +378,8 @@ export const ApplicationPage: React.FC = () => {
         submissionData as unknown as ApplicationData
       );
 
-      // Phase 1: Mark progress as completed
-      // await applicationProgressService.completeProgress(petId!);
+      // Clear the draft now the application has been submitted successfully
+      clearDraft();
 
       // Phase 1: Save successful application data as defaults for future use
       await applicationProfileService.updateApplicationDefaults({
@@ -429,7 +450,12 @@ export const ApplicationPage: React.FC = () => {
       <Header>
         <h1>Adoption Application</h1>
         <p>Complete your application to adopt {pet?.name}</p>
-        {prePopulationData && (
+        {loadedDraft && (
+          <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
+            Your draft has been restored. Continue where you left off.
+          </p>
+        )}
+        {!loadedDraft && prePopulationData && (
           <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
             Form data has been pre-populated from your profile
           </p>
@@ -482,8 +508,12 @@ export const ApplicationPage: React.FC = () => {
         onStepComplete={handleStepComplete}
         onStepBack={handleStepBack}
         onSubmit={handleSubmit}
+        onSaveDraft={saveNow}
+        onDataChange={handleFormDataChange}
         isSubmitting={isSubmitting}
         isUpdate={false}
+        saveStatus={saveStatus}
+        lastSaved={lastSaved}
       />
     </Container>
   );

@@ -230,7 +230,7 @@ npm run test:watch
 ```bash
 # Start with Docker
 cd lib.api
-docker-compose -f docker-compose.lib.yml up
+docker compose -f docker-compose.lib.yml up
 
 # Development mode
 npm run dev

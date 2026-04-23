@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Button, Heading, Text, DateTime } from '@adopt-dont-shop/lib.components';
+import { Skeleton, SkeletonText } from '../ui/Skeleton';
 import {
   FiX,
   FiMail,
@@ -603,7 +604,22 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
         </TabContainer>
 
         <ModalBody>
-          {loading && <LoadingSpinner>Loading rescue details...</LoadingSpinner>}
+          {loading && (
+            <div
+              aria-label='Loading rescue details'
+              style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <Skeleton width='4rem' height='4rem' radius='50%' />
+                <div style={{ flex: 1 }}>
+                  <Skeleton height='1.25rem' width='50%' style={{ marginBottom: '0.5rem' }} />
+                  <Skeleton height='0.875rem' width='30%' />
+                </div>
+              </div>
+              <SkeletonText lines={4} lastLineWidth='40%' />
+              <SkeletonText lines={3} lastLineWidth='55%' />
+            </div>
+          )}
 
           {error && <ErrorMessage>{error}</ErrorMessage>}
 
@@ -826,7 +842,34 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                       </InviteForm>
                     )}
 
-                    {loadingStaff && <LoadingSpinner>Loading staff...</LoadingSpinner>}
+                    {loadingStaff && (
+                      <div
+                        aria-label='Loading staff'
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem',
+                          padding: '1rem 0',
+                        }}
+                      >
+                        {Array.from({ length: 3 }, (_, i) => (
+                          <div
+                            key={i}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                          >
+                            <Skeleton width='2.5rem' height='2.5rem' radius='50%' />
+                            <div style={{ flex: 1 }}>
+                              <Skeleton
+                                height='0.875rem'
+                                width='40%'
+                                style={{ marginBottom: '0.25rem' }}
+                              />
+                              <Skeleton height='0.75rem' width='60%' />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {!loadingStaff &&
                       (staff?.length || 0) === 0 &&

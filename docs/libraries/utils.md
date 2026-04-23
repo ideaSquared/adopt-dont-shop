@@ -548,7 +548,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-utils
+npx turbo test --filter=@adopt-dont-shop/lib.utils
 ```
 
 ## 🚀 Key Features

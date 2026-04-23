@@ -82,7 +82,7 @@ This suggests:
 
 ```bash
 # Check what VITE_API_URL is actually set to in the running container
-docker-compose exec app-client env | grep VITE_API_URL
+docker compose exec app-client env | grep VITE_API_URL
 ```
 
 #### 5.2 Service Configuration Check

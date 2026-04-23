@@ -380,7 +380,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-feature-flags
+npx turbo test --filter=@adopt-dont-shop/lib.feature-flags
 ```
 
 ## 🚀 Key Features

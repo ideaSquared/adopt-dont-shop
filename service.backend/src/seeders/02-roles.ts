@@ -38,6 +38,7 @@ const roles = [
 export async function seedRoles() {
   for (const roleData of roles) {
     await Role.findOrCreate({
+      paranoid: false,
       where: { name: roleData.name },
       defaults: {
         name: roleData.name,

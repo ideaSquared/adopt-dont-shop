@@ -668,7 +668,7 @@ The library includes comprehensive Jest tests covering:
 Run tests:
 
 ```bash
-npm run test:lib-discovery
+npx turbo test --filter=@adopt-dont-shop/lib.discovery
 ```
 
 ## 🚀 Key Features

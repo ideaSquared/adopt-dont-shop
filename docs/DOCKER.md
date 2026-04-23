@@ -1,6 +1,6 @@
 # Docker Infrastructure Guide
 
-This document outlines the Docker infrastructure for the Adopt Don't Shop monorepo, following industry standards from CNCF, Google, and Vercel.
+Comprehensive guide to the Docker setup for this monorepo. Pairs with [the root README](../README.md) — that has the quick-start commands; this has the architectural detail.
 
 ## Table of Contents
 
@@ -13,217 +13,135 @@ This document outlines the Docker infrastructure for the Adopt Don't Shop monore
 
 ## Quick Start
 
-### Using Make (Recommended)
-
 ```bash
-# Start development environment
-make dev
-
-# Build all images
-make build
-
-# Run tests
-make test
-
-# View logs
-make logs
-
-# Stop all services
-make down
-
-# See all available commands
-make help
+npm run docker:dev               # start full stack (foreground)
+npm run docker:dev:detach        # start in background
+npm run docker:dev:build         # rebuild images then start
+npm run docker:logs              # follow logs
+npm run docker:down              # stop containers
+npm run docker:reset             # stop AND wipe volumes (destroys DB)
 ```
 
-### Using Docker Compose Directly
-
-```bash
-# Start all services
-docker-compose up
-
-# Start in background
-docker-compose up -d
-
-# Build and start
-docker-compose up --build
-
-# Stop all services
-docker-compose down
-```
+See [package.json](../package.json) for the full script list.
 
 ## Architecture Overview
 
 ### Multi-Stage Builds
 
-All Dockerfiles use multi-stage builds for optimal image sizes and build caching:
+Both Dockerfiles use multi-stage builds for optimal image size and cache reuse:
 
-1. **base** - Foundation layer with common dependencies
-2. **development** - Development environment with hot-reload
-3. **build** - Compilation stage for production artifacts
-4. **production** - Minimal runtime image
+| Stage | Purpose |
+| --- | --- |
+| `base` | Foundation layer (Node, system tools, non-root user) |
+| `development` | Dev runtime with hot-reload (`npm run dev`) |
+| `build` | Compile TypeScript / bundle assets |
+| `production` | Minimal runtime image (Node for backend, nginx for frontend) |
+
+Backend uses [service.backend/Dockerfile](../service.backend/Dockerfile). All three frontend apps share [Dockerfile.app.optimized](../Dockerfile.app.optimized) and select their app via the `APP_NAME` build arg.
 
 ### Services
 
-#### Infrastructure
-- **database** - PostgreSQL 16 with PostGIS extensions
-- **redis** - Redis 7 for caching and sessions
-- **nginx** - Reverse proxy with subdomain routing
+**Infrastructure**
+- `database` — PostgreSQL 16 with PostGIS (`postgis/postgis:16-3.4`)
+- `redis` — Redis 7 for cache and sessions
+- `nginx` — Reverse proxy with subdomain routing (api, admin, rescue)
 
-#### Backend
-- **service-backend** - Express.js API server
-  - Port: 5000
-  - Health check: http://localhost:5000/health
-
-#### Frontend Apps
-- **app-client** - Public adoption portal (Port: 3000)
-- **app-admin** - Admin dashboard (Port: 3001)
-- **app-rescue** - Rescue organization portal (Port: 3002)
+**Application**
+- `service-backend` — Express API on port 5000 (health: `/health`)
+- `app-client` — Public portal on 3000
+- `app-admin` — Admin dashboard on 3001
+- `app-rescue` — Rescue portal on 3002
 
 ## Best Practices
 
 ### BuildKit Optimizations
 
-All Dockerfiles use BuildKit features for improved performance:
+All Dockerfiles enable BuildKit (`# syntax=docker/dockerfile:1.4`) and use cache mounts:
 
 ```dockerfile
-# syntax=docker/dockerfile:1.4
-
-# Cache mount for npm packages
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 
-# Cache mount for Turbo builds
 RUN --mount=type=cache,target=/app/.turbo \
-    npx turbo run build --filter=${APP_NAME}
+    npx turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
 ```
 
-**Benefits:**
-- 40-60% faster builds through intelligent caching
-- Reduced network usage
-- Smaller final image sizes
+Result: 40-60% faster builds on warm cache, smaller layer graph.
 
-### Security Features
+### Security
 
-#### Non-Root User
-All containers run as non-root users:
-
-```dockerfile
-USER backend  # Backend service
-USER viteuser # Frontend apps
-```
-
-#### Security Headers
-Nginx includes OWASP-recommended security headers:
-
-```nginx
-add_header X-Frame-Options "SAMEORIGIN" always;
-add_header X-Content-Type-Options "nosniff" always;
-add_header X-XSS-Protection "1; mode=block" always;
-add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-```
-
-#### Health Checks
-All services include health checks:
-
-```dockerfile
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
-```
+- Non-root users in all containers (`backend` for service-backend, `viteuser` for frontend apps).
+- Nginx adds OWASP headers (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy).
+- Health checks on every service so orchestrators can detect bad state.
+- Production overlay (`docker-compose.prod.yml`) requires every secret as `${VAR:?error}` — no defaults, fails fast.
 
 ### Image Optimization
 
-#### .dockerignore
-Comprehensive `.dockerignore` reduces build context:
-
-- Excludes `node_modules`, test files, documentation
-- Reduces build context from ~500MB to ~50MB
-- 10x faster build context transfer
-
-#### Layer Caching
-Optimal layer ordering for maximum cache hits:
-
-1. Package files (changes rarely)
-2. Dependencies installation (cached unless package.json changes)
-3. Source code (changes frequently)
+- [.dockerignore](../.dockerignore) excludes `node_modules`, build outputs, docs, and IDE files. Build context is ~50MB instead of ~500MB.
+- Layer ordering: package.json → `npm ci` → source code, so dependency installs cache cleanly.
 
 ## Development Workflow
 
-### Local Development
-
-#### Option 1: Using Make (Recommended)
+### Standard Loop
 
 ```bash
-# Start everything
-make dev
-
-# Start specific services
-make dev-backend
-make dev-frontend
-
-# View logs
-make logs-backend
-make logs-client
-
-# Access shell
-make shell-backend
-make shell-db
+npm run docker:dev               # start the stack
+# edit code in your editor — HMR handles the rest
+npm run docker:logs              # tail logs when debugging
+npm run docker:down              # stop when done
 ```
 
-#### Option 2: Using docker-compose
+### Hot Reload Details
+
+The dev stack is configured for HMR on Windows/macOS/Linux:
+
+| Layer | Mechanism | Latency |
+| --- | --- | --- |
+| Frontend apps (`app.*/src/**`) | Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`, interval 100ms) | ~1-2s |
+| Frontend libs (`lib.*/src/**` except `lib.types`) | Vite aliases point at lib `src/` — HMR picks them up | ~1-2s |
+| Backend (`service.backend/src/**`) | `ts-node-dev --poll` | ~2s |
+| `lib.types/src/**` | Built into backend `node_modules` at container start. Re-run via `npm run docker:rebuild:types` | manual |
+
+**Why lib.types is special:** the backend imports types via `node_modules/@adopt-dont-shop/lib.types`, so type changes need a rebuild + copy. Symlinks across Windows bind mounts into Linux containers are flaky, so we copy. The `docker:rebuild:types` script does the same thing the container's startup command does, without restarting the container.
+
+### Targeting Specific Services
 
 ```bash
-# Start all services with live reload
-docker-compose up
-
-# Start specific services
-docker-compose up service-backend database redis
-
-# Rebuild a specific service
-docker-compose up --build service-backend
+docker compose up service-backend database redis    # backend stack only
+docker compose up app-admin                         # one frontend
+docker compose up --build service-backend           # force rebuild a service
 ```
 
 ### Custom Local Configuration
 
-Create a `docker-compose.override.yml` file for local customizations:
+Create `docker-compose.override.yml` (gitignored) for personal tweaks:
 
 ```bash
-# Copy example override file
 cp docker-compose.override.yml.example docker-compose.override.yml
-
-# Edit for your needs
-vim docker-compose.override.yml
 ```
 
-Example overrides:
-- Increase memory limits
-- Disable file watching
-- Add debugging ports
-- Custom volume mounts
+Common overrides: increase memory limits, expose debug ports, mount extra volumes.
 
 ### Database Operations
 
 ```bash
-# Run migrations
-make db-migrate
+npm run db:migrate               # sequelize migrations
+npm run db:seed                  # seed dev data
+npm run db:reset                 # migrate + seed
+npm run docker:shell:db          # open psql
+```
 
-# Seed database
-make db-seed
+For a destructive reset (drop DB + re-init):
 
-# Reset database
-make db-reset
-
-# Backup database
-make db-backup
-
-# Access PostgreSQL shell
-make shell-db
+```bash
+npm run docker:reset             # WIPES VOLUMES
+npm run docker:dev:detach
+npm run db:reset
 ```
 
 ### Debugging
 
-#### Backend Debugging
-
-Add to `docker-compose.override.yml`:
+**Backend** — add to `docker-compose.override.yml`:
 
 ```yaml
 services:
@@ -233,115 +151,90 @@ services:
     command: npm run dev:debug
 ```
 
-Then attach your IDE debugger to `localhost:9229`.
+Attach your IDE debugger to `localhost:9229`.
 
-#### Frontend Debugging
-
-All frontend apps support React DevTools and browser debugging out of the box.
+**Frontend** — React DevTools and browser DevTools work out of the box.
 
 ## Production Deployment
 
-### Building Production Images
+### Smoke Test Locally
 
 ```bash
-# Build all production images
-make build-prod
-
-# Or individually
-docker build -t adopt-dont-shop/backend:latest \
-  --target production \
-  ./service.backend
-
-docker build -t adopt-dont-shop/app-client:latest \
-  --build-arg APP_NAME=app.client \
-  --target production \
-  -f Dockerfile.app.optimized .
+npm run prod:build               # build production images
+npm run prod:up                  # start production stack
+npm run prod:down                # stop
 ```
 
-### Production Compose
+The production overlay (`docker-compose.prod.yml`) requires all secrets to be set explicitly — no defaults. Generate fresh secrets first:
 
 ```bash
-# Start production stack
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-# Or using Make
-make prod-up
+npm run secrets:generate >> .env.production
 ```
 
-### Environment Variables
-
-Required production environment variables:
+### Building Individual Images
 
 ```bash
 # Backend
-NODE_ENV=production
-JWT_SECRET=<strong-secret-key>
-DB_HOST=<database-host>
-DB_PASSWORD=<secure-password>
+docker build --target production -t adopt-dont-shop/backend:latest ./service.backend
 
-# Frontend Apps
-VITE_API_URL=https://api.adoptdontshop.com
-VITE_WS_URL=wss://api.adoptdontshop.com
+# Frontend (any app)
+docker build \
+  --build-arg APP_NAME=app.client \
+  --target production \
+  -f Dockerfile.app.optimized \
+  -t adopt-dont-shop/app-client:latest .
+```
+
+### Required Production Env Vars
+
+```env
+NODE_ENV=production
+POSTGRES_USER=...                    # required
+POSTGRES_PASSWORD=...                # required (strong)
+POSTGRES_DB=...                      # required
+JWT_SECRET=...                       # required
+JWT_REFRESH_SECRET=...               # required
+SESSION_SECRET=...                   # required
+CSRF_SECRET=...                      # required
+REDIS_PASSWORD=...                   # required in prod
+VITE_API_BASE_URL=https://api.your-domain.com
+VITE_WS_BASE_URL=wss://api.your-domain.com
 ```
 
 ### Health Checks
 
-All services expose health endpoints:
-
-- Backend: `http://localhost:5000/health`
-- Frontend: `http://localhost:80/health` (Nginx)
+- Backend: `GET http://localhost:5000/health` → 200
+- Frontend (nginx): `GET http://localhost/health` → 200
+- Database: `pg_isready` (Docker healthcheck)
 
 ## CI/CD Integration
 
-### GitHub Actions
+`.github/workflows/docker.yml`:
 
-The `.github/workflows/docker.yml` workflow:
+1. Build backend (development + production targets)
+2. Build all three frontend apps in parallel via `Dockerfile.app.optimized`
+3. Validate full-stack compose integration using `docker-compose.ci.yml`
+4. Trivy security scan on built images
 
-1. **Build Backend** - Builds development and production images
-2. **Build Apps** - Builds all frontend apps in parallel
-3. **Test Compose** - Validates full stack integration
-4. **Security Scan** - Scans images for vulnerabilities (Trivy)
-
-### Build Caching
-
-GitHub Actions uses BuildKit cache for faster builds:
+CI uses BuildKit cache for 40-60% faster builds:
 
 ```yaml
-- name: Cache Docker layers
-  uses: actions/cache@v4
+- uses: actions/cache@v4
   with:
     path: /tmp/.buildx-cache
     key: ${{ runner.os }}-buildx-${{ github.sha }}
 ```
 
-### Security Scanning
-
-Trivy scans all images for vulnerabilities:
-
-```bash
-# Manual scan
-make security-scan
-
-# Or with trivy directly
-trivy image adopt-dont-shop/backend:latest
-```
-
 ## Troubleshooting
 
-### Common Issues
+### Out of Memory
 
-#### Out of Memory
+Symptoms: container crashes, OOM kills.
 
-**Symptoms:** Container crashes, build failures
+Fixes:
 
-**Solutions:**
-
-1. Increase Docker memory allocation (Docker Desktop settings)
-2. Reduce concurrent builds:
-   ```bash
-   docker-compose up --build --no-build --scale app-admin=0
-   ```
-3. Add to `docker-compose.override.yml`:
+1. Increase Docker Desktop memory (Settings → Resources).
+2. Override per-service in `docker-compose.override.yml`:
    ```yaml
    services:
      app-client:
@@ -350,176 +243,78 @@ trivy image adopt-dont-shop/backend:latest
          NODE_OPTIONS: '--max-old-space-size=4096'
    ```
 
-#### Slow File Watching (Windows/Mac)
+### Slow / No File Watching (Windows/macOS)
 
-**Symptoms:** Changes not reflected, slow hot-reload
+Polling is enabled by default (`CHOKIDAR_USEPOLLING=true`). If HMR still misfires:
 
-**Solutions:**
+- Confirm the env var is set inside the container: `docker compose exec app-client env | grep CHOKIDAR`
+- Reduce watch scope in the relevant `vite.config.ts`
+- For lib.types changes: run `npm run docker:rebuild:types` (HMR doesn't apply to lib.types)
 
-1. Enable polling (already configured):
-   ```yaml
-   environment:
-     CHOKIDAR_USEPOLLING: true
-     CHOKIDAR_INTERVAL: 1000
-   ```
+### Port Already in Use
 
-2. Reduce file watching scope in `vite.config.ts`:
-   ```typescript
-   watch: {
-     ignored: ['**/node_modules/**', '**/dist/**']
-   }
-   ```
+```bash
+# Find the offender (Linux/macOS)
+lsof -i :5000
+# Or remap in docker-compose.override.yml
+services:
+  service-backend:
+    ports:
+      - "5001:5000"
+```
 
-#### Port Already in Use
+### Stale Build Cache
 
-**Symptoms:** `port is already allocated`
+```bash
+docker compose build --no-cache
+# Or rebuild a single service
+docker compose build --no-cache service-backend
+```
 
-**Solutions:**
+### Database Connection Issues
 
-1. Check what's using the port:
-   ```bash
-   lsof -i :5000
-   ```
-
-2. Stop conflicting service or change port in `docker-compose.override.yml`:
-   ```yaml
-   services:
-     service-backend:
-       ports:
-         - "5001:5000"
-   ```
-
-#### Build Cache Issues
-
-**Symptoms:** Builds using stale dependencies
-
-**Solutions:**
-
-1. Clear build cache:
-   ```bash
-   make build-nocache
-   ```
-
-2. Or with docker-compose:
-   ```bash
-   docker-compose build --no-cache
-   ```
-
-#### Database Connection Issues
-
-**Symptoms:** Backend can't connect to database
-
-**Solutions:**
-
-1. Ensure database is healthy:
-   ```bash
-   docker-compose ps database
-   make health
-   ```
-
-2. Check database logs:
-   ```bash
-   make logs-db
-   ```
-
-3. Reset database:
-   ```bash
-   docker-compose down -v
-   docker-compose up -d database
-   ```
-
-### Performance Optimization
-
-#### Build Performance
-
-1. **Use BuildKit** (enabled by default):
-   ```bash
-   export DOCKER_BUILDKIT=1
-   ```
-
-2. **Parallel builds**:
-   ```bash
-   docker-compose up --build --parallel
-   ```
-
-3. **Optimize .dockerignore**:
-   - Exclude unnecessary files
-   - Reduces build context size
-   - Faster context transfer
-
-#### Runtime Performance
-
-1. **Resource limits** (already configured):
-   ```yaml
-   mem_limit: 2g
-   cpus: '1.0'
-   ```
-
-2. **Volume optimization**:
-   - Use named volumes for databases
-   - Avoid mounting entire workspace if possible
-
-3. **Network optimization**:
-   - Use custom networks (configured)
-   - Reduces inter-container latency
+```bash
+npm run docker:ps                # is database "healthy"?
+docker compose logs database     # check init logs
+npm run docker:reset             # last resort — WIPES DATA
+npm run docker:dev:detach
+npm run db:reset
+```
 
 ### Cleanup
 
 ```bash
-# Remove containers and volumes
-make clean
-
-# Remove images
-make clean-images
-
-# Complete cleanup
-make clean-all
-
-# Prune Docker system (careful!)
-make prune
+npm run docker:down              # stop containers, keep volumes
+npm run docker:reset             # stop + remove volumes (destroys DB)
+docker system prune              # full system prune (be careful)
+docker images "adopt-dont-shop/*" -q | xargs docker rmi -f   # remove project images
 ```
+
+## Performance Notes
+
+- **BuildKit** is enabled by default in Docker Desktop. If using Linux: `export DOCKER_BUILDKIT=1`.
+- **Parallel builds**: `docker compose build --parallel`.
+- **Resource limits** are set in [docker-compose.yml](../docker-compose.yml) (mem_limit + cpus). Adjust per service if needed.
+- **Named volumes** for databases (not bind mounts) — much faster on Windows/macOS.
 
 ## Monitoring
 
-### Container Stats
-
 ```bash
-# Real-time stats
-docker stats
-
-# Service status
-make status
-
-# Health checks
-make health
-```
-
-### Logs
-
-```bash
-# All logs
-make logs
-
-# Specific service
-make logs-backend
-make logs-client
-
-# Follow logs
-docker-compose logs -f service-backend
+docker stats                     # real-time CPU/memory
+npm run docker:ps                # service status + ports
+docker compose logs -f service-backend   # service-specific logs
 ```
 
 ## Additional Resources
 
-- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
-- [BuildKit Documentation](https://docs.docker.com/build/buildkit/)
-- [Multi-Stage Builds](https://docs.docker.com/develop/develop-images/multistage-build/)
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
-- [CNCF Cloud Native Best Practices](https://github.com/cncf/tag-app-delivery)
+- [Docker best practices](https://docs.docker.com/develop/dev-best-practices/)
+- [BuildKit docs](https://docs.docker.com/build/buildkit/)
+- [Multi-stage builds](https://docs.docker.com/develop/develop-images/multistage-build/)
+- [Docker Compose docs](https://docs.docker.com/compose/)
 
 ## Support
 
-For issues or questions:
-1. Check this documentation
-2. Review logs with `make logs`
-3. Try `make clean && make dev`
+1. Check this guide and the [root README](../README.md)
+2. Tail logs: `npm run docker:logs`
+3. Try `npm run docker:reset && npm run docker:dev:build` (wipes data)
 4. Open an issue on GitHub

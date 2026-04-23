@@ -30,6 +30,7 @@ const chatData = [
 export async function seedChats() {
   for (const chat of chatData) {
     await Chat.findOrCreate({
+      paranoid: false,
       where: { chat_id: chat.chat_id },
       defaults: {
         ...chat,
