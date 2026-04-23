@@ -155,7 +155,12 @@ export class ChatService {
   }
 
   /**
-   * Get chat by ID with messages
+   * Get chat by ID with messages.
+   *
+   * When `userId` is supplied, the caller is required to be a participant
+   * of the chat; otherwise an error is thrown. Passing no `userId` is the
+   * admin bypass used by server-to-server and admin-only code paths, which
+   * rely on route-level RBAC for authorization.
    */
   static async getChatById(chatId: string, userId?: string): Promise<Chat | null> {
     const startTime = Date.now();
@@ -188,6 +193,15 @@ export class ChatService {
           },
         ],
       });
+
+      if (chat && userId) {
+        const participant = await ChatParticipant.findOne({
+          where: { chat_id: chatId, participant_id: userId },
+        });
+        if (!participant) {
+          throw new Error('Chat not found or user is not a participant');
+        }
+      }
 
       loggerHelpers.logDatabase('READ', {
         chatId,

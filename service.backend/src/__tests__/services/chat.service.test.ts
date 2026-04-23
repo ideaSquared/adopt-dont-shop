@@ -274,6 +274,68 @@ describe('ChatService', () => {
     });
   });
 
+  describe('Getting a chat by id with authorization', () => {
+    const chatId = 'chat-abc';
+    const participantId = 'user-participant';
+    const strangerId = 'user-stranger';
+    const mockChat = {
+      chat_id: chatId,
+      rescue_id: 'rescue-xyz',
+      status: ChatStatus.ACTIVE,
+    };
+
+    describe('when the caller is a participant', () => {
+      it('returns the chat', async () => {
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          participant_id: participantId,
+        });
+
+        const result = await ChatService.getChatById(chatId, participantId);
+
+        expect(result).toEqual(mockChat);
+        expect(MockedChatParticipant.findOne).toHaveBeenCalledWith({
+          where: { chat_id: chatId, participant_id: participantId },
+        });
+      });
+    });
+
+    describe('when the caller is not a participant', () => {
+      it('throws a forbidden-style error', async () => {
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
+
+        await expect(ChatService.getChatById(chatId, strangerId)).rejects.toThrow(
+          /not a participant/i
+        );
+      });
+    });
+
+    describe('when no userId is supplied (admin bypass)', () => {
+      it('returns the chat without checking participation', async () => {
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
+
+        const result = await ChatService.getChatById(chatId);
+
+        expect(result).toEqual(mockChat);
+        expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when the chat does not exist', () => {
+      it('returns null', async () => {
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(null);
+
+        const result = await ChatService.getChatById(chatId, participantId);
+
+        expect(result).toBeNull();
+        // Participant lookup should be skipped when chat is absent.
+        expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
+      });
+    });
+  });
+
   describe('Sending messages', () => {
     describe('when sending a message successfully', () => {
       it('should create the message and send notifications', async () => {
