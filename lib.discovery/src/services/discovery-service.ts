@@ -63,8 +63,9 @@ export class DiscoveryService {
    *
    * @param filters - Search filters to apply to the queue
    * @param userId - Optional user ID for personalization
-   * @returns Promise<PetDiscoveryQueue> - Initial queue with smart sorting
-   * @throws Will return empty queue if backend fails
+   * @returns Promise<PetDiscoveryQueue> - Initial queue with smart sorting.
+   *          Never throws: on backend failure the method logs (when `debug` is
+   *          enabled) and resolves with an empty queue.
    */
   async getDiscoveryQueue(
     filters: PetSearchFilters = {},
@@ -120,8 +121,8 @@ export class DiscoveryService {
    * - 'info': User views pet details (down swipe/tap) - interest indicator
    *
    * @param action - Swipe action object containing action type, pet ID, session info
-   * @returns Promise<void> - Resolves when action is recorded
-   * @throws Will log warning if backend fails but won't throw error
+   * @returns Promise<void> - Resolves when the action is recorded. Never throws:
+   *          backend failures are logged (when `debug` is enabled) and swallowed.
    */
   async recordSwipeAction(action: SwipeAction): Promise<void> {
     try {
@@ -145,8 +146,9 @@ export class DiscoveryService {
    * - Behavioral insights for personalization
    *
    * @param userId - User UUID to get statistics for
-   * @returns Promise<SwipeStats> - Comprehensive user analytics
-   * @throws Will return empty stats if backend fails
+   * @returns Promise<SwipeStats> - Comprehensive user analytics. Never throws:
+   *          on backend failure the method logs (when `debug` is enabled) and
+   *          resolves with a zeroed `SwipeStats` object.
    */
   async getSwipeStats(userId: string): Promise<SwipeStats> {
     try {
