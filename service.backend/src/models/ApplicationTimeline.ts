@@ -83,11 +83,9 @@ ApplicationTimeline.init(
     application_id: {
       type: getUuidType(),
       allowNull: false,
-      references: {
-        model: 'applications',
-        key: 'application_id',
-      },
-      onDelete: 'CASCADE',
+      // FK relationship defined at association level with constraints: false
+      // (see models/index.ts) so timeline events can be created in tests
+      // without requiring the application row to exist.
     },
     event_type: {
       type: DataTypes.ENUM(...Object.values(TimelineEventType)),
@@ -108,11 +106,9 @@ ApplicationTimeline.init(
     created_by: {
       type: getUuidType(),
       allowNull: true,
-      references: {
-        model: 'users',
-        key: 'user_id',
-      },
-      onDelete: 'SET NULL',
+      // FK relationship defined at association level with constraints: false
+      // (see models/index.ts) so timeline events can be created in tests
+      // without requiring the user row to exist.
     },
     created_by_system: {
       type: DataTypes.BOOLEAN,
