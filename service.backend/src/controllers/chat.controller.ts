@@ -3,7 +3,7 @@ import { ChatParticipant } from '../models/ChatParticipant';
 import User, { UserType } from '../models/User';
 import { ChatService } from '../services/chat.service';
 import { FileUploadService } from '../services/file-upload.service';
-import { isUserOnline } from '../socket/socket-handlers';
+import { broadcastNewMessage, isUserOnline } from '../socket/socket-handlers';
 import { ChatMessage } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
 
@@ -520,12 +520,35 @@ export class ChatController {
         attachments,
       });
 
-      // Return the message in the canonical frontend shape so senders see
-      // the same fields (camelCase keys, populated senderName) they'd get
-      // back from GET /messages or from the `new_message` socket event.
+      const frontendMessage = toFrontendMessage(message as unknown as MessageWithSender);
+
+      // Real-time fan-out. Without this, recipients only see the message
+      // on next page load — the existing socket "new_message" event was
+      // only emitted by the deprecated socket send_message handler, never
+      // by the REST path that the frontend actually uses.
+      //
+      // We emit to each participant's personal user:{id} room rather than
+      // a chat:{chatId} room, so the frontend doesn't need to track
+      // chat-room membership — every authenticated socket auto-joins its
+      // own user room on connect. The sender is included and the client
+      // dedupes by message id (the sender already appended the message
+      // optimistically from the REST response).
+      try {
+        const participants = await ChatParticipant.findAll({
+          where: { chat_id: chatId },
+          attributes: ['participant_id'],
+        });
+        const recipientIds = participants.map(p => p.participant_id);
+        broadcastNewMessage(chatId, frontendMessage, recipientIds);
+      } catch (err) {
+        // Broadcasting is best-effort — log and move on rather than
+        // failing the send when the socket fan-out misfires.
+        logger.warn('Failed to broadcast new_message over socket:', err);
+      }
+
       res.status(201).json({
         success: true,
-        data: toFrontendMessage(message as unknown as MessageWithSender),
+        data: frontendMessage,
         message: 'Message sent successfully',
       });
     } catch (error) {

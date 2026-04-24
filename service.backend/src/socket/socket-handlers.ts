@@ -49,12 +49,49 @@ export function isUserOnline(userId: string): boolean {
   return !!presence && presence.status !== 'offline' && presence.socketIds.length > 0;
 }
 
+/**
+ * Holds the live Socket.IO server so module-level broadcast helpers can
+ * reach it without the caller having to plumb a handle through. Populated
+ * in SocketHandlers' constructor and cleared in teardown paths (tests).
+ */
+let liveIo: SocketIOServer | null = null;
+
+/**
+ * Broadcast a "new_message" event to every given recipient's personal
+ * user:{id} room. Each authenticated socket auto-joins that room on
+ * connect, so we don't need the frontend to manage chat-room membership
+ * — one emit per participant reaches any device they've got open.
+ *
+ * The sender is typically included; the frontend ChatProvider dedupes
+ * by message id (optimistically appended on the REST response, then
+ * merged with the socket copy). Callers pass only the recipients they
+ * want to notify.
+ */
+export function broadcastNewMessage(
+  chatId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  message: any,
+  recipientUserIds: string[]
+): void {
+  if (!liveIo) {
+    return;
+  }
+  const payload = { message, chatId, timestamp: new Date() };
+  for (const userId of recipientUserIds) {
+    liveIo.to(`user:${userId}`).emit('new_message', payload);
+  }
+}
+
 export class SocketHandlers {
   private io: SocketIOServer;
   private messageBroker = getMessageBroker();
 
   constructor(io: SocketIOServer) {
     this.io = io;
+    // Expose the IO instance to module-level broadcast helpers
+    // (broadcastNewMessage) so controllers can fan out events without
+    // having to plumb a reference through.
+    liveIo = io;
     this.setupMiddleware();
     this.setupConnectionHandler();
     this.setupMessageBrokerSubscriptions();
