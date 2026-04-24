@@ -1,8 +1,8 @@
 import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getTsVectorType, TsVector } from '../sequelize';
 import { MessageContentFormat } from '../types/chat';
 import Chat from './Chat';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 export interface MessageReaction {
   user_id: string;
@@ -33,7 +33,7 @@ interface MessageAttributes {
   attachments?: MessageAttachment[];
   reactions?: MessageReaction[];
   read_status?: MessageReadStatus[];
-  search_vector?: unknown; // tsvector type for full-text search
+  search_vector?: TsVector;
   created_at?: Date;
   updated_at?: Date;
   Chat?: Chat;
@@ -64,7 +64,7 @@ export class Message
   public attachments?: MessageAttachment[];
   public reactions?: MessageReaction[];
   public read_status?: MessageReadStatus[];
-  public search_vector?: unknown;
+  public search_vector?: TsVector;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
   public length!: number;
@@ -176,18 +176,12 @@ export class Message
 Message.init(
   {
     message_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
-      // Server-generated readable ID, same pattern as chat_id/user_id/etc.
-      // Without this, ChatService.sendMessage()'s insert hits a PG
-      // not-null violation on message_id because no caller passes one.
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('message')
-          : sequelize.literal(getReadableIdSqlLiteral('message')),
+      defaultValue: () => generateUuidV7(),
     },
     chat_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: Chat,
@@ -196,12 +190,13 @@ Message.init(
       onDelete: 'CASCADE',
     },
     sender_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'CASCADE',
     },
     content: {
       type: DataTypes.TEXT,
@@ -279,7 +274,7 @@ Message.init(
       },
     },
     search_vector: {
-      type: DataTypes.TSVECTOR,
+      type: getTsVectorType(),
       allowNull: true,
     },
   },
@@ -293,16 +288,20 @@ Message.init(
     indexes: [
       {
         fields: ['chat_id'],
+        name: 'messages_chat_id_idx',
       },
       {
         fields: ['sender_id'],
+        name: 'messages_sender_id_idx',
       },
       {
         fields: ['created_at'],
+        name: 'messages_created_at_idx',
       },
       {
         fields: ['search_vector'],
         using: 'gin',
+        name: 'messages_search_vector_gin_idx',
       },
       {
         fields: ['reactions'],
@@ -323,7 +322,7 @@ Message.init(
             replacements: [message.content],
             type: QueryTypes.SELECT,
           });
-          message.search_vector = (results as { vector: unknown }).vector;
+          message.search_vector = (results as { vector: TsVector }).vector;
         }
       },
     },

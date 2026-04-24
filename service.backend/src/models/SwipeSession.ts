@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 import { JsonObject } from '../types/common';
 
 // Swipe session attributes
@@ -124,17 +125,18 @@ SwipeSession.init(
   {
     sessionId: {
       type: getUuidType(),
-      defaultValue: DataTypes.UUIDV4,
+      defaultValue: () => generateUuidV7(),
       primaryKey: true,
       allowNull: false,
     },
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'CASCADE',
       comment: 'Optional user ID for authenticated sessions',
     },
     startTime: {

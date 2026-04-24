@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 // Timeline Event Types
 export enum TimelineEventType {
@@ -74,13 +75,17 @@ ApplicationTimeline.init(
   {
     timeline_id: {
       type: getUuidType(),
-      defaultValue: DataTypes.UUIDV4,
+      defaultValue: () => generateUuidV7(),
       primaryKey: true,
     },
     application_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
-      // Note: Foreign key constraint managed by associations, not model definition
+      references: {
+        model: 'applications',
+        key: 'application_id',
+      },
+      onDelete: 'CASCADE',
     },
     event_type: {
       type: DataTypes.ENUM(...Object.values(TimelineEventType)),
@@ -99,9 +104,13 @@ ApplicationTimeline.init(
       allowNull: true,
     },
     created_by: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
-      // Note: Foreign key constraint managed by associations, not model definition
+      references: {
+        model: 'users',
+        key: 'user_id',
+      },
+      onDelete: 'SET NULL',
     },
     created_by_system: {
       type: DataTypes.BOOLEAN,
@@ -140,12 +149,14 @@ ApplicationTimeline.init(
     indexes: [
       {
         fields: ['application_id', 'created_at'],
+        name: 'application_timeline_application_id_idx',
       },
       {
         fields: ['event_type'],
       },
       {
         fields: ['created_by'],
+        name: 'application_timeline_created_by_idx',
       },
     ],
   }

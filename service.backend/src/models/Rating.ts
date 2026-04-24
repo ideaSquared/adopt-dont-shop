@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional, WhereOptions } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum RatingType {
   PET = 'pet',
@@ -221,32 +222,36 @@ export class Rating
 Rating.init(
   {
     rating_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
+      defaultValue: () => generateUuidV7(),
     },
     reviewer_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     reviewee_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     pet_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'pets',
         key: 'pet_id',
       },
+      onDelete: 'SET NULL',
     },
     rescue_id: {
       type: getUuidType(),
@@ -255,14 +260,16 @@ Rating.init(
         model: 'rescues',
         key: 'rescue_id',
       },
+      onDelete: 'SET NULL',
     },
     application_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'applications',
         key: 'application_id',
       },
+      onDelete: 'SET NULL',
     },
     rating_type: {
       type: DataTypes.ENUM(...Object.values(RatingType)),
@@ -392,6 +399,7 @@ Rating.init(
     sequelize,
     tableName: 'ratings',
     timestamps: true,
+    underscored: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     indexes: [
@@ -399,16 +407,24 @@ Rating.init(
         fields: ['rating_type', 'category'],
       },
       {
+        name: 'ratings_pet_id_idx',
         fields: ['pet_id'],
       },
       {
+        name: 'ratings_rescue_id_idx',
         fields: ['rescue_id'],
       },
       {
+        name: 'ratings_reviewer_id_idx',
         fields: ['reviewer_id'],
       },
       {
+        name: 'ratings_reviewee_id_idx',
         fields: ['reviewee_id'],
+      },
+      {
+        name: 'ratings_application_id_idx',
+        fields: ['application_id'],
       },
       {
         fields: ['score'],

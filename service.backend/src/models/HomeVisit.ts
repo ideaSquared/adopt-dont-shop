@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getUuidType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum HomeVisitStatus {
   SCHEDULED = 'scheduled',
@@ -59,16 +60,18 @@ class HomeVisit
 HomeVisit.init(
   {
     visit_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
+      defaultValue: () => generateUuidV7(),
       primaryKey: true,
     },
     application_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'applications',
         key: 'application_id',
       },
+      onDelete: 'CASCADE',
     },
     scheduled_date: {
       type: DataTypes.DATEONLY,
@@ -117,11 +120,11 @@ HomeVisit.init(
     modelName: 'HomeVisit',
     tableName: 'home_visits',
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
+    underscored: true,
     indexes: [
       {
         fields: ['application_id'],
+        name: 'home_visits_application_id_idx',
       },
       {
         fields: ['status'],

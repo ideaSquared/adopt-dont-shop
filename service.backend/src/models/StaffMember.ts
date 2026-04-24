@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 interface StaffMemberAttributes {
   staffMemberId: string;
@@ -61,7 +62,7 @@ StaffMember.init(
     staffMemberId: {
       type: getUuidType(),
       primaryKey: true,
-      defaultValue: DataTypes.UUIDV4,
+      defaultValue: () => generateUuidV7(),
       field: 'staff_member_id',
     },
     rescueId: {
@@ -72,15 +73,17 @@ StaffMember.init(
         model: 'rescues',
         key: 'rescue_id',
       },
+      onDelete: 'SET NULL',
     },
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'user_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     title: {
       type: DataTypes.STRING,
@@ -93,13 +96,14 @@ StaffMember.init(
       field: 'is_verified',
     },
     verifiedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'verified_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     verifiedAt: {
       type: DataTypes.DATE,
@@ -107,13 +111,14 @@ StaffMember.init(
       field: 'verified_at',
     },
     addedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'added_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     addedAt: {
       type: DataTypes.DATE,
@@ -133,13 +138,14 @@ StaffMember.init(
       field: 'deleted_at',
     },
     deletedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'deleted_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -158,8 +164,29 @@ StaffMember.init(
     sequelize,
     tableName: 'staff_members',
     timestamps: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
+    underscored: true,
+    indexes: [
+      {
+        fields: ['rescue_id'],
+        name: 'staff_members_rescue_id_idx',
+      },
+      {
+        fields: ['user_id'],
+        name: 'staff_members_user_id_idx',
+      },
+      {
+        fields: ['verified_by'],
+        name: 'staff_members_verified_by_idx',
+      },
+      {
+        fields: ['added_by'],
+        name: 'staff_members_added_by_idx',
+      },
+      {
+        fields: ['deleted_by'],
+        name: 'staff_members_deleted_by_idx',
+      },
+    ],
     defaultScope: {
       where: {
         isDeleted: false,

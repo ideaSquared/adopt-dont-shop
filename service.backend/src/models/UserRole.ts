@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getUuidType } from '../sequelize';
 import Role from './Role';
 import User from './User';
 
@@ -13,13 +13,13 @@ class UserRole extends Model {
 UserRole.init(
   {
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       references: {
         model: User,
         key: 'user_id',
       },
       primaryKey: true,
-      field: 'user_id', // Map to database column
+      field: 'user_id',
     },
     roleId: {
       type: DataTypes.INTEGER,
@@ -28,7 +28,7 @@ UserRole.init(
         key: 'role_id',
       },
       primaryKey: true,
-      field: 'role_id', // Map to database column
+      field: 'role_id',
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -45,9 +45,7 @@ UserRole.init(
     sequelize,
     tableName: 'user_roles',
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    underscored: false, // Use camelCase in the model
+    underscored: true,
   }
 );
 

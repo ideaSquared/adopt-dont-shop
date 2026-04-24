@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
+import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum ReportCategory {
   INAPPROPRIATE_CONTENT = 'inappropriate_content',
@@ -129,21 +129,19 @@ Report.init(
   {
     reportId: {
       field: 'report_id',
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('report')
-          : sequelize.literal(getReadableIdSqlLiteral('report')),
+      defaultValue: () => generateUuidV7(),
     },
     reporterId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'reporter_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     reportedEntityType: {
       type: DataTypes.ENUM('user', 'rescue', 'pet', 'application', 'message', 'conversation'),
@@ -156,13 +154,14 @@ Report.init(
       field: 'reported_entity_id',
     },
     reportedUserId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'reported_user_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     category: {
       type: DataTypes.ENUM(...Object.values(ReportCategory)),
@@ -204,13 +203,14 @@ Report.init(
       defaultValue: {},
     },
     assignedModerator: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'assigned_moderator',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     assignedAt: {
       type: DataTypes.DATE,
@@ -218,13 +218,14 @@ Report.init(
       field: 'assigned_at',
     },
     resolvedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'resolved_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     resolvedAt: {
       type: DataTypes.DATE,
@@ -253,13 +254,14 @@ Report.init(
       field: 'resolution_notes',
     },
     escalatedTo: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'escalated_to',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     escalatedAt: {
       type: DataTypes.DATE,
@@ -288,16 +290,19 @@ Report.init(
     sequelize,
     tableName: 'reports',
     timestamps: true,
+    underscored: true,
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     indexes: [
       {
+        name: 'reports_reporter_id_idx',
         fields: ['reporter_id'],
       },
       {
         fields: ['reported_entity_type', 'reported_entity_id'],
       },
       {
+        name: 'reports_reported_user_id_idx',
         fields: ['reported_user_id'],
       },
       {
@@ -310,7 +315,16 @@ Report.init(
         fields: ['severity'],
       },
       {
+        name: 'reports_assigned_moderator_idx',
         fields: ['assigned_moderator'],
+      },
+      {
+        name: 'reports_resolved_by_idx',
+        fields: ['resolved_by'],
+      },
+      {
+        name: 'reports_escalated_to_idx',
+        fields: ['escalated_to'],
       },
       {
         fields: ['created_at'],

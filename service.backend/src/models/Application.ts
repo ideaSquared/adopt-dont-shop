@@ -1,7 +1,7 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 // Simple application status enum for small charities
 export enum ApplicationStatus {
@@ -211,16 +211,13 @@ class Application
 Application.init(
   {
     applicationId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'application_id',
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('application')
-          : sequelize.literal(getReadableIdSqlLiteral('application')),
+      defaultValue: () => generateUuidV7(),
     },
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'user_id',
       references: {
@@ -230,7 +227,7 @@ Application.init(
       onDelete: 'CASCADE',
     },
     petId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'pet_id',
       references: {
@@ -307,13 +304,14 @@ Application.init(
 
     // Action tracking
     actionedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'actioned_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     actionedAt: {
       type: DataTypes.DATE,
@@ -457,6 +455,7 @@ Application.init(
     modelName: 'Application',
     timestamps: true,
     paranoid: true,
+    underscored: true,
     indexes: [
       {
         fields: ['user_id'],

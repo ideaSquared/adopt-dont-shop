@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import { generateCryptoUuid } from '../utils/uuid-helpers';
+import { generateUuidV7 } from '../utils/uuid';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
@@ -49,7 +49,7 @@ FileUpload.init(
   {
     upload_id: {
       type: getUuidType(),
-      defaultValue: () => generateCryptoUuid(),
+      defaultValue: () => generateUuidV7(),
       primaryKey: true,
     },
     original_filename: {
@@ -109,12 +109,13 @@ FileUpload.init(
       },
     },
     uploaded_by: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     entity_id: {
       type: DataTypes.STRING(255),
@@ -160,6 +161,7 @@ FileUpload.init(
     indexes: [
       {
         fields: ['uploaded_by'],
+        name: 'file_uploads_uploaded_by_idx',
       },
       {
         fields: ['entity_id', 'entity_type'],
@@ -176,6 +178,7 @@ FileUpload.init(
       {
         fields: ['stored_filename'],
         unique: true,
+        name: 'file_uploads_stored_filename_unique',
       },
     ],
   }

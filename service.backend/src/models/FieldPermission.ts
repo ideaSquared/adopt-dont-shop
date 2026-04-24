@@ -85,8 +85,7 @@ FieldPermission.init(
     sequelize,
     tableName: 'field_permissions',
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
+    underscored: true,
     paranoid: false,
     indexes: [
       {

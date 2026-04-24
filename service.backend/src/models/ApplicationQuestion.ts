@@ -1,5 +1,6 @@
 import { DataTypes, Model, Op, Optional, WhereOptions } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 import { JsonObject, JsonValue } from '../types/common';
 
 export enum QuestionCategory {
@@ -223,7 +224,8 @@ class ApplicationQuestion
 ApplicationQuestion.init(
   {
     question_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
+      defaultValue: () => generateUuidV7(),
       primaryKey: true,
     },
     rescue_id: {
@@ -343,9 +345,7 @@ ApplicationQuestion.init(
     modelName: 'ApplicationQuestion',
     timestamps: true,
     paranoid: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    deletedAt: 'deleted_at',
+    underscored: true,
     indexes: [
       {
         fields: ['rescue_id'],

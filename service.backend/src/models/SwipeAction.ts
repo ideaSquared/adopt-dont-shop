@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 // Swipe action attributes
 export interface SwipeActionAttributes {
@@ -201,7 +202,7 @@ SwipeAction.init(
   {
     swipeActionId: {
       type: getUuidType(),
-      defaultValue: DataTypes.UUIDV4,
+      defaultValue: () => generateUuidV7(),
       primaryKey: true,
       allowNull: false,
     },
@@ -212,24 +213,27 @@ SwipeAction.init(
         model: 'swipe_sessions',
         key: 'session_id',
       },
+      onDelete: 'CASCADE',
       comment: 'Reference to the swipe session',
     },
     petId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'pets',
         key: 'pet_id',
       },
+      onDelete: 'CASCADE',
       comment: 'Reference to the pet that was swiped',
     },
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'CASCADE',
       comment: 'Optional user ID for authenticated actions',
     },
     action: {

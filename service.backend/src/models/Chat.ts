@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { ChatStatus } from '../types/chat';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 import { ChatParticipant } from './ChatParticipant';
 import { Message } from './Message';
@@ -62,42 +62,36 @@ export class Chat extends Model<ChatAttributes, ChatCreationAttributes> implemen
 Chat.init(
   {
     chat_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
-      // Matches the repo convention used by Application/Pet/User/etc —
-      // readable IDs generated server-side so callers don't have to
-      // invent their own. Without this, ChatService.createChat() inserts
-      // NULL into a NOT NULL PK and PostgreSQL rejects the row.
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('chat')
-          : sequelize.literal(getReadableIdSqlLiteral('chat')),
+      defaultValue: () => generateUuidV7(),
     },
     application_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'applications',
         key: 'application_id',
       },
+      onDelete: 'CASCADE',
     },
     rescue_id: {
-      // Add rescue_id field
       type: getUuidType(),
       allowNull: false,
       references: {
         model: 'rescues',
         key: 'rescue_id',
       },
+      onDelete: 'CASCADE',
     },
     pet_id: {
-      // Add pet_id field
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'pets',
         key: 'pet_id',
       },
+      onDelete: 'SET NULL',
     },
     status: {
       type: DataTypes.ENUM(...Object.values(ChatStatus)),
@@ -118,9 +112,15 @@ Chat.init(
     indexes: [
       {
         fields: ['application_id'],
+        name: 'chats_application_id_idx',
       },
       {
-        fields: ['rescue_id'], // Add index for rescue_id
+        fields: ['rescue_id'],
+        name: 'chats_rescue_id_idx',
+      },
+      {
+        fields: ['pet_id'],
+        name: 'chats_pet_id_idx',
       },
       {
         fields: ['status'],

@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
+import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum ActionType {
   WARNING_ISSUED = 'warning_issued',
@@ -119,31 +119,30 @@ class ModeratorAction
 ModeratorAction.init(
   {
     actionId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'action_id',
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('action')
-          : sequelize.literal(getReadableIdSqlLiteral('action')),
+      defaultValue: () => generateUuidV7(),
     },
     moderatorId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'moderator_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     reportId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'report_id',
       references: {
         model: 'reports',
         key: 'report_id',
       },
+      onDelete: 'SET NULL',
     },
     targetEntityType: {
       type: DataTypes.ENUM('user', 'rescue', 'pet', 'application', 'message', 'conversation'),
@@ -156,13 +155,14 @@ ModeratorAction.init(
       field: 'target_entity_id',
     },
     targetUserId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'target_user_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     actionType: {
       type: DataTypes.ENUM(...Object.values(ActionType)),
@@ -210,13 +210,14 @@ ModeratorAction.init(
       field: 'is_active',
     },
     reversedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'reversed_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     reversedAt: {
       type: DataTypes.DATE,
@@ -260,19 +261,23 @@ ModeratorAction.init(
     sequelize,
     tableName: 'moderator_actions',
     timestamps: true,
+    underscored: true,
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     indexes: [
       {
+        name: 'moderator_actions_moderator_id_idx',
         fields: ['moderator_id'],
       },
       {
+        name: 'moderator_actions_report_id_idx',
         fields: ['report_id'],
       },
       {
         fields: ['target_entity_type', 'target_entity_id'],
       },
       {
+        name: 'moderator_actions_target_user_id_idx',
         fields: ['target_user_id'],
       },
       {
@@ -286,6 +291,10 @@ ModeratorAction.init(
       },
       {
         fields: ['expires_at'],
+      },
+      {
+        name: 'moderator_actions_reversed_by_idx',
+        fields: ['reversed_by'],
       },
       {
         fields: ['created_at'],
