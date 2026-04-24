@@ -1,13 +1,11 @@
+import { Sequelize } from 'sequelize';
 import { describe, expect, it, vi } from 'vitest';
 
 // Bypass the real sequelize instance — we only need the model's rawAttributes.
-vi.mock('../../sequelize', () => {
-  const { Sequelize } = require('sequelize');
-  return {
-    __esModule: true,
-    default: new Sequelize('sqlite::memory:', { logging: false }),
-  };
-});
+vi.mock('../../sequelize', () => ({
+  __esModule: true,
+  default: new Sequelize('sqlite::memory:', { logging: false }),
+}));
 
 import Message from '../../models/Message';
 
