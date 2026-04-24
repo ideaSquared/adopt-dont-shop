@@ -140,9 +140,8 @@ Historical documentation moved to `_archive/` folder:
 
 ## Maintenance
 
-- **Last Major Cleanup**: October 2025
-- **Structure**: Organized by function
-- **Policy**: Archive historical docs, don't delete
+- **Structure**: Organized by function (infrastructure, backend, frontend, libraries)
+- **Policy**: Archive historical docs to `_archive/`, don't delete
 - **Duplicates**: Consolidated overlapping documentation
 
 ---

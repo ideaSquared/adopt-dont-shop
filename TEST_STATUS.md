@@ -259,20 +259,18 @@ http.get('/api/v1/rescues/stats', ...)
 
 ## Test Execution Commands
 
+> **Note**: this is a historical status snapshot. Per-app/per-library npm aliases (e.g. `test:libs`, `test:admin`) no longer exist — use Turbo's `--filter` flag against the real workspace names.
+
 ```bash
-# Run all library tests (currently passing)
-npm run test:libs
-
-# Run component tests (387 tests passing)
-npm run test:components
-
-# Run app tests (pending MSW config)
-npm run test:client
-npm run test:admin
-npm run test:rescue
-
-# Run all tests
+# All tests across the workspace
 npm test
+
+# Per-app / per-library (Turbo filters accept globs)
+npx turbo test --filter=@adopt-dont-shop/app.client
+npx turbo test --filter=@adopt-dont-shop/app.admin
+npx turbo test --filter=@adopt-dont-shop/app.rescue
+npx turbo test --filter=@adopt-dont-shop/lib.components
+npx turbo test --filter='@adopt-dont-shop/lib.*'
 ```
 
 ## 🎉 Conclusion: Migration Complete!

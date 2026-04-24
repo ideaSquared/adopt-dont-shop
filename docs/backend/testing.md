@@ -2,20 +2,21 @@
 
 ## Overview
 
-Comprehensive testing strategy for the backend service using Jest. Follows the testing pyramid: 70% unit tests, 20% integration tests, 10% E2E tests.
-
-## Test Structure
+Comprehensive testing strategy for the backend service using **Vitest**. We follow a behaviour-driven pyramid: most tests exercise service-layer behaviour through public APIs, with a smaller ring of integration tests that hit the database and routes end-to-end.
 
 ```
 Testing Pyramid
-├── E2E Tests (10%) - Full API integration and user journeys
-├── Integration Tests (20%) - Database, services, external APIs
-└── Unit Tests (70%) - Services, controllers, utilities, models
+├── Integration Tests — Database + HTTP routes (src/__tests__/integration/, src/__tests__/controllers/)
+└── Service / behaviour tests — Services, utilities, middleware, models (src/__tests__/services/, etc.)
 ```
+
+Tests live under `service.backend/src/__tests__/` organised by layer (`services/`, `controllers/`, `integration/`, `middleware/`, `models/`, `security/`, `utils/`, `validation/`).
 
 ## Quick Start
 
 ### Running Tests
+
+From `service.backend/` (or via `npx turbo test --filter=@adopt-dont-shop/service-backend` at the repo root):
 
 ```bash
 # All tests
@@ -24,50 +25,25 @@ npm test
 # Watch mode
 npm run test:watch
 
+# Vitest UI
+npm run test:ui
+
 # Coverage report
 npm run test:coverage
 
-# Specific test file
+# Specific test file — Vitest takes a substring filter
 npm test user.service.test.ts
-
-# Integration tests only
-npm run test:integration
-
-# E2E tests only
-npm run test:e2e
 ```
 
-### Coverage Requirements
+There are no separate `test:integration` / `test:e2e` scripts; integration and route tests run in the same Vitest invocation. Target them via substring or file path.
 
-- Overall: 80%+ coverage
-- Services: 90%+ coverage
-- Controllers: 85%+ coverage
-- Critical paths: 100% coverage
+### Coverage Targets
+
+Follow the [project CLAUDE.md](../../.claude/CLAUDE.md) guidance: aim for 100% behavioural coverage, not per-line targets — add tests for the behaviours you care about, not to hit a number.
 
 ## Configuration
 
-### Jest Setup
-
-```javascript
-// jest.config.js
-module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts'],
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80,
-    },
-  },
-  testTimeout: 10000,
-  maxWorkers: 1,
-};
-```
+Vitest is configured in `service.backend/vitest.config.ts`. The service does not use Jest; any legacy `jest.config.js` should be treated as stale.
 
 ### Test Database
 
@@ -301,14 +277,16 @@ export const createTestPet = async (rescueId: string, overrides = {}) => {
 
 ```typescript
 // test-helpers/mocks.ts
+import { vi } from 'vitest';
+
 export const mockEmailService = {
-  sendEmail: jest.fn().mockResolvedValue({ success: true }),
-  sendTemplate: jest.fn().mockResolvedValue({ success: true }),
+  sendEmail: vi.fn().mockResolvedValue({ success: true }),
+  sendTemplate: vi.fn().mockResolvedValue({ success: true }),
 };
 
 export const mockStorageService = {
-  uploadFile: jest.fn().mockResolvedValue({ url: 'https://cdn.example.com/file.jpg' }),
-  deleteFile: jest.fn().mockResolvedValue({ success: true }),
+  uploadFile: vi.fn().mockResolvedValue({ url: 'https://cdn.example.com/file.jpg' }),
+  deleteFile: vi.fn().mockResolvedValue({ success: true }),
 };
 ```
 
@@ -347,26 +325,27 @@ export const mockStorageService = {
 ### Running Specific Tests
 
 ```bash
-# Single test file
+# Single test file (substring match)
 npm test user.service.test.ts
 
 # Single test case
-npm test -t "should create user"
+npm test -- -t "should create user"
 
-# With debugger
-node --inspect-brk node_modules/.bin/jest --runInBand
+# With Node debugger (Vitest)
+node --inspect-brk node_modules/.bin/vitest run --no-threads
 ```
 
 ### Common Issues
 
 **Database Connection Issues**
 
-```bash
-# Check test database exists
-npm run db:create:test
+Vitest uses the database configured via `DB_*` / `TEST_DB_NAME` env vars (see `.env.example`). If you're working in Docker, ensure the database container is healthy:
 
-# Reset test database
-npm run db:reset:test
+```bash
+docker compose ps database      # must be "healthy"
+npm run docker:reset            # last resort — wipes the volume
+npm run docker:dev:detach
+npm run db:reset
 ```
 
 **Timeout Errors**
