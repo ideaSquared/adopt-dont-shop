@@ -17,7 +17,7 @@ const staffMembers = [
     rescueId: '550e8400-e29b-41d4-a716-446655440001', // Paws Rescue Austin
     userId: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
     title: 'Veterinary Technician',
-    isVerified: false,
+    isVerified: true,
     verifiedBy: '3d7065c5-82a3-4bba-a84e-78229365badd',
     verifiedAt: new Date('2023-01-20'),
     addedBy: '3d7065c5-82a3-4bba-a84e-78229365badd',

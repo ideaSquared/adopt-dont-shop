@@ -59,17 +59,10 @@ export class RescueApplicationService {
         params.append('endDate', filter.dateRange.end.toISOString());
       }
       if (sort) {
-        // Map frontend field names to backend field names
-        const fieldMapping: Record<string, string> = {
-          submittedAt: 'submitted_at',
-          status: 'status',
-          petName: 'pet_name',
-          applicantName: 'applicant_name',
-          priority: 'priority',
-        };
-
-        const backendField = fieldMapping[sort.field] || sort.field;
-        params.append('sortBy', backendField);
+        // Backend validates sortBy as camelCase (see application.controller.ts
+        // isIn check: createdAt, updatedAt, submittedAt, status, priority, score).
+        // Pass the field name through as-is.
+        params.append('sortBy', sort.field);
         params.append('sortOrder', sort.direction.toUpperCase());
       }
 
