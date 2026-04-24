@@ -8,6 +8,7 @@ import Role from '../models/Role';
 import UserRole from '../models/UserRole';
 import EmailTemplateService from './email-template.service';
 import { logger } from '../utils/logger';
+import { hashToken } from '../utils/secrets';
 
 export class InvitationService {
   /**
@@ -17,7 +18,7 @@ export class InvitationService {
     try {
       const invitation = await Invitation.findOne({
         where: {
-          token,
+          token: hashToken(token),
           used: false,
           expiration: { [Op.gt]: new Date() },
         },
@@ -156,7 +157,7 @@ export class InvitationService {
       // Find valid invitation
       const invitation = await Invitation.findOne({
         where: {
-          token,
+          token: hashToken(token),
           used: false,
           expiration: { [Op.gt]: new Date() },
         },

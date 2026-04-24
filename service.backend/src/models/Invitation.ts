@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { hashToken } from '../utils/secrets';
 import { generateUuidV7 } from '../utils/uuid';
 
 interface InvitationAttributes {
@@ -117,6 +118,16 @@ Invitation.init(
         name: 'invitations_user_id_idx',
       },
     ],
+    hooks: {
+      beforeSave: (invitation: Invitation) => {
+        // Invitation.token is 32 bytes of crypto.randomBytes. Store the
+        // SHA-256 hash so a DB leak doesn't expose the raw invite links.
+        // acceptInvitation looks tokens up via hashToken(input).
+        if (invitation.changed('token') && invitation.token) {
+          invitation.token = hashToken(invitation.token);
+        }
+      },
+    },
   }
 );
 

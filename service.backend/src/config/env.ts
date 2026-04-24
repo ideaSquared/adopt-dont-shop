@@ -8,6 +8,7 @@ type RequiredEnvVars = {
   JWT_REFRESH_SECRET: string;
   SESSION_SECRET: string;
   CSRF_SECRET: string;
+  ENCRYPTION_KEY: string;
   DEV_DB_NAME?: string;
   TEST_DB_NAME?: string;
   PROD_DB_NAME?: string;
@@ -27,6 +28,7 @@ type ValidatedEnv = {
   JWT_REFRESH_SECRET: string;
   SESSION_SECRET: string;
   CSRF_SECRET: string;
+  ENCRYPTION_KEY: string;
   DEV_DB_NAME?: string;
   TEST_DB_NAME?: string;
   PROD_DB_NAME?: string;
@@ -53,8 +55,13 @@ const validateEnv = (): ValidatedEnv => {
   const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
   const sessionSecret = process.env.SESSION_SECRET;
   const csrfSecret = process.env.CSRF_SECRET;
+  const encryptionKey = process.env.ENCRYPTION_KEY;
 
   const MIN_SECRET_LENGTH = 32;
+  // ENCRYPTION_KEY is exactly 32 bytes, hex-encoded = 64 chars, because
+  // AES-256 needs a 256-bit key. utils/secrets.ts enforces this too, but
+  // failing at startup gives a clearer error than at first encrypt.
+  const ENCRYPTION_KEY_HEX_LEN = 64;
 
   // Check for missing secrets
   if (!jwtSecret) {
@@ -71,6 +78,10 @@ const validateEnv = (): ValidatedEnv => {
 
   if (!csrfSecret) {
     missing.push('CSRF_SECRET');
+  }
+
+  if (!encryptionKey) {
+    missing.push('ENCRYPTION_KEY');
   }
 
   // Validate secret lengths (only if they exist)
@@ -98,6 +109,17 @@ const validateEnv = (): ValidatedEnv => {
     );
   }
 
+  if (encryptionKey) {
+    if (encryptionKey.length !== ENCRYPTION_KEY_HEX_LEN) {
+      invalid.push(
+        `ENCRYPTION_KEY (exactly ${ENCRYPTION_KEY_HEX_LEN} hex characters required, got ${encryptionKey.length}). ` +
+          `Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+      );
+    } else if (!/^[0-9a-f]+$/i.test(encryptionKey)) {
+      invalid.push('ENCRYPTION_KEY must be hex (0-9, a-f)');
+    }
+  }
+
   // Report errors
   const errors: string[] = [];
 
@@ -120,6 +142,7 @@ const validateEnv = (): ValidatedEnv => {
     JWT_REFRESH_SECRET: jwtRefreshSecret as string,
     SESSION_SECRET: sessionSecret as string,
     CSRF_SECRET: csrfSecret as string,
+    ENCRYPTION_KEY: encryptionKey as string,
     DEV_DB_NAME: process.env.DEV_DB_NAME,
     TEST_DB_NAME: process.env.TEST_DB_NAME,
     PROD_DB_NAME: process.env.PROD_DB_NAME,

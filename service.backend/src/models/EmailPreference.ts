@@ -148,8 +148,10 @@ class EmailPreference
     this.disableType(type);
   }
 
-  public recordBounce(): void {
-    this.bounceCount += 1;
+  public async recordBounce(): Promise<void> {
+    // Atomic bump — bounce webhooks can fire concurrently on the same user.
+    await this.increment('bounceCount');
+    await this.reload();
     this.lastBounceAt = new Date();
 
     // Auto-disable after too many bounces
@@ -157,6 +159,7 @@ class EmailPreference
       this.isEmailEnabled = false;
       this.blacklist('Too many bounces');
     }
+    await this.save();
   }
 
   public blacklist(reason: string): void {
@@ -481,6 +484,12 @@ EmailPreference.init(
         fields: ['last_digest_sent'],
       },
     ],
+    // TODO (Phase 3 — secrets-at-rest): unsubscribeToken should be hashed on
+    // write, but the current emitter (email.service.generateUnsubscribeToken)
+    // produces a base64-encoded `userId:ts:random` and the unsubscribe
+    // endpoint decodes that blob rather than doing an equality lookup. Hashing
+    // without rewriting both sides would break the flow — deferred until the
+    // token is switched to crypto.randomBytes(32).
   }
 );
 

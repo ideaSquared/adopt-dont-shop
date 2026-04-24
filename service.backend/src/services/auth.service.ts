@@ -7,6 +7,7 @@ import qrcode from 'qrcode';
 import User, { UserStatus, UserType } from '../models/User';
 import RefreshToken from '../models/RefreshToken';
 import { logger, loggerHelpers } from '../utils/logger';
+import { decryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
 import { AuditLogService } from './auditLog.service';
 import { env } from '../config/env';
 
@@ -169,8 +170,10 @@ export class AuthService {
       // Verify password
       const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
       if (!isPasswordValid) {
-        // Increment login attempts
-        user.loginAttempts += 1;
+        // Atomic bump of loginAttempts — otherwise two simultaneous failed
+        // logins can both see N attempts and each write N+1, losing one try.
+        await user.increment('loginAttempts');
+        await user.reload();
 
         // Lock account after 5 failed attempts
         if (user.loginAttempts >= 5) {
@@ -180,9 +183,9 @@ export class AuthService {
             attempts: user.loginAttempts,
             ipAddress,
           });
+          await user.save();
         }
 
-        await user.save();
         throw new Error('Invalid credentials');
       }
 
@@ -490,7 +493,7 @@ Need help? Contact us at support@adoptdontshop.com
     try {
       const user = await User.findOne({
         where: {
-          resetToken: data.token,
+          resetToken: hashToken(data.token),
           resetTokenExpiration: {
             [Op.gt]: new Date(),
           },
@@ -533,7 +536,7 @@ Need help? Contact us at support@adoptdontshop.com
     try {
       const user = await User.findOne({
         where: {
-          verificationToken: token,
+          verificationToken: hashToken(token),
           verificationTokenExpiresAt: {
             [Op.gt]: new Date(),
           },
@@ -743,9 +746,12 @@ Need help? Contact us at support@adoptdontshop.com
       throw new Error('Two-factor authentication is not set up for this user');
     }
 
-    // First try TOTP verification
+    // twoFactorSecret is stored AES-256-GCM-encrypted; speakeasy needs the
+    // raw base32 secret to derive the TOTP. Decrypt on use, never persist.
+    const plainSecret = decryptSecret(user.twoFactorSecret);
+
     const isValidTotp = speakeasy.totp.verify({
-      secret: user.twoFactorSecret,
+      secret: plainSecret,
       encoding: 'base32',
       token,
       window: 1,
@@ -764,15 +770,23 @@ Need help? Contact us at support@adoptdontshop.com
       return false;
     }
 
-    const codeIndex = user.backupCodes.indexOf(code);
-    if (codeIndex === -1) {
+    // Backup codes are bcrypt-hashed — we can't indexOf(raw). Walk each
+    // stored hash and try to match; first hit is the used code.
+    let matchIndex = -1;
+    for (let i = 0; i < user.backupCodes.length; i++) {
+      // eslint-disable-next-line no-await-in-loop
+      if (await verifyBackupCode(code, user.backupCodes[i])) {
+        matchIndex = i;
+        break;
+      }
+    }
+    if (matchIndex === -1) {
       return false;
     }
 
-    // Remove used backup code
     const updatedCodes = [
-      ...user.backupCodes.slice(0, codeIndex),
-      ...user.backupCodes.slice(codeIndex + 1),
+      ...user.backupCodes.slice(0, matchIndex),
+      ...user.backupCodes.slice(matchIndex + 1),
     ];
     user.backupCodes = updatedCodes;
     await user.save();

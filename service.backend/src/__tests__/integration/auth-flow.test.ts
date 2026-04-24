@@ -45,6 +45,16 @@ vi.mock('speakeasy', () => ({
 }));
 
 // Mock email service
+// Plain-object mock users don't run model hooks; stub the at-rest protection
+// helpers to identity/equality so the service sees what the tests put in.
+vi.mock('../../utils/secrets', () => ({
+  encryptSecret: (v: string) => v,
+  decryptSecret: (v: string) => v,
+  hashToken: (v: string) => v,
+  hashBackupCode: async (v: string) => v,
+  verifyBackupCode: async (code: string, hash: string) => code === hash,
+}));
+
 vi.mock('../../services/email.service', () => ({
   default: {
     sendEmail: vi.fn().mockResolvedValue(undefined),
@@ -642,8 +652,9 @@ describe('Authentication Flow Integration Tests', () => {
 
         await expect(AuthService.login(loginCredentials)).rejects.toThrow('Invalid credentials');
 
+        // Atomic increment path (save only called on lockout)
         expect(mockUser.loginAttempts).toBe(3);
-        expect(mockUser.save).toHaveBeenCalled();
+        expect(mockUser.increment).toHaveBeenCalledWith('loginAttempts');
       });
 
       it('should lock account after 5 failed attempts', async () => {
@@ -1428,8 +1439,17 @@ function createMockUser(overrides: Partial<User> = {}): vi.Mocked<User> {
       emailVerified: overrides.emailVerified ?? true,
     }),
     save: vi.fn().mockResolvedValue(undefined),
+    reload: vi.fn().mockResolvedValue(undefined),
     ...overrides,
-  };
+  } as Record<string, unknown>;
+  // Semantic increment for the loginAttempts code path (Model.increment is
+  // atomic in prod; the mock just mutates the local object).
+  defaultUser.increment = vi.fn(async (field: string | string[]) => {
+    const fields = Array.isArray(field) ? field : [field];
+    for (const f of fields) {
+      defaultUser[f] = ((defaultUser[f] as number) || 0) + 1;
+    }
+  });
 
   return defaultUser as vi.Mocked<User>;
 }
