@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
 import { ParticipantRole } from '../types/chat';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 import Chat from './Chat';
 
 interface ChatParticipantAttributes {
@@ -54,6 +55,14 @@ ChatParticipant.init(
     chat_participant_id: {
       type: DataTypes.STRING,
       primaryKey: true,
+      // Server-generated readable ID, same pattern as chat_id/message_id.
+      // Without this, ChatService.createChat()'s participant inserts hit
+      // a PG not-null violation because the service passes only
+      // chat_id/participant_id/role.
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('participant')
+          : sequelize.literal(getReadableIdSqlLiteral('participant')),
     },
     chat_id: {
       type: DataTypes.STRING,
