@@ -476,9 +476,13 @@ describe('AuthService', () => {
         await authService.verifyEmail(token);
 
         expect(mockUser.emailVerified).toBe(true);
-        expect(mockUser.verificationToken).toBe(null);
         expect(mockUser.status).toBe(UserStatus.ACTIVE);
         expect(mockUser.save).toHaveBeenCalled();
+        // verificationToken intentionally NOT cleared so duplicate clicks of
+        // the same emailed link (StrictMode, retry, back/forward) are
+        // idempotent. The token expires naturally; once emailVerified=true,
+        // any further hit is a no-op.
+        expect(mockUser.verificationToken).toBe(token);
       });
 
       it('should throw error for invalid token', async () => {

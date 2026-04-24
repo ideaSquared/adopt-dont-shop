@@ -88,7 +88,9 @@ export class AuthService {
       // Send verification email
       try {
         const emailService = (await import('./email.service')).default;
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        // app.client runs on :3000 in dev (see docker-compose / CORS_ORIGIN).
+        // Set FRONTEND_URL in .env to override (e.g. for staging/prod).
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
         // sendEmail requires either templateId+templateData OR explicit
@@ -555,10 +557,18 @@ Need help? Contact us at support@adoptdontshop.com
         throw new Error('Invalid or expired verification token');
       }
 
+      // Idempotent: a duplicate request (React StrictMode dev double-mount,
+      // browser back/forward, network retry) should not 400. The token
+      // matched, so it's the right user — just no-op if already verified.
+      if (user.emailVerified) {
+        return { message: 'Email verified successfully' };
+      }
+
       user.emailVerified = true;
-      user.verificationToken = null;
-      user.verificationTokenExpiresAt = null;
       user.status = UserStatus.ACTIVE;
+      // Keep verificationToken/expires in place until natural expiry so
+      // duplicate clicks of the same emailed link succeed. The token only
+      // verifies email; once verified, replays are a no-op.
       await user.save();
 
       logger.info('Email verified', { userId: user.userId });
@@ -938,7 +948,7 @@ Need help? Contact us at support@adoptdontshop.com
       let failed = 0;
 
       const emailService = (await import('./email.service')).default;
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
       for (const user of unverifiedUsers) {
         try {

@@ -102,6 +102,9 @@ services:
       # 64 hex chars = 32 bytes for AES-256. Required by env validation.
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       API_URL: ${API_URL:-http://api.localhost}
+      # URL the user clicks in verification / password-reset emails.
+      # Default to app.client (3000); override per-env.
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5000}
       # File watching for hot reload (critical for Windows/Docker)
       CHOKIDAR_USEPOLLING: true

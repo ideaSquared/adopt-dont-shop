@@ -339,10 +339,11 @@ describe('Authentication Flow Integration Tests', () => {
           },
         });
         expect(mockUser.emailVerified).toBe(true);
-        expect(mockUser.verificationToken).toBe(null);
-        expect(mockUser.verificationTokenExpiresAt).toBe(null);
         expect(mockUser.status).toBe(UserStatus.ACTIVE);
         expect(mockUser.save).toHaveBeenCalled();
+        // Token is left in place so duplicate clicks (StrictMode, etc.) are
+        // idempotent. Naturally expires.
+        expect(mockUser.verificationToken).toBe(verificationToken);
         expect(result.message).toBe('Email verified successfully');
       });
 
