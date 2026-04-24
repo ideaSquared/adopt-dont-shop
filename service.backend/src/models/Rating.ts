@@ -47,19 +47,18 @@ interface RatingAttributes {
   updated_at?: Date;
 }
 
-interface RatingCreationAttributes
-  extends Optional<
-    RatingAttributes,
-    | 'rating_id'
-    | 'helpful_count'
-    | 'reported_count'
-    | 'is_verified'
-    | 'is_anonymous'
-    | 'is_featured'
-    | 'is_moderated'
-    | 'created_at'
-    | 'updated_at'
-  > {}
+interface RatingCreationAttributes extends Optional<
+  RatingAttributes,
+  | 'rating_id'
+  | 'helpful_count'
+  | 'reported_count'
+  | 'is_verified'
+  | 'is_anonymous'
+  | 'is_featured'
+  | 'is_moderated'
+  | 'created_at'
+  | 'updated_at'
+> {}
 
 export class Rating
   extends Model<RatingAttributes, RatingCreationAttributes>

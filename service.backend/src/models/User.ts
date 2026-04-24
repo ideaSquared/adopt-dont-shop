@@ -89,11 +89,10 @@ interface UserAttributes {
  * User Creation Attributes
  * Interface for creating new user records with optional fields
  */
-export interface UserCreationAttributes
-  extends Optional<
-    UserAttributes,
-    'userId' | 'status' | 'userType' | 'loginAttempts' | 'createdAt' | 'updatedAt' | 'deletedAt'
-  > {}
+export interface UserCreationAttributes extends Optional<
+  UserAttributes,
+  'userId' | 'status' | 'userType' | 'loginAttempts' | 'createdAt' | 'updatedAt' | 'deletedAt'
+> {}
 
 /**
  * User Model

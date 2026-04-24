@@ -52,17 +52,16 @@ interface ApplicationQuestionAttributes {
   deleted_at?: Date | null;
 }
 
-interface ApplicationQuestionCreationAttributes
-  extends Optional<
-    ApplicationQuestionAttributes,
-    | 'question_id'
-    | 'display_order'
-    | 'is_enabled'
-    | 'is_required'
-    | 'created_at'
-    | 'updated_at'
-    | 'deleted_at'
-  > {}
+interface ApplicationQuestionCreationAttributes extends Optional<
+  ApplicationQuestionAttributes,
+  | 'question_id'
+  | 'display_order'
+  | 'is_enabled'
+  | 'is_required'
+  | 'created_at'
+  | 'updated_at'
+  | 'deleted_at'
+> {}
 
 class ApplicationQuestion
   extends Model<ApplicationQuestionAttributes, ApplicationQuestionCreationAttributes>

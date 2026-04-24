@@ -5,7 +5,13 @@ import '../../models/index';
 const toSnakeCase = (str: string) => str.replace(/([A-Z])/g, '_$1').toLowerCase();
 
 // Reference/config tables allowed to keep INTEGER autoIncrement PKs
-const INTEGER_PK_WHITELIST = new Set(['Role', 'Permission', 'RolePermission', 'FieldPermission', 'AuditLog']);
+const INTEGER_PK_WHITELIST = new Set([
+  'Role',
+  'Permission',
+  'RolePermission',
+  'FieldPermission',
+  'AuditLog',
+]);
 
 // Tables with composite PKs — excluded from single-PK checks
 const COMPOSITE_PK_MODELS = new Set(['RolePermission', 'UserRole']);
@@ -73,13 +79,15 @@ describe('Model Standards', () => {
 
       Object.values(sequelize.models).forEach(model => {
         const attrs = model.getAttributes() as Record<string, ModelAttribute>;
-        const rawOptions = (model as unknown as { options: { indexes?: Array<{ fields: Array<string | { name: string }> }> } }).options;
+        const rawOptions = (
+          model as unknown as {
+            options: { indexes?: Array<{ fields: Array<string | { name: string }> }> };
+          }
+        ).options;
         const indexes = rawOptions.indexes ?? [];
 
         const indexedCols = new Set<string>(
-          indexes.flatMap(idx =>
-            idx.fields.map(f => (typeof f === 'string' ? f : f.name))
-          )
+          indexes.flatMap(idx => idx.fields.map(f => (typeof f === 'string' ? f : f.name)))
         );
 
         // PKs are always indexed
@@ -100,10 +108,7 @@ describe('Model Standards', () => {
           });
       });
 
-      expect(
-        failures,
-        `FK columns without an index — ${failures.join(', ')}`
-      ).toHaveLength(0);
+      expect(failures, `FK columns without an index — ${failures.join(', ')}`).toHaveLength(0);
     });
   });
 

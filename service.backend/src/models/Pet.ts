@@ -1,6 +1,13 @@
 // src/models/Pet.ts
 import { DataTypes, Model, Op, Optional, QueryTypes, WhereOptions } from 'sequelize';
-import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType, getTsVectorType, TsVector } from '../sequelize';
+import sequelize, {
+  getJsonType,
+  getUuidType,
+  getArrayType,
+  getGeometryType,
+  getTsVectorType,
+  TsVector,
+} from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
 
@@ -84,7 +91,6 @@ export enum GoodWith {
   SMALL_ANIMALS = 'small_animals',
 }
 
-
 export interface PetAttributes {
   petId: string;
   name: string;
@@ -161,23 +167,22 @@ export interface PetAttributes {
   deletedAt?: Date | null;
 }
 
-export interface PetCreationAttributes
-  extends Optional<
-    PetAttributes,
-    | 'petId'
-    | 'archived'
-    | 'featured'
-    | 'priorityListing'
-    | 'specialNeeds'
-    | 'houseTrained'
-    | 'videos'
-    | 'viewCount'
-    | 'favoriteCount'
-    | 'applicationCount'
-    | 'createdAt'
-    | 'updatedAt'
-    | 'deletedAt'
-  > {}
+export interface PetCreationAttributes extends Optional<
+  PetAttributes,
+  | 'petId'
+  | 'archived'
+  | 'featured'
+  | 'priorityListing'
+  | 'specialNeeds'
+  | 'houseTrained'
+  | 'videos'
+  | 'viewCount'
+  | 'favoriteCount'
+  | 'applicationCount'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'deletedAt'
+> {}
 
 class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttributes {
   public petId!: string;

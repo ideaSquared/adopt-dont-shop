@@ -87,8 +87,10 @@ interface EmailTemplateAttributes {
   deletedAt?: Date;
 }
 
-interface EmailTemplateCreationAttributes
-  extends Optional<EmailTemplateAttributes, 'templateId' | 'createdAt' | 'updatedAt'> {}
+interface EmailTemplateCreationAttributes extends Optional<
+  EmailTemplateAttributes,
+  'templateId' | 'createdAt' | 'updatedAt'
+> {}
 
 class EmailTemplate
   extends Model<EmailTemplateAttributes, EmailTemplateCreationAttributes>

@@ -21,8 +21,10 @@ interface FileUploadAttributes {
   updated_at?: Date;
 }
 
-interface FileUploadCreationAttributes
-  extends Optional<FileUploadAttributes, 'upload_id' | 'created_at' | 'updated_at'> {}
+interface FileUploadCreationAttributes extends Optional<
+  FileUploadAttributes,
+  'upload_id' | 'created_at' | 'updated_at'
+> {}
 
 class FileUpload
   extends Model<FileUploadAttributes, FileUploadCreationAttributes>

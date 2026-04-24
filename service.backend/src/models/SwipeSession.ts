@@ -23,18 +23,17 @@ export interface SwipeSessionAttributes {
 }
 
 // Optional attributes for creation
-export interface SwipeSessionCreationAttributes
-  extends Optional<
-    SwipeSessionAttributes,
-    | 'sessionId'
-    | 'totalSwipes'
-    | 'likes'
-    | 'passes'
-    | 'superLikes'
-    | 'isActive'
-    | 'createdAt'
-    | 'updatedAt'
-  > {}
+export interface SwipeSessionCreationAttributes extends Optional<
+  SwipeSessionAttributes,
+  | 'sessionId'
+  | 'totalSwipes'
+  | 'likes'
+  | 'passes'
+  | 'superLikes'
+  | 'isActive'
+  | 'createdAt'
+  | 'updatedAt'
+> {}
 
 // Device type enum
 export enum DeviceType {

@@ -60,8 +60,10 @@ interface ReportAttributes {
   updatedAt: Date;
 }
 
-interface ReportCreationAttributes
-  extends Optional<ReportAttributes, 'reportId' | 'createdAt' | 'updatedAt'> {}
+interface ReportCreationAttributes extends Optional<
+  ReportAttributes,
+  'reportId' | 'createdAt' | 'updatedAt'
+> {}
 
 class Report extends Model<ReportAttributes, ReportCreationAttributes> implements ReportAttributes {
   public reportId!: string;
