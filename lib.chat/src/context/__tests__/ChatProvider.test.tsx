@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ChatProvider } from '../ChatProvider';
 import { ChatService } from '../../services/chat-service';
 import type { Conversation, Message, TypingIndicator } from '../../types';
@@ -315,5 +315,220 @@ describe('ChatProvider', () => {
     // ChatService would throw and we'd swallow the error.
     await waitFor(() => expect(nullTokenProvider).toHaveBeenCalled());
     expect(connectSpy).not.toHaveBeenCalled();
+  });
+
+  it("appends the sender's own message to the stream after sendMessage resolves", async () => {
+    // User journey: I type a message and hit send, I immediately see my
+    // own bubble in the message stream and the conversation's lastMessage
+    // updates.
+    const conv = buildConversation({ id: 'chat-1' });
+    const { chatService, tokenProvider } = buildHarness([conv]);
+
+    const sent = buildMessage({
+      id: 'msg-sent',
+      senderId: 'user-1',
+      senderName: 'Alice',
+      content: 'hello there',
+    });
+    jest.spyOn(chatService, 'sendMessage').mockResolvedValue(sent);
+    jest.spyOn(chatService, 'getMessages').mockResolvedValue({
+      data: [],
+      success: true,
+      timestamp: '2026-01-01T00:00:00Z',
+      pagination: { page: 1, limit: 50, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+    jest.spyOn(chatService, 'markAsRead').mockResolvedValue();
+
+    let latest: Harness | null = null;
+    const Caller = () => {
+      const ctx = useChat();
+      useEffect(() => {
+        if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+          ctx.setActiveConversation(ctx.conversations[0]);
+        }
+      }, [ctx]);
+      useEffect(() => {
+        if (ctx.activeConversation && ctx.messages.length === 0) {
+          void ctx.sendMessage('hello there');
+        }
+      }, [ctx]);
+      return null;
+    };
+
+    render(
+      <ChatProvider
+        chatService={chatService}
+        user={{ userId: 'user-1', firstName: 'Alice' }}
+        isAuthenticated
+        tokenProvider={tokenProvider}
+      >
+        <Caller />
+        <TestConsumer onRender={(h) => (latest = h)} />
+      </ChatProvider>
+    );
+
+    await waitFor(() => expect(latest?.messages.find((m) => m.id === 'msg-sent')).toBeDefined());
+    expect(chatService.sendMessage).toHaveBeenCalledWith('chat-1', 'hello there');
+  });
+
+  it('prepends a newly started conversation to the list', async () => {
+    // User journey: I click "Contact rescue" on a pet and the new chat
+    // appears at the top of my Conversations list without refreshing.
+    const { chatService, tokenProvider, getConversationsMock } = buildHarness([]);
+    // The initial conversation fetch resolves after the startConversation
+    // prepend in this test; hold it open so it doesn't race-overwrite the
+    // optimistic list.
+    getConversationsMock.mockImplementation(() => new Promise(() => {}));
+
+    const newConv = buildConversation({
+      id: 'chat-new',
+      rescueId: 'rescue-42',
+      petId: 'pet-99',
+    });
+    jest.spyOn(chatService, 'createConversation').mockResolvedValue(newConv);
+
+    let latest: Harness | null = null;
+    const Caller = () => {
+      const ctx = useChat();
+      const triggeredRef = useRef(false);
+      useEffect(() => {
+        if (!triggeredRef.current && ctx.conversations.length === 0) {
+          triggeredRef.current = true;
+          void ctx.startConversation('rescue-42', 'pet-99');
+        }
+      }, [ctx]);
+      return null;
+    };
+
+    render(
+      <ChatProvider
+        chatService={chatService}
+        user={{ userId: 'user-1' }}
+        isAuthenticated
+        tokenProvider={tokenProvider}
+      >
+        <Caller />
+        <TestConsumer onRender={(h) => (latest = h)} />
+      </ChatProvider>
+    );
+
+    await waitFor(() => expect(latest?.conversations).toHaveLength(1));
+    expect(latest?.conversations[0].id).toBe('chat-new');
+    expect(chatService.createConversation).toHaveBeenCalledWith({
+      rescueId: 'rescue-42',
+      petId: 'pet-99',
+    });
+  });
+
+  it('auto-clears a typing indicator after the display window', async () => {
+    // User journey: someone starts typing, I see their name; they pause,
+    // and the indicator disappears on its own after ~3 seconds.
+    jest.useFakeTimers();
+    try {
+      const { chatService, tokenProvider } = buildHarness();
+
+      let latest: Harness | null = null;
+      render(
+        <ChatProvider
+          chatService={chatService}
+          user={{ userId: 'user-1' }}
+          isAuthenticated
+          tokenProvider={tokenProvider}
+        >
+          <TestConsumer onRender={(h) => (latest = h)} />
+        </ChatProvider>
+      );
+
+      await waitFor(() => expect(latest?.conversations).toHaveLength(1));
+
+      const typing: TypingIndicator = {
+        conversationId: 'chat-1',
+        userId: 'user-other',
+        userName: 'Other',
+        startedAt: '2026-01-01T00:00:00Z',
+      };
+      act(() => {
+        chatService.simulateTypingIndicator(typing);
+      });
+      expect(latest?.typingUsers).toContain('Other');
+
+      // Advance past the 3s clear window.
+      act(() => {
+        jest.advanceTimersByTime(3100);
+      });
+      expect(latest?.typingUsers).not.toContain('Other');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('prepends older messages to the stream when loadMoreMessages is called', async () => {
+    // User journey: I scroll to the top of the message stream and older
+    // messages are fetched and appear above the ones I was already seeing.
+    const conv = buildConversation({ id: 'chat-1' });
+    const { chatService, tokenProvider } = buildHarness([conv]);
+
+    // First page needs to fill MESSAGES_PAGE_SIZE (50) otherwise the
+    // provider treats it as "no more pages" and loadMoreMessages
+    // short-circuits. Synthesize 50 recent messages then one older
+    // message on page 2.
+    const firstPage = Array.from({ length: 50 }, (_, i) =>
+      buildMessage({
+        id: `m-recent-${i}`,
+        timestamp: `2026-01-01T10:${String(i).padStart(2, '0')}:00Z`,
+      })
+    );
+    const secondPage = [buildMessage({ id: 'm-older', timestamp: '2026-01-01T09:00:00Z' })];
+
+    const getMessagesSpy = jest
+      .spyOn(chatService, 'getMessages')
+      .mockResolvedValueOnce({
+        data: firstPage,
+        success: true,
+        timestamp: '2026-01-01T00:00:00Z',
+        pagination: { page: 1, limit: 50, total: 51, totalPages: 2, hasNext: true, hasPrev: false },
+      })
+      .mockResolvedValueOnce({
+        data: secondPage,
+        success: true,
+        timestamp: '2026-01-01T00:00:00Z',
+        pagination: { page: 2, limit: 50, total: 51, totalPages: 2, hasNext: false, hasPrev: true },
+      });
+    jest.spyOn(chatService, 'markAsRead').mockResolvedValue();
+
+    let latest: Harness | null = null;
+    const Caller = () => {
+      const ctx = useChat();
+      useEffect(() => {
+        if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+          ctx.setActiveConversation(ctx.conversations[0]);
+        }
+      }, [ctx]);
+      useEffect(() => {
+        if (ctx.activeConversation && ctx.messages.length === 50) {
+          void ctx.loadMoreMessages();
+        }
+      }, [ctx]);
+      return null;
+    };
+
+    render(
+      <ChatProvider
+        chatService={chatService}
+        user={{ userId: 'user-1' }}
+        isAuthenticated
+        tokenProvider={tokenProvider}
+      >
+        <Caller />
+        <TestConsumer onRender={(h) => (latest = h)} />
+      </ChatProvider>
+    );
+
+    // After loadMoreMessages, the older page should be prepended to the
+    // recent page — the older message id appears first.
+    await waitFor(() => expect(latest?.messages.length).toBe(51));
+    expect(latest?.messages[0].id).toBe('m-older');
+    expect(latest?.messages[latest?.messages.length - 1].id).toBe('m-recent-49');
+    expect(getMessagesSpy).toHaveBeenCalledTimes(2);
   });
 });
