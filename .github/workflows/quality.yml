@@ -28,6 +28,9 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      # One shard hitting a transient registry / cache issue shouldn't
+      # mask results for the others.
+      fail-fast: false
       matrix:
         project: [service.backend, app.client, app.admin, app.rescue, lib.components]
 
@@ -39,17 +42,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          # Cache npm downloads so matrix shards share artifacts instead
+          # of re-hitting the public registry.
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install
-        working-directory: ${{ matrix.project }}
+      # Install once at the workspace root with the deterministic lockfile.
+      # Subdir `npm install` in a workspace is racy — see the corresponding
+      # comment in security.yml — and was the source of intermittent
+      # shard-install failures on this repo.
+      - name: Install workspace dependencies
+        run: npm ci --no-audit --no-fund
 
-      - name: Check for outdated dependencies
+      - name: Check for outdated dependencies in ${{ matrix.project }}
         run: npm outdated
         working-directory: ${{ matrix.project }}
         continue-on-error: true
 
-      - name: Check for duplicate dependencies
+      - name: Check for duplicate dependencies in ${{ matrix.project }}
         run: npm ls --depth=0
         working-directory: ${{ matrix.project }}
         continue-on-error: true
