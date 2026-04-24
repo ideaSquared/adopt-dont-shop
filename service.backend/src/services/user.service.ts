@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { JsonObject } from '../types/common';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import Application from '../models/Application';
@@ -12,7 +13,6 @@ import {
   BulkUserUpdateData,
   PaginationOptions,
   UserPreferences,
-  UserProfile,
   UserSearchFilters,
   UserSearchOptions,
   UserStatistics,
@@ -72,6 +72,47 @@ interface UserActivitySummary {
     profileCompleteness: number;
   };
 }
+
+const UpdateProfileSchema = z.object({
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  phoneNumber: z.string().optional(),
+  bio: z.string().optional(),
+  profileImageUrl: z.string().url().optional().nullable(),
+  location: z
+    .object({
+      type: z.string().optional(),
+      coordinates: z.tuple([z.number(), z.number()]).optional(),
+      country: z.string().optional(),
+      city: z.string().optional(),
+      addressLine1: z.string().optional(),
+      addressLine2: z.string().optional(),
+      postalCode: z.string().optional(),
+    })
+    .optional(),
+  privacySettings: z
+    .object({
+      profileVisibility: z.enum(['public', 'private', 'rescue_only']).optional(),
+      showLocation: z.boolean().optional(),
+      allowMessages: z.boolean().optional(),
+      showAdoptionHistory: z.boolean().optional(),
+      showContactInfo: z.boolean().optional(),
+      allowSearchIndexing: z.boolean().optional(),
+    })
+    .optional(),
+  notificationPreferences: z
+    .object({
+      emailNotifications: z.boolean().optional(),
+      pushNotifications: z.boolean().optional(),
+      smsNotifications: z.boolean().optional(),
+      marketingEmails: z.boolean().optional(),
+      applicationUpdates: z.boolean().optional(),
+      chatMessages: z.boolean().optional(),
+      petAlerts: z.boolean().optional(),
+      rescueUpdates: z.boolean().optional(),
+    })
+    .optional(),
+});
 
 export class UserService {
   static async getUserById(userId: string, includePrivate: boolean = false): Promise<User | null> {
@@ -156,7 +197,7 @@ export class UserService {
 
   static async updateUserProfile(
     userId: string,
-    updateData: Partial<UserProfile>,
+    updateData: Record<string, unknown>,
     updatedBy?: string
   ): Promise<User> {
     const startTime = Date.now();
@@ -170,12 +211,15 @@ export class UserService {
       // Store original data for audit
       const originalData = user.toJSON();
 
+      // Validate and whitelist allowed fields to prevent mass assignment
+      const safeData = UpdateProfileSchema.parse(updateData);
+
       // Process the update data to match the database model format
-      const processedUpdateData: Record<string, unknown> = { ...updateData };
+      const processedUpdateData: Record<string, unknown> = { ...safeData };
 
       // Handle location transformation if present
-      if (updateData.location) {
-        const { coordinates, type, ...locationData } = updateData.location;
+      if (safeData.location) {
+        const { coordinates, type, ...locationData } = safeData.location;
 
         // If we have coordinates, create a proper GeoJSON Point
         if (coordinates && Array.isArray(coordinates) && coordinates.length === 2) {
@@ -226,7 +270,7 @@ export class UserService {
           'User Profile Updated',
           {
             userId,
-            updatedFields: Object.keys(updateData),
+            updatedFields: Object.keys(safeData),
             duration: Date.now() - startTime,
           },
           userId

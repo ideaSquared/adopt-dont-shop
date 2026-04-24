@@ -44,6 +44,7 @@
     "@types/uuid": "^9.0.0",
     "@types/validator": "^13.7.10",
     "bcrypt": "^5.1.0",
+    "zod": "^3.25.76",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

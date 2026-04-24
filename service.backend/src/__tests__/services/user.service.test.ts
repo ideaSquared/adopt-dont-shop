@@ -93,6 +93,31 @@ describe('UserService', () => {
         'User not found'
       );
     });
+
+    it('should not allow privilege escalation via mass assignment of restricted fields', async () => {
+      const user = await User.create({
+        email: 'mass-assign@example.com',
+        password: 'hashedpassword',
+        firstName: 'John',
+        lastName: 'Doe',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+        emailVerified: false,
+      });
+
+      await UserService.updateUserProfile(user.userId, {
+        firstName: 'Jane',
+        userType: UserType.ADMIN,
+        emailVerified: true,
+        status: UserStatus.SUSPENDED,
+      });
+
+      const dbUser = await User.findByPk(user.userId);
+      expect(dbUser?.firstName).toBe('Jane');
+      expect(dbUser?.userType).toBe(UserType.ADOPTER);
+      expect(dbUser?.emailVerified).toBe(false);
+      expect(dbUser?.status).toBe(UserStatus.ACTIVE);
+    });
   });
 
   describe('searchUsers', () => {
