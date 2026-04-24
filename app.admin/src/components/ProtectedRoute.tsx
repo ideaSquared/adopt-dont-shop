@@ -2,10 +2,11 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import styled from 'styled-components';
+import { ADMIN_USER_TYPES } from '@/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'moderator';
+  requiredRole?: 'admin' | 'moderator' | 'super_admin';
 }
 
 const LoadingContainer = styled.div`
@@ -113,8 +114,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
   }
 
   // Check if user has admin privileges
-  // userType values are: 'adopter' | 'rescue_staff' | 'admin' | 'moderator'
-  const isAdmin = user.userType === 'admin' || user.userType === 'moderator';
+  const isAdmin = (ADMIN_USER_TYPES as readonly string[]).includes(user.userType);
 
   if (!isAdmin) {
     return (
@@ -132,9 +132,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
     );
   }
 
-  // Check specific role requirements if provided
-  if (requiredRole) {
-    // Check specific role match
+  // Check specific role requirements if provided; super_admin bypasses all role gates
+  if (requiredRole && user.userType !== 'super_admin') {
     if (user.userType !== requiredRole) {
       return (
         <UnauthorizedContainer>

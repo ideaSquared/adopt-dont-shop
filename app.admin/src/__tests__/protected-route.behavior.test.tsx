@@ -217,6 +217,57 @@ describe('ProtectedRoute', () => {
     });
   });
 
+  describe('when a super_admin user accesses the admin area', () => {
+    it('renders the protected content', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: makeUser('super_admin'),
+      });
+
+      renderWithProviders(
+        <ProtectedRoute>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
+    });
+
+    it('does not show any access denied message', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: makeUser('super_admin'),
+      });
+
+      renderWithProviders(
+        <ProtectedRoute>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.queryByText('Access Denied')).not.toBeInTheDocument();
+    });
+
+    it('renders content even when a specific requiredRole is set', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: makeUser('super_admin'),
+      });
+
+      renderWithProviders(
+        <ProtectedRoute requiredRole='moderator'>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
+      expect(screen.queryByText('Insufficient Permissions')).not.toBeInTheDocument();
+    });
+  });
+
   describe('when a specific role is required', () => {
     it('shows Insufficient Permissions when admin tries to access moderator-only area', () => {
       mockUseAuth.mockReturnValue({
