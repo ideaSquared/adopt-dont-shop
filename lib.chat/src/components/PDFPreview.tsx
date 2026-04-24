@@ -72,13 +72,13 @@ const PDFButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
   height: 36px;
   border-radius: 6px;
   border: none;
-  background: ${props => (props.$variant === 'primary' ? '#007bff' : 'transparent')};
-  color: ${props => (props.$variant === 'primary' ? 'white' : '#6c757d')};
+  background: ${(props) => (props.$variant === 'primary' ? '#007bff' : 'transparent')};
+  color: ${(props) => (props.$variant === 'primary' ? 'white' : '#6c757d')};
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${props => (props.$variant === 'primary' ? '#0056b3' : '#e9ecef')};
+    background: ${(props) => (props.$variant === 'primary' ? '#0056b3' : '#e9ecef')};
   }
 
   &:disabled {
@@ -102,7 +102,7 @@ const PDFEmbed = styled.embed<{ $zoom: number }>`
   height: 100%;
   border: none;
   border-radius: 8px;
-  transform: scale(${props => props.$zoom});
+  transform: scale(${(props) => props.$zoom});
   transform-origin: center;
   transition: transform 0.2s ease;
 `;
@@ -112,7 +112,7 @@ const PDFIframe = styled.iframe<{ $zoom: number }>`
   height: 100%;
   border: none;
   border-radius: 8px;
-  transform: scale(${props => props.$zoom});
+  transform: scale(${(props) => props.$zoom});
   transform-origin: center;
   transition: transform 0.2s ease;
 `;
@@ -175,19 +175,21 @@ Localhost: ${isLocalhost}`);
       // Firefox has issues with PDF embeds, especially on localhost
       if (isFirefox && isLocalhost) {
         setViewMethod('google');
-        setDebugInfo(prev => `${prev}\nAuto-switched to Google Viewer (Firefox + localhost issue)`);
+        setDebugInfo(
+          (prev) => `${prev}\nAuto-switched to Google Viewer (Firefox + localhost issue)`
+        );
       }
 
       // Test if the PDF URL is accessible
       fetch(url, { method: 'HEAD' })
-        .then(response => {
+        .then((response) => {
           setDebugInfo(
-            prev =>
+            (prev) =>
               `${prev}\nStatus: ${response.status}\nContent-Type: ${response.headers.get('content-type')}\nContent-Length: ${response.headers.get('content-length')}`
           );
         })
-        .catch(error => {
-          setDebugInfo(prev => `${prev}\nFetch Error: ${error.message}`);
+        .catch((error) => {
+          setDebugInfo((prev) => `${prev}\nFetch Error: ${error.message}`);
         });
     }
   }, [isOpen, url, filename]);
@@ -204,10 +206,10 @@ Localhost: ${isLocalhost}`);
           break;
         case '+':
         case '=':
-          setZoom(prev => Math.min(prev + 0.25, 2));
+          setZoom((prev) => Math.min(prev + 0.25, 2));
           break;
         case '-':
-          setZoom(prev => Math.max(prev - 0.25, 0.5));
+          setZoom((prev) => Math.max(prev - 0.25, 0.5));
           break;
         case '1':
         case '2':
@@ -249,8 +251,8 @@ Localhost: ${isLocalhost}`);
     }
   };
 
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 2));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 2));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
 
   const renderPDFContent = () => {
     if (viewMethod === 'error') {
@@ -278,19 +280,19 @@ Localhost: ${isLocalhost}`);
             <DownloadButton
               href={url}
               download={filename}
-              target='_blank'
-              rel='noopener noreferrer'
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <MdDownload size={16} />
               Download PDF
             </DownloadButton>
-            <DownloadButton href={url} target='_blank' rel='noopener noreferrer'>
+            <DownloadButton href={url} target="_blank" rel="noopener noreferrer">
               🔗 Open in New Tab
             </DownloadButton>
             <DownloadButton
               href={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
-              target='_blank'
-              rel='noopener noreferrer'
+              target="_blank"
+              rel="noopener noreferrer"
             >
               📖 Google Viewer
             </DownloadButton>
@@ -314,7 +316,7 @@ Localhost: ${isLocalhost}`);
           $zoom={zoom}
           onError={() => setViewMethod('error')}
           onLoad={() => {
-            setDebugInfo(prev => `${prev}\nGoogle Viewer loaded successfully`);
+            setDebugInfo((prev) => `${prev}\nGoogle Viewer loaded successfully`);
           }}
         />
       );
@@ -327,7 +329,7 @@ Localhost: ${isLocalhost}`);
           title={filename}
           $zoom={zoom}
           onError={() => {
-            setDebugInfo(prev => `${prev}\niFrame failed, trying Google Viewer`);
+            setDebugInfo((prev) => `${prev}\niFrame failed, trying Google Viewer`);
             setViewMethod('google');
           }}
         />
@@ -337,11 +339,11 @@ Localhost: ${isLocalhost}`);
     return (
       <PDFEmbed
         src={url}
-        type='application/pdf'
+        type="application/pdf"
         title={filename}
         $zoom={zoom}
         onError={() => {
-          setDebugInfo(prev => `${prev}\nEmbed failed, trying iFrame`);
+          setDebugInfo((prev) => `${prev}\nEmbed failed, trying iFrame`);
           setViewMethod('iframe');
         }}
       />
@@ -350,14 +352,14 @@ Localhost: ${isLocalhost}`);
 
   return createPortal(
     <PDFOverlay onClick={handleOverlayClick}>
-      <PDFContainer onClick={e => e.stopPropagation()}>
+      <PDFContainer onClick={(e) => e.stopPropagation()}>
         <PDFHeader>
           <PDFTitle>{filename}</PDFTitle>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
             <span>Method:</span>
             <select
               value={viewMethod}
-              onChange={e =>
+              onChange={(e) =>
                 setViewMethod(e.target.value as 'embed' | 'iframe' | 'google' | 'error')
               }
               style={{
@@ -368,10 +370,10 @@ Localhost: ${isLocalhost}`);
                 borderRadius: '4px',
               }}
             >
-              <option value='embed'>Browser Embed</option>
-              <option value='iframe'>Browser iFrame</option>
-              <option value='google'>Google Viewer (Recommended for Firefox)</option>
-              <option value='error'>Debug/Download</option>
+              <option value="embed">Browser Embed</option>
+              <option value="iframe">Browser iFrame</option>
+              <option value="google">Google Viewer (Recommended for Firefox)</option>
+              <option value="error">Debug/Download</option>
             </select>
             <span
               style={{
@@ -402,12 +404,12 @@ Localhost: ${isLocalhost}`);
               </>
             )}
             <PDFButton
-              as='a'
+              as="a"
               href={url}
               download={filename}
-              target='_blank'
-              rel='noopener noreferrer'
-              $variant='primary'
+              target="_blank"
+              rel="noopener noreferrer"
+              $variant="primary"
             >
               <MdDownload size={18} />
             </PDFButton>

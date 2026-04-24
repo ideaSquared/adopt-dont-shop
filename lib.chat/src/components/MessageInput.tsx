@@ -5,7 +5,7 @@ import styled from 'styled-components';
 
 const InputContainer = styled.div`
   padding: 0.75rem 1rem 1.25rem 1rem;
-  background: ${props => props.theme.background.primary};
+  background: ${(props) => props.theme.background.primary};
 `;
 
 const InputRow = styled.div`
@@ -25,7 +25,7 @@ const MessageTextArea = styled(TextArea)`
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   line-height: 1.4;
-  background: ${props => props.theme.background.secondary};
+  background: ${(props) => props.theme.background.secondary};
   border: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
@@ -35,13 +35,13 @@ const MessageTextArea = styled(TextArea)`
 
   &:focus {
     outline: none;
-    background: ${props => props.theme.background.primary};
+    background: ${(props) => props.theme.background.primary};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     transform: translateY(-1px);
   }
 
   &::placeholder {
-    color: ${props => props.theme.text.secondary};
+    color: ${(props) => props.theme.text.secondary};
   }
 `;
 
@@ -57,14 +57,14 @@ const AttachmentItem = styled.div`
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: ${props => props.theme.colors.primary[100]};
-  border: 1px solid ${props => props.theme.colors.primary[500]};
+  background: ${(props) => props.theme.colors.primary[100]};
+  border: 1px solid ${(props) => props.theme.colors.primary[500]};
   border-radius: 18px;
   font-size: 0.875rem;
 `;
 
 const AttachmentName = styled.span`
-  color: ${props => props.theme.text.primary};
+  color: ${(props) => props.theme.text.primary};
   max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -79,7 +79,7 @@ const RemoveButton = styled.button`
   width: 18px;
   height: 18px;
   border: none;
-  background: ${props => props.theme.colors.semantic.error[500]};
+  background: ${(props) => props.theme.colors.semantic.error[500]};
   color: white;
   border-radius: 50%;
   cursor: pointer;
@@ -87,12 +87,12 @@ const RemoveButton = styled.button`
   transition: all 0.15s ease;
 
   &:hover {
-    background: ${props => props.theme.colors.semantic.error[600]};
+    background: ${(props) => props.theme.colors.semantic.error[600]};
     transform: scale(1.1);
   }
 
   &:focus {
-    outline: 2px solid ${props => props.theme.colors.semantic.error[200]};
+    outline: 2px solid ${(props) => props.theme.colors.semantic.error[200]};
     outline-offset: 2px;
   }
 `;
@@ -104,22 +104,22 @@ const AttachButton = styled.label`
   width: 44px;
   height: 44px;
   border: none;
-  background: ${props => props.theme.background.secondary};
+  background: ${(props) => props.theme.background.secondary};
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: ${props => props.theme.text.secondary};
+  color: ${(props) => props.theme.text.secondary};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    background: ${props => props.theme.colors.primary[100]};
-    border-color: ${props => props.theme.colors.primary[500]};
-    color: ${props => props.theme.colors.primary[500]};
+    background: ${(props) => props.theme.colors.primary[100]};
+    border-color: ${(props) => props.theme.colors.primary[500]};
+    color: ${(props) => props.theme.colors.primary[500]};
     transform: scale(1.05);
   }
 
   &:focus-within {
-    outline: 2px solid ${props => props.theme.colors.primary[500]};
+    outline: 2px solid ${(props) => props.theme.colors.primary[500]};
     outline-offset: 2px;
   }
 
@@ -146,7 +146,7 @@ const SendButton = styled(Button)`
   justify-content: center;
   transition: all 0.2s ease;
   border: none;
-  background: ${props => props.theme.colors.primary[500]};
+  background: ${(props) => props.theme.colors.primary[500]};
   color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 
@@ -269,8 +269,8 @@ export function MessageInput({
       return `File "${file.name}" is too large. Maximum size is ${(maxFileSize / 1024 / 1024).toFixed(1)}MB.`;
     }
 
-    const allowedTypes = acceptedFileTypes.split(',').map(type => type.trim());
-    const isValidType = allowedTypes.some(type => {
+    const allowedTypes = acceptedFileTypes.split(',').map((type) => type.trim());
+    const isValidType = allowedTypes.some((type) => {
       if (type.startsWith('.')) {
         return file.name.toLowerCase().endsWith(type.toLowerCase());
       }
@@ -308,7 +308,7 @@ export function MessageInput({
     }
 
     if (validFiles.length > 0) {
-      setAttachments(prev => [...prev, ...validFiles]);
+      setAttachments((prev) => [...prev, ...validFiles]);
     }
 
     // Reset input
@@ -318,7 +318,7 @@ export function MessageInput({
   };
 
   const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSend = () => {

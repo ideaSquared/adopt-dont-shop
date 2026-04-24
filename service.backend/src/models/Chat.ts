@@ -64,6 +64,14 @@ Chat.init(
     chat_id: {
       type: DataTypes.STRING,
       primaryKey: true,
+      // Matches the repo convention used by Application/Pet/User/etc —
+      // readable IDs generated server-side so callers don't have to
+      // invent their own. Without this, ChatService.createChat() inserts
+      // NULL into a NOT NULL PK and PostgreSQL rejects the row.
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('chat')
+          : sequelize.literal(getReadableIdSqlLiteral('chat')),
     },
     application_id: {
       type: DataTypes.STRING,

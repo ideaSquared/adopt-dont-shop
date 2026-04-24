@@ -1,5 +1,5 @@
-import { type MessageReaction } from '@adopt-dont-shop/lib.chat';
 import styled from 'styled-components';
+import type { MessageReaction } from '../types';
 
 const ReactionsRow = styled.div`
   display: flex;
@@ -15,9 +15,9 @@ const ReactionBadge = styled.button<{ $isActive: boolean }>`
   padding: 0.125rem 0.375rem;
   border-radius: 12px;
   border: 1px solid
-    ${props =>
+    ${(props) =>
       props.$isActive ? props.theme.colors.primary[300] : props.theme.border.color.secondary};
-  background: ${props =>
+  background: ${(props) =>
     props.$isActive ? props.theme.colors.primary[50] : props.theme.background.primary};
   cursor: pointer;
   font-size: 0.8125rem;
@@ -25,7 +25,7 @@ const ReactionBadge = styled.button<{ $isActive: boolean }>`
   transition: all 0.15s ease;
 
   &:hover {
-    background: ${props =>
+    background: ${(props) =>
       props.$isActive ? props.theme.colors.primary[100] : props.theme.background.secondary};
     transform: scale(1.05);
   }
@@ -43,7 +43,7 @@ const ReactionEmoji = styled.span`
 const ReactionCount = styled.span`
   font-size: 0.6875rem;
   font-weight: 600;
-  color: ${props => props.theme.text.secondary};
+  color: ${(props) => props.theme.text.secondary};
 `;
 
 type ReactionGroup = {
@@ -93,7 +93,7 @@ export function ReactionDisplay({
 
   return (
     <ReactionsRow>
-      {groups.map(group => (
+      {groups.map((group) => (
         <ReactionBadge
           key={group.emoji}
           $isActive={group.isActive}

@@ -1,7 +1,6 @@
 import { useChat } from '@/contexts/ChatContext';
+import { ChatWindow, ConversationList } from '@adopt-dont-shop/lib.chat';
 import styled from 'styled-components';
-import { ConversationList } from '@/components/communication/ConversationList';
-import { ChatWindow } from '@/components/communication/ChatWindow';
 import { useEffect, useState } from 'react';
 
 const PageContainer = styled.div`

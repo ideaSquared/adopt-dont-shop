@@ -178,6 +178,13 @@ Message.init(
     message_id: {
       type: DataTypes.STRING,
       primaryKey: true,
+      // Server-generated readable ID, same pattern as chat_id/user_id/etc.
+      // Without this, ChatService.sendMessage()'s insert hits a PG
+      // not-null violation on message_id because no caller passes one.
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('message')
+          : sequelize.literal(getReadableIdSqlLiteral('message')),
     },
     chat_id: {
       type: DataTypes.STRING,
@@ -215,6 +222,10 @@ Message.init(
     attachments: {
       type: getJsonType(),
       allowNull: false,
+      // See reactions/read_status below — same reasoning. Every current
+      // caller passes `data.attachments || []`, but the model should
+      // default so any new code path can't regress via forgotten field.
+      defaultValue: [],
       validate: {
         isValidAttachments(value: MessageAttachment[]) {
           if (!Array.isArray(value)) {
@@ -231,6 +242,12 @@ Message.init(
     reactions: {
       type: getJsonType(),
       allowNull: false,
+      // A brand new message has no reactions and no readers. Default both to
+      // empty arrays at the model level so every Message.create call site
+      // (service.sendMessage, seeders, tests, admin tools) doesn't have to
+      // remember to pass them. Without this, Sequelize rejected every insert
+      // from sendMessage with "Message.reactions cannot be null".
+      defaultValue: [],
       validate: {
         isValidReactions(value: MessageReaction[]) {
           if (!Array.isArray(value)) {
@@ -247,6 +264,7 @@ Message.init(
     read_status: {
       type: getJsonType(),
       allowNull: false,
+      defaultValue: [],
       validate: {
         isValidReadStatus(value: MessageReadStatus[]) {
           if (!Array.isArray(value)) {

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AppWithAuth } from './components/AppWithAuth';
+import { ChatProvider } from '@/contexts/ChatContext';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
 import { StatsigWrapper } from '@/contexts/StatsigContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -26,9 +27,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <StatsigWrapper>
             <PermissionsProvider>
               <ThemeProvider>
-                <BrowserRouter>
-                  <App />
-                </BrowserRouter>
+                <ChatProvider>
+                  <BrowserRouter>
+                    <App />
+                  </BrowserRouter>
+                </ChatProvider>
               </ThemeProvider>
             </PermissionsProvider>
           </StatsigWrapper>

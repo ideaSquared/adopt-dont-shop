@@ -40,12 +40,12 @@ const LightboxImage = styled.img<{ $zoom: number }>`
   max-height: 85vh;
   object-fit: contain;
   border-radius: 8px;
-  transform: scale(${props => props.$zoom});
+  transform: scale(${(props) => props.$zoom});
   transition: transform 0.2s ease;
-  cursor: ${props => (props.$zoom > 1 ? 'grab' : 'default')};
+  cursor: ${(props) => (props.$zoom > 1 ? 'grab' : 'default')};
 
   &:active {
-    cursor: ${props => (props.$zoom > 1 ? 'grabbing' : 'default')};
+    cursor: ${(props) => (props.$zoom > 1 ? 'grabbing' : 'default')};
   }
 `;
 
@@ -163,10 +163,10 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
           break;
         case '+':
         case '=':
-          setZoom(prev => Math.min(prev + 0.25, 3));
+          setZoom((prev) => Math.min(prev + 0.25, 3));
           break;
         case '-':
-          setZoom(prev => Math.max(prev - 0.25, 0.5));
+          setZoom((prev) => Math.max(prev - 0.25, 0.5));
           break;
       }
     };
@@ -201,8 +201,8 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
     }
   };
 
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
 
   return createPortal(
     <LightboxOverlay onClick={handleOverlayClick}>
@@ -223,14 +223,14 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
         {images.length > 1 && onNavigate && (
           <>
             <NavigationButton
-              className='prev'
+              className="prev"
               onClick={() => onNavigate(safeCurrentIndex - 1)}
               disabled={safeCurrentIndex === 0}
             >
               <MdNavigateBefore size={24} />
             </NavigationButton>
             <NavigationButton
-              className='next'
+              className="next"
               onClick={() => onNavigate(safeCurrentIndex + 1)}
               disabled={safeCurrentIndex === images.length - 1}
             >

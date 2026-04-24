@@ -61,16 +61,25 @@ export const authService = new AuthService();
 export const apiService = globalApiService;
 export const api = globalApiService;
 
-// ✅ Configure chatService with authentication headers and Socket.IO URL
+// ✅ Configure chatService with authentication headers and Socket.IO URL.
+// Socket.IO can't use a relative/empty URL (it would default to window.location.origin,
+// which is the Vite dev server on port 3000). The docker-compose dev config sets
+// VITE_WS_BASE_URL specifically for this; in prod, fall back to the REST base URL
+// because the backend + socket share a host.
+const wsBaseUrl = (import.meta.env.VITE_WS_BASE_URL as string | undefined) || baseUrl || undefined;
 export const chatService = new ChatService({
   ...serviceConfig,
-  socketUrl: baseUrl, // Socket.IO connects directly to base URL
+  socketUrl: wsBaseUrl,
   headers: {
     Authorization: () => {
       const token = authService.getToken();
       return token ? `Bearer ${token}` : '';
     },
   },
+  // Share the global apiService's CSRF token cache so chatService's
+  // mutating requests (send message, mark-as-read, reactions, etc.) pass
+  // the double-submit-cookie check in the backend middleware.
+  csrfToken: () => globalApiService.getCsrfToken(),
 });
 
 export const searchService = new SearchService({

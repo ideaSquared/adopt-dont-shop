@@ -1,11 +1,27 @@
+/**
+ * Thin wrapper that adapts app.client's dependencies onto lib.chat's
+ * ChatProvider. All chat state and behavior now lives in @adopt-dont-shop/lib.chat;
+ * this file exists only to inject the app's chatService, authService, useAuth,
+ * and offlineManager.
+ */
+
+import { useMemo, type ReactNode } from 'react';
 import {
-  Conversation as LibConversation,
+  ChatProvider as LibChatProvider,
+  useChat as useLibChat,
+  type ChatContextValue,
+  type FeatureFlagsAdapter,
+  type OfflineAdapter,
+  type OfflineState,
+  type OfflineStateListener,
+  type OfflineSyncCallback,
+  type ConnectionQuality,
+} from '@adopt-dont-shop/lib.chat';
+import {
+  authService,
   chatService,
-  Message as LibMessage,
-  TypingIndicator,
-  useConnectionStatus,
-  type ReactionUpdateEvent,
-  type ReadStatusUpdateEvent,
+  type Conversation as LibConversation,
+  type Message as LibMessage,
 } from '@/services';
 import {
   getConnectionQuality,
@@ -14,654 +30,99 @@ import {
   onOfflineStateChange,
   queueMessageForOffline,
   removeOfflineStateListener,
-  type OfflineState,
+  type OfflineState as AppOfflineState,
 } from '@/utils/offlineManager';
-import {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useStatsig } from '@/hooks/useStatsig';
+import { resolveFileUrl } from '@/utils/fileUtils';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { handleAsyncAction } from './base/BaseContext';
 
-interface ChatContextType {
-  conversations: Conversation[];
-  activeConversation: Conversation | null;
-  messages: Message[];
-  isConnected: boolean;
-  isLoading: boolean;
-  error: string | null;
-  typingUsers: string[];
-  hasMoreMessages: boolean;
-  isLoadingMoreMessages: boolean;
+const toLibOfflineState = (state: AppOfflineState): OfflineState => ({
+  isOnline: state.isOnline,
+  connectionQuality: state.connectionQuality as ConnectionQuality,
+  pendingMessages: state.pendingMessages.map(m => ({
+    id: m.id,
+    conversationId: m.conversationId,
+    content: m.content,
+  })),
+  pendingActions: state.pendingActions.map(a => ({
+    id: a.id,
+    type: a.type,
+    conversationId: a.conversationId,
+  })),
+});
 
-  // Socket.IO connection status
-  connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
-  isReconnecting: boolean;
-  reconnectionAttempts: number;
-
-  // Offline state
-  isOnline: boolean;
-  connectionQuality: 'excellent' | 'good' | 'poor' | 'offline';
-  pendingMessageCount: number;
-
-  // Aggregate unread count across all conversations (excludes the active one).
-  unreadMessageCount: number;
-
-  // Actions
-  setActiveConversation: (conversation: Conversation | null) => void;
-  sendMessage: (content: string, attachments?: File[]) => Promise<void>;
-  markAsRead: (conversationId: string) => Promise<void>;
-  loadConversations: () => Promise<void>;
-  loadMessages: (conversationId: string) => Promise<void>;
-  loadMoreMessages: () => Promise<void>;
-  startConversation: (rescueId: string, petId?: string) => Promise<Conversation>;
-  startTyping: (conversationId: string) => void;
-  stopTyping: (conversationId: string) => void;
-  toggleReaction: (messageId: string, emoji: string) => void;
-  forceSyncOfflineData: () => Promise<void>;
-}
-
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
-
-interface ChatProviderProps {
-  children: ReactNode;
-}
-
-export function ChatProvider({ children }: ChatProviderProps) {
-  const { user, isAuthenticated } = useAuth();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const [isLoadingMoreMessages, setIsLoadingMoreMessages] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Use Socket.IO connection status hook
-  const {
-    status: connectionStatus,
-    isConnected,
-    isReconnecting,
-    reconnectionAttempts,
-  } = useConnectionStatus(chatService);
-
-  // Offline state
-  const [isOnline, setIsOnline] = useState(isCurrentlyOnline());
-  const [connectionQuality, setConnectionQuality] = useState(getConnectionQuality());
-  const [pendingMessageCount, setPendingMessageCount] = useState(0);
-
-  const initializedRef = useRef<string | null>(null);
-  const lastMarkedAsReadRef = useRef<string | null>(null);
-  const lastLoadedMessagesRef = useRef<string | null>(null);
-  // Tracks the active conversation id for socket handlers that live across re-renders.
-  const activeConversationIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    activeConversationIdRef.current = activeConversation?.id ?? null;
-  }, [activeConversation]);
-
-  const loadConversations = useCallback(async () => {
-    if (!isAuthenticated) {
-      return;
-    }
-
-    const result = await handleAsyncAction(() => chatService.getConversations(), {
-      setError,
-      onError: error => console.error('Failed to load conversations:', error),
-    });
-
-    if (result) {
-      // Map chat_id to id for frontend compatibility
-      const mappedConversations = (result || []).map(
-        (conv: ConversationApiResponse) =>
-          ({
-            ...conv,
-            id: conv.id || conv.chat_id,
-          }) as Conversation
-      );
-      setConversations(mappedConversations);
-    }
-  }, [isAuthenticated]);
-
-  // Initialize socket connection when user is authenticated
-  useEffect(() => {
-    if (isAuthenticated && user?.userId && initializedRef.current !== user.userId) {
-      initializedRef.current = user.userId;
-
-      const token = localStorage.getItem('accessToken') || '';
-      chatService.connect(user.userId, token);
-
-      // Set up socket event listeners
-      const handleMessage = (message: Message) => {
-        // Prevent duplicate messages by checking if message already exists
-        setMessages(prev => {
-          const currentMessages = prev || [];
-          // Check if message already exists (by ID)
-          const messageExists = currentMessages.some(msg => msg.id === message.id);
-          if (messageExists) {
-            return currentMessages; // Don't add duplicate
-          }
-          return [...currentMessages, message];
-        });
-
-        // Update conversation list with latest message and bump unread count
-        // when the incoming message targets a conversation that is not currently active.
-        setConversations(prev =>
-          (prev || []).map(conv => {
-            if (conv.id !== message.conversationId) {
-              return conv;
-            }
-            const isActive = activeConversationIdRef.current === conv.id;
-            return {
-              ...conv,
-              lastMessage: message,
-              updatedAt: message.timestamp,
-              unreadCount: isActive ? conv.unreadCount : (conv.unreadCount ?? 0) + 1,
-            };
-          })
-        );
-      };
-
-      const handleTyping = (data: TypingIndicator) => {
-        // Add user to typing users when we receive a typing indicator
-        setTypingUsers(prev => {
-          const currentUsers = prev || [];
-          if (currentUsers.includes(data.userName)) {
-            return currentUsers;
-          }
-          return [...currentUsers, data.userName];
-        });
-
-        // Auto-remove user after 3 seconds of no typing indicator
-        setTimeout(() => {
-          setTypingUsers(prev => (prev || []).filter(name => name !== data.userName));
-        }, 3000);
-      };
-
-      const handleReactionUpdate = (event: ReactionUpdateEvent) => {
-        setMessages(prev =>
-          (prev || []).map(msg =>
-            msg.id === event.messageId
-              ? {
-                  ...msg,
-                  reactions: (event.reactions || []).map(r => ({
-                    userId: r.userId ?? (r as unknown as { user_id: string }).user_id,
-                    emoji: r.emoji,
-                    createdAt:
-                      r.createdAt ??
-                      (r as unknown as { created_at: string }).created_at ??
-                      new Date().toISOString(),
-                  })),
-                }
-              : msg
-          )
-        );
-      };
-
-      const handleReadStatusUpdate = (event: ReadStatusUpdateEvent) => {
-        // Update messages in the affected chat to reflect the new read status
-        setMessages(prev =>
-          (prev || []).map(msg =>
-            msg.conversationId === event.chatId
-              ? {
-                  ...msg,
-                  status: 'read' as const,
-                  readBy: [
-                    ...(msg.readBy || []),
-                    ...(msg.readBy?.some(r => r.userId === event.userId)
-                      ? []
-                      : [{ userId: event.userId, readAt: event.timestamp }]),
-                  ],
-                }
-              : msg
-          )
-        );
-        // Zero out unread count on the conversation that was marked read.
-        setConversations(prev =>
-          (prev || []).map(conv => (conv.id === event.chatId ? { ...conv, unreadCount: 0 } : conv))
-        );
-      };
-
-      chatService.onMessage(handleMessage);
-      chatService.onTyping(handleTyping);
-      chatService.onReactionUpdate(handleReactionUpdate);
-      chatService.onReadStatusUpdate(handleReadStatusUpdate);
-
-      // Load initial conversations - call directly to avoid dependency loop
-      const loadInitialConversations = async () => {
-        // Only load if user is authenticated
-        if (!isAuthenticated || !user?.userId) {
-          console.log('⚠️ ChatContext: Skipping conversation load - user not authenticated');
-          return;
-        }
-
-        try {
-          setIsLoading(true);
-          setError(null);
-          console.log('📞 ChatContext: Loading conversations for authenticated user');
-          const conversationList = await chatService.getConversations();
-          // Map chat_id to id for frontend compatibility
-          const mappedConversations = (conversationList || []).map(
-            (conv: ConversationApiResponse) =>
-              ({
-                ...conv,
-                id: conv.id || conv.chat_id,
-              }) as Conversation
-          );
-          setConversations(mappedConversations);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to load conversations');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadInitialConversations();
-
-      return () => {
-        // Clean up socket event listeners
-        chatService.off('message');
-        chatService.off('typing');
-        chatService.off('reaction');
-        chatService.off('readStatus');
-        chatService.disconnect();
-        initializedRef.current = null;
-      };
-    } else if (!isAuthenticated) {
-      // Reset when user logs out
-      initializedRef.current = null;
-      setConversations([]);
-      setMessages([]);
-      setError(null);
-    }
-  }, [isAuthenticated, user?.userId]); // Only depend on auth state and userId
-
-  const loadMessages = async (conversationId: string) => {
-    setCurrentPage(1);
-    setHasMoreMessages(true);
-
-    const messageData = await handleAsyncAction(
-      () =>
-        chatService.getMessages(conversationId, {
-          page: 1,
-          limit: 50,
-        }),
-      {
-        setError,
-        setLoading: setIsLoading,
-        onError: error => console.error('Failed to load messages:', error),
+const buildOfflineAdapter = (): OfflineAdapter => {
+  const listenerMap = new WeakMap<OfflineStateListener, (state: AppOfflineState) => void>();
+  return {
+    isCurrentlyOnline,
+    getConnectionQuality: () => getConnectionQuality() as ConnectionQuality,
+    onOfflineStateChange: (listener: OfflineStateListener) => {
+      const wrapped = (state: AppOfflineState) => listener(toLibOfflineState(state));
+      listenerMap.set(listener, wrapped);
+      onOfflineStateChange(wrapped);
+    },
+    removeOfflineStateListener: (listener: OfflineStateListener) => {
+      const wrapped = listenerMap.get(listener);
+      if (wrapped) {
+        removeOfflineStateListener(wrapped);
+        listenerMap.delete(listener);
       }
-    );
-
-    if (!messageData || !messageData.data) {
-      console.warn('No data array in response, using empty array');
-      setMessages([]);
-      return;
-    }
-
-    // Ensure messageData.data is an array
-    const messagesArray = Array.isArray(messageData.data) ? messageData.data : [];
-    setMessages(messagesArray);
-
-    // Check if there are more messages to load
-    if (messageData.data.length < 50) {
-      setHasMoreMessages(false);
-    }
-  };
-
-  const loadMoreMessages = async () => {
-    if (!activeConversation || !hasMoreMessages || isLoadingMoreMessages) {
-      return;
-    }
-
-    try {
-      setIsLoadingMoreMessages(true);
-      setError(null);
-      const nextPage = currentPage + 1;
-
-      const messageData = await chatService.getMessages(activeConversation.id, {
-        page: nextPage,
-        limit: 50,
-      });
-
-      if (!messageData || !messageData.data) {
-        console.warn('No message data received, stopping pagination');
-        setHasMoreMessages(false);
-        return;
-      }
-
-      // Ensure messageData.data is an array
-      const messagesArray = Array.isArray(messageData.data) ? messageData.data : [];
-
-      if (messagesArray.length === 0) {
-        setHasMoreMessages(false);
-      } else {
-        // Prepend older messages to the beginning of the array
-        setMessages(prev => [...messagesArray, ...(prev || [])]);
-        setCurrentPage(nextPage);
-
-        if (messagesArray.length < 50) {
-          setHasMoreMessages(false);
-        }
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load more messages';
-      setError(errorMessage);
-    } finally {
-      setIsLoadingMoreMessages(false);
-    }
-  };
-
-  const sendMessage = async (content: string, attachments?: File[]) => {
-    if (!activeConversation || !user) {
-      return;
-    }
-
-    // Handle offline case first
-    if (!isOnline) {
-      const tempId = queueMessageForOffline(activeConversation.id, content);
-
-      // Add temporary message to UI for immediate feedback
-      const tempMessage: Message = {
-        id: tempId,
-        conversationId: activeConversation.id,
-        senderId: user.userId,
-        senderName: user.firstName,
-        content,
-        timestamp: new Date().toISOString(),
-        type: 'text',
-        status: 'sending',
-      };
-
-      setMessages(prev => [...(prev || []), tempMessage]);
-      setError("📡 Message queued for when you're back online");
-      return;
-    }
-
-    // Handle online message sending
-    const result = await handleAsyncAction(
-      async () => {
-        if (attachments && attachments.length > 0) {
-          // Handle file attachments
-          for (const file of attachments) {
-            await chatService.uploadAttachment(activeConversation.id, file);
-          }
-        }
-
-        // Send message and get the response
-        return await chatService.sendMessage(activeConversation.id, content);
-      },
-      {
-        setError,
-        onError: error => {
-          // Check if it's a rate limit error and provide specific feedback
-          if (error.message.includes('Rate limit exceeded')) {
-            setError(`⚠️ ${error.message}`);
-          } else {
-            console.error('Failed to send message:', error);
-          }
-        },
-      }
-    );
-
-    if (result) {
-      // Add message to local state immediately (don't wait for socket)
-      setMessages(prev => [...(prev || []), result]);
-
-      // Update conversation with latest message
-      setConversations(prev =>
-        (prev || []).map(conv =>
-          conv.id === activeConversation.id
-            ? { ...conv, lastMessage: result, updatedAt: result.timestamp }
-            : conv
+    },
+    queueMessageForOffline,
+    forceSync: () => offlineManager.forceSync(),
+    setSyncCallback: (callback: OfflineSyncCallback) => {
+      offlineManager.setSyncCallback(async (messages, actions) =>
+        callback(
+          messages.map(m => ({ id: m.id, conversationId: m.conversationId, content: m.content })),
+          actions.map(a => ({ id: a.id, type: a.type, conversationId: a.conversationId }))
         )
       );
-    }
-  };
-
-  const markAsRead = async (conversationId: string) => {
-    await handleAsyncAction(() => chatService.markAsRead(conversationId), {
-      onError: error => console.error('Failed to mark as read:', error),
-    });
-  };
-
-  const startConversation = async (rescueId: string, petId?: string): Promise<Conversation> => {
-    try {
-      setError(null);
-
-      const conversation = await chatService.createConversation({
-        rescueId,
-        petId,
-      });
-
-      setConversations(prev => [conversation, ...(prev || [])]);
-      return conversation;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create conversation';
-      setError(errorMessage);
-      throw error;
-    }
-  };
-
-  const startTyping = useCallback((conversationId: string) => {
-    chatService.startTyping(conversationId);
-  }, []);
-
-  const stopTyping = useCallback((conversationId: string) => {
-    chatService.stopTyping(conversationId);
-  }, []);
-
-  const toggleReaction = useCallback(
-    (messageId: string, emoji: string) => {
-      if (!activeConversation || !user) {
-        return;
-      }
-
-      // Check if user already reacted with this emoji
-      const targetMessage = messages.find(m => m.id === messageId);
-      const hasReacted = targetMessage?.reactions?.some(
-        r => r.userId === user.userId && r.emoji === emoji
-      );
-
-      if (hasReacted) {
-        chatService.removeReaction(activeConversation.id, messageId, emoji).catch(err => {
-          console.error('Failed to remove reaction:', err);
-        });
-      } else {
-        chatService.addReaction(activeConversation.id, messageId, emoji).catch(err => {
-          console.error('Failed to add reaction:', err);
-        });
-      }
-
-      // Optimistic update
-      setMessages(prev =>
-        (prev || []).map(msg => {
-          if (msg.id !== messageId) {
-            return msg;
-          }
-
-          const currentReactions = msg.reactions || [];
-          if (hasReacted) {
-            return {
-              ...msg,
-              reactions: currentReactions.filter(
-                r => !(r.userId === user.userId && r.emoji === emoji)
-              ),
-            };
-          }
-
-          return {
-            ...msg,
-            reactions: [
-              ...currentReactions,
-              { userId: user.userId, emoji, createdAt: new Date().toISOString() },
-            ],
-          };
-        })
-      );
     },
-    [activeConversation, user, messages]
+    removeQueuedMessage: (id: string) => offlineManager.removeQueuedMessage(id),
+    removeQueuedAction: (id: string) => offlineManager.removeQueuedAction(id),
+  };
+};
+
+export function ChatProvider({ children }: { children: ReactNode }) {
+  const { user, isAuthenticated } = useAuth();
+  const { checkGate, logEvent } = useStatsig();
+  const offlineAdapter = useMemo(() => buildOfflineAdapter(), []);
+  const tokenProvider = useMemo(() => () => authService.getToken(), []);
+
+  const featureFlags = useMemo<FeatureFlagsAdapter>(
+    () => ({
+      checkGate: (name: string) => checkGate(name),
+      logEvent: (name: string, value?: number, metadata?: Record<string, unknown>) => {
+        // Statsig accepts string/number values + a Record<string, string>. Stringify here
+        // rather than widening Statsig's signature — chat metadata is small and always flat.
+        const stringMetadata =
+          metadata && Object.fromEntries(Object.entries(metadata).map(([k, v]) => [k, String(v)]));
+        logEvent(name, value, stringMetadata);
+      },
+    }),
+    [checkGate, logEvent]
   );
 
-  const handleSetActiveConversation = (conversation: Conversation | null) => {
-    setActiveConversation(conversation);
-    setTypingUsers([]); // Clear typing indicators when switching conversations
-    if (conversation) {
-      // Only load messages if it's a different conversation than the last one loaded
-      if (lastLoadedMessagesRef.current !== conversation.id) {
-        loadMessages(conversation.id);
-        lastLoadedMessagesRef.current = conversation.id;
-      }
-      // Only mark as read if it's a different conversation than the last one
-      if (lastMarkedAsReadRef.current !== conversation.id) {
-        markAsRead(conversation.id);
-        lastMarkedAsReadRef.current = conversation.id;
-      }
-    } else {
-      setMessages([]);
-      lastMarkedAsReadRef.current = null;
-      lastLoadedMessagesRef.current = null;
-    }
-  };
+  const chatUser = user ? { userId: user.userId, firstName: user.firstName } : null;
 
-  const forceSyncOfflineData = useCallback(async () => {
-    if (isOnline) {
-      try {
-        await offlineManager.forceSync();
-      } catch (error) {
-        console.error('Failed to force sync offline data:', error);
-        setError('Failed to sync offline messages');
-      }
-    }
-  }, [isOnline]);
-
-  // Offline state management
-  useEffect(() => {
-    const handleOfflineStateChange = (state: OfflineState) => {
-      // Update all offline-related state
-      setIsOnline(state.isOnline);
-      setConnectionQuality(state.connectionQuality);
-      setPendingMessageCount(state.pendingMessages.length + state.pendingActions.length);
-
-      // If we just came back online, trigger sync
-      if (state.isOnline && !isOnline) {
-        forceSyncOfflineData();
-      }
-    };
-
-    // Listen to offline manager events
-    onOfflineStateChange(handleOfflineStateChange);
-
-    return () => {
-      // Clean up listeners on unmount
-      removeOfflineStateListener(handleOfflineStateChange);
-    };
-  }, [forceSyncOfflineData, isOnline]);
-
-  // Setup offline state management
-  useEffect(() => {
-    const handleOfflineStateChange = (state: OfflineState) => {
-      setIsOnline(state.isOnline);
-      setConnectionQuality(state.connectionQuality);
-      setPendingMessageCount(state.pendingMessages.length + state.pendingActions.length);
-    };
-
-    // Set up sync callback for offline manager
-    offlineManager.setSyncCallback(async (messages, actions) => {
-      // Process pending messages
-      for (const message of messages) {
-        try {
-          await chatService.sendMessage(message.conversationId, message.content);
-          offlineManager.removeQueuedMessage(message.id);
-        } catch (error) {
-          console.error('Failed to sync message:', error);
-          // Message will be retried automatically by offline manager
-        }
-      }
-
-      // Process pending actions
-      for (const action of actions) {
-        try {
-          if (action.type === 'mark_read') {
-            await chatService.markAsRead(action.conversationId);
-          } else if (action.type === 'typing_start') {
-            chatService.startTyping(action.conversationId);
-          } else if (action.type === 'typing_stop') {
-            chatService.stopTyping(action.conversationId);
-          }
-          offlineManager.removeQueuedAction(action.id);
-        } catch (error) {
-          console.error('Failed to sync action:', error);
-          // Action will be retried automatically by offline manager
-        }
-      }
-    });
-
-    onOfflineStateChange(handleOfflineStateChange);
-
-    return () => {
-      removeOfflineStateListener(handleOfflineStateChange);
-    };
-  }, []);
-
-  const unreadMessageCount = useMemo(
-    () => (conversations ?? []).reduce((sum, c) => sum + (c.unreadCount ?? 0), 0),
-    [conversations]
+  return (
+    <LibChatProvider
+      chatService={chatService}
+      user={chatUser}
+      isAuthenticated={isAuthenticated}
+      tokenProvider={tokenProvider}
+      offlineAdapter={offlineAdapter}
+      featureFlags={featureFlags}
+      resolveFileUrl={resolveFileUrl}
+    >
+      {children}
+    </LibChatProvider>
   );
-
-  const value: ChatContextType = {
-    conversations,
-    activeConversation,
-    messages,
-    isConnected,
-    isLoading,
-    error,
-    typingUsers,
-    hasMoreMessages,
-    isLoadingMoreMessages,
-    connectionStatus,
-    isReconnecting,
-    reconnectionAttempts,
-    isOnline,
-    connectionQuality,
-    pendingMessageCount,
-    unreadMessageCount,
-    setActiveConversation: handleSetActiveConversation,
-    sendMessage,
-    markAsRead,
-    loadConversations,
-    loadMessages,
-    loadMoreMessages,
-    startConversation,
-    startTyping,
-    stopTyping,
-    toggleReaction,
-    forceSyncOfflineData,
-  };
-
-  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
 
-export function useChat() {
-  const context = useContext(ChatContext);
-  if (context === undefined) {
-    throw new Error('useChat must be used within a ChatProvider');
-  }
-  return context;
-}
+export const useChat = useLibChat;
 
-// Define a type for API response that may include chat_id
-interface ConversationApiResponse extends LibConversation {
-  chat_id?: string;
-}
-
-// Use library types directly
+// Re-exports so downstream components using `@/contexts/ChatContext` keep working.
+export type ChatContextType = ChatContextValue;
 export type Conversation = LibConversation;
 export type Message = LibMessage;

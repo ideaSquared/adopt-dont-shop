@@ -16,10 +16,10 @@ const PickerTrigger = styled.button<{ $isOwn: boolean }>`
   transition:
     opacity 0.15s ease,
     background 0.15s ease;
-  color: ${props => props.theme.text.secondary};
+  color: ${(props) => props.theme.text.secondary};
 
   &:hover {
-    background: ${props => props.theme.background.secondary};
+    background: ${(props) => props.theme.background.secondary};
     opacity: 1;
   }
 `;
@@ -32,19 +32,19 @@ const PickerWrapper = styled.div`
 
 const PickerPopover = styled.div<{ $position: 'above' | 'below' }>`
   position: absolute;
-  ${props => (props.$position === 'above' ? 'bottom: 100%' : 'top: 100%')};
+  ${(props) => (props.$position === 'above' ? 'bottom: 100%' : 'top: 100%')};
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
-  background: ${props => props.theme.background.primary};
-  border: 1px solid ${props => props.theme.border.color.secondary};
+  background: ${(props) => props.theme.background.primary};
+  border: 1px solid ${(props) => props.theme.border.color.secondary};
   border-radius: 24px;
   padding: 0.25rem 0.375rem;
   display: flex;
   gap: 0.125rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  margin-bottom: ${props => (props.$position === 'above' ? '0.25rem' : '0')};
-  margin-top: ${props => (props.$position === 'below' ? '0.25rem' : '0')};
+  margin-bottom: ${(props) => (props.$position === 'above' ? '0.25rem' : '0')};
+  margin-top: ${(props) => (props.$position === 'below' ? '0.25rem' : '0')};
 `;
 
 const EmojiButton = styled.button`
@@ -61,7 +61,7 @@ const EmojiButton = styled.button`
   transition: all 0.15s ease;
 
   &:hover {
-    background: ${props => props.theme.background.secondary};
+    background: ${(props) => props.theme.background.secondary};
     transform: scale(1.2);
   }
 
@@ -96,7 +96,7 @@ export function ReactionPicker({ isOwn, onSelectReaction }: ReactionPickerProps)
       const spaceAbove = rect.top;
       setPosition(spaceAbove < 80 ? 'below' : 'above');
     }
-    setIsOpen(prev => !prev);
+    setIsOpen((prev) => !prev);
   }, [isOpen]);
 
   const handleSelect = useCallback(
@@ -147,7 +147,7 @@ export function ReactionPicker({ isOwn, onSelectReaction }: ReactionPickerProps)
       </PickerTrigger>
       {isOpen && (
         <PickerPopover $position={position} role="listbox" aria-label="Choose a reaction">
-          {QUICK_REACTIONS.map(emoji => (
+          {QUICK_REACTIONS.map((emoji) => (
             <EmojiButton
               key={emoji}
               onClick={() => handleSelect(emoji)}

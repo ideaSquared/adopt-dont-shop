@@ -100,12 +100,42 @@ const IconLinkAnchor = styled(Link)<{ $active: boolean }>`
   }
 `;
 
-const BadgeOverlay = styled.span`
+const BadgeOverlay = styled.span<{ $hasCount: boolean }>`
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -2px;
+  right: -2px;
   pointer-events: none;
+
+  /* Overrides the shared Badge's defaults: bigger, heavier, with a ring in
+     the surrounding navbar color so the bubble separates cleanly from the
+     dark icon underneath. Colors come from the theme so the bubble follows
+     light/dark/custom themes rather than being pinned to a specific red. */
+  span[role='status'] {
+    min-width: 18px;
+    min-height: 18px;
+    padding: 0 5px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    background: ${({ theme }) => theme.colors.semantic.error[600]};
+    color: ${({ theme }) => theme.text.inverse};
+    border: 2px solid ${({ theme }) => theme.colors.primary[700]};
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  }
 `;
+
+const srOnly = {
+  position: 'absolute' as const,
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap' as const,
+  border: 0,
+};
 
 type IconLinkProps = {
   to: string;
@@ -117,17 +147,20 @@ type IconLinkProps = {
 const IconLink: React.FC<IconLinkProps> = ({ to, label, icon, count = 0 }) => {
   const location = useLocation();
   const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
-  const ariaLabel = count > 0 ? `${label} (${count} unread)` : label;
+  const ariaLabel =
+    count > 0 ? `${label}, ${count} unread ${count === 1 ? 'item' : 'items'}` : label;
   return (
     <IconLinkAnchor to={to} $active={active} aria-label={ariaLabel}>
       {icon}
       {count > 0 && (
-        <BadgeOverlay>
+        <BadgeOverlay $hasCount aria-hidden='true'>
           <Badge variant='count' max={99}>
             {count}
           </Badge>
         </BadgeOverlay>
       )}
+      {/* Redundant sr-only counter for AT users who don't surface aria-label */}
+      {count > 0 && <span style={srOnly}>{`${count} unread`}</span>}
     </IconLinkAnchor>
   );
 };

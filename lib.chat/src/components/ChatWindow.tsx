@@ -1,11 +1,9 @@
-import { useChat } from '@/contexts/ChatContext';
-import { useStatsig } from '@/hooks/useStatsig';
-import type { Conversation } from '@/services';
 import { Button, Spinner } from '@adopt-dont-shop/lib.components';
 import { useEffect, useRef, useState } from 'react';
 import { MdArrowBack } from 'react-icons/md';
-import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { useChat } from '../context/use-chat';
+import type { Conversation } from '../types';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
 import { TypingIndicator } from './TypingIndicator';
@@ -16,18 +14,18 @@ const ChatContainer = styled.div`
   height: 100%;
   flex: 1;
   min-width: 0;
-  background: ${props => props.theme.background.primary};
+  background: ${(props) => props.theme.background.primary};
   border-radius: 0;
   overflow: hidden;
 `;
 
 const ChatHeader = styled.div`
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid ${props => props.theme.border.color.secondary};
+  border-bottom: 1px solid ${(props) => props.theme.border.color.secondary};
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: ${props => props.theme.background.secondary};
+  background: ${(props) => props.theme.background.secondary};
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   min-height: 64px;
 
@@ -51,15 +49,35 @@ const BackButton = styled(Button)`
   justify-content: center;
 `;
 
+const HeaderAvatar = styled.div`
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: ${(props) => props.theme.colors.primary[700]};
+  background: linear-gradient(
+    135deg,
+    ${(props) => props.theme.colors.primary[100]},
+    ${(props) => props.theme.colors.primary[200]}
+  );
+  box-shadow: inset 0 0 0 2px ${(props) => props.theme.background.primary};
+`;
+
 const ConversationInfo = styled.div`
   flex: 1;
   min-width: 0;
 
   h3 {
     margin: 0;
-    font-size: 1.125rem;
-    color: ${props => props.theme.text.primary};
+    font-size: 1.05rem;
+    color: ${(props) => props.theme.text.primary};
     font-weight: 700;
+    letter-spacing: -0.01em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -69,7 +87,7 @@ const ConversationInfo = styled.div`
   p {
     margin: 0.125rem 0 0 0;
     font-size: 0.8125rem;
-    color: ${props => props.theme.text.secondary};
+    color: ${(props) => props.theme.text.secondary};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -83,7 +101,7 @@ const ChatBody = styled.div`
   flex-direction: column;
   min-height: 0;
   position: relative;
-  background: ${props => props.theme.background.primary};
+  background: ${(props) => props.theme.background.primary};
 `;
 
 const EmptyState = styled.div`
@@ -92,20 +110,30 @@ const EmptyState = styled.div`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 2rem 1rem;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
   text-align: center;
-  color: ${props => props.theme.text.secondary};
+  color: ${(props) => props.theme.text.secondary};
+
+  .illustration {
+    font-size: 3.5rem;
+    opacity: 0.75;
+    line-height: 1;
+  }
 
   h3 {
-    margin: 0 0 0.5rem 0;
-    color: ${props => props.theme.text.primary};
+    margin: 0;
+    color: ${(props) => props.theme.text.primary};
     font-size: 1.2rem;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
 
   p {
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    max-width: 24rem;
+    line-height: 1.5;
   }
 `;
 
@@ -114,16 +142,16 @@ const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  background: ${props => props.theme.background.secondary};
+  background: ${(props) => props.theme.background.secondary};
 `;
 
 const ErrorMessage = styled.div`
   margin: 1.5rem;
   padding: 1.25rem;
-  background: ${props => props.theme.colors.semantic.error[100]};
-  border: 1px solid ${props => props.theme.colors.semantic.error[600]};
-  color: ${props => props.theme.colors.semantic.error[500]};
-  border-radius: ${props => props.theme.border.radius.md};
+  background: ${(props) => props.theme.colors.semantic.error[100]};
+  border: 1px solid ${(props) => props.theme.colors.semantic.error[600]};
+  color: ${(props) => props.theme.colors.semantic.error[500]};
+  border-radius: ${(props) => props.theme.border.radius.md};
   text-align: center;
   font-size: 1.05rem;
 `;
@@ -134,21 +162,29 @@ const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: ${props => props.theme.background.primary};
+  background: ${(props) => props.theme.background.primary};
 `;
 
-const TypingContainer = styled.div`
+const TypingContainerWrap = styled.div`
   padding: 0.5rem 1rem;
 `;
 
 const InputArea = styled.div`
   flex: 0 0 auto;
-  background: ${props => props.theme.background.primary};
+  background: ${(props) => props.theme.background.primary};
 `;
 
-export function ChatWindow() {
-  const navigate = useNavigate();
-  const { logEvent } = useStatsig();
+type ChatWindowProps = {
+  /**
+   * Called when the user hits the mobile back button. After this callback
+   * runs the component also clears the active conversation via useChat's
+   * setActiveConversation. Apps that sync URL state (e.g. pop `/chat/:id`
+   * back to `/chat`) do that navigation here.
+   */
+  onBack?: () => void;
+};
+
+export function ChatWindow({ onBack }: ChatWindowProps) {
   const {
     activeConversation,
     messages,
@@ -160,30 +196,29 @@ export function ChatWindow() {
     startTyping,
     stopTyping,
     toggleReaction,
+    featureFlags,
   } = useChat();
+  const { logEvent } = featureFlags;
 
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
 
-  // Ref for auto-scroll
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
 
-  // Only scroll to bottom if user is already near the bottom
   useEffect(() => {
     if (autoScroll && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, activeConversation, autoScroll]);
 
-  // Detect if user is at the bottom
   const handleScroll = () => {
     const container = messagesContainerRef.current;
     if (!container) {
       return;
     }
-    const threshold = 80; // px
+    const threshold = 80;
     const atBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
     setAutoScroll(atBottom);
@@ -191,7 +226,7 @@ export function ChatWindow() {
 
   const handleBackClick = () => {
     setActiveConversation(null);
-    navigate('/chat');
+    onBack?.();
   };
 
   const handleSendMessage = async (attachments?: File[]) => {
@@ -205,7 +240,6 @@ export function ChatWindow() {
     try {
       setIsSending(true);
 
-      // Log message send attempt
       if (activeConversation) {
         logEvent('chat_message_sent', 1, {
           conversation_id: activeConversation.id.toString(),
@@ -222,7 +256,6 @@ export function ChatWindow() {
     } catch (err) {
       console.error('Failed to send message:', err);
 
-      // Log message send error
       if (activeConversation) {
         logEvent('chat_message_error', 1, {
           conversation_id: activeConversation.id.toString(),
@@ -256,8 +289,11 @@ export function ChatWindow() {
     return (
       <ChatContainer>
         <EmptyState>
-          <h3>Select a conversation</h3>
-          <p>Choose a conversation from the list to start messaging</p>
+          <div className="illustration" aria-hidden>
+            {'\u{1F4AC}'}
+          </div>
+          <h3>No conversation selected</h3>
+          <p>Pick a conversation from the list to start messaging.</p>
         </EmptyState>
       </ChatContainer>
     );
@@ -271,7 +307,6 @@ export function ChatWindow() {
     );
   }
 
-  // Prefer rescueName from backend, fallback to participants, then default
   type ConversationWithRescueName = Conversation & { rescueName?: string };
   const conversationTyped = activeConversation as ConversationWithRescueName;
   let rescueName = '';
@@ -281,24 +316,37 @@ export function ChatWindow() {
   ) {
     rescueName = conversationTyped.rescueName;
   } else if (Array.isArray(conversationTyped.participants)) {
-    const rescueParticipant = conversationTyped.participants.find(p => p.type === 'rescue');
+    const rescueParticipant = conversationTyped.participants.find((p) => p.type === 'rescue');
     rescueName = rescueParticipant?.name || '';
   }
   if (!rescueName) {
     rescueName = 'Rescue Organization';
   }
 
+  const initials = (() => {
+    const parts = rescueName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) {
+      return '?';
+    }
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  })();
+
   return (
     <ChatContainer>
       <ChatHeader>
         <BackButton
-          variant='ghost'
-          size='sm'
+          variant="ghost"
+          size="sm"
           onClick={handleBackClick}
-          aria-label='Back to conversations'
+          aria-label="Back to conversations"
         >
           <MdArrowBack size={20} />
         </BackButton>
+
+        <HeaderAvatar aria-hidden>{initials}</HeaderAvatar>
 
         <ConversationInfo>
           <h3>{rescueName}</h3>
@@ -321,11 +369,11 @@ export function ChatWindow() {
               <MessageList messages={messages} onToggleReaction={toggleReaction} />
               <div ref={messagesEndRef} />
               {typingUsers.length > 0 && (
-                <TypingContainer>
-                  {typingUsers.map(userName => (
+                <TypingContainerWrap>
+                  {typingUsers.map((userName) => (
                     <TypingIndicator key={userName} userName={userName} />
                   ))}
-                </TypingContainer>
+                </TypingContainerWrap>
               )}
             </MessagesContainer>
             <InputArea>
@@ -336,7 +384,7 @@ export function ChatWindow() {
                 onKeyPress={handleKeyPress}
                 onTyping={handleTyping}
                 disabled={isSending}
-                placeholder='Type your message...'
+                placeholder="Type your message..."
               />
             </InputArea>
           </>

@@ -34,7 +34,11 @@ export interface ReadStatusUpdateEvent {
  * ChatService - Handles chat operations
  */
 export class ChatService {
-  private config: Required<ChatServiceConfig>;
+  // csrfToken legitimately stays optional — apps without CSRF protection
+  // don't wire it. Everything else in ChatServiceConfig has a default so
+  // it's safe to widen to Required<...>.
+  private config: Required<Omit<ChatServiceConfig, 'csrfToken'>> &
+    Pick<ChatServiceConfig, 'csrfToken'>;
   private cache: Map<string, unknown> = new Map();
   private socket: Socket | null = null;
   private connectionStatus: ConnectionStatus = 'disconnected';
@@ -71,12 +75,35 @@ export class ChatService {
       },
       enableMessageQueue: config.enableMessageQueue ?? true,
       maxQueueSize: config.maxQueueSize ?? 50,
+      csrfToken: config.csrfToken,
       ...config,
     };
 
     if (this.config.debug) {
       console.log(`${ChatService.name} initialized with config:`, this.config);
     }
+  }
+
+  /**
+   * Resolve headers for state-changing requests (POST/PUT/PATCH/DELETE).
+   * Adds the CSRF token the backend's double-submit-cookie middleware
+   * expects on top of the standard headers.
+   */
+  private async getMutatingHeaders(): Promise<Record<string, string>> {
+    const headers = this.getHeaders();
+    if (this.config.csrfToken) {
+      try {
+        const token = await this.config.csrfToken();
+        if (token) {
+          headers['x-csrf-token'] = token;
+        }
+      } catch (error) {
+        if (this.config.debug) {
+          console.warn(`${ChatService.name} failed to resolve CSRF token:`, error);
+        }
+      }
+    }
+    return headers;
   }
 
   /**
@@ -485,6 +512,7 @@ export class ChatService {
   async getConversations(): Promise<Conversation[]> {
     try {
       const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
+        credentials: 'include',
         headers: this.getHeaders(),
       });
 
@@ -518,6 +546,7 @@ export class ChatService {
       const response = await fetch(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages?${params}`,
         {
+          credentials: 'include',
           headers: this.getHeaders(),
         }
       );
@@ -590,24 +619,41 @@ export class ChatService {
     }
 
     try {
-      const formData = new FormData();
-      formData.append('content', content);
+      // The backend's POST /messages route is JSON-only (no multer). File
+      // attachments go through the separate /attachments upload flow
+      // (uploadAttachment) and are referenced by URL/id in follow-up
+      // message metadata. For the text path — which is what ChatProvider
+      // actually drives — send JSON so express-validator sees the body.
+      // Sending multipart here made the server reject every message with
+      // "Message content must be 1-N characters" because req.body was
+      // empty.
+      const hasAttachments = attachments && attachments.length > 0;
 
-      if (attachments) {
-        attachments.forEach((file, index) => {
+      let fetchBody: BodyInit;
+      const headers = await this.getMutatingHeaders();
+
+      if (hasAttachments) {
+        // Multipart path stays available for callers that opt into it
+        // against a multer-enabled backend route. Drop Content-Type so
+        // the browser can pick the correct multipart boundary.
+        const formData = new FormData();
+        formData.append('content', content);
+        attachments!.forEach((file, index) => {
           formData.append(`attachment_${index}`, file);
         });
+        delete headers['Content-Type'];
+        fetchBody = formData;
+      } else {
+        headers['Content-Type'] = 'application/json';
+        fetchBody = JSON.stringify({ content });
       }
-
-      const headers = this.getHeaders();
-      // Don't set Content-Type for FormData, let browser set it
-      delete headers['Content-Type'];
 
       const response = await fetch(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages`,
         {
           method: 'POST',
-          body: formData,
+          credentials: 'include',
+          body: fetchBody,
           headers,
         }
       );
@@ -633,7 +679,8 @@ export class ChatService {
     try {
       const response = await fetch(`${this.config.apiUrl}/api/v1/chats/${conversationId}/read`, {
         method: 'POST',
-        headers: this.getHeaders(),
+        credentials: 'include',
+        headers: await this.getMutatingHeaders(),
       });
 
       if (!response.ok) {
@@ -658,7 +705,8 @@ export class ChatService {
     try {
       const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
         method: 'POST',
-        headers: this.getHeaders(),
+        credentials: 'include',
+        headers: await this.getMutatingHeaders(),
         body: JSON.stringify(data),
       });
 
@@ -684,7 +732,7 @@ export class ChatService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const headers = this.getHeaders();
+      const headers = await this.getMutatingHeaders();
       // Don't set Content-Type for FormData, let browser set it
       delete headers['Content-Type'];
 
@@ -692,6 +740,7 @@ export class ChatService {
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/attachments`,
         {
           method: 'POST',
+          credentials: 'include',
           body: formData,
           headers,
         }
@@ -738,7 +787,8 @@ export class ChatService {
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
         {
           method: 'POST',
-          headers: this.getHeaders(),
+          credentials: 'include',
+          headers: await this.getMutatingHeaders(),
           body: JSON.stringify({ emoji }),
         }
       );
@@ -763,7 +813,8 @@ export class ChatService {
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
         {
           method: 'DELETE',
-          headers: this.getHeaders(),
+          credentials: 'include',
+          headers: await this.getMutatingHeaders(),
           body: JSON.stringify({ emoji }),
         }
       );

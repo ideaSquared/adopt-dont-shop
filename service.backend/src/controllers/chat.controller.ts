@@ -3,6 +3,7 @@ import { ChatParticipant } from '../models/ChatParticipant';
 import User, { UserType } from '../models/User';
 import { ChatService } from '../services/chat.service';
 import { FileUploadService } from '../services/file-upload.service';
+import { broadcastNewMessage, isUserOnline } from '../socket/socket-handlers';
 import { ChatMessage } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
 
@@ -76,6 +77,54 @@ const getUserFullName = (user: User | SerializedUser | undefined | null): string
   const fullName = `${firstName} ${lastName}`.trim();
 
   return fullName || 'Unknown User';
+};
+
+/**
+ * Canonical "frontend message" shape that matches lib.chat's Message type.
+ * All three send-paths (POST /messages, GET /messages, new_message socket
+ * broadcast) now funnel through this so the frontend always sees the same
+ * camelCase keys with a populated senderName — no more
+ * getSenderName-on-missing-association showing up as "Unknown User" because
+ * one path serialized the Sequelize instance raw.
+ */
+export const toFrontendMessage = (
+  raw: MessageWithSender | SerializedMessage
+): {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  timestamp: string;
+  type: string;
+  status: string;
+  attachments: unknown[];
+  isEdited: boolean;
+  metadata: Record<string, never>;
+} => {
+  const msg: SerializedMessage =
+    typeof (raw as MessageWithSender).toJSON === 'function'
+      ? (raw as MessageWithSender).toJSON!()
+      : (raw as SerializedMessage);
+
+  // Sequelize's default toJSON on an instance with eager-loaded associations
+  // usually serializes Sender too, but some model setups (or test fixtures)
+  // include Sender only on the raw instance. Prefer whichever has it.
+  const sender = msg.Sender ?? (raw as MessageWithSender).Sender;
+
+  return {
+    id: msg.message_id,
+    conversationId: msg.chat_id,
+    senderId: msg.sender_id,
+    senderName: getUserFullName(sender),
+    content: msg.content || '',
+    timestamp: msg.created_at,
+    type: msg.content_format || 'text',
+    status: 'sent',
+    attachments: msg.attachments || [],
+    isEdited: false,
+    metadata: {},
+  };
 };
 
 export class ChatController {
@@ -213,7 +262,7 @@ export class ChatController {
               p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
                 ? p.User.profileImageUrl
                 : undefined,
-            isOnline: false,
+            isOnline: isUserOnline(p.participant_id),
           };
         }) || [];
 
@@ -223,12 +272,16 @@ export class ChatController {
         participants: participants.map(p => ({ id: p.id, name: p.name })),
       });
 
+      const unreadCount = userId
+        ? await ChatService.getUnreadMessageCount(chatObj.chat_id, userId)
+        : 0;
+
       // Transform to match frontend Conversation interface
       const transformedChat = {
         id: chatObj.chat_id,
         chat_id: chatObj.chat_id,
         participants,
-        unreadCount: 0, // TODO: Calculate unread count
+        unreadCount,
         updatedAt: chatObj.updated_at,
         createdAt: chatObj.created_at,
         isActive: chatObj.status === 'active',
@@ -297,55 +350,62 @@ export class ChatController {
         totalCount: result.pagination.total,
       });
 
-      // Add rescueName and lastMessage to each chat in the response
-      const chatsWithRescueName = result.chats.map(chat => {
-        const chatObj = chat.toJSON();
-        // Get the latest message (should be first in Messages array due to DESC order)
-        let lastMessage = null;
-        if (Array.isArray(chatObj.Messages) && chatObj.Messages.length > 0) {
-          const msg = chatObj.Messages[0];
-          lastMessage = {
-            id: msg.message_id,
-            content:
-              typeof msg.content === 'string' && msg.content.length > 120
-                ? msg.content.slice(0, 120) + '...'
-                : msg.content,
-            senderId: msg.sender_id,
-            createdAt: msg.created_at,
-            // Add more fields if needed
+      // Add rescueName, lastMessage, and real unread count to each chat.
+      // Unread is resolved per-chat in parallel; admin listings (no userId)
+      // skip the count since admins don't have an unread-mailbox view.
+      const chatsWithRescueName = await Promise.all(
+        result.chats.map(async chat => {
+          const chatObj = chat.toJSON();
+          // Get the latest message (should be first in Messages array due to DESC order)
+          let lastMessage = null;
+          if (Array.isArray(chatObj.Messages) && chatObj.Messages.length > 0) {
+            const msg = chatObj.Messages[0];
+            lastMessage = {
+              id: msg.message_id,
+              content:
+                typeof msg.content === 'string' && msg.content.length > 120
+                  ? msg.content.slice(0, 120) + '...'
+                  : msg.content,
+              senderId: msg.sender_id,
+              createdAt: msg.created_at,
+            };
+          }
+
+          // Transform participants to match frontend Participant interface
+          const participants =
+            (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => ({
+              id: p.participant_id,
+              name: getUserFullName(p.User),
+              type: p.role === 'admin' ? 'admin' : 'user',
+              avatarUrl:
+                p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
+                  ? p.User.profileImageUrl
+                  : undefined,
+              isOnline: isUserOnline(p.participant_id),
+            })) || [];
+
+          const unreadCount = isAdmin
+            ? 0
+            : await ChatService.getUnreadMessageCount(chatObj.chat_id, userId);
+
+          return {
+            id: chatObj.chat_id,
+            userId: undefined, // No user_id field in chat model
+            rescueId: chatObj.rescue_id,
+            petId: chatObj.pet_id,
+            applicationId: chatObj.application_id,
+            type: 'general', // Default type since not in model
+            status: chatObj.status,
+            participants,
+            unreadCount,
+            isTyping: [],
+            createdAt: chatObj.created_at,
+            updatedAt: chatObj.updated_at,
+            rescueName: chat.rescue?.name || null,
+            lastMessage,
           };
-        }
-
-        // Transform participants to match frontend Participant interface
-        const participants =
-          (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => ({
-            id: p.participant_id,
-            name: getUserFullName(p.User),
-            type: p.role === 'admin' ? 'admin' : 'user',
-            avatarUrl:
-              p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
-                ? p.User.profileImageUrl
-                : undefined,
-            isOnline: false, // TODO: Implement online status
-          })) || [];
-
-        return {
-          id: chatObj.chat_id,
-          userId: undefined, // No user_id field in chat model
-          rescueId: chatObj.rescue_id,
-          petId: chatObj.pet_id,
-          applicationId: chatObj.application_id,
-          type: 'general', // Default type since not in model
-          status: chatObj.status,
-          participants,
-          unreadCount: 0, // TODO: Calculate unread count
-          isTyping: [],
-          createdAt: chatObj.created_at,
-          updatedAt: chatObj.updated_at,
-          rescueName: chat.rescue?.name || null,
-          lastMessage,
-        };
-      });
+        })
+      );
       res.json({
         success: true,
         data: chatsWithRescueName,
@@ -460,16 +520,35 @@ export class ChatController {
         attachments,
       });
 
-      // Get sender's full name using the helper function
-      const messageWithSender = message as unknown as MessageWithSender;
-      const senderName = getUserFullName(messageWithSender.Sender);
+      const frontendMessage = toFrontendMessage(message as unknown as MessageWithSender);
+
+      // Real-time fan-out. Without this, recipients only see the message
+      // on next page load — the existing socket "new_message" event was
+      // only emitted by the deprecated socket send_message handler, never
+      // by the REST path that the frontend actually uses.
+      //
+      // We emit to each participant's personal user:{id} room rather than
+      // a chat:{chatId} room, so the frontend doesn't need to track
+      // chat-room membership — every authenticated socket auto-joins its
+      // own user room on connect. The sender is included and the client
+      // dedupes by message id (the sender already appended the message
+      // optimistically from the REST response).
+      try {
+        const participants = await ChatParticipant.findAll({
+          where: { chat_id: chatId },
+          attributes: ['participant_id'],
+        });
+        const recipientIds = participants.map(p => p.participant_id);
+        broadcastNewMessage(chatId, frontendMessage, recipientIds);
+      } catch (err) {
+        // Broadcasting is best-effort — log and move on rather than
+        // failing the send when the socket fan-out misfires.
+        logger.warn('Failed to broadcast new_message over socket:', err);
+      }
 
       res.status(201).json({
         success: true,
-        data: {
-          ...message.toJSON(),
-          sender_name: senderName,
-        },
+        data: frontendMessage,
         message: 'Message sent successfully',
       });
     } catch (error) {
@@ -500,37 +579,24 @@ export class ChatController {
       const parsedPage = parseInt(page as string);
       const parsedLimit = parseInt(limit as string);
 
+      const userId = req.user!.userId;
+      const userType = req.user!.userType;
+      const isAdmin = userType === UserType.ADMIN;
+
+      // Admins bypass the participant check; everyone else must be a
+      // participant of this chat to read its messages.
       const result = await ChatService.getMessages(chatId, {
         page: parsedPage,
         limit: parsedLimit,
+        userId: isAdmin ? undefined : userId,
       });
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      // Transform messages to match frontend Message interface
-      const transformedMessages = result.messages.map(msg => {
-        const msgObj: SerializedMessage =
-          typeof (msg as MessageWithSender).toJSON === 'function'
-            ? (msg as MessageWithSender).toJSON!()
-            : (msg as unknown as SerializedMessage);
-
-        // Get sender name using the helper function
-        const senderName = getUserFullName(msgObj.Sender);
-
-        return {
-          id: msgObj.message_id,
-          conversationId: msgObj.chat_id,
-          senderId: msgObj.sender_id,
-          senderName,
-          content: msgObj.content || '',
-          timestamp: msgObj.created_at,
-          type: msgObj.content_format || 'text',
-          status: 'sent',
-          attachments: msgObj.attachments || [],
-          isEdited: false,
-          metadata: {},
-        };
-      });
+      // Canonical frontend shape — same helper the POST /messages path uses.
+      const transformedMessages = result.messages.map(msg =>
+        toFrontendMessage(msg as unknown as MessageWithSender)
+      );
 
       res.json({
         success: true,
@@ -550,6 +616,12 @@ export class ChatController {
         chatId: req.params.chatId,
         duration: Date.now() - startTime,
       });
+      if (error instanceof Error && error.message === 'User is not a participant in this chat') {
+        return res.status(403).json({
+          error: 'Access denied',
+          message: error.message,
+        });
+      }
       res.status(500).json({
         error: 'Failed to get messages',
         message: error instanceof Error ? error.message : 'Unknown error',
@@ -596,6 +668,12 @@ export class ChatController {
       });
     } catch (error) {
       logger.error('Error getting unread count:', error);
+      if (error instanceof Error && error.message === 'User is not a participant in this chat') {
+        return res.status(403).json({
+          error: 'Access denied',
+          message: error.message,
+        });
+      }
       res.status(500).json({
         error: 'Failed to get unread count',
         message: error instanceof Error ? error.message : 'Unknown error',

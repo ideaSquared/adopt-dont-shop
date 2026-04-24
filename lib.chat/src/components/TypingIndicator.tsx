@@ -15,10 +15,10 @@ const TypingContainer = styled.div`
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   margin: 0.25rem 1rem 0.5rem 1rem;
-  background: ${props => props.theme.background.secondary};
+  background: ${(props) => props.theme.background.secondary};
   border-radius: 18px 18px 18px 4px;
   max-width: 200px;
-  color: ${props => props.theme.text.secondary};
+  color: ${(props) => props.theme.text.secondary};
   font-size: 0.8125rem;
   font-weight: 500;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -32,15 +32,15 @@ const TypingDots = styled.div`
 const Dot = styled.div<{ delay: number }>`
   width: 3px;
   height: 3px;
-  background: ${props => props.theme.text.tertiary};
+  background: ${(props) => props.theme.text.tertiary};
   border-radius: 50%;
   animation: ${bounce} 1.4s infinite;
-  animation-delay: ${props => props.delay}s;
+  animation-delay: ${(props) => props.delay}s;
 `;
 
-interface TypingIndicatorProps {
+type TypingIndicatorProps = {
   userName: string;
-}
+};
 
 export function TypingIndicator({ userName }: TypingIndicatorProps) {
   return (

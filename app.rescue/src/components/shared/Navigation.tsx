@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { useChat } from '@/contexts/ChatContext';
 
 const MainNavigation = styled.nav`
   width: 280px;
@@ -42,7 +43,7 @@ const NavItem = styled.li`
   margin: 0.25rem 0;
 `;
 
-const NavLink = styled(Link)<{ $isActive: boolean }>`
+const NavLink = styled(Link)<{ $isActive: boolean; $hasUnread?: boolean }>`
   display: flex;
   align-items: center;
   padding: 0.75rem 1.5rem;
@@ -64,6 +65,14 @@ const NavLink = styled(Link)<{ $isActive: boolean }>`
     color: white;
     font-weight: 600;
   `}
+
+  ${props =>
+    props.$hasUnread &&
+    !props.$isActive &&
+    `
+    color: white;
+    font-weight: 600;
+  `}
 `;
 
 const NavIcon = styled.span`
@@ -75,6 +84,41 @@ const NavIcon = styled.span`
 
 const NavLabel = styled.span`
   font-size: 0.95rem;
+  flex: 1;
+`;
+
+const badgePulse = keyframes`
+  0% { box-shadow: 0 0 0 0 var(--nav-badge-halo); }
+  70% { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+`;
+
+const NavBadge = styled.span`
+  /* Halo tracks the theme's error color instead of a hardcoded red. */
+  --nav-badge-halo: color-mix(
+    in srgb,
+    ${props => props.theme.colors.semantic.error[500]} 60%,
+    transparent
+  );
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: ${props => props.theme.colors.semantic.error[500]};
+  color: ${props => props.theme.text.inverse};
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-left: 0.5rem;
+  animation: ${badgePulse} 2s ease-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const NavFooter = styled.div`
@@ -140,13 +184,19 @@ const LogoutButton = styled.button`
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { user, logout, isLoading } = useAuth();
+  const { unreadMessageCount } = useChat();
 
-  const navItems = [
+  const navItems: Array<{ path: string; label: string; icon: string; badge?: number }> = [
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/pets', label: 'Pets', icon: '🐕' },
     { path: '/applications', label: 'Applications', icon: '📋' },
     { path: '/staff', label: 'Staff', icon: '👥' },
-    { path: '/communication', label: 'Messages', icon: '💬' },
+    {
+      path: '/communication',
+      label: 'Messages',
+      icon: '💬',
+      badge: unreadMessageCount,
+    },
     { path: '/events', label: 'Events', icon: '🗓️' },
     { path: '/settings', label: 'Settings', icon: '⚙️' },
   ];
@@ -188,14 +238,28 @@ const Navigation: React.FC = () => {
       </NavHeader>
 
       <NavList>
-        {navItems.map(item => (
-          <NavItem key={item.path}>
-            <NavLink to={item.path} $isActive={location.pathname === item.path}>
-              <NavIcon>{item.icon}</NavIcon>
-              <NavLabel>{item.label}</NavLabel>
-            </NavLink>
-          </NavItem>
-        ))}
+        {navItems.map(item => {
+          const hasUnread = typeof item.badge === 'number' && item.badge > 0;
+          return (
+            <NavItem key={item.path}>
+              <NavLink
+                to={item.path}
+                $isActive={location.pathname === item.path}
+                $hasUnread={hasUnread}
+              >
+                <NavIcon>{item.icon}</NavIcon>
+                <NavLabel>{item.label}</NavLabel>
+                {hasUnread && (
+                  <NavBadge
+                    aria-label={`${item.badge} unread message${item.badge === 1 ? '' : 's'}`}
+                  >
+                    {item.badge! > 99 ? '99+' : item.badge}
+                  </NavBadge>
+                )}
+              </NavLink>
+            </NavItem>
+          );
+        })}
       </NavList>
 
       <NavFooter>

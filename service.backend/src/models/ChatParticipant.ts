@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
 import { ParticipantRole } from '../types/chat';
+import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
 import Chat from './Chat';
 
 interface ChatParticipantAttributes {
@@ -8,13 +9,18 @@ interface ChatParticipantAttributes {
   chat_id: string;
   participant_id: string;
   role: ParticipantRole;
+  /** For rescue-role participants, the rescue this participant represents. */
+  rescue_id?: string | null;
   last_read_at: Date;
   created_at?: Date;
   updated_at?: Date;
 }
 
 interface ChatParticipantCreationAttributes
-  extends Optional<ChatParticipantAttributes, 'chat_participant_id' | 'last_read_at'> {}
+  extends Optional<
+    ChatParticipantAttributes,
+    'chat_participant_id' | 'last_read_at' | 'rescue_id'
+  > {}
 
 export class ChatParticipant
   extends Model<ChatParticipantAttributes, ChatParticipantCreationAttributes>
@@ -24,6 +30,7 @@ export class ChatParticipant
   public chat_id!: string;
   public participant_id!: string;
   public role!: ParticipantRole;
+  public rescue_id!: string | null;
   public last_read_at!: Date;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -48,6 +55,14 @@ ChatParticipant.init(
     chat_participant_id: {
       type: DataTypes.STRING,
       primaryKey: true,
+      // Server-generated readable ID, same pattern as chat_id/message_id.
+      // Without this, ChatService.createChat()'s participant inserts hit
+      // a PG not-null violation because the service passes only
+      // chat_id/participant_id/role.
+      defaultValue:
+        process.env.NODE_ENV === 'test'
+          ? () => generateReadableId('participant')
+          : sequelize.literal(getReadableIdSqlLiteral('participant')),
     },
     chat_id: {
       type: DataTypes.STRING,
@@ -69,6 +84,10 @@ ChatParticipant.init(
     role: {
       type: DataTypes.ENUM(...Object.values(ParticipantRole)),
       allowNull: false,
+    },
+    rescue_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     last_read_at: {
       type: DataTypes.DATE,

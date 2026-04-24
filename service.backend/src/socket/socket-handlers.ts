@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import { config } from '../config';
+import { toFrontendMessage } from '../controllers/chat.controller';
 import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
 import { getMessageBroker } from '../services/messageBroker.service';
@@ -35,12 +36,62 @@ interface TypingUser {
 const userPresence = new Map<string, UserPresence>();
 const typingUsers = new Map<string, Map<string, TypingUser>>(); // chatId -> userId -> TypingUser
 
+/**
+ * Returns true when the given user has at least one active socket connection.
+ * Safe to call from anywhere in the process; reads from the same in-memory
+ * map that SocketHandlers maintains.
+ *
+ * NOTE: single-instance presence only. Multi-instance deploys need a Redis-
+ * backed registry to be accurate across replicas.
+ */
+export function isUserOnline(userId: string): boolean {
+  const presence = userPresence.get(userId);
+  return !!presence && presence.status !== 'offline' && presence.socketIds.length > 0;
+}
+
+/**
+ * Holds the live Socket.IO server so module-level broadcast helpers can
+ * reach it without the caller having to plumb a handle through. Populated
+ * in SocketHandlers' constructor and cleared in teardown paths (tests).
+ */
+let liveIo: SocketIOServer | null = null;
+
+/**
+ * Broadcast a "new_message" event to every given recipient's personal
+ * user:{id} room. Each authenticated socket auto-joins that room on
+ * connect, so we don't need the frontend to manage chat-room membership
+ * — one emit per participant reaches any device they've got open.
+ *
+ * The sender is typically included; the frontend ChatProvider dedupes
+ * by message id (optimistically appended on the REST response, then
+ * merged with the socket copy). Callers pass only the recipients they
+ * want to notify.
+ */
+export function broadcastNewMessage(
+  chatId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  message: any,
+  recipientUserIds: string[]
+): void {
+  if (!liveIo) {
+    return;
+  }
+  const payload = { message, chatId, timestamp: new Date() };
+  for (const userId of recipientUserIds) {
+    liveIo.to(`user:${userId}`).emit('new_message', payload);
+  }
+}
+
 export class SocketHandlers {
   private io: SocketIOServer;
   private messageBroker = getMessageBroker();
 
   constructor(io: SocketIOServer) {
     this.io = io;
+    // Expose the IO instance to module-level broadcast helpers
+    // (broadcastNewMessage) so controllers can fan out events without
+    // having to plumb a reference through.
+    liveIo = io;
     this.setupMiddleware();
     this.setupConnectionHandler();
     this.setupMessageBrokerSubscriptions();
@@ -249,9 +300,13 @@ export class SocketHandlers {
             replyToId,
           });
 
-          // Broadcast message to all participants in the chat
+          // Broadcast the canonical frontend message shape — same helper
+          // used by the REST send/get paths — so clients see camelCase keys
+          // and a populated senderName instead of a raw Sequelize instance
+          // with a nested Sender association.
           this.io.to(`chat:${chatId}`).emit('new_message', {
-            message,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            message: toFrontendMessage(message as any),
             chatId,
             timestamp: new Date(),
           });

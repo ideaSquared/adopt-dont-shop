@@ -8,10 +8,10 @@ const Avatar = styled.div`
   border-radius: 50%;
   background: linear-gradient(
     135deg,
-    ${props => props.theme.colors.primary[100]},
-    ${props => props.theme.colors.primary[300]}
+    ${(props) => props.theme.colors.primary[100]},
+    ${(props) => props.theme.colors.primary[300]}
   );
-  color: ${props => props.theme.colors.primary[700]};
+  color: ${(props) => props.theme.colors.primary[700]};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -19,9 +19,8 @@ const Avatar = styled.div`
   font-size: 1.15rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   margin-right: 0.4rem;
-  border: 2px solid ${props => props.theme.colors.primary[300]};
+  border: 2px solid ${(props) => props.theme.colors.primary[300]};
   user-select: none;
-  aria-label: 'Sender initials';
 `;
 
 export function AvatarComponent({ initials }: { initials: string }) {
