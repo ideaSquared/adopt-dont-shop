@@ -2,7 +2,7 @@ import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'se
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 // Forward declarations to avoid circular imports
 interface Permission {
@@ -189,13 +189,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
 User.init(
   {
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
-      field: 'user_id', // Explicit database field mapping
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('user')
-          : sequelize.literal(getReadableIdSqlLiteral('user')),
+      field: 'user_id',
+      defaultValue: () => generateUuidV7(),
     },
     firstName: {
       type: DataTypes.STRING(100),
@@ -402,6 +399,7 @@ User.init(
         model: 'rescues',
         key: 'rescue_id',
       },
+      onDelete: 'SET NULL',
     },
     privacySettings: {
       type: getJsonType(),
@@ -494,6 +492,7 @@ User.init(
       {
         unique: true,
         fields: ['email'],
+        name: 'users_email_unique',
       },
       {
         fields: ['status'],
@@ -503,6 +502,7 @@ User.init(
       },
       {
         fields: ['rescue_id'],
+        name: 'users_rescue_id_idx',
       },
       {
         fields: ['created_at'],

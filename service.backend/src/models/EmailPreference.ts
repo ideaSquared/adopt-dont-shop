@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
+import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum EmailFrequency {
   IMMEDIATE = 'immediate',
@@ -244,7 +244,7 @@ class EmailPreference
   }
 
   public static generateUnsubscribeToken(): string {
-    return generateReadableId('unsub');
+    return generateUuidV7();
   }
 
   public static getDefaultPreferences(): NotificationPreference[] {
@@ -322,16 +322,13 @@ class EmailPreference
 EmailPreference.init(
   {
     preferenceId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'preference_id',
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('pref')
-          : sequelize.literal(getReadableIdSqlLiteral('pref')),
+      defaultValue: () => generateUuidV7(),
     },
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       unique: true,
       field: 'user_id',
@@ -339,6 +336,7 @@ EmailPreference.init(
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'CASCADE',
     },
     isEmailEnabled: {
       type: DataTypes.BOOLEAN,
@@ -455,14 +453,15 @@ EmailPreference.init(
     sequelize,
     tableName: 'email_preferences',
     timestamps: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
+    underscored: true,
     indexes: [
       {
+        name: 'email_preferences_user_id_unique',
         fields: ['user_id'],
         unique: true,
       },
       {
+        name: 'email_preferences_unsubscribe_token_unique',
         fields: ['unsubscribe_token'],
         unique: true,
       },

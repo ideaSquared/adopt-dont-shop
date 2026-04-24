@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum EmailStatus {
   QUEUED = 'queued',
@@ -280,22 +280,20 @@ class EmailQueue
 EmailQueue.init(
   {
     emailId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'email_id',
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('email')
-          : sequelize.literal(getReadableIdSqlLiteral('email')),
+      defaultValue: () => generateUuidV7(),
     },
     templateId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'template_id',
       references: {
         model: 'email_templates',
         key: 'template_id',
       },
+      onDelete: 'SET NULL',
     },
     fromEmail: {
       type: DataTypes.STRING,
@@ -496,22 +494,24 @@ EmailQueue.init(
       field: 'campaign_id',
     },
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'user_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     createdBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'created_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     tags: {
       type: getArrayType(DataTypes.STRING),
@@ -557,8 +557,7 @@ EmailQueue.init(
     sequelize,
     tableName: 'email_queue',
     timestamps: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
+    underscored: true,
     indexes: [
       {
         fields: ['status'],
@@ -573,10 +572,16 @@ EmailQueue.init(
         fields: ['to_email'],
       },
       {
+        name: 'email_queue_user_id_idx',
         fields: ['user_id'],
       },
       {
+        name: 'email_queue_template_id_idx',
         fields: ['template_id'],
+      },
+      {
+        name: 'email_queue_created_by_idx',
+        fields: ['created_by'],
       },
       {
         fields: ['campaign_id'],

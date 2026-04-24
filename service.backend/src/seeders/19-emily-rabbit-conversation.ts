@@ -10,13 +10,13 @@ import FileUpload from '../models/FileUpload';
 
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
-// Emily Davis (user_0000adopt02) conversation with Bunny Haven Rabbit Rescue
+// Emily Davis (fc369713-6925-4f02-a5c6-cb84b3652116) conversation with Bunny Haven Rabbit Rescue
 
 const emilyRabbitConversationData = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_0000emrb001',
+    chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440003', // Bunny Haven Rabbit Rescue
 
@@ -33,9 +33,9 @@ const emilyRabbitConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      participant_id: 'user_0000adopt02', // Emily Davis
+      participant_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       role: ParticipantRole.USER,
 
@@ -49,9 +49,9 @@ const emilyRabbitConversationData = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      participant_id: 'user_0000mode001', // Lisa Chen from Bunny Haven
+      participant_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen from Bunny Haven
 
       role: ParticipantRole.RESCUE,
 
@@ -67,11 +67,11 @@ const emilyRabbitConversationData = {
 
   messages: [
     {
-      message_id: 'message_0000emr001',
+      message_id: '05e6d82a-2a56-4ac5-a74c-bcbfa48e8bd5',
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: 'user_0000adopt02', // Emily Davis
+      sender_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       content:
         "Hello! I'm considering adopting a rabbit as I've heard they can be wonderful indoor companions. I have cats and I'm wondering if it's possible for them to coexist peacefully? I saw your bonded pair Luna and Stella and I'm curious about their needs.",
@@ -88,11 +88,11 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'message_0000emr002',
+      message_id: 'ed6e0ddb-cf25-4e88-a886-10849425f6fd',
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: 'user_0000mode001', // Lisa Chen
+      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen
 
       content:
         "Hi Emily! It's wonderful that you're considering rabbits. Luna and Stella are indeed a bonded pair - they must be adopted together. Rabbits and cats can coexist, but it requires careful introduction and supervision. The cats need to be calm and not overly predatory. How do your cats typically react to small animals?",
@@ -109,11 +109,11 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'message_0000emr003',
+      message_id: 'ff243dc7-60f3-44a0-a535-d23ead5ef10c',
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: 'user_0000adopt02', // Emily Davis
+      sender_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       content:
         "My cats are both seniors (10 and 12) and very mellow. They've never shown hunting instincts - they mostly ignore birds outside and are generally uninterested in anything that moves quickly. I'd definitely want to set up a separate safe space for the rabbits. What kind of housing and care do Luna and Stella need?",
@@ -130,11 +130,11 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'message_0000emr004',
+      message_id: '6caf01e1-1093-4df1-af48-b40f9cea6860',
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: 'user_0000mode001', // Lisa Chen
+      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen
 
       content:
         "That sounds very promising! Senior cats are often ideal companions for rabbits. Luna and Stella need a large exercise pen (at least 4x4 feet) with hiding spots, plus daily supervised floor time for exercise. They're litter trained and need fresh hay, pellets, and vegetables daily. They're both spayed and very social with humans. Would you like to meet them?",
@@ -151,11 +151,11 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'message_0000emr005',
+      message_id: 'fca4ebd7-53ab-4d9f-ac50-9d56abeae4fd',
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: 'user_0000adopt02', // Emily Davis
+      sender_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       content:
         "Yes, I'd love to meet them! I've been researching rabbit care and I think I could provide a good home. I work from home so they wouldn't be alone much. What's the adoption process like? And is there anything special I should know about caring for a bonded pair?",
@@ -172,11 +172,11 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'message_0000emr006',
+      message_id: 'c7a447d0-3078-41e1-a1b5-9cf15043cc1a',
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: 'user_0000mode001', // Lisa Chen
+      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen
 
       content:
         "Bonded pairs are actually easier in some ways - they keep each other company and play together! The adoption fee is $120 for both. We do require a home visit to ensure the setup is safe. Luna is more outgoing while Stella is shy but sweet. They've been together for 2 years. How about Sunday afternoon for a meet-and-greet?",
@@ -193,11 +193,11 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'message_0000emr007',
+      message_id: 'bb35d577-0458-4d22-af4e-dfa4e26f3e59',
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: 'user_0000adopt02', // Emily Davis
+      sender_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       content:
         "Sunday afternoon works perfectly! I'm excited to meet them both. I've already started looking into bunny-proofing my house and setting up a proper space. Should I have the setup ready before the home visit, or do you prefer to advise on the best arrangement first?",
@@ -214,11 +214,11 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'message_0000emr008',
+      message_id: '70a9dabf-4a4d-4292-a9be-4c14a19ef05f',
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: 'user_0000mode001', // Lisa Chen
+      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen
 
       content:
         "I'd love to advise on the setup during the home visit! Every house is different and I can help you choose the best spot and arrangement. For Sunday, just come as you are - bring any questions you have. Luna and Stella are going to love meeting you! See you at 2 PM at our facility. 🐰🐰",
@@ -235,11 +235,11 @@ const emilyRabbitConversationData = {
     },
 
     {
-      message_id: 'message_0000emr009',
+      message_id: 'd2c2084b-7d86-48c0-a0d2-7d8bdd3b04ce',
 
-      chat_id: 'chat_0000emrb001',
+      chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: 'user_0000adopt02', // Emily Davis
+      sender_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       content:
         "Perfect! I'll see you Sunday at 2 PM. Thank you so much for all the information. I have a feeling this is going to be a wonderful addition to my little zoo at home! 😊",
@@ -266,13 +266,13 @@ const emilyRabbitConversationData = {
       file_size: 89421,
       mime_type: 'image/jpeg',
       url: '/uploads/chat/emily-rabbit-conversation-sample.jpg',
-      uploaded_by: 'user_0000adopt02', // Emily Davis
+      uploaded_by: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
       entity_type: 'chat',
-      entity_id: 'chat_0000emrb001',
+      entity_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of my rabbit housing setup and exercise area',
-        attachedToMessage: 'message_0000emr003',
+        attachedToMessage: 'ff243dc7-60f3-44a0-a535-d23ead5ef10c',
       },
       created_at: new Date('2024-07-18T15:30:00Z'),
       updated_at: new Date('2024-07-18T15:30:00Z'),

@@ -1,3 +1,30 @@
+// ---------------------------------------------------------------------------
+// Branded ID types — prevent accidental cross-entity ID usage at compile time
+// ---------------------------------------------------------------------------
+
+type Brand<T, B> = T & { readonly __brand: B };
+
+export type UserId = Brand<string, 'UserId'>;
+export type PetId = Brand<string, 'PetId'>;
+export type RescueId = Brand<string, 'RescueId'>;
+export type ApplicationId = Brand<string, 'ApplicationId'>;
+export type ChatId = Brand<string, 'ChatId'>;
+export type MessageId = Brand<string, 'MessageId'>;
+export type NotificationId = Brand<string, 'NotificationId'>;
+export type StaffMemberId = Brand<string, 'StaffMemberId'>;
+export type FileUploadId = Brand<string, 'FileUploadId'>;
+export type ReportId = Brand<string, 'ReportId'>;
+export type SupportTicketId = Brand<string, 'SupportTicketId'>;
+export type EmailTemplateId = Brand<string, 'EmailTemplateId'>;
+export type SwipeSessionId = Brand<string, 'SwipeSessionId'>;
+export type UserSanctionId = Brand<string, 'UserSanctionId'>;
+export type RatingId = Brand<string, 'RatingId'>;
+export type ContentId = Brand<string, 'ContentId'>;
+export type HomeVisitId = Brand<string, 'HomeVisitId'>;
+export type InvitationId = Brand<string, 'InvitationId'>;
+
+// ---------------------------------------------------------------------------
+
 /**
  * Configuration options for PermissionsService
  */

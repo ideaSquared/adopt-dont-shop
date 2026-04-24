@@ -1,5 +1,6 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
+import sequelize, { getJsonType, getUuidType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 import { JsonObject } from '../types/common';
 
 // Device platform enum
@@ -79,11 +80,12 @@ class DeviceToken
 DeviceToken.init(
   {
     token_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
+      defaultValue: () => generateUuidV7(),
     },
     user_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'users',
@@ -146,6 +148,7 @@ DeviceToken.init(
     modelName: 'DeviceToken',
     timestamps: true,
     paranoid: true,
+    underscored: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     deletedAt: 'deleted_at',

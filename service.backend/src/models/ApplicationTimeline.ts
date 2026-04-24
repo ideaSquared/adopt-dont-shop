@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 // Timeline Event Types
 export enum TimelineEventType {
@@ -74,13 +75,15 @@ ApplicationTimeline.init(
   {
     timeline_id: {
       type: getUuidType(),
-      defaultValue: DataTypes.UUIDV4,
+      defaultValue: () => generateUuidV7(),
       primaryKey: true,
     },
     application_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
-      // Note: Foreign key constraint managed by associations, not model definition
+      // FK relationship defined at association level with constraints: false
+      // (see models/index.ts) so timeline events can be created in tests
+      // without requiring the application row to exist.
     },
     event_type: {
       type: DataTypes.ENUM(...Object.values(TimelineEventType)),
@@ -99,9 +102,11 @@ ApplicationTimeline.init(
       allowNull: true,
     },
     created_by: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
-      // Note: Foreign key constraint managed by associations, not model definition
+      // FK relationship defined at association level with constraints: false
+      // (see models/index.ts) so timeline events can be created in tests
+      // without requiring the user row to exist.
     },
     created_by_system: {
       type: DataTypes.BOOLEAN,
@@ -140,12 +145,14 @@ ApplicationTimeline.init(
     indexes: [
       {
         fields: ['application_id', 'created_at'],
+        name: 'application_timeline_application_id_idx',
       },
       {
         fields: ['event_type'],
       },
       {
         fields: ['created_by'],
+        name: 'application_timeline_created_by_idx',
       },
     ],
   }

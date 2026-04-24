@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import sequelize, { getJsonType, getUuidType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum ResponderType {
   STAFF = 'staff',
@@ -67,16 +67,13 @@ class SupportTicketResponse
 SupportTicketResponse.init(
   {
     responseId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('response')
-          : sequelize.literal(getReadableIdSqlLiteral('response')),
+      defaultValue: () => generateUuidV7(),
       field: 'response_id',
     },
     ticketId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'ticket_id',
       references: {
@@ -86,13 +83,14 @@ SupportTicketResponse.init(
       onDelete: 'CASCADE',
     },
     responderId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'responder_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     responderType: {
       type: DataTypes.ENUM(...Object.values(ResponderType)),

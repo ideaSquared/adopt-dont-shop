@@ -1,5 +1,6 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
+import sequelize, { getJsonType, getUuidType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 import { JsonObject } from '../types/common';
 
 // Notification type enum
@@ -171,11 +172,12 @@ class Notification
 Notification.init(
   {
     notification_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
+      defaultValue: () => generateUuidV7(),
     },
     user_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'users',
@@ -331,6 +333,7 @@ Notification.init(
     modelName: 'Notification',
     timestamps: true,
     paranoid: true,
+    underscored: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     deletedAt: 'deleted_at',

@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import sequelize, { getJsonType, getUuidType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum MenuLocation {
   HEADER = 'header',
@@ -52,13 +52,10 @@ class NavigationMenu
 NavigationMenu.init(
   {
     menuId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'menu_id',
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('menu')
-          : sequelize.literal(getReadableIdSqlLiteral('menu')),
+      defaultValue: () => generateUuidV7(),
     },
     name: {
       type: DataTypes.STRING(255),
@@ -84,16 +81,18 @@ NavigationMenu.init(
       field: 'is_active',
     },
     createdBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'created_by',
       references: { model: 'users', key: 'user_id' },
+      onDelete: 'SET NULL',
     },
     lastModifiedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'last_modified_by',
       references: { model: 'users', key: 'user_id' },
+      onDelete: 'SET NULL',
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -112,9 +111,13 @@ NavigationMenu.init(
     sequelize,
     tableName: 'cms_navigation_menus',
     timestamps: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
-    indexes: [{ fields: ['location'] }, { fields: ['is_active'] }, { fields: ['created_by'] }],
+    underscored: true,
+    indexes: [
+      { fields: ['location'] },
+      { fields: ['is_active'] },
+      { fields: ['created_by'] },
+      { fields: ['last_modified_by'] },
+    ],
   }
 );
 

@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum TicketStatus {
   OPEN = 'open',
@@ -148,22 +148,20 @@ class SupportTicket
 SupportTicket.init(
   {
     ticketId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'ticket_id',
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('ticket')
-          : sequelize.literal(getReadableIdSqlLiteral('ticket')),
+      defaultValue: () => generateUuidV7(),
     },
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'user_id',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     userEmail: {
       type: DataTypes.STRING,
@@ -179,13 +177,14 @@ SupportTicket.init(
       field: 'user_name',
     },
     assignedTo: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'assigned_to',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     status: {
       type: DataTypes.ENUM(...Object.values(TicketStatus)),
@@ -257,13 +256,14 @@ SupportTicket.init(
       field: 'escalated_at',
     },
     escalatedTo: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'escalated_to',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     escalationReason: {
       type: DataTypes.TEXT,
@@ -327,17 +327,22 @@ SupportTicket.init(
     sequelize,
     tableName: 'support_tickets',
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
+    underscored: true,
     indexes: [
       {
+        name: 'support_tickets_user_id_idx',
         fields: ['user_id'],
       },
       {
         fields: ['user_email'],
       },
       {
+        name: 'support_tickets_assigned_to_idx',
         fields: ['assigned_to'],
+      },
+      {
+        name: 'support_tickets_escalated_to_idx',
+        fields: ['escalated_to'],
       },
       {
         fields: ['status'],

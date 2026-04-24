@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum TemplateType {
   TRANSACTIONAL = 'transactional',
@@ -271,13 +271,10 @@ class EmailTemplate
 EmailTemplate.init(
   {
     templateId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'template_id',
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('template')
-          : sequelize.literal(getReadableIdSqlLiteral('template')),
+      defaultValue: () => generateUuidV7(),
     },
     name: {
       type: DataTypes.STRING(255),
@@ -356,13 +353,14 @@ EmailTemplate.init(
       },
     },
     parentTemplateId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'parent_template_id',
       references: {
         model: 'email_templates',
         key: 'template_id',
       },
+      onDelete: 'SET NULL',
     },
     versions: {
       type: getJsonType(),
@@ -420,22 +418,24 @@ EmailTemplate.init(
       },
     },
     createdBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'created_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     lastModifiedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'last_modified_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     lastUsedAt: {
       type: DataTypes.DATE,
@@ -483,9 +483,7 @@ EmailTemplate.init(
     tableName: 'email_templates',
     timestamps: true,
     paranoid: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
-    deletedAt: 'deletedAt',
+    underscored: true,
     indexes: [
       {
         fields: ['name'],
@@ -507,7 +505,16 @@ EmailTemplate.init(
         fields: ['is_default'],
       },
       {
+        name: 'email_templates_created_by_idx',
         fields: ['created_by'],
+      },
+      {
+        name: 'email_templates_last_modified_by_idx',
+        fields: ['last_modified_by'],
+      },
+      {
+        name: 'email_templates_parent_template_id_idx',
+        fields: ['parent_template_id'],
       },
       {
         fields: ['last_used_at'],

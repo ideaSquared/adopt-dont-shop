@@ -1,8 +1,9 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 interface InvitationAttributes {
-  invitation_id: number;
+  invitation_id: string;
   email: string;
   token: string;
   rescue_id: string;
@@ -24,7 +25,7 @@ class Invitation
   extends Model<InvitationAttributes, InvitationCreationAttributes>
   implements InvitationAttributes
 {
-  public invitation_id!: number;
+  public invitation_id!: string;
   public email!: string;
   public token!: string;
   public rescue_id!: string;
@@ -40,8 +41,8 @@ class Invitation
 Invitation.init(
   {
     invitation_id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
+      type: getUuidType(),
+      defaultValue: () => generateUuidV7(),
       primaryKey: true,
     },
     email: {
@@ -62,14 +63,16 @@ Invitation.init(
         model: 'rescues',
         key: 'rescue_id',
       },
+      onDelete: 'CASCADE',
     },
     user_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     title: {
       type: DataTypes.STRING(100),
@@ -103,8 +106,17 @@ Invitation.init(
     sequelize,
     tableName: 'invitations',
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
+    underscored: true,
+    indexes: [
+      {
+        fields: ['rescue_id'],
+        name: 'invitations_rescue_id_idx',
+      },
+      {
+        fields: ['user_id'],
+        name: 'invitations_user_id_idx',
+      },
+    ],
   }
 );
 

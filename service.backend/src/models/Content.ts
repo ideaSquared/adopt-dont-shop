@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType, getArrayType } from '../sequelize';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import sequelize, { getJsonType, getArrayType, getUuidType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum ContentType {
   PAGE = 'page',
@@ -121,13 +121,10 @@ class Content
 Content.init(
   {
     contentId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'content_id',
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('content')
-          : sequelize.literal(getReadableIdSqlLiteral('content')),
+      defaultValue: () => generateUuidV7(),
     },
     title: {
       type: DataTypes.STRING(500),
@@ -234,16 +231,18 @@ Content.init(
       validate: { min: 1 },
     },
     authorId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'author_id',
       references: { model: 'users', key: 'user_id' },
+      onDelete: 'SET NULL',
     },
     lastModifiedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'last_modified_by',
       references: { model: 'users', key: 'user_id' },
+      onDelete: 'SET NULL',
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -268,14 +267,13 @@ Content.init(
     tableName: 'cms_content',
     timestamps: true,
     paranoid: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
-    deletedAt: 'deletedAt',
+    underscored: true,
     indexes: [
       { fields: ['slug'], unique: true },
       { fields: ['content_type'] },
       { fields: ['status'] },
       { fields: ['author_id'] },
+      { fields: ['last_modified_by'] },
       { fields: ['published_at'] },
       { fields: ['scheduled_publish_at'] },
     ],

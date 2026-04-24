@@ -11,7 +11,7 @@ import Pet, {
 
 const petProfiles = [
   {
-    petId: 'pet_0000buddy01',
+    petId: '9ff53898-c5c6-4422-a245-54e52d4c4b78',
     name: 'Buddy',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     shortDescription: 'Friendly golden retriever looking for an active family',
@@ -55,7 +55,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-01-20'),
     images: [
       {
-        image_id: 'img_buddy_001',
+        image_id: '7eef272a-579c-4ba9-ae42-42fd1489c25b',
         url: 'https://placedog.net/800/600?id=1',
         thumbnail_url: 'https://placedog.net/300/300?id=1',
         caption: 'Buddy playing in the yard',
@@ -64,7 +64,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
       {
-        image_id: 'img_buddy_002',
+        image_id: '3e12863d-a6eb-4132-aad6-95c2a3faf386',
         url: 'https://placedog.net/800/600?id=2',
         thumbnail_url: 'https://placedog.net/300/300?id=2',
         caption: 'Buddy running on the beach',
@@ -81,7 +81,7 @@ const petProfiles = [
     tags: ['dog-friendly', 'active', 'family-dog', 'outdoor-lover'],
   },
   {
-    petId: 'pet_0000whisk01',
+    petId: '756ac9c5-ac22-49eb-a21d-8385d525e6de',
     name: 'Whiskers',
     rescueId: '550e8400-e29b-41d4-a716-446655440003',
     shortDescription: 'Sweet senior cat looking for a quiet retirement home',
@@ -126,7 +126,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-02-05'),
     images: [
       {
-        image_id: 'img_whiskers_001',
+        image_id: '54b7a14f-3150-4d72-adf6-f710652f1ffd',
         url: 'https://cataas.com/cat/cute?width=800&height=600',
         thumbnail_url: 'https://cataas.com/cat/cute?width=300&height=300',
         caption: 'Whiskers enjoying a sunny spot',
@@ -143,7 +143,7 @@ const petProfiles = [
     tags: ['senior', 'quiet', 'lap-cat', 'special-needs'],
   },
   {
-    petId: 'pet_0000rocky01',
+    petId: '9101b091-a826-46a7-a8bc-c8f22d94c294',
     name: 'Rocky',
     rescueId: '550e8400-e29b-41d4-a716-446655440002',
     shortDescription: 'Senior pit bull mix with a heart of gold',
@@ -188,7 +188,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-01-10'),
     images: [
       {
-        image_id: 'img_rocky_001',
+        image_id: '7e6ac008-787d-4b99-a7c9-73f9c76e8750',
         url: 'https://placedog.net/800/600?id=3',
         thumbnail_url: 'https://placedog.net/300/300?id=3',
         caption: "Rocky's gentle smile",
@@ -205,7 +205,7 @@ const petProfiles = [
     tags: ['senior', 'gentle-giant', 'loyal', 'only-dog'],
   },
   {
-    petId: 'pet_0000luna001',
+    petId: 'a1d109eb-e717-44a0-aed7-c7c0af6c152f',
     name: 'Luna',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     shortDescription: 'Playful young cat with striking blue eyes',
@@ -249,7 +249,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-01-15'),
     images: [
       {
-        image_id: 'img_luna_001',
+        image_id: '4e400be2-dab1-4a5a-ab37-11993ca48381',
         url: 'https://cataas.com/cat/siamese?width=800&height=600',
         thumbnail_url: 'https://cataas.com/cat/siamese?width=300&height=300',
         caption: 'Luna showing off her beautiful blue eyes',
@@ -266,7 +266,7 @@ const petProfiles = [
     tags: ['young', 'playful', 'social', 'beautiful'],
   },
   {
-    petId: 'pet_0000max0001',
+    petId: 'e2ed19e7-29e6-49e8-aa13-fcc3cfe698e2',
     name: 'Max',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     shortDescription: 'Energetic young shepherd mix needing training',
@@ -310,7 +310,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-02-12'),
     images: [
       {
-        image_id: 'img_max_001',
+        image_id: '290b4e11-029b-491c-aad2-8ca0f90e8a42',
         url: 'https://placedog.net/800/600?id=4',
         thumbnail_url: 'https://placedog.net/300/300?id=4',
         caption: 'Max ready for adventure',

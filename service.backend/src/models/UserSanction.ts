@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
+import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 export enum SanctionType {
   WARNING = 'warning',
@@ -160,16 +160,13 @@ class UserSanction
 UserSanction.init(
   {
     sanctionId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'sanction_id',
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('sanction')
-          : sequelize.literal(getReadableIdSqlLiteral('sanction')),
+      defaultValue: () => generateUuidV7(),
     },
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'user_id',
       references: {
@@ -221,13 +218,14 @@ UserSanction.init(
       },
     },
     issuedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'issued_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     issuedByRole: {
       type: DataTypes.ENUM('ADMIN', 'MODERATOR', 'SUPER_ADMIN'),
@@ -235,22 +233,24 @@ UserSanction.init(
       field: 'issued_by_role',
     },
     reportId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'report_id',
       references: {
         model: 'reports',
         key: 'report_id',
       },
+      onDelete: 'SET NULL',
     },
     moderatorActionId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'moderator_action_id',
       references: {
         model: 'moderator_actions',
         key: 'action_id',
       },
+      onDelete: 'SET NULL',
     },
     metadata: {
       type: getJsonType(),
@@ -273,13 +273,14 @@ UserSanction.init(
       field: 'appeal_status',
     },
     appealResolvedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'appeal_resolved_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     appealResolvedAt: {
       type: DataTypes.DATE,
@@ -292,13 +293,14 @@ UserSanction.init(
       field: 'appeal_resolution',
     },
     revokedBy: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'revoked_by',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     revokedAt: {
       type: DataTypes.DATE,
@@ -347,10 +349,12 @@ UserSanction.init(
     sequelize,
     tableName: 'user_sanctions',
     timestamps: true,
+    underscored: true,
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     indexes: [
       {
+        name: 'user_sanctions_user_id_idx',
         fields: ['user_id'],
       },
       {
@@ -369,13 +373,24 @@ UserSanction.init(
         fields: ['end_date'],
       },
       {
+        name: 'user_sanctions_issued_by_idx',
         fields: ['issued_by'],
       },
       {
+        name: 'user_sanctions_report_id_idx',
         fields: ['report_id'],
       },
       {
+        name: 'user_sanctions_moderator_action_id_idx',
         fields: ['moderator_action_id'],
+      },
+      {
+        name: 'user_sanctions_appeal_resolved_by_idx',
+        fields: ['appeal_resolved_by'],
+      },
+      {
+        name: 'user_sanctions_revoked_by_idx',
+        fields: ['revoked_by'],
       },
       {
         fields: ['appeal_status'],
@@ -384,7 +399,6 @@ UserSanction.init(
         fields: ['created_at'],
       },
       {
-        // Composite index for finding active sanctions for a user
         fields: ['user_id', 'is_active', 'end_date'],
       },
     ],

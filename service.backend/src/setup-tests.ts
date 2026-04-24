@@ -83,10 +83,19 @@ vi.mock('jsonwebtoken', () => ({
   decode: vi.fn(),
 }));
 
-// Mock crypto for predictable UUIDs in tests
+// Mock crypto for predictable UUIDs in tests.
+// randomBytes MUST return varying bytes so UUIDv7 generation (and anything
+// else that derives unique IDs from crypto) doesn't produce PK collisions
+// when multiple records are created in the same millisecond.
 vi.mock('crypto', () => ({
   randomUUID: vi.fn(() => `test-uuid-${Date.now()}`),
-  randomBytes: vi.fn(() => Buffer.from('mock-random-bytes')),
+  randomBytes: vi.fn((size: number) => {
+    const buf = Buffer.alloc(size);
+    for (let i = 0; i < size; i++) {
+      buf[i] = Math.floor(Math.random() * 256);
+    }
+    return buf;
+  }),
   createHash: vi.fn(() => ({
     update: vi.fn().mockReturnThis(),
     digest: vi.fn(() => 'mock-hash'),

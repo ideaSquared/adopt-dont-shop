@@ -433,9 +433,9 @@ const startServer = async () => {
           }
 
           if (userCount === 0) {
-            // Empty DB or schema not yet created — sync and seed
-            await sequelize.sync({ alter: true });
-            logger.info('Database models synchronized (schema updated, data preserved).');
+            // Empty DB or schema not yet created — force-create all tables from models
+            await sequelize.sync({ force: true });
+            logger.info('Database models synchronized (tables created).');
             logger.info('Empty database detected - running seeders...');
             const { runAllSeeders } = await import('./seeders');
             await runAllSeeders();

@@ -1,8 +1,15 @@
 // src/models/Pet.ts
 import { DataTypes, Model, Op, Optional, QueryTypes, WhereOptions } from 'sequelize';
-import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import sequelize, {
+  getJsonType,
+  getUuidType,
+  getArrayType,
+  getGeometryType,
+  getTsVectorType,
+  TsVector,
+} from '../sequelize';
 import { JsonObject } from '../types/common';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 
 // Pet status enum
 export enum PetStatus {
@@ -84,9 +91,6 @@ export enum GoodWith {
   SMALL_ANIMALS = 'small_animals',
 }
 
-// Sequelize TSVECTOR type representation
-type TSVector = unknown;
-
 export interface PetAttributes {
   petId: string;
   name: string;
@@ -156,7 +160,7 @@ export interface PetAttributes {
   viewCount: number;
   favoriteCount: number;
   applicationCount: number;
-  searchVector?: TSVector;
+  searchVector?: TsVector;
   tags?: string[] | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -250,7 +254,7 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
   public viewCount!: number;
   public favoriteCount!: number;
   public applicationCount!: number;
-  public searchVector!: TSVector;
+  public searchVector!: TsVector;
   public tags!: string[] | null;
   public createdAt!: Date;
   public updatedAt!: Date;
@@ -346,9 +350,10 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
 Pet.init(
   {
     petId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
       field: 'pet_id',
+      defaultValue: () => generateUuidV7(),
     },
     name: {
       type: DataTypes.STRING(100),
@@ -671,7 +676,7 @@ Pet.init(
       },
     },
     searchVector: {
-      type: DataTypes.TSVECTOR,
+      type: getTsVectorType(),
       allowNull: true,
       field: 'search_vector',
     },
@@ -703,6 +708,7 @@ Pet.init(
     modelName: 'Pet',
     timestamps: true,
     paranoid: true,
+    underscored: true,
     indexes: [
       {
         fields: ['rescue_id'],
@@ -802,7 +808,7 @@ Pet.init(
             .join(' ');
 
           if (searchText.trim()) {
-            const [results] = await sequelize.query<{ vector: TSVector }>(
+            const [results] = await sequelize.query<{ vector: TsVector }>(
               "SELECT to_tsvector('english', ?) as vector",
               {
                 replacements: [searchText],

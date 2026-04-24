@@ -49,9 +49,7 @@ Permission.init(
     sequelize,
     tableName: 'permissions',
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    underscored: false,
+    underscored: true,
   }
 );
 

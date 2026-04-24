@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional, Op } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getUuidType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 
 interface RefreshTokenAttributes {
   token_id: string;
@@ -39,11 +40,12 @@ class RefreshToken
 RefreshToken.init(
   {
     token_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
+      defaultValue: () => generateUuidV7(),
     },
     user_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'users',
@@ -66,7 +68,7 @@ RefreshToken.init(
       allowNull: false,
     },
     replaced_by_token_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
     },
     created_at: {
@@ -85,6 +87,7 @@ RefreshToken.init(
     tableName: 'refresh_tokens',
     modelName: 'RefreshToken',
     timestamps: true,
+    underscored: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     indexes: [

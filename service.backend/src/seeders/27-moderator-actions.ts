@@ -44,7 +44,7 @@ export async function seedModeratorActions() {
         moderatorId: users[0]?.userId,
         reportId: reports[1]?.reportId,
         targetEntityType: 'pet' as const,
-        targetEntityId: 'pet_123',
+        targetEntityId: '36414174-7d79-4611-aa9b-c4a1b6a84793',
         actionType: ActionType.CONTENT_REMOVED,
         severity: ActionSeverity.MEDIUM,
         reason: 'Listing violated platform policies',
@@ -133,7 +133,7 @@ export async function seedModeratorActions() {
         evidence: [
           {
             type: 'url' as const,
-            content: 'internal_investigation_doc_456',
+            content: 'a7d5d8f8-f230-4340-a68c-44dd2b7b39bf',
             description: 'Full investigation report',
           },
           {
@@ -150,7 +150,7 @@ export async function seedModeratorActions() {
       {
         moderatorId: users[0]?.userId,
         targetEntityType: 'message' as const,
-        targetEntityId: 'msg_789',
+        targetEntityId: '4a515eb2-3779-4531-a2fb-88892a99b357',
         actionType: ActionType.CONTENT_FLAGGED,
         severity: ActionSeverity.LOW,
         reason: 'Potential spam content',
@@ -170,7 +170,7 @@ export async function seedModeratorActions() {
         moderatorId: users[0]?.userId,
         reportId: reports[4]?.reportId,
         targetEntityType: 'rescue' as const,
-        targetEntityId: 'rescue_456',
+        targetEntityId: '4c6e3aa3-e36e-4c6a-adbf-bb6db2a67113',
         actionType: ActionType.ESCALATION,
         severity: ActionSeverity.CRITICAL,
         reason: 'Complex case requiring senior review',
@@ -184,7 +184,7 @@ export async function seedModeratorActions() {
         evidence: [
           {
             type: 'url' as const,
-            content: 'compliance_report_789',
+            content: 'd22fa15d-43a4-43b8-ad99-1adcc02bbf35',
             description: 'Initial compliance assessment',
           },
         ],

@@ -123,4 +123,18 @@ export const getGeometryType = (geometryType?: string) => {
       : DataTypes.GEOMETRY;
 };
 
+/**
+ * Opaque type for PostgreSQL TSVECTOR columns.
+ * TSVECTOR is stored and searched natively in Postgres; in SQLite tests it degrades to STRING.
+ */
+export type TsVector = string & { readonly __brand: 'TsVector' };
+
+/**
+ * Get the appropriate TSVECTOR data type based on the database dialect.
+ * PostgreSQL has native TSVECTOR; SQLite stores it as TEXT (full-text search not functional in tests).
+ */
+export const getTsVectorType = () => {
+  return isTestEnvironment ? DataTypes.TEXT : DataTypes.TSVECTOR;
+};
+
 export default sequelize;

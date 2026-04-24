@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../sequelize';
+import sequelize, { getUuidType } from '../sequelize';
 import { ParticipantRole } from '../types/chat';
-import { generateReadableId, getReadableIdSqlLiteral } from '../utils/readable-id';
+import { generateUuidV7 } from '../utils/uuid';
 import Chat from './Chat';
 
 interface ChatParticipantAttributes {
@@ -53,19 +53,12 @@ export class ChatParticipant
 ChatParticipant.init(
   {
     chat_participant_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       primaryKey: true,
-      // Server-generated readable ID, same pattern as chat_id/message_id.
-      // Without this, ChatService.createChat()'s participant inserts hit
-      // a PG not-null violation because the service passes only
-      // chat_id/participant_id/role.
-      defaultValue:
-        process.env.NODE_ENV === 'test'
-          ? () => generateReadableId('participant')
-          : sequelize.literal(getReadableIdSqlLiteral('participant')),
+      defaultValue: () => generateUuidV7(),
     },
     chat_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: Chat,
@@ -74,19 +67,20 @@ ChatParticipant.init(
       onDelete: 'CASCADE',
     },
     participant_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'CASCADE',
     },
     role: {
       type: DataTypes.ENUM(...Object.values(ParticipantRole)),
       allowNull: false,
     },
     rescue_id: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
     },
     last_read_at: {
@@ -106,9 +100,11 @@ ChatParticipant.init(
       {
         fields: ['chat_id', 'participant_id'],
         unique: true,
+        name: 'chat_participants_chat_id_participant_id_unique',
       },
       {
         fields: ['participant_id'],
+        name: 'chat_participants_participant_id_idx',
       },
       {
         fields: ['role'],

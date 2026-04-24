@@ -10,6 +10,7 @@ import {
   NonAttribute,
 } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import { generateUuidV7 } from '../utils/uuid';
 import Pet from './Pet';
 import User from './User';
 
@@ -41,11 +42,11 @@ UserFavorite.init(
   {
     id: {
       type: getUuidType(),
-      defaultValue: DataTypes.UUIDV4,
+      defaultValue: () => generateUuidV7(),
       primaryKey: true,
     },
     userId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'user_id',
       references: {
@@ -56,7 +57,7 @@ UserFavorite.init(
       onUpdate: 'CASCADE',
     },
     petId: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: false,
       field: 'pet_id',
       references: {
@@ -88,6 +89,7 @@ UserFavorite.init(
     tableName: 'user_favorites',
     timestamps: true,
     paranoid: true,
+    underscored: true,
     indexes: [
       {
         unique: true,
