@@ -133,7 +133,7 @@ export async function seedModeratorActions() {
         evidence: [
           {
             type: 'url' as const,
-            content: 'internal_investigation_doc_456',
+            content: 'a7d5d8f8-f230-4340-a68c-44dd2b7b39bf',
             description: 'Full investigation report',
           },
           {
@@ -184,7 +184,7 @@ export async function seedModeratorActions() {
         evidence: [
           {
             type: 'url' as const,
-            content: 'compliance_report_789',
+            content: 'd22fa15d-43a4-43b8-ad99-1adcc02bbf35',
             description: 'Initial compliance assessment',
           },
         ],

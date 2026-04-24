@@ -256,13 +256,14 @@ SupportTicket.init(
       field: 'escalated_at',
     },
     escalatedTo: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
       field: 'escalated_to',
       references: {
         model: 'users',
         key: 'user_id',
       },
+      onDelete: 'SET NULL',
     },
     escalationReason: {
       type: DataTypes.TEXT,

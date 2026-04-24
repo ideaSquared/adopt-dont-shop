@@ -52,7 +52,7 @@ const emilyAttachmentTestData = {
       content_format: MessageContentFormat.PLAIN,
       attachments: [
         {
-          attachment_id: 'att_living_room_001',
+          attachment_id: '4cffd5cb-e534-4e0d-adf4-c14bfa7f93d2',
           filename: 'emily-attachment-test-living-room.jpg',
           originalName: 'living-room-setup.jpg',
           mimeType: 'image/jpeg',
@@ -60,7 +60,7 @@ const emilyAttachmentTestData = {
           url: '/uploads/chat/emily-attachment-test-living-room.jpg',
         },
         {
-          attachment_id: 'att_backyard_001',
+          attachment_id: '590fb9c1-130e-44aa-a7f5-c80d0440bfde',
           filename: 'emily-attachment-test-backyard.jpg',
           originalName: 'backyard-fence.jpg',
           mimeType: 'image/jpeg',
@@ -82,7 +82,7 @@ const emilyAttachmentTestData = {
       content_format: MessageContentFormat.PLAIN,
       attachments: [
         {
-          attachment_id: 'att_contract_001',
+          attachment_id: '6775383e-f6fc-4c70-a739-36a5662e9b05',
           filename: 'emily-attachment-test-contract.pdf',
           originalName: 'adoption-contract.pdf',
           mimeType: 'application/pdf',
@@ -104,7 +104,7 @@ const emilyAttachmentTestData = {
       content_format: MessageContentFormat.PLAIN,
       attachments: [
         {
-          attachment_id: 'att_signed_contract_001',
+          attachment_id: '7adbacb6-23f0-4541-ab09-a6338c6be221',
           filename: 'emily-attachment-test-signed-contract.pdf',
           originalName: 'signed-adoption-contract.pdf',
           mimeType: 'application/pdf',
@@ -126,7 +126,7 @@ const emilyAttachmentTestData = {
       content_format: MessageContentFormat.PLAIN,
       attachments: [
         {
-          attachment_id: 'att_buddy_playing_001',
+          attachment_id: 'd5d480ee-5bee-44a2-ab52-d4e2ef93c9a6',
           filename: 'emily-attachment-test-buddy-playing.jpg',
           originalName: 'buddy-playing.jpg',
           mimeType: 'image/jpeg',
@@ -134,7 +134,7 @@ const emilyAttachmentTestData = {
           url: '/uploads/chat/emily-attachment-test-buddy-playing.jpg',
         },
         {
-          attachment_id: 'att_buddy_sleeping_001',
+          attachment_id: '9b3589a1-e32d-49d7-adc0-3fb966fc2078',
           filename: 'emily-attachment-test-buddy-sleeping.jpg',
           originalName: 'buddy-sleeping.jpg',
           mimeType: 'image/jpeg',
@@ -156,7 +156,7 @@ const emilyAttachmentTestData = {
       content_format: MessageContentFormat.PLAIN,
       attachments: [
         {
-          attachment_id: 'att_dog_bed_001',
+          attachment_id: '3b5ef98f-51cc-48e6-adc0-71899c99666f',
           filename: 'emily-attachment-test-dog-bed.jpg',
           originalName: 'dog-bed-setup.jpg',
           mimeType: 'image/jpeg',
@@ -177,7 +177,7 @@ const emilyAttachmentTestData = {
       content_format: MessageContentFormat.PLAIN,
       attachments: [
         {
-          attachment_id: 'att_vet_records_001',
+          attachment_id: 'b3e399c6-14ce-4ba1-a71b-da48922b1be4',
           filename: 'emily-attachment-test-vet-records.pdf',
           originalName: 'buddy-vet-records.pdf',
           mimeType: 'application/pdf',
@@ -185,7 +185,7 @@ const emilyAttachmentTestData = {
           url: '/uploads/chat/emily-attachment-test-vet-records.pdf',
         },
         {
-          attachment_id: 'att_care_instructions_001',
+          attachment_id: '5c9a6098-a95c-4ffc-a03f-b5f4eb9ccc86',
           filename: 'emily-attachment-test-care-instructions.pdf',
           originalName: 'buddy-care-instructions.pdf',
           mimeType: 'application/pdf',

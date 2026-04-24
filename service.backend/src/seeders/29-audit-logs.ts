@@ -29,7 +29,7 @@ const auditLogs = [
     timestamp: new Date(Date.now() - 1000 * 60 * 45), // 45 minutes ago
     metadata: {
       entity: 'rescue',
-      entityId: 'rescue_hopeful_paws_001',
+      entityId: 'acbd441d-e508-4370-a0fc-cc9783963221',
       details: {
         changes: {
           verificationStatus: { from: 'pending', to: 'verified' },
@@ -51,7 +51,7 @@ const auditLogs = [
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
     metadata: {
       entity: 'user_sanction',
-      entityId: 'sanction_001',
+      entityId: '2bf1ab51-1f96-492d-ae30-7a1b5bc2be64',
       details: {
         targetUserId: 'fc369713-6925-4f02-a5c6-cb84b3652116',
         type: 'warning',
@@ -187,7 +187,7 @@ const auditLogs = [
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12), // 12 hours ago
     metadata: {
       entity: 'support_ticket',
-      entityId: 'ticket_001',
+      entityId: '9f313087-8568-4769-aa80-85adb853870b',
       details: {
         changes: {
           status: { from: 'open', to: 'resolved' },
@@ -241,7 +241,7 @@ const auditLogs = [
       details: {
         operation: 'status_update',
         count: 15,
-        filter: { rescueId: 'rescue_hopeful_paws_001' },
+        filter: { rescueId: 'acbd441d-e508-4370-a0fc-cc9783963221' },
         changes: { status: 'available' },
       },
       ipAddress: '192.168.1.100',
@@ -262,7 +262,7 @@ const auditLogs = [
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 days ago
     metadata: {
       entity: 'user',
-      entityId: 'user_spam_001',
+      entityId: 'cc3c4519-2d6c-4d31-a93a-ff2c9b102071',
       details: {
         reason: 'Spam activity detected',
         duration: '7_days',
@@ -329,7 +329,7 @@ const auditLogs = [
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7), // 7 days ago
     metadata: {
       entity: 'rescue',
-      entityId: 'rescue_new_shelter_001',
+      entityId: '797dfb9d-e60f-4481-a54b-292bfafd3404',
       details: {
         rescueName: 'New Hope Animal Shelter',
         verifiedDocuments: ['501c3', 'license', 'facility_photos'],

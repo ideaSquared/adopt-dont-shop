@@ -6,6 +6,7 @@ import SupportTicket, {
 import SupportTicketResponse, { ResponderType } from '../models/SupportTicketResponse';
 import User from '../models/User';
 import { JsonObject, JsonValue } from '../types/common';
+import { generateUuidV7 } from '../utils/uuid';
 
 type TicketResponseData = {
   responseId: string;
@@ -132,7 +133,7 @@ export async function seedSupportTickets() {
         metadata: {},
         responses: [
           {
-            responseId: `response_${Date.now()}_1`,
+            responseId: generateUuidV7(),
             responderId: staffUsers[0]?.userId || 'staff1',
             responderType: 'staff' as const,
             content:
@@ -142,7 +143,7 @@ export async function seedSupportTickets() {
             createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
           },
           {
-            responseId: `response_${Date.now()}_2`,
+            responseId: generateUuidV7(),
             responderId: users[3]?.userId || 'user4',
             responderType: 'user' as const,
             content:
@@ -170,7 +171,7 @@ export async function seedSupportTickets() {
         metadata: {},
         responses: [
           {
-            responseId: `response_${Date.now()}_3`,
+            responseId: generateUuidV7(),
             responderId: staffUsers[1]?.userId || 'staff2',
             responderType: 'staff' as const,
             content:
@@ -199,7 +200,7 @@ export async function seedSupportTickets() {
         metadata: {},
         responses: [
           {
-            responseId: `response_${Date.now()}_4`,
+            responseId: generateUuidV7(),
             responderId: staffUsers[0]?.userId || 'staff1',
             responderType: 'staff' as const,
             content:
@@ -232,7 +233,7 @@ export async function seedSupportTickets() {
         metadata: {},
         responses: [
           {
-            responseId: `response_${Date.now()}_5`,
+            responseId: generateUuidV7(),
             responderId: staffUsers[2]?.userId || 'staff3',
             responderType: 'staff' as const,
             content:
@@ -242,7 +243,7 @@ export async function seedSupportTickets() {
             createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
           },
           {
-            responseId: `response_${Date.now()}_6`,
+            responseId: generateUuidV7(),
             responderId: users[6]?.userId || 'user7',
             responderType: 'user' as const,
             content: 'Perfect! Found it. Thank you so much!',
@@ -270,7 +271,7 @@ export async function seedSupportTickets() {
         metadata: {},
         responses: [
           {
-            responseId: `response_${Date.now()}_7`,
+            responseId: generateUuidV7(),
             responderId: staffUsers[1]?.userId || 'staff2',
             responderType: 'staff' as const,
             content:
@@ -303,11 +304,11 @@ export async function seedSupportTickets() {
         internalNotes: 'Customer provided screenshots and detailed evidence. Needs urgent review.',
         metadata: {
           severity: 'critical',
-          rescueId: 'rescue_suspicious_001',
+          rescueId: '7e66f4fe-b512-4915-a92d-5524ff4d68f4',
         },
         responses: [
           {
-            responseId: `response_${Date.now()}_8`,
+            responseId: generateUuidV7(),
             responderId: staffUsers[0]?.userId || 'staff1',
             responderType: 'staff' as const,
             content:
@@ -339,7 +340,7 @@ export async function seedSupportTickets() {
         metadata: {},
         responses: [
           {
-            responseId: `response_${Date.now()}_9`,
+            responseId: generateUuidV7(),
             responderId: staffUsers[1]?.userId || 'staff2',
             responderType: 'staff' as const,
             content:

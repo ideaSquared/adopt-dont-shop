@@ -55,7 +55,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-01-20'),
     images: [
       {
-        image_id: 'img_buddy_001',
+        image_id: '7eef272a-579c-4ba9-ae42-42fd1489c25b',
         url: 'https://placedog.net/800/600?id=1',
         thumbnail_url: 'https://placedog.net/300/300?id=1',
         caption: 'Buddy playing in the yard',
@@ -64,7 +64,7 @@ const petProfiles = [
         uploaded_at: new Date(),
       },
       {
-        image_id: 'img_buddy_002',
+        image_id: '3e12863d-a6eb-4132-aad6-95c2a3faf386',
         url: 'https://placedog.net/800/600?id=2',
         thumbnail_url: 'https://placedog.net/300/300?id=2',
         caption: 'Buddy running on the beach',
@@ -126,7 +126,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-02-05'),
     images: [
       {
-        image_id: 'img_whiskers_001',
+        image_id: '54b7a14f-3150-4d72-adf6-f710652f1ffd',
         url: 'https://cataas.com/cat/cute?width=800&height=600',
         thumbnail_url: 'https://cataas.com/cat/cute?width=300&height=300',
         caption: 'Whiskers enjoying a sunny spot',
@@ -188,7 +188,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-01-10'),
     images: [
       {
-        image_id: 'img_rocky_001',
+        image_id: '7e6ac008-787d-4b99-a7c9-73f9c76e8750',
         url: 'https://placedog.net/800/600?id=3',
         thumbnail_url: 'https://placedog.net/300/300?id=3',
         caption: "Rocky's gentle smile",
@@ -249,7 +249,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-01-15'),
     images: [
       {
-        image_id: 'img_luna_001',
+        image_id: '4e400be2-dab1-4a5a-ab37-11993ca48381',
         url: 'https://cataas.com/cat/siamese?width=800&height=600',
         thumbnail_url: 'https://cataas.com/cat/siamese?width=300&height=300',
         caption: 'Luna showing off her beautiful blue eyes',
@@ -310,7 +310,7 @@ const petProfiles = [
     lastVetCheckup: new Date('2024-02-12'),
     images: [
       {
-        image_id: 'img_max_001',
+        image_id: '290b4e11-029b-491c-aad2-8ca0f90e8a42',
         url: 'https://placedog.net/800/600?id=4',
         thumbnail_url: 'https://placedog.net/300/300?id=4',
         caption: 'Max ready for adventure',

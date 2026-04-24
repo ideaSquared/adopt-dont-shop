@@ -25,7 +25,7 @@ interface NotificationSeedData {
 
 const emilyTestNotifications: NotificationSeedData[] = [
   {
-    notification_id: 'notif_emily_001',
+    notification_id: '54e37b81-f760-4a3b-a9f6-cf17f8607180',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
     title: 'Application Approved! 🎉',
     message:
@@ -46,7 +46,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
     updated_at: new Date('2025-07-13T10:30:00Z'),
   },
   {
-    notification_id: 'notif_emily_002',
+    notification_id: '97d2574f-e5f0-4e6e-a2c6-57653a3ab4e4',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'New Message from Paws Rescue Center',
     message: 'Sarah Johnson sent you a message about your application for Luna.',
@@ -65,7 +65,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
     updated_at: new Date('2025-07-13T09:15:00Z'),
   },
   {
-    notification_id: 'notif_emily_003',
+    notification_id: '6383f3e9-4cdc-404b-a7c5-f88e87e298e4',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Perfect Match Found! 🐕',
     message:
@@ -86,7 +86,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
     updated_at: new Date('2025-07-13T08:45:00Z'),
   },
   {
-    notification_id: 'notif_emily_004',
+    notification_id: '1e9481ee-7ef8-464c-a819-b9956c3d3dc6',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Interview Scheduled',
     message:
@@ -97,18 +97,18 @@ const emilyTestNotifications: NotificationSeedData[] = [
     status: NotificationStatus.PENDING,
     data: {
       action_url: '/interviews/int_001',
-      interview_id: 'int_001',
+      interview_id: 'f6ff9640-6f8d-4a84-ad7a-8c7a75e41242',
       date: '2025-07-14',
       time: '14:00',
       rescue_name: 'Happy Tails Rescue',
     },
     related_entity_type: 'application',
-    related_entity_id: 'int_001',
+    related_entity_id: 'f6ff9640-6f8d-4a84-ad7a-8c7a75e41242',
     created_at: new Date('2025-07-13T07:30:00Z'),
     updated_at: new Date('2025-07-13T07:30:00Z'),
   },
   {
-    notification_id: 'notif_emily_005',
+    notification_id: '4647d2ce-9020-451c-a796-c9be8dfb229e',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Home Visit Scheduled',
     message:
@@ -119,18 +119,18 @@ const emilyTestNotifications: NotificationSeedData[] = [
     status: NotificationStatus.PENDING,
     data: {
       action_url: '/home-visits/hv_001',
-      visit_id: 'hv_001',
+      visit_id: '68c17932-00ac-437b-a801-2476059810f1',
       date: '2025-07-18',
       time: '10:00',
       pet_name: 'Bella',
     },
     related_entity_type: 'application',
-    related_entity_id: 'hv_001',
+    related_entity_id: '68c17932-00ac-437b-a801-2476059810f1',
     created_at: new Date('2025-07-12T16:20:00Z'),
     updated_at: new Date('2025-07-12T16:20:00Z'),
   },
   {
-    notification_id: 'notif_emily_006',
+    notification_id: '32b5fd83-31dc-423d-ae25-f0e398cfd78e',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Vaccination Reminder',
     message: "Don't forget to schedule Whiskers' annual vaccination appointment.",
@@ -145,12 +145,12 @@ const emilyTestNotifications: NotificationSeedData[] = [
       reminder_type: 'vaccination',
     },
     related_entity_type: 'pet',
-    related_entity_id: 'reminder_001',
+    related_entity_id: '7e494417-cf24-4fc5-a715-a70772add835',
     created_at: new Date('2025-07-12T14:10:00Z'),
     updated_at: new Date('2025-07-12T14:10:00Z'),
   },
   {
-    notification_id: 'notif_emily_007',
+    notification_id: '992255ec-45d9-4283-ade4-287ecf2c5653',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Platform Maintenance Notice',
     message:
@@ -166,12 +166,12 @@ const emilyTestNotifications: NotificationSeedData[] = [
       end_time: '04:00',
     },
     related_entity_type: 'user',
-    related_entity_id: 'maint_001',
+    related_entity_id: 'ccc7a515-b6ca-40d3-a86c-08aafe0f398e',
     created_at: new Date('2025-07-12T13:00:00Z'),
     updated_at: new Date('2025-07-12T13:00:00Z'),
   },
   {
-    notification_id: 'notif_emily_008',
+    notification_id: '49a78a69-4713-4a7a-a6a8-ca62ad7e65f0',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Health Update for Luna',
     message:
@@ -192,7 +192,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
     updated_at: new Date('2025-07-12T11:45:00Z'),
   },
   {
-    notification_id: 'notif_emily_009',
+    notification_id: '9f9dcbce-87b2-4a17-a124-b3182f371c5e',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'New Message from Happy Tails Rescue',
     message: 'Maria Garcia replied to your question about adoption fees.',
@@ -211,7 +211,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
     updated_at: new Date('2025-07-12T10:30:00Z'),
   },
   {
-    notification_id: 'notif_emily_010',
+    notification_id: 'c82dbe1e-8a46-4cf5-af43-b538be8369e0',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Application Under Review',
     message:
@@ -232,7 +232,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
     updated_at: new Date('2025-07-12T09:15:00Z'),
   },
   {
-    notification_id: 'notif_emily_011',
+    notification_id: 'b2b2eadf-6188-4805-a36e-a71d015b6d94',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Reference Check Needed',
     message:
@@ -252,7 +252,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
     updated_at: new Date('2025-07-11T16:45:00Z'),
   },
   {
-    notification_id: 'notif_emily_012',
+    notification_id: 'c6a91c61-56c7-4d7c-a210-e79e0b976a0e',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'How is Whiskers doing?',
     message:
@@ -263,16 +263,16 @@ const emilyTestNotifications: NotificationSeedData[] = [
     status: NotificationStatus.PENDING,
     data: {
       action_url: '/adoptions/adoption_001/follow-up',
-      adoption_id: 'adoption_001',
+      adoption_id: 'f6ee238d-5134-4c89-ab2d-a90c2b844fb0',
       pet_name: 'Whiskers',
     },
     related_entity_type: 'application',
-    related_entity_id: 'adoption_001',
+    related_entity_id: 'f6ee238d-5134-4c89-ab2d-a90c2b844fb0',
     created_at: new Date('2025-07-11T15:20:00Z'),
     updated_at: new Date('2025-07-11T15:20:00Z'),
   },
   {
-    notification_id: 'notif_emily_013',
+    notification_id: '28f5713f-2cf8-42e9-ac32-36b4f25f28ff',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'New Cats Available! 🐱',
     message:
@@ -292,7 +292,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
     updated_at: new Date('2025-07-11T12:00:00Z'),
   },
   {
-    notification_id: 'notif_emily_014',
+    notification_id: 'a4b15a25-ded8-4897-ae86-e4ac34f87bd2',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Application Expiring Soon',
     message:
@@ -313,7 +313,7 @@ const emilyTestNotifications: NotificationSeedData[] = [
     updated_at: new Date('2025-07-11T10:30:00Z'),
   },
   {
-    notification_id: 'notif_emily_015',
+    notification_id: 'd703a8be-91c5-44ad-a2bf-ef020570eee0',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Special Adoption Event This Weekend!',
     message:

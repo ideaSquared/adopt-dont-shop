@@ -251,7 +251,7 @@ const emilyConversation2Data = {
       purpose: 'chat_attachment',
       metadata: {
         description: 'Photo of my backyard setup for a senior dog',
-        attachedToMessage: 'msg_emily_dog_2_002',
+        attachedToMessage: '1f6a44a0-1683-49b1-aa04-8ba7865ad4f3',
       },
       created_at: new Date('2024-07-14T14:30:00Z'),
       updated_at: new Date('2024-07-14T14:30:00Z'),

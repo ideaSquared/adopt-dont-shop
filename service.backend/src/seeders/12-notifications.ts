@@ -25,7 +25,7 @@ interface NotificationSeedData {
 
 const notificationData: NotificationSeedData[] = [
   {
-    notification_id: 'notif_001',
+    notification_id: 'b1c744fb-06fc-48be-a0c6-37084ab01ef3',
     user_id: '98915d9e-69ed-46b2-a897-57d8469ff360',
     title: 'Application Received',
     message:
@@ -46,7 +46,7 @@ const notificationData: NotificationSeedData[] = [
     updated_at: new Date('2024-02-15T10:35:00Z'),
   },
   {
-    notification_id: 'notif_002',
+    notification_id: '4a81e150-000a-4a04-a40e-884f237992e2',
     user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     title: 'Application Approved! 🎉',
     message:
@@ -68,7 +68,7 @@ const notificationData: NotificationSeedData[] = [
     updated_at: new Date('2024-02-20T16:30:00Z'),
   },
   {
-    notification_id: 'notif_003',
+    notification_id: 'a7363b65-7e15-4961-a60d-e981f8f63598',
     user_id: 'c8973ffc-6e31-44fb-a3e4-fa3d9e8edb30',
     title: 'Interview Scheduled',
     message:
@@ -89,7 +89,7 @@ const notificationData: NotificationSeedData[] = [
     updated_at: new Date('2024-02-18T09:20:00Z'),
   },
   {
-    notification_id: 'notif_004',
+    notification_id: 'e2e57593-6e2e-473b-a00b-5d567689d1ff',
     user_id: '5f0c8a14-a37f-469e-a0fe-222db23d4fbd',
     title: 'Application Update',
     message:
@@ -110,7 +110,7 @@ const notificationData: NotificationSeedData[] = [
     updated_at: new Date('2024-02-19T11:35:00Z'),
   },
   {
-    notification_id: 'notif_005',
+    notification_id: 'c4557d33-fc57-4015-a2f8-046ad59a8d2a',
     user_id: '378118eb-9e97-4940-adeb-0a53b252b057',
     title: 'New Application Received',
     message:
@@ -132,7 +132,7 @@ const notificationData: NotificationSeedData[] = [
     updated_at: new Date('2024-02-15T11:00:00Z'),
   },
   {
-    notification_id: 'notif_006',
+    notification_id: '6c6a5f4b-0f52-4a6f-ad25-0bcbfa89e811',
     user_id: 'c283bd85-11ce-4494-add0-b06896d38e2d',
     title: 'Reference Check Complete',
     message:
@@ -153,7 +153,7 @@ const notificationData: NotificationSeedData[] = [
     updated_at: new Date('2024-02-17T16:45:00Z'),
   },
   {
-    notification_id: 'notif_007',
+    notification_id: '6236c096-abaf-4bb4-aa6d-13b1905d02a8',
     user_id: '98915d9e-69ed-46b2-a897-57d8469ff360',
     title: 'New Message from Paws Rescue Austin',
     message: "Sarah from Paws Rescue has sent you a message about Buddy's exercise needs.",
