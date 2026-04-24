@@ -619,25 +619,41 @@ export class ChatService {
     }
 
     try {
-      const formData = new FormData();
-      formData.append('content', content);
+      // The backend's POST /messages route is JSON-only (no multer). File
+      // attachments go through the separate /attachments upload flow
+      // (uploadAttachment) and are referenced by URL/id in follow-up
+      // message metadata. For the text path — which is what ChatProvider
+      // actually drives — send JSON so express-validator sees the body.
+      // Sending multipart here made the server reject every message with
+      // "Message content must be 1-N characters" because req.body was
+      // empty.
+      const hasAttachments = attachments && attachments.length > 0;
 
-      if (attachments) {
-        attachments.forEach((file, index) => {
+      let fetchBody: BodyInit;
+      const headers = await this.getMutatingHeaders();
+
+      if (hasAttachments) {
+        // Multipart path stays available for callers that opt into it
+        // against a multer-enabled backend route. Drop Content-Type so
+        // the browser can pick the correct multipart boundary.
+        const formData = new FormData();
+        formData.append('content', content);
+        attachments!.forEach((file, index) => {
           formData.append(`attachment_${index}`, file);
         });
+        delete headers['Content-Type'];
+        fetchBody = formData;
+      } else {
+        headers['Content-Type'] = 'application/json';
+        fetchBody = JSON.stringify({ content });
       }
-
-      const headers = await this.getMutatingHeaders();
-      // Don't set Content-Type for FormData, let browser set it
-      delete headers['Content-Type'];
 
       const response = await fetch(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages`,
         {
           method: 'POST',
           credentials: 'include',
-          body: formData,
+          body: fetchBody,
           headers,
         }
       );

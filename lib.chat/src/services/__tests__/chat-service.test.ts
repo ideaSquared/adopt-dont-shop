@@ -766,6 +766,26 @@ describe('ChatService', () => {
       expect(init.method).toBe('POST');
     });
 
+    it('sends a JSON body (not multipart) when sendMessage has no attachments', async () => {
+      // The backend POST /chats/:id/messages route is JSON-only — no multer.
+      // Sending multipart for plain-text messages was rejected with a 400
+      // from express-validator because req.body parsed as empty. This guard
+      // test fires if anyone re-introduces FormData on the text path.
+      const service = new ChatService({
+        apiUrl: 'https://api.test',
+        enableMessageQueue: false,
+      });
+      (global.fetch as jest.Mock).mockImplementation(okJson);
+
+      await service.sendMessage('chat-1', 'hello');
+
+      const call = (global.fetch as jest.Mock).mock.calls[0];
+      const init = call[1] as RequestInit & { headers: Record<string, string> };
+      expect(init.headers['Content-Type']).toBe('application/json');
+      expect(typeof init.body).toBe('string');
+      expect(JSON.parse(init.body as string)).toEqual({ content: 'hello' });
+    });
+
     it('omits the x-csrf-token header when no provider is supplied', async () => {
       const plainService = new ChatService({ apiUrl: 'https://api.test' });
       (global.fetch as jest.Mock).mockImplementation(okJson);
