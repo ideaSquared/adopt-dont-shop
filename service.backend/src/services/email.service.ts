@@ -246,6 +246,10 @@ class EmailService {
     return await EmailTemplate.findByPk(templateId);
   }
 
+  public async getTemplateByName(name: string): Promise<EmailTemplate | null> {
+    return await EmailTemplate.findOne({ where: { name } });
+  }
+
   public async getTemplates(
     filters: {
       type?: TemplateType;

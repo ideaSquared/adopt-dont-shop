@@ -91,8 +91,17 @@ export class AuthService {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
         const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
+        // sendEmail requires either templateId+templateData OR explicit
+        // subject+htmlContent. Resolve the seeded "Email Verification"
+        // template by name so this isn't bound to a hardcoded UUID.
+        const template = await emailService.getTemplateByName('Email Verification');
+        if (!template) {
+          throw new Error("Email template 'Email Verification' not found");
+        }
+
         await emailService.sendEmail({
           toEmail: user.email,
+          templateId: template.templateId,
           templateData: {
             firstName: user.firstName,
             verificationToken,
@@ -101,7 +110,6 @@ export class AuthService {
           },
           type: 'transactional',
           priority: 'high',
-          subject: "Verify Your Email Address - Adopt Don't Shop",
         });
 
         logger.info('Verification email sent', { userId: user.userId, email: user.email });
