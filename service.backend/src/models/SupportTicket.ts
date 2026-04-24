@@ -339,6 +339,10 @@ SupportTicket.init(
         fields: ['assigned_to'],
       },
       {
+        name: 'support_tickets_escalated_to_idx',
+        fields: ['escalated_to'],
+      },
+      {
         fields: ['status'],
       },
       {

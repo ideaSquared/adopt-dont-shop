@@ -469,6 +469,10 @@ Application.init(
         name: 'applications_rescue_id_idx',
       },
       {
+        fields: ['actioned_by'],
+        name: 'applications_actioned_by_idx',
+      },
+      {
         fields: ['status'],
         name: 'applications_status_idx',
       },

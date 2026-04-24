@@ -38,7 +38,7 @@ export class InvitationService {
     email: string,
     title: string = '',
     invitedBy: string
-  ): Promise<{ success: boolean; message: string; invitationId?: number }> {
+  ): Promise<{ success: boolean; message: string; invitationId?: string }> {
     const transaction = await Invitation.sequelize!.transaction();
 
     try {
@@ -318,7 +318,7 @@ export class InvitationService {
    * Cancel a pending invitation
    */
   static async cancelInvitation(
-    invitationId: number,
+    invitationId: string,
     cancelledBy: string
   ): Promise<{ success: boolean; message: string }> {
     const transaction = await Invitation.sequelize!.transaction();
