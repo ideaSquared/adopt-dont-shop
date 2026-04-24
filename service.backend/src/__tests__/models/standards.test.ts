@@ -32,7 +32,9 @@ describe('Model Standards', () => {
       Object.values(sequelize.models).forEach(model => {
         const underscored = (model as unknown as { options: { underscored?: boolean } }).options
           .underscored;
-        if (!underscored) failures.push(model.name);
+        if (!underscored) {
+          failures.push(model.name);
+        }
       });
       expect(failures, `Models missing underscored: true — ${failures.join(', ')}`).toHaveLength(0);
     });
@@ -47,7 +49,9 @@ describe('Model Standards', () => {
           const pkAttrs = Object.values(
             model.getAttributes() as Record<string, ModelAttribute>
           ).filter(a => a.primaryKey);
-          if (pkAttrs.some(pk => pk.autoIncrement)) failures.push(model.name);
+          if (pkAttrs.some(pk => pk.autoIncrement)) {
+            failures.push(model.name);
+          }
         });
       expect(
         failures,
@@ -119,7 +123,9 @@ describe('Model Standards', () => {
       // paranoid default. Cleanup is tracked as a Phase 3 item.
       const LEGACY_MANUAL_SOFT_DELETE = new Set(['Rescue', 'StaffMember']);
       Object.values(sequelize.models).forEach(model => {
-        if (LEGACY_MANUAL_SOFT_DELETE.has(model.name)) return;
+        if (LEGACY_MANUAL_SOFT_DELETE.has(model.name)) {
+          return;
+        }
         const opts = (model as unknown as { options: { paranoid?: boolean } }).options;
         const attrs = model.getAttributes() as Record<string, ModelAttribute>;
         if (opts.paranoid && 'isDeleted' in attrs) {

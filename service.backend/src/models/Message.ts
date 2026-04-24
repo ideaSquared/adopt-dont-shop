@@ -40,16 +40,17 @@ interface MessageAttributes {
   Sender?: { firstName?: string; lastName?: string };
 }
 
-interface MessageCreationAttributes extends Optional<
-  MessageAttributes,
-  | 'message_id'
-  | 'created_at'
-  | 'updated_at'
-  | 'search_vector'
-  | 'Chat'
-  | 'reactions'
-  | 'read_status'
-> {}
+interface MessageCreationAttributes
+  extends Optional<
+    MessageAttributes,
+    | 'message_id'
+    | 'created_at'
+    | 'updated_at'
+    | 'search_vector'
+    | 'Chat'
+    | 'reactions'
+    | 'read_status'
+  > {}
 
 export class Message
   extends Model<MessageAttributes, MessageCreationAttributes>

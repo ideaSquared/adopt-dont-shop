@@ -26,10 +26,8 @@ export interface SwipeActionAttributes {
 }
 
 // Optional attributes for creation
-export interface SwipeActionCreationAttributes extends Optional<
-  SwipeActionAttributes,
-  'swipeActionId' | 'createdAt' | 'updatedAt'
-> {}
+export interface SwipeActionCreationAttributes
+  extends Optional<SwipeActionAttributes, 'swipeActionId' | 'createdAt' | 'updatedAt'> {}
 
 // Swipe action type enum
 export enum SwipeActionType {

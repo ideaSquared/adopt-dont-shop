@@ -16,10 +16,11 @@ interface ChatParticipantAttributes {
   updated_at?: Date;
 }
 
-interface ChatParticipantCreationAttributes extends Optional<
-  ChatParticipantAttributes,
-  'chat_participant_id' | 'last_read_at' | 'rescue_id'
-> {}
+interface ChatParticipantCreationAttributes
+  extends Optional<
+    ChatParticipantAttributes,
+    'chat_participant_id' | 'last_read_at' | 'rescue_id'
+  > {}
 
 export class ChatParticipant
   extends Model<ChatParticipantAttributes, ChatParticipantCreationAttributes>

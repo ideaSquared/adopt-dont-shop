@@ -20,10 +20,8 @@ interface ChatAttributes {
   rescue?: Rescue | null; // Add optional rescue association
 }
 
-interface ChatCreationAttributes extends Optional<
-  ChatAttributes,
-  'chat_id' | 'created_at' | 'updated_at' | 'Messages'
-> {}
+interface ChatCreationAttributes
+  extends Optional<ChatAttributes, 'chat_id' | 'created_at' | 'updated_at' | 'Messages'> {}
 
 export class Chat extends Model<ChatAttributes, ChatCreationAttributes> implements ChatAttributes {
   public chat_id!: string;
