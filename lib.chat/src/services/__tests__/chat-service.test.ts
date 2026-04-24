@@ -733,4 +733,68 @@ describe('ChatService', () => {
       expect(listener2).toHaveBeenCalledWith(event);
     });
   });
+
+  describe('CSRF + credentials for mutating requests', () => {
+    const okJson = () =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: () => Promise.resolve({ data: { id: 'msg-1' } }),
+      } as Response);
+
+    it('includes the x-csrf-token header and credentials on sendMessage', async () => {
+      const csrfProvider = jest.fn(async () => 'test-csrf-token');
+      const csrfService = new ChatService({
+        apiUrl: 'https://api.test',
+        csrfToken: csrfProvider,
+        // Disable the offline queue — the socket is never connected in this
+        // unit test, so sendMessage would otherwise queue the message
+        // instead of issuing a fetch.
+        enableMessageQueue: false,
+      });
+
+      (global.fetch as jest.Mock).mockImplementation(okJson);
+
+      await csrfService.sendMessage('chat-1', 'hello');
+
+      const call = (global.fetch as jest.Mock).mock.calls[0];
+      const init = call[1] as RequestInit & { headers: Record<string, string> };
+      expect(csrfProvider).toHaveBeenCalled();
+      expect(init.headers['x-csrf-token']).toBe('test-csrf-token');
+      expect(init.credentials).toBe('include');
+      expect(init.method).toBe('POST');
+    });
+
+    it('omits the x-csrf-token header when no provider is supplied', async () => {
+      const plainService = new ChatService({ apiUrl: 'https://api.test' });
+      (global.fetch as jest.Mock).mockImplementation(okJson);
+
+      await plainService.markAsRead('chat-1');
+
+      const call = (global.fetch as jest.Mock).mock.calls[0];
+      const init = call[1] as RequestInit & { headers: Record<string, string> };
+      expect(init.headers['x-csrf-token']).toBeUndefined();
+      // credentials are still included so the session cookie travels.
+      expect(init.credentials).toBe('include');
+    });
+
+    it('sends credentials on GET so the session cookie travels', async () => {
+      const service = new ChatService({ apiUrl: 'https://api.test' });
+      (global.fetch as jest.Mock).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: () => Promise.resolve({ data: [] }),
+        } as Response)
+      );
+
+      await service.getConversations();
+
+      const call = (global.fetch as jest.Mock).mock.calls[0];
+      const init = call[1] as RequestInit;
+      expect(init.credentials).toBe('include');
+    });
+  });
 });

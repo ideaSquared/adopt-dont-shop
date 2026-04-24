@@ -571,6 +571,29 @@ describe('ChatController', () => {
         );
       });
     });
+
+    describe('when the caller is not a participant', () => {
+      it('maps the service rejection to HTTP 403 Access Denied', async () => {
+        mockRequest.params = { chatId: 'chat-001' };
+
+        (ChatService.getMessages as Mock).mockRejectedValue(
+          new Error('User is not a participant in this chat')
+        );
+
+        await ChatController.getMessages(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response
+        );
+
+        expect(mockResponse.status).toHaveBeenCalledWith(403);
+        expect(mockResponse.json).toHaveBeenCalledWith(
+          expect.objectContaining({
+            error: 'Access denied',
+            message: 'User is not a participant in this chat',
+          })
+        );
+      });
+    });
   });
 
   describe('markAsRead - Mark messages as read', () => {
@@ -914,6 +937,12 @@ describe('ChatController', () => {
   describe('Error handling and logging', () => {
     it('should log performance metrics', async () => {
       mockRequest.params = { chatId: 'chat-001' };
+      (ChatService.getMessages as Mock).mockResolvedValue({
+        messages: [],
+        page: 1,
+        total: 0,
+        totalPages: 0,
+      });
       (ChatService.getUnreadMessageCount as Mock).mockResolvedValue(0);
 
       await ChatController.getMessages(

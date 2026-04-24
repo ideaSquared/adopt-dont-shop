@@ -257,4 +257,63 @@ describe('ChatProvider', () => {
     );
     expect(screen.getByTestId('consumer')).toBeInTheDocument();
   });
+
+  it('optimistically clears unreadCount when markAsRead is called', async () => {
+    const conv = buildConversation({ id: 'chat-1', unreadCount: 3 });
+    const { chatService, tokenProvider } = buildHarness([conv]);
+
+    const markSpy = jest.spyOn(chatService, 'markAsRead').mockImplementation(
+      // Hold the promise open so we can assert the optimistic update
+      // happened synchronously, before the network round-trip resolves.
+      () => new Promise<void>(() => {})
+    );
+
+    let latest: Harness | null = null;
+    const Caller = () => {
+      const ctx = useChat();
+      useEffect(() => {
+        if (ctx.conversations.length > 0 && ctx.unreadMessageCount === 3) {
+          void ctx.markAsRead('chat-1');
+        }
+      }, [ctx]);
+      return null;
+    };
+
+    render(
+      <ChatProvider
+        chatService={chatService}
+        user={{ userId: 'user-1' }}
+        isAuthenticated
+        tokenProvider={tokenProvider}
+      >
+        <Caller />
+        <TestConsumer onRender={(h) => (latest = h)} />
+      </ChatProvider>
+    );
+
+    await waitFor(() => expect(latest?.unreadMessageCount).toBe(0));
+    expect(markSpy).toHaveBeenCalledWith('chat-1');
+  });
+
+  it('surfaces a clear error when the tokenProvider returns null at connect time', async () => {
+    const { chatService } = buildHarness();
+    const connectSpy = jest.spyOn(chatService, 'connect');
+    const nullTokenProvider = jest.fn(() => null);
+
+    render(
+      <ChatProvider
+        chatService={chatService}
+        user={{ userId: 'user-1' }}
+        isAuthenticated
+        tokenProvider={nullTokenProvider}
+      >
+        <TestConsumer onRender={jest.fn()} />
+      </ChatProvider>
+    );
+
+    // connect() must not be called when the token is missing — otherwise
+    // ChatService would throw and we'd swallow the error.
+    await waitFor(() => expect(nullTokenProvider).toHaveBeenCalled());
+    expect(connectSpy).not.toHaveBeenCalled();
+  });
 });

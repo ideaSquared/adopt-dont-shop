@@ -344,6 +344,73 @@ describe('ChatService', () => {
     });
   });
 
+  describe('Participant authorization on chat-scoped methods', () => {
+    // These tests don't care about the data the methods return — they exist
+    // to guarantee every chat-scoped method rejects non-participants with
+    // the unified error string, and that the admin bypass (userId undefined)
+    // skips the check.
+    const chatId = 'chat-xyz';
+    const strangerId = 'stranger-999';
+
+    const setupNonParticipant = () => {
+      (MockedChatParticipant.findOne as vi.Mock).mockReset();
+      (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
+    };
+
+    describe('getMessages', () => {
+      it('throws when caller is not a participant', async () => {
+        setupNonParticipant();
+        await expect(
+          ChatService.getMessages(chatId, { userId: strangerId })
+        ).rejects.toThrow('User is not a participant in this chat');
+      });
+
+      it('skips the check when userId is undefined (admin bypass)', async () => {
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({
+          rows: [],
+          count: 0,
+        });
+        (MockedChatParticipant.findOne as vi.Mock).mockReset();
+        await ChatService.getMessages(chatId);
+        expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('markMessagesAsRead', () => {
+      it('throws when caller is not a participant', async () => {
+        setupNonParticipant();
+        await expect(ChatService.markMessagesAsRead(chatId, strangerId)).rejects.toThrow(
+          'User is not a participant in this chat'
+        );
+      });
+    });
+
+    describe('getUnreadMessageCount', () => {
+      it('throws when caller is not a participant', async () => {
+        setupNonParticipant();
+        await expect(ChatService.getUnreadMessageCount(chatId, strangerId)).rejects.toThrow(
+          'User is not a participant in this chat'
+        );
+      });
+    });
+
+    describe('removeMessageReaction', () => {
+      it('throws when caller is not a participant', async () => {
+        const messageId = 'msg-abc';
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue({
+          message_id: messageId,
+          chat_id: chatId,
+          removeReaction: vi.fn(),
+          save: vi.fn(),
+        });
+        setupNonParticipant();
+        await expect(
+          ChatService.removeMessageReaction(messageId, strangerId, '👍')
+        ).rejects.toThrow('User is not a participant in this chat');
+      });
+    });
+  });
+
   describe('Sending messages', () => {
     describe('when sending a message successfully', () => {
       it('should create the message and send notifications', async () => {
