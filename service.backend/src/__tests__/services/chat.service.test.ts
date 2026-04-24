@@ -360,9 +360,9 @@ describe('ChatService', () => {
     describe('getMessages', () => {
       it('throws when caller is not a participant', async () => {
         setupNonParticipant();
-        await expect(
-          ChatService.getMessages(chatId, { userId: strangerId })
-        ).rejects.toThrow('User is not a participant in this chat');
+        await expect(ChatService.getMessages(chatId, { userId: strangerId })).rejects.toThrow(
+          'User is not a participant in this chat'
+        );
       });
 
       it('skips the check when userId is undefined (admin bypass)', async () => {
