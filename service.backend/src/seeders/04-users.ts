@@ -3,7 +3,7 @@ import User, { UserStatus, UserType } from '../models/User';
 
 const testUsers = [
   {
-    userId: 'user_0000admin01',
+    userId: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     firstName: 'Super',
     lastName: 'Admin',
     email: 'superadmin@adoptdontshop.dev',
@@ -21,7 +21,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_0000admi001',
+    userId: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     firstName: 'System',
     lastName: 'Administrator',
     email: 'admin@adoptdontshop.dev',
@@ -37,7 +37,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_0000mode001',
+    userId: '7599debb-3d71-497c-a6e9-a2aa255d77df',
     firstName: 'Content',
     lastName: 'Moderator',
     email: 'moderator@adoptdontshop.dev',
@@ -53,7 +53,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_0000rscad01',
+    userId: '3d7065c5-82a3-4bba-a84e-78229365badd',
     firstName: 'Rescue',
     lastName: 'Manager',
     email: 'rescue.manager@pawsrescue.dev',
@@ -70,7 +70,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_0000rscst01',
+    userId: '378118eb-9e97-4940-adeb-0a53b252b057',
     firstName: 'Sarah',
     lastName: 'Johnson',
     email: 'sarah.johnson@pawsrescue.dev',
@@ -87,7 +87,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_0000rscad02',
+    userId: 'c283bd85-11ce-4494-add0-b06896d38e2d',
     firstName: 'Maria',
     lastName: 'Garcia',
     email: 'maria@happytailsrescue.dev',
@@ -104,7 +104,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_0000adopt01',
+    userId: '98915d9e-69ed-46b2-a897-57d8469ff360',
     firstName: 'John',
     lastName: 'Smith',
     email: 'john.smith@gmail.com',
@@ -124,7 +124,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_0000adopt02',
+    userId: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     firstName: 'Emily',
     lastName: 'Davis',
     email: 'emily.davis@yahoo.com',
@@ -144,7 +144,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_0000adopt03',
+    userId: 'c8973ffc-6e31-44fb-a3e4-fa3d9e8edb30',
     firstName: 'Michael',
     lastName: 'Brown',
     email: 'michael.brown@outlook.com',
@@ -164,7 +164,7 @@ const testUsers = [
     privacyPolicyAcceptedAt: new Date(),
   },
   {
-    userId: 'user_0000adopt04',
+    userId: '5f0c8a14-a37f-469e-a0fe-222db23d4fbd',
     firstName: 'Jessica',
     lastName: 'Wilson',
     email: 'jessica.wilson@gmail.com',
@@ -222,40 +222,56 @@ export async function seedUsers() {
                     phone: userData.phoneNumber || '',
                     address: userData.addressLine1 || '',
                     city: userData.city || '',
-                    county: userData.userId === 'user_0000adopt02' ? 'Greater Manchester' : '',
+                    county:
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116'
+                        ? 'Greater Manchester'
+                        : '',
                     postcode: userData.postalCode || '',
                     country: userData.country || 'United Kingdom',
-                    dateOfBirth: userData.userId === 'user_0000adopt02' ? '1992-03-22' : '',
+                    dateOfBirth:
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116'
+                        ? '1992-03-22'
+                        : '',
                     occupation:
-                      userData.userId === 'user_0000adopt02' ? 'Marketing Coordinator' : '',
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116'
+                        ? 'Marketing Coordinator'
+                        : '',
                   },
                   livingSituation: {
-                    housingType: userData.userId === 'user_0000adopt02' ? 'apartment' : 'house',
-                    isOwned: userData.userId === 'user_0000adopt02' ? false : true,
-                    hasYard: userData.userId === 'user_0000adopt02' ? true : true,
+                    housingType:
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116'
+                        ? 'apartment'
+                        : 'house',
+                    isOwned:
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116' ? false : true,
+                    hasYard:
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116' ? true : true,
                     allowsPets: true,
-                    householdSize: userData.userId === 'user_0000adopt02' ? 1 : 2,
+                    householdSize:
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116' ? 1 : 2,
                     householdMembers: [],
                     hasAllergies: false,
                     allergyDetails: '',
                   },
                   petExperience: {
-                    experienceLevel: userData.userId === 'user_0000adopt02' ? 'some' : 'some',
+                    experienceLevel:
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116' ? 'some' : 'some',
                     hasPetsCurrently: false,
                     currentPets: [],
                     previousPets: [],
                     willingToTrain: true,
-                    hoursAloneDaily: userData.userId === 'user_0000adopt02' ? 6 : 4,
+                    hoursAloneDaily:
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116' ? 6 : 4,
                     exercisePlans:
-                      userData.userId === 'user_0000adopt02'
+                      userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116'
                         ? 'Daily walks in the nearby park and interactive indoor play sessions'
                         : 'Regular outdoor activities and exercise',
                   },
                   references:
-                    userData.userId !== 'user_0000adopt04'
+                    userData.userId !== '5f0c8a14-a37f-469e-a0fe-222db23d4fbd'
                       ? {
                           personal:
-                            userData.userId === 'user_0000adopt02'
+                            userData.userId === 'fc369713-6925-4f02-a5c6-cb84b3652116'
                               ? [
                                   {
                                     name: 'Sophie Williams',
@@ -292,7 +308,8 @@ export async function seedUsers() {
           userData.userType === UserType.ADOPTER
             ? JSON.parse(
                 JSON.stringify({
-                  overall_percentage: userData.userId === 'user_0000adopt04' ? 75 : 100,
+                  overall_percentage:
+                    userData.userId === '5f0c8a14-a37f-469e-a0fe-222db23d4fbd' ? 75 : 100,
                   last_updated: new Date().toISOString(),
                 })
               )

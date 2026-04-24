@@ -7,9 +7,9 @@ import Application, {
 
 const applicationData = [
   {
-    applicationId: 'application_0000bjon001',
-    userId: 'user_0000adopt01', // John Smith
-    petId: 'pet_0000buddy01',
+    applicationId: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
+    userId: '98915d9e-69ed-46b2-a897-57d8469ff360', // John Smith
+    petId: '9ff53898-c5c6-4422-a245-54e52d4c4b78',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.VISITING, // Has multiple home visits scheduled
@@ -87,14 +87,14 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    applicationId: 'application_0000wemi001',
-    userId: 'user_0000adopt02', // Emily Davis
-    petId: 'pet_0000whisk01',
+    applicationId: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
+    userId: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
+    petId: '756ac9c5-ac22-49eb-a21d-8385d525e6de',
     rescueId: '550e8400-e29b-41d4-a716-446655440003',
     status: ApplicationStatus.APPROVED,
     stage: ApplicationStage.RESOLVED, // Application completed successfully
     priority: ApplicationPriority.HIGH,
-    actioned_by: 'user_0000rscad01',
+    actioned_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     actioned_at: new Date('2024-02-20T14:45:00Z'),
     answers: {
       housing_type: 'apartment',
@@ -163,14 +163,14 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    applicationId: 'application_0000rmic001',
-    userId: 'user_0000adopt03', // Michael Brown
-    petId: 'pet_0000rocky01',
+    applicationId: '84e87262-08a3-4998-a2c2-5e5dfe5824e3',
+    userId: 'c8973ffc-6e31-44fb-a3e4-fa3d9e8edb30', // Michael Brown
+    petId: '9101b091-a826-46a7-a8bc-c8f22d94c294',
     rescueId: '550e8400-e29b-41d4-a716-446655440002',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.REVIEWING, // Interview scheduled means in review stage
     priority: ApplicationPriority.HIGH,
-    actioned_by: 'user_0000rscad02',
+    actioned_by: 'c283bd85-11ce-4494-add0-b06896d38e2d',
     actioned_at: new Date('2024-02-18T09:15:00Z'),
     answers: {
       housing_type: 'house',
@@ -246,14 +246,14 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    applicationId: 'application_0000ljes001',
-    userId: 'user_0000adopt04', // Jessica Wilson
-    petId: 'pet_0000luna001',
+    applicationId: '166bce5d-d9e8-45e4-aaad-6dff23e72c61',
+    userId: '5f0c8a14-a37f-469e-a0fe-222db23d4fbd', // Jessica Wilson
+    petId: 'a1d109eb-e717-44a0-aed7-c7c0af6c152f',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.REJECTED,
     stage: ApplicationStage.RESOLVED, // Application was rejected and resolved
     priority: ApplicationPriority.LOW,
-    actioned_by: 'user_0000rscst01',
+    actioned_by: '378118eb-9e97-4940-adeb-0a53b252b057',
     actioned_at: new Date('2024-02-19T11:30:00Z'),
     rejection_reason:
       'First-time pet owner not suitable for high-energy cat that needs experienced handling',
@@ -305,9 +305,9 @@ const applicationData = [
   },
   // Additional applications for testing various stages - all for rescue 550e8400-e29b-41d4-a716-446655440001
   {
-    applicationId: 'application_0000bdav002',
-    userId: 'user_0000adopt02', // Emily Davis (reusing existing user)
-    petId: 'pet_0000buddy01',
+    applicationId: '788539a9-bc51-4d2f-a6cb-7f4b28366461',
+    userId: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis (reusing existing user)
+    petId: '9ff53898-c5c6-4422-a245-54e52d4c4b78',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.PENDING, // Just submitted, waiting for review
@@ -375,14 +375,14 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    applicationId: 'application_0000msar001',
-    userId: 'user_0000adopt03', // Michael Brown (reusing existing user)
-    petId: 'pet_0000max0001',
+    applicationId: '63e82319-b9c6-451a-a7a5-0754df6e0de2',
+    userId: 'c8973ffc-6e31-44fb-a3e4-fa3d9e8edb30', // Michael Brown (reusing existing user)
+    petId: 'e2ed19e7-29e6-49e8-aa13-fcc3cfe698e2',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.REVIEWING, // In review, waiting for references
     priority: ApplicationPriority.HIGH,
-    actioned_by: 'user_0000rscad01',
+    actioned_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     actioned_at: new Date('2024-02-19T10:00:00Z'),
     answers: {
       housing_type: 'house',
@@ -454,14 +454,14 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    applicationId: 'application_0000lalex01',
-    userId: 'user_0000adopt01', // John Smith (reusing existing user)
-    petId: 'pet_0000luna001',
+    applicationId: '3cd01bd2-cce0-4f5c-ac80-1e6011470c4f',
+    userId: '98915d9e-69ed-46b2-a897-57d8469ff360', // John Smith (reusing existing user)
+    petId: 'a1d109eb-e717-44a0-aed7-c7c0af6c152f',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.SUBMITTED,
     stage: ApplicationStage.VISITING, // Home visit scheduled
     priority: ApplicationPriority.HIGH,
-    actioned_by: 'user_0000rscst01',
+    actioned_by: '378118eb-9e97-4940-adeb-0a53b252b057',
     actioned_at: new Date('2024-02-19T15:30:00Z'),
     answers: {
       housing_type: 'apartment',
@@ -526,14 +526,14 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    applicationId: 'application_0000bmar003',
-    userId: 'user_0000adopt04', // Jessica Wilson (reusing existing user)
-    petId: 'pet_0000buddy01',
+    applicationId: '26069c66-48aa-4994-a077-e04536513a74',
+    userId: '5f0c8a14-a37f-469e-a0fe-222db23d4fbd', // Jessica Wilson (reusing existing user)
+    petId: '9ff53898-c5c6-4422-a245-54e52d4c4b78',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.APPROVED,
     stage: ApplicationStage.DECIDING, // Home visit completed, making final decision
     priority: ApplicationPriority.HIGH,
-    actioned_by: 'user_0000rscad01',
+    actioned_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     actioned_at: new Date('2024-02-20T11:00:00Z'),
     answers: {
       housing_type: 'house',
@@ -621,14 +621,14 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    applicationId: 'application_0000mtom002',
-    userId: 'user_0000adopt02', // Emily Davis (reusing)
-    petId: 'pet_0000max0001',
+    applicationId: 'f8373bd0-e691-47de-ad94-25e9ccd78ffa',
+    userId: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis (reusing)
+    petId: 'e2ed19e7-29e6-49e8-aa13-fcc3cfe698e2',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.APPROVED,
     stage: ApplicationStage.RESOLVED, // Conditionally approved
     priority: ApplicationPriority.NORMAL,
-    actioned_by: 'user_0000rscad02',
+    actioned_by: 'c283bd85-11ce-4494-add0-b06896d38e2d',
     actioned_at: new Date('2024-02-21T13:30:00Z'),
     answers: {
       housing_type: 'house',
@@ -695,9 +695,9 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    applicationId: 'application_0000lwith01',
-    userId: 'user_0000adopt03', // Michael Brown (reusing)
-    petId: 'pet_0000luna001',
+    applicationId: 'efd40b13-d863-4deb-ad6f-16dc3fdcfe5b',
+    userId: 'c8973ffc-6e31-44fb-a3e4-fa3d9e8edb30', // Michael Brown (reusing)
+    petId: 'a1d109eb-e717-44a0-aed7-c7c0af6c152f',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.WITHDRAWN,
     stage: ApplicationStage.WITHDRAWN, // Applicant withdrew
@@ -749,9 +749,9 @@ const applicationData = [
     stage_rejection_reason: null,
   },
   {
-    applicationId: 'application_0000bexpr01',
-    userId: 'user_0000adopt01', // John Smith (reusing)
-    petId: 'pet_0000buddy01',
+    applicationId: '38f9e744-7efd-4da8-ad9e-997289bfb32d',
+    userId: '98915d9e-69ed-46b2-a897-57d8469ff360', // John Smith (reusing)
+    petId: '9ff53898-c5c6-4422-a245-54e52d4c4b78',
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
     status: ApplicationStatus.REJECTED,
     stage: ApplicationStage.RESOLVED, // Expired without action

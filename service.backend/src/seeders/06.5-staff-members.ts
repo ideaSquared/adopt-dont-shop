@@ -4,47 +4,47 @@ const staffMembers = [
   // Paws Rescue Austin staff
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440001', // Paws Rescue Austin
-    userId: 'user_0000rscad01', // Rescue Manager
+    userId: '3d7065c5-82a3-4bba-a84e-78229365badd', // Rescue Manager
     title: 'Executive Director',
     isVerified: true,
-    verifiedBy: 'user_0000admi001',
+    verifiedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     verifiedAt: new Date('2023-01-15'),
-    addedBy: 'user_0000admi001',
+    addedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     addedAt: new Date('2023-01-15'),
     isDeleted: false,
   },
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440001', // Paws Rescue Austin
-    userId: 'user_0000rscst01', // Sarah Johnson
+    userId: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
     title: 'Veterinary Technician',
     isVerified: false,
-    verifiedBy: 'user_0000rscad01',
+    verifiedBy: '3d7065c5-82a3-4bba-a84e-78229365badd',
     verifiedAt: new Date('2023-01-20'),
-    addedBy: 'user_0000rscad01',
+    addedBy: '3d7065c5-82a3-4bba-a84e-78229365badd',
     addedAt: new Date('2023-01-20'),
     isDeleted: false,
   },
   // Happy Tails Senior Dog Rescue staff
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440002', // Happy Tails Senior Dog Rescue
-    userId: 'user_0000rscad02', // Maria Garcia
+    userId: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
     title: 'Founder & Director',
     isVerified: true,
-    verifiedBy: 'user_0000admi001',
+    verifiedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     verifiedAt: new Date('2023-02-20'),
-    addedBy: 'user_0000admi001',
+    addedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     addedAt: new Date('2023-02-20'),
     isDeleted: false,
   },
   // Furry Friends Portland - let's add a staff member for the third rescue too
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440003', // Furry Friends Portland
-    userId: 'user_0000mode001', // Content Moderator (can act as rescue coordinator)
+    userId: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Content Moderator (can act as rescue coordinator)
     title: 'Rescue Coordinator',
     isVerified: false, // This one is pending verification
     verifiedBy: undefined,
     verifiedAt: undefined,
-    addedBy: 'user_0000admi001',
+    addedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     addedAt: new Date('2024-01-10'),
     isDeleted: false,
   },

@@ -4,7 +4,7 @@ const homeVisitData = [
   // Emily's completed home visit for Whiskers (based on existing home_visit_notes)
   {
     visit_id: 'visit_emily_whiskers_001',
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     scheduled_date: '2024-02-19',
     scheduled_time: '14:00',
     assigned_staff: 'Sarah Johnson',
@@ -23,7 +23,7 @@ const homeVisitData = [
   // John's upcoming home visit for Buddy
   {
     visit_id: 'visit_john_buddy_001',
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     scheduled_date: '2024-03-15',
     scheduled_time: '10:00',
     assigned_staff: 'Mike Wilson',
@@ -42,7 +42,7 @@ const homeVisitData = [
   // Additional sample visits for demonstration
   {
     visit_id: 'visit_demo_scheduled_001',
-    application_id: 'application_0000bjon001', // Using John's application for multiple visits demo
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e', // Using John's application for multiple visits demo
     scheduled_date: '2024-03-20',
     scheduled_time: '15:30',
     assigned_staff: 'Lisa Chen',
@@ -59,7 +59,7 @@ const homeVisitData = [
 
   {
     visit_id: 'visit_demo_in_progress_001',
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     scheduled_date: '2024-03-14',
     scheduled_time: '13:00',
     assigned_staff: 'Sarah Johnson',
@@ -76,7 +76,7 @@ const homeVisitData = [
 
   {
     visit_id: 'visit_demo_conditional_001',
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     scheduled_date: '2024-03-05',
     scheduled_time: '16:00',
     assigned_staff: 'Mike Wilson',
@@ -94,7 +94,7 @@ const homeVisitData = [
 
   {
     visit_id: 'visit_demo_cancelled_001',
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     scheduled_date: '2024-02-28',
     scheduled_time: '14:30',
     assigned_staff: 'Lisa Chen',
@@ -111,7 +111,7 @@ const homeVisitData = [
 
   {
     visit_id: 'visit_demo_rejected_001',
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     scheduled_date: '2024-02-15',
     scheduled_time: '10:30',
     assigned_staff: 'Sarah Johnson',

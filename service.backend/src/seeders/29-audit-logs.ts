@@ -4,14 +4,14 @@ const auditLogs = [
   // Admin actions
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000admin01',
+    user: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     action: 'LOGIN',
     level: 'INFO' as const,
     status: 'success' as const,
     timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
     metadata: {
       entity: 'auth',
-      entityId: 'user_0000admin01',
+      entityId: '0cbbd913-c94c-4254-a028-81b76df89c9f',
       details: { method: 'email_password' },
       ipAddress: '192.168.1.100',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -22,7 +22,7 @@ const auditLogs = [
   },
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000admin01',
+    user: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     action: 'UPDATE',
     level: 'INFO' as const,
     status: 'success' as const,
@@ -44,7 +44,7 @@ const auditLogs = [
   },
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000mode001',
+    user: '7599debb-3d71-497c-a6e9-a2aa255d77df',
     action: 'CREATE',
     level: 'WARNING' as const,
     status: 'success' as const,
@@ -53,7 +53,7 @@ const auditLogs = [
       entity: 'user_sanction',
       entityId: 'sanction_001',
       details: {
-        targetUserId: 'user_0000adopt02',
+        targetUserId: 'fc369713-6925-4f02-a5c6-cb84b3652116',
         type: 'warning',
         reason: 'Inappropriate language in chat',
       },
@@ -66,14 +66,14 @@ const auditLogs = [
   },
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000admin01',
+    user: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     action: 'DELETE',
     level: 'WARNING' as const,
     status: 'success' as const,
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3), // 3 hours ago
     metadata: {
       entity: 'pet',
-      entityId: 'pet_001',
+      entityId: '25f54e60-636a-44e8-abb4-d4d1c9e41476',
       details: {
         reason: 'Duplicate entry',
         petName: 'Max',
@@ -89,14 +89,14 @@ const auditLogs = [
   // Rescue organization actions
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000rscad01',
+    user: '3d7065c5-82a3-4bba-a84e-78229365badd',
     action: 'CREATE',
     level: 'INFO' as const,
     status: 'success' as const,
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
     metadata: {
       entity: 'pet',
-      entityId: 'pet_0000max0001',
+      entityId: 'e2ed19e7-29e6-49e8-aa13-fcc3cfe698e2',
       details: {
         petName: 'Max',
         species: 'dog',
@@ -111,14 +111,14 @@ const auditLogs = [
   },
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000rscad01',
+    user: '3d7065c5-82a3-4bba-a84e-78229365badd',
     action: 'UPDATE',
     level: 'INFO' as const,
     status: 'success' as const,
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
     metadata: {
       entity: 'application',
-      entityId: 'app_001',
+      entityId: '8bed2ed8-6c46-4017-a885-4ca237673895',
       details: {
         changes: {
           status: { from: 'pending', to: 'approved' },
@@ -180,7 +180,7 @@ const auditLogs = [
   // Support ticket actions
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000admin01',
+    user: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     action: 'UPDATE',
     level: 'INFO' as const,
     status: 'success' as const,
@@ -205,7 +205,7 @@ const auditLogs = [
   // System configuration changes
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000admin01',
+    user: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     action: 'UPDATE',
     level: 'WARNING' as const,
     status: 'success' as const,
@@ -230,7 +230,7 @@ const auditLogs = [
   // Bulk operations
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000admin01',
+    user: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     action: 'BULK_UPDATE',
     level: 'INFO' as const,
     status: 'success' as const,
@@ -255,7 +255,7 @@ const auditLogs = [
   // User management
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000admin01',
+    user: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     action: 'USER_SUSPENDED',
     level: 'WARNING' as const,
     status: 'success' as const,
@@ -278,14 +278,14 @@ const auditLogs = [
   // Password reset
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000adopt02',
+    user: 'fc369713-6925-4f02-a5c6-cb84b3652116',
     action: 'PASSWORD_RESET',
     level: 'INFO' as const,
     status: 'success' as const,
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), // 5 days ago
     metadata: {
       entity: 'auth',
-      entityId: 'user_0000adopt02',
+      entityId: 'fc369713-6925-4f02-a5c6-cb84b3652116',
       details: {
         method: 'email_link',
       },
@@ -300,14 +300,14 @@ const auditLogs = [
   // Email verification
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000adopt03',
+    user: 'c8973ffc-6e31-44fb-a3e4-fa3d9e8edb30',
     action: 'EMAIL_VERIFICATION',
     level: 'INFO' as const,
     status: 'success' as const,
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6), // 6 days ago
     metadata: {
       entity: 'auth',
-      entityId: 'user_0000adopt03',
+      entityId: 'c8973ffc-6e31-44fb-a3e4-fa3d9e8edb30',
       details: {
         email: 'michael.brown@outlook.com',
       },
@@ -322,7 +322,7 @@ const auditLogs = [
   // Rescue verification
   {
     service: 'adopt-dont-shop-backend',
-    user: 'user_0000admin01',
+    user: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     action: 'RESCUE_VERIFIED',
     level: 'INFO' as const,
     status: 'success' as const,

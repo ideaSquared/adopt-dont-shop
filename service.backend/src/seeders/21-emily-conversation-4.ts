@@ -8,13 +8,13 @@ import Message from '../models/Message';
 
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
-// Emily Davis (user_0000adopt02) conversation with Paws Rescue Austin (special needs focus)
+// Emily Davis (fc369713-6925-4f02-a5c6-cb84b3652116) conversation with Paws Rescue Austin (special needs focus)
 
 const emilyConversation4Data = {
   // Chat conversation
 
   chat: {
-    chat_id: 'chat_0000emsn004',
+    chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
     rescue_id: '550e8400-e29b-41d4-a716-446655440001', // Paws Rescue Austin
 
@@ -31,9 +31,9 @@ const emilyConversation4Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      participant_id: 'user_0000adopt02', // Emily Davis
+      participant_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       role: ParticipantRole.USER,
 
@@ -47,9 +47,9 @@ const emilyConversation4Data = {
     {
       chat_participant_id: uuidv4(),
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      participant_id: 'user_0000rscst01', // Sarah Johnson from Paws Rescue
+      participant_id: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson from Paws Rescue
 
       role: ParticipantRole.RESCUE,
 
@@ -65,11 +65,11 @@ const emilyConversation4Data = {
 
   messages: [
     {
-      message_id: 'message_0000em4001',
+      message_id: '37e8cd37-3b46-45e2-a9dc-59a7be647495',
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      sender_id: 'user_0000adopt02', // Emily Davis
+      sender_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       content:
         "Hello! I saw your post about Charlie, the senior dog who needs a quiet home. My family has been considering adopting an older dog who might have a harder time finding a home. Can you tell me more about Charlie's needs and personality?",
@@ -86,11 +86,11 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'message_0000em4002',
+      message_id: '3ef209f7-3dcd-4992-ac67-ae8e6594bc26',
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      sender_id: 'user_0000rscst01', // Sarah Johnson
+      sender_id: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
 
       content:
         "Hi Emily! Thank you so much for considering Charlie - senior dogs make the most grateful companions. Charlie is 9 years old, very gentle and calm. He has mild arthritis managed with daily medication, and he loves short walks and lots of napping. He's great with kids and just wants a cozy home to spend his golden years. Do you have experience with senior pets?",
@@ -107,11 +107,11 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'message_0000em4003',
+      message_id: '13d66fa4-76a2-4477-a2da-1cbcf6a73f85',
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      sender_id: 'user_0000adopt02', // Emily Davis
+      sender_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       content:
         "That sounds perfect for our family! We had our previous dog for 12 years until she passed from old age, so we understand the commitment. My kids (5 and 8) are very gentle. What kind of ongoing care does Charlie need for his arthritis? And what's his daily routine like?",
@@ -128,11 +128,11 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'message_0000em4004',
+      message_id: '82f1f633-76ca-4ce0-a57e-f25b61f87094',
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      sender_id: 'user_0000rscst01', // Sarah Johnson
+      sender_id: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
 
       content:
         "Charlie takes one small pill twice daily (about $30/month) and benefits from a soft bed and gentle exercise. He loves two short 15-minute walks daily and enjoys sunbathing in the yard. He's very low-maintenance otherwise - house trained, quiet, and content to be near his family. The vet estimates he has many good years left with proper care.",
@@ -149,11 +149,11 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'message_0000em4005',
+      message_id: '5a1efdcf-7730-4372-a2bd-eeaf892d127a',
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      sender_id: 'user_0000adopt02', // Emily Davis
+      sender_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       content:
         "That all sounds very manageable and we'd be honored to give Charlie a loving retirement home. We have a quiet neighborhood perfect for gentle walks and a sunny backyard he'd love. When could we meet him? We're prepared to commit to his ongoing care.",
@@ -170,11 +170,11 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'message_0000em4006',
+      message_id: 'f49e5b51-45bb-46cb-a172-2873d1a35e79',
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      sender_id: 'user_0000rscst01', // Sarah Johnson
+      sender_id: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
 
       content:
         'This is exactly what Charlie needs! Senior dogs are often overlooked, but they make the most wonderful companions. We do a thorough adoption process for our special needs animals - application, vet reference, and home visit. The adoption fee is reduced to $150 for seniors. Are you available Saturday morning to meet Charlie?',
@@ -191,11 +191,11 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'message_0000em4007',
+      message_id: 'cf84fa74-3c02-4b44-ac7b-18787538f710',
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      sender_id: 'user_0000adopt02', // Emily Davis
+      sender_id: 'fc369713-6925-4f02-a5c6-cb84b3652116', // Emily Davis
 
       content:
         'Saturday morning is perfect! We believe every dog deserves love in their golden years. Should we bring anything specific? Also, will you provide information about his current medication routine and vet records so we can ensure continuity of care?',
@@ -212,11 +212,11 @@ const emilyConversation4Data = {
     },
 
     {
-      message_id: 'message_0000em4008',
+      message_id: '3e9dee4c-ddbe-472b-aa18-3890d450c5cf',
 
-      chat_id: 'chat_0000emsn004',
+      chat_id: '1b31d6dc-2f13-45f3-a7be-a610dc3fcd90',
 
-      sender_id: 'user_0000rscst01', // Sarah Johnson
+      sender_id: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
 
       content:
         "Absolutely! We'll provide all his medical records, current medications, feeding schedule, and our vet's contact info. Just bring yourselves and maybe some gentle treats. Charlie is going to love having a family who understands his needs. Thank you for opening your hearts to a senior dog - you're making such a difference! See you Saturday at 10 AM. 🐕❤️",

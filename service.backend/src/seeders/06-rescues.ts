@@ -3,7 +3,6 @@ import Rescue from '../models/Rescue';
 const rescueOrganizations = [
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440001',
-    readableId: 'rescue_0000paws0001',
     name: 'Paws Rescue London',
     email: 'info@pawsrescue.dev',
     phone: '020 7946 0123',
@@ -24,7 +23,7 @@ const rescueOrganizations = [
     contactPhone: '(512) 555-0123',
     status: 'verified' as const,
     verifiedAt: new Date('2023-01-15'),
-    verifiedBy: 'user_0000admin01',
+    verifiedBy: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     settings: {
       autoApproveApplications: false,
       requireHomeVisit: true,
@@ -60,7 +59,6 @@ const rescueOrganizations = [
   },
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440002',
-    readableId: 'rescue_0000happy001',
     name: 'Happy Tails Senior Dog Rescue',
     email: 'info@happytailsrescue.dev',
     phone: '0121 496 0456',
@@ -82,7 +80,7 @@ const rescueOrganizations = [
     contactPhone: '(305) 555-0456',
     status: 'verified' as const,
     verifiedAt: new Date('2023-02-20'),
-    verifiedBy: 'user_0000admin01',
+    verifiedBy: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     settings: {
       autoApproveApplications: false,
       requireHomeVisit: true,
@@ -129,7 +127,6 @@ const rescueOrganizations = [
     website: 'https://www.furryfriendspdx.dev',
     description:
       'Multi-species rescue focusing on cats, dogs, and small mammals in the Portland metropolitan area.',
-    readableId: 'rescue_0000furry001',
     mission:
       'To rescue, rehabilitate, and rehome companion animals while promoting responsible pet ownership.',
     ein: '55-1234567',

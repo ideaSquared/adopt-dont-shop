@@ -5,7 +5,7 @@ const timelineData = [
   // Timeline events for John's application (VISITING stage)
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application submitted',
     description: 'Application submitted and moved to pending stage',
@@ -15,22 +15,22 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Review started',
     description: 'Staff member began reviewing application',
-    created_by: 'user_0000rscad01',
+    created_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     previous_stage: 'PENDING',
     new_stage: 'REVIEWING',
     created_at: new Date('2024-02-16T09:00:00Z'),
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     event_type: TimelineEventType.REFERENCE_CONTACTED,
     title: 'Reference contacted: Dr. Johnson',
     description: 'Contacted veterinarian Dr. Johnson via phone',
-    created_by: 'user_0000rscad01',
+    created_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     metadata: {
       reference_name: 'Dr. Johnson',
       contact_method: 'phone',
@@ -40,20 +40,20 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     event_type: TimelineEventType.HOME_VISIT_SCHEDULED,
     title: 'Home visit scheduled',
     description: 'Home visit scheduled for February 20, 2024',
-    created_by: 'user_0000rscad01',
+    created_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     metadata: {
       visit_date: '2024-02-20T14:00:00Z',
-      staff_member_id: 'user_0000rscad01',
+      staff_member_id: '3d7065c5-82a3-4bba-a84e-78229365badd',
     },
     created_at: new Date('2024-02-18T11:00:00Z'),
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000bjon001',
+    application_id: 'f89c141a-554d-4f6f-adc3-e5d209f5237e',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Moved to visiting stage',
     description: 'Application automatically moved to visiting stage when home visit was scheduled',
@@ -66,7 +66,7 @@ const timelineData = [
   // Timeline events for Emily's application (RESOLVED - Approved)
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application submitted',
     description: 'Application submitted and moved to pending stage',
@@ -76,22 +76,22 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Review started',
     description: 'Staff member began reviewing application',
-    created_by: 'user_0000rscad01',
+    created_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     previous_stage: 'PENDING',
     new_stage: 'REVIEWING',
     created_at: new Date('2024-02-13T09:00:00Z'),
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     event_type: TimelineEventType.REFERENCE_CONTACTED,
     title: 'Reference contacted: Dr. Martinez',
     description: 'Contacted veterinarian Dr. Martinez via phone',
-    created_by: 'user_0000rscad01',
+    created_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     metadata: {
       reference_name: 'Dr. Martinez',
       contact_method: 'phone',
@@ -101,20 +101,20 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     event_type: TimelineEventType.HOME_VISIT_SCHEDULED,
     title: 'Home visit scheduled',
     description: 'Home visit scheduled for February 15, 2024',
-    created_by: 'user_0000rscad01',
+    created_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     metadata: {
       visit_date: '2024-02-15T10:00:00Z',
-      staff_member_id: 'user_0000rscad01',
+      staff_member_id: '3d7065c5-82a3-4bba-a84e-78229365badd',
     },
     created_at: new Date('2024-02-15T10:00:00Z'),
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Moved to visiting stage',
     description: 'Application automatically moved to visiting stage when home visit was scheduled',
@@ -125,11 +125,11 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     event_type: TimelineEventType.HOME_VISIT_COMPLETED,
     title: 'Home visit completed - positive',
     description: 'Home visit completed successfully. Apartment is perfect for senior cat.',
-    created_by: 'user_0000rscad01',
+    created_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     metadata: {
       outcome: 'positive',
       notes: 'Apartment is cat-proofed and has great sunny spots. Very suitable for senior cat.',
@@ -138,7 +138,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Moved to deciding stage',
     description: 'Application automatically moved to deciding stage after positive home visit',
@@ -149,11 +149,11 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     event_type: TimelineEventType.DECISION_MADE,
     title: 'Application approved',
     description: 'Application approved for adoption',
-    created_by: 'user_0000rscad01',
+    created_by: '3d7065c5-82a3-4bba-a84e-78229365badd',
     metadata: {
       decision: 'approved',
       reason: 'Perfect match for Whiskers. Emily understands senior cat needs perfectly.',
@@ -162,7 +162,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000wemi001',
+    application_id: '56a2a53c-36c5-41df-af76-96b1a5eb0647',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application resolved',
     description: 'Application completed with approved outcome',
@@ -175,7 +175,7 @@ const timelineData = [
   // Timeline events for Michael's application (REVIEWING stage)
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000rmic001',
+    application_id: '84e87262-08a3-4998-a2c2-5e5dfe5824e3',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application submitted',
     description: 'Application submitted and moved to pending stage',
@@ -185,22 +185,22 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000rmic001',
+    application_id: '84e87262-08a3-4998-a2c2-5e5dfe5824e3',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Review started',
     description: 'Staff member began reviewing application',
-    created_by: 'user_0000rscad02',
+    created_by: 'c283bd85-11ce-4494-add0-b06896d38e2d',
     previous_stage: 'PENDING',
     new_stage: 'REVIEWING',
     created_at: new Date('2024-02-17T15:00:00Z'),
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000rmic001',
+    application_id: '84e87262-08a3-4998-a2c2-5e5dfe5824e3',
     event_type: TimelineEventType.NOTE_ADDED,
     title: 'Interview note added',
     description: 'Applicant shows excellent understanding of pit bull breed needs...',
-    created_by: 'user_0000rscad02',
+    created_by: 'c283bd85-11ce-4494-add0-b06896d38e2d',
     metadata: {
       note_type: 'interview',
       full_content:
@@ -212,7 +212,7 @@ const timelineData = [
   // Timeline events for Jessica's application (RESOLVED - Rejected)
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000ljes001',
+    application_id: '166bce5d-d9e8-45e4-aaad-6dff23e72c61',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application submitted',
     description: 'Application submitted and moved to pending stage',
@@ -222,22 +222,22 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000ljes001',
+    application_id: '166bce5d-d9e8-45e4-aaad-6dff23e72c61',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Review started',
     description: 'Staff member began reviewing application',
-    created_by: 'user_0000rscst01',
+    created_by: '378118eb-9e97-4940-adeb-0a53b252b057',
     previous_stage: 'PENDING',
     new_stage: 'REVIEWING',
     created_at: new Date('2024-02-19T09:00:00Z'),
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000ljes001',
+    application_id: '166bce5d-d9e8-45e4-aaad-6dff23e72c61',
     event_type: TimelineEventType.DECISION_MADE,
     title: 'Application rejected',
     description: 'Application rejected due to insufficient experience for high-energy cat',
-    created_by: 'user_0000rscst01',
+    created_by: '378118eb-9e97-4940-adeb-0a53b252b057',
     metadata: {
       decision: 'rejected',
       reason:
@@ -247,7 +247,7 @@ const timelineData = [
   },
   {
     timeline_id: uuidv4(),
-    application_id: 'application_0000ljes001',
+    application_id: '166bce5d-d9e8-45e4-aaad-6dff23e72c61',
     event_type: TimelineEventType.STAGE_CHANGE,
     title: 'Application resolved',
     description: 'Application completed with rejected outcome',
