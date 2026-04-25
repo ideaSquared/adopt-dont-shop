@@ -8,6 +8,7 @@ vi.mock('../../utils/logger', () => ({
 
 import User, { UserStatus, UserType } from '../../models/User';
 import Content, { ContentType, ContentStatus } from '../../models/Content';
+import { runWithContext } from '../../utils/request-context';
 import NavigationMenu, { MenuLocation } from '../../models/NavigationMenu';
 import CmsService from '../../services/cms.service';
 
@@ -323,22 +324,26 @@ describe('CmsService – navigation menus', () => {
   });
 
   it('updates a navigation menu with new items', async () => {
-    await makeUser();
-    const menu = await CmsService.createNavigationMenu({
-      name: 'Footer',
-      location: MenuLocation.FOOTER,
-      createdBy: 'author-1',
-    });
+    const author = await makeUser();
+    // Authoring runs inside the request context so the audit hook stamps
+    // created_by / updated_by from the actor (replaces the old explicit
+    // createdBy / modifiedBy args, which were dropped when the menu model
+    // adopted the audit-columns helper).
+    const menu = await runWithContext({ userId: author.userId }, () =>
+      CmsService.createNavigationMenu({
+        name: 'Footer',
+        location: MenuLocation.FOOTER,
+      })
+    );
     const items = [
       { id: '1', label: 'Home', url: '/', openInNewTab: false, order: 1 },
       { id: '2', label: 'About', url: '/about', openInNewTab: false, order: 2 },
     ];
-    const updated = await CmsService.updateNavigationMenu(menu.menuId, {
-      items,
-      modifiedBy: 'author-1',
-    });
+    const updated = await runWithContext({ userId: author.userId }, () =>
+      CmsService.updateNavigationMenu(menu.menuId, { items })
+    );
     expect(updated.items).toHaveLength(2);
-    expect(updated.lastModifiedBy).toBe('author-1');
+    expect((updated as unknown as { updated_by: string }).updated_by).toBe(author.userId);
   });
 
   it('deletes a navigation menu', async () => {

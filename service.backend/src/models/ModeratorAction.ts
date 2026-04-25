@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum ActionType {
   WARNING_ISSUED = 'warning_issued',
@@ -256,8 +257,9 @@ ModeratorAction.init(
       defaultValue: DataTypes.NOW,
       field: 'updated_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'moderator_actions',
     timestamps: true,
@@ -299,8 +301,9 @@ ModeratorAction.init(
       {
         fields: ['created_at'],
       },
+      ...auditIndexes('moderator_actions'),
     ],
-  }
+  })
 );
 
 export default ModeratorAction;

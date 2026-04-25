@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum ReportCategory {
   INAPPROPRIATE_CONTENT = 'inappropriate_content',
@@ -285,8 +286,9 @@ Report.init(
       defaultValue: DataTypes.NOW,
       field: 'updated_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'reports',
     timestamps: true,
@@ -329,8 +331,9 @@ Report.init(
       {
         fields: ['created_at'],
       },
+      ...auditIndexes('reports'),
     ],
-  }
+  })
 );
 
 export default Report;

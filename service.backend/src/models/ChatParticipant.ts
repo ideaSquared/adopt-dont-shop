@@ -3,6 +3,7 @@ import sequelize, { getUuidType } from '../sequelize';
 import { ParticipantRole } from '../types/chat';
 import { generateUuidV7 } from '../utils/uuid';
 import Chat from './Chat';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 interface ChatParticipantAttributes {
   chat_participant_id: string;
@@ -88,8 +89,9 @@ ChatParticipant.init(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'chat_participants',
     modelName: 'ChatParticipant',
@@ -109,8 +111,9 @@ ChatParticipant.init(
       {
         fields: ['role'],
       },
+      ...auditIndexes('chat_participants'),
     ],
-  }
+  })
 );
 
 export default ChatParticipant;

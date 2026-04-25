@@ -137,17 +137,15 @@ export const getMenu = async (req: AuthenticatedRequest, res: Response): Promise
 };
 
 export const createMenu = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  const userId = req.user!.userId;
-  const menu = await CmsService.createNavigationMenu({ ...req.body, createdBy: userId });
+  // created_by stamped automatically from the request context (auth.middleware
+  // sets userId; the audit hook on NavigationMenu reads it).
+  const menu = await CmsService.createNavigationMenu(req.body);
   res.status(201).json({ success: true, message: 'Navigation menu created successfully', menu });
 };
 
 export const updateMenu = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  const userId = req.user!.userId;
-  const menu = await CmsService.updateNavigationMenu(req.params.menuId, {
-    ...req.body,
-    modifiedBy: userId,
-  });
+  // updated_by stamped automatically from the request context.
+  const menu = await CmsService.updateNavigationMenu(req.params.menuId, req.body);
   res.json({ success: true, message: 'Navigation menu updated successfully', menu });
 };
 

@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum EmailStatus {
   QUEUED = 'queued',
@@ -87,7 +88,7 @@ interface EmailQueueAttributes {
   metadata?: JsonObject;
   campaignId?: string;
   userId?: string;
-  createdBy?: string;
+  // createdBy removed — provided by auditColumns helper as `created_by`.
   tags?: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -129,7 +130,6 @@ class EmailQueue
   public metadata?: JsonObject;
   public campaignId?: string;
   public userId?: string;
-  public createdBy?: string;
   public tags?: string[];
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
@@ -503,16 +503,8 @@ EmailQueue.init(
       },
       onDelete: 'SET NULL',
     },
-    createdBy: {
-      type: getUuidType(),
-      allowNull: true,
-      field: 'created_by',
-      references: {
-        model: 'users',
-        key: 'user_id',
-      },
-      onDelete: 'SET NULL',
-    },
+    // createdBy column dropped — superseded by auditColumns.created_by
+    // (see ../models/audit-columns.ts). Hook stamps it from request context.
     tags: {
       type: getArrayType(DataTypes.STRING),
       allowNull: false,
@@ -552,8 +544,9 @@ EmailQueue.init(
       defaultValue: DataTypes.NOW,
       field: 'updated_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'email_queue',
     timestamps: true,
@@ -579,10 +572,7 @@ EmailQueue.init(
         name: 'email_queue_template_id_idx',
         fields: ['template_id'],
       },
-      {
-        name: 'email_queue_created_by_idx',
-        fields: ['created_by'],
-      },
+      // created_by index now provided by auditIndexes('email_queue').
       {
         fields: ['campaign_id'],
       },
@@ -603,8 +593,9 @@ EmailQueue.init(
         fields: ['status', 'priority', 'scheduled_for'],
         name: 'email_queue_processing_idx',
       },
+      ...auditIndexes('email_queue'),
     ],
-  }
+  })
 );
 
 export default EmailQueue;

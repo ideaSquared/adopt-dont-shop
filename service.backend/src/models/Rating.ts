@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional, WhereOptions } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum RatingType {
   PET = 'pet',
@@ -395,8 +396,9 @@ Rating.init(
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'ratings',
     timestamps: true,
@@ -439,8 +441,9 @@ Rating.init(
       {
         fields: ['created_at'],
       },
+      ...auditIndexes('ratings'),
     ],
-  }
+  })
 );
 
 export default Rating;

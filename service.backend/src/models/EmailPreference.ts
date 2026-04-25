@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum EmailFrequency {
   IMMEDIATE = 'immediate',
@@ -451,8 +452,9 @@ EmailPreference.init(
       defaultValue: DataTypes.NOW,
       field: 'updated_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'email_preferences',
     timestamps: true,
@@ -483,6 +485,7 @@ EmailPreference.init(
       {
         fields: ['last_digest_sent'],
       },
+      ...auditIndexes('email_preferences'),
     ],
     // TODO (Phase 3 — secrets-at-rest): unsubscribeToken should be hashed on
     // write, but the current emitter (email.service.generateUnsubscribeToken)
@@ -490,7 +493,7 @@ EmailPreference.init(
     // endpoint decodes that blob rather than doing an equality lookup. Hashing
     // without rewriting both sides would break the flow — deferred until the
     // token is switched to crypto.randomBytes(32).
-  }
+  })
 );
 
 export default EmailPreference;

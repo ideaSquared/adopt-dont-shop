@@ -13,6 +13,7 @@ import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequel
 import { generateUuidV7 } from '../utils/uuid';
 import Pet from './Pet';
 import User from './User';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 class UserFavorite extends Model<
   InferAttributes<UserFavorite>,
@@ -82,8 +83,9 @@ UserFavorite.init(
       allowNull: true,
       field: 'deleted_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     modelName: 'UserFavorite',
     tableName: 'user_favorites',
@@ -111,8 +113,9 @@ UserFavorite.init(
         fields: ['created_at'],
         name: 'idx_user_favorites_created_at',
       },
+      ...auditIndexes('user_favorites'),
     ],
-  }
+  })
 );
 
 export default UserFavorite;

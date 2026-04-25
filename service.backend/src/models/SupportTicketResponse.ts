@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum ResponderType {
   STAFF = 'staff',
@@ -132,8 +133,9 @@ SupportTicketResponse.init(
       allowNull: true,
       field: 'deleted_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'support_ticket_responses',
     timestamps: true,
@@ -159,8 +161,9 @@ SupportTicketResponse.init(
         // Composite index for common queries
         fields: ['ticket_id', 'created_at'],
       },
+      ...auditIndexes('support_ticket_responses'),
     ],
-  }
+  })
 );
 
 export default SupportTicketResponse;

@@ -521,7 +521,7 @@ The {{system.appName}} Team
           currentVersion: 1,
           usageCount: 0,
           testEmailsSent: 0,
-          createdBy,
+          // created_by stamped by audit hook from request context.
         });
 
         createdTemplates.push(template);

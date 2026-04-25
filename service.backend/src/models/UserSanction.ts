@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum SanctionType {
   WARNING = 'warning',
@@ -344,8 +345,9 @@ UserSanction.init(
       defaultValue: DataTypes.NOW,
       field: 'updated_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'user_sanctions',
     timestamps: true,
@@ -401,8 +403,9 @@ UserSanction.init(
       {
         fields: ['user_id', 'is_active', 'end_date'],
       },
+      ...auditIndexes('user_sanctions'),
     ],
-  }
+  })
 );
 
 export default UserSanction;
