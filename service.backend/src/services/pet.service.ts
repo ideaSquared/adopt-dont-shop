@@ -1,6 +1,7 @@
 import { col, fn, literal, Op, WhereOptions } from 'sequelize';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
 import PetStatusTransition from '../models/PetStatusTransition';
+import { validateSortField } from '../utils/sort-validation';
 import Rescue from '../models/Rescue';
 import UserFavorite from '../models/UserFavorite';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../models/Report';
@@ -28,6 +29,25 @@ import {
 } from '../types/pet';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+
+const PET_SEARCH_SORT_FIELDS = [
+  'createdAt',
+  'created_at',
+  'updatedAt',
+  'updated_at',
+  'name',
+  'breed',
+  'ageYears',
+  'adoptionFee',
+  'distance',
+] as const;
+const PET_RESCUE_LIST_SORT_FIELDS = [
+  'createdAt',
+  'updatedAt',
+  'name',
+  'age',
+  'adoptionFee',
+] as const;
 
 /**
  * Helper to get the appropriate LIKE operator based on database dialect
@@ -246,6 +266,7 @@ export class PetService {
 
       // Calculate offset
       const offset = (page - 1) * limit;
+      const safeSortBy = validateSortField(sortBy, PET_SEARCH_SORT_FIELDS, 'createdAt');
 
       // Build order clause
       const orderClause: Array<[string, 'ASC' | 'DESC'] | ReturnType<typeof literal>> = [];
@@ -253,14 +274,14 @@ export class PetService {
       orderClause.push(['priorityListing', 'DESC'] as [string, 'ASC' | 'DESC']);
 
       // Distance-based sorting
-      if (sortBy === 'distance' && hasValidLocation && isPostgres) {
+      if (safeSortBy === 'distance' && hasValidLocation && isPostgres) {
         orderClause.push(
           literal(
             `ST_Distance(location, ST_SetSRID(ST_MakePoint(${Number(longitude)}, ${Number(latitude)}), 4326)::geography) ASC`
           )
         );
       } else {
-        orderClause.push([sortBy, sortOrder] as [string, 'ASC' | 'DESC']);
+        orderClause.push([safeSortBy, sortOrder] as [string, 'ASC' | 'DESC']);
       }
 
       // Execute query
@@ -1349,6 +1370,8 @@ export class PetService {
         sortOrder = 'DESC',
       } = filters;
 
+      const safeSortBy = validateSortField(sortBy, PET_RESCUE_LIST_SORT_FIELDS, 'createdAt');
+
       // Build where clause
       const whereClause: WhereOptions = {};
 
@@ -1444,7 +1467,7 @@ export class PetService {
         ],
         limit,
         offset,
-        order: [[sortBy, sortOrder]],
+        order: [[safeSortBy, sortOrder]],
       });
 
       const totalPages = Math.ceil(total / limit);

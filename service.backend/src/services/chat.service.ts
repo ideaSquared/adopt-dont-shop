@@ -1,5 +1,8 @@
 import { Op, WhereOptions } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
+import { validateSortField } from '../utils/sort-validation';
+
+const CHAT_SORT_FIELDS = ['created_at', 'updated_at'] as const;
 import { NotificationPriority, NotificationType } from '../models/Notification';
 import sequelize from '../sequelize';
 import {
@@ -329,6 +332,7 @@ export class ChatService {
       } = options;
 
       const offset = (page - 1) * limit;
+      const safeSortBy = validateSortField(sortBy, CHAT_SORT_FIELDS, 'created_at');
 
       // Build where conditions
       const whereConditions: WhereOptions = {
@@ -410,7 +414,7 @@ export class ChatService {
         include: includes,
         limit,
         offset,
-        order: [[sortBy, sortOrder]],
+        order: [[safeSortBy, sortOrder]],
         distinct: true,
       });
 
@@ -447,6 +451,7 @@ export class ChatService {
       } = options;
 
       const offset = (page - 1) * limit;
+      const safeSortBy = validateSortField(sortBy, CHAT_SORT_FIELDS, 'created_at');
 
       // Build where conditions for chats
       const chatWhereConditions: WhereOptions = {
@@ -506,7 +511,7 @@ export class ChatService {
         ],
         limit,
         offset,
-        order: [[sortBy, sortOrder]],
+        order: [[safeSortBy, sortOrder]],
         distinct: true,
       });
 

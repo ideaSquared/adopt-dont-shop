@@ -9,6 +9,15 @@ import { Op, Transaction, WhereOptions } from 'sequelize';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
 import { JsonObject } from '../types/common';
+import { validateSortField } from '../utils/sort-validation';
+
+const SUPPORT_TICKET_SORT_FIELDS = [
+  'createdAt',
+  'updatedAt',
+  'status',
+  'priority',
+  'category',
+] as const;
 
 interface TicketFilters {
   status?: TicketStatus | TicketStatus[];
@@ -37,6 +46,7 @@ class SupportTicketService {
       const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
 
       const offset = (page - 1) * limit;
+      const safeSortBy = validateSortField(sortBy, SUPPORT_TICKET_SORT_FIELDS, 'createdAt');
 
       // Build where clause
       const where: WhereOptions = {};
@@ -92,7 +102,7 @@ class SupportTicketService {
         where,
         limit,
         offset,
-        order: [[sortBy, sortOrder]],
+        order: [[safeSortBy, sortOrder]],
         include: [
           {
             model: User,
@@ -489,6 +499,7 @@ class SupportTicketService {
       const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
 
       const offset = (page - 1) * limit;
+      const safeSortBy = validateSortField(sortBy, SUPPORT_TICKET_SORT_FIELDS, 'createdAt');
 
       // Build where clause - always filter by userId
       const where: WhereOptions = { userId };
@@ -513,7 +524,7 @@ class SupportTicketService {
         where,
         limit,
         offset,
-        order: [[sortBy, sortOrder]],
+        order: [[safeSortBy, sortOrder]],
       });
 
       return {

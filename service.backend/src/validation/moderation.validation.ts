@@ -3,6 +3,7 @@ import { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
 import { ActionType, ActionSeverity } from '../models/ModeratorAction';
 
 const ENTITY_TYPES = ['user', 'rescue', 'pet', 'application', 'message', 'conversation'];
+const REPORT_SORT_FIELDS = ['createdAt', 'updatedAt', 'status', 'severity', 'category'];
 const RESOLUTION_TYPES = [
   'no_action',
   'warning_issued',
@@ -47,6 +48,14 @@ export const moderationValidation = {
       .withMessage('Search query must be 1-200 characters'),
     query('dateFrom').optional().isISO8601().withMessage('dateFrom must be a valid ISO 8601 date'),
     query('dateTo').optional().isISO8601().withMessage('dateTo must be a valid ISO 8601 date'),
+    query('sortBy')
+      .optional()
+      .isIn(REPORT_SORT_FIELDS)
+      .withMessage(`sortBy must be one of: ${REPORT_SORT_FIELDS.join(', ')}`),
+    query('sortOrder')
+      .optional()
+      .isIn(['ASC', 'DESC'])
+      .withMessage('sortOrder must be ASC or DESC'),
   ],
 
   getReportById: [param('reportId').isUUID().withMessage('Report ID must be a valid UUID')],

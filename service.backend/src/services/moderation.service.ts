@@ -9,6 +9,9 @@ import sequelize from '../sequelize';
 import logger from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { JsonObject } from '../types/common';
+import { validateSortField } from '../utils/sort-validation';
+
+const REPORT_SORT_FIELDS = ['createdAt', 'updatedAt', 'status', 'severity', 'category'] as const;
 
 export interface ReportFilters {
   status?: ReportStatus;
@@ -229,7 +232,12 @@ class ModerationService {
       Object.assign(whereClause, { [Op.or]: orConditions });
     }
 
-    const orderClause = [[options.sortBy || 'createdAt', options.sortOrder || 'DESC']];
+    const safeSortBy = validateSortField(
+      options.sortBy || 'createdAt',
+      REPORT_SORT_FIELDS,
+      'createdAt'
+    );
+    const orderClause = [[safeSortBy, options.sortOrder || 'DESC']];
 
     const { count, rows } = await Report.findAndCountAll({
       where: whereClause,
