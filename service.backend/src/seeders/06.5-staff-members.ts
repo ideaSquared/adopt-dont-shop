@@ -11,7 +11,6 @@ const staffMembers = [
     verifiedAt: new Date('2023-01-15'),
     addedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     addedAt: new Date('2023-01-15'),
-    isDeleted: false,
   },
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440001', // Paws Rescue Austin
@@ -22,7 +21,6 @@ const staffMembers = [
     verifiedAt: new Date('2023-01-20'),
     addedBy: '3d7065c5-82a3-4bba-a84e-78229365badd',
     addedAt: new Date('2023-01-20'),
-    isDeleted: false,
   },
   // Happy Tails Senior Dog Rescue staff
   {
@@ -34,7 +32,6 @@ const staffMembers = [
     verifiedAt: new Date('2023-02-20'),
     addedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     addedAt: new Date('2023-02-20'),
-    isDeleted: false,
   },
   // Furry Friends Portland - let's add a staff member for the third rescue too
   {
@@ -46,7 +43,6 @@ const staffMembers = [
     verifiedAt: undefined,
     addedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     addedAt: new Date('2024-01-10'),
-    isDeleted: false,
   },
 ];
 

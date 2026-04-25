@@ -51,7 +51,7 @@ export class InvitationService {
 
       // Check if email is already associated with this rescue
       const existingStaff = await StaffMember.findOne({
-        where: { rescueId, isDeleted: false },
+        where: { rescueId },
         include: [
           {
             model: User,
@@ -224,7 +224,6 @@ export class InvitationService {
           verifiedAt: new Date(),
           addedBy: invitation.invited_by || user.userId,
           addedAt: new Date(),
-          isDeleted: false,
         },
         { transaction }
       );

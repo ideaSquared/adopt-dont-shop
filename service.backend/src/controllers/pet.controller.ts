@@ -121,7 +121,6 @@ export class PetController {
           const staffMember = await StaffMember.findOne({
             where: {
               userId: authenticatedReq.user.userId,
-              isDeleted: false,
               isVerified: true,
             },
           });
@@ -216,7 +215,6 @@ export class PetController {
       const staffMember = await StaffMember.findOne({
         where: {
           userId: user.userId,
-          isDeleted: false,
           isVerified: true,
         },
       });
@@ -499,7 +497,6 @@ export class PetController {
       const staffMember = await StaffMember.findOne({
         where: {
           userId: user.userId,
-          isDeleted: false,
           isVerified: true,
         },
       });

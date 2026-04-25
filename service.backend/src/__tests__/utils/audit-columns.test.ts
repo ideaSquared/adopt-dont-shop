@@ -41,7 +41,6 @@ describe('audit columns + request context', () => {
       country: 'GB',
       contactPerson: 'Test Person',
       status: 'pending',
-      isDeleted: false,
       ...overrides,
     } as never);
   };

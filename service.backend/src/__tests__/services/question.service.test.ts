@@ -37,7 +37,6 @@ const createRescue = async (rescueId: string) => {
     country: 'UK',
     contactPerson: 'Test Contact',
     status: 'pending',
-    isDeleted: false,
   });
 };
 

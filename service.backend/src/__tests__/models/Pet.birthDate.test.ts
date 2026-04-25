@@ -30,7 +30,6 @@ describe('Pet.birthDate + getAgeDisplay', () => {
       country: 'GB',
       contactPerson: 'X',
       status: 'pending',
-      isDeleted: false,
     } as never);
     rescueId = rescue.rescueId;
   });

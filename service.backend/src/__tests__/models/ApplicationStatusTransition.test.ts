@@ -45,7 +45,6 @@ describe('ApplicationStatusTransition', () => {
       country: 'GB',
       contactPerson: 'X',
       status: 'pending',
-      isDeleted: false,
     } as never);
     rescueId = rescue.rescueId;
     // Insert Pet via raw SQL to avoid the array-column SQLite vs Postgres

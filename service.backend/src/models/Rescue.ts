@@ -26,9 +26,8 @@ interface RescueAttributes {
   verifiedAt?: Date;
   verifiedBy?: string;
   settings?: object;
-  isDeleted: boolean;
-  deletedAt?: Date;
-  deletedBy?: string;
+  /** Managed by Sequelize paranoid; null when the row is live. */
+  deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,7 +35,7 @@ interface RescueAttributes {
 export interface RescueCreationAttributes
   extends Optional<
     RescueAttributes,
-    'rescueId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'deletedBy' | 'createdAt' | 'updatedAt'
+    'rescueId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'createdAt' | 'updatedAt'
   > {}
 
 class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implements RescueAttributes {
@@ -62,9 +61,7 @@ class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implement
   public verifiedAt?: Date;
   public verifiedBy?: string;
   public settings?: object;
-  public isDeleted!: boolean;
-  public deletedAt?: Date;
-  public deletedBy?: string;
+  public deletedAt?: Date | null;
   public createdAt!: Date;
   public updatedAt!: Date;
 
@@ -195,27 +192,6 @@ Rescue.init(
       allowNull: true,
       defaultValue: {},
     },
-    isDeleted: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-      field: 'is_deleted',
-    },
-    deletedAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'deleted_at',
-    },
-    deletedBy: {
-      type: getUuidType(),
-      allowNull: true,
-      field: 'deleted_by',
-      references: {
-        model: 'users',
-        key: 'user_id',
-      },
-      onDelete: 'SET NULL',
-    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -237,32 +213,20 @@ Rescue.init(
     underscored: true,
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
+    // Soft-delete via Sequelize's paranoid mode (plan 3.5). `deletedAt`
+    // is managed automatically; `Rescue.destroy()` soft-deletes,
+    // `restore()` undeletes, and the default scope hides deleted rows.
+    // `paranoid: true` removes the need for the old isDeleted /
+    // deletedBy columns; the audit log captures who deleted.
+    paranoid: true,
+    deletedAt: 'deletedAt',
     indexes: [
       {
         fields: ['verified_by'],
         name: 'rescues_verified_by_idx',
       },
-      {
-        fields: ['deleted_by'],
-        name: 'rescues_deleted_by_idx',
-      },
       ...auditIndexes('rescues'),
     ],
-    defaultScope: {
-      where: {
-        isDeleted: false,
-      },
-    },
-    scopes: {
-      withDeleted: {
-        where: {},
-      },
-      deleted: {
-        where: {
-          isDeleted: true,
-        },
-      },
-    },
   })
 );
 

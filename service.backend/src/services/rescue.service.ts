@@ -286,7 +286,6 @@ export class RescueService {
         {
           ...rescueData,
           status: 'pending',
-          isDeleted: false,
         },
         { transaction }
       );
@@ -595,9 +594,10 @@ export class RescueService {
         throw new Error('User not found');
       }
 
-      // Check if user is already an active staff member
+      // Check if user is already an active staff member. paranoid scope
+      // hides soft-deleted rows by default.
       const existingActiveStaff = await StaffMember.findOne({
-        where: { rescueId, userId, isDeleted: false },
+        where: { rescueId, userId },
         transaction,
       });
 
@@ -605,27 +605,26 @@ export class RescueService {
         throw new Error('User is already a staff member of this rescue');
       }
 
-      // Check if user was previously a staff member (soft deleted)
+      // Check if user was previously a staff member (soft deleted) — opt
+      // in to including paranoid rows.
       const existingSoftDeletedStaff = await StaffMember.findOne({
-        where: { rescueId, userId, isDeleted: true },
+        where: { rescueId, userId },
+        paranoid: false,
         transaction,
       });
 
       let staffMember;
-      if (existingSoftDeletedStaff) {
-        // Restore the soft-deleted staff member
-        // Preserve verification status if they were previously verified
+      if (existingSoftDeletedStaff && existingSoftDeletedStaff.deletedAt) {
+        // Restore the soft-deleted staff member, preserving verification.
         const wasVerified = existingSoftDeletedStaff.isVerified;
 
+        await existingSoftDeletedStaff.restore({ transaction });
         await existingSoftDeletedStaff.update(
           {
             title,
-            isDeleted: false,
-            deletedAt: undefined,
-            deletedBy: undefined,
             addedBy,
             addedAt: new Date(),
-            isVerified: wasVerified, // Keep previous verification status
+            isVerified: wasVerified,
           },
           { transaction }
         );
@@ -643,7 +642,6 @@ export class RescueService {
             title,
             addedBy,
             isVerified: false,
-            isDeleted: false,
             addedAt: new Date(),
           },
           { transaction }
@@ -721,7 +719,7 @@ export class RescueService {
 
     try {
       const staffMember = await StaffMember.findOne({
-        where: { rescueId, userId, isDeleted: false },
+        where: { rescueId, userId },
         include: [
           {
             model: User,
@@ -738,15 +736,8 @@ export class RescueService {
 
       const user = staffMember.user!;
 
-      // Soft delete the staff member instead of hard delete
-      await staffMember.update(
-        {
-          isDeleted: true,
-          deletedAt: new Date(),
-          deletedBy: removedBy,
-        },
-        { transaction }
-      );
+      // paranoid soft-delete; the audit log captures who removed.
+      await staffMember.destroy({ transaction });
 
       // Keep the user's rescue_staff role intact
       // This allows them to be re-added easily and maintains their capability level
@@ -986,25 +977,23 @@ export class RescueService {
     const transaction = await Rescue.sequelize!.transaction();
 
     try {
-      const rescue = await Rescue.findByPk(rescueId, { transaction });
+      // paranoid scope hides already-soft-deleted rows by default;
+      // opt in so we can throw a clearer error if it's already gone.
+      const rescue = await Rescue.findByPk(rescueId, {
+        paranoid: false,
+        transaction,
+      });
 
       if (!rescue) {
         throw new Error('Rescue not found');
       }
 
-      if (rescue.isDeleted) {
+      if (rescue.deletedAt) {
         throw new Error('Rescue organization is already deleted');
       }
 
-      // Soft delete by updating status
-      await rescue.update(
-        {
-          isDeleted: true,
-          deletedAt: new Date(),
-          deletedBy,
-        },
-        { transaction }
-      );
+      // paranoid soft-delete sets deletedAt; the audit log captures who.
+      await rescue.destroy({ transaction });
 
       // Log the action
       await AuditLogService.log({
@@ -1054,9 +1043,9 @@ export class RescueService {
       const { page = 1, limit = 20, search, role } = options;
       const offset = (page - 1) * limit;
 
+      // paranoid scope hides soft-deleted rows automatically.
       const whereConditions: WhereOptions = {
         rescueId,
-        isDeleted: false, // Only get active staff members
       };
 
       // Build user search conditions for the included User model

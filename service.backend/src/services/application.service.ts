@@ -294,7 +294,6 @@ export class ApplicationService {
           const staffMember = await StaffMember.findOne({
             where: {
               userId: userId,
-              isDeleted: false,
               isVerified: true,
             },
           });
