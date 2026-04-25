@@ -7,7 +7,7 @@ export interface User {
   lastName: string;
   phoneNumber?: string;
   emailVerified: boolean;
-  userType: 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
+  userType: 'adopter' | 'rescue_staff' | 'admin' | 'moderator' | 'super_admin';
   status: 'active' | 'inactive' | 'suspended' | 'pending_verification' | 'deactivated';
   profileImageUrl?: string;
   bio?: string;
@@ -174,7 +174,7 @@ export interface RegisterRequest {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
-  userType?: 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
+  userType?: 'adopter' | 'rescue_staff' | 'admin' | 'moderator' | 'super_admin';
   // Legacy field for frontend form compatibility
   confirmPassword?: string;
 }

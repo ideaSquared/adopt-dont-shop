@@ -87,7 +87,7 @@ const getEffectiveAccessMap = async (
   resource: FieldPermissionResource,
   role: string
 ): Promise<Record<string, FieldAccessLevel>> => {
-  const userRole = role as 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
+  const userRole = role as 'adopter' | 'rescue_staff' | 'admin' | 'moderator' | 'super_admin';
 
   let defaults: Record<string, FieldAccessLevel>;
   try {
