@@ -2,6 +2,7 @@ import { Includeable, Op, Order, WhereOptions } from 'sequelize';
 import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import ApplicationQuestion, { QuestionCategory } from '../models/ApplicationQuestion';
+import ApplicationStatusTransition from '../models/ApplicationStatusTransition';
 import Pet from '../models/Pet';
 import User, { UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
@@ -104,6 +105,18 @@ export class ApplicationService {
         documents: [],
         notes: applicationData.notes,
         tags: applicationData.tags || [],
+      });
+
+      // Record the initial transition (from_status = null encodes
+      // "initial state assigned at creation"). The trigger / hook will
+      // re-set applications.status to SUBMITTED — already SUBMITTED, so
+      // a no-op in effect, but the row keeps the canonical history.
+      await ApplicationStatusTransition.create({
+        applicationId: application.applicationId,
+        fromStatus: null,
+        toStatus: ApplicationStatus.SUBMITTED,
+        transitionedBy: userId,
+        reason: 'Initial submission',
       });
 
       // Create initial timeline event
@@ -644,9 +657,12 @@ export class ApplicationService {
 
       const previousStatus = application.status;
 
-      // Update application status
+      // Auxiliary fields stay on the application row directly. The status
+      // column itself is moved through the transitions table below — the
+      // append-only log is the source of truth, and a trigger
+      // (Postgres) / model hook (SQLite) propagates `to_status` back onto
+      // applications.status.
       const updateFields: Record<string, unknown> = {
-        status: statusUpdate.status,
         actionedBy: actionedBy,
         actionedAt: new Date(),
       };
@@ -672,6 +688,20 @@ export class ApplicationService {
       }
 
       await application.update(updateFields);
+
+      // Append a row to the transition log; the trigger / hook updates
+      // applications.status to statusUpdate.status. The reload at the
+      // bottom of this method picks up the new value.
+      await ApplicationStatusTransition.create({
+        applicationId,
+        fromStatus: previousStatus,
+        toStatus: statusUpdate.status,
+        transitionedBy: actionedBy,
+        reason: statusUpdate.rejectionReason || statusUpdate.notes || null,
+        metadata: statusUpdate.followUpDate
+          ? { follow_up_date: statusUpdate.followUpDate.toISOString() }
+          : null,
+      });
 
       // Create timeline event for status change
       await ApplicationTimelineService.createEvent({
@@ -743,10 +773,19 @@ export class ApplicationService {
         throw new Error('Application cannot be withdrawn in current status');
       }
 
+      const previousStatus = application.status;
       await application.update({
-        status: ApplicationStatus.WITHDRAWN,
         actionedBy: userId,
         actionedAt: new Date(),
+      });
+      // Status moves through the transitions table — the trigger / hook
+      // copies to_status back onto applications.status.
+      await ApplicationStatusTransition.create({
+        applicationId,
+        fromStatus: previousStatus,
+        toStatus: ApplicationStatus.WITHDRAWN,
+        transitionedBy: userId,
+        reason: 'Withdrawn by applicant',
       });
 
       // Create timeline event for withdrawal
@@ -757,7 +796,7 @@ export class ApplicationService {
         description: 'Application was withdrawn by the applicant',
         created_by: userId,
         created_by_system: false,
-        previous_status: application.status,
+        previous_status: previousStatus,
         new_status: ApplicationStatus.WITHDRAWN,
         metadata: {
           withdrawn_by: userId,

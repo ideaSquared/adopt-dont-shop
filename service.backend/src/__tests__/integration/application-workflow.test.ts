@@ -12,6 +12,7 @@ vi.mock('../../config/env', () => ({
 
 import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../../models/Application';
+import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus, PetType, AgeGroup, Gender } from '../../models/Pet';
 import User, { UserStatus, UserType } from '../../models/User';
 import { ApplicationService } from '../../services/application.service';
@@ -28,6 +29,7 @@ import { JsonObject } from '../../types/common';
 
 // Mock dependencies
 vi.mock('../../models/Application');
+vi.mock('../../models/ApplicationStatusTransition');
 vi.mock('../../models/Pet');
 vi.mock('../../models/User');
 vi.mock('../../services/auditLog.service');
@@ -42,6 +44,9 @@ vi.mock('../../services/email.service', () => ({
 }));
 
 const MockedApplication = Application as vi.MockedObject<Application>;
+const MockedApplicationStatusTransition = ApplicationStatusTransition as vi.MockedObject<
+  typeof ApplicationStatusTransition
+>;
 const MockedPet = Pet as vi.MockedObject<Pet>;
 const MockedUser = User as vi.MockedObject<User>;
 const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
@@ -64,6 +69,12 @@ describe('Application Submission Workflow Integration Tests', () => {
 
     // Setup default timeline mocks
     MockedApplicationTimelineService.createEvent = vi.fn().mockResolvedValue(undefined as never);
+
+    // The status-transition log is a real model. The mocked Application.create
+    // returns a fake row that doesn't exist in the DB, so a real transition
+    // insert would trip the FK. Stub it — the trigger/hook path has its own
+    // dedicated tests.
+    MockedApplicationStatusTransition.create = vi.fn().mockResolvedValue({} as never);
   });
 
   describe('Browse and View Pets', () => {
@@ -524,8 +535,14 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            status: ApplicationStatus.APPROVED,
             actionedBy: rescueStaffId,
+          })
+        );
+        expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            applicationId,
+            toStatus: ApplicationStatus.APPROVED,
+            transitionedBy: rescueStaffId,
           })
         );
       });
@@ -556,8 +573,14 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            status: ApplicationStatus.REJECTED,
             rejectionReason: 'Not suitable for high-energy dog',
+          })
+        );
+        expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            applicationId,
+            toStatus: ApplicationStatus.REJECTED,
+            reason: 'Not suitable for high-energy dog',
           })
         );
       });
@@ -913,9 +936,10 @@ describe('Application Submission Workflow Integration Tests', () => {
           rescueStaffId
         );
 
-        expect(mockApplication.update).toHaveBeenCalledWith(
+        expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
           expect.objectContaining({
-            status: ApplicationStatus.APPROVED,
+            applicationId,
+            toStatus: ApplicationStatus.APPROVED,
           })
         );
       });
@@ -1187,9 +1211,11 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         const result = await ApplicationService.withdrawApplication(applicationId, adopterId);
 
-        expect(mockApplication.update).toHaveBeenCalledWith(
+        expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
           expect.objectContaining({
-            status: ApplicationStatus.WITHDRAWN,
+            applicationId,
+            toStatus: ApplicationStatus.WITHDRAWN,
+            transitionedBy: adopterId,
           })
         );
       });
@@ -1496,10 +1522,11 @@ describe('Application Submission Workflow Integration Tests', () => {
           rescueStaffId
         );
 
-        expect(mockApplication.update).toHaveBeenCalledWith(
+        expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
           expect.objectContaining({
-            status: ApplicationStatus.REJECTED,
-            rejectionReason: 'Apartment not suitable for large dog',
+            applicationId,
+            toStatus: ApplicationStatus.REJECTED,
+            reason: 'Apartment not suitable for large dog',
           })
         );
       });
@@ -1541,9 +1568,11 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         await ApplicationService.withdrawApplication(applicationId, adopterId);
 
-        expect(mockApplication.update).toHaveBeenCalledWith(
+        expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
           expect.objectContaining({
-            status: ApplicationStatus.WITHDRAWN,
+            applicationId,
+            toStatus: ApplicationStatus.WITHDRAWN,
+            transitionedBy: adopterId,
           })
         );
       });

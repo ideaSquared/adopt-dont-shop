@@ -1,5 +1,6 @@
 import Application from './Application';
 import ApplicationQuestion from './ApplicationQuestion';
+import ApplicationStatusTransition from './ApplicationStatusTransition';
 import ApplicationTimeline from './ApplicationTimeline';
 import Pet from './Pet';
 import Rescue from './Rescue';
@@ -65,6 +66,7 @@ const models = {
   Pet,
   Application,
   ApplicationQuestion,
+  ApplicationStatusTransition,
   ApplicationTimeline,
   Chat,
   ChatParticipant,
@@ -106,6 +108,27 @@ try {
 
   Pet.hasMany(Application, { foreignKey: 'pet_id', as: 'PetApplications' });
   Application.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
+
+  // Application status-transition log (canonical history). The trigger
+  // installed in ApplicationStatusTransition.ts denormalizes to_status
+  // back onto applications.status — application code reads parent.status
+  // as before, but the source of truth is the transitions table.
+  Application.hasMany(ApplicationStatusTransition, {
+    foreignKey: 'application_id',
+    as: 'StatusTransitions',
+  });
+  ApplicationStatusTransition.belongsTo(Application, {
+    foreignKey: 'application_id',
+    as: 'Application',
+  });
+  User.hasMany(ApplicationStatusTransition, {
+    foreignKey: 'transitioned_by',
+    as: 'AppliedStatusTransitions',
+  });
+  ApplicationStatusTransition.belongsTo(User, {
+    foreignKey: 'transitioned_by',
+    as: 'TransitionedBy',
+  });
 
   // Application Timeline associations
   Application.hasMany(ApplicationTimeline, {
@@ -349,6 +372,7 @@ try {
 export {
   Application,
   ApplicationQuestion,
+  ApplicationStatusTransition,
   ApplicationTimeline,
   AuditLog,
   Chat,
