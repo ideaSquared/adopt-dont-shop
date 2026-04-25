@@ -1,135 +1,8 @@
 # @adopt-dont-shop/lib.dev-tools
 
-A
+Development-only utilities for the Adopt Don't Shop apps: seeded-user login panels, Ethereal mail preview credentials, and environment guards. The library is designed to be tree-shaken out of production bundles via the `DevOnly` wrapper and `isDevelopmentMode()` guard.
 
-## 📦 Installation
-
-```bash
-# From the workspace root
-npm install @adopt-dont-shop/lib.dev-tools
-
-# Or add to your package.json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib.dev-tools": "*"
-  }
-}
-```
-
-## 🚀 Quick Start
-
-```typescript
-import { DevToolsService, DevToolsServiceConfig } from '@adopt-dont-shop/lib.dev-tools';
-
-// Using the singleton instance
-import { dev-toolsService } from '@adopt-dont-shop/lib.dev-tools';
-
-// Basic usage
-const result = await dev-toolsService.exampleMethod({ test: 'data' });
-console.log(result);
-
-// Or create a custom instance
-const config: DevToolsServiceConfig = {
-  apiUrl: 'https://api.example.com',
-  debug: true,
-};
-
-const customService = new DevToolsService(config);
-const customResult = await customService.exampleMethod({ custom: 'data' });
-```
-
-## 🔧 Configuration
-
-### DevToolsServiceConfig
-
-| Property  | Type                     | Default                                  | Description                 |
-| --------- | ------------------------ | ---------------------------------------- | --------------------------- |
-| `apiUrl`  | `string`                 | `process.env.VITE_API_URL`               | Base API URL                |
-| `debug`   | `boolean`                | `process.env.NODE_ENV === 'development'` | Enable debug logging        |
-| `headers` | `Record<string, string>` | `{}`                                     | Custom headers for requests |
-
-### Environment Variables
-
-```bash
-# API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
-
-# Development
-NODE_ENV=development
-```
-
-## 📖 API Reference
-
-### DevToolsService
-
-#### Constructor
-
-```typescript
-new DevToolsService(config?: DevToolsServiceConfig)
-```
-
-#### Methods
-
-##### `exampleMethod(data, options)`
-
-Example method that demonstrates the library's capabilities.
-
-```typescript
-await service.exampleMethod(
-  { key: 'value' },
-  {
-    timeout: 5000,
-    useCache: true,
-    metadata: { requestId: 'abc123' },
-  }
-);
-```
-
-**Parameters:**
-
-- `data` (Record<string, unknown>): Input data
-- `options` (DevToolsServiceOptions): Operation options
-
-**Returns:** `Promise<BaseResponse>`
-
-##### `updateConfig(config)`
-
-Update the service configuration.
-
-```typescript
-service.updateConfig({ debug: true, apiUrl: 'https://new-api.com' });
-```
-
-##### `getConfig()`
-
-Get current configuration.
-
-```typescript
-const config = service.getConfig();
-```
-
-##### `clearCache()`
-
-Clear the internal cache.
-
-```typescript
-service.clearCache();
-```
-
-##### `healthCheck()`
-
-Check service health.
-
-```typescript
-const isHealthy = await service.healthCheck();
-```
-
-## 🏗️ Usage in Apps
-
-### React/Vite Apps (app.client, app.admin, app.rescue)
-
-1. **Add to package.json:**
+Consumed as a workspace dependency:
 
 ```json
 {
@@ -139,309 +12,64 @@ const isHealthy = await service.healthCheck();
 }
 ```
 
-2. **Import and use:**
+## Exports
 
-```typescript
-// src/services/index.ts
-export { dev-toolsService } from '@adopt-dont-shop/lib.dev-tools';
+See [src/index.ts](./src/index.ts) for the authoritative list.
 
-// In your component
-import { dev-toolsService } from '@/services';
+### Components
 
-function MyComponent() {
-  const [data, setData] = useState(null);
+- **`DevPanelComponent`** — dev-user quick-switcher panel. Takes a `DevPanelAuthContext` (your auth's `login`/`logout`/`currentUser`) and a list of `DevUser`s.
+- **`EtherealCredentialsPanel`** — shows the per-session Ethereal SMTP credentials backend issues when `EMAIL_PROVIDER=ethereal`.
+- **`DevOnly`** — wraps children and only renders them when `isDevelopmentMode()` is true. Accepts an optional `fallback`.
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await dev-toolsService.exampleMethod({
-          component: 'MyComponent'
-        });
-        setData(result.data);
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    };
+### Hooks
 
-    fetchData();
-  }, []);
+- **`useSeededUsers()`** — React Query hook returning seeded dev users from the backend.
+- **`useEtherealCredentials()`** — React Query hook returning the backend's current Ethereal preview credentials.
 
-  return <div>{/* Your JSX */}</div>;
+### Seeded-user data
+
+- **`seededDevUsers`** — static list of dev accounts
+- **`SEEDED_PASSWORD`** — shared password for every seeded account
+- **`getAllDevUsers`**, **`getAdminUsers`**, **`getRescueUsers`**, **`getAdopterUsers`**, **`getDevUsersByType(type)`** — filtered accessors
+
+### Environment guards
+
+- **`isDevelopmentMode()`** — true when running on `localhost`, `127.0.0.1`, a `*dev*` hostname, or `NODE_ENV === 'development'`.
+
+## Quick start
+
+```tsx
+import { DevOnly, DevPanelComponent, useSeededUsers } from '@adopt-dont-shop/lib.dev-tools';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
+
+export function DevHeader() {
+  const { login, logout, currentUser } = useAuth();
+  const { data: users } = useSeededUsers();
+
+  return (
+    <DevOnly>
+      <DevPanelComponent
+        auth={{ login, logout, currentUser }}
+        users={users ?? []}
+      />
+    </DevOnly>
+  );
 }
 ```
 
-### Node.js Backend (service.backend)
-
-1. **Add to package.json:**
-
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib.dev-tools": "*"
-  }
-}
-```
-
-2. **Import and use:**
-
-```typescript
-// src/services/dev-tools.service.ts
-import { DevToolsService } from '@adopt-dont-shop/lib.dev-tools';
-
-export const devToolsService = new DevToolsService({
-  apiUrl: process.env.API_URL,
-  debug: process.env.NODE_ENV === 'development',
-});
-
-// In your routes or controllers
-import { devToolsService } from '../services/dev-tools.service';
-
-app.get('/api/dev-tools/example', async (req, res) => {
-  try {
-    const result = await devToolsService.exampleMethod(req.body);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-```
-
-## 🐳 Docker Integration
-
-### Development with Docker Compose
-
-1. **Build the library:**
+## Scripts (from `lib.dev-tools/`)
 
 ```bash
-# From workspace root
-docker compose -f docker-compose.lib.yml up lib-dev-tools
-```
-
-2. **Run tests:**
-
-```bash
-docker compose -f docker-compose.lib.yml run lib-dev-tools-test
-```
-
-### Using in App Containers
-
-Add to your app's Dockerfile:
-
-```dockerfile
-# Copy shared libraries
-COPY lib.dev-tools /workspace/lib.dev-tools
-
-# Install dependencies
-RUN npm install @adopt-dont-shop/lib.dev-tools
-```
-
-### Multi-stage Build for Production
-
-```dockerfile
-# In your app's Dockerfile
-FROM node:20-alpine AS deps
-
-WORKDIR /app
-
-# Copy shared library
-COPY lib.dev-tools ./lib.dev-tools
-
-# Copy app package files
-COPY app.client/package*.json ./app.client/
-
-# Install dependencies
-RUN cd lib.dev-tools && npm ci && npm run build
-RUN cd app.client && npm ci
-
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-COPY --from=deps /app ./
-
-# Copy app source
-COPY app.client ./app.client
-
-# Build app
-RUN cd app.client && npm run build
-```
-
-## 🧪 Testing
-
-### Run Tests
-
-```bash
-# Unit tests
-npm test
-
-# Watch mode
+npm run build           # tsc
+npm run dev             # tsc --watch
+npm test                # jest --passWithNoTests
 npm run test:watch
-
-# Coverage
 npm run test:coverage
-```
-
-### Test Structure
-
-```
-src/
-├── services/
-│   ├── dev-tools-service.ts
-│   └── __tests__/
-│       └── dev-tools-service.test.ts
-└── types/
-    └── index.ts
-```
-
-## 🏗️ Development
-
-### Build the Library
-
-```bash
-# Development build with watch
-npm run dev
-
-# Production build
-npm run build
-
-# Clean build artifacts
-npm run clean
-```
-
-### Code Quality
-
-```bash
-# Lint
 npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Type checking
 npm run type-check
 ```
 
-## 📁 Project Structure
+## Notes
 
-```
-lib.dev-tools/
-├── src/
-│   ├── services/
-│   │   ├── dev-tools-service.ts     # Main service implementation
-│   │   └── __tests__/
-│   │       └── dev-tools-service.test.ts
-│   ├── types/
-│   │   └── index.ts                  # TypeScript type definitions
-│   └── index.ts                      # Main entry point
-├── dist/                             # Built output (generated)
-├── docker-compose.lib.yml           # Docker compose for development
-├── Dockerfile                       # Multi-stage Docker build
-├── jest.config.js                   # Jest test configuration
-├── package.json                     # Package configuration
-├── tsconfig.json                    # TypeScript configuration
-├── .eslintrc.json                   # ESLint configuration
-├── .prettierrc.json                 # Prettier configuration
-└── README.md                        # This file
-```
-
-## 🔗 Integration Examples
-
-### With Other Libraries
-
-```typescript
-import { apiService } from '@adopt-dont-shop/lib.api';
-import { authService } from '@adopt-dont-shop/lib.auth';
-import { dev-toolsService } from '@adopt-dont-shop/lib.dev-tools';
-
-// Configure with shared dependencies
-dev-toolsService.updateConfig({
-  apiUrl: apiService.getConfig().baseUrl,
-  headers: {
-    'Authorization': `Bearer ${authService.getToken()}`,
-  },
-});
-```
-
-### Error Handling
-
-```typescript
-import { dev-toolsService, ErrorResponse } from '@adopt-dont-shop/lib.dev-tools';
-
-try {
-  const result = await dev-toolsService.exampleMethod(data);
-  // Handle success
-} catch (error) {
-  const errorResponse = error as ErrorResponse;
-  console.error('Error:', errorResponse.error);
-  console.error('Code:', errorResponse.code);
-  console.error('Details:', errorResponse.details);
-}
-```
-
-## 🚀 Deployment
-
-### NPM Package (if publishing externally)
-
-```bash
-# Build and test
-npm run build
-npm run test
-
-# Publish
-npm publish
-```
-
-### Workspace Integration
-
-The library is already integrated into the workspace. Apps can import it using:
-
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib.dev-tools": "*"
-  }
-}
-```
-
-## 🤝 Contributing
-
-1. Make changes to the library
-2. Add/update tests
-3. Run `npm run build` to ensure it builds correctly
-4. Run `npm test` to ensure tests pass
-5. Update documentation as needed
-
-## 📄 License
-
-MIT License - see the LICENSE file for details.
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Module not found**
-   - Ensure the library is built: `npm run build`
-   - Check workspace dependencies are installed: `npm install`
-
-2. **Type errors**
-   - Run type checking: `npm run type-check`
-   - Ensure TypeScript version compatibility
-
-3. **Build failures**
-   - Clean and rebuild: `npm run clean && npm run build`
-   - Check for circular dependencies
-
-### Debug Mode
-
-Enable debug logging:
-
-```typescript
-dev - toolsService.updateConfig({ debug: true });
-```
-
-Or set environment variable:
-
-```bash
-NODE_ENV=development
-```
+The `exports` field resolves to `./src/index.ts` under the `development` condition (picked up by Vite) and to `./dist/index.js` in production. That's why the library hot-reloads without a build in dev but still publishes built output for production bundles.
