@@ -1,193 +1,64 @@
 import { Router } from 'express';
-import { body, param, query } from 'express-validator';
+import { body, param } from 'express-validator';
+import { z } from 'zod';
+import {
+  AddStaffMemberRequestSchema,
+  AdoptionPolicySchema,
+  RescueBulkUpdateRequestSchema,
+  RescueCreateRequestSchema,
+  RescueDeletionRequestSchema,
+  RescueRejectionRequestSchema,
+  RescueSearchQuerySchema,
+  RescueUpdateRequestSchema,
+  RescueVerificationRequestSchema,
+  StaffInvitationRequestSchema,
+} from '@adopt-dont-shop/lib.validation';
 import { RescueController } from '../controllers/rescue.controller';
 import { QuestionController } from '../controllers/question.controller';
 import { authenticateToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
-import { isUKPostcode, isUKPhoneNumber } from '../utils/uk-validators-middleware';
+import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { requirePermission } from '../middleware/rbac';
 
 const router = Router();
 const rescueController = new RescueController();
 const questionController = new QuestionController();
 
-// Validation middleware
-const validateRescueId = param('rescueId').isUUID().withMessage('Invalid rescue ID format');
-const validateUserId = param('userId').notEmpty().withMessage('User ID is required');
+// Param schemas — kept here so the file is self-contained.
+const RescueIdParamSchema = z.object({
+  rescueId: z.string().uuid('Invalid rescue ID format'),
+});
+const RescueAndUserParamSchema = RescueIdParamSchema.extend({
+  userId: z.string().min(1, 'User ID is required'),
+});
 
-const validateCreateRescue = [
-  body('name').trim().isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters'),
-  body('email').isEmail().withMessage('Valid email is required'),
-  body('phone').optional().custom(isUKPhoneNumber).withMessage('Valid phone number required'),
-  body('address')
-    .trim()
-    .isLength({ min: 5, max: 255 })
-    .withMessage('Address must be 5-255 characters'),
-  body('city').trim().isLength({ min: 2, max: 100 }).withMessage('City must be 2-100 characters'),
-  body('county')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('County must be 2-100 characters'),
-  body('postcode').trim().custom(isUKPostcode).withMessage('Please enter a valid UK postcode'),
-  body('country')
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Country must be 2-100 characters'),
-  body('website').optional().isURL().withMessage('Valid website URL required'),
-  body('description')
-    .optional()
-    .isLength({ max: 1000 })
-    .withMessage('Description must be max 1000 characters'),
-  body('mission')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Mission must be max 500 characters'),
-  body('ein').optional().isLength({ min: 9, max: 10 }).withMessage('EIN must be 9-10 characters'),
-  body('registrationNumber')
-    .optional()
-    .isLength({ max: 50 })
-    .withMessage('Registration number must be max 50 characters'),
-  body('contactPerson')
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Contact person must be 2-100 characters'),
-  body('contactTitle')
-    .optional()
-    .isLength({ max: 100 })
-    .withMessage('Contact title must be max 100 characters'),
-  body('contactEmail').optional().isEmail().withMessage('Valid contact email required'),
-  body('contactPhone')
-    .optional()
-    .custom(isUKPhoneNumber)
-    .withMessage('Valid contact phone required'),
-];
+const validateRescueId = validateParams(RescueIdParamSchema);
+const validateRescueAndUser = validateParams(RescueAndUserParamSchema);
 
-const validateUpdateRescue = [
-  body('name')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be 2-100 characters'),
-  body('email').optional().isEmail().withMessage('Valid email is required'),
-  body('phone').optional().custom(isUKPhoneNumber).withMessage('Valid phone number required'),
-  body('address')
-    .optional()
-    .trim()
-    .isLength({ min: 5, max: 255 })
-    .withMessage('Address must be 5-255 characters'),
-  body('city')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('City must be 2-100 characters'),
-  body('county')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('County must be 2-100 characters'),
-  body('postcode')
-    .optional()
-    .trim()
-    .custom(isUKPostcode)
-    .withMessage('Please enter a valid UK postcode'),
-  body('country')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Country must be 2-100 characters'),
-  body('website').optional().isURL().withMessage('Valid website URL required'),
-  body('description')
-    .optional()
-    .isLength({ max: 1000 })
-    .withMessage('Description must be max 1000 characters'),
-  body('mission')
-    .optional()
-    .isLength({ max: 500 })
-    .withMessage('Mission must be max 500 characters'),
-  body('ein').optional().isLength({ min: 9, max: 10 }).withMessage('EIN must be 9-10 characters'),
-  body('registrationNumber')
-    .optional()
-    .isLength({ max: 50 })
-    .withMessage('Registration number must be max 50 characters'),
-  body('contactPerson')
-    .optional()
-    .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Contact person must be 2-100 characters'),
-  body('contactTitle')
-    .optional()
-    .isLength({ max: 100 })
-    .withMessage('Contact title must be max 100 characters'),
-  body('contactEmail').optional().isEmail().withMessage('Valid contact email required'),
-  body('contactPhone')
-    .optional()
-    .custom(isUKPhoneNumber)
-    .withMessage('Valid contact phone required'),
-];
+// Body / query validators — backed by canonical Zod schemas in
+// @adopt-dont-shop/lib.validation. Same rules, same error response
+// shape (see middleware/zod-validate), one source of truth.
+const validateCreateRescue = validateBody(RescueCreateRequestSchema);
+const validateUpdateRescue = validateBody(RescueUpdateRequestSchema);
+const validateSearchQuery = validateQuery(RescueSearchQuerySchema);
+const validateAddStaff = validateBody(AddStaffMemberRequestSchema);
+const validateInviteStaff = validateBody(StaffInvitationRequestSchema);
+const validateVerification = validateBody(RescueVerificationRequestSchema);
+const validateRejection = validateBody(RescueRejectionRequestSchema);
+const validateDeletion = validateBody(RescueDeletionRequestSchema);
+const validateAdoptionPolicy = validateBody(AdoptionPolicySchema);
+const validateBulkUpdate = validateBody(RescueBulkUpdateRequestSchema);
 
-const validateSearchQuery = [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be 1-100'),
-  query('search')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Search term max 100 characters'),
-  query('status')
-    .optional()
-    .isIn(['pending', 'verified', 'suspended', 'inactive'])
-    .withMessage('Invalid status'),
-  query('location')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Location max 100 characters'),
-  query('sortBy')
-    .optional()
-    .isIn(['name', 'createdAt', 'verifiedAt'])
-    .withMessage('Invalid sort field'),
-  query('sortOrder').optional().isIn(['ASC', 'DESC']).withMessage('Sort order must be ASC or DESC'),
-];
-
-const validateStaffMember = [
-  body('userId').notEmpty().withMessage('User ID is required'),
-  body('title')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Title must be max 100 characters'),
-];
-
-const validateVerification = [
-  body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be max 500 characters'),
-];
-
-const validateRejection = [
-  body('reason').optional().isLength({ max: 500 }).withMessage('Reason must be max 500 characters'),
-  body('notes').optional().isLength({ max: 500 }).withMessage('Notes must be max 500 characters'),
-];
-const validateDeletion = [
-  body('reason').optional().isLength({ max: 500 }).withMessage('Reason must be max 500 characters'),
-];
-
-const validateSendEmail = [
-  body('templateId')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Template ID must be max 100 characters'),
-  body('subject')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Subject must be max 200 characters'),
-  body('body')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 5000 })
-    .withMessage('Body must be max 5000 characters'),
-];
+// Send-email body — kept here for now since EmailTemplate-shaped payloads
+// haven't migrated to lib.validation yet; the rest of the rescue surface
+// is already on Zod above.
+const validateSendEmail = validateBody(
+  z.object({
+    templateId: z.string().trim().min(1).max(100).optional(),
+    subject: z.string().trim().min(1).max(200).optional(),
+    body: z.string().trim().min(1).max(5000).optional(),
+  })
+);
 
 // Public routes (no authentication required)
 
@@ -941,30 +812,22 @@ router.get(
 router.post(
   '/:rescueId/staff',
   validateRescueId,
-  validateStaffMember,
+  validateAddStaff,
   requirePermission('staff.create'),
   rescueController.addStaffMember
 );
 
 router.put(
   '/:rescueId/staff/:userId',
-  validateRescueId,
-  validateUserId,
-  [
-    body('title')
-      .optional()
-      .trim()
-      .isLength({ max: 100 })
-      .withMessage('Title must be max 100 characters'),
-  ],
+  validateRescueAndUser,
+  validateBody(z.object({ title: z.string().trim().max(100).optional() })),
   requirePermission('staff.update'),
   rescueController.updateStaffMember
 );
 
 router.delete(
   '/:rescueId/staff/:userId',
-  validateRescueId,
-  validateUserId,
+  validateRescueAndUser,
   requirePermission('staff.delete'),
   rescueController.removeStaffMember
 );
@@ -973,14 +836,7 @@ router.delete(
 router.post(
   '/:rescueId/invitations',
   validateRescueId,
-  [
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('title')
-      .optional()
-      .trim()
-      .isLength({ max: 100 })
-      .withMessage('Title must be max 100 characters'),
-  ],
+  validateInviteStaff,
   requirePermission('staff.create'),
   rescueController.inviteStaffMember
 );
@@ -1012,39 +868,7 @@ router.get(
 router.put(
   '/:rescueId/adoption-policies',
   validateRescueId,
-  [
-    body('requireHomeVisit').isBoolean().withMessage('requireHomeVisit must be a boolean'),
-    body('requireReferences').isBoolean().withMessage('requireReferences must be a boolean'),
-    body('minimumReferenceCount')
-      .isInt({ min: 0, max: 10 })
-      .withMessage('minimumReferenceCount must be 0-10'),
-    body('requireVeterinarianReference')
-      .isBoolean()
-      .withMessage('requireVeterinarianReference must be a boolean'),
-    body('adoptionFeeRange.min')
-      .isFloat({ min: 0 })
-      .withMessage('Minimum fee must be 0 or greater'),
-    body('adoptionFeeRange.max')
-      .isFloat({ min: 0 })
-      .withMessage('Maximum fee must be 0 or greater'),
-    body('requirements').isArray().withMessage('requirements must be an array'),
-    body('policies').isArray().withMessage('policies must be an array'),
-    body('returnPolicy')
-      .optional()
-      .isString()
-      .isLength({ max: 1000 })
-      .withMessage('returnPolicy must be max 1000 characters'),
-    body('spayNeuterPolicy')
-      .optional()
-      .isString()
-      .isLength({ max: 1000 })
-      .withMessage('spayNeuterPolicy must be max 1000 characters'),
-    body('followUpPolicy')
-      .optional()
-      .isString()
-      .isLength({ max: 1000 })
-      .withMessage('followUpPolicy must be max 1000 characters'),
-  ],
+  validateAdoptionPolicy,
   requirePermission('rescues.update'),
   rescueController.updateAdoptionPolicies
 );
@@ -1087,14 +911,7 @@ router.post(
 router.post(
   '/bulk-update',
   authenticateToken,
-  [
-    body('rescueIds').isArray({ min: 1 }).withMessage('rescueIds must be a non-empty array'),
-    body('rescueIds.*').isUUID().withMessage('Each rescue ID must be a valid UUID'),
-    body('action')
-      .isIn(['approve', 'suspend', 'verify'])
-      .withMessage('Action must be approve, suspend, or verify'),
-    body('reason').optional().isString().isLength({ max: 500 }),
-  ],
+  validateBulkUpdate,
   requirePermission('rescues.verify'),
   rescueController.bulkUpdateRescues
 );

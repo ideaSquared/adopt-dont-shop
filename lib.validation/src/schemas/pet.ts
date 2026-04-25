@@ -13,7 +13,6 @@ import type { PetId, RescueId } from '@adopt-dont-shop/lib.types';
  * to add a check here, it should also exist on the model — and vice
  * versa.
  */
-
 // ----- Enums (match the values exported from Pet.ts) ---------------------
 
 export const PetStatusSchema = z.enum([
@@ -71,12 +70,10 @@ export type GoodWithValue = z.infer<typeof GoodWithSchema>;
 export const PetIdSchema = z
   .string()
   .min(1, 'Pet ID is required')
-  .transform(v => v as PetId);
+  .transform((v) => v as PetId);
 
-export const RescueIdSchema = z
-  .string()
-  .min(1, 'Rescue ID is required')
-  .transform(v => v as RescueId);
+// RescueIdSchema lives in schemas/rescue.ts — Pet uses RescueId only
+// for FK references in shapes below.
 
 const PetNameSchema = z.string().trim().min(1, 'Name is required').max(100);
 const BreedSchema = z.string().trim().min(1).max(100);
@@ -254,12 +251,7 @@ export type ReportPetRequest = z.infer<typeof ReportPetRequestSchema>;
 /**
  * POST /api/v1/pets/bulk-update — admin bulk operation.
  */
-export const BulkPetOperationTypeSchema = z.enum([
-  'update_status',
-  'archive',
-  'feature',
-  'delete',
-]);
+export const BulkPetOperationTypeSchema = z.enum(['update_status', 'archive', 'feature', 'delete']);
 export type BulkPetOperationType = z.infer<typeof BulkPetOperationTypeSchema>;
 
 export const BulkPetOperationRequestSchema = z.object({
@@ -279,7 +271,12 @@ export type BulkPetOperationRequest = z.infer<typeof BulkPetOperationRequestSche
  */
 export const PetProfileSchema = z.object({
   petId: PetIdSchema,
-  rescueId: RescueIdSchema,
+  // FK to Rescue. Brand at the type level without dragging the rescue
+  // schema in as a runtime dep here.
+  rescueId: z
+    .string()
+    .min(1)
+    .transform((v) => v as RescueId),
   name: PetNameSchema,
   type: PetTypeSchema,
   breed: BreedSchema.nullable().optional(),
