@@ -93,6 +93,16 @@ const WeightKgSchema = z.coerce.number().min(0.1).max(200);
 const AdoptionFeeSchema = z.coerce.number().min(0).max(10_000);
 
 /**
+ * Birth date — coerce-on-input (accepts ISO strings or Date), refuse
+ * future dates. Pet.birthDate is DATEONLY in Postgres, so the time-of-
+ * day component is meaningless; downstream code treats it as a calendar
+ * date.
+ */
+const BirthDateSchema = z.coerce
+  .date()
+  .refine((d) => d.getTime() <= Date.now(), 'Birth date cannot be in the future');
+
+/**
  * Image / video shapes — kept JSON-style for now to avoid churning the
  * Pet.images / Pet.videos columns. The plan (2.1) will move these into
  * dedicated tables; the schema rebases at that point.
@@ -136,6 +146,12 @@ export const PetCreateRequestSchema = z.object({
   ageGroup: AgeGroupSchema,
   ageYears: AgeYearsSchema.optional(),
   ageMonths: AgeMonthsSchema.optional(),
+  // birthDate is the canonical age input — when set, the model's
+  // getAgeDisplay() / getAgeInMonths() prefer it over ageYears/ageMonths
+  // so age doesn't drift over time. Many rescues only have an estimate;
+  // isBirthDateEstimate records that.
+  birthDate: BirthDateSchema.optional(),
+  isBirthDateEstimate: z.boolean().optional(),
   weightKg: WeightKgSchema.optional(),
   shortDescription: ShortDescriptionSchema.optional(),
   longDescription: LongDescriptionSchema.optional(),
@@ -288,6 +304,8 @@ export const PetProfileSchema = z.object({
   status: PetStatusSchema,
   ageYears: AgeYearsSchema.nullable().optional(),
   ageMonths: AgeMonthsSchema.nullable().optional(),
+  birthDate: BirthDateSchema.nullable().optional(),
+  isBirthDateEstimate: z.boolean().optional(),
   weightKg: WeightKgSchema.nullable().optional(),
   shortDescription: ShortDescriptionSchema.nullable().optional(),
   longDescription: LongDescriptionSchema.nullable().optional(),
