@@ -64,26 +64,35 @@ Modern browsers automatically resolve `*.localhost` subdomains to `127.0.0.1`, s
 
 ### Required Environment Variables
 
+The authoritative example lives in [`.env.example`](../../.env.example) at the repo root. The minimum dev set looks like:
+
 ```env
-# Development Environment Variables
 NODE_ENV=development
 
-# Database Configuration
-POSTGRES_USER=user
-POSTGRES_PASSWORD=password
-POSTGRES_DB=adopt_dont_shop
+# Database
+POSTGRES_USER=adopt_user
+POSTGRES_PASSWORD=CHANGE_THIS_SECURE_PASSWORD_IMMEDIATELY
+POSTGRES_DB=adopt_dont_shop_dev
 
-# Application URLs
-API_URL=http://api.localhost
-VITE_API_URL=http://api.localhost
-VITE_WS_URL=ws://api.localhost
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
 
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-change-in-production-at-least-32-chars
+# Secrets — generate fresh values via `npm run secrets:generate`
+JWT_SECRET=...
+JWT_REFRESH_SECRET=...
+SESSION_SECRET=...
+CSRF_SECRET=...
 
-# Development specific
-DB_LOGGING=true
+# Frontend → backend
+VITE_API_BASE_URL=http://localhost:5000
+VITE_WS_BASE_URL=ws://localhost:5000
+
+# CORS (comma-separated list of allowed origins)
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost,http://admin.localhost,http://rescue.localhost,http://api.localhost,http://localhost:5000
 ```
+
+Generate strong secrets and append them to your `.env` with `npm run secrets:generate >> .env`.
 
 ## Common Issues & Solutions
 

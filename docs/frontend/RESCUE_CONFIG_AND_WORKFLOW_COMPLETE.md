@@ -32,7 +32,7 @@ import styled from 'styled-components';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { apiService } from '../services/libraryServices';
-import { RESCUE_UPDATE } from '@adopt-dont-shop/lib.permissions';
+import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import RescueProfileForm from '../components/rescue/RescueProfileForm';
 import AdoptionPolicyForm from '../components/rescue/AdoptionPolicyForm';
 import type { RescueProfile, AdoptionPolicy } from '../types/rescue';
@@ -149,7 +149,7 @@ const RescueSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const canEdit = hasPermission(RESCUE_UPDATE);
+  const canEdit = hasPermission(RESCUE_SETTINGS_UPDATE);
 
   useEffect(() => {
     loadRescueData();
@@ -188,7 +188,7 @@ const RescueSettings: React.FC = () => {
     if (!rescue) return;
 
     await apiService.put(
-      `http://localhost:5000/api/v1/rescues/${rescue.rescue_id}`,
+      `http://localhost:5000/api/v1/rescues/${rescue.rescueId}`,
       profileData
     );
 
@@ -199,7 +199,7 @@ const RescueSettings: React.FC = () => {
     if (!rescue) return;
 
     await apiService.put(
-      `http://localhost:5000/api/v1/rescues/${rescue.rescue_id}`,
+      `http://localhost:5000/api/v1/rescues/${rescue.rescueId}`,
       {
         adoptionPolicies: policies,
       }
