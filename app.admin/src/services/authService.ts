@@ -1,4 +1,11 @@
-import { AuthResponse, LoginRequest, RegisterRequest, User, UserStatus, UserType, ADMIN_USER_TYPES } from '@/types';
+import {
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  User,
+  UserType,
+  ADMIN_USER_TYPES,
+} from '@/types';
 import { apiService } from './libraryServices';
 
 class AuthService {
