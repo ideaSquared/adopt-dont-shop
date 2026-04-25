@@ -32,7 +32,9 @@ import { AuditLogService } from './auditLog.service';
 
 const PET_SEARCH_SORT_FIELDS = [
   'createdAt',
+  'created_at',
   'updatedAt',
+  'updated_at',
   'name',
   'breed',
   'ageYears',
