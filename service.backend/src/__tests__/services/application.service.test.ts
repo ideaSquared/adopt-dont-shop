@@ -8,6 +8,7 @@ import { vi } from 'vitest';
 
 import { ApplicationService } from '../../services/application.service';
 import Application, { ApplicationStatus, ApplicationPriority } from '../../models/Application';
+import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus } from '../../models/Pet';
 import User, { UserType } from '../../models/User';
 import { CreateApplicationRequest, ApplicationStatusUpdateRequest } from '../../types/application';
@@ -16,6 +17,9 @@ import { CreateApplicationRequest, ApplicationStatusUpdateRequest } from '../../
 const MockedApplication = Application as vi.MockedObject<Application>;
 const MockedPet = Pet as vi.MockedObject<Pet>;
 const MockedUser = User as vi.MockedObject<User>;
+const MockedApplicationStatusTransition = ApplicationStatusTransition as vi.MockedObject<
+  typeof ApplicationStatusTransition
+>;
 
 describe('ApplicationService - Business Logic', () => {
   // Test data
@@ -97,6 +101,11 @@ describe('ApplicationService - Business Logic', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // The status-transition log is a real model and would otherwise hit the DB
+    // (and trip an FK on the mocked application_id). Stub it out — these tests
+    // care about service behaviour, not the trigger/hook plumbing, which has
+    // its own dedicated tests.
+    MockedApplicationStatusTransition.create = vi.fn().mockResolvedValue({} as never);
   });
 
   describe('Business Rule: Application Creation', () => {
@@ -221,10 +230,14 @@ describe('ApplicationService - Business Logic', () => {
         'rescue-staff-123'
       );
 
-      // Then: Status changes to APPROVED
-      expect(mockApplication.update).toHaveBeenCalledWith(
+      // Then: a status transition is logged with toStatus = APPROVED.
+      // applications.status is updated by the AFTER INSERT trigger (Postgres)
+      // / afterCreate hook (SQLite tests), not by the service directly.
+      expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: ApplicationStatus.APPROVED,
+          applicationId: mockApplicationId,
+          toStatus: ApplicationStatus.APPROVED,
+          transitionedBy: 'rescue-staff-123',
         })
       );
     });
@@ -249,11 +262,18 @@ describe('ApplicationService - Business Logic', () => {
         'rescue-staff-123'
       );
 
-      // Then: Status changes to REJECTED with reason
+      // Then: rejection reason is persisted on the application row, and the
+      // transition log captures the status change with the same reason.
       expect(mockApplication.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: ApplicationStatus.REJECTED,
           rejectionReason: 'Not a good fit for this pet',
+        })
+      );
+      expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          applicationId: mockApplicationId,
+          toStatus: ApplicationStatus.REJECTED,
+          reason: 'Not a good fit for this pet',
         })
       );
     });
@@ -325,10 +345,12 @@ describe('ApplicationService - Business Logic', () => {
         mockUserId
       );
 
-      // Then: Status changes to WITHDRAWN
-      expect(mockApplication.update).toHaveBeenCalledWith(
+      // Then: a transition is logged with toStatus = WITHDRAWN.
+      expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: ApplicationStatus.WITHDRAWN,
+          applicationId: mockApplicationId,
+          toStatus: ApplicationStatus.WITHDRAWN,
+          transitionedBy: mockUserId,
         })
       );
     });
@@ -654,10 +676,12 @@ describe('ApplicationService - Business Logic', () => {
         mockUserId
       );
 
-      // Then: Application is withdrawn
-      expect(mockApplication.update).toHaveBeenCalledWith(
+      // Then: Application is withdrawn (a transition is logged).
+      expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: ApplicationStatus.WITHDRAWN,
+          applicationId: mockApplicationId,
+          toStatus: ApplicationStatus.WITHDRAWN,
+          transitionedBy: mockUserId,
         })
       );
     });
