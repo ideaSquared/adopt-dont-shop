@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum TicketStatus {
   OPEN = 'open',
@@ -322,8 +323,9 @@ SupportTicket.init(
       field: 'updated_at',
       defaultValue: DataTypes.NOW,
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'support_tickets',
     timestamps: true,
@@ -363,8 +365,9 @@ SupportTicket.init(
         fields: ['tags'],
         using: 'gin',
       },
+      ...auditIndexes('support_tickets'),
     ],
-  }
+  })
 );
 
 export default SupportTicket;

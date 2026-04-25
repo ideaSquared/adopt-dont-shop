@@ -2,6 +2,7 @@ import { DataTypes, Model, Op, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
 import { JsonObject } from '../types/common';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 // Notification type enum
 export enum NotificationType {
@@ -332,8 +333,9 @@ Notification.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'notifications',
     modelName: 'Notification',
@@ -391,6 +393,7 @@ Notification.init(
           external_id: { [Op.ne]: null },
         },
       },
+      ...auditIndexes('notifications'),
     ],
     hooks: {
       beforeValidate: (notification: Notification) => {
@@ -478,7 +481,7 @@ Notification.init(
         where: { channel },
       }),
     },
-  }
+  })
 );
 
 export default Notification;

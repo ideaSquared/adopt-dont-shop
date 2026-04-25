@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum TemplateType {
   TRANSACTIONAL = 'transactional',
@@ -77,7 +78,7 @@ interface EmailTemplateAttributes {
   isDefault: boolean;
   priority: number;
   tags?: string[];
-  createdBy: string;
+  // createdBy removed — provided by auditColumns helper as `created_by`.
   lastModifiedBy?: string;
   lastUsedAt?: Date;
   usageCount: number;
@@ -112,7 +113,6 @@ class EmailTemplate
   public isDefault!: boolean;
   public priority!: number;
   public tags?: string[];
-  public createdBy!: string;
   public lastModifiedBy?: string;
   public lastUsedAt?: Date;
   public usageCount!: number;
@@ -164,8 +164,12 @@ class EmailTemplate
   }
 
   public async incrementUsage(): Promise<void> {
-    // Atomic — parallel email sends can all use the same template.
+    // Atomic — parallel email sends can all use the same template. We have
+    // to reload after .increment() because version: true on this model
+    // means the in-memory `version` is stale once the increment hits the DB,
+    // and the subsequent .save() would fail with a stale-instance error.
     await this.increment('usageCount');
+    await this.reload();
     this.lastUsedAt = new Date();
     await this.save();
   }
@@ -419,16 +423,10 @@ EmailTemplate.init(
         }
       },
     },
-    createdBy: {
-      type: getUuidType(),
-      allowNull: false,
-      field: 'created_by',
-      references: {
-        model: 'users',
-        key: 'user_id',
-      },
-      onDelete: 'SET NULL',
-    },
+    // createdBy column dropped — superseded by auditColumns.created_by.
+    // lastModifiedBy is a distinct column (last_modified_by) used by the
+    // template version history — kept separate from updated_by which tracks
+    // any row mutation.
     lastModifiedBy: {
       type: getUuidType(),
       allowNull: true,
@@ -479,8 +477,9 @@ EmailTemplate.init(
       allowNull: true,
       field: 'deleted_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'email_templates',
     timestamps: true,
@@ -506,10 +505,7 @@ EmailTemplate.init(
       {
         fields: ['is_default'],
       },
-      {
-        name: 'email_templates_created_by_idx',
-        fields: ['created_by'],
-      },
+      // created_by index now provided by auditIndexes('email_templates').
       {
         name: 'email_templates_last_modified_by_idx',
         fields: ['last_modified_by'],
@@ -525,8 +521,9 @@ EmailTemplate.init(
         fields: ['tags'],
         using: 'gin',
       },
+      ...auditIndexes('email_templates'),
     ],
-  }
+  })
 );
 
 export default EmailTemplate;

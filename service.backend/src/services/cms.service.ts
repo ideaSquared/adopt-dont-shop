@@ -50,12 +50,13 @@ type UpdateContentInput = {
   modifiedBy: string;
 };
 
+// createdBy / modifiedBy removed — the audit-columns hook stamps
+// created_by / updated_by from the request context.
 type NavigationMenuInput = {
   name: string;
   location: MenuLocation;
   items?: NavigationMenu['items'];
   isActive?: boolean;
-  createdBy: string;
 };
 
 type UpdateNavigationMenuInput = {
@@ -63,7 +64,6 @@ type UpdateNavigationMenuInput = {
   location?: MenuLocation;
   items?: NavigationMenu['items'];
   isActive?: boolean;
-  modifiedBy: string;
 };
 
 const generateSlug = (title: string): string =>
@@ -358,7 +358,7 @@ class CmsService {
       location: input.location,
       items: input.items ?? [],
       isActive: input.isActive ?? true,
-      createdBy: input.createdBy,
+      // created_by stamped by the audit hook from request context.
     });
     logger.info('Navigation menu created', { menuId: menu.menuId });
     return menu;
@@ -382,7 +382,7 @@ class CmsService {
     if (input.isActive !== undefined) {
       menu.isActive = input.isActive;
     }
-    menu.lastModifiedBy = input.modifiedBy;
+    // updated_by stamped by the audit hook on save from request context.
 
     await menu.save();
     logger.info('Navigation menu updated', { menuId });

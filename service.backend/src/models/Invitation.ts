@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { hashToken } from '../utils/secrets';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 interface InvitationAttributes {
   invitation_id: string;
@@ -102,8 +103,9 @@ Invitation.init(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'invitations',
     timestamps: true,
@@ -117,6 +119,7 @@ Invitation.init(
         fields: ['user_id'],
         name: 'invitations_user_id_idx',
       },
+      ...auditIndexes('invitations'),
     ],
     hooks: {
       beforeSave: (invitation: Invitation) => {
@@ -128,7 +131,7 @@ Invitation.init(
         }
       },
     },
-  }
+  })
 );
 
 export default Invitation;

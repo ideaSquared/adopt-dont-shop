@@ -140,10 +140,42 @@ describe('Model Standards', () => {
   });
 
   describe('audit columns', () => {
-    // Models that have been migrated to the audit-columns helper. The set
-    // grows as we roll out audit columns to the rest of the transactional
-    // models (separate PR per the Phase 3 plan).
-    const HAS_AUDIT_COLUMNS = ['User', 'Pet', 'Application', 'Rescue', 'Message'];
+    // Every transactional model gets created_by / updated_by / version.
+    // The set excludes:
+    //   - reference / config tables (Role, Permission, RolePermission,
+    //     UserRole, FieldPermission)
+    //   - append-only event logs (AuditLog, ApplicationTimeline)
+    //   - high-volume user-activity rows already keyed by user_id
+    //     (SwipeAction, SwipeSession, RefreshToken, DeviceToken)
+    const HAS_AUDIT_COLUMNS = [
+      // Slice 1
+      'User',
+      'Pet',
+      'Application',
+      'Rescue',
+      'Message',
+      // Slice 2 (this PR)
+      'Notification',
+      'Chat',
+      'ChatParticipant',
+      'Invitation',
+      'HomeVisit',
+      'Report',
+      'ModeratorAction',
+      'UserSanction',
+      'SupportTicket',
+      'SupportTicketResponse',
+      'Rating',
+      'EmailQueue',
+      'EmailTemplate',
+      'EmailPreference',
+      'StaffMember',
+      'Content',
+      'NavigationMenu',
+      'FileUpload',
+      'UserFavorite',
+      'ApplicationQuestion',
+    ];
 
     it.each(HAS_AUDIT_COLUMNS)('%s has created_by, updated_by, version', name => {
       const model = sequelize.models[name];

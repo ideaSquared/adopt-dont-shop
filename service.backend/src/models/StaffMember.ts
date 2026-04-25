@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 interface StaffMemberAttributes {
   staffMemberId: string;
@@ -159,8 +160,9 @@ StaffMember.init(
       defaultValue: DataTypes.NOW,
       field: 'updated_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'staff_members',
     timestamps: true,
@@ -186,6 +188,7 @@ StaffMember.init(
         fields: ['deleted_by'],
         name: 'staff_members_deleted_by_idx',
       },
+      ...auditIndexes('staff_members'),
     ],
     defaultScope: {
       where: {
@@ -202,7 +205,7 @@ StaffMember.init(
         },
       },
     },
-  }
+  })
 );
 
 export default StaffMember;

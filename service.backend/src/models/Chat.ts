@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { ChatStatus } from '../types/chat';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 import { ChatParticipant } from './ChatParticipant';
 import { Message } from './Message';
@@ -101,8 +102,9 @@ Chat.init(
         isIn: [Object.values(ChatStatus)],
       },
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'chats',
     modelName: 'Chat',
@@ -125,8 +127,9 @@ Chat.init(
       {
         fields: ['status'],
       },
+      ...auditIndexes('chats'),
     ],
-  }
+  })
 );
 
 export default Chat;

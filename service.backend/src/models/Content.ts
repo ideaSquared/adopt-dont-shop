@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getArrayType, getUuidType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum ContentType {
   PAGE = 'page',
@@ -261,8 +262,9 @@ Content.init(
       allowNull: true,
       field: 'deleted_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'cms_content',
     timestamps: true,
@@ -276,8 +278,9 @@ Content.init(
       { fields: ['last_modified_by'] },
       { fields: ['published_at'] },
       { fields: ['scheduled_publish_at'] },
+      ...auditIndexes('cms_content'),
     ],
-  }
+  })
 );
 
 export default Content;

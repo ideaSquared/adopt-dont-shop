@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum HomeVisitStatus {
   SCHEDULED = 'scheduled',
@@ -114,8 +115,9 @@ HomeVisit.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     modelName: 'HomeVisit',
     tableName: 'home_visits',
@@ -135,8 +137,9 @@ HomeVisit.init(
       {
         fields: ['scheduled_date'],
       },
+      ...auditIndexes('home_visits'),
     ],
-  }
+  })
 );
 
 export default HomeVisit;

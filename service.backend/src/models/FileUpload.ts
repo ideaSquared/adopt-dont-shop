@@ -2,6 +2,7 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import { generateUuidV7 } from '../utils/uuid';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 interface FileUploadAttributes {
   upload_id: string;
@@ -152,8 +153,9 @@ FileUpload.init(
         },
       },
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'file_uploads',
     timestamps: true,
@@ -180,8 +182,9 @@ FileUpload.init(
         unique: true,
         name: 'file_uploads_stored_filename_unique',
       },
+      ...auditIndexes('file_uploads'),
     ],
-  }
+  })
 );
 
 export default FileUpload;

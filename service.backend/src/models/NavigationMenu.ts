@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum MenuLocation {
   HEADER = 'header',
@@ -23,8 +24,8 @@ type NavigationMenuAttributes = {
   location: MenuLocation;
   items: NavigationItem[];
   isActive: boolean;
-  createdBy: string;
-  lastModifiedBy?: string;
+  // createdBy / lastModifiedBy removed — provided by auditColumns
+  // (created_by / updated_by). Hook stamps from request context.
   createdAt: Date;
   updatedAt: Date;
 };
@@ -43,8 +44,6 @@ class NavigationMenu
   public location!: MenuLocation;
   public items!: NavigationItem[];
   public isActive!: boolean;
-  public createdBy!: string;
-  public lastModifiedBy?: string;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -80,20 +79,8 @@ NavigationMenu.init(
       defaultValue: true,
       field: 'is_active',
     },
-    createdBy: {
-      type: getUuidType(),
-      allowNull: false,
-      field: 'created_by',
-      references: { model: 'users', key: 'user_id' },
-      onDelete: 'SET NULL',
-    },
-    lastModifiedBy: {
-      type: getUuidType(),
-      allowNull: true,
-      field: 'last_modified_by',
-      references: { model: 'users', key: 'user_id' },
-      onDelete: 'SET NULL',
-    },
+    // createdBy / lastModifiedBy dropped — superseded by auditColumns
+    // (created_by / updated_by). Hook stamps them from request context.
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -106,8 +93,9 @@ NavigationMenu.init(
       defaultValue: DataTypes.NOW,
       field: 'updated_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'cms_navigation_menus',
     timestamps: true,
@@ -115,10 +103,11 @@ NavigationMenu.init(
     indexes: [
       { fields: ['location'] },
       { fields: ['is_active'] },
-      { fields: ['created_by'] },
-      { fields: ['last_modified_by'] },
+      // created_by index now provided by auditIndexes('cms_navigation_menus').
+      // last_modified_by column was dropped (replaced by updated_by).
+      ...auditIndexes('cms_navigation_menus'),
     ],
-  }
+  })
 );
 
 export default NavigationMenu;

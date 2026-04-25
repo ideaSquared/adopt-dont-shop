@@ -2,6 +2,7 @@ import { DataTypes, Model, Op, Optional, WhereOptions } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
 import { JsonObject, JsonValue } from '../types/common';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export enum QuestionCategory {
   PERSONAL_INFORMATION = 'personal_information',
@@ -338,8 +339,9 @@ ApplicationQuestion.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'application_questions',
     modelName: 'ApplicationQuestion',
@@ -388,6 +390,7 @@ ApplicationQuestion.init(
           deleted_at: null,
         },
       },
+      ...auditIndexes('application_questions'),
     ],
     hooks: {
       beforeValidate: (question: ApplicationQuestion) => {
@@ -429,7 +432,7 @@ ApplicationQuestion.init(
         where: { is_required: true },
       },
     },
-  }
+  })
 );
 
 export default ApplicationQuestion;
