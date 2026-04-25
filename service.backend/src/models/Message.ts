@@ -4,6 +4,7 @@ import { MessageContentFormat } from '../types/chat';
 import Chat from './Chat';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
+import { installGeneratedSearchVector } from './generated-search-vector';
 
 export interface MessageReaction {
   user_id: string;
@@ -277,6 +278,13 @@ Message.init(
     search_vector: {
       type: getTsVectorType(),
       allowNull: true,
+      // No-op setter: Postgres owns this column (GENERATED ALWAYS AS ...
+      // STORED — see installGeneratedSearchVector below). Without the
+      // override Sequelize would include search_vector in INSERTs and
+      // Postgres would reject writes to a generated column.
+      set() {
+        // intentionally empty
+      },
     },
     ...auditColumns,
   },
@@ -317,18 +325,10 @@ Message.init(
       },
       ...auditIndexes('messages'),
     ],
-    hooks: {
-      beforeSave: async (message: Message) => {
-        // Update search vector when content changes
-        if (message.changed('content')) {
-          const [results] = await sequelize.query("SELECT to_tsvector('english', ?) as vector", {
-            replacements: [message.content],
-            type: QueryTypes.SELECT,
-          });
-          message.search_vector = (results as { vector: TsVector }).vector;
-        }
-      },
-    },
+    // search_vector is now a stored generated column on Postgres
+    // (installGeneratedSearchVector below). The hook that recomputed it
+    // on every content change has been removed — Postgres maintains the
+    // column from `content` directly.
   })
 );
 
@@ -373,5 +373,14 @@ Message.searchMessages = async function (
 
   return messages;
 };
+
+// Install a Postgres trigger that maintains search_vector from row content
+// so the DB owns the value and there's no JS hook to forget. Messages only
+// have one searchable field — the content text.
+installGeneratedSearchVector(Message, {
+  table: 'messages',
+  indexName: 'messages_search_vector_gin_idx',
+  expression: "to_tsvector('english', coalesce(NEW.content, ''))",
+});
 
 export default Message;

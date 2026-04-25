@@ -11,6 +11,7 @@ import sequelize, {
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
+import { installGeneratedSearchVector } from './generated-search-vector';
 
 // Pet status enum
 export enum PetStatus {
@@ -682,6 +683,14 @@ Pet.init(
       type: getTsVectorType(),
       allowNull: true,
       field: 'search_vector',
+      // No-op setter: Postgres owns this column (GENERATED ALWAYS AS ...
+      // STORED — see installGeneratedSearchVector below). Without the
+      // override Sequelize would include search_vector in INSERTs and
+      // Postgres would reject writes to a generated column. SQLite tests
+      // also benefit — the column stays empty, search isn't tested there.
+      set() {
+        // intentionally empty
+      },
     },
     tags: {
       type: getArrayType(DataTypes.STRING),
@@ -790,40 +799,11 @@ Pet.init(
           pet.adoptedDate = new Date();
         }
       },
-      beforeSave: async (pet: Pet) => {
-        // Update search vector (PostgreSQL only)
-        const dialect = sequelize.getDialect();
-
-        if (
-          dialect === 'postgres' &&
-          (pet.changed('name') ||
-            pet.changed('breed') ||
-            pet.changed('shortDescription') ||
-            pet.changed('longDescription'))
-        ) {
-          const searchText = [
-            pet.name,
-            pet.breed,
-            pet.secondaryBreed,
-            pet.shortDescription,
-            pet.longDescription,
-            pet.temperament?.join(' '),
-          ]
-            .filter(Boolean)
-            .join(' ');
-
-          if (searchText.trim()) {
-            const [results] = await sequelize.query<{ vector: TsVector }>(
-              "SELECT to_tsvector('english', ?) as vector",
-              {
-                replacements: [searchText],
-                type: QueryTypes.SELECT,
-              }
-            );
-            pet.searchVector = results.vector;
-          }
-        }
-      },
+      // search_vector is now a stored generated column on Postgres
+      // (installGeneratedSearchVector below). The hook that used to
+      // recompute it on every save has been removed — Postgres maintains
+      // the column from name/breed/shortDescription/longDescription/
+      // secondaryBreed/temperament directly.
     },
     scopes: {
       available: {
@@ -875,5 +855,21 @@ Pet.init(
     },
   })
 );
+
+// Install a Postgres trigger that maintains search_vector from row content
+// so the DB owns the value and there's no JS hook to forget. Weight
+// reflects search intent: name > breed > description > temperament.
+installGeneratedSearchVector(Pet, {
+  table: 'pets',
+  indexName: 'pets_search_vector_gin_idx',
+  expression: [
+    "setweight(to_tsvector('english', coalesce(NEW.name, '')), 'A')",
+    "setweight(to_tsvector('english', coalesce(NEW.breed, '')), 'B')",
+    "setweight(to_tsvector('english', coalesce(NEW.secondary_breed, '')), 'B')",
+    "setweight(to_tsvector('english', coalesce(NEW.short_description, '')), 'C')",
+    "setweight(to_tsvector('english', coalesce(NEW.long_description, '')), 'C')",
+    "setweight(to_tsvector('english', coalesce(array_to_string(NEW.temperament, ' '), '')), 'D')",
+  ].join(' || '),
+});
 
 export default Pet;
