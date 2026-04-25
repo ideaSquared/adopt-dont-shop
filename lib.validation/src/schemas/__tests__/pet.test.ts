@@ -51,10 +51,6 @@ describe('Pet schemas', () => {
       expect(() => PetCreateRequestSchema.parse({ ...valid, ageMonths: 12 })).toThrow();
     });
 
-    it('rejects an adoptionFee above 10,000', () => {
-      expect(() => PetCreateRequestSchema.parse({ ...valid, adoptionFee: 99_999 })).toThrow();
-    });
-
     it('rejects images without a valid URL', () => {
       expect(() =>
         PetCreateRequestSchema.parse({ ...valid, images: [{ url: 'not-a-url' }] })
@@ -120,6 +116,40 @@ describe('Pet schemas', () => {
         isBirthDateEstimate: true,
       });
       expect(parsed.isBirthDateEstimate).toBe(true);
+    });
+  });
+
+  describe('Money columns (adoptionFeeMinor + adoptionFeeCurrency)', () => {
+    const valid = {
+      name: 'Buddy',
+      type: 'dog',
+      gender: 'male',
+      size: 'large',
+      ageGroup: 'adult',
+    };
+
+    it('accepts integer minor units + 3-letter currency', () => {
+      const parsed = PetCreateRequestSchema.parse({
+        ...valid,
+        adoptionFeeMinor: 12500,
+        adoptionFeeCurrency: 'gbp',
+      });
+      expect(parsed.adoptionFeeMinor).toBe(12500);
+      expect(parsed.adoptionFeeCurrency).toBe('GBP');
+    });
+
+    it('rejects non-integer minor units', () => {
+      expect(() => PetCreateRequestSchema.parse({ ...valid, adoptionFeeMinor: 12.5 })).toThrow();
+    });
+
+    it('rejects negative minor units', () => {
+      expect(() => PetCreateRequestSchema.parse({ ...valid, adoptionFeeMinor: -1 })).toThrow();
+    });
+
+    it('rejects a non-ISO currency code', () => {
+      expect(() =>
+        PetCreateRequestSchema.parse({ ...valid, adoptionFeeCurrency: 'pound' })
+      ).toThrow();
     });
   });
 

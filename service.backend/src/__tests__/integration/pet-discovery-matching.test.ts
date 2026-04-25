@@ -113,7 +113,10 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     archived: overrides.archived !== undefined ? overrides.archived : false,
     featured: overrides.featured !== undefined ? overrides.featured : false,
     priorityListing: overrides.priorityListing !== undefined ? overrides.priorityListing : false,
-    adoptionFee: overrides.adoptionFee !== undefined ? overrides.adoptionFee : 150,
+    adoptionFeeMinor:
+      overrides.adoptionFeeMinor !== undefined ? overrides.adoptionFeeMinor : 15_000,
+    adoptionFeeCurrency:
+      overrides.adoptionFeeCurrency !== undefined ? overrides.adoptionFeeCurrency : 'GBP',
     specialNeeds: overrides.specialNeeds !== undefined ? overrides.specialNeeds : false,
     specialNeedsDescription: overrides.specialNeedsDescription || null,
     houseTrained: overrides.houseTrained !== undefined ? overrides.houseTrained : true,
@@ -509,7 +512,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should filter pets by adoption fee range', async () => {
-        const mockPets = [createMockPet({ petId: 'pet-1', adoptionFee: 100 })];
+        const mockPets = [createMockPet({ petId: 'pet-1', adoptionFeeMinor: 10_000 })];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
@@ -523,7 +526,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
 
         expect(result.pets).toHaveLength(1);
         const callArgs = (MockedPet.findAndCountAll as vi.Mock).mock.calls[0][0];
-        expect(callArgs.where.adoptionFee).toBeTruthy(); // Has an adoption fee filter
+        expect(callArgs.where.adoptionFeeMinor).toBeTruthy(); // Has an adoption fee filter
       });
 
       it('should filter pets by weight range', async () => {

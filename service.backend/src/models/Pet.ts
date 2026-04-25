@@ -8,6 +8,7 @@ import sequelize, {
   getTsVectorType,
   TsVector,
 } from '../sequelize';
+import { type Money, money } from '@adopt-dont-shop/lib.types';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
@@ -123,7 +124,15 @@ export interface PetAttributes {
   archived: boolean;
   featured: boolean;
   priorityListing: boolean;
-  adoptionFee?: number | null;
+  /**
+   * Adoption fee in minor units (e.g. pence for GBP, cents for USD).
+   * Integer-only — avoids the float rounding surprises and currency
+   * ambiguity of `DECIMAL(10,2)`. Pair with `adoptionFeeCurrency` to
+   * interpret. (plan 3.2 / 5.5.8)
+   */
+  adoptionFeeMinor?: number | null;
+  /** ISO 4217 currency code (3 uppercase letters). */
+  adoptionFeeCurrency?: string | null;
   specialNeeds: boolean;
   specialNeedsDescription?: string | null;
   houseTrained: boolean;
@@ -219,7 +228,8 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
   public archived!: boolean;
   public featured!: boolean;
   public priorityListing!: boolean;
-  public adoptionFee!: number | null;
+  public adoptionFeeMinor!: number | null;
+  public adoptionFeeCurrency!: string | null;
   public specialNeeds!: boolean;
   public specialNeedsDescription!: string | null;
   public houseTrained!: boolean;
@@ -309,6 +319,17 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
       return this.ageYears * 12;
     }
     return this.ageMonths;
+  }
+
+  /**
+   * Return the adoption fee as a Money value (integer minor units +
+   * ISO 4217 currency). Returns null when no fee is recorded.
+   */
+  public getAdoptionFee(): Money | null {
+    if (this.adoptionFeeMinor === null || this.adoptionFeeMinor === undefined) {
+      return null;
+    }
+    return money(this.adoptionFeeMinor, this.adoptionFeeCurrency ?? 'GBP');
   }
 
   public getAgeDisplay(now: Date = new Date()): string {
@@ -541,13 +562,35 @@ Pet.init(
       field: 'priority_listing',
       defaultValue: false,
     },
-    adoptionFee: {
-      type: DataTypes.DECIMAL(10, 2),
+    /**
+     * Minor units (pence/cents/etc.) — integer, no float rounding,
+     * paired with adoptionFeeCurrency. (plan 3.2 / 5.5.8)
+     */
+    adoptionFeeMinor: {
+      type: DataTypes.INTEGER,
       allowNull: true,
-      field: 'adoption_fee',
+      field: 'adoption_fee_minor',
       validate: {
         min: 0,
-        max: 10000,
+        // 1,000,000 minor units (e.g. £10,000 / $10,000).
+        max: 1_000_000,
+      },
+    },
+    /**
+     * ISO 4217 alpha-3 currency code. CHAR(3); enforced uppercase by
+     * the column-level validator below. Default GBP since this is the
+     * primary market today.
+     */
+    adoptionFeeCurrency: {
+      type: DataTypes.CHAR(3),
+      allowNull: true,
+      field: 'adoption_fee_currency',
+      defaultValue: 'GBP',
+      validate: {
+        is: {
+          args: /^[A-Z]{3}$/,
+          msg: 'Currency must be an ISO 4217 alpha-3 code (e.g. GBP, USD)',
+        },
       },
     },
     specialNeeds: {

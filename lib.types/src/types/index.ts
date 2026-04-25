@@ -208,3 +208,28 @@ export interface AuditLogsResponse {
 export interface SystemPermissionsResponse {
   permissions: Permission[];
 }
+
+
+// ---------------------------------------------------------------------------
+// Money — integer minor units + ISO 4217 currency code
+// ---------------------------------------------------------------------------
+//
+// Storing money as a float invites rounding bugs; storing it without a
+// currency invites ambiguity. Money is always { amount, currency } where
+// `amount` is an integer in the smallest unit (pence, cents, etc.) and
+// `currency` is a 3-letter ISO 4217 code.
+
+export type CurrencyCode = string & { readonly __brand: 'CurrencyCode' };
+
+export interface Money {
+  /** Amount in minor units (e.g. 1234 = £12.34 if currency is GBP). */
+  amount: number;
+  /** ISO 4217 alpha-3 code, uppercase. */
+  currency: CurrencyCode;
+}
+
+/** Build a Money value, normalising currency to uppercase. */
+export const money = (amount: number, currency: string): Money => ({
+  amount: Math.round(amount),
+  currency: currency.toUpperCase() as CurrencyCode,
+});

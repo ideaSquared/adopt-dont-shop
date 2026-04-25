@@ -38,7 +38,7 @@ const PET_SEARCH_SORT_FIELDS = [
   'name',
   'breed',
   'ageYears',
-  'adoptionFee',
+  'adoptionFeeMinor',
   'distance',
 ] as const;
 const PET_RESCUE_LIST_SORT_FIELDS = [
@@ -46,7 +46,7 @@ const PET_RESCUE_LIST_SORT_FIELDS = [
   'updatedAt',
   'name',
   'age',
-  'adoptionFee',
+  'adoptionFeeMinor',
 ] as const;
 
 /**
@@ -177,16 +177,17 @@ export class PetService {
         whereConditions.status = { [Op.ne]: PetStatus.ADOPTED };
       }
 
-      // Range filters (applied before search)
+      // Range filters (applied before search). Filter values are in major
+      // units for ergonomics; the column is in minor units (pence/cents).
       if (adoptionFeeMin !== undefined || adoptionFeeMax !== undefined) {
         const feeFilter: SequelizeOperatorFilter = {};
         if (adoptionFeeMin !== undefined) {
-          feeFilter[Op.gte] = adoptionFeeMin;
+          feeFilter[Op.gte] = Math.round(adoptionFeeMin * 100);
         }
         if (adoptionFeeMax !== undefined) {
-          feeFilter[Op.lte] = adoptionFeeMax;
+          feeFilter[Op.lte] = Math.round(adoptionFeeMax * 100);
         }
-        whereConditions.adoptionFee = feeFilter;
+        whereConditions.adoptionFeeMinor = feeFilter;
       }
 
       if (weightMin !== undefined || weightMax !== undefined) {
@@ -495,7 +496,8 @@ export class PetService {
         weightKg: 'weightKg',
         microchipId: 'microchipId',
         priorityListing: 'priorityListing',
-        adoptionFee: 'adoptionFee',
+        adoptionFeeMinor: 'adoptionFeeMinor',
+        adoptionFeeCurrency: 'adoptionFeeCurrency',
         specialNeeds: 'specialNeeds',
         specialNeedsDescription: 'specialNeedsDescription',
         houseTrained: 'houseTrained',
@@ -557,8 +559,11 @@ export class PetService {
       if (normalizedData.priorityListing !== undefined) {
         dbUpdateData.priorityListing = normalizedData.priorityListing;
       }
-      if (normalizedData.adoptionFee !== undefined) {
-        dbUpdateData.adoptionFee = normalizedData.adoptionFee;
+      if (normalizedData.adoptionFeeMinor !== undefined) {
+        dbUpdateData.adoptionFeeMinor = normalizedData.adoptionFeeMinor;
+      }
+      if (normalizedData.adoptionFeeCurrency !== undefined) {
+        dbUpdateData.adoptionFeeCurrency = normalizedData.adoptionFeeCurrency;
       }
       if (normalizedData.specialNeeds !== undefined) {
         dbUpdateData.specialNeeds = normalizedData.specialNeeds;
@@ -1333,7 +1338,7 @@ export class PetService {
       search?: string;
       page?: number;
       limit?: number;
-      sortBy?: 'createdAt' | 'name' | 'age' | 'adoptionFee';
+      sortBy?: 'createdAt' | 'name' | 'age' | 'adoptionFeeMinor';
       sortOrder?: 'ASC' | 'DESC';
     } = {}
   ): Promise<{
@@ -1409,16 +1414,17 @@ export class PetService {
         whereClause.location = { [getLikeOp()]: `%${location}%` };
       }
 
-      // Numeric range filters
+      // Numeric range filters. Filter values arrive in major units; the
+      // column is in minor units (pence/cents) so multiply by 100.
       if (adoptionFeeMin !== undefined || adoptionFeeMax !== undefined) {
         const feeFilter: SequelizeOperatorFilter = {};
         if (adoptionFeeMin !== undefined) {
-          feeFilter[Op.gte] = adoptionFeeMin;
+          feeFilter[Op.gte] = Math.round(adoptionFeeMin * 100);
         }
         if (adoptionFeeMax !== undefined) {
-          feeFilter[Op.lte] = adoptionFeeMax;
+          feeFilter[Op.lte] = Math.round(adoptionFeeMax * 100);
         }
-        whereClause.adoptionFee = feeFilter;
+        whereClause.adoptionFeeMinor = feeFilter;
       }
 
       if (weightMin !== undefined || weightMax !== undefined) {
