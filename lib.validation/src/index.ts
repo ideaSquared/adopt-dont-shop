@@ -8,3 +8,4 @@ export * from './types';
 export * from './schemas/user';
 export * from './schemas/pet';
 export * from './schemas/rescue';
+export * from './schemas/application';

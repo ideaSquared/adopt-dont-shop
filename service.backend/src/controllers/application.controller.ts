@@ -1,5 +1,15 @@
 import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
+import { z } from 'zod';
+import {
+  ApplicationBulkUpdateRequestSchema,
+  ApplicationDocumentUploadRequestSchema,
+  ApplicationSearchQuerySchema,
+  ApplicationStatusUpdateRequestSchema,
+  CreateApplicationRequestSchema,
+  ReferenceUpdateRequestSchema,
+  UpdateApplicationRequestSchema,
+} from '@adopt-dont-shop/lib.validation';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import { HomeVisitStatus } from '../models/HomeVisit';
 import { UserType } from '../models/User';
@@ -16,217 +26,49 @@ import {
 } from '../types/application';
 import { logger } from '../utils/logger';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
+import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { BaseController } from './base.controller';
 
+/** Reusable :applicationId param schema. */
+const ApplicationIdParamSchema = z.object({
+  applicationId: z
+    .string()
+    .min(1, 'Valid application ID is required')
+    .max(255, 'Valid application ID is required'),
+});
+
 export class ApplicationController extends BaseController {
-  // Validation rules
-  static validateCreateApplication = [
-    body('petId').isString().notEmpty().withMessage('Valid pet ID is required'),
-    body('answers').isObject().withMessage('Answers must be an object'),
-    body('references').optional().isArray({ max: 5 }).withMessage('Maximum 5 references allowed'),
-    body('references.*.name')
-      .optional()
-      .trim()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Reference name must be between 2 and 100 characters'),
-    body('references.*.relationship')
-      .optional()
-      .trim()
-      .isLength({ min: 2, max: 100 })
-      .withMessage('Reference relationship must be between 2 and 100 characters'),
-    body('references.*.phone')
-      .optional()
-      .matches(/^[+]?[1-9]?[0-9]{7,15}$/)
-      .withMessage('Valid reference phone number is required'),
-    body('references.*.email')
-      .optional()
-      .isEmail()
-      .withMessage('Valid email address required for reference'),
-    body('priority')
-      .optional()
-      .isIn(Object.values(ApplicationPriority))
-      .withMessage('Invalid priority value'),
-    body('notes')
-      .optional()
-      .trim()
-      .isLength({ max: 2000 })
-      .withMessage('Notes must not exceed 2000 characters'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-  ];
+  // Validation rules — backed by canonical Zod schemas in
+  // @adopt-dont-shop/lib.validation. Same rules, same error response
+  // shape (see middleware/zod-validate), one source of truth shared
+  // with the rescue / admin / client frontends.
+  static validateCreateApplication = [validateBody(CreateApplicationRequestSchema)];
 
   static validateUpdateApplication = [
-    param('applicationId')
-      .isString()
-      .isLength({ min: 1, max: 255 })
-      .withMessage('Valid application ID is required'),
-    body('answers').optional().isObject().withMessage('Answers must be an object'),
-    body('references').optional().isArray({ max: 5 }).withMessage('Maximum 5 references allowed'),
-    body('priority')
-      .optional()
-      .isIn(Object.values(ApplicationPriority))
-      .withMessage('Invalid priority value'),
-    body('notes')
-      .optional()
-      .trim()
-      .isLength({ max: 2000 })
-      .withMessage('Notes must not exceed 2000 characters'),
-    body('tags').optional().isArray().withMessage('Tags must be an array'),
-    body('interviewNotes')
-      .optional()
-      .trim()
-      .isLength({ max: 2000 })
-      .withMessage('Interview notes must not exceed 2000 characters'),
-    body('homeVisitNotes')
-      .optional()
-      .trim()
-      .isLength({ max: 2000 })
-      .withMessage('Home visit notes must not exceed 2000 characters'),
-    body('score')
-      .optional()
-      .isFloat({ min: 0, max: 100 })
-      .withMessage('Score must be between 0 and 100'),
+    validateParams(ApplicationIdParamSchema),
+    validateBody(UpdateApplicationRequestSchema),
   ];
 
   static validateUpdateApplicationStatus = [
-    param('applicationId')
-      .isString()
-      .isLength({ min: 1, max: 255 })
-      .withMessage('Valid application ID is required'),
-    body('status').isIn(Object.values(ApplicationStatus)).withMessage('Invalid status value'),
-    body('rejectionReason')
-      .optional()
-      .trim()
-      .isLength({ max: 1000 })
-      .withMessage('Rejection reason must not exceed 1000 characters'),
-    body('notes')
-      .optional()
-      .trim()
-      .isLength({ max: 2000 })
-      .withMessage('Notes must not exceed 2000 characters'),
-    body('followUpDate')
-      .optional()
-      .isISO8601()
-      .toDate()
-      .withMessage('Follow-up date must be a valid date'),
+    validateParams(ApplicationIdParamSchema),
+    validateBody(ApplicationStatusUpdateRequestSchema),
   ];
 
-  static validateApplicationId = [
-    param('applicationId')
-      .isString()
-      .isLength({ min: 1, max: 255 })
-      .withMessage('Valid application ID is required'),
-  ];
+  static validateApplicationId = [validateParams(ApplicationIdParamSchema)];
 
-  static validateGetApplications = [
-    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-    query('limit')
-      .optional()
-      .isInt({ min: 1, max: 100 })
-      .withMessage('Limit must be between 1 and 100'),
-    query('userId').optional().isString().notEmpty().withMessage('Valid user ID required'),
-    query('petId').optional().isString().notEmpty().withMessage('Valid pet ID required'),
-    query('rescueId').optional().isString().notEmpty().withMessage('Valid rescue ID required'),
-    query('status')
-      .optional()
-      .isIn(Object.values(ApplicationStatus))
-      .withMessage('Invalid status value'),
-    query('priority')
-      .optional()
-      .isIn(Object.values(ApplicationPriority))
-      .withMessage('Invalid priority value'),
-    query('sortBy')
-      .optional()
-      .isIn(['createdAt', 'updatedAt', 'submittedAt', 'status', 'priority', 'score'])
-      .withMessage('Invalid sort field'),
-    query('sortOrder')
-      .optional()
-      .isIn(['ASC', 'DESC'])
-      .withMessage('Sort order must be ASC or DESC'),
-    query('search')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Search query must be between 1 and 100 characters'),
-    query('score_min')
-      .optional()
-      .isFloat({ min: 0, max: 100 })
-      .withMessage('Minimum score must be between 0 and 100'),
-    query('score_max')
-      .optional()
-      .isFloat({ min: 0, max: 100 })
-      .withMessage('Maximum score must be between 0 and 100'),
-  ];
+  static validateGetApplications = [validateQuery(ApplicationSearchQuerySchema)];
 
   static validateDocumentUpload = [
-    param('applicationId')
-      .isString()
-      .isLength({ min: 1, max: 255 })
-      .withMessage('Valid application ID is required'),
-    body('documentType')
-      .optional()
-      .trim()
-      .isIn(['REFERENCE', 'VETERINARY_RECORD', 'PROOF_OF_RESIDENCE', 'OTHER'])
-      .withMessage(
-        'Document type must be one of: REFERENCE, VETERINARY_RECORD, PROOF_OF_RESIDENCE, OTHER'
-      ),
+    validateParams(ApplicationIdParamSchema),
+    validateBody(ApplicationDocumentUploadRequestSchema),
   ];
 
   static validateReferenceUpdate = [
-    param('applicationId')
-      .isString()
-      .isLength({ min: 1, max: 255 })
-      .withMessage('Valid application ID is required'),
-    // Support both reference_index and referenceId approaches for flexible reference handling
-    body().custom(value => {
-      if (!value.reference_index && !value.referenceId) {
-        throw new Error('Either reference_index or referenceId is required');
-      }
-      return true;
-    }),
-    body('referenceIndex')
-      .optional()
-      .isInt({ min: 0, max: 4 })
-      .withMessage('Reference index must be between 0 and 4'),
-    body('referenceId')
-      .optional()
-      .matches(/^ref-\d+$/)
-      .withMessage('Reference ID must be in format ref-X (e.g., ref-0, ref-1)'),
-    body('status')
-      .isIn(['pending', 'contacted', 'verified', 'failed'])
-      .withMessage('Invalid reference status'),
-    body('notes')
-      .optional()
-      .trim()
-      .isLength({ max: 500 })
-      .withMessage('Notes must not exceed 500 characters'),
-    body('contactedAt')
-      .optional()
-      .isISO8601()
-      .toDate()
-      .withMessage('Contacted date must be a valid date'),
+    validateParams(ApplicationIdParamSchema),
+    validateBody(ReferenceUpdateRequestSchema),
   ];
 
-  static validateBulkUpdate = [
-    body('applicationIds')
-      .isArray({ min: 1 })
-      .withMessage('Application IDs must be a non-empty array'),
-    body('applicationIds.*').isUUID().withMessage('Each application ID must be a valid UUID'),
-    body('updates').isObject().withMessage('Updates must be an object'),
-    body('updates.status')
-      .optional()
-      .isIn(Object.values(ApplicationStatus))
-      .withMessage('Invalid status value'),
-    body('updates.priority')
-      .optional()
-      .isIn(Object.values(ApplicationPriority))
-      .withMessage('Invalid priority value'),
-    body('updates.tags').optional().isArray().withMessage('Tags must be an array'),
-    body('updates.notes')
-      .optional()
-      .trim()
-      .isLength({ max: 2000 })
-      .withMessage('Notes must not exceed 2000 characters'),
-  ];
+  static validateBulkUpdate = [validateBody(ApplicationBulkUpdateRequestSchema)];
 
   /**
    * Transform database Application model to frontend-compatible format
