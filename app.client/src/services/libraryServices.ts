@@ -15,10 +15,11 @@ import { SearchService } from '@adopt-dont-shop/lib.search';
 import { NotificationsService } from '@adopt-dont-shop/lib.notifications';
 import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
 
-// 🔧 DEBUG: Log environment variables
-console.log('🔧 DEBUG: VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
-console.log('🔧 DEBUG: MODE =', import.meta.env.MODE);
-console.log('🔧 DEBUG: DEV =', import.meta.env.DEV);
+if (import.meta.env.DEV) {
+  console.log('🔧 DEBUG: VITE_API_BASE_URL =', import.meta.env.VITE_API_BASE_URL);
+  console.log('🔧 DEBUG: MODE =', import.meta.env.MODE);
+  console.log('🔧 DEBUG: DEV =', import.meta.env.DEV);
+}
 
 // ✅ INDUSTRY STANDARD: Configure the global apiService FIRST
 // This is critical because domain services (like AuthService) use the global apiService
@@ -31,8 +32,10 @@ globalApiService.updateConfig({
   debug: import.meta.env.DEV,
 });
 
-console.log('🔧 DEBUG: Global ApiService configured with baseUrl:', baseUrl);
-console.log('🔧 DEBUG: Global ApiService config:', globalApiService.getConfig());
+if (import.meta.env.DEV) {
+  console.log('🔧 DEBUG: Global ApiService configured with baseUrl:', baseUrl);
+  console.log('🔧 DEBUG: Global ApiService config:', globalApiService.getConfig());
+}
 
 // Now import domain services AFTER configuring the global apiService
 import { AuthService } from '@adopt-dont-shop/lib.auth';
