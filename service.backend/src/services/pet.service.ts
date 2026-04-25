@@ -1,5 +1,6 @@
 import { col, fn, literal, Op, WhereOptions } from 'sequelize';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
+import PetStatusTransition from '../models/PetStatusTransition';
 import Rescue from '../models/Rescue';
 import UserFavorite from '../models/UserFavorite';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../models/Report';
@@ -393,6 +394,17 @@ export class PetService {
         videos,
       });
 
+      // Seed the transition log with the initial status. The trigger /
+      // hook would otherwise re-set pets.status to its default — a no-op
+      // here, but the row is what makes "history complete" structural.
+      await PetStatusTransition.create({
+        petId: pet.petId,
+        fromStatus: null,
+        toStatus: pet.status,
+        transitionedBy: createdBy,
+        reason: 'Initial listing',
+      });
+
       // Log pet creation with performance metrics
       await AuditLogService.log({
         action: 'CREATE',
@@ -669,12 +681,30 @@ export class PetService {
 
       const originalStatus = pet.status;
 
-      // Update status and related fields
-      await pet.update({
-        status: statusUpdate.status,
-        ...(statusUpdate.effectiveDate && { availableSince: statusUpdate.effectiveDate }),
-        ...(statusUpdate.status === PetStatus.ADOPTED && { adoptedDate: new Date() }),
-        ...(statusUpdate.status === PetStatus.FOSTER && { fosterStartDate: new Date() }),
+      // Update side-effect columns directly; the status itself is owned by
+      // the transition log + trigger / hook (see PetStatusTransition).
+      const sideEffects: Record<string, unknown> = {};
+      if (statusUpdate.effectiveDate) {
+        sideEffects.availableSince = statusUpdate.effectiveDate;
+      }
+      if (statusUpdate.status === PetStatus.ADOPTED) {
+        sideEffects.adoptedDate = new Date();
+      }
+      if (statusUpdate.status === PetStatus.FOSTER) {
+        sideEffects.fosterStartDate = new Date();
+      }
+      if (Object.keys(sideEffects).length > 0) {
+        await pet.update(sideEffects);
+      }
+
+      // Append the transition; the AFTER INSERT trigger (Postgres) /
+      // afterCreate hook (SQLite) propagates to_status onto pets.status.
+      await PetStatusTransition.create({
+        petId,
+        fromStatus: originalStatus,
+        toStatus: statusUpdate.status,
+        transitionedBy: updatedBy,
+        reason: statusUpdate.reason || null,
       });
 
       // Log status update

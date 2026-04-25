@@ -20,6 +20,7 @@ import Pet, {
   SpayNeuterStatus,
   VaccinationStatus,
 } from '../../models/Pet';
+import PetStatusTransition from '../../models/PetStatusTransition';
 import Application, { ApplicationStatus } from '../../models/Application';
 import { PetService } from '../../services/pet.service';
 import { PetCreateData, PetStatusUpdate, PetUpdateData } from '../../types/pet';
@@ -27,6 +28,9 @@ import { PetCreateData, PetStatusUpdate, PetUpdateData } from '../../types/pet';
 // Mocked dependencies
 const MockedPet = Pet as vi.MockedObject<Pet>;
 const MockedApplication = Application as vi.MockedObject<Application>;
+const MockedPetStatusTransition = PetStatusTransition as vi.MockedObject<
+  typeof PetStatusTransition
+>;
 
 // Test constants
 const mockRescueId = 'rescue-123';
@@ -94,6 +98,11 @@ const createValidPetData = (overrides = {}): PetCreateData => ({
 describe('PetService - Business Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The status-transition log is a real model. The mocked Pet.create
+    // returns a fake row that doesn't exist in the DB, so a real
+    // transition insert would trip the FK. Stub it — the trigger/hook
+    // path has its own dedicated tests.
+    MockedPetStatusTransition.create = vi.fn().mockResolvedValue({} as never);
   });
 
   // ==========================================================================
@@ -115,10 +124,12 @@ describe('PetService - Business Logic', () => {
       // When: Status is updated to PENDING
       const result = await PetService.updatePetStatus(mockPetId, statusUpdate, mockUserId);
 
-      // Then: Status is updated successfully
-      expect(mockPet.update).toHaveBeenCalledWith(
+      // Then: a transition is logged with toStatus = PENDING. The status
+      // itself is denormalized onto pets.status by the trigger / hook.
+      expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: PetStatus.PENDING,
+          petId: mockPetId,
+          toStatus: PetStatus.PENDING,
         })
       );
       expect(result).toBeDefined();
@@ -138,11 +149,17 @@ describe('PetService - Business Logic', () => {
       // When: Status is updated to ADOPTED
       await PetService.updatePetStatus(mockPetId, statusUpdate, mockUserId);
 
-      // Then: Adopted date is automatically set
+      // Then: Adopted date is set on the pet, and the transition log
+      // captures the status change.
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: PetStatus.ADOPTED,
           adoptedDate: expect.any(Date),
+        })
+      );
+      expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          petId: mockPetId,
+          toStatus: PetStatus.ADOPTED,
         })
       );
     });
@@ -161,11 +178,16 @@ describe('PetService - Business Logic', () => {
       // When: Status is updated to FOSTER
       await PetService.updatePetStatus(mockPetId, statusUpdate, mockUserId);
 
-      // Then: Foster start date is automatically set
+      // Then: Foster start date is set on the pet, status moves via the log.
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: PetStatus.FOSTER,
           fosterStartDate: expect.any(Date),
+        })
+      );
+      expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          petId: mockPetId,
+          toStatus: PetStatus.FOSTER,
         })
       );
     });
@@ -184,10 +206,11 @@ describe('PetService - Business Logic', () => {
       // When: Status is updated to MEDICAL_HOLD
       const result = await PetService.updatePetStatus(mockPetId, statusUpdate, mockUserId);
 
-      // Then: Status is updated successfully
-      expect(mockPet.update).toHaveBeenCalledWith(
+      // Then: a transition is logged with toStatus = MEDICAL_HOLD.
+      expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: PetStatus.MEDICAL_HOLD,
+          petId: mockPetId,
+          toStatus: PetStatus.MEDICAL_HOLD,
         })
       );
       expect(result).toBeDefined();
@@ -208,11 +231,16 @@ describe('PetService - Business Logic', () => {
       // When: Status is updated back to AVAILABLE
       await PetService.updatePetStatus(mockPetId, statusUpdate, mockUserId);
 
-      // Then: Available since date is updated
+      // Then: Available since date is updated and a transition is logged.
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: PetStatus.AVAILABLE,
           availableSince: expect.any(Date),
+        })
+      );
+      expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          petId: mockPetId,
+          toStatus: PetStatus.AVAILABLE,
         })
       );
     });
@@ -231,11 +259,16 @@ describe('PetService - Business Logic', () => {
       // When: Foster becomes adoption
       await PetService.updatePetStatus(mockPetId, statusUpdate, mockUserId);
 
-      // Then: Adopted date is set
+      // Then: Adopted date is set and the transition log captures the change.
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: PetStatus.ADOPTED,
           adoptedDate: expect.any(Date),
+        })
+      );
+      expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          petId: mockPetId,
+          toStatus: PetStatus.ADOPTED,
         })
       );
     });
