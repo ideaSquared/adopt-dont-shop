@@ -1,212 +1,56 @@
 import { Request, Response } from 'express';
-import { body, param, query, validationResult } from 'express-validator';
+import { validationResult } from 'express-validator';
+import { z } from 'zod';
+import {
+  BulkPetOperationRequestSchema,
+  PetCreateRequestSchema,
+  PetSearchFiltersSchema,
+  PetSearchPaginationSchema,
+  PetStatusUpdateRequestSchema,
+  PetTypeSchema,
+  PetUpdateRequestSchema,
+  ReportPetRequestSchema,
+} from '@adopt-dont-shop/lib.validation';
 import { PetType, Size, Gender, PetStatus, AgeGroup } from '../models/Pet';
 import PetService, { PetSearchFilters } from '../services/pet.service';
 import type { BulkPetOperation } from '../types/pet';
 import { AuthenticatedRequest } from '../types';
+import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { logger } from '../utils/logger';
+
+/** Reusable :petId param schema. */
+const PetIdParamSchema = z.object({
+  petId: z.string().min(1, 'Valid pet ID is required'),
+});
+
+/** Reusable :type param schema for the breeds-by-type endpoint. */
+const PetTypeParamSchema = z.object({
+  type: PetTypeSchema,
+});
 
 export class PetController {
   private petService = PetService;
 
-  // Validation rules
-  static validateCreatePet = [
-    body('name')
-      .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Pet name must be between 1 and 100 characters'),
-    body('type')
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('Pet type must be between 1 and 50 characters'),
-    body('breed')
-      .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Breed must be between 1 and 100 characters'),
-    body('ageYears')
-      .optional()
-      .isInt({ min: 0, max: 30 })
-      .withMessage('Age years must be between 0 and 30'),
-    body('ageMonths')
-      .optional()
-      .isInt({ min: 0, max: 11 })
-      .withMessage('Age months must be between 0 and 11'),
-    body('gender')
-      .isIn(['male', 'female', 'unknown'])
-      .withMessage('Gender must be male, female, or unknown'),
-    body('size')
-      .isIn(['extra_small', 'small', 'medium', 'large', 'extra_large'])
-      .withMessage('Size must be extra_small, small, medium, large, or extra_large'),
-    body('color')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Color must be between 1 and 100 characters'),
-    body('shortDescription')
-      .optional()
-      .trim()
-      .isLength({ min: 10, max: 500 })
-      .withMessage('Short description must be between 10 and 500 characters'),
-    body('longDescription')
-      .optional()
-      .trim()
-      .isLength({ min: 10, max: 5000 })
-      .withMessage('Long description must be between 10 and 5000 characters'),
-    body('adoptionFee')
-      .optional()
-      .custom(value => {
-        // Allow empty string, null, undefined (will be converted to null)
-        if (value === '' || value === null || value === undefined) {
-          return true;
-        }
-        // If value is provided, it must be a valid positive number
-        if (isNaN(value) || parseFloat(value) < 0) {
-          throw new Error('Adoption fee must be a positive number');
-        }
-        return true;
-      })
-      .withMessage('Adoption fee must be a positive number or empty'),
-    body('energyLevel')
-      .optional()
-      .isIn(['low', 'medium', 'high', 'very_high'])
-      .withMessage('Energy level must be low, medium, high, or very_high'),
-    body('goodWithChildren')
-      .optional()
-      .isBoolean()
-      .withMessage('Good with children must be a boolean'),
-    body('goodWithCats').optional().isBoolean().withMessage('Good with cats must be a boolean'),
-    body('goodWithDogs').optional().isBoolean().withMessage('Good with dogs must be a boolean'),
-    body('houseTrained').optional().isBoolean().withMessage('House trained must be a boolean'),
-    body('spayNeuterStatus')
-      .optional()
-      .isIn(['spayed', 'neutered', 'not_altered', 'unknown'])
-      .withMessage('Spay/neuter status must be spayed, neutered, not_altered, or unknown'),
-    body('images').optional().isArray().withMessage('Images must be an array'),
-    body('images.*').optional().isURL().withMessage('Each image must be a valid URL'),
-  ];
+  // Validation rules — backed by canonical Zod schemas in
+  // @adopt-dont-shop/lib.validation. Same rules, same error response
+  // shape (see middleware/zod-validate), but one source of truth shared
+  // with the rescue / admin / client frontends.
+  static validateCreatePet = [validateBody(PetCreateRequestSchema)];
 
   static validateUpdatePet = [
-    param('petId').isString().withMessage('Valid pet ID is required'),
-    body('name')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Pet name must be between 1 and 100 characters'),
-    body('type')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('Pet type must be between 1 and 50 characters'),
-    body('breed')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Breed must be between 1 and 100 characters'),
-    body('ageYears')
-      .optional()
-      .isInt({ min: 0, max: 30 })
-      .withMessage('Age years must be between 0 and 30'),
-    body('ageMonths')
-      .optional()
-      .isInt({ min: 0, max: 11 })
-      .withMessage('Age months must be between 0 and 11'),
-    body('gender')
-      .optional()
-      .isIn(['male', 'female', 'unknown'])
-      .withMessage('Gender must be male, female, or unknown'),
-    body('size')
-      .optional()
-      .isIn(['extra_small', 'small', 'medium', 'large', 'extra_large'])
-      .withMessage('Size must be extra_small, small, medium, large, or extra_large'),
-    body('adoptionFee')
-      .optional()
-      .custom(value => {
-        // Allow empty string, null, undefined (will be converted to null)
-        if (value === '' || value === null || value === undefined) {
-          return true;
-        }
-        // If value is provided, it must be a valid positive number
-        if (isNaN(value) || parseFloat(value) < 0) {
-          throw new Error('Adoption fee must be a positive number');
-        }
-        return true;
-      })
-      .withMessage('Adoption fee must be a positive number or empty'),
-    body('energyLevel')
-      .optional()
-      .isIn(['low', 'medium', 'high', 'very_high'])
-      .withMessage('Energy level must be low, medium, high, or very_high'),
-    body('status')
-      .optional()
-      .isIn([
-        'available',
-        'pending',
-        'adopted',
-        'foster',
-        'medical_hold',
-        'behavioral_hold',
-        'not_available',
-        'deceased',
-      ])
-      .withMessage('Invalid status value'),
+    validateParams(PetIdParamSchema),
+    validateBody(PetUpdateRequestSchema),
   ];
 
-  static validatePetId = [param('petId').isString().withMessage('Valid pet ID is required')];
+  static validatePetId = [validateParams(PetIdParamSchema)];
 
   static validateSearchPets = [
-    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-    query('limit')
-      .optional()
-      .isInt({ min: 1, max: 100 })
-      .withMessage('Limit must be between 1 and 100'),
-    query('ageMin').optional().isInt({ min: 0 }).withMessage('Minimum age must be non-negative'),
-    query('ageMax').optional().isInt({ min: 0 }).withMessage('Maximum age must be non-negative'),
-    query('type')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('Pet type must be between 1 and 50 characters'),
-    query('breed')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Breed must be between 1 and 100 characters'),
-    query('size')
-      .optional()
-      .isIn(['extra_small', 'small', 'medium', 'large', 'extra_large'])
-      .withMessage('Size must be extra_small, small, medium, large, or extra_large'),
-    query('gender')
-      .optional()
-      .isIn(['male', 'female', 'unknown'])
-      .withMessage('Gender must be male, female, or unknown'),
-    query('sortBy')
-      .optional()
-      .isIn([
-        'name',
-        'ageYears',
-        'createdAt',
-        'created_at',
-        'adoptionFee',
-        'adoption_fee',
-        'distance',
-      ])
-      .withMessage('Invalid sort field'),
-    query('sortOrder')
-      .optional()
-      .isIn(['ASC', 'DESC'])
-      .withMessage('Sort order must be ASC or DESC'),
-    query('lat')
-      .optional()
-      .isFloat({ min: -90, max: 90 })
-      .withMessage('Latitude must be between -90 and 90'),
-    query('lng')
-      .optional()
-      .isFloat({ min: -180, max: 180 })
-      .withMessage('Longitude must be between -180 and 180'),
-    query('maxDistance')
-      .optional()
-      .isFloat({ min: 0 })
-      .withMessage('Max distance must be a positive number'),
+    validateQuery(PetSearchFiltersSchema.merge(PetSearchPaginationSchema)),
+  ];
+
+  static validateUpdatePetStatus = [
+    validateParams(PetIdParamSchema),
+    validateBody(PetStatusUpdateRequestSchema),
   ];
 
   // Search pets with filters and pagination
@@ -962,12 +806,7 @@ export class PetController {
   /**
    * Get pet breeds by type
    */
-  static validatePetType = [
-    param('type')
-      .trim()
-      .isIn(['dog', 'cat', 'rabbit', 'bird', 'reptile', 'small_mammal', 'fish', 'other'])
-      .withMessage('Invalid pet type'),
-  ];
+  static validatePetType = [validateParams(PetTypeParamSchema)];
 
   getPetBreedsByType = async (req: Request, res: Response) => {
     try {
@@ -1065,16 +904,8 @@ export class PetController {
    * Report a pet
    */
   static validateReportPet = [
-    param('petId').isString().withMessage('Valid pet ID is required'),
-    body('reason')
-      .trim()
-      .isLength({ min: 1, max: 100 })
-      .withMessage('Reason must be between 1 and 100 characters'),
-    body('description')
-      .optional()
-      .trim()
-      .isLength({ max: 500 })
-      .withMessage('Description must not exceed 500 characters'),
+    validateParams(PetIdParamSchema),
+    validateBody(ReportPetRequestSchema),
   ];
 
   reportPet = async (req: AuthenticatedRequest, res: Response) => {
@@ -1110,15 +941,7 @@ export class PetController {
       });
     }
   };
-  static validateBulkUpdate = [
-    body('petIds').isArray({ min: 1 }).withMessage('petIds must be a non-empty array'),
-    body('petIds.*').isString().withMessage('Each pet ID must be a string'),
-    body('operation')
-      .isIn(['update_status', 'archive', 'feature', 'delete'])
-      .withMessage('Invalid operation'),
-    body('data').optional().isObject(),
-    body('reason').optional().isString().isLength({ max: 500 }),
-  ];
+  static validateBulkUpdate = [validateBody(BulkPetOperationRequestSchema)];
 
   bulkUpdatePets = async (req: AuthenticatedRequest, res: Response) => {
     try {
