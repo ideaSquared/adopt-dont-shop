@@ -374,13 +374,13 @@ Message.searchMessages = async function (
   return messages;
 };
 
-// Convert search_vector into a stored generated column on Postgres so the
-// DB owns the value and there's no JS hook to forget. Messages only have
-// one searchable field — the content text.
+// Install a Postgres trigger that maintains search_vector from row content
+// so the DB owns the value and there's no JS hook to forget. Messages only
+// have one searchable field — the content text.
 installGeneratedSearchVector(Message, {
   table: 'messages',
   indexName: 'messages_search_vector_gin_idx',
-  expression: "to_tsvector('english', coalesce(content, ''))",
+  expression: "to_tsvector('english', coalesce(NEW.content, ''))",
 });
 
 export default Message;

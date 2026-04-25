@@ -856,19 +856,19 @@ Pet.init(
   })
 );
 
-// Convert search_vector into a stored generated column on Postgres so the
-// DB owns the value and there's no JS hook to forget. Weight reflects
-// search intent: name > breed > description > temperament.
+// Install a Postgres trigger that maintains search_vector from row content
+// so the DB owns the value and there's no JS hook to forget. Weight
+// reflects search intent: name > breed > description > temperament.
 installGeneratedSearchVector(Pet, {
   table: 'pets',
   indexName: 'pets_search_vector_gin_idx',
   expression: [
-    "setweight(to_tsvector('english', coalesce(name, '')), 'A')",
-    "setweight(to_tsvector('english', coalesce(breed, '')), 'B')",
-    "setweight(to_tsvector('english', coalesce(secondary_breed, '')), 'B')",
-    "setweight(to_tsvector('english', coalesce(short_description, '')), 'C')",
-    "setweight(to_tsvector('english', coalesce(long_description, '')), 'C')",
-    "setweight(to_tsvector('english', coalesce(array_to_string(temperament, ' '), '')), 'D')",
+    "setweight(to_tsvector('english', coalesce(NEW.name, '')), 'A')",
+    "setweight(to_tsvector('english', coalesce(NEW.breed, '')), 'B')",
+    "setweight(to_tsvector('english', coalesce(NEW.secondary_breed, '')), 'B')",
+    "setweight(to_tsvector('english', coalesce(NEW.short_description, '')), 'C')",
+    "setweight(to_tsvector('english', coalesce(NEW.long_description, '')), 'C')",
+    "setweight(to_tsvector('english', coalesce(array_to_string(NEW.temperament, ' '), '')), 'D')",
   ].join(' || '),
 });
 
