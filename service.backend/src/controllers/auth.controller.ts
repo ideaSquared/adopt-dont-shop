@@ -1,117 +1,50 @@
 import { Request, Response } from 'express';
 import { body } from 'express-validator';
+import { z } from 'zod';
+import {
+  LoginRequestSchema,
+  RegisterRequestSchema,
+  RequestPasswordResetSchema,
+  ResetPasswordSchema,
+  UpdateProfileRequestSchema,
+} from '@adopt-dont-shop/lib.validation';
 import AuthService from '../services/auth.service';
 import { UserService } from '../services/user.service';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
+import { validateBody } from '../middleware/zod-validate';
 import { logger } from '../utils/logger';
 
-// Validation rules
+/**
+ * Validation rules.
+ *
+ * The user-shaped paths (register/login/reset/profile) are now driven by
+ * Zod schemas in @adopt-dont-shop/lib.validation — same rules, same
+ * error response shape, but one source of truth shared with the frontend
+ * forms in lib.auth. The remaining endpoints still use express-validator;
+ * they'll migrate as their owning slices come up.
+ */
 export const authValidation = {
-  register: [
-    body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email address'),
-    body('password')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters long')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number and special character'),
-    body('first_name')
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('First name is required and must be less than 50 characters'),
-    body('last_name')
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('Last name is required and must be less than 50 characters'),
-    body('phone_number')
-      .optional()
-      .isMobilePhone('en-GB')
-      .withMessage('Please provide a valid UK mobile number'),
-    body('user_type')
-      .optional()
-      .isIn(['ADOPTER', 'RESCUE_STAFF', 'ADMIN'])
-      .withMessage('Invalid user type'),
-  ],
+  register: validateBody(RegisterRequestSchema),
+  login: validateBody(LoginRequestSchema),
+  forgotPassword: validateBody(RequestPasswordResetSchema),
+  resetPassword: validateBody(ResetPasswordSchema),
+  resendVerification: validateBody(RequestPasswordResetSchema.pick({ email: true })),
+  updateProfile: validateBody(UpdateProfileRequestSchema),
 
-  login: [
-    body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email address'),
-    body('password').notEmpty().withMessage('Password is required'),
-    body('twoFactorToken')
-      .optional()
-      .isLength({ min: 6, max: 8 })
-      .withMessage('Two-factor token must be 6-8 characters'),
-  ],
-
-  forgotPassword: [
-    body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email address'),
-  ],
-
-  resetPassword: [
-    body('token').notEmpty().withMessage('Reset token is required'),
-    body('newPassword')
-      .isLength({ min: 8 })
-      .withMessage('Password must be at least 8 characters long')
-      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-      .withMessage('Password must contain uppercase, lowercase, number and special character'),
-  ],
-
+  // Not yet migrated to Zod — small, self-contained shapes.
   refreshToken: [body('refreshToken').notEmpty().withMessage('Refresh token is required')],
-
-  resendVerification: [
-    body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email address'),
-  ],
-
-  twoFactorEnable: [
-    body('secret').notEmpty().withMessage('Secret is required'),
-    body('token').isLength({ min: 6, max: 6 }).withMessage('Verification code must be 6 digits'),
-  ],
-
-  twoFactorDisable: [
-    body('token').isLength({ min: 6, max: 6 }).withMessage('Verification code must be 6 digits'),
-  ],
-
-  updateProfile: [
-    body('firstName')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('First name must be 1-50 characters'),
-    body('lastName')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('Last name must be 1-50 characters'),
-    body('phoneNumber')
-      .optional()
-      .isMobilePhone('en-GB')
-      .withMessage('Please provide a valid UK mobile number'),
-    body('bio')
-      .optional()
-      .trim()
-      .isLength({ max: 500 })
-      .withMessage('Bio must be max 500 characters'),
-    body('profileImageUrl').optional().isURL().withMessage('Profile image must be a valid URL'),
-    body('location.city')
-      .optional()
-      .trim()
-      .isLength({ max: 100 })
-      .withMessage('City must be max 100 characters'),
-    body('location.country')
-      .optional()
-      .trim()
-      .isLength({ max: 100 })
-      .withMessage('Country must be max 100 characters'),
-    body('location.address')
-      .optional()
-      .trim()
-      .isLength({ max: 255 })
-      .withMessage('Address must be max 255 characters'),
-    body('location.zipCode')
-      .optional()
-      .trim()
-      .isLength({ max: 20 })
-      .withMessage('Zip code must be max 20 characters'),
-  ],
+  twoFactorEnable: validateBody(
+    z.object({
+      secret: z.string().min(1, 'Secret is required'),
+      token: z.string().length(6, 'Verification code must be 6 digits'),
+    })
+  ),
+  twoFactorDisable: validateBody(
+    z.object({
+      token: z.string().length(6, 'Verification code must be 6 digits'),
+    })
+  ),
 };
 
 export class AuthController {

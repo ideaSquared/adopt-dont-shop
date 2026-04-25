@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Button, Input } from '@adopt-dont-shop/lib.components';
+import { RegisterRequestSchema } from '@adopt-dont-shop/lib.validation';
 import styled from 'styled-components';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
@@ -106,34 +107,18 @@ const TermsCheckbox = styled.div`
   }
 `;
 
-const registerSchema = z
-  .object({
-    firstName: z.string().min(1, 'First name is required').max(50, 'First name is too long'),
-    lastName: z.string().min(1, 'Last name is required').max(50, 'Last name is too long'),
-    email: z.string().email('Please enter a valid email address'),
-    phoneNumber: z
-      .string()
-      .optional()
-      .refine(
-        (val) => !val || (val.replace(/[^\d+]/g, '').length >= 10 && val.replace(/[^\d+]/g, '').length <= 20),
-        'Please enter a valid phone number (10-20 digits)'
-      ),
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[@$!%*?&]/, 'Password must contain at least one special character (@$!%*?&)'),
-    confirmPassword: z.string(),
-    acceptTerms: z
-      .boolean()
-      .refine((val) => val === true, 'You must accept the terms and conditions'),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  });
+// Canonical request schema lives in @adopt-dont-shop/lib.validation. The
+// form layers on UI-only fields (confirmPassword, acceptTerms) that the
+// backend doesn't see.
+const registerSchema = RegisterRequestSchema.extend({
+  confirmPassword: z.string(),
+  acceptTerms: z
+    .boolean()
+    .refine((val) => val === true, 'You must accept the terms and conditions'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
+});
 
 export interface RegisterFormProps {
   /**

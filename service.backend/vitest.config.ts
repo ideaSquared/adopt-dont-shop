@@ -63,6 +63,7 @@ export default defineConfig({
       '@/config': path.resolve(__dirname, './src/config'),
       '@/types': path.resolve(__dirname, './src/types'),
       '@adopt-dont-shop/lib.types': path.resolve(__dirname, '../lib.types/src/index.ts'),
+      '@adopt-dont-shop/lib.validation': path.resolve(__dirname, '../lib.validation/src/index.ts'),
     },
   },
 });

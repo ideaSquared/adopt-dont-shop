@@ -38,6 +38,7 @@
   "dependencies": {
     "@adopt-dont-shop/lib.components": "file:../lib.components",
     "@adopt-dont-shop/lib.api": "file:../lib.api",
+    "@adopt-dont-shop/lib.validation": "file:../lib.validation",
     "@types/node": "^20.0.0",
     "react": "^18.3.1",
     "styled-components": "^6.1.19",
