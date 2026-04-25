@@ -1,4 +1,11 @@
-import { AuthResponse, LoginRequest, RegisterRequest, User, UserStatus, UserType } from '@/types';
+import {
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  User,
+  UserType,
+  ADMIN_USER_TYPES,
+} from '@/types';
 import { apiService } from './libraryServices';
 
 class AuthService {
@@ -97,7 +104,7 @@ class AuthService {
   }
 
   // Check if current user has specific admin role
-  hasRole(role: 'admin' | 'moderator' | 'super_admin'): boolean {
+  hasRole(role: UserType): boolean {
     const user = this.getCurrentUser();
     return user?.userType === role;
   }
@@ -105,6 +112,12 @@ class AuthService {
   // Check if current user is super admin
   isSuperAdmin(): boolean {
     return this.hasRole('super_admin');
+  }
+
+  // Check if current user has any admin-level access (admin, moderator, or super_admin)
+  isAdminStaff(): boolean {
+    const user = this.getCurrentUser();
+    return user !== null && (ADMIN_USER_TYPES as readonly string[]).includes(user.userType);
   }
 
   // Refresh access token

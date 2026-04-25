@@ -26,7 +26,7 @@ export interface AuthProviderProps {
    * - 'rescue_staff' for rescue app
    * - ['admin', 'moderator'] for admin app
    */
-  allowedUserTypes: ('adopter' | 'rescue_staff' | 'admin' | 'moderator')[];
+  allowedUserTypes: User['userType'][];
   /**
    * App identifier for error messages and redirects
    */

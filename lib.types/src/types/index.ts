@@ -38,7 +38,7 @@ export interface PermissionsServiceConfig {
 /**
  * User role types in the system
  */
-export type UserRole = 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
+export type UserRole = 'adopter' | 'rescue_staff' | 'admin' | 'moderator' | 'super_admin';
 
 /**
  * Permission action types

@@ -10,6 +10,7 @@ export interface ApiResponse<T> {
 
 // Re-export User types from user.ts
 export type { User, AdminUser, UserType, UserStatus } from './user';
+export { ADMIN_USER_TYPES } from './user';
 import type { User, UserType } from './user';
 
 export interface LoginRequest {

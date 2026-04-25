@@ -1,6 +1,9 @@
 // User type definitions matching the backend API structure
 
-export type UserType = 'adopter' | 'rescue_staff' | 'admin' | 'moderator';
+export type UserType = 'adopter' | 'rescue_staff' | 'admin' | 'moderator' | 'super_admin';
+
+export const ADMIN_USER_TYPES: readonly UserType[] = ['admin', 'moderator', 'super_admin'];
+
 export type UserStatus =
   | 'active'
   | 'inactive'
