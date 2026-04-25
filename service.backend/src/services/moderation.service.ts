@@ -1,6 +1,7 @@
 import { Op, Transaction, WhereOptions } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
+import ReportStatusTransition from '../models/ReportStatusTransition';
 import User from '../models/User';
 import Pet from '../models/Pet';
 import Rescue from '../models/Rescue';
@@ -117,6 +118,19 @@ class ModerationService {
             submissionContext: requestContext || null,
             autoDetected: false,
           },
+        },
+        { transaction }
+      );
+
+      // Seed the transition log with the initial status — same shape as
+      // ApplicationStatusTransition's `null → SUBMITTED` row.
+      await ReportStatusTransition.create(
+        {
+          reportId: report.reportId,
+          fromStatus: null,
+          toStatus: ReportStatus.PENDING,
+          transitionedBy: reporterId,
+          reason: 'Initial submission',
         },
         { transaction }
       );
@@ -310,11 +324,22 @@ class ModerationService {
         throw new Error('Report cannot be assigned in its current status');
       }
 
+      const previousStatus = report.status;
       await report.update(
         {
           assignedModerator: moderatorId,
           assignedAt: new Date(),
-          status: ReportStatus.UNDER_REVIEW,
+        },
+        { transaction }
+      );
+      await ReportStatusTransition.create(
+        {
+          reportId,
+          fromStatus: previousStatus,
+          toStatus: ReportStatus.UNDER_REVIEW,
+          transitionedBy: assignedBy,
+          reason: 'Assigned to moderator',
+          metadata: { moderatorId },
         },
         { transaction }
       );
@@ -364,17 +389,29 @@ class ModerationService {
       if (actionData.reportId) {
         const report = await Report.findByPk(actionData.reportId, { transaction });
         if (report) {
+          const previousStatus = report.status;
+          const newStatus =
+            actionData.actionType === ActionType.NO_ACTION ||
+            actionData.actionType === ActionType.REPORT_DISMISSED
+              ? ReportStatus.DISMISSED
+              : ReportStatus.RESOLVED;
           await report.update(
             {
-              status:
-                actionData.actionType === ActionType.NO_ACTION ||
-                actionData.actionType === ActionType.REPORT_DISMISSED
-                  ? ReportStatus.DISMISSED
-                  : ReportStatus.RESOLVED,
               resolvedBy: moderatorId,
               resolvedAt: new Date(),
               resolution: actionData.actionType,
               resolutionNotes: actionData.description,
+            },
+            { transaction }
+          );
+          await ReportStatusTransition.create(
+            {
+              reportId: report.reportId,
+              fromStatus: previousStatus,
+              toStatus: newStatus,
+              transitionedBy: moderatorId,
+              reason: actionData.description || actionData.actionType,
+              metadata: { actionType: actionData.actionType },
             },
             { transaction }
           );
@@ -632,12 +669,23 @@ class ModerationService {
         throw new Error('Report cannot be escalated in its current status');
       }
 
+      const previousStatus = report.status;
       await report.update(
         {
-          status: ReportStatus.ESCALATED,
           escalatedTo,
           escalatedAt: new Date(),
           escalationReason: reason,
+        },
+        { transaction }
+      );
+      await ReportStatusTransition.create(
+        {
+          reportId,
+          fromStatus: previousStatus,
+          toStatus: ReportStatus.ESCALATED,
+          transitionedBy: escalatedBy,
+          reason,
+          metadata: { escalatedTo },
         },
         { transaction }
       );
@@ -695,15 +743,25 @@ class ModerationService {
           throw new Error(`Report ${reportId} not found`);
         }
 
+        const previousStatus = report.status;
         switch (action) {
           case 'resolve':
             if ([ReportStatus.UNDER_REVIEW, ReportStatus.ESCALATED].includes(report.status)) {
               await report.update(
                 {
-                  status: ReportStatus.RESOLVED,
                   resolvedBy: moderatorId,
                   resolvedAt: new Date(),
                   resolutionNotes,
+                },
+                { transaction }
+              );
+              await ReportStatusTransition.create(
+                {
+                  reportId: report.reportId,
+                  fromStatus: previousStatus,
+                  toStatus: ReportStatus.RESOLVED,
+                  transitionedBy: moderatorId,
+                  reason: resolutionNotes || 'Bulk resolve',
                 },
                 { transaction }
               );
@@ -715,10 +773,19 @@ class ModerationService {
             if (report.status !== ReportStatus.RESOLVED) {
               await report.update(
                 {
-                  status: ReportStatus.DISMISSED,
                   resolvedBy: moderatorId,
                   resolvedAt: new Date(),
                   resolutionNotes,
+                },
+                { transaction }
+              );
+              await ReportStatusTransition.create(
+                {
+                  reportId: report.reportId,
+                  fromStatus: previousStatus,
+                  toStatus: ReportStatus.DISMISSED,
+                  transitionedBy: moderatorId,
+                  reason: resolutionNotes || 'Bulk dismiss',
                 },
                 { transaction }
               );
@@ -735,7 +802,17 @@ class ModerationService {
                 {
                   assignedModerator: assignTo,
                   assignedAt: new Date(),
-                  status: ReportStatus.UNDER_REVIEW,
+                },
+                { transaction }
+              );
+              await ReportStatusTransition.create(
+                {
+                  reportId: report.reportId,
+                  fromStatus: previousStatus,
+                  toStatus: ReportStatus.UNDER_REVIEW,
+                  transitionedBy: moderatorId,
+                  reason: 'Bulk assign',
+                  metadata: { assignedTo: assignTo },
                 },
                 { transaction }
               );
@@ -750,10 +827,20 @@ class ModerationService {
             if ([ReportStatus.PENDING, ReportStatus.UNDER_REVIEW].includes(report.status)) {
               await report.update(
                 {
-                  status: ReportStatus.ESCALATED,
                   escalatedTo: escalateTo,
                   escalatedAt: new Date(),
                   escalationReason: escalationReason || 'Bulk escalation',
+                },
+                { transaction }
+              );
+              await ReportStatusTransition.create(
+                {
+                  reportId: report.reportId,
+                  fromStatus: previousStatus,
+                  toStatus: ReportStatus.ESCALATED,
+                  transitionedBy: moderatorId,
+                  reason: escalationReason || 'Bulk escalation',
+                  metadata: { escalatedTo: escalateTo },
                 },
                 { transaction }
               );
@@ -811,16 +898,28 @@ class ModerationService {
     });
 
     if (moderators.length > 0) {
+      const assignedTo = moderators[0].userId;
       await Report.update(
         {
-          assignedModerator: moderators[0].userId,
+          assignedModerator: assignedTo,
           assignedAt: new Date(),
-          status: ReportStatus.UNDER_REVIEW,
         },
         {
           where: { reportId },
           transaction,
         }
+      );
+      // System-driven transition: transitionedBy is null (no actor).
+      await ReportStatusTransition.create(
+        {
+          reportId,
+          fromStatus: ReportStatus.PENDING,
+          toStatus: ReportStatus.UNDER_REVIEW,
+          transitionedBy: null,
+          reason: 'Auto-assigned',
+          metadata: { assignedTo },
+        },
+        { transaction }
       );
     }
   }

@@ -3,6 +3,7 @@ import ApplicationQuestion from './ApplicationQuestion';
 import ApplicationStatusTransition from './ApplicationStatusTransition';
 import ApplicationTimeline from './ApplicationTimeline';
 import Pet from './Pet';
+import PetStatusTransition from './PetStatusTransition';
 import Rescue from './Rescue';
 import User from './User';
 import UserFavorite from './UserFavorite';
@@ -33,6 +34,7 @@ import StaffMember from './StaffMember';
 // Content Moderation Models
 import ModeratorAction from './ModeratorAction';
 import Report from './Report';
+import ReportStatusTransition from './ReportStatusTransition';
 import UserSanction from './UserSanction';
 
 // Support System Models
@@ -50,6 +52,7 @@ import { SwipeSession } from './SwipeSession';
 
 // Application Management Models
 import HomeVisit from './HomeVisit';
+import HomeVisitStatusTransition from './HomeVisitStatusTransition';
 
 // Field-Level Permissions
 import FieldPermission from './FieldPermission';
@@ -64,6 +67,7 @@ const models = {
   UserFavorite,
   Rescue,
   Pet,
+  PetStatusTransition,
   Application,
   ApplicationQuestion,
   ApplicationStatusTransition,
@@ -84,6 +88,7 @@ const models = {
   Invitation,
   ModeratorAction,
   Report,
+  ReportStatusTransition,
   UserSanction,
   SupportTicket,
   SupportTicketResponse,
@@ -95,6 +100,7 @@ const models = {
   FieldPermission,
   FileUpload,
   HomeVisit,
+  HomeVisitStatusTransition,
   Content,
   NavigationMenu,
 };
@@ -128,6 +134,53 @@ try {
   ApplicationStatusTransition.belongsTo(User, {
     foreignKey: 'transitioned_by',
     as: 'TransitionedBy',
+  });
+
+  // Pet, HomeVisit, and Report status-transition logs follow the same
+  // pattern as ApplicationStatusTransition (see above for the rationale).
+  // The actor (transitioned_by) is declared without a DB-level FK
+  // constraint (matching AuditLog.user) — it's forensic metadata that
+  // outlives the user; lifecycle integrity is enforced by the parent FK.
+  Pet.hasMany(PetStatusTransition, { foreignKey: 'pet_id', as: 'StatusTransitions' });
+  PetStatusTransition.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
+  User.hasMany(PetStatusTransition, {
+    foreignKey: 'transitioned_by',
+    as: 'AppliedPetStatusTransitions',
+    constraints: false,
+  });
+  PetStatusTransition.belongsTo(User, {
+    foreignKey: 'transitioned_by',
+    as: 'TransitionedBy',
+    constraints: false,
+  });
+
+  HomeVisit.hasMany(HomeVisitStatusTransition, {
+    foreignKey: 'visit_id',
+    as: 'StatusTransitions',
+  });
+  HomeVisitStatusTransition.belongsTo(HomeVisit, { foreignKey: 'visit_id', as: 'HomeVisit' });
+  User.hasMany(HomeVisitStatusTransition, {
+    foreignKey: 'transitioned_by',
+    as: 'AppliedHomeVisitStatusTransitions',
+    constraints: false,
+  });
+  HomeVisitStatusTransition.belongsTo(User, {
+    foreignKey: 'transitioned_by',
+    as: 'TransitionedBy',
+    constraints: false,
+  });
+
+  Report.hasMany(ReportStatusTransition, { foreignKey: 'report_id', as: 'StatusTransitions' });
+  ReportStatusTransition.belongsTo(Report, { foreignKey: 'report_id', as: 'Report' });
+  User.hasMany(ReportStatusTransition, {
+    foreignKey: 'transitioned_by',
+    as: 'AppliedReportStatusTransitions',
+    constraints: false,
+  });
+  ReportStatusTransition.belongsTo(User, {
+    foreignKey: 'transitioned_by',
+    as: 'TransitionedBy',
+    constraints: false,
   });
 
   // Application Timeline associations
@@ -385,14 +438,17 @@ export {
   FieldPermission,
   FileUpload,
   HomeVisit,
+  HomeVisitStatusTransition,
   Invitation,
   Message,
   ModeratorAction,
   Notification,
   Permission,
   Pet,
+  PetStatusTransition,
   Rating,
   Report,
+  ReportStatusTransition,
   Rescue,
   Role,
   RolePermission,

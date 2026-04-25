@@ -1215,6 +1215,8 @@ export class ApplicationController extends BaseController {
       }
 
       const HomeVisit = (await import('../models/HomeVisit')).default;
+      const HomeVisitStatusTransition = (await import('../models/HomeVisitStatusTransition'))
+        .default;
 
       // Generate a unique visit_id
       const visitId = `visit_${applicationId}_${Date.now()}`;
@@ -1227,6 +1229,15 @@ export class ApplicationController extends BaseController {
         assigned_staff,
         notes,
         status: HomeVisitStatus.SCHEDULED,
+      });
+
+      // Seed the transition log with the initial status.
+      await HomeVisitStatusTransition.create({
+        visitId: visit.visit_id,
+        fromStatus: null,
+        toStatus: visit.status,
+        transitionedBy: req.user?.userId ?? null,
+        reason: 'Visit scheduled',
       });
 
       // Update application status to indicate scheduling progress
@@ -1276,7 +1287,9 @@ export class ApplicationController extends BaseController {
         });
       }
 
-      // Convert frontend camelCase to backend snake_case
+      // Convert frontend camelCase to backend snake_case. Note: status is
+      // handled separately via the transition log (below); we never write
+      // it to the parent row directly.
       const dbUpdateData: Record<string, string | Date | null> = {};
       if (updateData.scheduledDate) {
         dbUpdateData.scheduled_date = updateData.scheduledDate;
@@ -1286,9 +1299,6 @@ export class ApplicationController extends BaseController {
       }
       if (updateData.assignedStaff) {
         dbUpdateData.assigned_staff = updateData.assignedStaff;
-      }
-      if (updateData.status) {
-        dbUpdateData.status = updateData.status;
       }
       if (updateData.notes !== undefined) {
         dbUpdateData.notes = updateData.notes;
@@ -1311,7 +1321,23 @@ export class ApplicationController extends BaseController {
         dbUpdateData.completed_at = new Date();
       }
 
-      await visit.update(dbUpdateData);
+      if (Object.keys(dbUpdateData).length > 0) {
+        await visit.update(dbUpdateData);
+      }
+
+      // Append a transition row for the status change; the trigger / hook
+      // updates home_visits.status.
+      if (updateData.status && updateData.status !== visit.status) {
+        const HomeVisitStatusTransition = (await import('../models/HomeVisitStatusTransition'))
+          .default;
+        await HomeVisitStatusTransition.create({
+          visitId: visit.visit_id,
+          fromStatus: visit.status,
+          toStatus: updateData.status,
+          transitionedBy: req.user?.userId ?? null,
+          reason: updateData.cancelledReason || updateData.rescheduleReason || null,
+        });
+      }
 
       // Update application status based on visit outcome
       if (updateData.status === 'completed' && updateData.outcome) {

@@ -28,6 +28,7 @@ vi.mock('../../sequelize', async importOriginal => {
 
 import { Op } from 'sequelize';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../../models/Report';
+import ReportStatusTransition from '../../models/ReportStatusTransition';
 import ModeratorAction, { ActionType, ActionSeverity } from '../../models/ModeratorAction';
 import User, { UserStatus, UserType } from '../../models/User';
 import Rescue from '../../models/Rescue';
@@ -36,6 +37,7 @@ import { AuditLogService } from '../../services/auditLog.service';
 
 // Mock dependencies
 vi.mock('../../models/Report');
+vi.mock('../../models/ReportStatusTransition');
 vi.mock('../../models/ModeratorAction');
 vi.mock('../../models/User');
 vi.mock('../../models/Rescue');
@@ -43,6 +45,9 @@ vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
 
 const MockedReport = Report as vi.MockedObject<Report>;
+const MockedReportStatusTransition = ReportStatusTransition as vi.MockedObject<
+  typeof ReportStatusTransition
+>;
 const MockedModeratorAction = ModeratorAction as vi.MockedObject<ModeratorAction>;
 const MockedUser = User as vi.MockedObject<User>;
 const MockedRescue = Rescue as vi.MockedObject<Rescue>;
@@ -59,6 +64,10 @@ describe('Admin Moderation Workflow Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined as never);
+    // Stub the transition log so the mocked Report.create / report.update
+    // path doesn't try to write a transition row against a non-existent
+    // parent (FK fails). The trigger / hook plumbing has its own tests.
+    MockedReportStatusTransition.create = vi.fn().mockResolvedValue({} as never);
   });
 
   describe('Report Submission Workflow', () => {
@@ -329,7 +338,16 @@ describe('Admin Moderation Workflow Integration Tests', () => {
         const result = await ModerationService.assignReport('report-assign', moderatorId, adminId);
 
         expect(result.assignedModerator).toBe(moderatorId);
-        expect(result.status).toBe(ReportStatus.UNDER_REVIEW);
+        // Status is moved by the transition log; assert that, not the
+        // mocked parent row which never sees the trigger / hook.
+        expect(MockedReportStatusTransition.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            reportId: 'report-assign',
+            toStatus: ReportStatus.UNDER_REVIEW,
+            transitionedBy: adminId,
+          }),
+          expect.anything()
+        );
         expect(MockedAuditLogService.log).toHaveBeenCalledWith(
           expect.objectContaining({
             action: 'REPORT_ASSIGNED',
@@ -564,7 +582,16 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           'Requires administrative review'
         );
 
-        expect(result.status).toBe(ReportStatus.ESCALATED);
+        // Status moves via the transition log; the parent row is mocked
+        // here so the trigger / hook path doesn't run.
+        expect(MockedReportStatusTransition.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            reportId: 'report-escalate-1',
+            toStatus: ReportStatus.ESCALATED,
+            metadata: { escalatedTo: adminId },
+          }),
+          expect.anything()
+        );
         expect(result.escalatedTo).toBe(adminId);
         expect(MockedAuditLogService.log).toHaveBeenCalledWith(
           expect.objectContaining({
