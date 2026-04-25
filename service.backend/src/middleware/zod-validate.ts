@@ -22,6 +22,44 @@ export const validateBody =
     next();
   };
 
+/**
+ * Validate `req.query` and re-assign the parsed (coerced) value.
+ *
+ * Express's `req.query` is a plain object; numeric / boolean coercion
+ * happens via `z.coerce.*` in the schema, which lets the same schema
+ * also serve JSON-body callers.
+ */
+export const validateQuery =
+  <T>(schema: ZodSchema<T>) =>
+  (req: Request, res: Response, next: NextFunction): void => {
+    const result = schema.safeParse(req.query);
+    if (!result.success) {
+      res.status(400).json(zodErrorPayload(result.error));
+      return;
+    }
+    // Express types `req.query` as a ParsedQs; we knowingly replace it
+    // with the parsed Zod output (mirrors what handleValidationErrors +
+    // req.query mutation already does in practice).
+    (req as unknown as { query: T }).query = result.data;
+    next();
+  };
+
+/**
+ * Validate `req.params` (route parameters). Schemas are typically tiny
+ * (e.g. a UUID-shaped string).
+ */
+export const validateParams =
+  <T>(schema: ZodSchema<T>) =>
+  (req: Request, res: Response, next: NextFunction): void => {
+    const result = schema.safeParse(req.params);
+    if (!result.success) {
+      res.status(400).json(zodErrorPayload(result.error));
+      return;
+    }
+    (req as unknown as { params: T }).params = result.data;
+    next();
+  };
+
 /** Same shape as handleValidationErrors's response. */
 const zodErrorPayload = (error: ZodError) => ({
   success: false,

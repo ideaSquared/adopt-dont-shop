@@ -1390,7 +1390,7 @@ router.patch(
   '/:petId/status',
   authenticateToken,
   requirePermission('pets.update'),
-  PetController.validatePetId,
+  PetController.validateUpdatePetStatus,
   petController.updatePetStatus
 );
 
