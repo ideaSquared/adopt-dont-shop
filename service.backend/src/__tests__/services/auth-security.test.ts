@@ -59,6 +59,18 @@ vi.mock('../../config/env', () => ({
   getDatabaseName: () => 'test_db',
 }));
 
+// These tests use plain-object mock users (no model hooks run), so their
+// twoFactorSecret / backupCodes are set to their raw values. Stub the
+// at-rest protection helpers to identity/equality so AuthService's
+// decrypt+verify logic still sees what the tests put in.
+vi.mock('../../utils/secrets', () => ({
+  encryptSecret: (v: string) => v,
+  decryptSecret: (v: string) => v,
+  hashToken: (v: string) => v,
+  hashBackupCode: async (v: string) => v,
+  verifyBackupCode: async (code: string, hash: string) => code === hash,
+}));
+
 // Test constants
 const mockUserId = 'user-123';
 const mockEmail = 'test@example.com';
@@ -70,30 +82,43 @@ const mockRefreshSecret = 'test-refresh-secret-min-32-characters-long-12345';
 // Mock Factory Functions
 // ============================================================================
 
-const createMockUser = (overrides = {}) => ({
-  userId: mockUserId,
-  email: mockEmail,
-  password: 'hashed_password',
-  firstName: 'John',
-  lastName: 'Doe',
-  userType: UserType.ADOPTER,
-  status: UserStatus.ACTIVE,
-  emailVerified: true,
-  twoFactorEnabled: false,
-  twoFactorSecret: null as string | null,
-  backupCodes: null as string[] | null,
-  loginAttempts: 0,
-  lockedUntil: null as Date | null,
-  lastLoginAt: null as Date | null,
-  resetToken: null as string | null,
-  resetTokenExpiration: null as Date | null,
-  resetTokenForceFlag: false,
-  save: vi.fn().mockResolvedValue(undefined),
-  toJSON: vi.fn().mockReturnValue({ userId: mockUserId, email: mockEmail }),
-  isAccountLocked: vi.fn().mockReturnValue(false),
-  canLogin: vi.fn().mockReturnValue(true),
-  ...overrides,
-});
+const createMockUser = (overrides = {}) => {
+  const user: Record<string, unknown> = {
+    userId: mockUserId,
+    email: mockEmail,
+    password: 'hashed_password',
+    firstName: 'John',
+    lastName: 'Doe',
+    userType: UserType.ADOPTER,
+    status: UserStatus.ACTIVE,
+    emailVerified: true,
+    twoFactorEnabled: false,
+    twoFactorSecret: null as string | null,
+    backupCodes: null as string[] | null,
+    loginAttempts: 0,
+    lockedUntil: null as Date | null,
+    lastLoginAt: null as Date | null,
+    resetToken: null as string | null,
+    resetTokenExpiration: null as Date | null,
+    resetTokenForceFlag: false,
+    save: vi.fn().mockResolvedValue(undefined),
+    toJSON: vi.fn().mockReturnValue({ userId: mockUserId, email: mockEmail }),
+    isAccountLocked: vi.fn().mockReturnValue(false),
+    canLogin: vi.fn().mockReturnValue(true),
+    ...overrides,
+  };
+  // Semantic mocks for atomic counter helpers used by the real service
+  // (Model.increment + Model.reload). increment mutates the instance so
+  // assertions on loginAttempts still pass.
+  user.increment = vi.fn(async (field: string | string[]) => {
+    const fields = Array.isArray(field) ? field : [field];
+    for (const f of fields) {
+      user[f] = ((user[f] as number) || 0) + 1;
+    }
+  });
+  user.reload = vi.fn();
+  return user;
+};
 
 const createValidRegisterData = (overrides = {}): RegisterData => ({
   firstName: 'John',
@@ -158,9 +183,10 @@ describe('AuthService - Security Business Logic', () => {
         // Expected to fail
       }
 
-      // Then: Login attempts are incremented
+      // Then: Login attempts are incremented via atomic Model.increment
+      // (save is now only called on lockout, not on every failed attempt).
       expect(mockUser.loginAttempts).toBe(1);
-      expect(mockUser.save).toHaveBeenCalled();
+      expect(mockUser.increment).toHaveBeenCalledWith('loginAttempts');
     });
 
     it('should lock account after 5 failed login attempts', async () => {

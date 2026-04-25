@@ -13,6 +13,8 @@ export default defineConfig({
       JWT_REFRESH_SECRET: 'test-jwt-refresh-secret-min-32-characters-long',
       SESSION_SECRET: 'test-session-secret-min-32-characters-long',
       CSRF_SECRET: 'test-csrf-secret-min-32-characters-long',
+      // 64 hex chars = 32 bytes for AES-256. Deterministic test-only key.
+      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000001',
       TEST_DB_NAME: 'test_db',
     },
 

@@ -162,10 +162,16 @@ class Notification
     return [NotificationStatus.PENDING, NotificationStatus.FAILED].includes(this.status);
   }
 
-  public incrementRetry(errorMessage?: string): void {
-    this.retry_count += 1;
+  public async incrementRetry(errorMessage?: string): Promise<void> {
+    // Atomic retry_count bump. We still set error_message and status
+    // through the normal save path because they're not simple +=
+    // operations, and if two workers both "incremented" we'd want the
+    // combined effect to still be a valid state.
     this.error_message = errorMessage || null;
     this.status = this.canRetry() ? NotificationStatus.PENDING : NotificationStatus.FAILED;
+    await this.save();
+    await this.increment('retry_count');
+    await this.reload();
   }
 }
 

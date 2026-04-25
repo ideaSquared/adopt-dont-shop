@@ -297,8 +297,10 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
     return 'Age unknown';
   }
 
-  public incrementViewCount(): void {
-    this.viewCount += 1;
+  public async incrementViewCount(): Promise<void> {
+    // Atomic UPDATE pets SET view_count = view_count + 1 — avoids the
+    // lost-update race when concurrent views land on the same pet.
+    await this.increment('viewCount');
   }
 
   public canBeAdopted(): boolean {

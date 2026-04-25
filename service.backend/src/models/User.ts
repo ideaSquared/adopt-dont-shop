@@ -1,6 +1,7 @@
 import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { hashPassword, verifyPassword } from '../utils/password';
+import { encryptSecret, hashBackupCode, hashToken } from '../utils/secrets';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
 
@@ -509,18 +510,62 @@ User.init(
       },
     ],
     hooks: {
+      // Normalize identifier fields before validation so uniqueness /
+      // isEmail checks see the canonical form (lowercase, trimmed).
+      beforeValidate: (user: User) => {
+        if (user.email && typeof user.email === 'string') {
+          user.email = user.email.trim().toLowerCase();
+        }
+        if (user.phoneNumber && typeof user.phoneNumber === 'string') {
+          // Light normalization only — strip surrounding whitespace and the
+          // common visual separators. Full E.164 requires a phone library;
+          // deferred to when we add libphonenumber-js.
+          user.phoneNumber = user.phoneNumber.trim().replace(/[\s\-()]/g, '');
+        }
+      },
       beforeCreate: async (user: User) => {
         if (user.password) {
           user.password = await hashPassword(user.password);
         }
+        await protectSecretsIfChanged(user);
       },
       beforeUpdate: async (user: User) => {
         if (user.changed('password') && user.password) {
           user.password = await hashPassword(user.password);
         }
+        await protectSecretsIfChanged(user);
       },
     },
   }
 );
+
+/**
+ * Hash/encrypt sensitive fields before they hit the DB. Called from both the
+ * create and update hooks. Idempotent-by-change: each block only runs when
+ * the field is dirty, so re-saving a user doesn't double-hash.
+ *
+ * Callers write the raw value (e.g. user.resetToken = crypto.randomBytes(32)
+ * .toString('hex')); the hook replaces it with the stored form before insert.
+ * On read, the stored form is what comes back — lookups against these fields
+ * must go through hashToken() first.
+ */
+async function protectSecretsIfChanged(user: User): Promise<void> {
+  if (user.changed('verificationToken') && user.verificationToken) {
+    user.verificationToken = hashToken(user.verificationToken);
+  }
+  if (user.changed('resetToken') && user.resetToken) {
+    user.resetToken = hashToken(user.resetToken);
+  }
+  if (user.changed('twoFactorSecret') && user.twoFactorSecret) {
+    user.twoFactorSecret = encryptSecret(user.twoFactorSecret);
+  }
+  if (user.changed('backupCodes') && user.backupCodes && user.backupCodes.length > 0) {
+    // Skip values that already look like bcrypt hashes (start with $2). This
+    // prevents double-hashing if the codes array is re-saved after load.
+    user.backupCodes = await Promise.all(
+      user.backupCodes.map(code => (code.startsWith('$2') ? code : hashBackupCode(code)))
+    );
+  }
+}
 
 export default User;

@@ -246,6 +246,10 @@ class EmailService {
     return await EmailTemplate.findByPk(templateId);
   }
 
+  public async getTemplateByName(name: string): Promise<EmailTemplate | null> {
+    return await EmailTemplate.findOne({ where: { name } });
+  }
+
   public async getTemplates(
     filters: {
       type?: TemplateType;
@@ -364,9 +368,8 @@ class EmailService {
         htmlContent = processedContent.htmlContent;
         textContent = processedContent.textContent;
 
-        // Update template usage
-        template.incrementUsage();
-        await template.save();
+        // Update template usage — atomic via Model.increment inside the method.
+        await template.incrementUsage();
       }
 
       if (!subject || !htmlContent) {
@@ -961,8 +964,7 @@ class EmailService {
           if (email.userId) {
             const preference = await EmailPreference.findOne({ where: { userId: email.userId } });
             if (preference) {
-              preference.recordBounce();
-              await preference.save();
+              await preference.recordBounce();
             }
           }
           break;

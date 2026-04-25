@@ -20,6 +20,11 @@ config({ path: '.env.test' });
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-min-32-characters-long';
 process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-min-32-characters-long';
+process.env.SESSION_SECRET = 'test-session-secret-min-32-characters-long';
+process.env.CSRF_SECRET = 'test-csrf-secret-min-32-characters-long';
+// Deterministic 32-byte hex key for encryptSecret in the User hook. Must be
+// 64 hex chars = 32 bytes for AES-256. Fine to hardcode — test-only.
+process.env.ENCRYPTION_KEY = '0000000000000000000000000000000000000000000000000000000000000001';
 process.env.TEST_DB_NAME = 'test_db';
 process.env.POSTGRES_USER = 'test';
 process.env.POSTGRES_PASSWORD = 'test';
@@ -83,24 +88,18 @@ vi.mock('jsonwebtoken', () => ({
   decode: vi.fn(),
 }));
 
-// Mock crypto for predictable UUIDs in tests.
-// randomBytes MUST return varying bytes so UUIDv7 generation (and anything
-// else that derives unique IDs from crypto) doesn't produce PK collisions
-// when multiple records are created in the same millisecond.
-vi.mock('crypto', () => ({
-  randomUUID: vi.fn(() => `test-uuid-${Date.now()}`),
-  randomBytes: vi.fn((size: number) => {
-    const buf = Buffer.alloc(size);
-    for (let i = 0; i < size; i++) {
-      buf[i] = Math.floor(Math.random() * 256);
-    }
-    return buf;
-  }),
-  createHash: vi.fn(() => ({
-    update: vi.fn().mockReturnThis(),
-    digest: vi.fn(() => 'mock-hash'),
-  })),
-}));
+// Partial crypto override for tests. Keep everything real (bcrypt, cipher,
+// hash — these must be correct) and only replace randomUUID with a
+// predictable value. randomBytes stays real (Math.random bytes in the old
+// mock were still varying; real random is even better and fixes the cases
+// that relied on cryptographic output).
+vi.mock('crypto', async () => {
+  const actual = await vi.importActual<typeof import('crypto')>('crypto');
+  return {
+    ...actual,
+    randomUUID: vi.fn(() => `test-uuid-${Date.now()}`),
+  };
+});
 
 // Mock nodemailer (don't send real emails in tests)
 vi.mock('nodemailer', () => ({

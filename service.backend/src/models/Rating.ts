@@ -91,12 +91,13 @@ export class Rating
   public readonly updated_at!: Date;
 
   // Instance methods
-  public markAsHelpful(): void {
-    this.helpful_count += 1;
+  public async markAsHelpful(): Promise<void> {
+    // Atomic — multiple users can hit the helpful button at the same time.
+    await this.increment('helpful_count');
   }
 
-  public report(): void {
-    this.reported_count += 1;
+  public async report(): Promise<void> {
+    await this.increment('reported_count');
   }
 
   public addResponse(response: string): void {

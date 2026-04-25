@@ -116,6 +116,8 @@ describe('AuthService', () => {
           emailVerified: false,
         }),
         save: vi.fn(),
+        increment: vi.fn(),
+        reload: vi.fn(),
       };
 
       MockedUser.findOne = vi.fn().mockResolvedValue(null);
@@ -181,6 +183,8 @@ describe('AuthService', () => {
           emailVerified: false,
         }),
         save: vi.fn(),
+        increment: vi.fn(),
+        reload: vi.fn(),
       };
 
       MockedUser.findOne = vi.fn().mockResolvedValue(null);
@@ -227,6 +231,8 @@ describe('AuthService', () => {
           emailVerified: false,
         }),
         save: vi.fn(),
+        increment: vi.fn(),
+        reload: vi.fn(),
       };
 
       MockedUser.findOne = vi.fn().mockResolvedValue(null);
@@ -282,6 +288,8 @@ describe('AuthService', () => {
           userType: UserType.ADOPTER,
         }),
         save: vi.fn(),
+        increment: vi.fn(),
+        reload: vi.fn(),
       };
 
       MockedUser.scope = vi.fn().mockReturnValue({
@@ -318,6 +326,8 @@ describe('AuthService', () => {
         lockedUntil: null,
         isAccountLocked: vi.fn().mockReturnValue(false),
         save: vi.fn(),
+        increment: vi.fn(),
+        reload: vi.fn(),
       };
 
       MockedUser.scope = vi.fn().mockReturnValue({
@@ -329,7 +339,7 @@ describe('AuthService', () => {
     });
 
     it('should handle account locking after failed attempts', async () => {
-      const mockUser = {
+      const mockUser: Record<string, unknown> = {
         userId: 'user-123',
         email: credentials.email,
         password: 'hashedpassword',
@@ -339,7 +349,12 @@ describe('AuthService', () => {
         lockedUntil: null,
         isAccountLocked: vi.fn().mockReturnValue(false),
         save: vi.fn(),
+        reload: vi.fn(),
       };
+      // Semantic increment so post-call assertions on loginAttempts work.
+      mockUser.increment = vi.fn(async (field: string) => {
+        mockUser[field] = ((mockUser[field] as number) || 0) + 1;
+      });
 
       MockedUser.scope = vi.fn().mockReturnValue({
         findOne: vi.fn().mockResolvedValue(mockUser),
@@ -415,6 +430,8 @@ describe('AuthService', () => {
         userId: 'user-123',
         email,
         save: vi.fn(),
+        increment: vi.fn(),
+        reload: vi.fn(),
       };
 
       MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
@@ -448,6 +465,8 @@ describe('AuthService', () => {
           verificationToken: token,
           verificationTokenExpiresAt: new Date(Date.now() + 3600000),
           save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
@@ -457,9 +476,13 @@ describe('AuthService', () => {
         await authService.verifyEmail(token);
 
         expect(mockUser.emailVerified).toBe(true);
-        expect(mockUser.verificationToken).toBe(null);
         expect(mockUser.status).toBe(UserStatus.ACTIVE);
         expect(mockUser.save).toHaveBeenCalled();
+        // verificationToken intentionally NOT cleared so duplicate clicks of
+        // the same emailed link (StrictMode, retry, back/forward) are
+        // idempotent. The token expires naturally; once emailVerified=true,
+        // any further hit is a no-op.
+        expect(mockUser.verificationToken).toBe(token);
       });
 
       it('should throw error for invalid token', async () => {
@@ -508,6 +531,8 @@ describe('AuthService', () => {
           verificationToken: token,
           verificationTokenExpiresAt: new Date(Date.now() + 3600000),
           save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
@@ -536,6 +561,8 @@ describe('AuthService', () => {
           verificationToken: 'old-token',
           verificationTokenExpiresAt: new Date(Date.now() - 1000),
           save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
@@ -575,6 +602,8 @@ describe('AuthService', () => {
           email,
           emailVerified: true,
           save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
@@ -594,6 +623,8 @@ describe('AuthService', () => {
           firstName: 'John',
           emailVerified: false,
           save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
@@ -628,6 +659,8 @@ describe('AuthService', () => {
           lockedUntil: null,
           isAccountLocked: vi.fn().mockReturnValue(false),
           save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
         };
 
         MockedUser.scope = vi.fn().mockReturnValue({
@@ -665,6 +698,8 @@ describe('AuthService', () => {
             userType: UserType.ADOPTER,
           }),
           save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
         };
 
         MockedUser.scope = vi.fn().mockReturnValue({
@@ -711,6 +746,8 @@ describe('AuthService', () => {
             emailVerified: false,
           }),
           save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(null);
@@ -765,6 +802,8 @@ describe('AuthService', () => {
             email: userData.email,
           }),
           save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(null);

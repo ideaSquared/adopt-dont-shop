@@ -163,13 +163,15 @@ class EmailTemplate
     return this.versions.find(v => v.version === this.currentVersion);
   }
 
-  public incrementUsage(): void {
-    this.usageCount += 1;
+  public async incrementUsage(): Promise<void> {
+    // Atomic — parallel email sends can all use the same template.
+    await this.increment('usageCount');
     this.lastUsedAt = new Date();
+    await this.save();
   }
 
-  public incrementTestEmails(): void {
-    this.testEmailsSent += 1;
+  public async incrementTestEmails(): Promise<void> {
+    await this.increment('testEmailsSent');
   }
 
   public hasVariable(variableName: string): boolean {
