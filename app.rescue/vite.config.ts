@@ -1,3 +1,4 @@
+import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
@@ -31,7 +32,7 @@ export default defineConfig(({ mode }) => {
       : {};
 
   return {
-    plugins: [react()],
+    plugins: [react(), vanillaExtractPlugin()],
     envDir: resolve(__dirname, '..'), // Load .env from monorepo root
     cacheDir: '/tmp/.vite-app-rescue',
     resolve: {

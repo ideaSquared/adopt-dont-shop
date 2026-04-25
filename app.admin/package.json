@@ -68,6 +68,7 @@
     "@types/react-dom": "^18.2.19",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "@vanilla-extract/vite-plugin": "^5.2.2",
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/ui": "^4.0.8",
     "eslint": "^8.57.0",
