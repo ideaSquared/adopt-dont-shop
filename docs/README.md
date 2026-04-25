@@ -109,7 +109,7 @@ Reusable packages and utilities across the platform.
 - **ESM-Only Architecture**: Modern module system throughout
 - **TypeScript Strict Mode**: Enforced across all packages
 - **Docker**: Multi-stage builds with BuildKit
-- **Testing**: Jest + React Testing Library with behaviour-focused tests
+- **Testing**: Vitest (apps + service.backend) and Jest (Node libraries) with behaviour-focused tests
 
 ## Contributing
 

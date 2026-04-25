@@ -141,14 +141,16 @@ npm run db:reset
 
 ### Debugging
 
-**Backend** — add to `docker-compose.override.yml`:
+**Backend** — add to `docker-compose.override.yml` (the repo doesn't ship a dedicated `dev:debug` script, so override the command to enable Node's `--inspect`):
 
 ```yaml
 services:
   service-backend:
     ports:
       - "9229:9229"
-    command: npm run dev:debug
+    command: >
+      npx ts-node-dev --inspect=0.0.0.0:9229 --respawn --transpile-only --poll
+      --watch src src/index.ts
 ```
 
 Attach your IDE debugger to `localhost:9229`.
