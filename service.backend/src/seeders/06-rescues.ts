@@ -55,7 +55,6 @@ const rescueOrganizations = [
           'We conduct follow-up visits at 2 weeks, 1 month, and 3 months after adoption to ensure the pet is settling in well. Our team is always available for support and advice.',
       },
     },
-    isDeleted: false,
   },
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440002',
@@ -112,7 +111,6 @@ const rescueOrganizations = [
           'Given the special needs of senior dogs, we maintain regular contact with adopters. We check in monthly for the first year and are available 24/7 for emergency support or advice.',
       },
     },
-    isDeleted: false,
   },
   {
     rescueId: '550e8400-e29b-41d4-a716-446655440003',
@@ -142,7 +140,6 @@ const rescueOrganizations = [
       allowPublicContact: true,
       adoptionFeeRange: { min: 75, max: 400 },
     },
-    isDeleted: false,
   },
 ];
 

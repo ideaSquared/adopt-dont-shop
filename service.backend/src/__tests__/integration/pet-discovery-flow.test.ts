@@ -69,7 +69,10 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     archived: overrides.archived !== undefined ? overrides.archived : false,
     featured: overrides.featured !== undefined ? overrides.featured : false,
     priorityListing: overrides.priorityListing !== undefined ? overrides.priorityListing : false,
-    adoptionFee: overrides.adoptionFee !== undefined ? overrides.adoptionFee : 150,
+    adoptionFeeMinor:
+      overrides.adoptionFeeMinor !== undefined ? overrides.adoptionFeeMinor : 15_000,
+    adoptionFeeCurrency:
+      overrides.adoptionFeeCurrency !== undefined ? overrides.adoptionFeeCurrency : 'GBP',
     specialNeeds: overrides.specialNeeds !== undefined ? overrides.specialNeeds : false,
     specialNeedsDescription: overrides.specialNeedsDescription || null,
     houseTrained: overrides.houseTrained !== undefined ? overrides.houseTrained : true,

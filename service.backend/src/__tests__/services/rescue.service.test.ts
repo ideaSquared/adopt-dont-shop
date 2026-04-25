@@ -791,9 +791,10 @@ describe('RescueService - Behavioral Testing', () => {
 
       await RescueService.deleteRescue(rescue.rescueId, 'admin-123');
 
-      const deleted = await Rescue.scope('withDeleted').findByPk(rescue.rescueId);
-      expect(deleted?.isDeleted).toBe(true);
-      expect(deleted?.deletedBy).toBe('admin-123');
+      // paranoid scope hides soft-deleted rows by default; opt in with
+      // paranoid: false to verify the row is still there with deletedAt.
+      const deleted = await Rescue.findByPk(rescue.rescueId, { paranoid: false });
+      expect(deleted?.deletedAt).toBeInstanceOf(Date);
     });
 
     it('should throw error when rescue not found', async () => {
@@ -811,10 +812,9 @@ describe('RescueService - Behavioral Testing', () => {
         country: 'UK',
         contactPerson: 'Jane Smith',
         status: 'verified',
-        isDeleted: true,
-        deletedBy: 'admin-123',
-        deletedAt: new Date(),
       });
+      // Soft-delete it first so the next deleteRescue throws.
+      await rescue.destroy();
 
       await expect(RescueService.deleteRescue(rescue.rescueId, 'admin-123')).rejects.toThrow();
     });

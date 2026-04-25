@@ -71,7 +71,6 @@ describe('PetService', () => {
       contactPerson: 'Test Contact',
       status: 'verified',
       country: 'United Kingdom',
-      isDeleted: false,
     });
   });
 
@@ -152,9 +151,9 @@ describe('PetService', () => {
     });
 
     it('should handle range filters', async () => {
-      // Update pets with adoption fees
-      await Pet.update({ adoptionFee: 250 }, { where: { petId: pet1Id } });
-      await Pet.update({ adoptionFee: 150 }, { where: { petId: pet2Id } });
+      // Update pets with adoption fees (stored in minor units — pence).
+      await Pet.update({ adoptionFeeMinor: 25_000 }, { where: { petId: pet1Id } });
+      await Pet.update({ adoptionFeeMinor: 15_000 }, { where: { petId: pet2Id } });
 
       const filters: PetSearchFilters = {
         adoptionFeeMin: 100,

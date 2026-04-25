@@ -30,7 +30,6 @@ describe('Pet.birthDate + getAgeDisplay', () => {
       country: 'GB',
       contactPerson: 'X',
       status: 'pending',
-      isDeleted: false,
     } as never);
     rescueId = rescue.rescueId;
   });
@@ -49,7 +48,8 @@ describe('Pet.birthDate + getAgeDisplay', () => {
         gender: 'male',
         size: 'medium',
         age_group: 'adult',
-        adoption_fee: 0,
+        adoption_fee_minor: 0,
+        adoption_fee_currency: 'GBP',
         archived: false,
         featured: false,
         priority_listing: false,
