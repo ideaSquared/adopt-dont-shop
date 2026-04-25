@@ -63,15 +63,15 @@ describe('RescueService - Business Logic Tests', () => {
     verifiedAt: null as Date | null,
     verifiedBy: null as string | null,
     settings: {},
-    isDeleted: false,
     deletedAt: null as Date | null,
-    deletedBy: null as string | null,
     createdAt: new Date(),
     updatedAt: new Date(),
     update: vi.fn().mockImplementation(function (this: unknown, data: unknown) {
       Object.assign(this, data);
       return Promise.resolve(this);
     }),
+    destroy: vi.fn().mockResolvedValue(undefined),
+    restore: vi.fn().mockResolvedValue(undefined),
     save: vi.fn().mockResolvedValue(undefined),
     toJSON: vi.fn().mockReturnThis(),
     sequelize: {
@@ -103,9 +103,7 @@ describe('RescueService - Business Logic Tests', () => {
     user_id: mockUserId,
     title: 'Coordinator',
     isVerified: false,
-    isDeleted: false,
     deletedAt: null as Date | null,
-    deletedBy: null as string | null,
     addedBy: mockUserId,
     addedAt: new Date(),
     user: createMockUser(),
@@ -113,6 +111,8 @@ describe('RescueService - Business Logic Tests', () => {
       Object.assign(this, data);
       return Promise.resolve(this);
     }),
+    destroy: vi.fn().mockResolvedValue(undefined),
+    restore: vi.fn().mockResolvedValue(undefined),
     toJSON: vi.fn().mockReturnThis(),
     ...overrides,
   });
@@ -171,12 +171,12 @@ describe('RescueService - Business Logic Tests', () => {
       // When: Creating a new rescue
       const result = await RescueService.createRescue(rescueData, mockUserId);
 
-      // Then: Rescue is created with pending status
+      // Then: Rescue is created with pending status. paranoid soft-delete
+      // is the model default; no isDeleted column on the create payload.
       expect(MockedRescue.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...rescueData,
           status: 'pending',
-          isDeleted: false,
         }),
         { transaction: mockTransaction }
       );
@@ -407,7 +407,6 @@ describe('RescueService - Business Logic Tests', () => {
           userId: mockUserId,
           title: 'Volunteer Coordinator',
           isVerified: false,
-          isDeleted: false,
         }),
         { transaction: mockTransaction }
       );
@@ -425,7 +424,7 @@ describe('RescueService - Business Logic Tests', () => {
       // Given: User is already an active staff member
       const mockRescue = createMockRescue();
       const mockUser = createMockUser();
-      const existingStaff = createMockStaffMember({ isDeleted: false });
+      const existingStaff = createMockStaffMember();
 
       const mockTransaction = {
         commit: vi.fn().mockResolvedValue(undefined),
@@ -452,9 +451,9 @@ describe('RescueService - Business Logic Tests', () => {
       const mockUser = createMockUser();
       const mockRole = createMockRole();
       const softDeletedStaff = createMockStaffMember({
-        isDeleted: true,
         deletedAt: new Date(),
         isVerified: true, // Was previously verified
+        restore: vi.fn().mockResolvedValue(undefined),
       });
 
       const mockTransaction = {
@@ -479,11 +478,13 @@ describe('RescueService - Business Logic Tests', () => {
       // When: Re-adding the staff member
       await RescueService.addStaffMember(mockRescueId, mockUserId, 'Manager', mockUserId);
 
-      // Then: Staff member is restored with verification status preserved
+      // Then: Staff member is restored (paranoid restore() clears
+      // deletedAt) with verification status preserved.
+      expect(softDeletedStaff.restore).toHaveBeenCalledWith({
+        transaction: mockTransaction,
+      });
       expect(softDeletedStaff.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          isDeleted: false,
-          deletedAt: undefined,
           isVerified: true, // Verification status preserved
           title: 'Manager',
         }),
@@ -494,7 +495,7 @@ describe('RescueService - Business Logic Tests', () => {
 
     it('should soft delete staff member on removal', async () => {
       // Given: An active staff member
-      const mockStaffMember = createMockStaffMember({ isDeleted: false });
+      const mockStaffMember = createMockStaffMember();
 
       const mockTransaction = {
         commit: vi.fn().mockResolvedValue(undefined),
@@ -509,15 +510,10 @@ describe('RescueService - Business Logic Tests', () => {
       // When: Removing the staff member
       await RescueService.removeStaffMember(mockRescueId, mockUserId, mockUserId);
 
-      // Then: Staff member is soft deleted
-      expect(mockStaffMember.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          isDeleted: true,
-          deletedAt: expect.any(Date),
-          deletedBy: mockUserId,
-        }),
-        { transaction: mockTransaction }
-      );
+      // Then: Staff member is soft deleted via paranoid destroy().
+      expect(mockStaffMember.destroy).toHaveBeenCalledWith({
+        transaction: mockTransaction,
+      });
       expect(mockTransaction.commit).toHaveBeenCalled();
     });
 
@@ -653,8 +649,8 @@ describe('RescueService - Business Logic Tests', () => {
 
   describe('Soft Delete Functionality', () => {
     it('should soft delete rescue', async () => {
-      // Given: An active rescue
-      const mockRescue = createMockRescue({ isDeleted: false });
+      // Given: An active rescue (deletedAt is null while live).
+      const mockRescue = createMockRescue({ deletedAt: null });
 
       const mockTransaction = {
         commit: vi.fn().mockResolvedValue(undefined),
@@ -669,21 +665,16 @@ describe('RescueService - Business Logic Tests', () => {
       // When: Deleting the rescue
       await RescueService.deleteRescue(mockRescueId, mockUserId, 'Policy violation');
 
-      // Then: Rescue is soft deleted
-      expect(mockRescue.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          isDeleted: true,
-          deletedAt: expect.any(Date),
-          deletedBy: mockUserId,
-        }),
-        { transaction: mockTransaction }
-      );
+      // Then: Rescue is soft deleted via paranoid destroy().
+      expect(mockRescue.destroy).toHaveBeenCalledWith({
+        transaction: mockTransaction,
+      });
       expect(mockTransaction.commit).toHaveBeenCalled();
     });
 
     it('should prevent soft deleting already deleted rescue', async () => {
-      // Given: An already deleted rescue
-      const mockRescue = createMockRescue({ isDeleted: true });
+      // Given: An already deleted rescue (deletedAt is non-null).
+      const mockRescue = createMockRescue({ deletedAt: new Date() });
 
       const mockTransaction = {
         commit: vi.fn().mockResolvedValue(undefined),

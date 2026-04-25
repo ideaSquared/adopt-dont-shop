@@ -20,7 +20,6 @@ router.get('/rescue', async (req: AuthenticatedRequest, res) => {
     const staffMember = await StaffMember.findOne({
       where: {
         userId: user?.userId,
-        isDeleted: false,
         // Remove the isVerified requirement for now - let unverified staff see dashboard
         // isVerified: true,
       },
@@ -120,7 +119,6 @@ router.get('/activity', async (req: AuthenticatedRequest, res) => {
     const staffMember = await StaffMember.findOne({
       where: {
         userId: user?.userId,
-        isDeleted: false,
         // Remove the isVerified requirement for now - let unverified staff see dashboard
         // isVerified: true,
       },

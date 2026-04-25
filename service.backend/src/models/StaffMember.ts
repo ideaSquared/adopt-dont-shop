@@ -13,9 +13,8 @@ interface StaffMemberAttributes {
   verifiedAt?: Date;
   addedBy: string;
   addedAt: Date;
-  isDeleted: boolean;
-  deletedAt?: Date;
-  deletedBy?: string;
+  /** Managed by Sequelize paranoid; null when the row is live. */
+  deletedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,13 +22,7 @@ interface StaffMemberAttributes {
 interface StaffMemberCreationAttributes
   extends Optional<
     StaffMemberAttributes,
-    | 'staffMemberId'
-    | 'verifiedAt'
-    | 'verifiedBy'
-    | 'deletedAt'
-    | 'deletedBy'
-    | 'createdAt'
-    | 'updatedAt'
+    'staffMemberId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'createdAt' | 'updatedAt'
   > {}
 
 class StaffMember
@@ -45,9 +38,7 @@ class StaffMember
   public verifiedAt?: Date;
   public addedBy!: string;
   public addedAt!: Date;
-  public isDeleted!: boolean;
-  public deletedAt?: Date;
-  public deletedBy?: string;
+  public deletedAt?: Date | null;
   public createdAt!: Date;
   public updatedAt!: Date;
 
@@ -127,27 +118,6 @@ StaffMember.init(
       defaultValue: DataTypes.NOW,
       field: 'added_at',
     },
-    isDeleted: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-      field: 'is_deleted',
-    },
-    deletedAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'deleted_at',
-    },
-    deletedBy: {
-      type: getUuidType(),
-      allowNull: true,
-      field: 'deleted_by',
-      references: {
-        model: 'users',
-        key: 'user_id',
-      },
-      onDelete: 'SET NULL',
-    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -184,27 +154,12 @@ StaffMember.init(
         fields: ['added_by'],
         name: 'staff_members_added_by_idx',
       },
-      {
-        fields: ['deleted_by'],
-        name: 'staff_members_deleted_by_idx',
-      },
       ...auditIndexes('staff_members'),
     ],
-    defaultScope: {
-      where: {
-        isDeleted: false,
-      },
-    },
-    scopes: {
-      withDeleted: {
-        where: {},
-      },
-      deleted: {
-        where: {
-          isDeleted: true,
-        },
-      },
-    },
+    // Soft-delete via Sequelize paranoid (plan 3.5). `destroy()`
+    // sets deletedAt; the default scope hides deleted rows.
+    paranoid: true,
+    deletedAt: 'deletedAt',
   })
 );
 

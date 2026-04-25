@@ -71,7 +71,6 @@ describe('PetService', () => {
       contactPerson: 'Test Contact',
       status: 'verified',
       country: 'United Kingdom',
-      isDeleted: false,
     });
   });
 

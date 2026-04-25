@@ -14,7 +14,7 @@ const router = express.Router();
     try {
       const userId = req.user!.userId;
       const staffMember = await StaffMember.findOne({
-        where: { userId: userId, isDeleted: false },
+        where: { userId: userId },
       });
       if (!staffMember) {
         return res
@@ -106,7 +106,6 @@ router.get(
       const currentUserStaff = await StaffMember.findOne({
         where: {
           userId: userId,
-          isDeleted: false,
           isVerified: true,
         },
       });
@@ -122,7 +121,6 @@ router.get(
       const colleagues = await StaffMember.findAll({
         where: {
           rescueId: currentUserStaff.rescueId,
-          isDeleted: false,
         },
         include: [
           {
