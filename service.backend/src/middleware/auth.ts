@@ -5,6 +5,7 @@ import Role from '../models/Role';
 import Permission from '../models/Permission';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger, loggerHelpers } from '../utils/logger';
+import { setUserId } from '../utils/request-context';
 import { env } from '../config/env';
 
 export interface JWTPayload {
@@ -92,8 +93,11 @@ export const authenticateToken = async (
       return;
     }
 
-    // Attach user to request
+    // Attach user to request and to the AsyncLocalStorage context so that
+    // Sequelize hooks (created_by / updated_by stamping) can read the actor
+    // without threading req through every call chain.
     req.user = user;
+    setUserId(user.userId);
 
     loggerHelpers.logAuth(
       'User authenticated',
@@ -166,6 +170,7 @@ export const optionalAuth = async (
 
     if (user && user.status === 'active') {
       req.user = user;
+      setUserId(user.userId);
       logger.debug('Optional authentication successful', {
         userId: user.userId,
         ip: req.ip,
@@ -290,6 +295,7 @@ export const authenticateOptionalToken = async (
 
     // Attach user to request if found
     req.user = user;
+    setUserId(user.userId);
 
     logger.info('Optional authentication successful', {
       userId: user.userId,

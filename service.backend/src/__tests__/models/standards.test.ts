@@ -138,4 +138,35 @@ describe('Model Standards', () => {
       ).toHaveLength(0);
     });
   });
+
+  describe('audit columns', () => {
+    // Models that have been migrated to the audit-columns helper. The set
+    // grows as we roll out audit columns to the rest of the transactional
+    // models (separate PR per the Phase 3 plan).
+    const HAS_AUDIT_COLUMNS = ['User', 'Pet', 'Application', 'Rescue', 'Message'];
+
+    it.each(HAS_AUDIT_COLUMNS)('%s has created_by, updated_by, version', name => {
+      const model = sequelize.models[name];
+      expect(model, `${name} not registered`).toBeDefined();
+      const attrs = model.getAttributes() as Record<string, ModelAttribute>;
+      expect(attrs).toHaveProperty('created_by');
+      expect(attrs).toHaveProperty('updated_by');
+      // version: true makes Sequelize add the column under "version".
+      expect(attrs).toHaveProperty('version');
+    });
+
+    it.each(HAS_AUDIT_COLUMNS)('%s has indexes on created_by and updated_by', name => {
+      const model = sequelize.models[name];
+      const opts = (
+        model as unknown as {
+          options: { indexes?: Array<{ fields: Array<string | { name: string }> }> };
+        }
+      ).options;
+      const cols = new Set(
+        (opts.indexes ?? []).flatMap(i => i.fields.map(f => (typeof f === 'string' ? f : f.name)))
+      );
+      expect(cols.has('created_by'), `${name} missing created_by index`).toBe(true);
+      expect(cols.has('updated_by'), `${name} missing updated_by index`).toBe(true);
+    });
+  });
 });

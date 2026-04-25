@@ -3,6 +3,7 @@ import sequelize, { getJsonType, getUuidType, getTsVectorType, TsVector } from '
 import { MessageContentFormat } from '../types/chat';
 import Chat from './Chat';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 export interface MessageReaction {
   user_id: string;
@@ -277,8 +278,9 @@ Message.init(
       type: getTsVectorType(),
       allowNull: true,
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'messages',
     modelName: 'Message',
@@ -313,6 +315,7 @@ Message.init(
         using: 'gin',
         name: 'messages_read_status_gin_idx',
       },
+      ...auditIndexes('messages'),
     ],
     hooks: {
       beforeSave: async (message: Message) => {
@@ -326,7 +329,7 @@ Message.init(
         }
       },
     },
-  }
+  })
 );
 
 // Add class method for full-text search

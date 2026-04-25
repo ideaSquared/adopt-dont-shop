@@ -13,6 +13,7 @@ import { config } from './config';
 import { errorHandler } from './middleware/error-handler';
 import { csrfProtection, csrfErrorHandler, getCsrfToken } from './middleware/csrf';
 import { apiLimiter } from './middleware/rate-limiter';
+import { requestContextMiddleware } from './middleware/request-context';
 import sequelize from './sequelize';
 import { initializeMessageBroker } from './services/messageBroker.service';
 import { SocketHandlers } from './socket/socket-handlers';
@@ -138,6 +139,11 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Establish AsyncLocalStorage context per-request so model hooks can read
+// the authenticated userId for created_by / updated_by stamping. Must come
+// before the auth middleware mount points (which fill in userId).
+app.use(requestContextMiddleware);
 
 // Cookie parser for CSRF tokens
 app.use(cookieParser());
