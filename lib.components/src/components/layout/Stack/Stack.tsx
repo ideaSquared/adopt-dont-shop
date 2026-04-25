@@ -1,5 +1,7 @@
+import clsx from 'clsx';
 import React from 'react';
-import styled, { css, DefaultTheme } from 'styled-components';
+
+import * as styles from './Stack.css';
 
 export type StackDirection = 'vertical' | 'horizontal';
 export type StackAlign = 'start' | 'center' | 'end' | 'stretch';
@@ -19,91 +21,6 @@ export type StackProps = {
   'data-testid'?: string;
 } & React.HTMLAttributes<HTMLDivElement>;
 
-const getDirectionStyles = (direction: StackDirection) => {
-  return direction === 'horizontal'
-    ? css`
-        flex-direction: row;
-      `
-    : css`
-        flex-direction: column;
-      `;
-};
-
-const getSpacingStyles = (spacing: StackSpacing, theme: DefaultTheme) => {
-  if (spacing === 'none') {
-    return css``;
-  }
-
-  const spacingValue = theme.spacing[spacing];
-
-  return css`
-    gap: ${spacingValue};
-  `;
-};
-
-const getAlignStyles = (align: StackAlign) => {
-  const alignMap = {
-    start: 'flex-start',
-    center: 'center',
-    end: 'flex-end',
-    stretch: 'stretch',
-  };
-
-  return css`
-    align-items: ${alignMap[align]};
-  `;
-};
-
-const getJustifyStyles = (justify: StackJustify) => {
-  const justifyMap = {
-    start: 'flex-start',
-    center: 'center',
-    end: 'flex-end',
-    between: 'space-between',
-    around: 'space-around',
-    evenly: 'space-evenly',
-  };
-
-  return css`
-    justify-content: ${justifyMap[justify]};
-  `;
-};
-
-const StyledStack = styled.div<{
-  $direction: StackDirection;
-  $spacing: StackSpacing;
-  $align: StackAlign;
-  $justify: StackJustify;
-  $wrap: boolean;
-  $fullWidth: boolean;
-  $fullHeight: boolean;
-}>`
-  display: flex;
-
-  ${({ $direction }) => getDirectionStyles($direction)}
-  ${({ $spacing, theme }) => getSpacingStyles($spacing, theme)}
-  ${({ $align }) => getAlignStyles($align)}
-  ${({ $justify }) => getJustifyStyles($justify)}
-  
-  ${({ $wrap }) =>
-    $wrap &&
-    css`
-      flex-wrap: wrap;
-    `}
-
-  ${({ $fullWidth }) =>
-    $fullWidth &&
-    css`
-      width: 100%;
-    `}
-
-  ${({ $fullHeight }) =>
-    $fullHeight &&
-    css`
-      height: 100%;
-    `}
-`;
-
 export const Stack: React.FC<StackProps> = ({
   children,
   direction = 'vertical',
@@ -118,19 +35,15 @@ export const Stack: React.FC<StackProps> = ({
   ...props
 }) => {
   return (
-    <StyledStack
-      $direction={direction}
-      $spacing={spacing}
-      $align={align}
-      $justify={justify}
-      $wrap={wrap}
-      $fullWidth={fullWidth}
-      $fullHeight={fullHeight}
-      className={className}
+    <div
+      className={clsx(
+        styles.stack({ direction, spacing, align, justify, wrap, fullWidth, fullHeight }),
+        className,
+      )}
       data-testid={dataTestId}
       {...props}
     >
       {children}
-    </StyledStack>
+    </div>
   );
 };

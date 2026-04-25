@@ -1,5 +1,7 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
-import styled, { css, DefaultTheme } from 'styled-components';
+import clsx from 'clsx';
+
+import * as styles from './TextArea.css';
 
 export type TextAreaSize = 'sm' | 'md' | 'lg';
 export type TextAreaVariant = 'default' | 'filled' | 'underlined';
@@ -28,186 +30,6 @@ export type TextAreaProps = {
   className?: string;
   'data-testid'?: string;
 } & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'>;
-
-const getSizeStyles = (size: TextAreaSize) => {
-  const sizes = {
-    sm: css`
-      min-height: 80px;
-      padding: 8px 12px;
-      font-size: 14px;
-    `,
-    md: css`
-      min-height: 100px;
-      padding: 12px 16px;
-      font-size: 16px;
-    `,
-    lg: css`
-      min-height: 120px;
-      padding: 16px 20px;
-      font-size: 18px;
-    `,
-  };
-  return sizes[size];
-};
-
-const getVariantStyles = (variant: TextAreaVariant, theme: DefaultTheme) => {
-  const variants = {
-    default: css`
-      border: 1px solid ${theme.colors.neutral[300]};
-      background-color: ${theme.colors.neutral[50]};
-      border-radius: ${theme.spacing.xs};
-
-      &:focus {
-        border-color: ${theme.colors.primary[500]};
-        box-shadow: 0 0 0 3px ${theme.colors.primary[100]}40;
-      }
-    `,
-    filled: css`
-      border: 1px solid transparent;
-      background-color: ${theme.colors.neutral[100]};
-      border-radius: ${theme.spacing.xs};
-
-      &:focus {
-        background-color: ${theme.colors.neutral[50]};
-        border-color: ${theme.colors.primary[500]};
-        box-shadow: 0 0 0 3px ${theme.colors.primary[100]}40;
-      }
-    `,
-    underlined: css`
-      border: none;
-      border-bottom: 2px solid ${theme.colors.neutral[300]};
-      background-color: transparent;
-      border-radius: 0;
-      padding-left: 0;
-      padding-right: 0;
-
-      &:focus {
-        border-bottom-color: ${theme.colors.primary[500]};
-        box-shadow: none;
-      }
-    `,
-  };
-  return variants[variant];
-};
-
-const getStateStyles = (state: TextAreaState, theme: DefaultTheme) => {
-  const states = {
-    default: css``,
-    error: css`
-      border-color: ${theme.colors.semantic.error[500]};
-      &:focus {
-        border-color: ${theme.colors.semantic.error[500]};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.error[100]}40;
-      }
-    `,
-    success: css`
-      border-color: ${theme.colors.semantic.success[500]};
-      &:focus {
-        border-color: ${theme.colors.semantic.success[500]};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.success[100]}40;
-      }
-    `,
-    warning: css`
-      border-color: ${theme.colors.semantic.warning[500]};
-      &:focus {
-        border-color: ${theme.colors.semantic.warning[500]};
-        box-shadow: 0 0 0 3px ${theme.colors.semantic.warning[100]}40;
-      }
-    `,
-  };
-  return states[state];
-};
-
-const Container = styled.div<{ $fullWidth: boolean }>`
-  display: ${({ $fullWidth }) => ($fullWidth ? 'block' : 'inline-block')};
-  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
-`;
-
-const Label = styled.label<{ $required: boolean }>`
-  display: block;
-  margin-bottom: ${({ theme }) => theme.spacing.xs};
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
-  color: ${({ theme }) => theme.colors.neutral[700]};
-
-  ${({ $required }) =>
-    $required &&
-    css`
-      &::after {
-        content: ' *';
-        color: ${({ theme }) => theme.colors.semantic.error[500]};
-      }
-    `}
-`;
-
-const TextAreaWrapper = styled.div`
-  position: relative;
-`;
-
-const StyledTextArea = styled.textarea<{
-  $size: TextAreaSize;
-  $variant: TextAreaVariant;
-  $state: TextAreaState;
-  $autoResize: boolean;
-}>`
-  width: 100%;
-  border: none;
-  outline: none;
-  transition: all ${({ theme }) => theme.transitions.fast};
-  color: ${({ theme }) => theme.colors.neutral[900]};
-  font-family: inherit;
-  line-height: ${({ theme }) => theme.typography.lineHeight.relaxed};
-  resize: ${({ $autoResize }) => ($autoResize ? 'none' : 'vertical')};
-
-  ${({ $size }) => getSizeStyles($size)}
-  ${({ $variant, theme }) => getVariantStyles($variant, theme)}
-  ${({ $state, theme }) => getStateStyles($state, theme)}
-
-  &::placeholder {
-    color: ${({ theme }) => theme.colors.neutral[400]};
-  }
-
-  &:disabled {
-    background-color: ${({ theme }) => theme.colors.neutral[100]};
-    color: ${({ theme }) => theme.colors.neutral[400]};
-    cursor: not-allowed;
-    resize: none;
-  }
-
-  &:read-only {
-    resize: none;
-  }
-`;
-
-const FooterContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-top: ${({ theme }) => theme.spacing.xs};
-  gap: ${({ theme }) => theme.spacing.sm};
-`;
-
-const HelperText = styled.div<{ $state: TextAreaState }>`
-  font-size: ${({ theme }) => theme.typography.size.xs};
-  color: ${({ theme, $state }) =>
-    $state === 'error'
-      ? theme.colors.semantic.error[500]
-      : $state === 'success'
-        ? theme.colors.semantic.success[500]
-        : $state === 'warning'
-          ? theme.colors.semantic.warning[500]
-          : theme.colors.neutral[600]};
-  line-height: ${({ theme }) => theme.typography.lineHeight.normal};
-  flex: 1;
-`;
-
-const CharacterCount = styled.div<{ $isOverLimit: boolean }>`
-  font-size: ${({ theme }) => theme.typography.size.xs};
-  color: ${({ theme, $isOverLimit }) =>
-    $isOverLimit ? theme.colors.semantic.error[500] : theme.colors.neutral[500]};
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-`;
 
 const TextAreaComponent = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   (
@@ -318,15 +140,18 @@ const TextAreaComponent = forwardRef<HTMLTextAreaElement, TextAreaProps>(
     const showFooter = effectiveHelperText || showCharacterCount;
 
     return (
-      <Container $fullWidth={fullWidth} className={className}>
+      <div className={clsx(styles.container({ fullWidth }), className)}>
         {label && (
-          <Label htmlFor={inputId} $required={required}>
+          <label
+            htmlFor={inputId}
+            className={clsx(styles.label, required && styles.labelRequired)}
+          >
             {label}
-          </Label>
+          </label>
         )}
 
-        <TextAreaWrapper>
-          <StyledTextArea
+        <div className={styles.textAreaWrapper}>
+          <textarea
             ref={combinedRef}
             id={inputId}
             placeholder={placeholder}
@@ -337,30 +162,34 @@ const TextAreaComponent = forwardRef<HTMLTextAreaElement, TextAreaProps>(
             maxLength={maxLength}
             value={value}
             defaultValue={defaultValue}
-            $size={size}
-            $variant={variant}
-            $state={effectiveState}
-            $autoResize={autoResize}
             data-testid={dataTestId}
             onChange={handleChange}
+            className={styles.textArea({
+              size,
+              variant,
+              state: effectiveState,
+              autoResize,
+            })}
             {...props}
           />
-        </TextAreaWrapper>
+        </div>
 
         {showFooter && (
-          <FooterContainer>
+          <div className={styles.footerContainer}>
             {effectiveHelperText && (
-              <HelperText $state={effectiveState}>{effectiveHelperText}</HelperText>
+              <div className={styles.helperText({ state: effectiveState })}>
+                {effectiveHelperText}
+              </div>
             )}
 
             {showCharacterCount && (
-              <CharacterCount $isOverLimit={isOverLimit}>
+              <div className={styles.characterCount({ isOverLimit })}>
                 {maxLength ? `${characterCount}/${maxLength}` : characterCount}
-              </CharacterCount>
+              </div>
             )}
-          </FooterContainer>
+          </div>
         )}
-      </Container>
+      </div>
     );
   }
 );

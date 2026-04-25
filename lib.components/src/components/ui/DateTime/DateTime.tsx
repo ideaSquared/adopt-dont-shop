@@ -1,6 +1,7 @@
 import * as Tooltip from '@radix-ui/react-tooltip';
 import React from 'react';
-import styled from 'styled-components';
+
+import * as styles from './DateTime.css';
 
 interface DateTimeProps {
   /* A ISO or similar timestamp */
@@ -70,19 +71,19 @@ const DateTime: React.FC<DateTimeProps> = ({
     <Tooltip.Provider>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <ClickableTime dateTime={dateTimeString}>
+          <time className={styles.clickableTime} dateTime={dateTimeString}>
             {showTooltip && (
               <span role='img' aria-label='clock'>
                 🕒
               </span>
             )}
             {formattedDate}
-          </ClickableTime>
+          </time>
         </Tooltip.Trigger>
         {showTooltip && (
           <Tooltip.Portal>
-            <TooltipContent side='top' align='center'>
-              <ClocksContainer>
+            <Tooltip.Content className={styles.tooltipContent} side='top' align='center'>
+              <div className={styles.clocksContainer}>
                 <Clock
                   timezone='local'
                   label='Local Time'
@@ -101,28 +102,15 @@ const DateTime: React.FC<DateTimeProps> = ({
                   timestamp={timestamp}
                   localeOption={localeOption}
                 />
-              </ClocksContainer>
-              <TooltipArrow />
-            </TooltipContent>
+              </div>
+              <Tooltip.Arrow className={styles.tooltipArrow} />
+            </Tooltip.Content>
           </Tooltip.Portal>
         )}
       </Tooltip.Root>
     </Tooltip.Provider>
   );
 };
-
-const ClickableTime = styled.time`
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const ClocksContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
 
 const Clock: React.FC<{
   timezone: string;
@@ -155,30 +143,10 @@ const Clock: React.FC<{
   const formattedTime = date.toLocaleTimeString(localeOption, timeOptions);
 
   return (
-    <ClockContainer>
+    <div className={styles.clockContainer}>
       <strong>{label}:</strong> {formattedDate}, {formattedTime} {timezone === 'UTC' ? 'UTC' : ''}
-    </ClockContainer>
+    </div>
   );
 };
-
-const ClockContainer = styled.div`
-  background-color: ${({ theme }) => theme.background.overlay};
-  padding: ${({ theme }) => theme.spacing.sm};
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  box-shadow: ${({ theme }) => theme.shadows.sm};
-`;
-
-const TooltipContent = styled(Tooltip.Content)`
-  background-color: ${({ theme }) => theme.background.overlay};
-  padding: ${({ theme }) => theme.spacing.sm};
-  border-radius: ${({ theme }) => theme.border.radius.lg};
-  box-shadow: ${({ theme }) => theme.shadows.md};
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  z-index: ${({ theme }) => theme.zIndex.tooltip};
-`;
-
-const TooltipArrow = styled(Tooltip.Arrow)`
-  fill: ${({ theme }) => theme.background.overlay};
-`;
 
 export default DateTime;

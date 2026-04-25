@@ -1,6 +1,7 @@
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import React from 'react';
-import styled from 'styled-components';
+
+import * as styles from './Tooltip.css';
 
 interface TooltipProps {
   content: React.ReactNode;
@@ -9,18 +10,6 @@ interface TooltipProps {
   align?: 'start' | 'center' | 'end';
   className?: string;
 }
-
-const StyledContent = styled(TooltipPrimitive.Content)`
-  background-color: ${props => props.theme.background.overlay};
-  color: ${props => props.theme.text.info};
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-`;
-
-const StyledArrow = styled(TooltipPrimitive.Arrow)`
-  fill: ${props => props.theme.text.info};
-`;
 
 const Tooltip: React.FC<TooltipProps> = ({
   content,
@@ -32,10 +21,15 @@ const Tooltip: React.FC<TooltipProps> = ({
   <TooltipPrimitive.Provider>
     <TooltipPrimitive.Root>
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
-      <StyledContent side={side} align={align} sideOffset={5} className={className}>
+      <TooltipPrimitive.Content
+        className={className || styles.content}
+        side={side}
+        align={align}
+        sideOffset={5}
+      >
         {content}
-        <StyledArrow offset={10} />
-      </StyledContent>
+        <TooltipPrimitive.Arrow className={styles.arrow} />
+      </TooltipPrimitive.Content>
     </TooltipPrimitive.Root>
   </TooltipPrimitive.Provider>
 );

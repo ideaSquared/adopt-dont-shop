@@ -1,5 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
-import styled, { css, DefaultTheme } from 'styled-components';
+import clsx from 'clsx';
+
+import * as styles from './FileUpload.css';
 
 export type FileUploadSize = 'sm' | 'md' | 'lg';
 export type FileUploadState = 'default' | 'error' | 'success' | 'warning';
@@ -26,208 +28,6 @@ export interface FileUploadProps {
   files?: File[];
 }
 
-const getSizeStyles = (size: FileUploadSize) => {
-  const sizes = {
-    sm: css`
-      min-height: 80px;
-      padding: ${({ theme }) => theme.spacing.md};
-    `,
-    md: css`
-      min-height: 120px;
-      padding: ${({ theme }) => theme.spacing.lg};
-    `,
-    lg: css`
-      min-height: 160px;
-      padding: ${({ theme }) => theme.spacing.xl};
-    `,
-  };
-  return sizes[size];
-};
-
-const getStateStyles = (state: FileUploadState, theme: DefaultTheme) => {
-  const states = {
-    default: css`
-      border-color: ${theme.colors.neutral[300]};
-    `,
-    error: css`
-      border-color: ${theme.colors.semantic.error[500]};
-      background-color: ${theme.colors.semantic.error[100]}20;
-    `,
-    success: css`
-      border-color: ${theme.colors.semantic.success[500]};
-      background-color: ${theme.colors.semantic.success[100]}20;
-    `,
-    warning: css`
-      border-color: ${theme.colors.semantic.warning[500]};
-      background-color: ${theme.colors.semantic.warning[100]}20;
-    `,
-  };
-  return states[state];
-};
-
-const FileUploadContainer = styled.div<{ $fullWidth: boolean }>`
-  display: ${({ $fullWidth }) => ($fullWidth ? 'block' : 'inline-block')};
-  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
-`;
-
-const Label = styled.label<{ $required: boolean }>`
-  display: block;
-  margin-bottom: ${({ theme }) => theme.spacing.xs};
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
-  color: ${({ theme }) => theme.colors.neutral[700]};
-
-  ${({ $required }) =>
-    $required &&
-    css`
-      &::after {
-        content: ' *';
-        color: ${({ theme }) => theme.colors.semantic.error[500]};
-      }
-    `}
-`;
-
-const HiddenInput = styled.input`
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-`;
-
-const DropZone = styled.div<{
-  $size: FileUploadSize;
-  $state: FileUploadState;
-  $isDragging: boolean;
-  $disabled: boolean;
-}>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 2px dashed;
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  background-color: ${({ theme }) => theme.colors.neutral[50]};
-  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
-  transition: all ${({ theme }) => theme.transitions.fast};
-  text-align: center;
-
-  ${({ $size }) => getSizeStyles($size)}
-  ${({ $state, theme }) => getStateStyles($state, theme)}
-
-  ${({ $isDragging, theme }) =>
-    $isDragging &&
-    css`
-      border-color: ${theme.colors.primary[500]};
-      background-color: ${theme.colors.primary[100]}20;
-    `}
-
-  ${({ $disabled, theme }) =>
-    $disabled &&
-    css`
-      background-color: ${theme.colors.neutral[100]};
-      color: ${theme.colors.neutral[400]};
-      cursor: not-allowed;
-    `}
-
-  &:hover:not([disabled]) {
-    border-color: ${({ theme }) => theme.colors.primary[500]};
-    background-color: ${({ theme }) => theme.colors.primary[100]}10;
-  }
-`;
-
-const UploadIcon = styled.div`
-  width: 32px;
-  height: 32px;
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
-  color: ${({ theme }) => theme.colors.neutral[400]};
-
-  svg {
-    width: 100%;
-    height: 100%;
-  }
-`;
-
-const UploadText = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.neutral[600]};
-  margin-bottom: ${({ theme }) => theme.spacing.xs};
-`;
-
-const UploadSubtext = styled.div`
-  font-size: ${({ theme }) => theme.typography.size.xs};
-  color: ${({ theme }) => theme.colors.neutral[500]};
-`;
-
-const FileList = styled.div`
-  margin-top: ${({ theme }) => theme.spacing.md};
-`;
-
-const FileItem = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${({ theme }) => theme.spacing.sm};
-  border: 1px solid ${({ theme }) => theme.colors.neutral[200]};
-  border-radius: ${({ theme }) => theme.border.radius.sm};
-  background-color: ${({ theme }) => theme.colors.neutral[50]};
-  margin-bottom: ${({ theme }) => theme.spacing.xs};
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const FileInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
-`;
-
-const FileName = styled.span`
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.neutral[700]};
-`;
-
-const FileSize = styled.span`
-  font-size: ${({ theme }) => theme.typography.size.xs};
-  color: ${({ theme }) => theme.colors.neutral[500]};
-`;
-
-const RemoveButton = styled.button`
-  background: none;
-  border: none;
-  color: ${({ theme }) => theme.colors.semantic.error[500]};
-  cursor: pointer;
-  padding: ${({ theme }) => theme.spacing.xs};
-  border-radius: ${({ theme }) => theme.border.radius.sm};
-  transition: background-color ${({ theme }) => theme.transitions.fast};
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.semantic.error[100]}20;
-  }
-
-  &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors.semantic.error[500]};
-    outline-offset: 2px;
-  }
-`;
-
-const HelperText = styled.div<{ $state: FileUploadState }>`
-  margin-top: ${({ theme }) => theme.spacing.xs};
-  font-size: ${({ theme }) => theme.typography.size.xs};
-  color: ${({ theme, $state }) => {
-    switch ($state) {
-      case 'error':
-        return theme.colors.semantic.error[500];
-      case 'success':
-        return theme.colors.semantic.success[500];
-      case 'warning':
-        return theme.colors.semantic.warning[500];
-      default:
-        return theme.colors.neutral[600];
-    }
-  }};
-`;
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) {
@@ -395,11 +195,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const finalHelperText = error || helperText;
 
   return (
-    <FileUploadContainer $fullWidth={fullWidth} className={className} data-testid={testId}>
-      {label && <Label $required={required}>{label}</Label>}
+    <div className={clsx(styles.container({ fullWidth }), className)} data-testid={testId}>
+      {label && (
+        <label className={clsx(styles.label, required && styles.labelRequired)}>
+          {label}
+        </label>
+      )}
 
-      <HiddenInput
+      <input
         ref={inputRef}
+        className={styles.hiddenInput}
         type='file'
         accept={accept}
         multiple={multiple}
@@ -407,47 +212,47 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         onChange={handleInputChange}
       />
 
-      <DropZone
-        $size={size}
-        $state={finalState}
-        $isDragging={isDragging}
-        $disabled={disabled}
+      <div
+        className={styles.dropZone({ size, state: finalState, isDragOver: isDragging, disabled })}
         onClick={handleClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <UploadIcon>
+        <div className={styles.uploadIcon}>
           <UploadIconSVG />
-        </UploadIcon>
-        <UploadText>{placeholder}</UploadText>
-        <UploadSubtext>
+        </div>
+        <div className={styles.uploadText}>{placeholder}</div>
+        <div className={styles.uploadSubtext}>
           {accept && `Accepted formats: ${accept}`}
           {maxSize && ` • Max size: ${formatFileSize(maxSize)}`}
-        </UploadSubtext>
-      </DropZone>
+        </div>
+      </div>
 
       {files.length > 0 && (
-        <FileList>
+        <div className={styles.fileList}>
           {files.map((file, index) => (
-            <FileItem key={`${file.name}-${index}`}>
-              <FileInfo>
-                <FileName>{file.name}</FileName>
-                <FileSize>{formatFileSize(file.size)}</FileSize>
-              </FileInfo>
-              <RemoveButton
+            <div className={styles.fileItem} key={`${file.name}-${index}`}>
+              <div className={styles.fileInfo}>
+                <span className={styles.fileName}>{file.name}</span>
+                <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
+              </div>
+              <button
+                className={styles.removeButton}
                 type='button'
                 onClick={() => handleRemoveFile(index)}
                 aria-label={`Remove ${file.name}`}
               >
                 <RemoveIconSVG />
-              </RemoveButton>
-            </FileItem>
+              </button>
+            </div>
           ))}
-        </FileList>
+        </div>
       )}
 
-      {finalHelperText && <HelperText $state={finalState}>{finalHelperText}</HelperText>}
-    </FileUploadContainer>
+      {finalHelperText && (
+        <div className={styles.helperText({ state: finalState })}>{finalHelperText}</div>
+      )}
+    </div>
   );
 };
