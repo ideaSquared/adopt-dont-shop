@@ -208,64 +208,25 @@ app.get('/api/validation/example', async (req, res) => {
 
 ## 🐳 Docker Integration
 
-### Development with Docker Compose
+The library is consumed as a workspace dependency; there is no per-library Dockerfile or `docker-compose.lib.yml`. Frontend containers bind-mount the repo root so Vite resolves `@adopt-dont-shop/lib.validation` from the library's `src/` — hot reload works without a rebuild. The backend picks it up via npm workspaces on container start.
 
-1. **Build the library:**
-
-```bash
-# From workspace root
-docker compose -f docker-compose.lib.yml up lib-validation
-```
-
-2. **Run tests:**
-
-```bash
-docker compose -f docker-compose.lib.yml run lib-validation-test
-```
-
-### Using in App Containers
-
-Add to your app's Dockerfile:
+In production app Dockerfiles, copy `lib.validation/` into the build context and let Turbo handle the dependency graph:
 
 ```dockerfile
-# Copy shared libraries
-COPY lib.validation /workspace/lib.validation
-
-# Install dependencies
-RUN npm install @adopt-dont-shop/lib.validation
-```
-
-### Multi-stage Build for Production
-
-```dockerfile
-# In your app's Dockerfile
-FROM node:20-alpine AS deps
+# Production build — example for a frontend app
+FROM node:20-alpine AS build
 
 WORKDIR /app
+COPY package*.json turbo.json ./
+COPY lib.validation/ lib.validation/
+COPY lib.types/ lib.types/
+COPY app.client/ app.client/
 
-# Copy shared library
-COPY lib.validation ./lib.validation
-
-# Copy app package files
-COPY app.client/package*.json ./app.client/
-
-# Install dependencies
-RUN cd lib.validation && npm ci && npm run build
-RUN cd app.client && npm ci
-
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-COPY --from=deps /app ./
-
-# Copy app source
-COPY app.client ./app.client
-
-# Build app
-RUN cd app.client && npm run build
+RUN npm ci
+RUN npx turbo run build --filter=@adopt-dont-shop/app.client
 ```
+
+See `Dockerfile.app.optimized` at the repo root for the real recipe used by all three frontend apps.
 
 ## 🧪 Testing
 
@@ -328,21 +289,15 @@ npm run type-check
 lib.validation/
 ├── src/
 │   ├── services/
-│   │   ├── validation-service.ts     # Main service implementation
-│   │   └── __tests__/
-│   │       └── validation-service.test.ts
+│   │   └── validation-service.ts     # Main service implementation
 │   ├── types/
 │   │   └── index.ts                  # TypeScript type definitions
 │   └── index.ts                      # Main entry point
 ├── dist/                             # Built output (generated)
-├── docker-compose.lib.yml           # Docker compose for development
-├── Dockerfile                       # Multi-stage Docker build
-├── jest.config.js                   # Jest test configuration
-├── package.json                     # Package configuration
-├── tsconfig.json                    # TypeScript configuration
-├── .eslintrc.json                   # ESLint configuration
-├── .prettierrc.json                 # Prettier configuration
-└── README.md                        # This file
+├── jest.config.cjs                   # Jest configuration
+├── package.json                      # Package configuration
+├── tsconfig.json                     # TypeScript configuration
+└── README.md                         # This file
 ```
 
 ## 🔗 Integration Examples

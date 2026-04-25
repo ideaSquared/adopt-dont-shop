@@ -4,16 +4,17 @@
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- PostgreSQL 15+
+- Node.js 20+ and npm
+- PostgreSQL 16+ with PostGIS (provided by the Docker stack)
 - Docker and Docker Compose (recommended)
 
 ### Development Setup
 
-1. **Clone and Install**
+From the repository root the typical workflow uses Docker — the container boots the database, Redis, and the backend in one command. See the [root README](../../README.md) for the full quick start.
+
+1. **Install workspace dependencies (from repo root)**
 
    ```bash
-   cd service.backend
    npm install
    ```
 
@@ -21,24 +22,40 @@
 
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
+   npm run secrets:generate >> .env
+   # Edit .env to set POSTGRES_PASSWORD and any third-party keys
    ```
 
-3. **Database Setup**
+3. **Start the stack**
 
    ```bash
-   npm run db:create
-   npm run db:migrate
-   npm run db:seed  # Optional: sample data
+   npm run docker:dev          # foreground
+   npm run docker:dev:detach   # or background
    ```
 
-4. **Start Development Server**
+4. **Initialize the database (first run, or after `docker:reset`)**
 
    ```bash
-   npm run dev
+   npm run db:migrate          # runs sequelize-cli db:migrate inside the backend container
+   npm run db:seed             # optional sample data
+   # or: npm run db:reset      # migrate + seed
    ```
 
-   Server will start at `http://localhost:5000`
+5. **Backend is reachable at**
+
+   ```
+   http://localhost:5000       # direct
+   http://api.localhost        # via the nginx reverse proxy
+   ```
+
+### Native (no-Docker) Development
+
+If you prefer to run the backend on the host (you must provide Postgres and Redis yourself):
+
+```bash
+cd service.backend
+npm run dev                  # ts-node-dev --respawn --transpile-only --poll --watch src src/index.ts
+```
 
 ## Environment Configuration
 
@@ -165,41 +182,45 @@ uploads/
 
 ## Database Management
 
+Migrations and seeders use `sequelize-cli`. From the repo root, `npm run db:migrate` and `npm run db:seed` are thin wrappers that shell into the backend container and call `sequelize-cli db:migrate` / `db:seed:all`. For commands that don't have an npm wrapper, shell into the container first:
+
+```bash
+npm run docker:shell:backend
+# then inside the container:
+npx sequelize-cli <command>
+```
+
 ### Migrations
 
 ```bash
-# Create new migration
-npm run migration:create -- --name add-user-fields
-
-# Run migrations
+# Run migrations (from repo root)
 npm run db:migrate
 
-# Undo last migration
-npm run db:migrate:undo
-
-# Undo all migrations
-npm run db:migrate:undo:all
+# Inside the backend container (npm run docker:shell:backend):
+npx sequelize-cli migration:generate --name add-user-fields
+npx sequelize-cli db:migrate:undo
+npx sequelize-cli db:migrate:undo:all
 ```
 
 ### Seeders
 
 ```bash
-# Create new seeder
-npm run seed:create -- --name demo-users
-
-# Run all seeders
+# Run all seeders (from repo root)
 npm run db:seed
 
-# Undo last seeder
-npm run db:seed:undo
-
-# Undo all seeders
-npm run db:seed:undo:all
+# Inside the backend container:
+npx sequelize-cli seed:generate --name demo-users
+npx sequelize-cli db:seed:undo
+npx sequelize-cli db:seed:undo:all
 ```
+
+Migrations live in `service.backend/src/migrations/` and seeders in `service.backend/src/seeders/`.
 
 ## Testing
 
 ### Run Tests
+
+The backend uses **Vitest**. Run from `service.backend/` (or via `npx turbo test --filter=@adopt-dont-shop/service-backend` at the root).
 
 ```bash
 # All tests
@@ -208,25 +229,17 @@ npm test
 # Watch mode
 npm run test:watch
 
+# Vitest UI
+npm run test:ui
+
 # Coverage report
 npm run test:coverage
 
 # Specific test file
-npm test src/services/__tests__/user.service.test.ts
+npm test -- src/__tests__/services/user.service.test.ts
 ```
 
-### Load Testing
-
-```bash
-# Basic load test
-npm run test:load
-
-# Stress test
-npm run test:stress
-
-# Performance profiling
-npm run profile
-```
+Load-testing and performance-profiling scripts are not yet set up.
 
 ## Health Monitoring
 
@@ -280,14 +293,19 @@ docker compose logs -f service-backend
 ### Production
 
 ```bash
-# Build production image
-docker build -t adoptdontshop/backend:latest -f Dockerfile.prod .
+# Build production image (multi-stage target in the shared Dockerfile)
+docker build \
+  --target production \
+  -t adoptdontshop/backend:latest \
+  -f service.backend/Dockerfile .
 
 # Run production container
 docker run -p 5000:5000 \
   --env-file .env.production \
   adoptdontshop/backend:latest
 ```
+
+The root `docker-compose.prod.yml` overlay exercises this path end-to-end — see [Deployment Guide](./deployment.md) and [Docker Infrastructure Guide](../DOCKER.md).
 
 ## Common Tasks
 
@@ -298,21 +316,22 @@ docker run -p 5000:5000 \
 3. **Create service** `src/services/myresource.service.ts`
 4. **Add model** (if needed) `src/models/MyResource.ts`
 5. **Register route** in `src/index.ts`
-6. **Add tests** `src/services/__tests__/myresource.service.test.ts`
+6. **Add tests** under `src/__tests__/services/myresource.service.test.ts`
 
 ### Add Database Model
 
-1. **Create migration**
+1. **Create migration** (inside the backend container):
 
    ```bash
-   npm run migration:create -- --name create-my-table
+   npm run docker:shell:backend
+   npx sequelize-cli migration:generate --name create-my-table
    ```
 
-2. **Define schema** in migration file
+2. **Define schema** in the migration file under `src/migrations/`
 3. **Create model** `src/models/MyModel.ts`
-4. **Run migration** `npm run db:migrate`
-5. **Add associations** in model file
-6. **Create seeder** (optional) for test data
+4. **Run migration** `npm run db:migrate` (from the repo root)
+5. **Add associations** in the model file
+6. **Create seeder** (optional) under `src/seeders/`
 
 ### Update Email Template
 
@@ -331,11 +350,10 @@ docker run -p 5000:5000 \
 # Check PostgreSQL is running
 docker compose ps database
 
-# Reset database
-npm run db:drop
-npm run db:create
-npm run db:migrate
-npm run db:seed
+# Nuclear reset (wipes the volume, then re-initializes)
+npm run docker:reset
+npm run docker:dev:detach
+npm run db:reset          # migrate + seed
 ```
 
 ### Email Not Sending

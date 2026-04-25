@@ -386,13 +386,17 @@ Comprehensive test suite added to `service.backend/src/__tests__/services/auth.s
 
 ### Running Tests
 
+The backend uses Vitest. Run from `service.backend/`:
+
 ```bash
 # Run all backend tests
-npm run test:backend
+npm test
 
-# Run specific auth service tests
-npm run test:backend -- auth.service.test.ts
+# Run specific auth service tests (Vitest takes a substring filter)
+npm test auth.service.test.ts
 ```
+
+Or via Turbo at the repo root: `npx turbo test --filter=@adopt-dont-shop/service-backend`.
 
 ---
 

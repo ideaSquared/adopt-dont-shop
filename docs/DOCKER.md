@@ -97,7 +97,7 @@ The dev stack is configured for HMR on Windows/macOS/Linux:
 
 | Layer | Mechanism | Latency |
 | --- | --- | --- |
-| Frontend apps (`app.*/src/**`) | Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`, interval 100ms) | ~1-2s |
+| Frontend apps (`app.*/src/**`) | Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`, `CHOKIDAR_INTERVAL=1000`) | ~1-2s |
 | Frontend libs (`lib.*/src/**` except `lib.types`) | Vite aliases point at lib `src/` — HMR picks them up | ~1-2s |
 | Backend (`service.backend/src/**`) | `ts-node-dev --poll` | ~2s |
 | `lib.types/src/**` | Built into backend `node_modules` at container start. Re-run via `npm run docker:rebuild:types` | manual |

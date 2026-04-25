@@ -161,38 +161,45 @@ ENABLE_REQUEST_LOGGING=true
 
 The service includes a production-ready Dockerfile:
 
+The repository ships a multi-stage Dockerfile at `service.backend/Dockerfile` built against `node:20-alpine` with a non-root `backend` user. Build the production image via:
+
+```bash
+docker build \
+  --target production \
+  -t adoptdontshop/backend:latest \
+  -f service.backend/Dockerfile .
+```
+
+An illustrative minimal alternative (equivalent shape):
+
 ```dockerfile
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-FROM node:18-alpine AS runtime
+FROM node:20-alpine AS runtime
 
-# Security: Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Security: create non-root user
+RUN addgroup -g 1001 -S nodejs \
+ && adduser -S nodejs -u 1001
 
 WORKDIR /app
 
-# Copy dependencies
 COPY --from=builder /app/node_modules ./node_modules
 COPY --chown=nodejs:nodejs . .
 
-# Build application
 RUN npm run build
 
-# Switch to non-root user
 USER nodejs
 
 EXPOSE 5000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node healthcheck.js
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/health || exit 1
 
-CMD ["npm", "run", "start:prod"]
+CMD ["npm", "start"]
 ```
 
 ### Docker Compose
