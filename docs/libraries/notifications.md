@@ -16,6 +16,8 @@ npm install @adopt-dont-shop/lib.notifications
 }
 ```
 
+> **Heads-up:** The `NotificationsService` class today only exposes a constructor plus `getConfig` / `updateConfig`. Methods like `sendNotification`, `sendBulkNotifications`, `getUserNotifications`, etc. shown below are aspirational. Verify against [`lib.notifications/src/services/notifications-service.ts`](../../lib.notifications/src/services/notifications-service.ts) before relying on a specific signature.
+
 ## 🚀 Quick Start
 
 ```typescript
@@ -24,10 +26,12 @@ import {
   NotificationsServiceConfig,
 } from '@adopt-dont-shop/lib.notifications';
 
-// Using the singleton instance
-import { notificationsService } from '@adopt-dont-shop/lib.notifications';
+// `lib.notifications` does not export a singleton — instantiate the service yourself.
+const notificationsService = new NotificationsService({
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
+});
 
-// Send a single notification
+// Send a single notification (aspirational API)
 await notificationsService.sendNotification({
   userId: 'user_123',
   type: 'adoption_update',

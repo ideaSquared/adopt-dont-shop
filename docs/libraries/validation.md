@@ -16,27 +16,24 @@ npm install @adopt-dont-shop/lib.validation
 }
 ```
 
+> **Status:** `lib.validation` is a scaffolded stub. The current `ValidationService` only exposes `exampleMethod`, `updateConfig`, `getConfig`, `clearCache`, and `healthCheck`. Treat the rest of this document as aspirational — verify against [`lib.validation/src/`](../../lib.validation/src) before relying on a specific API.
+
 ## 🚀 Quick Start
 
 ```typescript
 import { ValidationService, ValidationServiceConfig } from '@adopt-dont-shop/lib.validation';
 
-// Using the singleton instance
-import { validationService } from '@adopt-dont-shop/lib.validation';
-
-// Basic usage
-const result = await validationService.exampleMethod({ test: 'data' });
-console.log(result);
-
-// Or create a custom instance
 const config: ValidationServiceConfig = {
   apiUrl: 'https://api.example.com',
   debug: true,
 };
 
-const customService = new ValidationService(config);
-const customResult = await customService.exampleMethod({ custom: 'data' });
+const validationService = new ValidationService(config);
+const result = await validationService.exampleMethod({ test: 'data' });
+console.log(result);
 ```
+
+There is no top-level `validationService` singleton exported from the package index — instantiate `ValidationService` yourself.
 
 ## 🔧 Configuration
 

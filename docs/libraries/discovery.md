@@ -16,13 +16,17 @@ npm install @adopt-dont-shop/lib.discovery
 }
 ```
 
+> **Heads-up:** Some methods documented below (e.g. `getPersonalizedFeed`, `getTrendingContent`) are aspirational. The current `DiscoveryService` exposes `getDiscoveryQueue`, `recordSwipeAction`, `getSwipeStats`, `loadMorePets`, `getSessionStats`, `startSwipeSession`, `endSwipeSession`. Treat anything else here as illustrative until the implementation catches up.
+
 ## 🚀 Quick Start
 
 ```typescript
 import { DiscoveryService, DiscoveryServiceConfig } from '@adopt-dont-shop/lib.discovery';
 
-// Using the singleton instance
-import { discoveryService } from '@adopt-dont-shop/lib.discovery';
+// `lib.discovery` does not export a singleton — instantiate the service yourself.
+const discoveryService = new DiscoveryService({
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
+});
 
 // Get personalized feed
 const feed = await discoveryService.getPersonalizedFeed('user_123', {

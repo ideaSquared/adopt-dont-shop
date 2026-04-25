@@ -18,11 +18,14 @@ npm install @adopt-dont-shop/lib.analytics
 
 ## 🚀 Quick Start
 
+`lib.analytics` exports the `AnalyticsService` class — instantiate it where you need it (or once at app startup) rather than importing a singleton.
+
 ```typescript
 import { AnalyticsService, AnalyticsServiceConfig } from '@adopt-dont-shop/lib.analytics';
 
-// Using the singleton instance
-import { analyticsService } from '@adopt-dont-shop/lib.analytics';
+const analyticsService = new AnalyticsService({
+  debug: import.meta.env.DEV,
+});
 
 // Track user events
 await analyticsService.trackEvent({
@@ -251,7 +254,7 @@ app.post('/api/pets/:id/favorite', async (req, res) => {
 
 ## 🧪 Testing
 
-The library includes comprehensive Jest tests covering:
+The library includes comprehensive tests (Jest) covering:
 
 - ✅ Service initialization and configuration
 - ✅ Event tracking functionality

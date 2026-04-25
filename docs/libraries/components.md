@@ -28,10 +28,11 @@ lib.components/
 
 ## Adding New Components
 
-1. Create the component in the appropriate directory
-2. Export it in the index.ts file
-3. Add appropriate tests
-4. Document the component with Storybook
+1. Create the component in the appropriate directory under `src/components/`.
+2. Export it from `src/index.ts`.
+3. Add a co-located test (`Component.test.tsx`) — Vitest + React Testing Library.
+
+(There is no Storybook setup in this package today.)
 
 ## Building
 
@@ -51,7 +52,7 @@ npm run test
 
 ## Best Practices
 
-- Each component should have a corresponding TypeScript interface
-- Components should be properly typed with React.forwardRef where appropriate
-- Use the cn() utility for merging classes
-- Follow composition pattern for complex components
+- Each component should have a corresponding TypeScript type definition.
+- Use `React.forwardRef` where it makes sense for ref-forwarding / composition.
+- This package uses `styled-components` for styling — there is no `cn()` class-merging utility in scope.
+- Follow the composition pattern for complex components.

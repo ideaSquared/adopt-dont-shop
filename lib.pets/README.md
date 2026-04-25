@@ -18,25 +18,22 @@ npm install @adopt-dont-shop/lib.pets
 
 ## 🚀 Quick Start
 
+`lib.pets` exports two services. There is no `petsService` singleton — instantiate `PetsService` yourself. `PetManagementService` ships with a `petManagementService` singleton.
+
 ```typescript
-import { PetsService, PetsServiceConfig } from '@adopt-dont-shop/lib.pets';
+import { PetsService, PetManagementService, petManagementService } from '@adopt-dont-shop/lib.pets';
 
-// Using the singleton instance
-import { petsService } from '@adopt-dont-shop/lib.pets';
+const petsService = new PetsService();
 
-// Basic usage
-const result = await petsService.exampleMethod({ test: 'data' });
-console.log(result);
+const featured = await petsService.getFeaturedPets(12);
+const byRescue = await petsService.getPetsByRescue('rescue_123');
+const isFav = await petsService.isFavorite('pet_456');
 
-// Or create a custom instance
-const config: PetsServiceConfig = {
-  apiUrl: 'https://api.example.com',
-  debug: true,
-};
-
-const customService = new PetsService(config);
-const customResult = await customService.exampleMethod({ custom: 'data' });
+// Write-side
+await petManagementService.createPet({ /* … */ });
 ```
+
+Real method surface today (see [`src/services/pets-service.ts`](./src/services/pets-service.ts) for full signatures): `searchPets`, `getPetById`, `getFeaturedPets`, `getRecentPets`, `getPetsByRescue`, `getPetBreeds`, `getPetTypes`, `addToFavorites`, `removeFromFavorites`, `getFavorites`, `isFavorite`, `getSimilarPets`, `reportPet`, `getPetStats`.
 
 ## 🔧 Configuration
 

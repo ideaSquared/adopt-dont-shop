@@ -16,27 +16,29 @@ npm install @adopt-dont-shop/lib.feature-flags
 }
 ```
 
+> **Heads-up:** This package was refactored to be a Statsig-only thin layer. It no longer exposes a `FeatureFlagsService` class or a `featureFlagsService` singleton. The current public surface is React hooks plus a `KNOWN_GATES` / `KNOWN_CONFIGS` constants set. See [`lib.feature-flags/README.md`](../../lib.feature-flags/README.md) and [`lib.feature-flags/src/index.ts`](../../lib.feature-flags/src/index.ts) for the canonical API.
+
 ## 🚀 Quick Start
+
+```typescript
+import { useGate, useDynamicConfig } from '@statsig/react-bindings';
+import { KNOWN_GATES, KNOWN_CONFIGS } from '@adopt-dont-shop/lib.feature-flags';
+
+const { value: isEnabled } = useGate(KNOWN_GATES.ENABLE_REAL_TIME_MESSAGING);
+const config = useDynamicConfig(KNOWN_CONFIGS.APPLICATION_SETTINGS);
+```
+
+The example below describes an earlier (now removed) class-based API. It is retained only so historical references remain readable — do not write new code against it.
 
 ```typescript
 import { FeatureFlagsService, FeatureFlagsServiceConfig } from '@adopt-dont-shop/lib.feature-flags';
 
-// Using the singleton instance
-import { featureFlagsService } from '@adopt-dont-shop/lib.feature-flags';
-
-// Basic feature flag check
-const isNewDashboardEnabled = await featureFlagsService.isFeatureEnabled('new_dashboard');
-if (isNewDashboardEnabled) {
-  // Show new dashboard
-}
-
-// Advanced configuration
 const service = new FeatureFlagsService({
   apiUrl: 'https://api.example.com',
   statsigClientKey: 'client-your-statsig-key',
   enableStatsig: true,
   debug: true,
-  cacheTtl: 5 * 60 * 1000, // 5 minutes
+  cacheTtl: 5 * 60 * 1000,
   maxCacheSize: 200,
 });
 ```

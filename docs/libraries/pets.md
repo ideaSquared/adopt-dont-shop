@@ -16,19 +16,23 @@ npm install @adopt-dont-shop/lib.pets
 }
 ```
 
+> **Heads-up:** Real `PetsService` methods today are `searchPets`, `getPetById`, `getFeaturedPets`, `getRecentPets`, `getPetsByRescue`, `getPetBreeds`, `getPetTypes`, `addToFavorites`, `removeFromFavorites`, `getFavorites`, `isFavorite`, `getSimilarPets`, `reportPet`, `getPetStats`. Methods like `getAllPets`, `createPet`, `updatePet`, `deletePet`, `uploadPetPhoto`, `addMedicalRecord` shown below are aspirational — verify against [`lib.pets/src/services/pets-service.ts`](../../lib.pets/src/services/pets-service.ts).
+
+A separate `PetManagementService` (and its `petManagementService` singleton) is also exported from the package for write-side operations.
+
 ## 🚀 Quick Start
 
 ```typescript
 import { PetsService, PetsServiceConfig } from '@adopt-dont-shop/lib.pets';
 
-// Using the singleton instance
-import { petsService } from '@adopt-dont-shop/lib.pets';
+// `lib.pets` does not export a `petsService` singleton — instantiate the service yourself.
+const petsService = new PetsService();
 
-// Basic pet operations
-const pets = await petsService.getAllPets({ status: 'available' });
+// Real, current operations
+const pets = await petsService.searchPets({ status: 'available' });
 const pet = await petsService.getPetById('pet_123');
 
-// Create a new pet
+// Aspirational write operations (subject to change — see source)
 const newPet = await petsService.createPet({
   name: 'Buddy',
   species: 'dog',

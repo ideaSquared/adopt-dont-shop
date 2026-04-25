@@ -16,15 +16,19 @@ npm install @adopt-dont-shop/lib.permissions
 }
 ```
 
+> **Heads-up:** `PermissionsService` today exposes constructor, `getConfig`, `updateConfig`, and `clearCache`. The richer permission-check methods documented below (`hasPermission`, `hasAnyPermission`, etc.) are aspirational. The package's main value today is its **type re-exports** from `lib.types` (`UserRole`, `Permission`, `FieldAccessLevel`, defaults). See [`lib.permissions/README.md`](../../lib.permissions/README.md) and the source for the canonical surface.
+
 ## 🚀 Quick Start
 
 ```typescript
 import { PermissionsService, PermissionsServiceConfig } from '@adopt-dont-shop/lib.permissions';
 
-// Using the singleton instance
-import { permissionsService } from '@adopt-dont-shop/lib.permissions';
+// `lib.permissions` does not export a singleton — instantiate the service yourself.
+const permissionsService = new PermissionsService({
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
+});
 
-// Basic permission check
+// Basic permission check (aspirational API)
 const canEditPets = await permissionsService.hasPermission('pets:edit');
 if (canEditPets) {
   // Allow pet editing

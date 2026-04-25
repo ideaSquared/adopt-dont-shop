@@ -16,27 +16,25 @@ npm install @adopt-dont-shop/lib.chat
 }
 ```
 
+> **Heads-up:** The detailed API reference below was written ahead of implementation. The canonical method surface lives in [`lib.chat/src/services/chat-service.ts`](../../lib.chat/src/services/chat-service.ts) and [`lib.chat/src/index.ts`](../../lib.chat/src/index.ts). Treat anything here as illustrative and verify against the source.
+
 ## 🚀 Quick Start
 
+`lib.chat` exports the `ChatService` class — instantiate it where you need it. There is no top-level `chatService` singleton exported from the package index.
+
 ```typescript
-import { ChatService, ChatServiceConfig } from '@adopt-dont-shop/lib.chat';
+import { ChatService } from '@adopt-dont-shop/lib.chat';
 
-// Using the singleton instance
-import { chatService } from '@adopt-dont-shop/lib.chat';
+const chatService = new ChatService({
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
+  debug: import.meta.env.DEV,
+});
 
-// Basic usage
-const result = await chatService.exampleMethod({ test: 'data' });
-console.log(result);
-
-// Or create a custom instance
-const config: ChatServiceConfig = {
-  apiUrl: 'https://api.example.com',
-  debug: true,
-};
-
-const customService = new ChatService(config);
-const customResult = await customService.exampleMethod({ custom: 'data' });
+chatService.connect(userId, accessToken);
+const conversations = await chatService.getConversations();
 ```
+
+Real methods on `ChatService` include `connect`, `disconnect`, `getConversations`, `getMessages`, `sendMessage`, `markAsRead`, `createConversation`, `uploadAttachment`, `addReaction`, `removeReaction`, plus event subscribers (`onMessage`, `onTyping`, …). See the source for the complete signature set.
 
 ## 🔧 Configuration
 

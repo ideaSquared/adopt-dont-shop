@@ -16,18 +16,23 @@ npm install @adopt-dont-shop/lib.search
 }
 ```
 
+> **Heads-up:** Real `SearchService` methods today are `searchPets`, `searchMessages`, `getSearchSuggestions`, `facetedSearch`, `getSearchMetrics`, `clearCache`, `getCacheStats`. The single-method `search()` / `advancedSearch()` API shown below is aspirational — verify against [`lib.search/src/services/search-service.ts`](../../lib.search/src/services/search-service.ts).
+
 ## 🚀 Quick Start
 
 ```typescript
 import { SearchService, SearchServiceConfig } from '@adopt-dont-shop/lib.search';
 
-// Using the singleton instance
-import { searchService } from '@adopt-dont-shop/lib.search';
+// `lib.search` does not export a singleton — instantiate the service yourself.
+const searchService = new SearchService({
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
+});
 
-// Basic search
-const results = await searchService.search('friendly golden retriever', {
-  types: ['pets'],
-  location: { city: 'Portland', radius: 25 },
+// Basic pet search (real method)
+const results = await searchService.searchPets({
+  type: 'dog',
+  location: 'Portland',
+  maxDistance: 25,
 });
 
 // Advanced search with filters

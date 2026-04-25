@@ -12,9 +12,7 @@ This library has been refactored to support Statsig-only feature flag management
 
 ## Migration
 
-**This library no longer contains a backend feature flag service.** All feature flags are now managed through Statsig.
-
-See [STATSIG_MIGRATION.md](../../STATSIG_MIGRATION.md) in the root directory for migration details.
+**This library no longer contains a backend feature flag service.** All feature flags are now managed through Statsig. The previous class-based `FeatureFlagsService` has been removed; consumers should use `@statsig/react-bindings` (frontend) or `statsig-node` (backend) directly, alongside the `KNOWN_GATES` / `KNOWN_CONFIGS` constants exported here.
 
 ## Usage
 
