@@ -1,3 +1,4 @@
+import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
@@ -6,6 +7,7 @@ import dts from 'vite-plugin-dts';
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
+    vanillaExtractPlugin(),
     dts({
       insertTypesEntry: true,
     }),
@@ -35,11 +37,6 @@ export default defineConfig(({ mode }) => ({
           '@radix-ui/react-tooltip',
           '@radix-ui/react-dropdown-menu',
           '@radix-ui/react-select',
-          '@radix-ui/react-dialog',
-          '@radix-ui/react-checkbox',
-          '@radix-ui/react-radio-group',
-          '@radix-ui/react-switch',
-          '@radix-ui/react-tabs',
           'clsx',
           'react-world-flags',
         ],
@@ -52,11 +49,6 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-tooltip': 'RadixTooltip',
             '@radix-ui/react-dropdown-menu': 'RadixDropdownMenu',
             '@radix-ui/react-select': 'RadixSelect',
-            '@radix-ui/react-dialog': 'RadixDialog',
-            '@radix-ui/react-checkbox': 'RadixCheckbox',
-            '@radix-ui/react-radio-group': 'RadixRadioGroup',
-            '@radix-ui/react-switch': 'RadixSwitch',
-            '@radix-ui/react-tabs': 'RadixTabs',
             clsx: 'clsx',
             'react-world-flags': 'ReactWorldFlags',
           },
