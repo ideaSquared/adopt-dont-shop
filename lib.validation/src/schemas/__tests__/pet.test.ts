@@ -82,6 +82,47 @@ describe('Pet schemas', () => {
     });
   });
 
+  describe('birthDate', () => {
+    it('coerces ISO date strings to Date in PetCreateRequestSchema', () => {
+      const parsed = PetCreateRequestSchema.parse({
+        name: 'Buddy',
+        type: 'dog',
+        gender: 'male',
+        size: 'large',
+        ageGroup: 'adult',
+        birthDate: '2024-04-15',
+      });
+      expect(parsed.birthDate).toBeInstanceOf(Date);
+    });
+
+    it('rejects a future birthDate', () => {
+      const future = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+      expect(() =>
+        PetCreateRequestSchema.parse({
+          name: 'Buddy',
+          type: 'dog',
+          gender: 'male',
+          size: 'large',
+          ageGroup: 'adult',
+          birthDate: future,
+        })
+      ).toThrow(/future/);
+    });
+
+    it('accepts isBirthDateEstimate as a boolean flag', () => {
+      const parsed = PetCreateRequestSchema.parse({
+        name: 'Buddy',
+        type: 'dog',
+        gender: 'male',
+        size: 'large',
+        ageGroup: 'adult',
+        birthDate: '2024-01-01',
+        isBirthDateEstimate: true,
+      });
+      expect(parsed.isBirthDateEstimate).toBe(true);
+    });
+  });
+
   describe('PetStatusUpdateRequestSchema', () => {
     it('requires status; reason and notes are optional', () => {
       const parsed = PetStatusUpdateRequestSchema.parse({ status: 'pending' });

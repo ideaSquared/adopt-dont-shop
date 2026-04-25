@@ -101,6 +101,14 @@ export interface PetAttributes {
   longDescription?: string | null;
   ageYears?: number | null;
   ageMonths?: number | null;
+  /**
+   * Optional date of birth — preferred over ageYears/ageMonths when set,
+   * since age computed from a fixed date doesn't drift over time. Many
+   * rescues only have an estimate, in which case isBirthDateEstimate
+   * records that the value is approximate.
+   */
+  birthDate?: Date | null;
+  isBirthDateEstimate?: boolean;
   ageGroup: AgeGroup;
   gender: Gender;
   status: PetStatus;
@@ -195,6 +203,8 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
   public longDescription!: string | null;
   public ageYears!: number | null;
   public ageMonths!: number | null;
+  public birthDate!: Date | null;
+  public isBirthDateEstimate!: boolean;
   public ageGroup!: AgeGroup;
   public gender!: Gender;
   public status!: PetStatus;
@@ -276,7 +286,22 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
     return primaryImage?.url || this.images?.[0]?.url || null;
   }
 
-  public getAgeInMonths(): number | null {
+  public getAgeInMonths(now: Date = new Date()): number | null {
+    // Prefer birthDate when set — age computed from a fixed date doesn't
+    // drift over time. Falls back to the legacy ageYears/ageMonths fields
+    // for rescues that haven't backfilled birthDate yet.
+    //
+    // DATEONLY columns surface as 'YYYY-MM-DD' strings on Postgres and
+    // sometimes as Date on SQLite; normalize either form to Date here.
+    if (this.birthDate) {
+      const birth =
+        this.birthDate instanceof Date ? this.birthDate : new Date(this.birthDate as string);
+      const months =
+        (now.getFullYear() - birth.getFullYear()) * 12 +
+        (now.getMonth() - birth.getMonth()) -
+        (now.getDate() < birth.getDate() ? 1 : 0);
+      return Math.max(0, months);
+    }
     if (this.ageYears !== null && this.ageMonths !== null) {
       return this.ageYears * 12 + this.ageMonths;
     }
@@ -286,17 +311,27 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
     return this.ageMonths;
   }
 
-  public getAgeDisplay(): string {
-    if (this.ageYears && this.ageMonths) {
-      return `${this.ageYears} years, ${this.ageMonths} months`;
+  public getAgeDisplay(now: Date = new Date()): string {
+    const totalMonths = this.getAgeInMonths(now);
+    if (totalMonths === null) {
+      return 'Age unknown';
     }
-    if (this.ageYears) {
-      return this.ageYears === 1 ? '1 year' : `${this.ageYears} years`;
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+    const prefix = this.isBirthDateEstimate ? '~' : '';
+    if (years > 0 && months > 0) {
+      return `${prefix}${years} ${years === 1 ? 'year' : 'years'}, ${months} ${
+        months === 1 ? 'month' : 'months'
+      }`;
     }
-    if (this.ageMonths) {
-      return this.ageMonths === 1 ? '1 month' : `${this.ageMonths} months`;
+    if (years > 0) {
+      return `${prefix}${years} ${years === 1 ? 'year' : 'years'}`;
     }
-    return 'Age unknown';
+    if (months > 0) {
+      return `${prefix}${months} ${months === 1 ? 'month' : 'months'}`;
+    }
+    // Newborn / under one month
+    return `${prefix}<1 month`;
   }
 
   public async incrementViewCount(): Promise<void> {
@@ -410,6 +445,28 @@ Pet.init(
         min: 0,
         max: 11,
       },
+    },
+    birthDate: {
+      // DATEONLY: a calendar date with no time-of-day component. Pets
+      // don't have a meaningful birth time, and storing one would imply
+      // a precision the data doesn't have.
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: 'birth_date',
+      validate: {
+        isDate: true,
+        isNotInFuture(value: string | null) {
+          if (value && new Date(value) > new Date()) {
+            throw new Error('Birth date cannot be in the future');
+          }
+        },
+      },
+    },
+    isBirthDateEstimate: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      field: 'is_birth_date_estimate',
+      defaultValue: false,
     },
     ageGroup: {
       type: DataTypes.ENUM(...Object.values(AgeGroup)),
