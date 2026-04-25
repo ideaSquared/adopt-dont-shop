@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, Button, Input } from '@adopt-dont-shop/lib.components';
+import { LoginRequestSchema } from '@adopt-dont-shop/lib.validation';
 import styled from 'styled-components';
-import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
 import { LoginRequest } from '../types';
 
@@ -89,10 +89,10 @@ const BackLink = styled.button`
 
 const TWO_FACTOR_REQUIRED_MESSAGE = 'Two-factor authentication code required';
 
-const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
+// Canonical schema lives in @adopt-dont-shop/lib.validation. Pick the
+// fields this form actually owns — the 2FA token is collected
+// separately and submitted only after the back-end demands it.
+const loginSchema = LoginRequestSchema.pick({ email: true, password: true });
 
 export interface LoginFormProps {
   /**

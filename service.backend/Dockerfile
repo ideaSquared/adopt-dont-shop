@@ -28,6 +28,7 @@ COPY eslint-config-node/ eslint-config-node/
 
 # Copy required shared libraries so npm ci can resolve workspace references
 COPY lib.types/ lib.types/
+COPY lib.validation/ lib.validation/
 
 # Copy backend service package files
 COPY service.backend/package*.json service.backend/
@@ -50,14 +51,19 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
-# Copy required shared libraries (lib.types has zero deps - no frontend code)
+# Copy required shared libraries (Node-side, zero frontend code)
 COPY lib.types/ lib.types/
+COPY lib.validation/ lib.validation/
 
 # Copy backend service
 COPY service.backend/ service.backend/
 
-# Build shared library first
+# Build shared libraries first
 WORKDIR /app/lib.types
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline && npm run build
+
+WORKDIR /app/lib.validation
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline && npm run build
 
@@ -67,12 +73,17 @@ WORKDIR /app/service.backend
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 
-# Copy built lib.types directly into node_modules for reliable module resolution.
-# This avoids symlink issues with partial npm workspace installations in Docker.
+# Copy built lib.types and lib.validation directly into node_modules for
+# reliable module resolution. Avoids symlink issues with partial npm
+# workspace installations in Docker.
 RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
     mkdir -p node_modules/@adopt-dont-shop/lib.types && \
     cp /app/lib.types/package.json node_modules/@adopt-dont-shop/lib.types/ && \
-    cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/
+    cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/ && \
+    rm -rf node_modules/@adopt-dont-shop/lib.validation && \
+    mkdir -p node_modules/@adopt-dont-shop/lib.validation && \
+    cp /app/lib.validation/package.json node_modules/@adopt-dont-shop/lib.validation/ && \
+    cp -r /app/lib.validation/dist node_modules/@adopt-dont-shop/lib.validation/
 
 # Expose application port
 EXPOSE 5000
@@ -93,14 +104,19 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
-# Copy required shared libraries (lib.types has zero deps - no frontend code)
+# Copy required shared libraries (Node-side, zero frontend code)
 COPY lib.types/ lib.types/
+COPY lib.validation/ lib.validation/
 
 # Copy backend service
 COPY service.backend/ service.backend/
 
-# Build shared library first (required for backend TypeScript compilation)
+# Build shared libraries first (required for backend TypeScript compilation)
 WORKDIR /app/lib.types
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline && npm run build
+
+WORKDIR /app/lib.validation
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline && npm run build
 
@@ -110,22 +126,30 @@ WORKDIR /app/service.backend
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 
-# Copy built lib.types into node_modules for TypeScript compilation
+# Copy built libs into node_modules for TypeScript compilation
 RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
     mkdir -p node_modules/@adopt-dont-shop/lib.types && \
     cp /app/lib.types/package.json node_modules/@adopt-dont-shop/lib.types/ && \
-    cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/
+    cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/ && \
+    rm -rf node_modules/@adopt-dont-shop/lib.validation && \
+    mkdir -p node_modules/@adopt-dont-shop/lib.validation && \
+    cp /app/lib.validation/package.json node_modules/@adopt-dont-shop/lib.validation/ && \
+    cp -r /app/lib.validation/dist node_modules/@adopt-dont-shop/lib.validation/
 
 # Build the application
 # Set NODE_ENV=production to use compiled library exports instead of source
 RUN NODE_ENV=production npm run build && \
     npm prune --omit=dev
 
-# Re-copy lib.types into node_modules after prune (prune removes it)
+# Re-copy libs into node_modules after prune (prune removes them)
 RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
     mkdir -p node_modules/@adopt-dont-shop/lib.types && \
     cp /app/lib.types/package.json node_modules/@adopt-dont-shop/lib.types/ && \
-    cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/
+    cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/ && \
+    rm -rf node_modules/@adopt-dont-shop/lib.validation && \
+    mkdir -p node_modules/@adopt-dont-shop/lib.validation && \
+    cp /app/lib.validation/package.json node_modules/@adopt-dont-shop/lib.validation/ && \
+    cp -r /app/lib.validation/dist node_modules/@adopt-dont-shop/lib.validation/
 
 # ============================================================================
 # PRODUCTION STAGE - Minimal image with only runtime dependencies
