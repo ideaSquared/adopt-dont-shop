@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 interface RescueAttributes {
   rescueId: string;
@@ -227,8 +228,9 @@ Rescue.init(
       defaultValue: DataTypes.NOW,
       field: 'updated_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'rescues',
     timestamps: true,
@@ -244,6 +246,7 @@ Rescue.init(
         fields: ['deleted_by'],
         name: 'rescues_deleted_by_idx',
       },
+      ...auditIndexes('rescues'),
     ],
     defaultScope: {
       where: {
@@ -260,7 +263,7 @@ Rescue.init(
         },
       },
     },
-  }
+  })
 );
 
 export default Rescue;

@@ -2,6 +2,7 @@ import { DataTypes, Model, Op, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 // Simple application status enum for small charities
 export enum ApplicationStatus {
@@ -448,8 +449,9 @@ Application.init(
       allowNull: true,
       field: 'deleted_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'applications',
     modelName: 'Application',
@@ -508,6 +510,7 @@ Application.init(
           },
         },
       },
+      ...auditIndexes('applications'),
     ],
     hooks: {
       beforeValidate: (application: Application) => {
@@ -570,7 +573,7 @@ Application.init(
         },
       },
     },
-  }
+  })
 );
 
 export default Application;

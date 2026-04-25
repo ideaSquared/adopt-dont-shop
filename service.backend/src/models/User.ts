@@ -4,6 +4,7 @@ import { hashPassword, verifyPassword } from '../utils/password';
 import { encryptSecret, hashBackupCode, hashToken } from '../utils/secrets';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 // Forward declarations to avoid circular imports
 interface Permission {
@@ -471,8 +472,9 @@ User.init(
       field: 'application_template_version',
       defaultValue: 1,
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     modelName: 'User',
     tableName: 'users',
@@ -508,6 +510,7 @@ User.init(
       {
         fields: ['created_at'],
       },
+      ...auditIndexes('users'),
     ],
     hooks: {
       // Normalize identifier fields before validation so uniqueness /
@@ -536,7 +539,7 @@ User.init(
         await protectSecretsIfChanged(user);
       },
     },
-  }
+  })
 );
 
 /**

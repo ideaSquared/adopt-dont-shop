@@ -10,6 +10,7 @@ import sequelize, {
 } from '../sequelize';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
+import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
 // Pet status enum
 export enum PetStatus {
@@ -703,8 +704,9 @@ Pet.init(
       allowNull: true,
       field: 'deleted_at',
     },
+    ...auditColumns,
   },
-  {
+  withAuditHooks({
     sequelize,
     tableName: 'pets',
     modelName: 'Pet',
@@ -774,6 +776,7 @@ Pet.init(
         using: 'gist',
         name: 'pets_location_gist_idx',
       },
+      ...auditIndexes('pets'),
     ],
     hooks: {
       beforeValidate: (pet: Pet) => {
@@ -870,7 +873,7 @@ Pet.init(
         },
       },
     },
-  }
+  })
 );
 
 export default Pet;
