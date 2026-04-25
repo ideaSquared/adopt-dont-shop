@@ -144,7 +144,7 @@ export class PetController {
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
         sortBy: ((req.query.sortBy as string) || 'createdAt')
           .replace('created_at', 'createdAt')
-          .replace('adoption_fee', 'adoptionFee'),
+          .replace('adoption_fee', 'adoptionFeeMinor'),
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
       };
 
@@ -234,7 +234,7 @@ export class PetController {
       const sanitizedBody = { ...req.body };
 
       // Handle numeric fields that might be empty strings
-      const numericFields = ['adoptionFee', 'weightKg'];
+      const numericFields = ['adoptionFeeMinor', 'weightKg'];
       numericFields.forEach(field => {
         if (
           sanitizedBody[field] === '' ||
@@ -319,7 +319,7 @@ export class PetController {
       const sanitizedBody = { ...req.body };
 
       // Handle numeric fields that might be empty strings
-      const numericFields = ['adoptionFee', 'weightKg'];
+      const numericFields = ['adoptionFeeMinor', 'weightKg'];
       numericFields.forEach(field => {
         if (
           sanitizedBody[field] === '' ||

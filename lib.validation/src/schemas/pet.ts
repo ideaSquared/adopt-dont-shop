@@ -90,7 +90,28 @@ const LongDescriptionSchema = z.string().trim().max(5000);
 const AgeYearsSchema = z.coerce.number().int().min(0).max(30);
 const AgeMonthsSchema = z.coerce.number().int().min(0).max(11);
 const WeightKgSchema = z.coerce.number().min(0.1).max(200);
-const AdoptionFeeSchema = z.coerce.number().min(0).max(10_000);
+/**
+ * Minor units (pence/cents/etc.). Integer-only — float currency is a
+ * known source of rounding bugs. Bound matches Pet.adoptionFeeMinor's
+ * column validator (1,000,000 minor units = £10,000 / $10,000).
+ */
+const AdoptionFeeMinorSchema = z.coerce.number().int().min(0).max(1_000_000);
+
+/**
+ * Major-units bound used for the search-filter range. The model
+ * column itself is minor units; this is a UX nicety for the API
+ * surface — pass £50, the service multiplies by 100.
+ */
+const AdoptionFeeMajorRangeSchema = z.coerce.number().min(0).max(10_000);
+
+/**
+ * ISO 4217 alpha-3 currency code, normalised to uppercase. Mirrors
+ * the Pet.adoptionFeeCurrency column validator.
+ */
+const CurrencyCodeSchema = z
+  .string()
+  .transform((v) => v.toUpperCase())
+  .pipe(z.string().regex(/^[A-Z]{3}$/, 'Currency must be an ISO 4217 alpha-3 code'));
 
 /**
  * Birth date — coerce-on-input (accepts ISO strings or Date), refuse
@@ -155,7 +176,11 @@ export const PetCreateRequestSchema = z.object({
   weightKg: WeightKgSchema.optional(),
   shortDescription: ShortDescriptionSchema.optional(),
   longDescription: LongDescriptionSchema.optional(),
-  adoptionFee: AdoptionFeeSchema.optional(),
+  // Money: integer minor units + ISO 4217 currency code (plan 3.2 /
+  // 5.5.8). Float DECIMAL is gone — no rounding surprises, no
+  // implicit-currency ambiguity.
+  adoptionFeeMinor: AdoptionFeeMinorSchema.optional(),
+  adoptionFeeCurrency: CurrencyCodeSchema.optional(),
   energyLevel: EnergyLevelSchema.optional(),
   vaccinationStatus: VaccinationStatusSchema.optional(),
   spayNeuterStatus: SpayNeuterStatusSchema.optional(),
@@ -224,8 +249,8 @@ export const PetSearchFiltersSchema = z.object({
   specialNeeds: z.coerce.boolean().optional(),
   featured: z.coerce.boolean().optional(),
   archived: z.coerce.boolean().optional(),
-  adoptionFeeMin: AdoptionFeeSchema.optional(),
-  adoptionFeeMax: AdoptionFeeSchema.optional(),
+  adoptionFeeMin: AdoptionFeeMajorRangeSchema.optional(),
+  adoptionFeeMax: AdoptionFeeMajorRangeSchema.optional(),
   weightMin: WeightKgSchema.optional(),
   weightMax: WeightKgSchema.optional(),
   ageMin: AgeYearsSchema.optional(),
@@ -242,7 +267,7 @@ export const PetSearchSortBySchema = z.enum([
   'name',
   'ageYears',
   'createdAt',
-  'adoptionFee',
+  'adoptionFeeMinor',
   'distance',
 ]);
 export type PetSearchSortBy = z.infer<typeof PetSearchSortBySchema>;
@@ -309,7 +334,8 @@ export const PetProfileSchema = z.object({
   weightKg: WeightKgSchema.nullable().optional(),
   shortDescription: ShortDescriptionSchema.nullable().optional(),
   longDescription: LongDescriptionSchema.nullable().optional(),
-  adoptionFee: AdoptionFeeSchema.nullable().optional(),
+  adoptionFeeMinor: AdoptionFeeMinorSchema.nullable().optional(),
+  adoptionFeeCurrency: CurrencyCodeSchema.nullable().optional(),
   energyLevel: EnergyLevelSchema.optional(),
   vaccinationStatus: VaccinationStatusSchema.optional(),
   spayNeuterStatus: SpayNeuterStatusSchema.optional(),
