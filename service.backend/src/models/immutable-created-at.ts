@@ -36,6 +36,16 @@ export const installImmutableCreatedAtTrigger = (
   const tableName = typeof rawTable === 'string' ? rawTable : rawTable.tableName;
   const triggerName = `${tableName}_created_at_immutable`;
 
+  // The DB column name is whatever Sequelize mapped the createdAt timestamp
+  // to. With `underscored: true` it's `created_at`, but a handful of legacy
+  // models (ModeratorAction, Report, Rescue, UserSanction) override
+  // `createdAt: 'createdAt'` to keep the column camelCase — the slice 1.3
+  // naming-convention cleanup will normalise that, but until then we
+  // honour whatever the model declares.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const createdAtAttr = (model.rawAttributes as Record<string, any>).createdAt;
+  const createdAtColumn = createdAtAttr?.field ?? 'created_at';
+
   model.addHook('afterSync', async () => {
     if (sequelize.getDialect() !== 'postgres') {
       return;
@@ -72,7 +82,7 @@ export const installImmutableCreatedAtTrigger = (
     await sequelize.query(`
       CREATE TRIGGER ${triggerName}
       BEFORE UPDATE ON "${tableName}"
-      FOR EACH ROW WHEN (OLD."created_at" IS DISTINCT FROM NEW."created_at")
+      FOR EACH ROW WHEN (OLD."${createdAtColumn}" IS DISTINCT FROM NEW."${createdAtColumn}")
       EXECUTE FUNCTION raise_immutable_created_at();
     `);
   });
