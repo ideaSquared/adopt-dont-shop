@@ -111,7 +111,9 @@ const models = {
 // that has timestamps enabled. Postgres-only; SQLite tests no-op. See
 // plan 5.5.10 — defence in depth so a stray hook or raw UPDATE can't
 // rewrite a row's birthday.
-installImmutableCreatedAtTriggers(Object.values(models));
+// TEMPORARILY DISABLED to bisect Test Docker Compose Stack failure (PR #131).
+// installImmutableCreatedAtTriggers(Object.values(models));
+void installImmutableCreatedAtTriggers;
 
 // Setup associations (done explicitly below instead of using associate methods)
 // Wrapped in try-catch to handle cases where associations are set up multiple times (e.g., in tests with mocks)
