@@ -21,7 +21,9 @@ import { logger } from './utils/logger';
 import { printEnvironmentInfo, validateEnvironment } from './utils/validate-env';
 
 // Import models to ensure they're loaded
-import './models';
+import models from './models';
+import { installImmutableCreatedAtTriggers } from './models/immutable-created-at';
+import { installIsoCheckConstraints } from './models/iso-check-constraints';
 
 // Import routes
 import adminRoutes from './routes/admin.routes';
@@ -457,10 +459,11 @@ const startServer = async () => {
 
         // DB-level invariants that aren't expressible in Sequelize models.
         // Idempotent and Postgres-gated; safe to run on every boot path
-        // (force-seed, fresh DB, warm reload).
-        const { installImmutableCreatedAtTriggers } = await import('./models/immutable-created-at');
-        const models = (await import('./models')).default;
-        await installImmutableCreatedAtTriggers(Object.values(models));
+        // (force-seed, fresh DB, warm reload). Independent — run in parallel.
+        await Promise.all([
+          installImmutableCreatedAtTriggers(Object.values(models)),
+          installIsoCheckConstraints(),
+        ]);
       } catch (error) {
         logger.error('Failed to sync database models:', error);
         throw error;
