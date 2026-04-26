@@ -1,6 +1,7 @@
 import express from 'express';
 import { ChatController } from '../controllers/chat.controller';
 import { authenticateToken } from '../middleware/auth';
+import { idempotency } from '../middleware/idempotency';
 import { requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter, uploadLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
@@ -547,6 +548,7 @@ router.delete(
 router.post(
   '/:chatId/messages',
   authLimiter,
+  idempotency,
   chatValidation.sendMessage,
   handleValidationErrors,
   ChatController.sendMessage
