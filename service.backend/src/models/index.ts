@@ -5,6 +5,7 @@ import ApplicationTimeline from './ApplicationTimeline';
 import Pet from './Pet';
 import PetStatusTransition from './PetStatusTransition';
 import Rescue from './Rescue';
+import RescueSettings from './RescueSettings';
 import User from './User';
 import UserFavorite from './UserFavorite';
 import UserApplicationPrefs from './UserApplicationPrefs';
@@ -73,6 +74,7 @@ const models = {
   UserPrivacyPrefs,
   UserApplicationPrefs,
   Rescue,
+  RescueSettings,
   Pet,
   PetStatusTransition,
   Application,
@@ -214,6 +216,11 @@ try {
     as: 'CreatedBy',
     constraints: false,
   });
+
+  // RescueSettings association (1:1, auto-created via Rescue.afterCreate
+  // hook). Plan 5.6.
+  Rescue.hasOne(RescueSettings, { foreignKey: 'rescue_id', as: 'Settings' });
+  RescueSettings.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
 
   Rescue.hasMany(Application, { foreignKey: 'rescue_id', as: 'RescueApplications' });
   Application.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
@@ -474,6 +481,7 @@ export {
   Report,
   ReportStatusTransition,
   Rescue,
+  RescueSettings,
   Role,
   RolePermission,
   StaffMember,
