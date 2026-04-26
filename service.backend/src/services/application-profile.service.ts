@@ -1,4 +1,5 @@
 import User from '../models/User';
+import UserApplicationPrefs from '../models/UserApplicationPrefs';
 import {
   ApplicationDefaults,
   ApplicationPreferences,
@@ -108,21 +109,18 @@ export class ApplicationProfileService {
    */
   static async getApplicationPreferences(userId: string): Promise<ApplicationPreferences> {
     try {
-      const user = await User.findByPk(userId, {
-        attributes: ['applicationPreferences'],
-      });
-
+      const user = await User.findByPk(userId, { attributes: ['userId'] });
       if (!user) {
         throw new Error('User not found');
       }
-
-      return (
-        (user.applicationPreferences as unknown as ApplicationPreferences) || {
-          auto_populate: true,
-          quick_apply_enabled: false,
-          completion_reminders: true,
-        }
-      );
+      // Plan 5.6: prefs live in user_application_prefs. Auto-created
+      // by User.afterCreate; findOrCreate is defensive against
+      // pre-existing users.
+      const [row] = await UserApplicationPrefs.findOrCreate({
+        where: { user_id: userId },
+        defaults: { user_id: userId },
+      });
+      return prefsRowToApi(row);
     } catch (error) {
       logger.error('Error getting application preferences:', error);
       throw error;
@@ -151,23 +149,20 @@ export class ApplicationProfileService {
     request: UpdateApplicationPreferencesRequest
   ): Promise<ApplicationPreferences> {
     try {
-      const user = await User.findByPk(userId);
-
+      const user = await User.findByPk(userId, { attributes: ['userId'] });
       if (!user) {
         throw new Error('User not found');
       }
 
-      // Merge with existing preferences
-      const currentPreferences =
-        (user.applicationPreferences as unknown as ApplicationPreferences) || {};
-      const updatedPreferences = { ...currentPreferences, ...request.applicationPreferences };
-
-      await user.update({
-        applicationPreferences: updatedPreferences,
+      const [row] = await UserApplicationPrefs.findOrCreate({
+        where: { user_id: userId },
+        defaults: { user_id: userId },
       });
+      await row.update(apiPatchToPrefsRow(request.applicationPreferences));
+      await row.reload();
 
       logger.info('Application preferences updated successfully', { userId });
-      return updatedPreferences;
+      return prefsRowToApi(row);
     } catch (error) {
       logger.error('Error updating application preferences:', error);
       throw error;
@@ -559,4 +554,50 @@ export class ApplicationProfileService {
 
     return nextSteps;
   }
+}
+
+/**
+ * Project a UserApplicationPrefs row into the legacy API shape (which
+ * uses the old JSONB key names).
+ */
+function prefsRowToApi(row: UserApplicationPrefs): ApplicationPreferences {
+  return {
+    auto_populate: row.auto_fill_profile,
+    quick_apply_enabled: row.remember_answers,
+    completion_reminders: row.completion_reminders,
+  } as ApplicationPreferences;
+}
+
+/**
+ * Map an API-side preferences patch to the column-named partial accepted
+ * by UserApplicationPrefs.update(). New plan-spec fields
+ * (share_with_rescues, default_household_size) aren't yet in the API
+ * contract — they'll get added in a follow-up alongside the
+ * applicationDefaults split.
+ */
+function apiPatchToPrefsRow(input: Partial<ApplicationPreferences>): Partial<{
+  auto_fill_profile: boolean;
+  remember_answers: boolean;
+  completion_reminders: boolean;
+}> {
+  const out: Partial<{
+    auto_fill_profile: boolean;
+    remember_answers: boolean;
+    completion_reminders: boolean;
+  }> = {};
+  const i = input as {
+    auto_populate?: boolean;
+    quick_apply_enabled?: boolean;
+    completion_reminders?: boolean;
+  };
+  if (i.auto_populate !== undefined) {
+    out.auto_fill_profile = i.auto_populate;
+  }
+  if (i.quick_apply_enabled !== undefined) {
+    out.remember_answers = i.quick_apply_enabled;
+  }
+  if (i.completion_reminders !== undefined) {
+    out.completion_reminders = i.completion_reminders;
+  }
+  return out;
 }

@@ -7,6 +7,7 @@ import PetStatusTransition from './PetStatusTransition';
 import Rescue from './Rescue';
 import User from './User';
 import UserFavorite from './UserFavorite';
+import UserApplicationPrefs from './UserApplicationPrefs';
 import UserNotificationPrefs from './UserNotificationPrefs';
 import UserPrivacyPrefs from './UserPrivacyPrefs';
 
@@ -70,6 +71,7 @@ const models = {
   UserFavorite,
   UserNotificationPrefs,
   UserPrivacyPrefs,
+  UserApplicationPrefs,
   Rescue,
   Pet,
   PetStatusTransition,
@@ -409,6 +411,11 @@ try {
   User.hasOne(UserPrivacyPrefs, { foreignKey: 'user_id', as: 'PrivacyPrefs' });
   UserPrivacyPrefs.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
+  // UserApplicationPrefs association (1:1, auto-created via
+  // User.afterCreate hook). Plan 5.6.
+  User.hasOne(UserApplicationPrefs, { foreignKey: 'user_id', as: 'ApplicationPrefs' });
+  UserApplicationPrefs.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+
   // UserFavorite associations
   User.hasMany(UserFavorite, { foreignKey: 'user_id', as: 'Favorites' });
   UserFavorite.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
@@ -478,6 +485,7 @@ export {
   UserFavorite,
   UserNotificationPrefs,
   UserPrivacyPrefs,
+  UserApplicationPrefs,
   UserRole,
   UserSanction,
   Content,

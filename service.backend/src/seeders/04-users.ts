@@ -283,16 +283,8 @@ export async function seedUsers() {
                 })
               )
             : null,
-        applicationPreferences:
-          userData.userType === UserType.ADOPTER
-            ? JSON.parse(
-                JSON.stringify({
-                  auto_populate: true,
-                  quick_apply_enabled: true,
-                  completion_reminders: true,
-                })
-              )
-            : undefined,
+        // applicationPreferences moved to user_application_prefs (plan
+        // 5.6) — auto-created by User.afterCreate hook; defaults stand in.
         profileCompletionStatus:
           userData.userType === UserType.ADOPTER
             ? JSON.parse(
