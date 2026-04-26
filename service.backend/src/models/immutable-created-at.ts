@@ -12,10 +12,14 @@ import sequelize from '../sequelize';
  * one per model) so the shared trigger function is created exactly once
  * and the per-table installation walks the model registry in a single
  * pass. The WHEN clause means normal UPDATEs pay only dispatch overhead;
- * only created_at-touching UPDATEs raise (SQLSTATE 23000).
+ * only created_at-touching UPDATEs raise.
  *
  * Idempotent: pg_trigger lookup short-circuits if the trigger already
  * exists, so repeat sync() calls don't churn.
+ *
+ * Errors during installation are logged but not re-thrown — the trigger
+ * is defence in depth, not a hard correctness requirement; we don't want
+ * a hook bug to take down backend boot.
  */
 export const installImmutableCreatedAtTriggers = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,14 +30,20 @@ export const installImmutableCreatedAtTriggers = (
       return;
     }
 
-    await sequelize.query(`
-      CREATE OR REPLACE FUNCTION raise_immutable_created_at() RETURNS trigger AS $$
-      BEGIN
-        RAISE EXCEPTION 'created_at is immutable on table %', TG_TABLE_NAME
-          USING ERRCODE = 'integrity_constraint_violation';
-      END;
-      $$ LANGUAGE plpgsql;
-    `);
+    try {
+      await sequelize.query(`
+        CREATE OR REPLACE FUNCTION raise_immutable_created_at() RETURNS trigger AS $$
+        BEGIN
+          RAISE EXCEPTION 'created_at is immutable on table %', TG_TABLE_NAME
+            USING ERRCODE = 'integrity_constraint_violation';
+        END;
+        $$ LANGUAGE plpgsql;
+      `);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[immutable-created-at] failed to create function:', err);
+      return;
+    }
 
     for (const model of models) {
       // Models with timestamps:false (audit_logs, *_status_transitions)
@@ -47,25 +57,30 @@ export const installImmutableCreatedAtTriggers = (
       const tableName = typeof rawTable === 'string' ? rawTable : rawTable.tableName;
       const triggerName = `${tableName}_created_at_immutable`;
 
-      const existing = await sequelize.query<{ tgname: string }>(
-        `SELECT t.tgname FROM pg_trigger t
-         JOIN pg_class c ON c.oid = t.tgrelid
-         WHERE c.relname = :table AND t.tgname = :trigger`,
-        {
-          replacements: { table: tableName, trigger: triggerName },
-          type: QueryTypes.SELECT,
+      try {
+        const existing = await sequelize.query<{ tgname: string }>(
+          `SELECT t.tgname FROM pg_trigger t
+           JOIN pg_class c ON c.oid = t.tgrelid
+           WHERE c.relname = :table AND t.tgname = :trigger`,
+          {
+            replacements: { table: tableName, trigger: triggerName },
+            type: QueryTypes.SELECT,
+          }
+        );
+        if (existing.length > 0) {
+          continue;
         }
-      );
-      if (existing.length > 0) {
-        continue;
-      }
 
-      await sequelize.query(`
-        CREATE TRIGGER ${triggerName}
-        BEFORE UPDATE ON "${tableName}"
-        FOR EACH ROW WHEN (OLD."created_at" IS DISTINCT FROM NEW."created_at")
-        EXECUTE FUNCTION raise_immutable_created_at();
-      `);
+        await sequelize.query(`
+          CREATE TRIGGER ${triggerName}
+          BEFORE UPDATE ON "${tableName}"
+          FOR EACH ROW WHEN (OLD."created_at" IS DISTINCT FROM NEW."created_at")
+          EXECUTE FUNCTION raise_immutable_created_at();
+        `);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(`[immutable-created-at] failed on ${tableName}:`, err);
+      }
     }
   });
 };
