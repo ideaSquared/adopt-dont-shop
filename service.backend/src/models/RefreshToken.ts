@@ -88,8 +88,6 @@ RefreshToken.init(
     modelName: 'RefreshToken',
     timestamps: true,
     underscored: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
     indexes: [
       { fields: ['user_id'], name: 'refresh_tokens_user_id_idx' },
       { fields: ['family_id'], name: 'refresh_tokens_family_id_idx' },

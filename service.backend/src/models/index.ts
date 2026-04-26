@@ -61,6 +61,8 @@ import FieldPermission from './FieldPermission';
 import Content from './Content';
 import NavigationMenu from './NavigationMenu';
 
+import { installImmutableCreatedAtTriggers } from './immutable-created-at';
+
 // Define all models
 const models = {
   User,
@@ -104,6 +106,14 @@ const models = {
   Content,
   NavigationMenu,
 };
+
+// Install the BEFORE UPDATE trigger that locks created_at on every model
+// that has timestamps enabled. Postgres-only; SQLite tests no-op. See
+// plan 5.5.10 — defence in depth so a stray hook or raw UPDATE can't
+// rewrite a row's birthday.
+// TEMPORARILY DISABLED to bisect Test Docker Compose Stack failure (PR #131).
+// installImmutableCreatedAtTriggers(Object.values(models));
+void installImmutableCreatedAtTriggers;
 
 // Setup associations (done explicitly below instead of using associate methods)
 // Wrapped in try-catch to handle cases where associations are set up multiple times (e.g., in tests with mocks)

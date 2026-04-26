@@ -293,8 +293,6 @@ Report.init(
     tableName: 'reports',
     timestamps: true,
     underscored: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
     indexes: [
       {
         name: 'reports_reporter_id_idx',

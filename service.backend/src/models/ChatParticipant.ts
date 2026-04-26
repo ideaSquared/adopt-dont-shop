@@ -95,8 +95,6 @@ ChatParticipant.init(
     sequelize,
     tableName: 'chat_participants',
     modelName: 'ChatParticipant',
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
     underscored: true,
     indexes: [
       {
