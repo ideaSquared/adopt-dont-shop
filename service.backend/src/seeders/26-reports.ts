@@ -1,9 +1,11 @@
 import Report, { ReportStatus, ReportCategory, ReportSeverity } from '../models/Report';
+import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/ModerationEvidence';
 import User from '../models/User';
 import Pet from '../models/Pet';
 import Rescue from '../models/Rescue';
 import Chat from '../models/Chat';
 import Message from '../models/Message';
+import { generateUuidV7 } from '../utils/uuid';
 import { JsonObject, JsonValue } from '../types/common';
 
 export async function seedReports() {
@@ -291,14 +293,39 @@ export async function seedReports() {
       return cleaned;
     };
 
-    await Report.bulkCreate(
-      validReports.map(report => ({
-        ...report,
-        evidence: report.evidence || [],
-        metadata: cleanMetadata(report.metadata || {}),
+    // Evidence rows live in moderation_evidence (plan 2.1). Generate
+    // report IDs upfront so the evidence rows can reference them in
+    // the same bulk insert without a follow-up SELECT.
+    const reportsWithEvidence = validReports.map(report => {
+      const { evidence, ...rest } = report as typeof report & { evidence?: unknown[] };
+      return {
+        reportId: generateUuidV7(),
+        fields: { ...rest, metadata: cleanMetadata(report.metadata || {}) },
+        evidence:
+          (evidence as Array<{
+            type: string;
+            content: string;
+            description?: string;
+          }>) || [],
+      };
+    });
+    await Report.bulkCreate(reportsWithEvidence.map(r => ({ ...r.fields, reportId: r.reportId })));
+    const evidenceRows = reportsWithEvidence.flatMap(r =>
+      r.evidence.map(e => ({
+        parent_type: EvidenceParentType.REPORT,
+        parent_id: r.reportId,
+        type: e.type as EvidenceType,
+        content: e.content,
+        description: e.description ?? null,
+        uploaded_at: new Date(),
       }))
     );
-    console.log(`✅ Created ${validReports.length} moderation reports`);
+    if (evidenceRows.length > 0) {
+      await ModerationEvidence.bulkCreate(evidenceRows);
+    }
+    console.log(
+      `✅ Created ${validReports.length} moderation reports + ${evidenceRows.length} evidence rows`
+    );
   } catch (error) {
     console.error('Error seeding reports:', error);
     throw error;

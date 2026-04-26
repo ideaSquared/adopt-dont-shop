@@ -1,5 +1,6 @@
 import { Op, Transaction, WhereOptions } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
+import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/ModerationEvidence';
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
 import ReportStatusTransition from '../models/ReportStatusTransition';
 import User from '../models/User';
@@ -110,11 +111,14 @@ class ModerationService {
         throw new Error('You have already submitted a report for this content');
       }
 
-      // Create the report
+      // Evidence rows live in moderation_evidence (plan 2.1) — pull
+      // them off the create payload and insert separately after the
+      // report is persisted.
+      const { evidence, ...reportFields } = reportData;
       const report = await Report.create(
         {
           reporterId,
-          ...reportData,
+          ...reportFields,
           status: ReportStatus.PENDING,
           severity: reportData.severity || ReportSeverity.MEDIUM,
           metadata: {
@@ -124,6 +128,20 @@ class ModerationService {
         },
         { transaction }
       );
+
+      if (evidence && evidence.length > 0) {
+        await ModerationEvidence.bulkCreate(
+          evidence.map(e => ({
+            parent_type: EvidenceParentType.REPORT,
+            parent_id: report.reportId,
+            type: e.type as EvidenceType,
+            content: e.content,
+            description: e.description ?? null,
+            uploaded_at: new Date(),
+          })),
+          { transaction }
+        );
+      }
 
       // Seed the transition log with the initial status — same shape as
       // ApplicationStatusTransition's `null → SUBMITTED` row.
@@ -382,16 +400,32 @@ class ModerationService {
         ? new Date(Date.now() + actionData.duration * 60 * 60 * 1000)
         : undefined;
 
+      // Evidence rows live in moderation_evidence (plan 2.1).
+      const { evidence, ...actionFields } = actionData;
       const action = await ModeratorAction.create(
         {
           moderatorId,
-          ...actionData,
+          ...actionFields,
           expiresAt,
           isActive: true,
           notificationSent: false,
         },
         { transaction }
       );
+
+      if (evidence && evidence.length > 0) {
+        await ModerationEvidence.bulkCreate(
+          evidence.map(e => ({
+            parent_type: EvidenceParentType.MODERATOR_ACTION,
+            parent_id: action.actionId,
+            type: e.type as EvidenceType,
+            content: e.content,
+            description: e.description ?? null,
+            uploaded_at: new Date(),
+          })),
+          { transaction }
+        );
+      }
 
       // Update related report if provided
       if (actionData.reportId) {

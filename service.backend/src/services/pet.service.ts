@@ -1771,7 +1771,8 @@ export class PetService {
         throw new Error('Pet not found');
       }
 
-      // Create the report
+      // Create the report. Evidence (if any) lives in moderation_evidence
+      // (plan 2.1) — the pet-flag flow currently doesn't attach any.
       const report = await Report.create({
         reportedEntityType: 'pet',
         reportedEntityId: petId,
@@ -1781,7 +1782,6 @@ export class PetService {
         description: description || 'No description provided',
         status: ReportStatus.PENDING,
         severity: ReportSeverity.MEDIUM, // Default severity
-        evidence: [], // Required field, empty array for now
       });
 
       logger.info(`Pet ${petId} reported by user ${reportedBy} for reason: ${reason}`);
