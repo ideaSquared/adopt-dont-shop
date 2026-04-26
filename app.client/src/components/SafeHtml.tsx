@@ -1,3 +1,4 @@
+/* eslint-disable react/no-danger -- This component is the single authorised user of dangerouslySetInnerHTML; DOMPurify.sanitize is always called before injection */
 import DOMPurify from 'dompurify';
 
 type SafeHtmlProps = {
@@ -5,7 +6,6 @@ type SafeHtmlProps = {
   className?: string;
 };
 
-// eslint-disable-next-line react/no-danger -- sanitization is enforced by this component; all callers go through DOMPurify
 export const SafeHtml = ({ html, className }: SafeHtmlProps) => (
   <div className={className} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />
 );
