@@ -61,7 +61,7 @@ import FieldPermission from './FieldPermission';
 import Content from './Content';
 import NavigationMenu from './NavigationMenu';
 
-import { installImmutableCreatedAtTrigger } from './immutable-created-at';
+import { installImmutableCreatedAtTriggers } from './immutable-created-at';
 
 // Define all models
 const models = {
@@ -108,11 +108,10 @@ const models = {
 };
 
 // Install the BEFORE UPDATE trigger that locks created_at on every model
-// that has timestamps enabled. The helper is a no-op on SQLite and on
-// models with timestamps:false (audit_logs, *_status_transitions). See
+// that has timestamps enabled. Postgres-only; SQLite tests no-op. See
 // plan 5.5.10 — defence in depth so a stray hook or raw UPDATE can't
 // rewrite a row's birthday.
-Object.values(models).forEach(model => installImmutableCreatedAtTrigger(model));
+installImmutableCreatedAtTriggers(Object.values(models));
 
 // Setup associations (done explicitly below instead of using associate methods)
 // Wrapped in try-catch to handle cases where associations are set up multiple times (e.g., in tests with mocks)

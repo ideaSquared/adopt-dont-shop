@@ -6,7 +6,7 @@ import User from '../../models/User';
 
 /**
  * The BEFORE UPDATE trigger that locks created_at (plan 5.5.10) only
- * exists on Postgres — installImmutableCreatedAtTrigger short-circuits
+ * exists on Postgres — installImmutableCreatedAtTriggers short-circuits
  * on SQLite to keep the in-memory test path simple. The trigger contract
  * is exercised by the Postgres branch below, gated on the dialect; the
  * SQLite branch just confirms the helper installs cleanly (a thrown
