@@ -9,6 +9,7 @@ import ChatParticipant from '../models/ChatParticipant';
 import Permission from '../models/Permission';
 import User, { UserStatus, UserType } from '../models/User';
 import UserFavorite from '../models/UserFavorite';
+import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import sequelize from '../sequelize';
 import {
   BulkUserUpdateData,
@@ -427,20 +428,19 @@ export class UserService {
         throw new Error('User not found');
       }
 
-      // Merge with existing preferences
-      const updatedNotificationPreferences = {
-        ...user.notificationPreferences,
-        ...preferences,
-      };
-
+      // Privacy settings are still on the user row (plan 5.6 will move
+      // them in a follow-up slice).
       const updatedPrivacySettings = preferences.privacySettings
         ? { ...user.privacySettings, ...preferences.privacySettings }
         : user.privacySettings;
+      await user.update({ privacySettings: updatedPrivacySettings });
 
-      await user.update({
-        notificationPreferences: updatedNotificationPreferences,
-        privacySettings: updatedPrivacySettings,
+      // Notification prefs live in user_notification_prefs (plan 5.6).
+      const [prefs] = await UserNotificationPrefs.findOrCreate({
+        where: { user_id: userId },
+        defaults: { user_id: userId },
       });
+      await prefs.update(userPrefsToPrefsRowPatch(preferences));
 
       // Log the preference update
       await AuditLogService.log({
@@ -481,22 +481,24 @@ export class UserService {
         throw new Error('User not found');
       }
 
-      const notificationPrefs =
-        (user.notificationPreferences as Record<string, unknown> | null) || {};
+      const [prefsRow] = await UserNotificationPrefs.findOrCreate({
+        where: { user_id: userId },
+        defaults: { user_id: userId },
+      });
       const privacySettings = (user.privacySettings as Record<string, unknown> | null) || {};
 
       if (loggerHelpers && loggerHelpers.logDatabase) {
         loggerHelpers.logDatabase('READ', {
           userId,
           duration: Date.now() - startTime,
-          found: !!notificationPrefs && !!privacySettings,
+          found: true,
         });
       }
 
       return {
-        emailNotifications: Boolean(notificationPrefs.emailNotifications),
-        pushNotifications: Boolean(notificationPrefs.pushNotifications),
-        smsNotifications: Boolean(notificationPrefs.smsNotifications),
+        emailNotifications: prefsRow.email_enabled,
+        pushNotifications: prefsRow.push_enabled,
+        smsNotifications: prefsRow.sms_enabled,
         privacySettings: {
           profileVisibility:
             (privacySettings.profileVisibility as 'public' | 'private' | 'friends') || 'public',
@@ -534,20 +536,15 @@ export class UserService {
         },
       };
 
-      const defaultNotificationPrefs = {
-        emailNotifications: defaultPreferences.emailNotifications || false,
-        pushNotifications: defaultPreferences.pushNotifications || false,
-        smsNotifications: defaultPreferences.smsNotifications || false,
-        applicationUpdates: true,
-        chatMessages: true,
-        petAlerts: true,
-        rescueUpdates: true,
-      };
-
       await user.update({
-        notificationPreferences: JSON.parse(JSON.stringify(defaultNotificationPrefs)),
         privacySettings: JSON.parse(JSON.stringify(defaultPreferences.privacySettings)),
       });
+
+      // Reset notification prefs by destroying + recreating the row so the
+      // table-level DB defaults stand in (one source of truth for what
+      // "default" means).
+      await UserNotificationPrefs.destroy({ where: { user_id: userId } });
+      await UserNotificationPrefs.create({ user_id: userId });
 
       // Log the preference reset
       await AuditLogService.log({
@@ -1518,6 +1515,65 @@ export class UserService {
       throw error;
     }
   }
+}
+
+/**
+ * Map the camelCase UserPreferences shape used by the user-facing API
+ * (emailNotifications/pushNotifications/etc) to the column-named partial
+ * accepted by UserNotificationPrefs.update(). Privacy keys are skipped —
+ * those still live on User.
+ */
+function userPrefsToPrefsRowPatch(input: UserPreferences): Partial<{
+  email_enabled: boolean;
+  push_enabled: boolean;
+  sms_enabled: boolean;
+  application_updates: boolean;
+  chat_messages: boolean;
+  pet_matches: boolean;
+  rescue_updates: boolean;
+}> {
+  const np = (input as unknown as { notificationPreferences?: Record<string, boolean | undefined> })
+    .notificationPreferences;
+  const out: Partial<{
+    email_enabled: boolean;
+    push_enabled: boolean;
+    sms_enabled: boolean;
+    application_updates: boolean;
+    chat_messages: boolean;
+    pet_matches: boolean;
+    rescue_updates: boolean;
+  }> = {};
+  if (input.emailNotifications !== undefined) {
+    out.email_enabled = input.emailNotifications;
+  }
+  if (input.pushNotifications !== undefined) {
+    out.push_enabled = input.pushNotifications;
+  }
+  if (input.smsNotifications !== undefined) {
+    out.sms_enabled = input.smsNotifications;
+  }
+  if (np?.emailNotifications !== undefined) {
+    out.email_enabled = np.emailNotifications;
+  }
+  if (np?.pushNotifications !== undefined) {
+    out.push_enabled = np.pushNotifications;
+  }
+  if (np?.smsNotifications !== undefined) {
+    out.sms_enabled = np.smsNotifications;
+  }
+  if (np?.applicationUpdates !== undefined) {
+    out.application_updates = np.applicationUpdates;
+  }
+  if (np?.chatMessages !== undefined) {
+    out.chat_messages = np.chatMessages;
+  }
+  if (np?.petAlerts !== undefined) {
+    out.pet_matches = np.petAlerts;
+  }
+  if (np?.rescueUpdates !== undefined) {
+    out.rescue_updates = np.rescueUpdates;
+  }
+  return out;
 }
 
 export default UserService;

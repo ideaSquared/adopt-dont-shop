@@ -59,12 +59,8 @@ export class AuthService {
           allowMessages: true,
           showAdoptionHistory: false,
         },
-        notificationPreferences: {
-          emailNotifications: true,
-          pushNotifications: true,
-          smsNotifications: false,
-          marketingEmails: true,
-        },
+        // Notification prefs auto-created by User.afterCreate hook
+        // (plan 5.6) — defaults stand in.
       });
 
       // Log registration with enhanced context
