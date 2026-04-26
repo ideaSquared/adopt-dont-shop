@@ -521,6 +521,7 @@ EmailTemplate.init(
         fields: ['tags'],
         using: 'gin',
       },
+      { fields: ['deleted_at'], name: 'email_templates_deleted_at_idx' },
       ...auditIndexes('email_templates'),
     ],
   })

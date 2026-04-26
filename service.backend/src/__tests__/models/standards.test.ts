@@ -158,6 +158,45 @@ describe('Model Standards', () => {
         `Models with both paranoid and isDeleted — ${failures.join(', ')}`
       ).toHaveLength(0);
     });
+
+    // paranoid: true filters every find on `deleted_at IS NULL`. Without
+    // an index Postgres can't use it to skip soft-deleted rows; the
+    // alternative is a sequential scan on every lookup (plan 4.4).
+    //
+    // The check is whitelist-driven rather than blanket because the global
+    // sequelize.define.paranoid: true gives every model a deleted_at
+    // column it might not actually want. The whitelist tracks the models
+    // that explicitly opt into soft-delete and need the index to back it;
+    // sorting which inherited-paranoid models truly want soft-delete vs
+    // which should opt out via paranoid: false is a separate slice.
+    const PARANOID_MODELS = [
+      'User',
+      'Pet',
+      'Application',
+      'ApplicationQuestion',
+      'Rescue',
+      'Notification',
+      'DeviceToken',
+      'Content',
+      'EmailTemplate',
+      'StaffMember',
+      'SupportTicketResponse',
+      'UserFavorite',
+    ];
+
+    it.each(PARANOID_MODELS)('%s has a deleted_at index', name => {
+      const model = sequelize.models[name];
+      expect(model, `${name} not registered`).toBeDefined();
+      const opts = (
+        model as unknown as {
+          options: { indexes?: Array<{ fields: Array<string | { name: string }> }> };
+        }
+      ).options;
+      const indexedCols = new Set(
+        (opts.indexes ?? []).flatMap(i => i.fields.map(f => (typeof f === 'string' ? f : f.name)))
+      );
+      expect(indexedCols.has('deleted_at'), `${name} missing deleted_at index`).toBe(true);
+    });
   });
 
   describe('audit columns', () => {

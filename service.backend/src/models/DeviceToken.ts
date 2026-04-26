@@ -182,6 +182,7 @@ DeviceToken.init(
           deleted_at: null,
         },
       },
+      { fields: ['deleted_at'], name: 'device_tokens_deleted_at_idx' },
     ],
     hooks: {
       beforeValidate: (deviceToken: DeviceToken) => {

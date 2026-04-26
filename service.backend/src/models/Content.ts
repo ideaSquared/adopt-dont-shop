@@ -278,6 +278,7 @@ Content.init(
       { fields: ['last_modified_by'] },
       { fields: ['published_at'] },
       { fields: ['scheduled_publish_at'] },
+      { fields: ['deleted_at'], name: 'cms_content_deleted_at_idx' },
       ...auditIndexes('cms_content'),
     ],
   })

@@ -401,6 +401,7 @@ Notification.init(
         fields: ['user_id', 'status', { name: 'created_at', order: 'DESC' }],
         name: 'notifications_user_status_created_idx',
       },
+      { fields: ['deleted_at'], name: 'notifications_deleted_at_idx' },
       ...auditIndexes('notifications'),
     ],
     hooks: {

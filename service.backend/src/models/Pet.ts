@@ -897,6 +897,7 @@ Pet.init(
         fields: ['status', 'type', 'size'],
         name: 'pets_status_type_size_idx',
       },
+      { fields: ['deleted_at'], name: 'pets_deleted_at_idx' },
       ...auditIndexes('pets'),
     ],
     hooks: {

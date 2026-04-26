@@ -113,6 +113,7 @@ UserFavorite.init(
         fields: ['created_at'],
         name: 'idx_user_favorites_created_at',
       },
+      { fields: ['deleted_at'], name: 'user_favorites_deleted_at_idx' },
       ...auditIndexes('user_favorites'),
     ],
   })
