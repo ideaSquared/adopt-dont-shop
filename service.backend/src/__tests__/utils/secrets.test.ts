@@ -65,9 +65,15 @@ describe('secrets util', () => {
 
     it('tampering with ciphertext fails auth tag verification', () => {
       const encrypted = encryptSecret('JBSWY3DPEHPK3PXP');
-      // flip one base64 char in the ciphertext region (beyond the first 28 bytes = IV+tag)
-      const tampered =
-        encrypted.slice(0, -2) + (encrypted.at(-2) === 'A' ? 'B' : 'A') + encrypted.at(-1);
+      // Decode → flip one bit in the ciphertext region → re-encode. Doing
+      // it on the bytes (not the base64 chars) avoids the historical flake
+      // where flipping the second-to-last base64 char sometimes only
+      // modified padding bits, leaving the underlying bytes unchanged so
+      // the auth tag still verified.
+      const buf = Buffer.from(encrypted, 'base64');
+      // IV is 12 bytes, tag is 16 bytes, ciphertext starts at offset 28.
+      buf[28] ^= 0x01;
+      const tampered = buf.toString('base64');
       expect(() => decryptSecret(tampered)).toThrow();
     });
   });
