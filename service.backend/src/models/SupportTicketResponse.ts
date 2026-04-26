@@ -161,6 +161,7 @@ SupportTicketResponse.init(
         // Composite index for common queries
         fields: ['ticket_id', 'created_at'],
       },
+      { fields: ['deleted_at'], name: 'support_ticket_responses_deleted_at_idx' },
       ...auditIndexes('support_ticket_responses'),
     ],
   })

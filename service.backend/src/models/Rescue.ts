@@ -234,6 +234,7 @@ Rescue.init(
         fields: ['verified_by'],
         name: 'rescues_verified_by_idx',
       },
+      { fields: ['deleted_at'], name: 'rescues_deleted_at_idx' },
       ...auditIndexes('rescues'),
     ],
   })

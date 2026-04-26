@@ -390,6 +390,7 @@ ApplicationQuestion.init(
           deleted_at: null,
         },
       },
+      { fields: ['deleted_at'], name: 'application_questions_deleted_at_idx' },
       ...auditIndexes('application_questions'),
     ],
     hooks: {

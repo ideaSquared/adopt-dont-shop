@@ -154,6 +154,7 @@ StaffMember.init(
         fields: ['added_by'],
         name: 'staff_members_added_by_idx',
       },
+      { fields: ['deleted_at'], name: 'staff_members_deleted_at_idx' },
       ...auditIndexes('staff_members'),
     ],
     // Soft-delete via Sequelize paranoid (plan 3.5). `destroy()`

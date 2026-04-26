@@ -518,6 +518,7 @@ Application.init(
         fields: ['rescue_id', 'status', { name: 'created_at', order: 'DESC' }],
         name: 'applications_rescue_status_created_idx',
       },
+      { fields: ['deleted_at'], name: 'applications_deleted_at_idx' },
       ...auditIndexes('applications'),
     ],
     hooks: {
