@@ -403,8 +403,6 @@ Rating.init(
     tableName: 'ratings',
     timestamps: true,
     underscored: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
     indexes: [
       {
         fields: ['rating_type', 'category'],

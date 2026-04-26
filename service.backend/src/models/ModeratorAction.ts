@@ -264,8 +264,6 @@ ModeratorAction.init(
     tableName: 'moderator_actions',
     timestamps: true,
     underscored: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
     indexes: [
       {
         name: 'moderator_actions_moderator_id_idx',

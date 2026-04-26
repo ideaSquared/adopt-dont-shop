@@ -352,8 +352,6 @@ UserSanction.init(
     tableName: 'user_sanctions',
     timestamps: true,
     underscored: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
     indexes: [
       {
         name: 'user_sanctions_user_id_idx',

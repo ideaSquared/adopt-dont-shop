@@ -223,15 +223,12 @@ Rescue.init(
     tableName: 'rescues',
     timestamps: true,
     underscored: true,
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt',
     // Soft-delete via Sequelize's paranoid mode (plan 3.5). `deletedAt`
     // is managed automatically; `Rescue.destroy()` soft-deletes,
     // `restore()` undeletes, and the default scope hides deleted rows.
     // `paranoid: true` removes the need for the old isDeleted /
     // deletedBy columns; the audit log captures who deleted.
     paranoid: true,
-    deletedAt: 'deletedAt',
     indexes: [
       {
         fields: ['verified_by'],
