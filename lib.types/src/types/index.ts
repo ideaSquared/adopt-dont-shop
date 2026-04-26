@@ -233,3 +233,16 @@ export const money = (amount: number, currency: string): Money => ({
   amount: Math.round(amount),
   currency: currency.toUpperCase() as CurrencyCode,
 });
+
+// ---------------------------------------------------------------------------
+// CountryCode — ISO 3166-1 alpha-2 (plan 5.5.9)
+// ---------------------------------------------------------------------------
+//
+// A 2-letter uppercase code (GB, US, DE, ...). Branded so a stray
+// "United Kingdom" can't sneak through type-checked code paths.
+
+export type CountryCode = string & { readonly __brand: 'CountryCode' };
+
+/** Build a CountryCode, normalising to uppercase. */
+export const countryCode = (code: string): CountryCode =>
+  code.toUpperCase() as CountryCode;

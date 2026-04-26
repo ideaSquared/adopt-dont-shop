@@ -83,7 +83,7 @@ describe('RescueService - Behavioral Testing', () => {
         city: 'London',
         county: 'Greater London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'pending',
       });
@@ -104,7 +104,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -116,7 +116,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '456 Oak Ave',
         city: 'Manchester',
         postcode: 'M1 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'John Doe',
         status: 'verified',
       });
@@ -135,7 +135,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -147,7 +147,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '456 Oak Ave',
         city: 'London',
         postcode: 'SW1A 1AB',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'John Doe',
         status: 'pending',
       });
@@ -167,7 +167,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -179,7 +179,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '456 Oak Ave',
         city: 'Manchester',
         postcode: 'M1 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'John Doe',
         status: 'verified',
       });
@@ -198,7 +198,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -210,7 +210,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '456 Oak Ave',
         city: 'London',
         postcode: 'SW1A 1AB',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'John Doe',
         status: 'verified',
       });
@@ -240,7 +240,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -259,7 +259,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -303,7 +303,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
       };
 
@@ -322,7 +322,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -335,7 +335,7 @@ describe('RescueService - Behavioral Testing', () => {
           address: '456 Oak Ave',
           city: 'Manchester',
           postcode: 'M1 1AA',
-          country: 'UK',
+          country: 'GB',
           contactPerson: 'John Doe',
         })
       ).rejects.toThrow();
@@ -362,7 +362,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -385,7 +385,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -411,7 +411,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -423,7 +423,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '456 Oak Ave',
         city: 'London',
         postcode: 'SW1A 1AB',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'John Doe',
         status: 'verified',
       });
@@ -443,7 +443,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'pending',
       });
@@ -467,7 +467,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
         verifiedBy: 'admin-123',
@@ -487,7 +487,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -518,7 +518,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -536,7 +536,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -554,7 +554,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -581,7 +581,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -617,7 +617,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -664,7 +664,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -695,7 +695,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -727,7 +727,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -784,7 +784,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });
@@ -809,7 +809,7 @@ describe('RescueService - Behavioral Testing', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'Jane Smith',
         status: 'verified',
       });

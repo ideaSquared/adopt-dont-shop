@@ -65,7 +65,18 @@ const AddressSchema = z.string().trim().min(5, 'Address must be at least 5 chara
 
 const CitySchema = z.string().trim().min(2).max(100);
 const CountySchema = z.string().trim().min(2).max(100);
-const CountrySchema = z.string().trim().min(2).max(100);
+
+/**
+ * ISO 3166-1 alpha-2 country code, uppercase (e.g. GB, US). Mirrors
+ * the Rescue.country column's CHAR(2) regex check (plan 5.5.9). The
+ * input transform uppercases for ergonomics ("gb" → "GB"), then the
+ * pipe enforces shape.
+ */
+export const CountryCodeSchema = z
+  .string()
+  .transform((v) => v.trim().toUpperCase())
+  .pipe(z.string().regex(/^[A-Z]{2}$/, 'Country must be an ISO 3166-1 alpha-2 code (e.g. GB, US)'));
+export type CountryCodeValue = z.infer<typeof CountryCodeSchema>;
 
 const WebsiteSchema = z.string().url('Please enter a valid website URL');
 const DescriptionSchema = z.string().trim().max(1000);
@@ -128,7 +139,7 @@ export const RescueCreateRequestSchema = z.object({
   city: CitySchema,
   county: CountySchema.optional(),
   postcode: UkPostcodeSchema,
-  country: CountrySchema,
+  country: CountryCodeSchema,
   website: WebsiteSchema.optional(),
   description: DescriptionSchema.optional(),
   mission: MissionSchema.optional(),
@@ -227,7 +238,7 @@ export const RescueProfileSchema = z.object({
   city: CitySchema,
   county: CountySchema.nullable().optional(),
   postcode: UkPostcodeSchema,
-  country: CountrySchema,
+  country: CountryCodeSchema,
   website: WebsiteSchema.nullable().optional(),
   description: DescriptionSchema.nullable().optional(),
   mission: MissionSchema.nullable().optional(),

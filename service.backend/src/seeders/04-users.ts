@@ -132,7 +132,7 @@ const testUsers = [
     userType: UserType.ADOPTER,
     status: UserStatus.ACTIVE,
     emailVerified: true,
-    country: 'United Kingdom',
+    country: 'GB',
     city: 'Manchester',
     addressLine1: '25 Victoria Road',
     postalCode: 'M14 5TB',
