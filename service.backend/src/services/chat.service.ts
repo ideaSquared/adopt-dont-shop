@@ -1,5 +1,6 @@
 import { Op, WhereOptions } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
+import MessageReaction from '../models/MessageReaction';
 import { validateSortField } from '../utils/sort-validation';
 
 const CHAT_SORT_FIELDS = ['created_at', 'updated_at'] as const;
@@ -1093,7 +1094,9 @@ export class ChatService {
   }
 
   /**
-   * React to a message
+   * React to a message. Reactions live in the message_reactions table
+   * (plan 2.1); the unique index on (message_id, user_id, emoji) means
+   * a duplicate reaction is a no-op via findOrCreate.
    */
   static async addMessageReaction(messageId: string, userId: string, emoji: string) {
     try {
@@ -1104,9 +1107,10 @@ export class ChatService {
 
       await this.requireChatParticipant(message.chat_id, userId);
 
-      // Add reaction using the model's instance method
-      message.addReaction(userId, emoji);
-      await message.save();
+      await MessageReaction.findOrCreate({
+        where: { message_id: messageId, user_id: userId, emoji },
+        defaults: { message_id: messageId, user_id: userId, emoji },
+      });
 
       return message;
     } catch (error) {
@@ -1130,9 +1134,9 @@ export class ChatService {
       // Now gated on participation.
       await this.requireChatParticipant(message.chat_id, userId);
 
-      // Remove reaction using the model's instance method
-      message.removeReaction(userId, emoji);
-      await message.save();
+      await MessageReaction.destroy({
+        where: { message_id: messageId, user_id: userId, emoji },
+      });
 
       return message;
     } catch (error) {
@@ -1725,19 +1729,32 @@ export class ChatService {
             as: 'Sender',
             attributes: ['userId', 'firstName'],
           },
+          // Reactions eager-loaded from message_reactions (plan 2.1).
+          {
+            model: MessageReaction,
+            as: 'Reactions',
+            attributes: ['user_id', 'emoji', 'created_at'],
+          },
         ],
         order: [['created_at', 'ASC']],
       });
 
-      return messages.map(message => ({
-        messageId: message.message_id,
-        senderId: message.sender_id,
-        content: message.content,
-        isRead: message.isReadBy(userId),
-        readCount: message.getReadCount(),
-        reactions: message.reactions || [],
-        createdAt: message.created_at,
-      }));
+      return messages.map(message => {
+        const reactions = (message as Message & { Reactions?: MessageReaction[] }).Reactions ?? [];
+        return {
+          messageId: message.message_id,
+          senderId: message.sender_id,
+          content: message.content,
+          isRead: message.isReadBy(userId),
+          readCount: message.getReadCount(),
+          reactions: reactions.map(r => ({
+            user_id: r.user_id,
+            emoji: r.emoji,
+            created_at: r.created_at,
+          })),
+          createdAt: message.created_at,
+        };
+      });
     } catch (error) {
       logger.error('Error getting message statuses:', error);
       throw error;

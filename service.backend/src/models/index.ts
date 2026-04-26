@@ -17,6 +17,7 @@ import Chat from './Chat';
 import ChatParticipant from './ChatParticipant';
 import FileUpload from './FileUpload';
 import Message from './Message';
+import MessageReaction from './MessageReaction';
 
 // Notification Models
 import DeviceToken from './DeviceToken';
@@ -84,6 +85,7 @@ const models = {
   Chat,
   ChatParticipant,
   Message,
+  MessageReaction,
   Notification,
   DeviceToken,
   RefreshToken,
@@ -244,6 +246,15 @@ try {
 
   User.hasMany(Message, { foreignKey: 'sender_id', as: 'SentMessages' });
   Message.belongsTo(User, { foreignKey: 'sender_id', as: 'Sender' });
+
+  // MessageReaction (plan 2.1) — typed table replacing Message.reactions
+  // JSONB. CASCADE on the message FK so a deleted message takes its
+  // reactions with it; CASCADE on the user FK matches existing chat
+  // semantics (deleting a user removes their reactions).
+  Message.hasMany(MessageReaction, { foreignKey: 'message_id', as: 'Reactions' });
+  MessageReaction.belongsTo(Message, { foreignKey: 'message_id', as: 'Message' });
+  User.hasMany(MessageReaction, { foreignKey: 'user_id', as: 'MessageReactions' });
+  MessageReaction.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
   // Ensure Chat belongsTo Rescue with alias 'rescue'
   Chat.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' });
@@ -472,6 +483,7 @@ export {
   HomeVisitStatusTransition,
   Invitation,
   Message,
+  MessageReaction,
   ModeratorAction,
   Notification,
   Permission,

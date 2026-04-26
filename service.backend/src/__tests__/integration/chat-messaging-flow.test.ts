@@ -87,8 +87,20 @@ vi.mock('../../models', () => {
   };
 });
 
+// Mock MessageReaction (plan 2.1) — chat.service uses it for the
+// reactions add/remove/list paths.
+vi.mock('../../models/MessageReaction', () => ({
+  __esModule: true,
+  default: {
+    findOrCreate: vi.fn(),
+    destroy: vi.fn(),
+    findAll: vi.fn(),
+  },
+}));
+
 // Import from the mocked models module
 import { Chat, ChatParticipant, Message, User, Rescue } from '../../models';
+import MessageReaction from '../../models/MessageReaction';
 import { ChatService } from '../../services/chat.service';
 import {
   MessageReadStatusService,
@@ -112,6 +124,11 @@ vi.mock('../../utils/logger');
 const MockedChat = Chat as unknown;
 const MockedChatParticipant = ChatParticipant as unknown;
 const MockedMessage = Message as unknown;
+const MockedMessageReaction = MessageReaction as unknown as {
+  findOrCreate: ReturnType<typeof vi.fn>;
+  destroy: ReturnType<typeof vi.fn>;
+  findAll: ReturnType<typeof vi.fn>;
+};
 const MockedUser = User as unknown;
 const MockedRescue = Rescue as unknown;
 
@@ -1050,22 +1067,25 @@ describe('Chat Messaging Flow Integration Tests', () => {
   describe('Message Reactions', () => {
     describe('when adding reactions to messages', () => {
       it('should successfully add a reaction to a message', async () => {
+        // Reactions live in message_reactions (plan 2.1) — chat.service
+        // delegates to MessageReaction.findOrCreate.
         const mockMessage = createMockMessage({ message_id: messageId, chat_id: chatId });
         const mockParticipant = createMockChatParticipant({
           chat_id: chatId,
           participant_id: adopterId,
         });
 
-        mockMessage.addReaction = vi.fn();
-        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
-
         MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
         MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockParticipant as never);
+        MockedMessageReaction.findOrCreate = vi.fn().mockResolvedValue([{}, true] as never);
 
-        const result = await ChatService.addMessageReaction(messageId, adopterId, '👍');
+        await ChatService.addMessageReaction(messageId, adopterId, '👍');
 
-        expect(mockMessage.addReaction).toHaveBeenCalledWith(adopterId, '👍');
-        expect(mockMessage.save).toHaveBeenCalled();
+        expect(MockedMessageReaction.findOrCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { message_id: messageId, user_id: adopterId, emoji: '👍' },
+          })
+        );
       });
 
       it('should prevent non-participants from reacting to messages', async () => {
@@ -1086,17 +1106,23 @@ describe('Chat Messaging Flow Integration Tests', () => {
           participant_id: adopterId,
         });
 
-        mockMessage.addReaction = vi.fn();
-        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
-
         MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
         MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockParticipant as never);
+        MockedMessageReaction.findOrCreate = vi.fn().mockResolvedValue([{}, true] as never);
 
         await ChatService.addMessageReaction(messageId, adopterId, '👍');
         await ChatService.addMessageReaction(messageId, adopterId, '❤️');
 
-        expect(mockMessage.addReaction).toHaveBeenCalledWith(adopterId, '👍');
-        expect(mockMessage.addReaction).toHaveBeenCalledWith(adopterId, '❤️');
+        expect(MockedMessageReaction.findOrCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { message_id: messageId, user_id: adopterId, emoji: '👍' },
+          })
+        );
+        expect(MockedMessageReaction.findOrCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { message_id: messageId, user_id: adopterId, emoji: '❤️' },
+          })
+        );
       });
 
       it('should reject reaction for non-existent message', async () => {
@@ -1111,25 +1137,32 @@ describe('Chat Messaging Flow Integration Tests', () => {
     describe('when removing reactions from messages', () => {
       it('should successfully remove a reaction from a message', async () => {
         const mockMessage = createMockMessage({ message_id: messageId, chat_id: chatId });
-
-        mockMessage.removeReaction = vi.fn();
-        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
+        const mockParticipant = createMockChatParticipant({
+          chat_id: chatId,
+          participant_id: adopterId,
+        });
 
         MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockParticipant as never);
+        MockedMessageReaction.destroy = vi.fn().mockResolvedValue(1 as never);
 
-        const result = await ChatService.removeMessageReaction(messageId, adopterId, '👍');
+        await ChatService.removeMessageReaction(messageId, adopterId, '👍');
 
-        expect(mockMessage.removeReaction).toHaveBeenCalledWith(adopterId, '👍');
-        expect(mockMessage.save).toHaveBeenCalled();
+        expect(MockedMessageReaction.destroy).toHaveBeenCalledWith({
+          where: { message_id: messageId, user_id: adopterId, emoji: '👍' },
+        });
       });
 
       it('should handle removing non-existent reaction gracefully', async () => {
         const mockMessage = createMockMessage({ message_id: messageId, chat_id: chatId });
-
-        mockMessage.removeReaction = vi.fn();
-        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
+        const mockParticipant = createMockChatParticipant({
+          chat_id: chatId,
+          participant_id: adopterId,
+        });
 
         MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage as never);
+        MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockParticipant as never);
+        MockedMessageReaction.destroy = vi.fn().mockResolvedValue(0 as never);
 
         await expect(
           ChatService.removeMessageReaction(messageId, adopterId, '👍')
@@ -1473,9 +1506,14 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
         MockedMessage.findByPk = vi.fn().mockResolvedValue(mockMessage1 as never);
         MockedChatParticipant.findOne = vi.fn().mockResolvedValue(mockParticipant1 as never);
+        MockedMessageReaction.findOrCreate = vi.fn().mockResolvedValue([{}, true] as never);
 
         await ChatService.addMessageReaction('msg-1', adopterId, '👍');
-        expect(mockMessage1.addReaction).toHaveBeenCalledWith(adopterId, '👍');
+        expect(MockedMessageReaction.findOrCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { message_id: 'msg-1', user_id: adopterId, emoji: '👍' },
+          })
+        );
 
         // Step 5: Add another participant
         const mockRescueParticipant = createMockChatParticipant({

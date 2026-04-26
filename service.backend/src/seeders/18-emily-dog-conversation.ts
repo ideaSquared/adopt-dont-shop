@@ -79,7 +79,6 @@ const emilyDogConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-15T11:20:00Z'),
@@ -100,7 +99,6 @@ const emilyDogConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-15T13:45:00Z'),
@@ -121,7 +119,6 @@ const emilyDogConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-15T14:30:00Z'),
@@ -142,7 +139,6 @@ const emilyDogConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-15T16:15:00Z'),
@@ -163,7 +159,6 @@ const emilyDogConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-16T09:20:00Z'),
@@ -184,7 +179,6 @@ const emilyDogConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-16T11:30:00Z'),
@@ -205,7 +199,6 @@ const emilyDogConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-16T15:45:00Z'),
@@ -226,7 +219,6 @@ const emilyDogConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [], // Most recent message from rescue staff, unread by Emily
 
       created_at: new Date('2024-07-16T16:30:00Z'),

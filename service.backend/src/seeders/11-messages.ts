@@ -1,4 +1,5 @@
 import Message from '../models/Message';
+import MessageReaction from '../models/MessageReaction';
 import { MessageContentFormat } from '../types/chat';
 
 const messageData = [
@@ -10,7 +11,6 @@ const messageData = [
     content: 'Hi! I submitted an application for Buddy. When might I hear back about next steps?',
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [
       {
         user_id: '378118eb-9e97-4940-adeb-0a53b252b057',
@@ -28,7 +28,6 @@ const messageData = [
       'Hi John! Thanks for your application for Buddy. We received it and will review it within 2-3 business days. Your application looks very complete!',
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [
       {
         user_id: '98915d9e-69ed-46b2-a897-57d8469ff360',
@@ -46,7 +45,6 @@ const messageData = [
       "Thank you! I have a couple of questions about Buddy's exercise needs. The profile mentions he needs 2+ hours daily - is this all active exercise or does it include mental stimulation activities?",
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [
       {
         user_id: '378118eb-9e97-4940-adeb-0a53b252b057',
@@ -64,7 +62,6 @@ const messageData = [
       'Great question! The 2+ hours includes both physical exercise and mental stimulation. Buddy loves puzzle toys, training sessions, and interactive play. About 1 hour of that should be active exercise like walks or fetch, and the rest can be training, puzzle games, or just quality interaction time.',
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [],
     created_at: new Date('2024-02-16T15:45:00Z'),
     updated_at: new Date('2024-02-16T15:45:00Z'),
@@ -79,7 +76,6 @@ const messageData = [
       "Hello, I'm very interested in adopting Whiskers. I have extensive experience with senior cats and understand their special needs.",
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [
       {
         user_id: '3d7065c5-82a3-4bba-a84e-78229365badd',
@@ -97,7 +93,6 @@ const messageData = [
       "Hi Emily! That's wonderful to hear. Whiskers would benefit greatly from an experienced senior cat parent. Can you tell me about your experience with senior pets?",
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [
       {
         user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
@@ -115,7 +110,6 @@ const messageData = [
       'I had my previous cat for 15 years until she passed from kidney disease. During her senior years, I managed her medications, special diet, and made accommodations for her arthritis. I understand the commitment senior pets require.',
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [
       {
         user_id: '3d7065c5-82a3-4bba-a84e-78229365badd',
@@ -133,13 +127,7 @@ const messageData = [
       "That sounds perfect for Whiskers! We'd love to schedule a meet and greet. Congratulations, your application has been approved! 🎉",
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [
-      {
-        user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
-        emoji: '❤️',
-        created_at: new Date('2024-02-20T14:50:00Z'),
-      },
-    ],
+    // Reactions seeded separately into message_reactions (plan 2.1).
     read_status: [
       {
         user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
@@ -159,7 +147,6 @@ const messageData = [
       'I submitted an application for Rocky. I have specific experience with pit bull type dogs and understand they need patient, experienced owners.',
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [
       {
         user_id: 'c283bd85-11ce-4494-add0-b06896d38e2d',
@@ -177,7 +164,6 @@ const messageData = [
       "Hi Michael! Thank you for applying for Rocky. Your experience with pit bull type dogs is exactly what Rocky needs. We'd like to schedule a phone interview to discuss Rocky's specific needs. Are you available this week?",
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [
       {
         user_id: 'c8973ffc-6e31-44fb-a3e4-fa3d9e8edb30',
@@ -195,7 +181,6 @@ const messageData = [
       "Yes, I'm flexible this week. I work from home so I can accommodate most times. What would work best for you?",
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [],
     created_at: new Date('2024-02-18T11:30:00Z'),
     updated_at: new Date('2024-02-18T11:30:00Z'),
@@ -210,7 +195,6 @@ const messageData = [
       "Hi, I'm interested in learning more about your adoption process. This would be my first pet.",
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [
       {
         user_id: '378118eb-9e97-4940-adeb-0a53b252b057',
@@ -228,7 +212,6 @@ const messageData = [
       "Hello! We'd be happy to help you with your first pet adoption. What type of pet are you considering? We have resources for first-time pet owners.",
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
     read_status: [],
     created_at: new Date('2024-02-21T09:00:00Z'),
     updated_at: new Date('2024-02-21T09:00:00Z'),
@@ -243,6 +226,20 @@ export async function seedMessages() {
       defaults: message,
     });
   }
+
+  // Seed the one historical reaction in this dataset (plan 2.1).
+  await MessageReaction.findOrCreate({
+    where: {
+      message_id: '7cac2e15-0917-45a4-adbe-39324fd6e40e',
+      user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
+      emoji: '❤️',
+    },
+    defaults: {
+      message_id: '7cac2e15-0917-45a4-adbe-39324fd6e40e',
+      user_id: 'fc369713-6925-4f02-a5c6-cb84b3652116',
+      emoji: '❤️',
+    },
+  });
 
   // eslint-disable-next-line no-console
   console.log(`✅ Created ${messageData.length} chat messages`);

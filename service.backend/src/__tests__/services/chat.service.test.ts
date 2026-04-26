@@ -29,6 +29,17 @@ vi.mock('../../models', () => ({
   },
 }));
 
+// Mock MessageReaction (plan 2.1) — chat.service uses it for the
+// reactions add/remove/list paths.
+vi.mock('../../models/MessageReaction', () => ({
+  __esModule: true,
+  default: {
+    findOrCreate: vi.fn(),
+    destroy: vi.fn(),
+    findAll: vi.fn(),
+  },
+}));
+
 // Mock NotificationType and NotificationPriority
 vi.mock('../../models/Notification', () => ({
   NotificationType: {
@@ -84,6 +95,7 @@ vi.mock('../../sequelize', () => {
 
 import { Op } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../../models';
+import MessageReaction from '../../models/MessageReaction';
 import { ChatService } from '../../services/chat.service';
 import { ChatStatus, ParticipantRole, MessageContentFormat } from '../../types/chat';
 import { AuditLogService } from '../../services/auditLog.service';
@@ -92,6 +104,7 @@ import { NotificationService } from '../../services/notification.service';
 const MockedChat = Chat as vi.MockedObject<Chat>;
 const MockedChatParticipant = ChatParticipant as vi.MockedObject<ChatParticipant>;
 const MockedMessage = Message as vi.MockedObject<Message>;
+const MockedMessageReaction = MessageReaction as vi.MockedObject<typeof MessageReaction>;
 const MockedUser = User as vi.MockedObject<User>;
 const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
 const mockCreateNotification = NotificationService.createNotification as vi.MockedFunction<
@@ -829,32 +842,30 @@ describe('ChatService', () => {
   });
 
   describe('Message reactions', () => {
+    // Reactions live in the message_reactions table now (plan 2.1).
+    // ChatService delegates to MessageReaction.findOrCreate /
+    // MessageReaction.destroy instead of mutating the Message instance.
     describe('when adding a reaction to a message', () => {
       it('should allow participants to add reactions', async () => {
         const messageId = 'msg-123';
         const userId = 'user-456';
         const emoji = '👍';
 
-        const mockMessage = {
-          message_id: messageId,
-          chat_id: 'chat-789',
-          addReaction: vi.fn(),
-          save: vi.fn().mockResolvedValue(undefined),
-        };
-
-        const mockParticipant = {
-          chat_id: 'chat-789',
-          participant_id: userId,
-        };
+        const mockMessage = { message_id: messageId, chat_id: 'chat-789' };
+        const mockParticipant = { chat_id: 'chat-789', participant_id: userId };
 
         (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
         (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(mockParticipant);
+        (MockedMessageReaction.findOrCreate as vi.Mock).mockResolvedValue([{}, true]);
 
         const result = await ChatService.addMessageReaction(messageId, userId, emoji);
 
         expect(MockedMessage.findByPk).toHaveBeenCalledWith(messageId);
-        expect(mockMessage.addReaction).toHaveBeenCalledWith(userId, emoji);
-        expect(mockMessage.save).toHaveBeenCalled();
+        expect(MockedMessageReaction.findOrCreate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { message_id: messageId, user_id: userId, emoji },
+          })
+        );
         expect(result).toEqual(mockMessage);
       });
 
@@ -863,10 +874,7 @@ describe('ChatService', () => {
         const userId = 'non-participant-456';
         const emoji = '👍';
 
-        const mockMessage = {
-          message_id: messageId,
-          chat_id: 'chat-789',
-        };
+        const mockMessage = { message_id: messageId, chat_id: 'chat-789' };
 
         (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
         (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
@@ -897,18 +905,18 @@ describe('ChatService', () => {
         const userId = 'user-456';
         const emoji = '👍';
 
-        const mockMessage = {
-          message_id: messageId,
-          removeReaction: vi.fn(),
-          save: vi.fn().mockResolvedValue(undefined),
-        };
+        const mockMessage = { message_id: messageId, chat_id: 'chat-789' };
+        const mockParticipant = { chat_id: 'chat-789', participant_id: userId };
 
         (MockedMessage.findByPk as vi.Mock).mockResolvedValue(mockMessage);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(mockParticipant);
+        (MockedMessageReaction.destroy as vi.Mock).mockResolvedValue(1);
 
         const result = await ChatService.removeMessageReaction(messageId, userId, emoji);
 
-        expect(mockMessage.removeReaction).toHaveBeenCalledWith(userId, emoji);
-        expect(mockMessage.save).toHaveBeenCalled();
+        expect(MockedMessageReaction.destroy).toHaveBeenCalledWith({
+          where: { message_id: messageId, user_id: userId, emoji },
+        });
         expect(result).toEqual(mockMessage);
       });
     });
