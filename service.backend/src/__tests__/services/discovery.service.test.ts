@@ -1,11 +1,13 @@
 import { vi } from 'vitest';
 import { Op } from 'sequelize';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../../models/Pet';
+import PetMedia, { PetMediaType } from '../../models/PetMedia';
 import Rescue from '../../models/Rescue';
 import { DiscoveryFilters, DiscoveryService } from '../../services/discovery.service';
 
 // Mock dependencies
 vi.mock('../../models/Pet');
+vi.mock('../../models/PetMedia');
 vi.mock('../../models/Rescue');
 vi.mock('../../utils/logger', () => ({
   logger: {
@@ -35,7 +37,10 @@ describe('DiscoveryService', () => {
         ageGroup: AgeGroup.ADULT,
         size: Size.LARGE,
         gender: Gender.MALE,
-        images: [{ url: 'image1.jpg' }, { url: 'image2.jpg' }],
+        Media: [
+          { type: 'image', url: 'image1.jpg' },
+          { type: 'image', url: 'image2.jpg' },
+        ],
         shortDescription: 'Friendly dog',
         status: PetStatus.AVAILABLE,
         createdAt: new Date(),
@@ -54,7 +59,7 @@ describe('DiscoveryService', () => {
         ageGroup: AgeGroup.YOUNG,
         size: Size.MEDIUM,
         gender: Gender.FEMALE,
-        images: [{ url: 'image3.jpg' }],
+        Media: [{ type: 'image', url: 'image3.jpg' }],
         shortDescription: 'Calm cat',
         status: PetStatus.AVAILABLE,
         createdAt: new Date(),
@@ -68,8 +73,9 @@ describe('DiscoveryService', () => {
     ];
 
     it('should generate discovery queue successfully with basic filters', async () => {
-      // Mock the smart filtering to return filtered pets
-      const filteredPets = mockPets.filter(pet => pet.images && pet.images.length > 0);
+      // Mock the smart filtering to return filtered pets — pet media is
+      // now the eager-loaded Media association (plan 2.1).
+      const filteredPets = mockPets.filter(pet => pet.Media && pet.Media.length > 0);
 
       // Spy on private methods to avoid complex mocking
       vi.spyOn(discoveryService as unknown, 'getSmartSortedPets').mockResolvedValue(filteredPets);
@@ -138,7 +144,10 @@ describe('DiscoveryService', () => {
         ageGroup: AgeGroup.YOUNG,
         size: Size.LARGE,
         gender: Gender.MALE,
-        images: [{ url: 'image4.jpg' }, { url: 'image5.jpg' }],
+        Media: [
+          { type: 'image', url: 'image4.jpg' },
+          { type: 'image', url: 'image5.jpg' },
+        ],
         shortDescription: 'Energetic pup',
         status: PetStatus.AVAILABLE,
         createdAt: new Date(),
@@ -168,6 +177,12 @@ describe('DiscoveryService', () => {
             model: Rescue,
             as: 'Rescue',
             attributes: ['rescue_id', 'name', 'status'],
+          },
+          {
+            model: PetMedia,
+            as: 'Media',
+            where: { type: PetMediaType.IMAGE },
+            required: false,
           },
         ],
         limit: 10,
@@ -206,15 +221,19 @@ describe('DiscoveryService', () => {
   });
 
   describe('calculateCompatibilityScore', () => {
+    // Pet.images JSONB extracted to pet_media (plan 2.1) — the score uses
+    // the eager-loaded Media association now.
+    const image = (i: number) => ({ type: 'image', url: `img${i}.jpg` });
+
     it('should calculate basic compatibility score', () => {
       const mockPet = {
-        images: [{ url: 'img1.jpg' }],
+        Media: [image(1)],
         longDescription: 'Short description',
         ageGroup: AgeGroup.ADULT,
         goodWithChildren: false,
         goodWithDogs: false,
         goodWithCats: false,
-      } as Pet;
+      } as unknown as Pet;
 
       const score = (discoveryService as unknown).calculateCompatibilityScore(mockPet);
 
@@ -223,14 +242,14 @@ describe('DiscoveryService', () => {
 
     it('should boost score for pets with good attributes', () => {
       const mockPet = {
-        images: [{ url: 'img1.jpg' }, { url: 'img2.jpg' }, { url: 'img3.jpg' }],
+        Media: [image(1), image(2), image(3)],
         longDescription:
           'This is a very long and detailed description about this wonderful pet that provides lots of useful information for potential adopters.',
         ageGroup: AgeGroup.YOUNG,
         goodWithChildren: true,
         goodWithDogs: true,
         goodWithCats: true,
-      } as Pet;
+      } as unknown as Pet;
 
       const score = (discoveryService as unknown).calculateCompatibilityScore(mockPet);
 
@@ -240,13 +259,13 @@ describe('DiscoveryService', () => {
 
     it('should cap score at 100', () => {
       const mockPet = {
-        images: Array(10).fill({ url: 'img.jpg' }),
+        Media: Array(10).fill(image(1)),
         longDescription: 'Very long description '.repeat(20),
         ageGroup: AgeGroup.BABY,
         goodWithChildren: true,
         goodWithDogs: true,
         goodWithCats: true,
-      } as Pet;
+      } as unknown as Pet;
 
       const score = (discoveryService as unknown).calculateCompatibilityScore(mockPet);
 

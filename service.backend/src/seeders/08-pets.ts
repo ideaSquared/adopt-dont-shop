@@ -8,6 +8,21 @@ import Pet, {
   SpayNeuterStatus,
   VaccinationStatus,
 } from '../models/Pet';
+import PetMedia, { PetMediaType } from '../models/PetMedia';
+
+// Pet.images / Pet.videos moved to the pet_media table (plan 2.1).
+// The seeder still describes the gallery alongside each pet profile for
+// readability, but seedPets() now does Pet.findOrCreate first then
+// PetMedia.findOrCreate per image.
+type SeedImage = {
+  image_id: string;
+  url: string;
+  thumbnail_url?: string;
+  caption?: string;
+  is_primary: boolean;
+  order_index: number;
+  uploaded_at: Date;
+};
 
 const petProfiles = [
   {
@@ -335,15 +350,35 @@ const petProfiles = [
 
 export async function seedPets() {
   for (const petData of petProfiles) {
+    const { images, ...petAttributes } = petData as typeof petData & { images: SeedImage[] };
+
     await Pet.findOrCreate({
       paranoid: false,
       where: { petId: petData.petId },
       defaults: {
-        ...petData,
+        ...petAttributes,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
+
+    for (const img of images) {
+      await PetMedia.findOrCreate({
+        where: { media_id: img.image_id },
+        defaults: {
+          media_id: img.image_id,
+          pet_id: petData.petId,
+          type: PetMediaType.IMAGE,
+          url: img.url,
+          thumbnail_url: img.thumbnail_url ?? null,
+          caption: img.caption ?? null,
+          is_primary: img.is_primary,
+          order_index: img.order_index,
+          duration_seconds: null,
+          uploaded_at: img.uploaded_at,
+        },
+      });
+    }
   }
 
   // eslint-disable-next-line no-console

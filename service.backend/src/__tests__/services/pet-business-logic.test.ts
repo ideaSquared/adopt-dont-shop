@@ -20,6 +20,7 @@ import Pet, {
   SpayNeuterStatus,
   VaccinationStatus,
 } from '../../models/Pet';
+import PetMedia, { PetMediaType } from '../../models/PetMedia';
 import PetStatusTransition from '../../models/PetStatusTransition';
 import Application, { ApplicationStatus } from '../../models/Application';
 import { PetService } from '../../services/pet.service';
@@ -31,6 +32,7 @@ const MockedApplication = Application as vi.MockedObject<Application>;
 const MockedPetStatusTransition = PetStatusTransition as vi.MockedObject<
   typeof PetStatusTransition
 >;
+const MockedPetMedia = PetMedia as vi.MockedObject<typeof PetMedia>;
 
 // Test constants
 const mockRescueId = 'rescue-123';
@@ -43,7 +45,6 @@ const mockPetId = 'pet-789';
 
 const createMockPet = (overrides = {}) => ({
   petId: mockPetId,
-  petId: mockPetId,
   name: 'Buddy',
   type: PetType.DOG,
   breed: 'Golden Retriever',
@@ -55,14 +56,11 @@ const createMockPet = (overrides = {}) => ({
   vaccinationStatus: VaccinationStatus.UP_TO_DATE,
   spayNeuterStatus: SpayNeuterStatus.NEUTERED,
   rescueId: mockRescueId,
-  rescueId: mockRescueId,
   archived: false,
   featured: false,
   priorityListing: false,
   specialNeeds: false,
   houseTrained: true,
-  images: [],
-  videos: [],
   viewCount: 0,
   favoriteCount: 0,
   applicationCount: 0,
@@ -90,8 +88,6 @@ const createValidPetData = (overrides = {}): PetCreateData => ({
   vaccinationStatus: VaccinationStatus.UP_TO_DATE,
   spayNeuterStatus: SpayNeuterStatus.NEUTERED,
   rescueId: mockRescueId,
-  images: [],
-  videos: [],
   ...overrides,
 });
 
@@ -103,6 +99,12 @@ describe('PetService - Business Logic', () => {
     // transition insert would trip the FK. Stub it — the trigger/hook
     // path has its own dedicated tests.
     MockedPetStatusTransition.create = vi.fn().mockResolvedValue({} as never);
+    // Pet media writes go through PetMedia.bulkCreate / destroy / count
+    // (plan 2.1). Stub the typed-table writes here so the service code
+    // doesn't try to hit the real DB through the mocked Pet model.
+    MockedPetMedia.bulkCreate = vi.fn().mockResolvedValue([] as never);
+    MockedPetMedia.destroy = vi.fn().mockResolvedValue(0 as never);
+    MockedPetMedia.count = vi.fn().mockResolvedValue(0 as never);
   });
 
   // ==========================================================================
@@ -424,20 +426,25 @@ describe('PetService - Business Logic', () => {
       // When: Creating pet with images
       await PetService.createPet(petData, mockRescueId, mockUserId);
 
-      // Then: Images are properly formatted with required fields
-      expect(MockedPet.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          images: expect.arrayContaining([
-            expect.objectContaining({
-              image_id: expect.stringContaining('img_'),
-              url: 'https://example.com/image1.jpg',
-              thumbnail_url: 'https://example.com/thumb1.jpg',
-              is_primary: true,
-              order_index: 0,
-              uploaded_at: expect.any(Date),
-            }),
-          ]),
-        })
+      // Then: PetMedia rows are inserted with the right shape (plan 2.1
+      // — Pet.images JSONB extracted to the pet_media typed table).
+      expect(MockedPetMedia.bulkCreate).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            pet_id: mockPetId,
+            type: PetMediaType.IMAGE,
+            url: 'https://example.com/image1.jpg',
+            thumbnail_url: 'https://example.com/thumb1.jpg',
+            is_primary: true,
+            order_index: 0,
+          }),
+          expect.objectContaining({
+            pet_id: mockPetId,
+            type: PetMediaType.IMAGE,
+            url: 'https://example.com/image2.jpg',
+            order_index: 1,
+          }),
+        ])
       );
     });
 
@@ -460,18 +467,16 @@ describe('PetService - Business Logic', () => {
       // When: Creating pet with videos
       await PetService.createPet(petData, mockRescueId, mockUserId);
 
-      // Then: Videos are properly formatted
-      expect(MockedPet.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          videos: expect.arrayContaining([
-            expect.objectContaining({
-              video_id: expect.stringContaining('vid_'),
-              url: 'https://example.com/video1.mp4',
-              duration_seconds: 30,
-              uploaded_at: expect.any(Date),
-            }),
-          ]),
-        })
+      // Then: PetMedia video row is inserted (plan 2.1).
+      expect(MockedPetMedia.bulkCreate).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            pet_id: mockPetId,
+            type: PetMediaType.VIDEO,
+            url: 'https://example.com/video1.mp4',
+            duration_seconds: 30,
+          }),
+        ])
       );
     });
 
@@ -674,20 +679,11 @@ describe('PetService - Business Logic', () => {
 
   describe('Image Management', () => {
     it('should add images to pet', async () => {
-      // Given: Pet with existing images
-      const mockPet = createMockPet({
-        images: [
-          {
-            image_id: 'img_existing',
-            url: 'https://example.com/existing.jpg',
-            is_primary: true,
-            order_index: 0,
-            uploaded_at: new Date(),
-          },
-        ],
-      });
+      // Given: Pet with one existing image (count returns 1)
+      const mockPet = createMockPet();
       mockPet.reload.mockResolvedValue(mockPet);
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedPetMedia.count = vi.fn().mockResolvedValue(1 as never);
 
       const newImages = [
         {
@@ -702,31 +698,23 @@ describe('PetService - Business Logic', () => {
       // When: Adding new images
       await PetService.addPetImages(mockPetId, newImages, mockUserId);
 
-      // Then: New images are appended to existing images
-      expect(mockPet.update).toHaveBeenCalledWith({
-        images: expect.arrayContaining([
-          expect.objectContaining({ image_id: 'img_existing' }),
+      // Then: New images are inserted into pet_media keyed to the pet
+      expect(MockedPetMedia.bulkCreate).toHaveBeenCalledWith(
+        expect.arrayContaining([
           expect.objectContaining({
-            image_id: expect.stringContaining('img_'),
+            pet_id: mockPetId,
+            type: PetMediaType.IMAGE,
             url: 'https://example.com/new1.jpg',
+            thumbnail_url: 'https://example.com/new1_thumb.jpg',
+            order_index: 1,
           }),
-        ]),
-      });
+        ])
+      );
     });
 
     it('should replace all images when updating', async () => {
       // Given: Pet with existing images
-      const mockPet = createMockPet({
-        images: [
-          {
-            image_id: 'old_img',
-            url: 'old.jpg',
-            is_primary: true,
-            order_index: 0,
-            uploaded_at: new Date(),
-          },
-        ],
-      });
+      const mockPet = createMockPet();
       mockPet.reload.mockResolvedValue(mockPet);
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
@@ -742,79 +730,46 @@ describe('PetService - Business Logic', () => {
       // When: Updating images (replaces all)
       await PetService.updatePetImages(mockPetId, newImages, mockUserId);
 
-      // Then: All images are replaced
-      expect(mockPet.update).toHaveBeenCalledWith({
-        images: expect.arrayContaining([
+      // Then: Existing images are deleted before new ones are inserted
+      expect(MockedPetMedia.destroy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            pet_id: mockPetId,
+            type: PetMediaType.IMAGE,
+          }),
+        })
+      );
+      expect(MockedPetMedia.bulkCreate).toHaveBeenCalledWith(
+        expect.arrayContaining([
           expect.objectContaining({
             url: 'https://example.com/new.jpg',
           }),
         ]),
-      });
-      // Old image should not be present
-      expect(mockPet.update).not.toHaveBeenCalledWith({
-        images: expect.arrayContaining([expect.objectContaining({ image_id: 'old_img' })]),
-      });
+        expect.anything()
+      );
     });
 
     it('should remove specific image by ID', async () => {
-      // Given: Pet with multiple images
-      const mockPet = createMockPet({
-        images: [
-          {
-            image_id: 'img1',
-            url: 'photo1.jpg',
-            is_primary: true,
-            order_index: 0,
-            uploaded_at: new Date(),
-          },
-          {
-            image_id: 'img2',
-            url: 'photo2.jpg',
-            is_primary: false,
-            order_index: 1,
-            uploaded_at: new Date(),
-          },
-          {
-            image_id: 'img3',
-            url: 'photo3.jpg',
-            is_primary: false,
-            order_index: 2,
-            uploaded_at: new Date(),
-          },
-        ],
-      });
+      // Given: Pet with the target image present (destroy returns 1)
+      const mockPet = createMockPet();
       mockPet.reload.mockResolvedValue(mockPet);
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedPetMedia.destroy = vi.fn().mockResolvedValue(1 as never);
 
       // When: Removing specific image
       await PetService.removePetImage(mockPetId, 'img2', mockUserId);
 
-      // Then: Only specified image is removed
-      expect(mockPet.update).toHaveBeenCalledWith({
-        images: expect.arrayContaining([
-          expect.objectContaining({ image_id: 'img1' }),
-          expect.objectContaining({ image_id: 'img3' }),
-        ]),
-      });
-      expect(mockPet.update).toHaveBeenCalledWith({
-        images: expect.not.arrayContaining([expect.objectContaining({ image_id: 'img2' })]),
+      // Then: PetMedia.destroy is called for that image only
+      expect(MockedPetMedia.destroy).toHaveBeenCalledWith({
+        where: { media_id: 'img2', pet_id: mockPetId, type: PetMediaType.IMAGE },
       });
     });
 
     it('should throw error when removing non-existent image', async () => {
-      // Given: Pet without the specified image
-      const mockPet = createMockPet({
-        images: [
-          {
-            image_id: 'img1',
-            url: 'photo1.jpg',
-            is_primary: true,
-            order_index: 0,
-            uploaded_at: new Date(),
-          },
-        ],
-      });
+      // Given: Pet without the specified image (destroy returns 0)
+      const mockPet = createMockPet();
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedPetMedia.destroy = vi.fn().mockResolvedValue(0 as never);
 
       // When & Then: Removing non-existent image fails
       await expect(PetService.removePetImage(mockPetId, 'nonexistent', mockUserId)).rejects.toThrow(
@@ -892,27 +847,12 @@ describe('PetService - Business Logic', () => {
     });
 
     it('should maintain image order_index integrity when adding images', async () => {
-      // Given: Pet with 2 existing images
-      const mockPet = createMockPet({
-        images: [
-          {
-            image_id: 'img1',
-            url: 'photo1.jpg',
-            is_primary: true,
-            order_index: 0,
-            uploaded_at: new Date(),
-          },
-          {
-            image_id: 'img2',
-            url: 'photo2.jpg',
-            is_primary: false,
-            order_index: 1,
-            uploaded_at: new Date(),
-          },
-        ],
-      });
+      // Given: Pet with 2 existing images — count() reports 2 so the
+      // next order_index for an image without an explicit position is 2.
+      const mockPet = createMockPet();
       mockPet.reload.mockResolvedValue(mockPet);
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedPetMedia.count = vi.fn().mockResolvedValue(2 as never);
 
       const newImages = [
         {
@@ -925,14 +865,14 @@ describe('PetService - Business Logic', () => {
       await PetService.addPetImages(mockPetId, newImages, mockUserId);
 
       // Then: New image gets order_index = 2 (continuing sequence)
-      expect(mockPet.update).toHaveBeenCalledWith({
-        images: expect.arrayContaining([
+      expect(MockedPetMedia.bulkCreate).toHaveBeenCalledWith(
+        expect.arrayContaining([
           expect.objectContaining({
             url: 'photo3.jpg',
-            order_index: 2, // Continues from existing images
+            order_index: 2,
           }),
-        ]),
-      });
+        ])
+      );
     });
   });
 

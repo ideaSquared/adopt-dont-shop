@@ -99,8 +99,6 @@ describe('PetService', () => {
         priorityListing: false,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
 
       await Pet.create({
@@ -119,8 +117,6 @@ describe('PetService', () => {
         priorityListing: true,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
     });
 
@@ -185,8 +181,6 @@ describe('PetService', () => {
           priorityListing: false,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         });
       }
 
@@ -228,8 +222,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
         viewCount: 0,
       });
     });
@@ -285,8 +277,6 @@ describe('PetService', () => {
         vaccinationStatus: VaccinationStatus.UP_TO_DATE,
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
-        images: [],
-        videos: [],
       };
 
       const result = await PetService.createPet(mockPetData, testRescue.rescueId, 'user1');
@@ -318,8 +308,6 @@ describe('PetService', () => {
         vaccinationStatus: VaccinationStatus.UP_TO_DATE,
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
-        images: [],
-        videos: [],
       };
 
       // The service doesn't validate empty names but the model does
@@ -340,8 +328,6 @@ describe('PetService', () => {
         vaccinationStatus: VaccinationStatus.UP_TO_DATE,
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
-        images: [],
-        videos: [],
       };
 
       // Force an error
@@ -377,8 +363,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
     });
 
@@ -438,8 +422,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
     });
 
@@ -498,8 +480,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
     });
 
@@ -558,8 +538,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
     });
 
@@ -574,11 +552,18 @@ describe('PetService', () => {
     ];
 
     it('should add images to pet successfully', async () => {
-      const result = await PetService.addPetImages(petId, newImages, 'user1');
+      // Pet.images JSONB extracted to pet_media (plan 2.1) — assert that
+      // the row was inserted into PetMedia rather than that the JSONB
+      // column on the pet was mutated.
+      const { default: PetMedia, PetMediaType } = await import('../../models/PetMedia');
 
-      expect(result.images).toHaveLength(1);
-      expect(result.images[0].url).toBe('https://example.com/image1.jpg');
-      expect(result.images[0].is_primary).toBe(true);
+      await PetService.addPetImages(petId, newImages, 'user1');
+
+      const rows = await PetMedia.findAll({ where: { pet_id: petId } });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].url).toBe('https://example.com/image1.jpg');
+      expect(rows[0].is_primary).toBe(true);
+      expect(rows[0].type).toBe(PetMediaType.IMAGE);
 
       expect(mockAuditLog).toHaveBeenCalled();
     });
@@ -613,8 +598,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
 
       await Pet.create({
@@ -631,8 +614,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.SPAYED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
     });
 
@@ -663,8 +644,6 @@ describe('PetService', () => {
         rescueId: testRescue.rescueId,
         featured: true,
         archived: false,
-        images: [],
-        videos: [],
       });
 
       await Pet.create({
@@ -682,8 +661,6 @@ describe('PetService', () => {
         rescueId: testRescue.rescueId,
         featured: true,
         archived: false,
-        images: [],
-        videos: [],
       });
     });
 
@@ -715,8 +692,6 @@ describe('PetService', () => {
           featured: true,
           specialNeeds: false,
           archived: false,
-          images: [],
-          videos: [],
         },
         {
           petId: uniqueId('stats-pet2'),
@@ -733,8 +708,6 @@ describe('PetService', () => {
           rescueId: testRescue.rescueId,
           specialNeeds: true,
           archived: false,
-          images: [],
-          videos: [],
         },
         {
           petId: uniqueId('stats-pet3'),
@@ -750,8 +723,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.NEUTERED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         },
       ]);
     });
@@ -795,8 +766,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
 
       pet2 = await Pet.create({
@@ -813,8 +782,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.SPAYED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
     });
 
@@ -889,8 +856,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
         viewCount: 50,
         favoriteCount: 10,
         applicationCount: 3,
@@ -933,8 +898,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.NEUTERED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
           createdAt: new Date('2025-07-08T10:00:00Z'),
         },
         {
@@ -951,8 +914,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.SPAYED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
           createdAt: new Date('2025-07-08T09:00:00Z'),
         },
       ]);
@@ -999,8 +960,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.NEUTERED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         },
         {
           petId: uniqueId('breeds-pet2'),
@@ -1016,8 +975,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.NEUTERED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         },
         {
           petId: uniqueId('breeds-pet3'),
@@ -1033,8 +990,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.NEUTERED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         },
       ]);
     });
@@ -1064,8 +1019,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.NEUTERED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         },
         {
           petId: uniqueId('breeds-pet5'),
@@ -1081,8 +1034,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.NEUTERED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         },
         {
           petId: uniqueId('breeds-pet6'),
@@ -1098,8 +1049,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.NEUTERED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         },
       ]);
 
@@ -1165,8 +1114,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
 
       await Pet.bulkCreate([
@@ -1184,8 +1131,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.SPAYED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         },
         {
           petId: uniqueId('similar-2'),
@@ -1201,8 +1146,6 @@ describe('PetService', () => {
           spayNeuterStatus: SpayNeuterStatus.NEUTERED,
           rescueId: testRescue.rescueId,
           archived: false,
-          images: [],
-          videos: [],
         },
       ]);
     });
@@ -1250,8 +1193,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
 
       // Should not throw - the SQL injection attempt is safely escaped
@@ -1301,8 +1242,6 @@ describe('PetService', () => {
         spayNeuterStatus: SpayNeuterStatus.NEUTERED,
         rescueId: testRescue.rescueId,
         archived: false,
-        images: [],
-        videos: [],
       });
     });
 

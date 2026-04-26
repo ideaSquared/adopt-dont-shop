@@ -3,6 +3,7 @@ import ApplicationQuestion from './ApplicationQuestion';
 import ApplicationStatusTransition from './ApplicationStatusTransition';
 import ApplicationTimeline from './ApplicationTimeline';
 import Pet from './Pet';
+import PetMedia from './PetMedia';
 import PetStatusTransition from './PetStatusTransition';
 import Rescue from './Rescue';
 import RescueSettings from './RescueSettings';
@@ -76,6 +77,7 @@ const models = {
   Rescue,
   RescueSettings,
   Pet,
+  PetMedia,
   PetStatusTransition,
   Application,
   ApplicationQuestion,
@@ -405,6 +407,11 @@ try {
   Pet.hasMany(SwipeAction, { foreignKey: 'petId', as: 'SwipeActions' });
   SwipeAction.belongsTo(Pet, { foreignKey: 'petId', as: 'Pet' });
 
+  // Pet media (plan 2.1 — Pet.images / Pet.videos JSONB extracted to a
+  // typed table). Cascade so deleting a pet removes its media rows.
+  Pet.hasMany(PetMedia, { foreignKey: 'pet_id', as: 'Media' });
+  PetMedia.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
+
   User.hasOne(EmailPreference, { foreignKey: 'userId', as: 'EmailPreferences' });
   EmailPreference.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
@@ -476,6 +483,7 @@ export {
   Notification,
   Permission,
   Pet,
+  PetMedia,
   PetStatusTransition,
   Rating,
   Report,

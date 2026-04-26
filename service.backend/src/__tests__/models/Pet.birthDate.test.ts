@@ -59,8 +59,6 @@ describe('Pet.birthDate + getAgeDisplay', () => {
         favorite_count: 0,
         application_count: 0,
         is_birth_date_estimate: false,
-        images: '[]',
-        videos: '[]',
         tags: '[]',
         created_at: new Date(),
         updated_at: new Date(),

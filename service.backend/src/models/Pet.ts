@@ -1,7 +1,6 @@
 // src/models/Pet.ts
 import { DataTypes, Model, Op, Optional, QueryTypes, WhereOptions } from 'sequelize';
 import sequelize, {
-  getJsonType,
   getUuidType,
   getArrayType,
   getGeometryType,
@@ -154,23 +153,7 @@ export interface PetAttributes {
   spayNeuterStatus: SpayNeuterStatus;
   spayNeuterDate?: Date | null;
   lastVetCheckup?: Date | null;
-  images: Array<{
-    image_id: string;
-    url: string;
-    thumbnail_url?: string;
-    caption?: string;
-    is_primary: boolean;
-    order_index: number;
-    uploaded_at: Date;
-  }>;
-  videos: Array<{
-    video_id: string;
-    url: string;
-    thumbnail_url?: string;
-    caption?: string;
-    duration_seconds?: number;
-    uploaded_at: Date;
-  }>;
+  // images / videos moved to the pet_media table (plan 2.1) — Pet.hasMany(PetMedia).
   location?: { type: string; coordinates: [number, number] };
   availableSince?: Date | null;
   adoptedDate?: Date | null;
@@ -195,7 +178,6 @@ export interface PetCreationAttributes
     | 'priorityListing'
     | 'specialNeeds'
     | 'houseTrained'
-    | 'videos'
     | 'viewCount'
     | 'favoriteCount'
     | 'applicationCount'
@@ -251,23 +233,7 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
   public spayNeuterStatus!: SpayNeuterStatus;
   public spayNeuterDate!: Date | null;
   public lastVetCheckup!: Date | null;
-  public images!: Array<{
-    image_id: string;
-    url: string;
-    thumbnail_url?: string;
-    caption?: string;
-    is_primary: boolean;
-    order_index: number;
-    uploaded_at: Date;
-  }>;
-  public videos!: Array<{
-    video_id: string;
-    url: string;
-    thumbnail_url?: string;
-    caption?: string;
-    duration_seconds?: number;
-    uploaded_at: Date;
-  }>;
+  // images / videos moved to pet_media (plan 2.1).
   public location!: { type: string; coordinates: [number, number] };
   public availableSince!: Date | null;
   public adoptedDate!: Date | null;
@@ -289,11 +255,6 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
 
   public isAdopted(): boolean {
     return this.status === PetStatus.ADOPTED;
-  }
-
-  public getPrimaryImage(): string | null {
-    const primaryImage = this.images?.find(img => img.is_primary);
-    return primaryImage?.url || this.images?.[0]?.url || null;
   }
 
   public getAgeInMonths(now: Date = new Date()): number | null {
@@ -702,32 +663,7 @@ Pet.init(
       allowNull: true,
       field: 'last_vet_checkup',
     },
-    images: {
-      type: getJsonType(),
-      allowNull: false,
-      validate: {
-        isValidImages(value: unknown) {
-          if (!Array.isArray(value)) {
-            throw new Error('Images must be an array');
-          }
-          value.forEach((img, index) => {
-            if (
-              typeof img !== 'object' ||
-              img === null ||
-              !('image_id' in img) ||
-              !('url' in img)
-            ) {
-              throw new Error(`Image at index ${index} must have image_id and url`);
-            }
-          });
-        },
-      },
-    },
-    videos: {
-      type: getJsonType(),
-      allowNull: false,
-      defaultValue: [],
-    },
+    // images / videos moved to pet_media (plan 2.1).
     location: {
       type: getGeometryType('POINT'),
       allowNull: true,

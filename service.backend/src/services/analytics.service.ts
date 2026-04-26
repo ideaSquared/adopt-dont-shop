@@ -4,6 +4,7 @@ import AuditLog from '../models/AuditLog';
 import Chat from '../models/Chat';
 import Message from '../models/Message';
 import Pet from '../models/Pet';
+import PetMedia, { PetMediaType } from '../models/PetMedia';
 import Rescue from '../models/Rescue';
 import User from '../models/User';
 import sequelize from '../sequelize';
@@ -626,13 +627,24 @@ export class AnalyticsService {
       const previousPeriodStart = new Date(
         defaultStartDate.getTime() - (defaultEndDate.getTime() - defaultStartDate.getTime())
       );
+      // Pet.images JSONB extracted to pet_media (plan 2.1) — count
+      // distinct pets that have at least one image row in the period.
       const previousStorageCount = await Pet.count({
         where: {
           createdAt: {
             [Op.between]: [previousPeriodStart, defaultStartDate],
           } as unknown as Date,
-          images: { [Op.not]: null } as unknown as string[],
         },
+        include: [
+          {
+            model: PetMedia,
+            as: 'Media',
+            where: { type: PetMediaType.IMAGE },
+            required: true,
+          },
+        ],
+        distinct: true,
+        col: 'pet_id',
       });
 
       const currentStorageCount = await Pet.count({
@@ -640,8 +652,17 @@ export class AnalyticsService {
           createdAt: {
             [Op.between]: [defaultStartDate, defaultEndDate],
           } as unknown as Date,
-          images: { [Op.not]: null } as unknown as string[],
         },
+        include: [
+          {
+            model: PetMedia,
+            as: 'Media',
+            where: { type: PetMediaType.IMAGE },
+            required: true,
+          },
+        ],
+        distinct: true,
+        col: 'pet_id',
       });
 
       const storageGrowthRate =
