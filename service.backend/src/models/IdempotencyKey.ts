@@ -92,6 +92,9 @@ IdempotencyKey.init(
     modelName: 'IdempotencyKey',
     timestamps: true,
     underscored: true,
+    // Per-request scratch with 24h TTL — drop expired rows hard via the
+    // cleanup job. No soft-delete.
+    paranoid: false,
     indexes: [
       { fields: ['user_id'], name: 'idempotency_keys_user_id_idx' },
       { fields: ['expires_at'], name: 'idempotency_keys_expires_at_idx' },

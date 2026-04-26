@@ -55,6 +55,9 @@ RolePermission.init(
     tableName: 'role_permissions',
     timestamps: true,
     underscored: true,
+    // Junction table; remove the assignment outright when revoking
+    // (CASCADE FKs handle parent deletes). No soft-delete.
+    paranoid: false,
   }
 );
 

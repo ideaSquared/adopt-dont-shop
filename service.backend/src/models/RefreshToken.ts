@@ -88,6 +88,9 @@ RefreshToken.init(
     modelName: 'RefreshToken',
     timestamps: true,
     underscored: true,
+    // Hard expiration via expires_at + is_revoked. Hard-deleted on
+    // logout/cleanup; no soft-delete semantics needed.
+    paranoid: false,
     indexes: [
       { fields: ['user_id'], name: 'refresh_tokens_user_id_idx' },
       { fields: ['family_id'], name: 'refresh_tokens_family_id_idx' },

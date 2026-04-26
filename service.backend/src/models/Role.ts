@@ -54,6 +54,8 @@ Role.init(
     tableName: 'roles',
     timestamps: true,
     underscored: true,
+    // Reference data — see Permission.ts for rationale.
+    paranoid: false,
   }
 );
 

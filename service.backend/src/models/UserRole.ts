@@ -48,6 +48,9 @@ UserRole.init(
     tableName: 'user_roles',
     timestamps: true,
     underscored: true,
+    // Junction table; revoke = remove the row (CASCADE handles parent
+    // deletes). No soft-delete.
+    paranoid: false,
   }
 );
 

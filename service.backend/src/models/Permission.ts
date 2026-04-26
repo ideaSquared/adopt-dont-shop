@@ -50,6 +50,10 @@ Permission.init(
     tableName: 'permissions',
     timestamps: true,
     underscored: true,
+    // Reference data — never soft-deleted. Opts out of the global
+    // sequelize.define.paranoid: true so we don't carry an unused
+    // deleted_at column on this lookup table.
+    paranoid: false,
   }
 );
 
