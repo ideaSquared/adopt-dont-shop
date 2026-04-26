@@ -77,7 +77,7 @@ interface UserAttributes {
   location?: { type: string; coordinates: [number, number] };
   rescueId?: string | null;
   privacySettings?: JsonObject;
-  notificationPreferences?: JsonObject;
+  // notificationPreferences moved to user_notification_prefs (plan 5.6).
   termsAcceptedAt?: Date | null;
   privacyPolicyAcceptedAt?: Date | null;
   applicationDefaults?: JsonObject | null;
@@ -144,7 +144,6 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public location!: { type: string; coordinates: [number, number] };
   public rescueId!: string | null;
   public privacySettings!: JsonObject;
-  public notificationPreferences!: JsonObject;
   public termsAcceptedAt!: Date | null;
   public privacyPolicyAcceptedAt!: Date | null;
   public applicationDefaults!: JsonObject | null;
@@ -420,19 +419,9 @@ User.init(
         showLocation: true,
       },
     },
-    notificationPreferences: {
-      type: getJsonType(),
-      allowNull: true,
-      field: 'notification_preferences',
-      defaultValue: {
-        email: true,
-        push: true,
-        sms: false,
-        applicationUpdates: true,
-        petMatches: true,
-        rescueUpdates: true,
-      },
-    },
+    // notificationPreferences moved to user_notification_prefs (plan 5.6 —
+    // typed table with explicit columns + DB defaults; auto-created via
+    // User.afterCreate hook).
     termsAcceptedAt: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -550,6 +539,17 @@ User.init(
           user.password = await hashPassword(user.password);
         }
         await protectSecretsIfChanged(user);
+      },
+      // Plan 5.6 — every user gets a typed notification-prefs row at
+      // creation time so consumers can always assume it exists. Defaults
+      // are declared on UserNotificationPrefs.
+      afterCreate: async (user: User, options) => {
+        const { default: UserNotificationPrefs } = await import('./UserNotificationPrefs');
+        await UserNotificationPrefs.findOrCreate({
+          where: { user_id: user.userId },
+          defaults: { user_id: user.userId },
+          transaction: options.transaction,
+        });
       },
     },
   })

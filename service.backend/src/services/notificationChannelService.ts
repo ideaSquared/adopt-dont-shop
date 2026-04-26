@@ -1,5 +1,6 @@
 import DeviceToken from '../models/DeviceToken';
 import User from '../models/User';
+import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import logger from '../utils/logger';
 import emailService from './email.service';
 import { NotificationPreferences } from './notification.service';
@@ -25,16 +26,28 @@ export class NotificationChannelService {
     priority: 'low' | 'normal' | 'high' | 'urgent' = 'normal'
   ): Promise<('email' | 'push' | 'sms')[]> {
     try {
-      const user = await User.findByPk(userId, {
-        attributes: ['notificationPreferences', 'phoneNumber'],
-      });
-
+      const user = await User.findByPk(userId, { attributes: ['userId', 'phoneNumber'] });
       if (!user) {
         return [];
       }
 
-      const preferences = (user.notificationPreferences ||
-        {}) as unknown as NotificationPreferences;
+      const prefsRow = await UserNotificationPrefs.findOne({ where: { user_id: userId } });
+      // Same projection shape as NotificationService.getNotificationPreferences;
+      // duplicating here to avoid a circular import. If a row is missing
+      // (legacy user pre-dating the auto-create hook) defaults stand in.
+      const preferences: NotificationPreferences = {
+        email: prefsRow?.email_enabled ?? true,
+        push: prefsRow?.push_enabled ?? true,
+        sms: prefsRow?.sms_enabled ?? false,
+        applications: prefsRow?.application_updates ?? true,
+        messages: prefsRow?.chat_messages ?? true,
+        system: true,
+        marketing: false,
+        reminders: true,
+        quietHoursStart: prefsRow?.quiet_hours_start ?? undefined,
+        quietHoursEnd: prefsRow?.quiet_hours_end ?? undefined,
+        timezone: prefsRow?.timezone ?? 'UTC',
+      };
       const channels: ('email' | 'push' | 'sms')[] = [];
 
       // Always include in-app notification (handled separately)

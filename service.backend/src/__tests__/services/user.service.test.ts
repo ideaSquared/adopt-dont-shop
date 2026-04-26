@@ -167,7 +167,9 @@ describe('UserService', () => {
 
   describe('updateUserPreferences', () => {
     it('should update user preferences successfully', async () => {
-      // Create a real user in the database
+      // Create a real user in the database. Notification prefs are
+      // auto-created by the User.afterCreate hook (plan 5.6) — no need
+      // to seed them inline.
       const user = await User.create({
         email: 'prefs@example.com',
         password: 'hashedpassword',
@@ -175,11 +177,6 @@ describe('UserService', () => {
         lastName: 'User',
         userType: UserType.ADOPTER,
         status: UserStatus.ACTIVE,
-        notificationPreferences: {
-          emailNotifications: true,
-          pushNotifications: false,
-          smsNotifications: true,
-        },
         privacySettings: {
           profileVisibility: 'private',
           showLocation: false,
@@ -198,12 +195,12 @@ describe('UserService', () => {
         },
       };
 
-      const result = await UserService.updateUserPreferences(user.userId, preferences);
+      await UserService.updateUserPreferences(user.userId, preferences);
+      const result = await UserService.getUserPreferences(user.userId);
 
-      expect(result).toBeDefined();
-      expect(result.notificationPreferences?.emailNotifications).toBe(false);
-      expect(result.notificationPreferences?.pushNotifications).toBe(true);
-      expect(result.notificationPreferences?.smsNotifications).toBe(false);
+      expect(result.emailNotifications).toBe(false);
+      expect(result.pushNotifications).toBe(true);
+      expect(result.smsNotifications).toBe(false);
       expect(result.privacySettings?.profileVisibility).toBe('public');
       expect(result.privacySettings?.showLocation).toBe(true);
     });

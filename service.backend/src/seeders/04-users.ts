@@ -202,14 +202,8 @@ export async function seedUsers() {
           showLocation: false,
           allowMessages: true,
         },
-        notificationPreferences: {
-          email: true,
-          push: true,
-          sms: false,
-          applicationUpdates: true,
-          chatMessages: true,
-          newPetAlerts: true,
-        },
+        // Notification prefs auto-created by User.afterCreate hook
+        // (plan 5.6) — defaults stand in.
         // Phase 1: Application defaults (JSON structure for adopters)
         applicationDefaults:
           userData.userType === UserType.ADOPTER

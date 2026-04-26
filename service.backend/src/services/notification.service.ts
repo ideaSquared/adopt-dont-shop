@@ -6,6 +6,7 @@ import Notification, {
   NotificationType,
 } from '../models/Notification';
 import User from '../models/User';
+import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import { JsonObject, WhereClause } from '../types/common';
 import logger, { loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
@@ -418,42 +419,30 @@ export class NotificationService {
   }
 
   /**
-   * Get user notification preferences
+   * Get user notification preferences. Reads from the typed
+   * user_notification_prefs table (plan 5.6) and projects into the
+   * existing API shape so controllers don't have to change.
    */
   static async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
     const startTime = Date.now();
 
     try {
-      const user = await User.findByPk(userId, {
-        attributes: ['notificationPreferences'],
-      });
-
+      const user = await User.findByPk(userId, { attributes: ['userId'] });
       if (!user) {
         throw new Error('User not found');
       }
 
-      // Return default preferences if none set
-      const defaultPreferences: NotificationPreferences = {
-        email: true,
-        push: true,
-        sms: false,
-        applications: true,
-        messages: true,
-        system: true,
-        marketing: false,
-        reminders: true,
-        quietHoursStart: '22:00',
-        quietHoursEnd: '08:00',
-        timezone: 'UTC',
-      };
-
-      loggerHelpers.logDatabase('READ', {
-        userId,
-        duration: Date.now() - startTime,
-        found: !!user.notificationPreferences,
+      // The afterCreate hook on User auto-creates this row, so it should
+      // always exist. findOrCreate is defensive against pre-existing
+      // users that predate the hook.
+      const [prefs] = await UserNotificationPrefs.findOrCreate({
+        where: { user_id: userId },
+        defaults: { user_id: userId },
       });
 
-      return { ...defaultPreferences, ...(user.notificationPreferences || {}) };
+      loggerHelpers.logDatabase('READ', { userId, duration: Date.now() - startTime, found: true });
+
+      return prefsRowToApi(prefs);
     } catch (error) {
       logger.error('Error getting notification preferences:', {
         error: error instanceof Error ? error.message : String(error),
@@ -485,10 +474,12 @@ export class NotificationService {
         throw new Error('User not found');
       }
 
-      const currentPreferences = user.notificationPreferences || {};
-      const updatedPreferences = { ...currentPreferences, ...preferences };
-
-      await user.update({ notificationPreferences: updatedPreferences }, { transaction });
+      const [prefs] = await UserNotificationPrefs.findOrCreate({
+        where: { user_id: userId },
+        defaults: { user_id: userId },
+        transaction,
+      });
+      await prefs.update(apiPatchToPrefsRow(preferences), { transaction });
 
       // Log the action
       await AuditLogService.log({
@@ -514,7 +505,8 @@ export class NotificationService {
       await transaction.commit();
 
       logger.info(`Updated notification preferences for user: ${userId}`);
-      return updatedPreferences;
+      await prefs.reload();
+      return prefsRowToApi(prefs);
     } catch (error) {
       await transaction.rollback();
       logger.error('Error updating notification preferences:', {
@@ -878,4 +870,55 @@ export class NotificationService {
       throw error;
     }
   }
+}
+
+/**
+ * Project a UserNotificationPrefs row into the API shape callers expect.
+ * The typed table doesn't carry the legacy `system`/`marketing`/`reminders`
+ * fields — they get the historical defaults until the API contract is
+ * tightened in a follow-up slice.
+ */
+function prefsRowToApi(prefs: UserNotificationPrefs): NotificationPreferences {
+  return {
+    email: prefs.email_enabled,
+    push: prefs.push_enabled,
+    sms: prefs.sms_enabled,
+    applications: prefs.application_updates,
+    messages: prefs.chat_messages,
+    system: true,
+    marketing: false,
+    reminders: true,
+    quietHoursStart: prefs.quiet_hours_start ?? undefined,
+    quietHoursEnd: prefs.quiet_hours_end ?? undefined,
+    timezone: prefs.timezone,
+  };
+}
+
+/**
+ * Map an API-side patch to the column-named partial accepted by
+ * UserNotificationPrefs.update(). Unknown legacy fields (system,
+ * marketing, reminders) are silently ignored.
+ */
+type PrefsRowPatch = Partial<{
+  email_enabled: boolean;
+  push_enabled: boolean;
+  sms_enabled: boolean;
+  application_updates: boolean;
+  chat_messages: boolean;
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
+  timezone: string;
+}>;
+
+function apiPatchToPrefsRow(input: Partial<NotificationPreferences>): PrefsRowPatch {
+  const out: PrefsRowPatch = {};
+  if (input.email !== undefined) out.email_enabled = input.email;
+  if (input.push !== undefined) out.push_enabled = input.push;
+  if (input.sms !== undefined) out.sms_enabled = input.sms;
+  if (input.applications !== undefined) out.application_updates = input.applications;
+  if (input.messages !== undefined) out.chat_messages = input.messages;
+  if (input.quietHoursStart !== undefined) out.quiet_hours_start = input.quietHoursStart || null;
+  if (input.quietHoursEnd !== undefined) out.quiet_hours_end = input.quietHoursEnd || null;
+  if (input.timezone !== undefined) out.timezone = input.timezone;
+  return out;
 }

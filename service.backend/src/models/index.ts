@@ -7,6 +7,7 @@ import PetStatusTransition from './PetStatusTransition';
 import Rescue from './Rescue';
 import User from './User';
 import UserFavorite from './UserFavorite';
+import UserNotificationPrefs from './UserNotificationPrefs';
 
 // Communication Models
 import Chat from './Chat';
@@ -66,6 +67,7 @@ import NavigationMenu from './NavigationMenu';
 const models = {
   User,
   UserFavorite,
+  UserNotificationPrefs,
   Rescue,
   Pet,
   PetStatusTransition,
@@ -395,6 +397,11 @@ try {
   User.hasOne(EmailPreference, { foreignKey: 'userId', as: 'EmailPreferences' });
   EmailPreference.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
+  // UserNotificationPrefs association (1:1, auto-created via User.afterCreate
+  // hook so consumers can always assume the row exists). Plan 5.6.
+  User.hasOne(UserNotificationPrefs, { foreignKey: 'user_id', as: 'NotificationPrefs' });
+  UserNotificationPrefs.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+
   // UserFavorite associations
   User.hasMany(UserFavorite, { foreignKey: 'user_id', as: 'Favorites' });
   UserFavorite.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
@@ -462,6 +469,7 @@ export {
   SwipeSession,
   User,
   UserFavorite,
+  UserNotificationPrefs,
   UserRole,
   UserSanction,
   Content,
