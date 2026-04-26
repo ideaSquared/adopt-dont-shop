@@ -1,6 +1,7 @@
 import {
   AdoptionPolicySchema,
   AddStaffMemberRequestSchema,
+  CountryCodeSchema,
   RescueBulkUpdateRequestSchema,
   RescueCreateRequestSchema,
   RescueDeletionRequestSchema,
@@ -43,6 +44,23 @@ describe('Rescue schemas', () => {
     });
   });
 
+  describe('CountryCodeSchema', () => {
+    it('uppercases and accepts alpha-2 codes', () => {
+      expect(CountryCodeSchema.parse('gb')).toBe('GB');
+      expect(CountryCodeSchema.parse(' US ')).toBe('US');
+    });
+
+    it('rejects 3-letter codes and full names', () => {
+      expect(() => CountryCodeSchema.parse('GBR')).toThrow();
+      expect(() => CountryCodeSchema.parse('United Kingdom')).toThrow();
+    });
+
+    it('rejects digits / mixed input', () => {
+      expect(() => CountryCodeSchema.parse('12')).toThrow();
+      expect(() => CountryCodeSchema.parse('G1')).toThrow();
+    });
+  });
+
   describe('RescueStatusSchema', () => {
     it('accepts the canonical statuses', () => {
       expect(RescueStatusSchema.parse('verified')).toBe('verified');
@@ -60,7 +78,7 @@ describe('Rescue schemas', () => {
       address: '1 Lane',
       city: 'London',
       postcode: 'SW1A 1AA',
-      country: 'United Kingdom',
+      country: 'GB',
       contactPerson: 'Jane Doe',
     };
 

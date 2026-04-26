@@ -34,7 +34,7 @@ const createRescue = async (rescueId: string) => {
     address: '1 Test Street',
     city: 'London',
     postcode: 'SW1A 1AA',
-    country: 'UK',
+    country: 'GB',
     contactPerson: 'Test Contact',
     status: 'pending',
   });

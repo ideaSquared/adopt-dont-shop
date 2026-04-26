@@ -163,7 +163,7 @@ describe('AdminService', () => {
         address: '123 Main St',
         city: 'London',
         postcode: 'SW1A 1AA',
-        country: 'UK',
+        country: 'GB',
         contactPerson: 'John Doe',
         status: 'verified',
       });

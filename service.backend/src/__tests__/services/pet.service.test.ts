@@ -70,7 +70,7 @@ describe('PetService', () => {
       postcode: 'TEST123',
       contactPerson: 'Test Contact',
       status: 'verified',
-      country: 'United Kingdom',
+      country: 'GB',
     });
   });
 

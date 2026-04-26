@@ -114,10 +114,22 @@ Rescue.init(
       allowNull: false,
       field: 'zip_code', // Maps to existing 'zip_code' column in database
     },
+    /**
+     * ISO 3166-1 alpha-2 country code (e.g. GB, US). CHAR(2),
+     * uppercase. The plan (5.5.9) prefers stable codes over country
+     * names for the obvious reason — names change, codes don't, and
+     * a 2-letter constraint catches typos at the DB.
+     */
     country: {
-      type: DataTypes.STRING,
+      type: DataTypes.CHAR(2),
       allowNull: false,
-      defaultValue: 'United Kingdom', // Changed from 'US' to UK
+      defaultValue: 'GB',
+      validate: {
+        is: {
+          args: /^[A-Z]{2}$/,
+          msg: 'Country must be an ISO 3166-1 alpha-2 code (e.g. GB, US)',
+        },
+      },
     },
     website: {
       type: DataTypes.STRING,
