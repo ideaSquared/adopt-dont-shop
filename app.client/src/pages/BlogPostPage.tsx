@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import DOMPurify from 'dompurify';
 import { Container, Spinner } from '@adopt-dont-shop/lib.components';
 import { cmsPublicService, type PublicContent } from '@/services/cmsService';
 
@@ -163,7 +164,8 @@ export const BlogPostPage: React.FC = () => {
         <span>{formatDate(post.publishedAt ?? post.createdAt)}</span>
       </PostMeta>
 
-      <PostContent dangerouslySetInnerHTML={{ __html: post.content }} />
+      {/* eslint-disable-next-line react/no-danger -- Content is sanitized with DOMPurify */}
+      <PostContent dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }} />
     </PageContainer>
   );
 };

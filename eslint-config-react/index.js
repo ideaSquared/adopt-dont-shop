@@ -41,6 +41,9 @@ module.exports = {
     'jsx-a11y/anchor-is-valid': 'warn',
     'jsx-a11y/mouse-events-have-key-events': 'warn',
 
+    // Security: disallow unsanitized dangerouslySetInnerHTML
+    'react/no-danger': 'error',
+
     // Override base config for React apps
     'no-console': 'off', // Allow console in frontend for debugging
   },

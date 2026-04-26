@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import DOMPurify from 'dompurify';
 import { Container, Spinner } from '@adopt-dont-shop/lib.components';
 import { cmsPublicService, type PublicContent } from '@/services/cmsService';
 
@@ -125,7 +126,8 @@ export const HelpArticlePage: React.FC = () => {
     <PageContainer>
       <BackLink to='/help'>← Back to Help Center</BackLink>
       <ArticleTitle>{article.title}</ArticleTitle>
-      <ArticleContent dangerouslySetInnerHTML={{ __html: article.content }} />
+      {/* eslint-disable-next-line react/no-danger -- Content is sanitized with DOMPurify */}
+      <ArticleContent dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content) }} />
     </PageContainer>
   );
 };
