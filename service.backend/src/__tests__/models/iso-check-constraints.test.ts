@@ -2,6 +2,8 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { QueryTypes } from 'sequelize';
 import sequelize from '../../sequelize';
 import '../../models/index';
+import EmailPreference from '../../models/EmailPreference';
+import User from '../../models/User';
 import { installIsoCheckConstraints } from '../../models/iso-check-constraints';
 
 const isPostgres = sequelize.getDialect() === 'postgres';
@@ -44,6 +46,45 @@ describe('iso check constraints', () => {
       await expect(sequelize.query(sql, { type: QueryTypes.INSERT })).rejects.toThrow(
         new RegExp(constraint)
       );
+    });
+
+    // The language columns sit on tables (users, email_preferences) with
+    // many other required fields, so testing the CHECK via INSERT means
+    // copy-pasting a long column list. Easier: create a valid row through
+    // Sequelize, then UPDATE only the language column via raw SQL to
+    // bypass the JS-side validator and prove the DB CHECK fires.
+    it('rejects a non-BCP-47 language on users via UPDATE', async () => {
+      const user = await User.create({
+        email: 'lang@x.test',
+        password: 'x',
+        firstName: 'A',
+        lastName: 'B',
+      } as never);
+      await expect(
+        sequelize.query(`UPDATE users SET language = 'EN_US' WHERE user_id = :id`, {
+          replacements: { id: user.userId },
+          type: QueryTypes.UPDATE,
+        })
+      ).rejects.toThrow(/users_language_bcp47_check/);
+    });
+
+    it('rejects a non-BCP-47 language on email_preferences via UPDATE', async () => {
+      const user = await User.create({
+        email: 'pref@x.test',
+        password: 'x',
+        firstName: 'A',
+        lastName: 'B',
+      } as never);
+      const pref = await EmailPreference.create({ userId: user.userId } as never);
+      await expect(
+        sequelize.query(
+          `UPDATE email_preferences SET language = 'english' WHERE preference_id = :id`,
+          {
+            replacements: { id: (pref as unknown as { preferenceId: string }).preferenceId },
+            type: QueryTypes.UPDATE,
+          }
+        )
+      ).rejects.toThrow(/email_preferences_language_bcp47_check/);
     });
   });
 });

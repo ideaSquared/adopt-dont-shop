@@ -364,7 +364,10 @@ EmailPreference.init(
       allowNull: false,
       defaultValue: 'en',
       validate: {
-        isIn: [['en', 'es', 'fr', 'de', 'it', 'pt', 'zh', 'ja', 'ko']],
+        is: {
+          args: /^[a-z]{2,3}(-[A-Z]{2})?$/,
+          msg: 'Language must be a BCP 47 simple form (e.g. en, en-GB, pt-BR)',
+        },
       },
     },
     timezone: {

@@ -365,6 +365,12 @@ User.init(
       type: DataTypes.STRING(10),
       allowNull: true,
       defaultValue: 'en',
+      validate: {
+        is: {
+          args: /^[a-z]{2,3}(-[A-Z]{2})?$/,
+          msg: 'Language must be a BCP 47 simple form (e.g. en, en-GB, pt-BR)',
+        },
+      },
     },
     country: {
       type: DataTypes.STRING(100),

@@ -26,6 +26,11 @@ type IsoCheck = {
   nullable: boolean;
 };
 
+// BCP 47 simple form covers ISO 639-1 / 639-3 with optional ISO 3166-1
+// region: e.g. en, eng, en-GB, pt-BR, zh-CN. Doesn't cover script subtags
+// (zh-Hant) or extended language tags — out of scope for product copy.
+const BCP_47_SIMPLE = '^[a-z]{2,3}(-[A-Z]{2})?$';
+
 const ISO_CHECKS: readonly IsoCheck[] = [
   {
     table: 'pets',
@@ -39,6 +44,20 @@ const ISO_CHECKS: readonly IsoCheck[] = [
     column: 'country',
     name: 'rescues_country_iso_check',
     regex: '^[A-Z]{2}$',
+    nullable: false,
+  },
+  {
+    table: 'users',
+    column: 'language',
+    name: 'users_language_bcp47_check',
+    regex: BCP_47_SIMPLE,
+    nullable: true,
+  },
+  {
+    table: 'email_preferences',
+    column: 'language',
+    name: 'email_preferences_language_bcp47_check',
+    regex: BCP_47_SIMPLE,
     nullable: false,
   },
 ];
