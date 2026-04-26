@@ -24,11 +24,12 @@ const rescueOrganizations = [
     status: 'verified' as const,
     verifiedAt: new Date('2023-01-15'),
     verifiedBy: '0cbbd913-c94c-4254-a028-81b76df89c9f',
+    // Toggles like autoApproveApplications, requireHomeVisit live in
+    // rescue_settings now (plan 5.6 — auto-created via Rescue.afterCreate
+    // hook with table-level defaults). The JSONB only carries
+    // adoptionPolicies, which is the rich nested object that hasn't
+    // been split out yet.
     settings: {
-      autoApproveApplications: false,
-      requireHomeVisit: true,
-      allowPublicContact: true,
-      adoptionFeeRange: { min: 50, max: 300 },
       adoptionPolicies: {
         requireHomeVisit: true,
         requireReferences: true,
@@ -81,10 +82,6 @@ const rescueOrganizations = [
     verifiedAt: new Date('2023-02-20'),
     verifiedBy: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     settings: {
-      autoApproveApplications: false,
-      requireHomeVisit: true,
-      allowPublicContact: true,
-      adoptionFeeRange: { min: 25, max: 150 },
       adoptionPolicies: {
         requireHomeVisit: true,
         requireReferences: true,
@@ -134,12 +131,9 @@ const rescueOrganizations = [
     contactEmail: 'coordinator@furryfriendspdx.dev',
     contactPhone: '(503) 555-0789',
     status: 'pending' as const,
-    settings: {
-      autoApproveApplications: false,
-      requireHomeVisit: false,
-      allowPublicContact: true,
-      adoptionFeeRange: { min: 75, max: 400 },
-    },
+    // Toggles live in rescue_settings (auto-created); JSONB stays empty
+    // until adoption policies are added.
+    settings: {},
   },
 ];
 

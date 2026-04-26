@@ -237,6 +237,18 @@ Rescue.init(
       { fields: ['deleted_at'], name: 'rescues_deleted_at_idx' },
       ...auditIndexes('rescues'),
     ],
+    hooks: {
+      // Plan 5.6 — every rescue gets a typed settings row at creation
+      // time so consumers can always assume it exists.
+      afterCreate: async (rescue: Rescue, options) => {
+        const { default: RescueSettings } = await import('./RescueSettings');
+        await RescueSettings.findOrCreate({
+          where: { rescue_id: rescue.rescueId },
+          defaults: { rescue_id: rescue.rescueId },
+          transaction: options.transaction,
+        });
+      },
+    },
   })
 );
 
