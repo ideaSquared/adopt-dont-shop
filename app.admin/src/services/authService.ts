@@ -185,56 +185,6 @@ class AuthService {
     }
   }
 
-  // Development helper for admin
-  async loginWithDevToken(userType: UserType = 'admin'): Promise<void> {
-    if (!import.meta.env.DEV) {
-      throw new Error('Dev token login is only available in development mode');
-    }
-
-    const devToken = `dev-token-${userType}`;
-    const mockUser: User = {
-      userId: `dev-admin-${userType}`,
-      email: `${userType}@admin.dev.local`,
-      firstName: 'Dev',
-      lastName: 'Admin',
-      emailVerified: true,
-      phoneNumber: null,
-      phoneVerified: false,
-      status: 'active',
-      userType: userType,
-      profileImageUrl: null,
-      bio: null,
-      country: null,
-      city: null,
-      addressLine1: null,
-      addressLine2: null,
-      postalCode: null,
-      rescueId: null,
-      lastLoginAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Store dev tokens and user data
-    localStorage.setItem('authToken', devToken);
-    localStorage.setItem('accessToken', devToken);
-    localStorage.setItem('refreshToken', `${devToken}-refresh`);
-    localStorage.setItem('user', JSON.stringify(mockUser));
-
-    // Set token in API service
-    this.setToken(devToken);
-
-    // eslint-disable-next-line no-console
-    console.log(`🛠️ Admin logged in with dev token as ${userType}`);
-  }
-
-  // Clear dev tokens
-  clearDevTokens(): void {
-    if (import.meta.env.DEV) {
-      this.logout();
-    }
-  }
-
   // Impersonate user (super admin only)
   async impersonateUser(userId: string): Promise<{ originalToken: string }> {
     if (!this.isSuperAdmin()) {
