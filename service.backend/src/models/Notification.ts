@@ -393,6 +393,14 @@ Notification.init(
           external_id: { [Op.ne]: null },
         },
       },
+      // Notification center renders "my unread, newest first" (plan
+      // 4.4) — composite covers the where + order in one lookup. The
+      // pre-existing user_read_idx serves the "did I read this" path;
+      // this one serves the list query.
+      {
+        fields: ['user_id', 'status', { name: 'created_at', order: 'DESC' }],
+        name: 'notifications_user_status_created_idx',
+      },
       ...auditIndexes('notifications'),
     ],
     hooks: {

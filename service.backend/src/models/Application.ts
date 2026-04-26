@@ -510,6 +510,14 @@ Application.init(
           },
         },
       },
+      // Rescue dashboard's primary query: open applications for a rescue,
+      // newest first (plan 4.4). Covering shape — status + rescue_id let
+      // Postgres skip the heap for the filter, then created_at gives the
+      // ORDER BY a presorted scan.
+      {
+        fields: ['rescue_id', 'status', { name: 'created_at', order: 'DESC' }],
+        name: 'applications_rescue_status_created_idx',
+      },
       ...auditIndexes('applications'),
     ],
     hooks: {

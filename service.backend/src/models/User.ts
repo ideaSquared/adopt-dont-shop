@@ -516,6 +516,13 @@ User.init(
       {
         fields: ['created_at'],
       },
+      // paranoid: true filters every find on `deleted_at IS NULL`. Without
+      // this index Postgres can't use it to skip soft-deleted rows; the
+      // alternative is a sequential scan on every user lookup (plan 4.4).
+      {
+        fields: ['deleted_at'],
+        name: 'users_deleted_at_idx',
+      },
       ...auditIndexes('users'),
     ],
     hooks: {

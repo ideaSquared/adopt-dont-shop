@@ -321,6 +321,13 @@ Message.init(
         using: 'gin',
         name: 'messages_read_status_gin_idx',
       },
+      // Messaging pagination is always "latest N messages in this chat,
+      // newest first" (plan 4.4) — composite covers the where + order
+      // in one index lookup.
+      {
+        fields: ['chat_id', { name: 'created_at', order: 'DESC' }],
+        name: 'messages_chat_created_idx',
+      },
       ...auditIndexes('messages'),
     ],
     // search_vector is now a stored generated column on Postgres
