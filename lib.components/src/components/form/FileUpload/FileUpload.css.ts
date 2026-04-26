@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 import { vars } from '../../../styles/theme.css';
 
@@ -128,14 +128,8 @@ export const uploadIcon = style({
   height: '32px',
   marginBottom: vars.spacing.sm,
   color: vars.colors.neutral['400'],
-
-  selectors: {
-    '& svg': {
-      width: '100%',
-      height: '100%',
-    },
-  },
 });
+globalStyle(`${uploadIcon} svg`, { width: '100%', height: '100%' });
 
 export const uploadText = style({
   fontSize: vars.typography.size.sm,

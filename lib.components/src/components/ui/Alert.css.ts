@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { keyframes, style, styleVariants } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style, styleVariants } from '@vanilla-extract/css';
 
 import { vars } from '../../styles/theme.css';
 
@@ -63,10 +63,13 @@ export const alertIconWrapper = style({
 });
 
 export const alertIconSize = styleVariants({
-  sm: { selectors: { '& svg': { width: '16px', height: '16px' } } },
-  md: { selectors: { '& svg': { width: '20px', height: '20px' } } },
-  lg: { selectors: { '& svg': { width: '24px', height: '24px' } } },
+  sm: {},
+  md: {},
+  lg: {},
 });
+globalStyle(`${alertIconSize.sm} svg`, { width: '16px', height: '16px' });
+globalStyle(`${alertIconSize.md} svg`, { width: '20px', height: '20px' });
+globalStyle(`${alertIconSize.lg} svg`, { width: '24px', height: '24px' });
 
 export const alertIconColor = styleVariants({
   success: { color: vars.colors.semantic.success['600'] },

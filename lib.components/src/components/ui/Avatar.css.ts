@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { style, styleVariants } from '@vanilla-extract/css';
+import { globalStyle, style, styleVariants } from '@vanilla-extract/css';
 
 import { darkThemeClass, vars } from '../../styles/theme.css';
 
@@ -79,14 +79,21 @@ export const initials = style({
   lineHeight: '1',
 });
 
+const fallbackBase = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'inherit' } as const;
 export const fallbackIconContainer = styleVariants({
-  xs: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'inherit', selectors: { '& svg': { width: '16px', height: '16px' } } },
-  sm: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'inherit', selectors: { '& svg': { width: '20px', height: '20px' } } },
-  md: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'inherit', selectors: { '& svg': { width: '24px', height: '24px' } } },
-  lg: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'inherit', selectors: { '& svg': { width: '28px', height: '28px' } } },
-  xl: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'inherit', selectors: { '& svg': { width: '32px', height: '32px' } } },
-  '2xl': { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'inherit', selectors: { '& svg': { width: '40px', height: '40px' } } },
+  xs: fallbackBase,
+  sm: fallbackBase,
+  md: fallbackBase,
+  lg: fallbackBase,
+  xl: fallbackBase,
+  '2xl': fallbackBase,
 });
+globalStyle(`${fallbackIconContainer.xs} svg`, { width: '16px', height: '16px' });
+globalStyle(`${fallbackIconContainer.sm} svg`, { width: '20px', height: '20px' });
+globalStyle(`${fallbackIconContainer.md} svg`, { width: '24px', height: '24px' });
+globalStyle(`${fallbackIconContainer.lg} svg`, { width: '28px', height: '28px' });
+globalStyle(`${fallbackIconContainer.xl} svg`, { width: '32px', height: '32px' });
+globalStyle(`${fallbackIconContainer['2xl']} svg`, { width: '40px', height: '40px' });
 
 export const statusDot = recipe({
   base: {

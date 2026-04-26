@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { style, styleVariants } from '@vanilla-extract/css';
+import { globalStyle, style, styleVariants } from '@vanilla-extract/css';
 
 import { vars } from '../../../styles/theme.css';
 
@@ -25,43 +25,13 @@ export const container = recipe({
 });
 
 export const iconContainer = styleVariants({
-  sm: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    width: '48px',
-    height: '48px',
-    marginBottom: vars.spacing.sm,
-    selectors: {
-      '& svg': { width: '100%', height: '100%' },
-    },
-  },
-  md: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    width: '64px',
-    height: '64px',
-    marginBottom: vars.spacing.md,
-    selectors: {
-      '& svg': { width: '100%', height: '100%' },
-    },
-  },
-  lg: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    width: '80px',
-    height: '80px',
-    marginBottom: vars.spacing.lg,
-    selectors: {
-      '& svg': { width: '100%', height: '100%' },
-    },
-  },
+  sm: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '48px', height: '48px', marginBottom: vars.spacing.sm },
+  md: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '64px', height: '64px', marginBottom: vars.spacing.md },
+  lg: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '80px', height: '80px', marginBottom: vars.spacing.lg },
 });
+globalStyle(`${iconContainer.sm} svg`, { width: '100%', height: '100%' });
+globalStyle(`${iconContainer.md} svg`, { width: '100%', height: '100%' });
+globalStyle(`${iconContainer.lg} svg`, { width: '100%', height: '100%' });
 
 export const iconColor = styleVariants({
   default: { color: vars.colors.neutral['400'] },

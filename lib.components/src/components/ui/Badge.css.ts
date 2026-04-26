@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { style, styleVariants } from '@vanilla-extract/css';
+import { globalStyle, style, styleVariants } from '@vanilla-extract/css';
 
 import { darkThemeClass, vars } from '../../styles/theme.css';
 
@@ -184,11 +184,24 @@ export const badge = recipe({
 });
 
 export const iconContainer = styleVariants({
-  xs: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, selectors: { '& svg': { width: '12px', height: '12px' } } },
-  sm: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, selectors: { '& svg': { width: '14px', height: '14px' } } },
-  md: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, selectors: { '& svg': { width: '16px', height: '16px' } } },
-  lg: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, selectors: { '& svg': { width: '18px', height: '18px' } } },
+  xs: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  sm: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  md: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  lg: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 });
+globalStyle(`${iconContainer.xs} svg`, { width: '12px', height: '12px' });
+globalStyle(`${iconContainer.sm} svg`, { width: '14px', height: '14px' });
+globalStyle(`${iconContainer.md} svg`, { width: '16px', height: '16px' });
+globalStyle(`${iconContainer.lg} svg`, { width: '18px', height: '18px' });
+
+const removeBtnXs = style({});
+const removeBtnSm = style({});
+const removeBtnMd = style({});
+const removeBtnLg = style({});
+globalStyle(`${removeBtnXs} svg`, { width: '10px', height: '10px' });
+globalStyle(`${removeBtnSm} svg`, { width: '12px', height: '12px' });
+globalStyle(`${removeBtnMd} svg`, { width: '14px', height: '14px' });
+globalStyle(`${removeBtnLg} svg`, { width: '16px', height: '16px' });
 
 export const removeButton = recipe({
   base: {
@@ -217,10 +230,10 @@ export const removeButton = recipe({
   },
   variants: {
     size: {
-      xs: { selectors: { '& svg': { width: '10px', height: '10px' } } },
-      sm: { selectors: { '& svg': { width: '12px', height: '12px' } } },
-      md: { selectors: { '& svg': { width: '14px', height: '14px' } } },
-      lg: { selectors: { '& svg': { width: '16px', height: '16px' } } },
+      xs: removeBtnXs,
+      sm: removeBtnSm,
+      md: removeBtnMd,
+      lg: removeBtnLg,
     },
   },
   defaultVariants: { size: 'md' },

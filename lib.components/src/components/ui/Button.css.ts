@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 
 import { vars } from '../../styles/theme.css';
 
@@ -18,10 +18,8 @@ export const iconContainer = style({
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
-  selectors: {
-    '& svg': { width: '1em', height: '1em' },
-  },
 });
+globalStyle(`${iconContainer} svg`, { width: '1em', height: '1em' });
 
 export const button = recipe({
   base: {

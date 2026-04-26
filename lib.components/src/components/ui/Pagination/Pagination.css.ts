@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 import { vars } from '../../../styles/theme.css';
 
@@ -9,31 +9,24 @@ export const container = style({
   gap: vars.spacing.xs,
 });
 
-export const button = recipe({
-  base: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: vars.border.radius.sm,
-    fontWeight: vars.typography.weight.medium,
-    cursor: 'pointer',
-    transition: `all ${vars.transitions.fast}`,
-    textDecoration: 'none',
-    selectors: {
-      '&:disabled': {
-        opacity: 0.5,
-        cursor: 'not-allowed',
-      },
-      '&:focus': {
-        outline: `2px solid ${vars.colors.primary['500']}`,
-        outlineOffset: '2px',
-      },
-      '& svg': {
-        width: '16px',
-        height: '16px',
-      },
-    },
+const buttonBase = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: vars.border.radius.sm,
+  fontWeight: vars.typography.weight.medium,
+  cursor: 'pointer',
+  transition: `all ${vars.transitions.fast}`,
+  textDecoration: 'none',
+  selectors: {
+    '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
+    '&:focus': { outline: `2px solid ${vars.colors.primary['500']}`, outlineOffset: '2px' },
   },
+});
+globalStyle(`${buttonBase} svg`, { width: '16px', height: '16px' });
+
+export const button = recipe({
+  base: buttonBase,
   variants: {
     size: {
       sm: {

@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 import { vars } from '../../styles/theme.css';
 
@@ -106,25 +106,22 @@ export const card = recipe({
   },
 });
 
+const cardHeaderBase = style({
+  paddingTop: vars.spacing['4'],
+  paddingLeft: vars.spacing['4'],
+  paddingRight: vars.spacing['4'],
+  paddingBottom: '0',
+  marginBottom: vars.spacing['4'],
+});
+globalStyle(`${cardHeaderBase} h1, ${cardHeaderBase} h2, ${cardHeaderBase} h3, ${cardHeaderBase} h4, ${cardHeaderBase} h5, ${cardHeaderBase} h6`, {
+  marginBottom: vars.spacing['2'],
+  color: vars.text.primary,
+  fontWeight: vars.typography.weight.semibold,
+});
+globalStyle(`${cardHeaderBase} p`, { color: vars.text.secondary, marginBottom: '0' });
+
 export const cardHeader = recipe({
-  base: {
-    paddingTop: vars.spacing['4'],
-    paddingLeft: vars.spacing['4'],
-    paddingRight: vars.spacing['4'],
-    paddingBottom: '0',
-    marginBottom: vars.spacing['4'],
-    selectors: {
-      '& h1, & h2, & h3, & h4, & h5, & h6': {
-        marginBottom: vars.spacing['2'],
-        color: vars.text.primary,
-        fontWeight: vars.typography.weight.semibold,
-      },
-      '& p': {
-        color: vars.text.secondary,
-        marginBottom: '0',
-      },
-    },
-  },
+  base: cardHeaderBase,
   variants: {
     bordered: {
       true: {

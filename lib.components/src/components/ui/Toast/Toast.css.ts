@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { keyframes, style, styleVariants } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style, styleVariants } from '@vanilla-extract/css';
 
 import { vars } from '../../../styles/theme.css';
 
@@ -110,8 +110,8 @@ export const toastIcon = style({
   height: '20px',
   flexShrink: 0,
   marginTop: '2px',
-  selectors: { '& svg': { width: '100%', height: '100%' } },
 });
+globalStyle(`${toastIcon} svg`, { width: '100%', height: '100%' });
 
 export const toastContent = style({
   flex: '1',
@@ -136,9 +136,9 @@ export const toastCloseButton = style({
   selectors: {
     '&:hover': { opacity: 1 },
     '&:focus': { outline: '2px solid currentColor', outlineOffset: '2px' },
-    '& svg': { width: '16px', height: '16px' },
   },
 });
+globalStyle(`${toastCloseButton} svg`, { width: '16px', height: '16px' });
 
 export const toastContainerPosition = styleVariants({
   'top-left': { position: 'fixed', zIndex: vars.zIndex.toast, pointerEvents: 'none', top: vars.spacing.lg, left: vars.spacing.lg },

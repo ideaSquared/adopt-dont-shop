@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 import { vars } from '../../../styles/theme.css';
 
@@ -263,6 +263,13 @@ export const input = recipe({
   },
 });
 
+const iconSizeSm = style({});
+const iconSizeMd = style({});
+const iconSizeLg = style({});
+globalStyle(`${iconSizeSm} svg`, { width: '16px', height: '16px' });
+globalStyle(`${iconSizeMd} svg`, { width: '18px', height: '18px' });
+globalStyle(`${iconSizeLg} svg`, { width: '20px', height: '20px' });
+
 export const iconContainer = recipe({
   base: {
     position: 'absolute',
@@ -281,21 +288,9 @@ export const iconContainer = recipe({
       right: {},
     },
     size: {
-      sm: {
-        selectors: {
-          '& svg': { width: '16px', height: '16px' },
-        },
-      },
-      md: {
-        selectors: {
-          '& svg': { width: '18px', height: '18px' },
-        },
-      },
-      lg: {
-        selectors: {
-          '& svg': { width: '20px', height: '20px' },
-        },
-      },
+      sm: iconSizeSm,
+      md: iconSizeMd,
+      lg: iconSizeLg,
     },
   },
   compoundVariants: [

@@ -1,4 +1,4 @@
-import { keyframes, style, styleVariants } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style, styleVariants } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '../../../styles/theme.css';
 
@@ -41,6 +41,26 @@ export const tableContainer = recipe({
   },
 });
 
+const tableSizeSm = style({ fontSize: vars.typography.size.sm });
+const tableSizeMd = style({ fontSize: vars.typography.size.base });
+const tableSizeLg = style({ fontSize: vars.typography.size.lg });
+globalStyle(`${tableSizeSm} th, ${tableSizeSm} td`, { padding: `${vars.spacing['2']} ${vars.spacing['3']}` });
+globalStyle(`${tableSizeMd} th, ${tableSizeMd} td`, { padding: `${vars.spacing['3']} ${vars.spacing['4']}` });
+globalStyle(`${tableSizeLg} th, ${tableSizeLg} td`, { padding: `${vars.spacing['4']} ${vars.spacing['5']}` });
+
+const tableVariantMinimal = style({ border: 'none' });
+globalStyle(`${tableVariantMinimal} thead th`, { borderBottom: `2px solid ${vars.border.color.primary}` });
+
+const tableVariantBordered = style({
+  border: `1px solid ${vars.border.color.primary}`,
+  borderRadius: vars.border.radius.lg,
+  overflow: 'hidden',
+});
+globalStyle(`${tableVariantBordered} th, ${tableVariantBordered} td`, { borderRight: `1px solid ${vars.border.color.primary}` });
+globalStyle(`${tableVariantBordered} th:last-child, ${tableVariantBordered} td:last-child`, { borderRight: 'none' });
+globalStyle(`${tableVariantBordered} tbody tr`, { borderBottom: `1px solid ${vars.border.color.primary}` });
+globalStyle(`${tableVariantBordered} tbody tr:last-child`, { borderBottom: 'none' });
+
 export const styledTable = recipe({
   base: {
     width: '100%',
@@ -50,64 +70,14 @@ export const styledTable = recipe({
   },
   variants: {
     size: {
-      sm: {
-        fontSize: vars.typography.size.sm,
-        selectors: {
-          '& th, & td': {
-            padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
-          },
-        },
-      },
-      md: {
-        fontSize: vars.typography.size.base,
-        selectors: {
-          '& th, & td': {
-            padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
-          },
-        },
-      },
-      lg: {
-        fontSize: vars.typography.size.lg,
-        selectors: {
-          '& th, & td': {
-            padding: `${vars.spacing['4']} ${vars.spacing['5']}`,
-          },
-        },
-      },
+      sm: tableSizeSm,
+      md: tableSizeMd,
+      lg: tableSizeLg,
     },
     variant: {
-      default: {
-        border: `1px solid ${vars.border.color.primary}`,
-        borderRadius: vars.border.radius.lg,
-        overflow: 'hidden',
-      },
-      minimal: {
-        border: 'none',
-        selectors: {
-          '& thead th': {
-            borderBottom: `2px solid ${vars.border.color.primary}`,
-          },
-        },
-      },
-      bordered: {
-        border: `1px solid ${vars.border.color.primary}`,
-        borderRadius: vars.border.radius.lg,
-        overflow: 'hidden',
-        selectors: {
-          '& th, & td': {
-            borderRight: `1px solid ${vars.border.color.primary}`,
-          },
-          '& th:last-child, & td:last-child': {
-            borderRight: 'none',
-          },
-          '& tbody tr': {
-            borderBottom: `1px solid ${vars.border.color.primary}`,
-          },
-          '& tbody tr:last-child': {
-            borderBottom: 'none',
-          },
-        },
-      },
+      default: { border: `1px solid ${vars.border.color.primary}`, borderRadius: vars.border.radius.lg, overflow: 'hidden' },
+      minimal: tableVariantMinimal,
+      bordered: tableVariantBordered,
     },
   },
 });

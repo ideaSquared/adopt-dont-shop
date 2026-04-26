@@ -1,5 +1,5 @@
 import { recipe } from '@vanilla-extract/recipes';
-import { keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 
 import { darkThemeClass, vars } from '../../styles/theme.css';
 
@@ -155,7 +155,6 @@ export const closeButton = style({
     '&:hover': { background: vars.background.tertiary, color: vars.text.primary },
     '&:focus-visible': { outline: 'none', boxShadow: vars.shadows.focus },
     '&:active': { transform: 'scale(0.95)' },
-    '& svg': { width: '20px', height: '20px' },
   },
   '@media': {
     '(prefers-reduced-motion: reduce)': {
@@ -163,3 +162,4 @@ export const closeButton = style({
     },
   },
 });
+globalStyle(`${closeButton} svg`, { width: '20px', height: '20px' });
