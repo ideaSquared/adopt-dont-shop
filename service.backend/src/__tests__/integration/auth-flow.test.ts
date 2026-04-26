@@ -178,16 +178,15 @@ describe('Authentication Flow Integration Tests', () => {
 
         await AuthService.register(registerData);
 
-        // Notification prefs are now created by the User.afterCreate hook
-        // into user_notification_prefs (plan 5.6) — auth.service no longer
-        // sets them on the User row.
+        // Notification + privacy prefs are now created by the
+        // User.afterCreate hook into their typed tables (plan 5.6) —
+        // auth.service no longer sets either on the User row, just the
+        // identity fields.
         expect(MockedUser.create).toHaveBeenCalledWith(
           expect.objectContaining({
-            privacySettings: expect.objectContaining({
-              profileVisibility: 'public',
-              showLocation: false,
-              allowMessages: true,
-            }),
+            email: registerData.email.toLowerCase(),
+            firstName: registerData.firstName,
+            lastName: registerData.lastName,
           })
         );
       });

@@ -10,6 +10,7 @@ import Permission from '../models/Permission';
 import User, { UserStatus, UserType } from '../models/User';
 import UserFavorite from '../models/UserFavorite';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
+import UserPrivacyPrefs, { ProfileVisibility } from '../models/UserPrivacyPrefs';
 import sequelize from '../sequelize';
 import {
   BulkUserUpdateData,
@@ -428,19 +429,22 @@ export class UserService {
         throw new Error('User not found');
       }
 
-      // Privacy settings are still on the user row (plan 5.6 will move
-      // them in a follow-up slice).
-      const updatedPrivacySettings = preferences.privacySettings
-        ? { ...user.privacySettings, ...preferences.privacySettings }
-        : user.privacySettings;
-      await user.update({ privacySettings: updatedPrivacySettings });
-
-      // Notification prefs live in user_notification_prefs (plan 5.6).
-      const [prefs] = await UserNotificationPrefs.findOrCreate({
+      // Plan 5.6: notification prefs and privacy prefs live in their own
+      // typed tables. Both auto-created by the User.afterCreate hook so
+      // the findOrCreate is just defensive against pre-existing users.
+      const [notifPrefs] = await UserNotificationPrefs.findOrCreate({
         where: { user_id: userId },
         defaults: { user_id: userId },
       });
-      await prefs.update(userPrefsToPrefsRowPatch(preferences));
+      await notifPrefs.update(userPrefsToPrefsRowPatch(preferences));
+
+      if (preferences.privacySettings) {
+        const [privacyPrefs] = await UserPrivacyPrefs.findOrCreate({
+          where: { user_id: userId },
+          defaults: { user_id: userId },
+        });
+        await privacyPrefs.update(privacyPatchToPrefsRow(preferences.privacySettings));
+      }
 
       // Log the preference update
       await AuditLogService.log({
@@ -481,11 +485,16 @@ export class UserService {
         throw new Error('User not found');
       }
 
-      const [prefsRow] = await UserNotificationPrefs.findOrCreate({
+      // Sequential reads — SQLite (test dialect) can't parallelise queries
+      // inside the same auto-transaction findOrCreate opens.
+      const [notifRow] = await UserNotificationPrefs.findOrCreate({
         where: { user_id: userId },
         defaults: { user_id: userId },
       });
-      const privacySettings = (user.privacySettings as Record<string, unknown> | null) || {};
+      const [privacyRow] = await UserPrivacyPrefs.findOrCreate({
+        where: { user_id: userId },
+        defaults: { user_id: userId },
+      });
 
       if (loggerHelpers && loggerHelpers.logDatabase) {
         loggerHelpers.logDatabase('READ', {
@@ -496,14 +505,13 @@ export class UserService {
       }
 
       return {
-        emailNotifications: prefsRow.email_enabled,
-        pushNotifications: prefsRow.push_enabled,
-        smsNotifications: prefsRow.sms_enabled,
+        emailNotifications: notifRow.email_enabled,
+        pushNotifications: notifRow.push_enabled,
+        smsNotifications: notifRow.sms_enabled,
         privacySettings: {
-          profileVisibility:
-            (privacySettings.profileVisibility as 'public' | 'private' | 'friends') || 'public',
-          showLocation: Boolean(privacySettings.showLocation),
-          showContactInfo: Boolean(privacySettings.showContactInfo),
+          profileVisibility: privacyRow.profile_visibility as 'public' | 'private' | 'friends',
+          showLocation: privacyRow.show_location,
+          showContactInfo: false,
         },
       };
     } catch (error) {
@@ -536,15 +544,13 @@ export class UserService {
         },
       };
 
-      await user.update({
-        privacySettings: JSON.parse(JSON.stringify(defaultPreferences.privacySettings)),
-      });
-
-      // Reset notification prefs by destroying + recreating the row so the
-      // table-level DB defaults stand in (one source of truth for what
-      // "default" means).
+      // Reset both pref tables by destroying + recreating so the table-level
+      // DB defaults stand in (one source of truth for what "default" means).
+      // Sequential — SQLite serialises transactions per connection.
       await UserNotificationPrefs.destroy({ where: { user_id: userId } });
+      await UserPrivacyPrefs.destroy({ where: { user_id: userId } });
       await UserNotificationPrefs.create({ user_id: userId });
+      await UserPrivacyPrefs.create({ user_id: userId });
 
       // Log the preference reset
       await AuditLogService.log({
@@ -1573,6 +1579,34 @@ function userPrefsToPrefsRowPatch(input: UserPreferences): Partial<{
   if (np?.rescueUpdates !== undefined) {
     out.rescue_updates = np.rescueUpdates;
   }
+  return out;
+}
+
+/**
+ * Map an API-side privacy patch to the column-named partial accepted by
+ * UserPrivacyPrefs.update(). The legacy showContactInfo and allowMessages
+ * keys aren't tracked in the new table — silently ignored.
+ */
+function privacyPatchToPrefsRow(input: NonNullable<UserPreferences['privacySettings']>): Partial<{
+  profile_visibility: ProfileVisibility;
+  show_location: boolean;
+}> {
+  const out: Partial<{ profile_visibility: ProfileVisibility; show_location: boolean }> = {};
+  if (input.profileVisibility !== undefined) {
+    // Legacy API uses 'friends' for what the typed table calls 'rescues_only'.
+    switch (input.profileVisibility) {
+      case 'public':
+        out.profile_visibility = ProfileVisibility.PUBLIC;
+        break;
+      case 'private':
+        out.profile_visibility = ProfileVisibility.PRIVATE;
+        break;
+      case 'friends':
+        out.profile_visibility = ProfileVisibility.RESCUES_ONLY;
+        break;
+    }
+  }
+  if (input.showLocation !== undefined) out.show_location = input.showLocation;
   return out;
 }
 

@@ -167,9 +167,9 @@ describe('UserService', () => {
 
   describe('updateUserPreferences', () => {
     it('should update user preferences successfully', async () => {
-      // Create a real user in the database. Notification prefs are
-      // auto-created by the User.afterCreate hook (plan 5.6) — no need
-      // to seed them inline.
+      // Create a real user in the database. Notification + privacy
+      // prefs are auto-created by the User.afterCreate hook (plan 5.6)
+      // — no need to seed them inline.
       const user = await User.create({
         email: 'prefs@example.com',
         password: 'hashedpassword',
@@ -177,11 +177,6 @@ describe('UserService', () => {
         lastName: 'User',
         userType: UserType.ADOPTER,
         status: UserStatus.ACTIVE,
-        privacySettings: {
-          profileVisibility: 'private',
-          showLocation: false,
-          showContactInfo: false,
-        },
       });
 
       const preferences = {

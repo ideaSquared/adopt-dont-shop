@@ -76,7 +76,7 @@ interface UserAttributes {
   postalCode?: string | null;
   location?: { type: string; coordinates: [number, number] };
   rescueId?: string | null;
-  privacySettings?: JsonObject;
+  // privacySettings moved to user_privacy_prefs (plan 5.6).
   // notificationPreferences moved to user_notification_prefs (plan 5.6).
   termsAcceptedAt?: Date | null;
   privacyPolicyAcceptedAt?: Date | null;
@@ -143,7 +143,6 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public postalCode!: string | null;
   public location!: { type: string; coordinates: [number, number] };
   public rescueId!: string | null;
-  public privacySettings!: JsonObject;
   public termsAcceptedAt!: Date | null;
   public privacyPolicyAcceptedAt!: Date | null;
   public applicationDefaults!: JsonObject | null;
@@ -408,20 +407,9 @@ User.init(
       },
       onDelete: 'SET NULL',
     },
-    privacySettings: {
-      type: getJsonType(),
-      allowNull: true,
-      field: 'privacy_settings',
-      defaultValue: {
-        profileVisibility: 'public',
-        showEmail: false,
-        showPhone: false,
-        showLocation: true,
-      },
-    },
-    // notificationPreferences moved to user_notification_prefs (plan 5.6 —
-    // typed table with explicit columns + DB defaults; auto-created via
-    // User.afterCreate hook).
+    // privacySettings moved to user_privacy_prefs (plan 5.6); notification
+    // prefs to user_notification_prefs. Both auto-created via the
+    // User.afterCreate hook below.
     termsAcceptedAt: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -540,12 +528,20 @@ User.init(
         }
         await protectSecretsIfChanged(user);
       },
-      // Plan 5.6 — every user gets a typed notification-prefs row at
-      // creation time so consumers can always assume it exists. Defaults
-      // are declared on UserNotificationPrefs.
+      // Plan 5.6 — every user gets typed pref rows at creation time so
+      // consumers can always assume they exist. Defaults are declared on
+      // each prefs model. Awaited sequentially because SQLite (the test
+      // dialect) can't run two queries concurrently within the same
+      // transaction.
       afterCreate: async (user: User, options) => {
         const { default: UserNotificationPrefs } = await import('./UserNotificationPrefs');
+        const { default: UserPrivacyPrefs } = await import('./UserPrivacyPrefs');
         await UserNotificationPrefs.findOrCreate({
+          where: { user_id: user.userId },
+          defaults: { user_id: user.userId },
+          transaction: options.transaction,
+        });
+        await UserPrivacyPrefs.findOrCreate({
           where: { user_id: user.userId },
           defaults: { user_id: user.userId },
           transaction: options.transaction,
