@@ -551,6 +551,9 @@ EmailQueue.init(
     tableName: 'email_queue',
     timestamps: true,
     underscored: true,
+    // Append-only delivery queue with its own status field; sent rows
+    // get hard-archived by the retention job. No soft-delete.
+    paranoid: false,
     indexes: [
       {
         fields: ['status'],

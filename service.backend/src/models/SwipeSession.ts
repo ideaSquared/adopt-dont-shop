@@ -230,6 +230,9 @@ SwipeSession.init(
     modelName: 'SwipeSession',
     timestamps: true,
     underscored: true,
+    // Behavioural session log; same retention story as swipe_actions.
+    // No soft-delete.
+    paranoid: false,
     indexes: [
       {
         fields: ['user_id', 'is_active'],

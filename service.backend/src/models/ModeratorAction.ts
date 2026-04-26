@@ -264,6 +264,9 @@ ModeratorAction.init(
     tableName: 'moderator_actions',
     timestamps: true,
     underscored: true,
+    // Audit-like append-only log of moderator decisions. The action row
+    // itself is immutable history; reversals are new rows. No soft-delete.
+    paranoid: false,
     indexes: [
       {
         name: 'moderator_actions_moderator_id_idx',

@@ -352,6 +352,9 @@ UserSanction.init(
     tableName: 'user_sanctions',
     timestamps: true,
     underscored: true,
+    // Append-only sanction history. Lifting a sanction is a new row
+    // (reversal), not a soft-delete on the original. No paranoid.
+    paranoid: false,
     indexes: [
       {
         name: 'user_sanctions_user_id_idx',

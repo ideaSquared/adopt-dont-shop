@@ -283,6 +283,9 @@ SwipeAction.init(
     modelName: 'SwipeAction',
     timestamps: true,
     underscored: true,
+    // High-volume behavioural log; partitioned + retention per plan 4.2
+    // (24-month rolling window). Hard-deleted; no soft-delete semantics.
+    paranoid: false,
     indexes: [
       {
         fields: ['session_id'],
