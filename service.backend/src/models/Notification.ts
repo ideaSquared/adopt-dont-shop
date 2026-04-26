@@ -240,29 +240,32 @@ Notification.init(
       allowNull: false,
       defaultValue: {},
     },
+    /**
+     * Polymorphic discriminator for related_entity_id. Postgres ENUM
+     * gives us a DB-level CHECK constraint (plan 2.2) so a typo can't
+     * silently rot the type. The list mirrors the prior Sequelize
+     * `isIn` validator — adding a value means a new enum-add migration,
+     * which is the right friction for "what counts as a notifiable
+     * thing".
+     */
     related_entity_type: {
-      type: DataTypes.STRING(50),
+      type: DataTypes.ENUM(
+        'application',
+        'pet',
+        'message',
+        'user',
+        'rescue',
+        'conversation',
+        'interview',
+        'home_visit',
+        'reminder',
+        'announcement',
+        'adoption',
+        'event',
+        'reference',
+        'security'
+      ),
       allowNull: true,
-      validate: {
-        isIn: [
-          [
-            'application',
-            'pet',
-            'message',
-            'user',
-            'rescue',
-            'conversation',
-            'interview',
-            'home_visit',
-            'reminder',
-            'announcement',
-            'adoption',
-            'event',
-            'reference',
-            'security',
-          ],
-        ],
-      },
     },
     related_entity_id: {
       type: DataTypes.STRING,

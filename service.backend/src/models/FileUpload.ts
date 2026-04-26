@@ -125,13 +125,15 @@ FileUpload.init(
         len: [0, 255],
       },
     },
+    /**
+     * Polymorphic discriminator for entity_id. Postgres ENUM gives us
+     * a DB-level CHECK so a typo can't silently rot the type (plan 2.2).
+     * Adding a value requires an enum-add migration, which is the right
+     * friction for "what kind of thing can have a file attached".
+     */
     entity_type: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.ENUM('chat', 'message', 'application', 'pet', 'user', 'rescue'),
       allowNull: true,
-      validate: {
-        len: [0, 100],
-        isIn: [['chat', 'message', 'application', 'pet', 'user', 'rescue']],
-      },
     },
     purpose: {
       type: DataTypes.STRING(100),
