@@ -101,6 +101,31 @@ describe('CmsService – content management', () => {
       expect(item.metaDescription).toBe('SEO description');
       expect(item.metaKeywords).toEqual(['dogs', 'adoption']);
     });
+
+    it('strips script tags from content on creation', async () => {
+      await makeUser();
+      const item = await CmsService.createContent({
+        title: 'XSS Test',
+        slug: 'xss-test',
+        contentType: ContentType.BLOG_POST,
+        content: '<p>Safe content</p><script>alert("xss")</script>',
+        authorId: 'author-1',
+      });
+      expect(item.content).not.toContain('<script>');
+      expect(item.content).toContain('Safe content');
+    });
+
+    it('strips script tags from the initial version snapshot on creation', async () => {
+      await makeUser();
+      const item = await CmsService.createContent({
+        title: 'XSS Version Test',
+        slug: 'xss-version-test',
+        contentType: ContentType.BLOG_POST,
+        content: '<p>Hello</p><script>steal()</script>',
+        authorId: 'author-1',
+      });
+      expect(item.versions[0].content).not.toContain('<script>');
+    });
   });
 
   describe('updateContent', () => {
@@ -123,6 +148,23 @@ describe('CmsService – content management', () => {
       expect(updated.versions).toHaveLength(2);
       expect(updated.title).toBe('Updated Title');
       expect(updated.versions[1].changeNote).toBe('Fixed typo');
+    });
+
+    it('strips script tags from content on update', async () => {
+      await makeUser();
+      const item = await CmsService.createContent({
+        title: 'Update XSS Test',
+        slug: 'update-xss-test',
+        contentType: ContentType.BLOG_POST,
+        content: '<p>Original</p>',
+        authorId: 'author-1',
+      });
+      const updated = await CmsService.updateContent(item.contentId, {
+        content: '<p>Updated</p><script>alert("xss")</script>',
+        modifiedBy: 'author-1',
+      });
+      expect(updated.content).not.toContain('<script>');
+      expect(updated.content).toContain('Updated');
     });
 
     it('throws 404 for non-existent content', async () => {

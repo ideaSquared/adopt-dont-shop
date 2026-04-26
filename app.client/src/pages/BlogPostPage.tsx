@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { SafeHtml } from '@/components/SafeHtml';
 import { cmsPublicService, type PublicContent } from '@/services/cmsService';
 
 const PageContainer = styled(Container)`
@@ -53,7 +54,7 @@ const PostMeta = styled.div`
   border-bottom: 1px solid ${props => props.theme.border.color.primary};
 `;
 
-const PostContent = styled.div`
+const PostContent = styled(SafeHtml)`
   color: ${props => props.theme.text.primary};
   line-height: 1.8;
   font-size: 1.05rem;
@@ -163,7 +164,7 @@ export const BlogPostPage: React.FC = () => {
         <span>{formatDate(post.publishedAt ?? post.createdAt)}</span>
       </PostMeta>
 
-      <PostContent dangerouslySetInnerHTML={{ __html: post.content }} />
+      <PostContent html={post.content} />
     </PageContainer>
   );
 };

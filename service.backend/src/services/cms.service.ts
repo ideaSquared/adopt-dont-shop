@@ -3,6 +3,7 @@ import Content, { ContentStatus, ContentType } from '../models/Content';
 import NavigationMenu, { MenuLocation } from '../models/NavigationMenu';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
+import { RichTextProcessingService } from './rich-text-processing.service';
 
 type ListContentOptions = {
   contentType?: ContentType;
@@ -147,10 +148,12 @@ class CmsService {
       throw error;
     }
 
+    const sanitizedContent = RichTextProcessingService.sanitize(input.content);
+
     const initialVersion = {
       version: 1,
       title: input.title,
-      content: input.content,
+      content: sanitizedContent,
       excerpt: input.excerpt,
       changedBy: input.authorId,
       changeNote: 'Initial version',
@@ -162,7 +165,7 @@ class CmsService {
       slug,
       contentType: input.contentType,
       status: ContentStatus.DRAFT,
-      content: input.content,
+      content: sanitizedContent,
       excerpt: input.excerpt,
       metaTitle: input.metaTitle,
       metaDescription: input.metaDescription,
@@ -183,7 +186,10 @@ class CmsService {
     const item = await this.getContentById(contentId);
 
     const updatedTitle = input.title ?? item.title;
-    const updatedContent = input.content ?? item.content;
+    const updatedContent =
+      input.content !== undefined
+        ? RichTextProcessingService.sanitize(input.content)
+        : item.content;
     const updatedExcerpt = input.excerpt !== undefined ? input.excerpt : item.excerpt;
 
     item.addVersion(

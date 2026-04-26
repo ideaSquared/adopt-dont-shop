@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { SafeHtml } from '@/components/SafeHtml';
 import { cmsPublicService, type PublicContent } from '@/services/cmsService';
 
 const PageContainer = styled(Container)`
@@ -35,7 +36,7 @@ const ArticleTitle = styled.h1`
   }
 `;
 
-const ArticleContent = styled.div`
+const ArticleContent = styled(SafeHtml)`
   color: ${props => props.theme.text.primary};
   line-height: 1.8;
   font-size: 1.05rem;
@@ -125,7 +126,7 @@ export const HelpArticlePage: React.FC = () => {
     <PageContainer>
       <BackLink to='/help'>← Back to Help Center</BackLink>
       <ArticleTitle>{article.title}</ArticleTitle>
-      <ArticleContent dangerouslySetInnerHTML={{ __html: article.content }} />
+      <ArticleContent html={article.content} />
     </PageContainer>
   );
 };
