@@ -1,4 +1,5 @@
 import { AuditLog } from '../../models/AuditLog';
+import User from '../../models/User';
 import { AuditLogService } from '../../services/auditLog.service';
 import { Op } from 'sequelize';
 
@@ -117,6 +118,38 @@ describe('AuditLogService', () => {
 
       expect(result.level).toBe('WARNING');
       expect(result.status).toBe('failure');
+    });
+
+    it('captures user_email_snapshot from the actor at write time', async () => {
+      // Seed a real user; the snapshot reads from User.findByPk(userId).
+      const userId = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa01';
+      await User.create({
+        userId,
+        email: 'snapshot@audit.test',
+        password: 'TestPassword123!',
+        firstName: 'Snap',
+        lastName: 'Shot',
+      } as never);
+
+      const result = await AuditLogService.log({
+        userId,
+        action: 'CREATE_PET',
+        entity: 'Pet',
+        entityId: 'pet-1',
+      });
+
+      expect(result.user_email_snapshot).toBe('snapshot@audit.test');
+    });
+
+    it('leaves user_email_snapshot null when the actor is unknown', async () => {
+      const result = await AuditLogService.log({
+        userId: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa99',
+        action: 'CREATE_PET',
+        entity: 'Pet',
+        entityId: 'pet-1',
+      });
+
+      expect(result.user_email_snapshot).toBeNull();
     });
   });
 

@@ -38,9 +38,24 @@ export class AuditLogService {
    */
   static async log(data: AuditLogData): Promise<AuditLog> {
     try {
+      // Capture the actor's email at write time so the audit trail
+      // stays readable after the user is deleted (plan 2.2 / 4.5).
+      // Best-effort — a missing user (or a transient lookup failure)
+      // just leaves the snapshot null; the audit log still gets written.
+      let userEmailSnapshot: string | null = null;
+      if (data.userId) {
+        try {
+          const user = await User.findByPk(data.userId, { attributes: ['email'] });
+          userEmailSnapshot = user?.email ?? null;
+        } catch {
+          userEmailSnapshot = null;
+        }
+      }
+
       const auditLog = await AuditLog.create({
         service: data.service || 'adopt-dont-shop-backend',
         user: data.userId,
+        user_email_snapshot: userEmailSnapshot,
         action: data.action,
         level: data.level || 'INFO',
         status: data.status,

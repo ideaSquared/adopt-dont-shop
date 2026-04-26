@@ -6,6 +6,7 @@ export class AuditLog extends Model {
   public id!: number;
   public service!: string;
   public user!: string | null;
+  public user_email_snapshot!: string | null;
   public action!: string;
   public level!: 'INFO' | 'WARNING' | 'ERROR';
   public status!: 'success' | 'failure' | null;
@@ -28,6 +29,18 @@ AuditLog.init(
       allowNull: false,
     },
     user: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    /**
+     * Snapshot of the user's email at the moment the log was written.
+     * AuditLog.user is a soft reference (no FK enforcement) — the user
+     * may be deleted before the log is read, at which point the live
+     * lookup returns null. The snapshot keeps the audit trail readable
+     * forever ("admin@x.test deleted Pet 12345" instead of
+     * "[deleted user]"). Plan 2.2 / 4.5.
+     */
+    user_email_snapshot: {
       type: DataTypes.STRING,
       allowNull: true,
     },
