@@ -1,6 +1,7 @@
 import express from 'express';
 import { SupportTicketController } from '../controllers/supportTicket.controller';
 import { authenticateToken } from '../middleware/auth';
+import { idempotency } from '../middleware/idempotency';
 import { requirePermission } from '../middleware/rbac';
 import { PERMISSIONS } from '../types/rbac';
 import { generalLimiter } from '../middleware/rate-limiter';
@@ -180,6 +181,7 @@ router.post(
   '/tickets',
   requirePermission(PERMISSIONS.SUPPORT_TICKET_CREATE),
   generalLimiter,
+  idempotency,
   SupportTicketController.createTicket
 );
 
@@ -287,6 +289,7 @@ router.post(
   '/tickets/:ticketId/reply',
   requirePermission(PERMISSIONS.SUPPORT_TICKET_REPLY),
   generalLimiter,
+  idempotency,
   SupportTicketController.addResponse
 );
 

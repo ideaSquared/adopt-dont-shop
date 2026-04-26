@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { PetController } from '../controllers/pet.controller';
 import { authenticateToken, authenticateOptionalToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
+import { idempotency } from '../middleware/idempotency';
 import { requirePermission } from '../middleware/rbac';
 import { handleValidationErrors } from '../middleware/validation';
 import { petValidation } from '../validation/pet.validation';
@@ -1339,6 +1340,7 @@ router.post(
   '/',
   authenticateToken,
   requirePermission('pets.create'),
+  idempotency,
   fieldWriteGuard('pets', { audit: true }),
   PetController.validateCreatePet,
   petController.createPet
@@ -1398,6 +1400,7 @@ router.patch(
 router.post(
   '/:petId/favorite',
   authenticateToken,
+  idempotency,
   PetController.validatePetId,
   petController.addToFavorites
 );
@@ -1419,6 +1422,7 @@ router.get(
 router.post(
   '/:petId/report',
   authenticateToken,
+  idempotency,
   PetController.validateReportPet,
   petController.reportPet
 );
