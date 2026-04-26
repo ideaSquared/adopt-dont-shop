@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { QueryTypes } from 'sequelize';
 import { DiscoveryController } from '../controllers/discovery.controller';
 import { authenticateToken } from '../middleware/auth';
+import { idempotency } from '../middleware/idempotency';
 import sequelize from '../sequelize';
 
 const router = Router();
@@ -459,6 +460,7 @@ router.post('/queue', discoveryController.addToQueue);
 // Swipe action routes
 router.post(
   '/swipe/action',
+  idempotency,
   DiscoveryController.validateSwipeAction,
   discoveryController.recordSwipeAction
 );
