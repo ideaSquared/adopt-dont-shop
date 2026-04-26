@@ -53,14 +53,8 @@ export class AuthService {
         verificationToken,
         verificationTokenExpiresAt: verificationExpires,
         loginAttempts: 0,
-        privacySettings: {
-          profileVisibility: 'public',
-          showLocation: false,
-          allowMessages: true,
-          showAdoptionHistory: false,
-        },
-        // Notification prefs auto-created by User.afterCreate hook
-        // (plan 5.6) — defaults stand in.
+        // Notification + privacy prefs auto-created by User.afterCreate
+        // hook (plan 5.6) — defaults stand in.
       });
 
       // Log registration with enhanced context

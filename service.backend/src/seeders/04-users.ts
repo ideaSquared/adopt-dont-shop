@@ -197,13 +197,8 @@ export async function seedUsers() {
         ...userData,
         password: plainPassword,
         loginAttempts: 0,
-        privacySettings: {
-          showProfile: true,
-          showLocation: false,
-          allowMessages: true,
-        },
-        // Notification prefs auto-created by User.afterCreate hook
-        // (plan 5.6) — defaults stand in.
+        // Notification + privacy prefs auto-created by User.afterCreate
+        // hook (plan 5.6) — defaults stand in.
         // Phase 1: Application defaults (JSON structure for adopters)
         applicationDefaults:
           userData.userType === UserType.ADOPTER
