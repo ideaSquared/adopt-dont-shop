@@ -21,7 +21,7 @@ interface HomeVisitAttributes {
   application_id: string;
   scheduled_date: string;
   scheduled_time: string;
-  assigned_staff: string;
+  assigned_staff: string | null;
   status: HomeVisitStatus;
   notes?: string | null;
   outcome?: HomeVisitOutcome | null;
@@ -44,7 +44,7 @@ class HomeVisit
   public application_id!: string;
   public scheduled_date!: string;
   public scheduled_time!: string;
-  public assigned_staff!: string;
+  public assigned_staff!: string | null;
   public status!: HomeVisitStatus;
   public notes!: string | null;
   public outcome!: HomeVisitOutcome | null;
@@ -82,9 +82,18 @@ HomeVisit.init(
       type: DataTypes.TIME,
       allowNull: false,
     },
+    /**
+     * User assigned to conduct the visit. SET NULL on the user being
+     * deleted lets the visit row survive the actor so audit trails stay
+     * intact (the visit still happened, the staff member just left).
+     * Plan 2.2: closing the FK gap that previously left this as a
+     * free-form STRING.
+     */
     assigned_staff: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: getUuidType(),
+      allowNull: true,
+      references: { model: 'users', key: 'user_id' },
+      onDelete: 'SET NULL',
     },
     status: {
       type: DataTypes.ENUM(...Object.values(HomeVisitStatus)),

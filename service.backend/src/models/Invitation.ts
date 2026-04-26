@@ -80,9 +80,17 @@ Invitation.init(
       type: DataTypes.STRING(100),
       allowNull: true,
     },
+    /**
+     * The user who issued the invite. Nullable for system-issued invites
+     * and SET NULL on user delete so the invite row survives the actor.
+     * Plan 2.2: closing the FK gap that previously left this as a
+     * free-form STRING.
+     */
     invited_by: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
+      references: { model: 'users', key: 'user_id' },
+      onDelete: 'SET NULL',
     },
     expiration: {
       type: DataTypes.DATE,
@@ -118,6 +126,10 @@ Invitation.init(
       {
         fields: ['user_id'],
         name: 'invitations_user_id_idx',
+      },
+      {
+        fields: ['invited_by'],
+        name: 'invitations_invited_by_idx',
       },
       ...auditIndexes('invitations'),
     ],
