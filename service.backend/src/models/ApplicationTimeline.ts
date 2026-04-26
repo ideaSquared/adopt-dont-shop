@@ -142,6 +142,9 @@ ApplicationTimeline.init(
     tableName: 'application_timeline',
     timestamps: true,
     underscored: true,
+    // Append-only event log (timeline rows are immutable history). No
+    // soft-delete — opts out of the global define.paranoid: true.
+    paranoid: false,
     indexes: [
       {
         fields: ['application_id', 'created_at'],
