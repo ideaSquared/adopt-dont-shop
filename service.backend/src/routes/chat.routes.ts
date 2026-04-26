@@ -156,6 +156,7 @@ router.use(authenticateToken);
 router.post(
   '/',
   authLimiter,
+  idempotency,
   chatValidation.createChat,
   handleValidationErrors,
   ChatController.createChat
@@ -827,6 +828,7 @@ router.get(
 router.post(
   '/:chatId/participants',
   authLimiter,
+  idempotency,
   chatValidation.addParticipant,
   handleValidationErrors,
   ChatController.addParticipant
@@ -916,6 +918,7 @@ router.delete(
 router.post(
   '/messages/:messageId/reactions',
   generalLimiter,
+  idempotency,
   chatValidation.addReaction,
   handleValidationErrors,
   ChatController.addReaction

@@ -1,6 +1,7 @@
 import express from 'express';
 import { ModerationController } from '../controllers/moderation.controller';
 import { authenticateToken } from '../middleware/auth';
+import { idempotency } from '../middleware/idempotency';
 import { requirePermission } from '../middleware/rbac';
 import { generalLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
@@ -145,6 +146,7 @@ router.post(
   '/reports',
   requirePermission(PERMISSIONS.MODERATION_REPORTS_CREATE),
   generalLimiter,
+  idempotency,
   moderationValidation.submitReport,
   handleValidationErrors,
   moderationController.submitReport.bind(moderationController)
