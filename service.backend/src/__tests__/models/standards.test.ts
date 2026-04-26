@@ -114,6 +114,33 @@ describe('Model Standards', () => {
 
       expect(failures, `FK columns without an index — ${failures.join(', ')}`).toHaveLength(0);
     });
+
+    // Plan 5.5.2 — Postgres doesn't auto-pick a sane default and Sequelize
+    // varies by dialect, so every FK gets the on-delete semantics declared
+    // explicitly. Sequelize stores the value at attr.onDelete (set via the
+    // column definition's `onDelete` option).
+    it('every FK column declares onDelete explicitly', () => {
+      const failures: string[] = [];
+
+      Object.values(sequelize.models).forEach(model => {
+        const attrs = model.getAttributes() as Record<
+          string,
+          ModelAttribute & { onDelete?: string }
+        >;
+        Object.entries(attrs)
+          .filter(([, a]) => Boolean(a.references))
+          .forEach(([name, a]) => {
+            if (!a.onDelete) {
+              failures.push(`${model.name}.${name}`);
+            }
+          });
+      });
+
+      expect(
+        failures,
+        `FK columns without explicit onDelete — ${failures.join(', ')}`
+      ).toHaveLength(0);
+    });
   });
 
   describe('soft-delete consistency', () => {
