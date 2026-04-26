@@ -885,6 +885,18 @@ Pet.init(
         using: 'gist',
         name: 'pets_location_gist_idx',
       },
+      // Composite indexes for the dominant access patterns (plan 4.4).
+      // Single-column indexes on status/type/size remain useful for the
+      // less common one-axis filters; these add covering shape for the
+      // queries we know are hot.
+      {
+        fields: ['status', 'rescue_id'],
+        name: 'pets_status_rescue_idx',
+      },
+      {
+        fields: ['status', 'type', 'size'],
+        name: 'pets_status_type_size_idx',
+      },
       ...auditIndexes('pets'),
     ],
     hooks: {
