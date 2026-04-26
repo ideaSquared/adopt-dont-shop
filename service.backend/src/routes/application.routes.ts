@@ -2,6 +2,7 @@ import express from 'express';
 import { ApplicationController } from '../controllers/application.controller';
 import { authenticateToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
+import { idempotency } from '../middleware/idempotency';
 import { requireRole } from '../middleware/rbac';
 import { uploadLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
@@ -205,6 +206,10 @@ router.get(
 router.post(
   '/',
   requireRole(UserType.ADOPTER),
+  // Idempotency-Key header is optional; when provided, a retry of the
+  // same submission replays the cached response instead of creating a
+  // duplicate application. Plan 5.5.13.
+  idempotency,
   fieldWriteGuard('applications', { audit: true }),
   ApplicationController.validateCreateApplication,
   applicationController.createApplication

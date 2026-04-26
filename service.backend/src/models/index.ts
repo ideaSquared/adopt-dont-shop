@@ -27,6 +27,7 @@ import UserRole from './UserRole';
 
 // Additional Models
 import AuditLog from './AuditLog';
+import IdempotencyKey from './IdempotencyKey';
 import Invitation from './Invitation';
 import Rating from './Rating';
 import StaffMember from './StaffMember';
@@ -83,6 +84,7 @@ const models = {
   RolePermission,
   UserRole,
   AuditLog,
+  IdempotencyKey,
   Rating,
   StaffMember,
   Invitation,
@@ -430,6 +432,7 @@ export {
   AuditLog,
   Chat,
   ChatParticipant,
+  IdempotencyKey,
   DeviceToken,
   RefreshToken,
   EmailPreference,
