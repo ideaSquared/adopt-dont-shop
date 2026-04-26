@@ -454,6 +454,13 @@ const startServer = async () => {
             );
           }
         }
+
+        // DB-level invariants that aren't expressible in Sequelize models.
+        // Idempotent and Postgres-gated; safe to run on every boot path
+        // (force-seed, fresh DB, warm reload).
+        const { installImmutableCreatedAtTriggers } = await import('./models/immutable-created-at');
+        const models = (await import('./models')).default;
+        await installImmutableCreatedAtTriggers(Object.values(models));
       } catch (error) {
         logger.error('Failed to sync database models:', error);
         throw error;

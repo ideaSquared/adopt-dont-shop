@@ -1,17 +1,16 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { QueryTypes } from 'sequelize';
 import sequelize from '../../sequelize';
-import '../../models/index';
+import models from '../../models/index';
 import User from '../../models/User';
+import { installImmutableCreatedAtTriggers } from '../../models/immutable-created-at';
 
 /**
  * The BEFORE UPDATE trigger that locks created_at (plan 5.5.10) only
  * exists on Postgres — installImmutableCreatedAtTriggers short-circuits
- * on SQLite to keep the in-memory test path simple. The trigger contract
- * is exercised by the Postgres branch below, gated on the dialect; the
- * SQLite branch just confirms the helper installs cleanly (a thrown
- * error during afterSync would have failed every other test in the
- * file). Both paths share the bootstrap.
+ * on SQLite to keep the in-memory test path simple. Helper is called
+ * explicitly from the boot script after sequelize.sync() returns; tests
+ * call it explicitly here to mirror that flow.
  */
 const isPostgres = sequelize.getDialect() === 'postgres';
 const describePg = isPostgres ? describe : describe.skip;
@@ -19,6 +18,7 @@ const describePg = isPostgres ? describe : describe.skip;
 describe('immutable created_at trigger', () => {
   beforeEach(async () => {
     await sequelize.sync({ force: true });
+    await installImmutableCreatedAtTriggers(Object.values(models));
   });
 
   it('SQLite path is a no-op — UPDATE may rewrite created_at', async () => {
