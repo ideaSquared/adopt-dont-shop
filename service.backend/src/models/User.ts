@@ -81,7 +81,7 @@ interface UserAttributes {
   termsAcceptedAt?: Date | null;
   privacyPolicyAcceptedAt?: Date | null;
   applicationDefaults?: JsonObject | null;
-  applicationPreferences?: JsonObject;
+  // applicationPreferences moved to user_application_prefs (plan 5.6).
   profileCompletionStatus?: JsonObject;
   applicationTemplateVersion?: number;
   Roles?: Role[];
@@ -146,7 +146,6 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public termsAcceptedAt!: Date | null;
   public privacyPolicyAcceptedAt!: Date | null;
   public applicationDefaults!: JsonObject | null;
-  public applicationPreferences!: JsonObject;
   public profileCompletionStatus!: JsonObject;
   public applicationTemplateVersion!: number;
 
@@ -426,16 +425,9 @@ User.init(
       field: 'application_defaults',
       defaultValue: null,
     },
-    applicationPreferences: {
-      type: getJsonType(),
-      allowNull: true,
-      field: 'application_preferences',
-      defaultValue: {
-        auto_populate: true,
-        quick_apply_enabled: false,
-        completion_reminders: true,
-      },
-    },
+    // applicationPreferences moved to user_application_prefs (plan 5.6).
+    // Auto-created via the User.afterCreate hook below. applicationDefaults
+    // (the rich profile snapshot) stays as JSONB — separate larger slice.
     profileCompletionStatus: {
       type: getJsonType(),
       allowNull: true,
@@ -536,12 +528,18 @@ User.init(
       afterCreate: async (user: User, options) => {
         const { default: UserNotificationPrefs } = await import('./UserNotificationPrefs');
         const { default: UserPrivacyPrefs } = await import('./UserPrivacyPrefs');
+        const { default: UserApplicationPrefs } = await import('./UserApplicationPrefs');
         await UserNotificationPrefs.findOrCreate({
           where: { user_id: user.userId },
           defaults: { user_id: user.userId },
           transaction: options.transaction,
         });
         await UserPrivacyPrefs.findOrCreate({
+          where: { user_id: user.userId },
+          defaults: { user_id: user.userId },
+          transaction: options.transaction,
+        });
+        await UserApplicationPrefs.findOrCreate({
           where: { user_id: user.userId },
           defaults: { user_id: user.userId },
           transaction: options.transaction,
