@@ -110,7 +110,6 @@ describe('Authentication Flow Integration Tests', () => {
       firstName: 'John',
       lastName: 'Doe',
       phoneNumber: '+1234567890',
-      userType: UserType.ADOPTER,
     };
 
     describe('when registering a new user', () => {

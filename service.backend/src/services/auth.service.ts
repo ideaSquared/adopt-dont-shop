@@ -47,7 +47,7 @@ export class AuthService {
         email: userData.email.toLowerCase(),
         password: userData.password,
         phoneNumber: userData.phoneNumber || undefined,
-        userType: userData.userType || UserType.ADOPTER,
+        userType: UserType.ADOPTER,
         status: UserStatus.PENDING_VERIFICATION,
         emailVerified: false,
         verificationToken,
@@ -64,7 +64,7 @@ export class AuthService {
         entity: 'User',
         entityId: user.userId,
         details: {
-          userType: userData.userType || 'ADOPTER',
+          userType: UserType.ADOPTER,
           registrationMethod: 'email',
         },
       });
@@ -72,7 +72,7 @@ export class AuthService {
       loggerHelpers.logBusiness('User Registered', {
         userId: user.userId,
         email: user.email,
-        userType: userData.userType || 'ADOPTER',
+        userType: UserType.ADOPTER,
       });
 
       // Send verification email
@@ -114,7 +114,7 @@ export class AuthService {
       const tokenId = crypto.randomUUID();
       const familyId = crypto.randomUUID();
       const tokens = await this.generateTokens(
-        { userId: user.userId, email: user.email, userType: userData.userType },
+        { userId: user.userId, email: user.email, userType: UserType.ADOPTER },
         tokenId
       );
       await this.storeRefreshToken(user.userId, tokenId, familyId);
@@ -127,7 +127,6 @@ export class AuthService {
       logger.error('Registration failed:', {
         error: error instanceof Error ? error.message : String(error),
         email: userData.email,
-        userType: userData.userType,
       });
       throw error;
     }

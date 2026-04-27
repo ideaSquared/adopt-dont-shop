@@ -125,7 +125,6 @@ const createValidRegisterData = (overrides = {}): RegisterData => ({
   lastName: 'Doe',
   email: mockEmail,
   password: validPassword,
-  userType: UserType.ADOPTER,
   ...overrides,
 });
 
@@ -1132,6 +1131,26 @@ describe('AuthService - Security Business Logic', () => {
           loginAttempts: 0,
         })
       );
+    });
+  });
+
+  // ADS-308: Privilege escalation via userType in registration payload
+  describe('Privilege escalation prevention', () => {
+    it('always creates adopter accounts — service hard-codes UserType.ADOPTER regardless of caller', async () => {
+      const registerData = createValidRegisterData();
+      MockedUser.findOne = vi.fn().mockResolvedValue(null);
+      const mockCreatedUser = createMockUser({ userType: UserType.ADOPTER });
+      MockedUser.create = vi.fn().mockResolvedValue(mockCreatedUser);
+
+      const mockCrypto = crypto as vi.MockedObject<crypto>;
+      (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
+        toString: vi.fn().mockReturnValue('token'),
+      });
+
+      await AuthService.register(registerData);
+
+      const createCall = (MockedUser.create as vi.Mock).mock.calls[0][0] as Record<string, unknown>;
+      expect(createCall.userType).toBe(UserType.ADOPTER);
     });
   });
 });
