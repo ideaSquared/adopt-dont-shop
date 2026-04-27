@@ -17,6 +17,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      libs: ${{ steps.filter.outputs.libs }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,6 +30,7 @@ jobs:
             backend:
               - 'service.backend/**'
               - 'lib.types/**'
+              - 'lib.validation/**'
               - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
@@ -47,6 +49,13 @@ jobs:
               - 'vite.shared.config.ts'
               - 'eslint-config-base/**'
               - 'eslint-config-react/**'
+            libs:
+              - 'lib.*/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig.json'
+              - 'turbo.json'
+              - 'eslint-config-base/**'
 
   test-backend:
     name: Backend Tests
@@ -91,6 +100,10 @@ jobs:
 
       - name: Lint code
         run: npm run lint
+        working-directory: service.backend
+
+      - name: Type check
+        run: npm run type-check
         working-directory: service.backend
 
       - name: Run tests
@@ -147,3 +160,29 @@ jobs:
         working-directory: ${{ matrix.app }}
         env:
           CI: true
+
+  test-libs:
+    name: Library Tests
+    needs: changes
+    if: needs.changes.outputs.libs == 'true'
+    runs-on: ubuntu-latest
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build, lint and test all libraries
+        run: npx turbo run build lint test --filter='@adopt-dont-shop/lib.*'
