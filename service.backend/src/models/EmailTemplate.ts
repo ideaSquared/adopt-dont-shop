@@ -49,15 +49,8 @@ interface TemplateVariable {
   };
 }
 
-interface TemplateVersion {
-  version: number;
-  subject: string;
-  htmlContent: string;
-  textContent?: string;
-  createdAt: Date;
-  createdBy: string;
-  changeNotes?: string;
-}
+// EmailTemplate.versions[] moved to the email_template_versions table
+// (plan 5.4) — see EmailTemplateVersion. EmailTemplate.hasMany.
 
 interface EmailTemplateAttributes {
   templateId: string;
@@ -73,7 +66,7 @@ interface EmailTemplateAttributes {
   metadata?: JsonObject;
   locale: string;
   parentTemplateId?: string; // For template inheritance
-  versions: TemplateVersion[];
+  // versions[] moved to email_template_versions (plan 5.4).
   currentVersion: number;
   isDefault: boolean;
   priority: number;
@@ -108,7 +101,7 @@ class EmailTemplate
   public metadata?: JsonObject;
   public locale!: string;
   public parentTemplateId?: string;
-  public versions!: TemplateVersion[];
+  // versions[] moved to email_template_versions (plan 5.4).
   public currentVersion!: number;
   public isDefault!: boolean;
   public priority!: number;
@@ -130,38 +123,9 @@ class EmailTemplate
     return this.status === TemplateStatus.DRAFT;
   }
 
-  public addVersion(
-    subject: string,
-    htmlContent: string,
-    textContent: string | undefined,
-    updatedBy: string,
-    changeNotes?: string
-  ): void {
-    const newVersion: TemplateVersion = {
-      version: this.currentVersion + 1,
-      subject,
-      htmlContent,
-      textContent,
-      createdAt: new Date(),
-      createdBy: updatedBy,
-      changeNotes,
-    };
-
-    this.versions.push(newVersion);
-    this.currentVersion = newVersion.version;
-    this.subject = subject;
-    this.htmlContent = htmlContent;
-    this.textContent = textContent;
-    this.lastModifiedBy = updatedBy;
-  }
-
-  public getVersion(version: number): TemplateVersion | undefined {
-    return this.versions.find(v => v.version === version);
-  }
-
-  public getLatestVersion(): TemplateVersion | undefined {
-    return this.versions.find(v => v.version === this.currentVersion);
-  }
+  // Version history methods moved to EmailTemplateService (plan 5.4) —
+  // they now create rows in email_template_versions instead of mutating
+  // an in-memory array on the template instance.
 
   public async incrementUsage(): Promise<void> {
     // Atomic — parallel email sends can all use the same template. We have
@@ -368,10 +332,7 @@ EmailTemplate.init(
       },
       onDelete: 'SET NULL',
     },
-    versions: {
-      type: getJsonType(),
-      allowNull: false,
-    },
+    // versions[] moved to email_template_versions (plan 5.4).
     currentVersion: {
       type: DataTypes.INTEGER,
       allowNull: false,

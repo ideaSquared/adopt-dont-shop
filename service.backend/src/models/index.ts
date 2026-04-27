@@ -53,6 +53,7 @@ import SupportTicketResponse from './SupportTicketResponse';
 import EmailPreference from './EmailPreference';
 import EmailQueue from './EmailQueue';
 import EmailTemplate from './EmailTemplate';
+import EmailTemplateVersion from './EmailTemplateVersion';
 
 // Swipe Interface Models
 import { SwipeAction } from './SwipeAction';
@@ -109,6 +110,7 @@ const models = {
   SupportTicket,
   SupportTicketResponse,
   EmailTemplate,
+  EmailTemplateVersion,
   EmailQueue,
   EmailPreference,
   SwipeSession,
@@ -425,6 +427,29 @@ try {
 
   EmailTemplate.belongsTo(EmailTemplate, { foreignKey: 'parentTemplateId', as: 'ParentTemplate' });
   EmailTemplate.hasMany(EmailTemplate, { foreignKey: 'parentTemplateId', as: 'ChildTemplates' });
+
+  // EmailTemplateVersion (plan 5.4) — typed table replacing
+  // EmailTemplate.versions JSONB. CASCADE on the template FK so a
+  // hard-deleted template takes its history with it; SET NULL on the
+  // editor FK preserves the historical record if a user is removed.
+  EmailTemplate.hasMany(EmailTemplateVersion, {
+    foreignKey: 'template_id',
+    as: 'Versions',
+  });
+  EmailTemplateVersion.belongsTo(EmailTemplate, {
+    foreignKey: 'template_id',
+    as: 'Template',
+  });
+  User.hasMany(EmailTemplateVersion, {
+    foreignKey: 'created_by',
+    as: 'AuthoredEmailTemplateVersions',
+    constraints: false,
+  });
+  EmailTemplateVersion.belongsTo(User, {
+    foreignKey: 'created_by',
+    as: 'Author',
+    constraints: false,
+  });
 
   EmailTemplate.hasMany(EmailQueue, { foreignKey: 'templateId', as: 'EmailQueue' });
   EmailQueue.belongsTo(EmailTemplate, { foreignKey: 'templateId', as: 'Template' });
