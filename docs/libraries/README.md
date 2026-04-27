@@ -1,176 +1,64 @@
-# Shared Libraries Documentation
+# Shared Libraries
 
-## Overview
+The monorepo ships **21 workspace libraries** under `@adopt-dont-shop/lib.*`. Each library's authoritative documentation is its own `README.md` next to the source — those READMEs are kept code-verified.
 
-The Adopt Don't Shop monorepo includes **21 shared libraries** under `@adopt-dont-shop/lib.*`. They follow an ESM-only TypeScript architecture and are consumed by the three apps (`app.admin`, `app.client`, `app.rescue`) and the backend (`service.backend`).
+## Standards
 
-For per-library validation status, see [ecosystem-status.md](ecosystem-status.md).
+- ESM-only, TypeScript strict mode
+- Built with `tsc`, orchestrated by Turborepo (`dependsOn: ["^build"]`)
+- Tested with Jest (Node libraries) or Vitest (libraries co-located with apps)
+- Workspace-linked: depend on each other with `"*"` and rely on `npm install` at the repo root
 
-## Library Architecture
+## Index
 
-### Standards
+### Transport & data
+- [`lib.api`](../../lib.api/README.md) — HTTP client, interceptors, auth-token plumbing ([architecture](../../lib.api/ARCHITECTURE.md))
+- [`lib.types`](../../lib.types/README.md) — shared types and constants (zero-dep, safe for both runtimes)
+- [`lib.validation`](../../lib.validation/README.md) — canonical Zod schemas (User / Pet / Rescue / Application)
 
-- **Module System**: ES Modules (no CommonJS)
-- **Language**: TypeScript strict mode
-- **Build Tool**: TypeScript Compiler (`tsc`) orchestrated via Turborepo
-- **Testing**: Jest (Node libraries) / Vitest or Jest (React libraries)
-- **Lint/Format**: ESLint + Prettier
+### Auth & access
+- [`lib.auth`](../../lib.auth/README.md) — sessions, two-factor, `AuthProvider` / `useAuth`
+- [`lib.permissions`](../../lib.permissions/README.md) — RBAC + field-level permission services
+- [`lib.invitations`](../../lib.invitations/README.md) — staff/user invitations
 
-### Structure Template
+### Domain services
+- [`lib.applications`](../../lib.applications/README.md) — adoption application lifecycle
+- [`lib.chat`](../../lib.chat/README.md) — Socket.IO real-time messaging
+- [`lib.discovery`](../../lib.discovery/README.md) — swipe-based pet discovery sessions
+- [`lib.notifications`](../../lib.notifications/README.md) — email / push / in-app / SMS delivery
+- [`lib.pets`](../../lib.pets/README.md) — read-side `PetsService` + write-side `PetManagementService`
+- [`lib.rescue`](../../lib.rescue/README.md) — rescue profiles, staff, settings
+- [`lib.search`](../../lib.search/README.md) — cross-domain search client
+- [`lib.moderation`](../../lib.moderation/README.md) — reporting + moderation workflow
+- [`lib.support-tickets`](../../lib.support-tickets/README.md) — support ticket creation / tracking
+- [`lib.audit-logs`](../../lib.audit-logs/README.md) — audit logging for sensitive actions
 
-Most libraries follow a shape similar to:
-
-```
-lib.{name}/
-├── src/
-│   ├── index.ts
-│   ├── services/ | hooks/ | components/   # depending on library type
-│   └── types/index.ts
-├── dist/                                   # build output (generated)
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-## Available Libraries
-
-All packages are scoped as `@adopt-dont-shop/lib.<name>`. The authoritative list lives in the root `package.json` workspaces.
-
-### Transport & Data
-
-- **lib.api** — HTTP client, interceptors, auth token handling
-- **lib.types** — shared type definitions used across frontend and backend
-- **lib.validation** — Zod schemas and validation helpers
-
-### Authentication & Access
-
-- **lib.auth** — JWT session handling, auth context, login/logout flows
-- **lib.permissions** — role-based access control and permission checks
-- **lib.invitations** — staff/user invitation creation and redemption
-
-### Domain Services
-
-- **lib.applications** — adoption application lifecycle and stage transitions
-- **lib.chat** — real-time messaging (WebSocket) and conversation state
-- **lib.discovery** — swipe-based pet discovery and recommendation sessions
-- **lib.notifications** — multi-channel notification delivery and preferences
-- **lib.pets** — pet profile management
-- **lib.rescue** — rescue organization profiles, staff, and settings
-- **lib.search** — search filters and query building
-- **lib.moderation** — reporting and moderation workflow
-- **lib.support-tickets** — support ticket creation and tracking
-- **lib.audit-logs** — audit logging for sensitive actions
-
-### UI & Analytics
-
-- **lib.components** — shared React components (styled-components)
-- **lib.analytics** — event tracking and reporting helpers
-- **lib.feature-flags** — feature flag evaluation
+### UI & analytics
+- [`lib.components`](../../lib.components/README.md) — shared React components
+- [`lib.analytics`](../../lib.analytics/README.md) — event tracking
+- [`lib.feature-flags`](../../lib.feature-flags/README.md) — Statsig type definitions
 
 ### Utilities
+- [`lib.utils`](../../lib.utils/README.md) — formatters, locale, env helpers
+- [`lib.dev-tools`](../../lib.dev-tools/README.md) — dev-only tooling
 
-- **lib.utils** — shared helpers (formatters, date, string utilities)
-- **lib.dev-tools** — development-only tooling
-
-## Quick Start
-
-### Installation
-
-Shared libraries are workspace dependencies referenced with `"*"`:
-
-```json
-{
-  "dependencies": {
-    "@adopt-dont-shop/lib.api": "*",
-    "@adopt-dont-shop/lib.auth": "*"
-  }
-}
-```
-
-Run `npm install` at the repo root to link workspaces.
-
-### Basic Usage
-
-```typescript
-import { apiService } from '@adopt-dont-shop/lib.api';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
-```
-
-Refer to each library's `README.md` for its public API.
-
-## Development
-
-### Building
-
-Turborepo handles build ordering (`dependsOn: ["^build"]`):
+## Common commands
 
 ```bash
-npm run build            # build everything
-npm run build:libs       # libraries only
+# Build / test / lint a single library
 npx turbo build --filter=@adopt-dont-shop/lib.api
-```
+npx turbo test  --filter=@adopt-dont-shop/lib.auth
+npx turbo lint  --filter=@adopt-dont-shop/lib.permissions
 
-### Testing
+# All libraries
+npm run build:libs
 
-```bash
-npm run test                                                # everything
-npx turbo test --filter=@adopt-dont-shop/lib.auth           # one library
-```
-
-## Integration Patterns
-
-### Backend
-
-```typescript
-// service.backend/src/services/example.ts
-import { validateUser } from '@adopt-dont-shop/lib.validation';
-```
-
-### Frontend
-
-```typescript
-// app.client/src/hooks/useAuthSession.ts
-import { useAuth } from '@adopt-dont-shop/lib.auth';
-```
-
-## Troubleshooting
-
-**Workspace imports not resolving**
-
-```bash
-npm install              # relink workspaces
-npm run build:libs       # rebuild library dist/ folders
-```
-
-**`lib.types` changes not picked up in `service.backend` (Docker dev)**
-
-```bash
+# After editing lib.types in Docker dev
 npm run docker:rebuild:types
 ```
 
-## Additional Resources
+## See also
 
 - [Microservices Standards](../infrastructure/MICROSERVICES-STANDARDS.md)
-- [Testing Guide](../backend/testing.md)
-- [API Documentation](../backend/api-endpoints.md)
-- [Ecosystem Status](./ecosystem-status.md)
-
-### Individual Library Docs
-
-Documentation pages exist for the following libraries (others live only in their `lib.*/README.md`):
-
-- [lib.analytics](./analytics.md)
-- [lib.api](./api.md)
-- [lib.applications](./applications.md)
-- [lib.auth](./auth.md)
-- [lib.chat](./chat.md)
-- [lib.components](./components.md)
-- [lib.discovery](./discovery.md)
-- [lib.feature-flags](./feature-flags.md)
-- [lib.notifications](./notifications.md)
-- [lib.permissions](./permissions.md)
-- [lib.pets](./pets.md)
-- [lib.rescue](./rescue.md)
-- [lib.search](./search.md)
-- [lib.utils](./utils.md)
-- [lib.validation](./validation.md)
+- [Backend testing](../backend/testing.md)
+- [Backend API endpoints](../backend/api-endpoints.md)

@@ -66,5 +66,4 @@ npm run type-check
 
 ## Resources
 
-- Central docs: [docs/libraries/applications.md](../docs/libraries/applications.md)
 - Source of truth for exports: [src/index.ts](./src/index.ts)

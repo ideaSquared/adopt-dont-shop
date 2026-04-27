@@ -11,7 +11,6 @@
  *
  * Migration Note: This library was refactored to remove the backend feature
  * flag system. All feature flags are now managed through Statsig.
- * See STATSIG_MIGRATION.md for details.
  */
 
 // Export hooks (main API for apps)

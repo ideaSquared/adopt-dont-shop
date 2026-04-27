@@ -57,6 +57,5 @@ npm run type-check
 
 ## Resources
 
-- Central docs: [docs/libraries/discovery.md](../docs/libraries/discovery.md)
 - Source of truth for exports: [src/index.ts](./src/index.ts)
 - Service implementation: [src/services/discovery-service.ts](./src/services/discovery-service.ts)

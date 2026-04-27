@@ -1,138 +1,68 @@
-# Adopt Don't Shop - Documentation
+# Adopt Don't Shop — Documentation
 
-Welcome to the comprehensive documentation for the Adopt Don't Shop pet adoption platform.
+Documentation for the adopt-don't-shop monorepo. The root [README](../README.md) covers quick-start; this directory holds the deeper reference material.
 
-## Quick Start
+## Quick start by role
 
-**New Developers:**
+**Frontend developer**
+1. [Component library](../lib.components/README.md)
+2. [Client app PRD](./frontend/app-client-prd.md)
+3. [Frontend technical architecture](./frontend/technical-architecture.md)
 
-1. [Docker Setup](./infrastructure/docker-setup.md) - Get environment running
-2. [System Overview](./infrastructure/INFRASTRUCTURE.md) - Understand architecture
-3. [Backend PRD](./backend/service-backend-prd.md) - Learn backend features
-4. [Frontend Apps](./frontend/) - Explore React applications
+**Backend developer**
+1. [Implementation guide](./backend/implementation-guide.md)
+2. [API endpoints](./backend/api-endpoints.md)
+3. [Database schema](./backend/database-schema.md)
+4. [Testing guide](./backend/testing.md)
 
-## Documentation Structure
+**DevOps / infra**
+1. [Infrastructure overview](./infrastructure/INFRASTRUCTURE.md)
+2. [Docker setup](./infrastructure/docker-setup.md)
+3. [Docker deep dive](./DOCKER.md)
+4. [Backend deployment](./backend/deployment.md)
+5. [Secrets management](./SECRETS-MANAGEMENT.md)
+
+**Product**
+1. [Backend service PRD](./backend/service-backend-prd.md)
+2. [Client app PRD](./frontend/app-client-prd.md)
+3. [Rescue app PRD](./frontend/app-rescue-prd.md)
+4. [Admin app PRD](./frontend/app-admin-prd.md)
+
+## Reference
 
 ### Infrastructure
+- [Infrastructure overview](./infrastructure/INFRASTRUCTURE.md)
+- [Docker setup](./infrastructure/docker-setup.md)
+- [Docker deep dive](./DOCKER.md)
+- [Microservices standards](./infrastructure/MICROSERVICES-STANDARDS.md)
+- [New app generator](./infrastructure/new-app-generator.md)
 
-Core system architecture, deployment, and DevOps.
+### Backend
+- [Service PRD](./backend/service-backend-prd.md)
+- [Implementation guide](./backend/implementation-guide.md)
+- [API endpoints](./backend/api-endpoints.md)
+- [Database schema](./backend/database-schema.md)
+- [Testing](./backend/testing.md)
+- [Deployment](./backend/deployment.md)
+- [Troubleshooting](./backend/troubleshooting.md)
 
-| Document                                                               | Description                      |
-| ---------------------------------------------------------------------- | -------------------------------- |
-| [Infrastructure Overview](./infrastructure/INFRASTRUCTURE.md)          | Complete system architecture     |
-| [Docker Setup](./infrastructure/docker-setup.md)                       | Development and production setup |
-| [Microservices Standards](./infrastructure/MICROSERVICES-STANDARDS.md) | Architecture patterns            |
-| [New App Generator](./infrastructure/new-app-generator.md)             | Scaffolding new apps in the monorepo |
-| [Docker Infrastructure](./DOCKER.md)                                   | Docker deep dive                 |
+### Frontend
+- [Client PRD](./frontend/app-client-prd.md) · [Rescue PRD](./frontend/app-rescue-prd.md) · [Admin PRD](./frontend/app-admin-prd.md)
+- [Technical architecture](./frontend/technical-architecture.md)
+- [Implementation plan (rescue app)](./frontend/implementation-plan.md)
 
-### Backend Services
+### Shared libraries
+- [Libraries index](./libraries/README.md) — links to each `lib.*/README.md`
 
-API, database, and server-side functionality.
+### Cross-cutting
+- [Secrets management](./SECRETS-MANAGEMENT.md)
+- [Privacy](./PRIVACY.md)
+- [Data standards](./DATA-STANDARDS.md)
+- [UK localization](./UK_LOCALIZATION.md) ([quick reference](./UK_LOCALIZATION_QUICK_REFERENCE.md))
 
-| Document                                                  | Description            |
-| --------------------------------------------------------- | ---------------------- |
-| [Service PRD](./backend/service-backend-prd.md)           | Backend requirements   |
-| [Implementation Guide](./backend/implementation-guide.md) | Setup and development  |
-| [API Endpoints](./backend/api-endpoints.md)               | Complete API reference |
-| [Database Schema](./backend/database-schema.md)           | Database structure     |
-| [Testing Guide](./backend/testing.md)                     | Testing strategies     |
-| [Auth Library](./libraries/auth.md)                       | Auth and authorization (lib.auth) |
-| [Deployment](./backend/deployment.md)                     | Deployment guide       |
-| [Troubleshooting](./backend/troubleshooting.md)           | Common issues          |
+## Documentation conventions
 
-### Frontend Applications
-
-React applications, UI components, and client-side functionality.
-
-| Document                                                             | Description                |
-| -------------------------------------------------------------------- | -------------------------- |
-| [Client App PRD](./frontend/app-client-prd.md)                       | Public adoption portal     |
-| [Rescue App PRD](./frontend/app-rescue-prd.md)                       | Rescue organization portal |
-| [Admin App PRD](./frontend/app-admin-prd.md)                         | Administration interface   |
-| [Technical Architecture](./frontend/technical-architecture.md)       | Frontend architecture      |
-| [Implementation Plan](./frontend/implementation-plan.md)             | Development roadmap        |
-
-### Shared Libraries
-
-Reusable packages and utilities across the platform.
-
-| Document                                            | Description                                                                                                                            |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| [Libraries Overview](./libraries/README.md)         | Shared libraries index (21 libraries in the workspace)                                                                                 |
-| [Ecosystem Status](./libraries/ecosystem-status.md) | Library validation status                                                                                                              |
-| Individual Libraries                                | [api](./libraries/api.md), [auth](./libraries/auth.md), [chat](./libraries/chat.md), [components](./libraries/components.md), and more |
-
-## Getting Started by Role
-
-### Frontend Developer
-
-1. [Component Library](./libraries/components.md)
-2. [Client App PRD](./frontend/app-client-prd.md)
-3. [Technical Architecture](./frontend/technical-architecture.md)
-
-### Backend Developer
-
-1. [Implementation Guide](./backend/implementation-guide.md)
-2. [API Endpoints](./backend/api-endpoints.md)
-3. [Database Schema](./backend/database-schema.md)
-4. [Testing Guide](./backend/testing.md)
-
-### DevOps Engineer
-
-1. [Infrastructure Overview](./infrastructure/INFRASTRUCTURE.md)
-2. [Docker Setup](./infrastructure/docker-setup.md)
-3. [Deployment Guide](./backend/deployment.md)
-4. [Docker Infrastructure Deep Dive](./DOCKER.md)
-
-### Product Manager
-
-1. [Backend Service PRD](./backend/service-backend-prd.md)
-2. [Client App PRD](./frontend/app-client-prd.md)
-3. [Rescue App PRD](./frontend/app-rescue-prd.md)
-4. [Admin App PRD](./frontend/app-admin-prd.md)
-
-## Key Features
-
-### Core Platform
-
-- **Pet Management**: Comprehensive pet profiles and tracking
-- **Adoption Applications**: 5-stage workflow (PENDING → REVIEWING → VISITING → DECIDING → RESOLVED)
-- **Real-time Communication**: WebSocket-based messaging
-- **Discovery Interface**: Tinder-style swipe and traditional search
-- **Staff Management**: Role-based access and permissions
-
-### Technical Highlights
-
-- **21 Shared Libraries**: Reusable packages for API, auth, UI, validation, and more
-- **ESM-Only Architecture**: Modern module system throughout
-- **TypeScript Strict Mode**: Enforced across all packages
-- **Docker**: Multi-stage builds with BuildKit
-- **Testing**: Vitest (apps + service.backend) and Jest (Node libraries) with behaviour-focused tests
-
-## Contributing
-
-When adding documentation:
-
-1. Place in appropriate folder (infrastructure, frontend, backend, libraries)
-2. Update this README with links
-3. Follow existing naming conventions
-4. Keep docs concise (< 500 lines)
-5. Delete (or rewrite) historical "completion" / "fix" / "status snapshot" docs once the work has shipped — they go stale fast and rarely help future contributors
-
-## Documentation Standards
-
-- **Planning Docs (PRDs)**: 200-400 lines, business requirements only
-- **Overview Docs**: 150-300 lines, high-level concepts
-- **Implementation Guides**: 200-400 lines, practical setup
-- **Reference Docs**: Auto-generated when possible (API docs, schemas)
-- **Troubleshooting**: FAQ format, 200-300 lines
-
-## Maintenance
-
-- **Structure**: Organized by function (infrastructure, backend, frontend, libraries)
-- **Duplicates**: Consolidated overlapping documentation
-- **Stale docs**: Prefer deletion over archival — `git log` is the archive
-
----
-
-**Need help?** Start with the [Quick Start](#quick-start) guide above or jump to your role-specific documentation.
+- **Lib references** live in each `lib.*/README.md` (canonical, code-verified). The libraries index just points to them.
+- **PRDs** describe product requirements (`docs/frontend/*.md`, `docs/backend/service-backend-prd.md`).
+- **Implementation guides** describe how subsystems are wired (`docs/backend/implementation-guide.md`, `docs/frontend/technical-architecture.md`).
+- **Stale docs**: prefer deletion over archival — `git log` is the archive.

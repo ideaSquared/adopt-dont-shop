@@ -380,9 +380,9 @@ npm run preview         # Preview production build
 ### Environment Configuration
 
 ```bash
-VITE_API_URL            # Backend API URL
-VITE_WS_URL             # WebSocket URL
-VITE_ENV                # Environment (dev/staging/prod)
+VITE_API_BASE_URL       # Backend API URL (empty in Docker, defaults to Vite proxy)
+VITE_WS_BASE_URL        # WebSocket URL
+NODE_ENV                # Environment (development / production)
 ```
 
 ### Docker Deployment

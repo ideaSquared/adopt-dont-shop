@@ -197,7 +197,7 @@ npm install -D typescript @types/node
 import { apiService } from '@adopt-dont-shop/lib.api';
 import { authService } from '@adopt-dont-shop/lib.auth';
 
-const pets = await apiService.exampleMethod({ endpoint: '/pets' });
+const pets = await apiService.get('/api/v1/pets');
 const user = authService.getCurrentUser();
 ```
 

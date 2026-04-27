@@ -148,11 +148,7 @@ Responses that contain pet objects are automatically normalised from API snake_c
 
 ## Environment Variables
 
-The library reads API URL from (in order):
-
-- `VITE_API_BASE_URL` / `VITE_API_URL` (Vite apps)
-- `REACT_APP_API_URL` (CRA apps)
-- Fallback derivation via `getBaseUrl()`
+The library reads API URL from `VITE_API_BASE_URL` (canonical) or `VITE_API_URL` (legacy fallback). Prefer `VITE_API_BASE_URL` — it's the name used in `.env.example` and the `vite-env.d.ts` declaration in each app.
 
 ## Error Handling
 
