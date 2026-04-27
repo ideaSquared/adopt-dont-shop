@@ -1,5 +1,11 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import sequelize, {
+  getJsonType,
+  getUuidType,
+  getArrayType,
+  getGeometryType,
+  getCitextType,
+} from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
@@ -85,7 +91,7 @@ Rescue.init(
       unique: true,
     },
     email: {
-      type: DataTypes.STRING,
+      type: getCitextType(),
       allowNull: false,
       unique: true,
       validate: {

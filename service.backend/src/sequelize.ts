@@ -137,4 +137,14 @@ export const getTsVectorType = () => {
   return isTestEnvironment ? DataTypes.TEXT : DataTypes.TSVECTOR;
 };
 
+/**
+ * Get the appropriate case-insensitive text type based on the database dialect.
+ * PostgreSQL uses CITEXT (requires the citext extension).
+ * SQLite uses TEXT COLLATE NOCASE — Sequelize's built-in CITEXT shim handles this
+ * automatically when dialect === sqlite, so DataTypes.CITEXT is safe on both paths.
+ */
+export const getCitextType = () => {
+  return DataTypes.CITEXT;
+};
+
 export default sequelize;
