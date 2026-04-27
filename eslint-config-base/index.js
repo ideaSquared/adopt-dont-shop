@@ -45,6 +45,8 @@ module.exports = {
     'curly': ['warn', 'all'],
     'no-duplicate-imports': 'error',
     'no-unused-expressions': 'error',
+    'no-eval': 'error',
+    'no-new-func': 'error',
   },
   overrides: [
     {

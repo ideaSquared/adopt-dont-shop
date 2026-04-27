@@ -372,16 +372,6 @@ export class ApiService {
   async fetchWithAuth<T>(url: string, options: FetchOptions = {}): Promise<T> {
     const token = this.getAuthToken();
 
-    // In development mode, check if this is a dev token
-    if (this.config.debug && token?.startsWith('dev-token-')) {
-      // For dev tokens, make requests without authentication header
-      // The backend should handle missing auth gracefully in dev mode
-      if (this.config.debug) {
-        console.log('API: Using dev token, making request without auth header');
-      }
-      return this.makeRequest<T>(url, options);
-    }
-
     const headers = {
       ...options.headers,
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -485,63 +475,19 @@ export class ApiService {
   }
 }
 
-// Get environment variables with proper type checking and improved fallback
 const getApiUrl = (): string | undefined => {
-  // In Vite environment (browser)
-  try {
-    if (typeof window !== 'undefined') {
-      // Use eval to avoid import.meta issues in Jest
-      const importMeta = eval('import.meta');
-      if (importMeta && importMeta.env) {
-        const viteEnv = importMeta.env as Record<string, string>;
-        const apiUrl = viteEnv.VITE_API_BASE_URL || viteEnv.VITE_API_URL; // VITE_API_URL for legacy support
-        if (apiUrl) {
-          console.log('🔧 DEBUG: Found API URL in import.meta.env:', apiUrl);
-          return apiUrl;
-        }
-      }
-    }
-  } catch {
-    // import.meta not available or eval failed (e.g., in test environment)
-  }
-
-  // In Node.js environment
   if (typeof process !== 'undefined' && process.env) {
-    const apiUrl = process.env.VITE_API_BASE_URL || process.env.VITE_API_URL; // VITE_API_URL for legacy support
-    if (apiUrl) {
-      console.log('🔧 DEBUG: Found API URL in process.env:', apiUrl);
-      return apiUrl;
-    }
+    return process.env.VITE_API_BASE_URL ?? process.env.VITE_API_URL ?? undefined;
   }
-  console.log('🔧 DEBUG: No API URL found in environment, will use getBaseUrl() fallback');
   return undefined;
 };
 
 const isDevelopment = (): boolean => {
-  // In Vite environment
-  try {
-    if (typeof window !== 'undefined') {
-      const importMeta = eval('import.meta');
-      if (importMeta && importMeta.env) {
-        const viteEnv = importMeta.env as Record<string, string>;
-        return viteEnv.MODE === 'development';
-      }
-    }
-  } catch {
-    // import.meta not available
-  }
-
-  // In Node.js environment
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV) {
-    return process.env.NODE_ENV === 'development';
-  }
-  return false;
+  return typeof process !== 'undefined' && process.env?.NODE_ENV === 'development';
 };
 
-// Debug log the environment detection
 const apiUrl = getApiUrl();
 const debug = isDevelopment();
-console.log('🔧 DEBUG: Creating global apiService with:', { apiUrl, debug });
 
 // Export singleton instance with environment-aware configuration
 export const apiService = new ApiService({
