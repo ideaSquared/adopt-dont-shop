@@ -1,11 +1,6 @@
+const base = require('../../jest.config.base.cjs');
 module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'jsdom',
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
-  transform: {
-    '^.+\\.ts$': 'ts-jest',
-  },
+  ...base,
   setupFilesAfterEnv: ['<rootDir>/src/test-utils/setup-tests.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -14,12 +9,7 @@ module.exports = {
     '!src/**/*.spec.ts',
     '!src/test-utils/**',
   ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
-  moduleFileExtensions: ['ts', 'js', 'json'],
   moduleNameMapper: {
     '^@adopt-dont-shop/lib-api$': '<rootDir>/../lib.api/src',
   },
-  testTimeout: 10000,
 };
-
