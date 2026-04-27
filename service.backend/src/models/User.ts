@@ -1,5 +1,11 @@
 import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType, getCitextType } from '../sequelize';
+import sequelize, {
+  getJsonType,
+  getUuidType,
+  getArrayType,
+  getGeometryType,
+  getCitextType,
+} from '../sequelize';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { encryptSecret, hashBackupCode, hashToken } from '../utils/secrets';
 import { JsonObject } from '../types/common';
