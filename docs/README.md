@@ -51,7 +51,6 @@ React applications, UI components, and client-side functionality.
 | [Admin App PRD](./frontend/app-admin-prd.md)                         | Administration interface   |
 | [Technical Architecture](./frontend/technical-architecture.md)       | Frontend architecture      |
 | [Implementation Plan](./frontend/implementation-plan.md)             | Development roadmap        |
-| [Implementation Status](./frontend/IMPLEMENTATION_STATUS.md)         | Current progress           |
 
 ### Shared Libraries
 
@@ -70,7 +69,6 @@ Reusable packages and utilities across the platform.
 1. [Component Library](./libraries/components.md)
 2. [Client App PRD](./frontend/app-client-prd.md)
 3. [Technical Architecture](./frontend/technical-architecture.md)
-4. [Implementation Status](./frontend/IMPLEMENTATION_STATUS.md)
 
 ### Backend Developer
 
