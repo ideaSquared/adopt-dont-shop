@@ -4,6 +4,11 @@
 services:
   service-backend:
     volumes: []
+    # Restore Dockerfile ENTRYPOINT (dumb-init) — the docker-compose.yml
+    # entrypoint uses a relative path (./service.backend/…) that resolves
+    # correctly only when bind mounts are active.  In CI (volumes: [])
+    # the path doesn't exist; dumb-init is the correct runtime entrypoint.
+    entrypoint: ["/usr/bin/dumb-init", "--"]
     # Restore default CMD from Dockerfile — the docker-compose.yml command
     # override creates a runtime symlink for bind-mounted lib.types, which
     # doesn't apply in CI (no bind mounts).  The Dockerfile already copies
