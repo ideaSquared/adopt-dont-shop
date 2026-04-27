@@ -36,7 +36,7 @@
   ],
   "scripts": {
     "setup": "node scripts/bootstrap.mjs",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "dev": "turbo run dev --parallel",
     "dev:apps": "turbo run dev --filter='@adopt-dont-shop/app.*' --parallel",
     "dev:backend": "turbo run dev --filter=@adopt-dont-shop/service-backend",
