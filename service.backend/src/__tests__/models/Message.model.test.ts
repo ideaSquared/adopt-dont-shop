@@ -41,10 +41,8 @@ describe('Chat-family model defaults', () => {
       expect(attrs.reactions).toBeUndefined();
     });
 
-    it('read_status defaults to an empty array', () => {
-      expect(attrs.read_status.allowNull).toBe(false);
-      expect(Array.isArray(attrs.read_status.defaultValue)).toBe(true);
-      expect(attrs.read_status.defaultValue).toHaveLength(0);
+    it('does not carry a read_status JSONB column (moved to message_reads per plan 2.1)', () => {
+      expect(attrs.read_status).toBeUndefined();
     });
 
     it('attachments defaults to an empty array', () => {

@@ -98,14 +98,24 @@ vi.mock('../../models/MessageReaction', () => ({
   },
 }));
 
+// Mock MessageRead (plan 2.1) — chat.service uses it for the
+// markMessagesAsRead / getUnreadMessageCount / getMessageStatuses paths.
+vi.mock('../../models/MessageRead', () => ({
+  __esModule: true,
+  default: {
+    findOrCreate: vi.fn(),
+    bulkCreate: vi.fn(),
+    findAll: vi.fn(),
+    destroy: vi.fn(),
+  },
+}));
+
 // Import from the mocked models module
 import { Chat, ChatParticipant, Message, User, Rescue } from '../../models';
 import MessageReaction from '../../models/MessageReaction';
+import MessageRead from '../../models/MessageRead';
 import { ChatService } from '../../services/chat.service';
-import {
-  MessageReadStatusService,
-  MessageReadStatus,
-} from '../../services/message-read-status.service';
+import { MessageReadStatusService } from '../../services/message-read-status.service';
 import { AuditLogService } from '../../services/auditLog.service';
 import { NotificationService } from '../../services/notification.service';
 import {
@@ -128,6 +138,12 @@ const MockedMessageReaction = MessageReaction as unknown as {
   findOrCreate: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
   findAll: ReturnType<typeof vi.fn>;
+};
+const MockedMessageRead = MessageRead as unknown as {
+  findOrCreate: ReturnType<typeof vi.fn>;
+  bulkCreate: ReturnType<typeof vi.fn>;
+  findAll: ReturnType<typeof vi.fn>;
+  destroy: ReturnType<typeof vi.fn>;
 };
 const MockedUser = User as unknown;
 const MockedRescue = Rescue as unknown;
@@ -806,6 +822,9 @@ describe('Chat Messaging Flow Integration Tests', () => {
   });
 
   describe('Read Receipts and Unread Tracking', () => {
+    // Read receipts moved to message_reads (plan 2.1) — assertions
+    // now check the typed-table writes/reads rather than the removed
+    // Message.markAsRead / isReadBy instance methods.
     describe('when marking messages as read', () => {
       it('should mark a single message as read', async () => {
         const mockMessage = createMockMessage({
@@ -814,51 +833,39 @@ describe('Chat Messaging Flow Integration Tests', () => {
           sender_id: rescueStaffId,
         });
 
-        mockMessage.isReadBy = vi.fn().mockReturnValue(false);
-        mockMessage.markAsRead = vi.fn();
-        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
-
         MockedMessage.findAll = vi.fn().mockResolvedValue([mockMessage] as never);
+        MockedMessageRead.bulkCreate = vi.fn().mockResolvedValue([] as never);
 
         await ChatService.markMessagesAsRead(chatId, adopterId);
 
-        expect(mockMessage.markAsRead).toHaveBeenCalledWith(adopterId);
-        expect(mockMessage.save).toHaveBeenCalled();
+        expect(MockedMessageRead.bulkCreate).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({ message_id: messageId, user_id: adopterId }),
+          ]),
+          expect.objectContaining({ ignoreDuplicates: true })
+        );
       });
 
-      it('should not re-mark already read messages', async () => {
-        const mockMessage = createMockMessage({
-          message_id: messageId,
-          chat_id: chatId,
-          sender_id: rescueStaffId,
-        });
-
-        mockMessage.isReadBy = vi.fn().mockReturnValue(true);
-        mockMessage.markAsRead = vi.fn();
-        mockMessage.save = vi.fn().mockResolvedValue(mockMessage);
-
-        MockedMessage.findAll = vi.fn().mockResolvedValue([mockMessage] as never);
+      it('should be a no-op when there are no candidate messages', async () => {
+        // Re-marking already-read messages is harmless thanks to the
+        // unique (message_id, user_id) index on message_reads + the
+        // ignoreDuplicates flag, so this case collapses to "the
+        // candidate set was empty".
+        MockedMessage.findAll = vi.fn().mockResolvedValue([] as never);
+        MockedMessageRead.bulkCreate = vi.fn().mockResolvedValue([] as never);
 
         await ChatService.markMessagesAsRead(chatId, adopterId);
 
-        expect(mockMessage.markAsRead).not.toHaveBeenCalled();
-        expect(mockMessage.save).not.toHaveBeenCalled();
+        expect(MockedMessageRead.bulkCreate).not.toHaveBeenCalled();
       });
 
       it('should not mark own messages as read', async () => {
-        const mockMessage = createMockMessage({
-          message_id: messageId,
-          chat_id: chatId,
-          sender_id: adopterId, // Same as the user marking as read
-        });
-
-        mockMessage.markAsRead = vi.fn();
-
-        MockedMessage.findAll = vi.fn().mockResolvedValue([mockMessage] as never);
+        // findAll should filter by sender_id != userId so the user's
+        // own messages never enter the candidate set.
+        MockedMessage.findAll = vi.fn().mockResolvedValue([] as never);
 
         await ChatService.markMessagesAsRead(chatId, adopterId);
 
-        // findAll should filter by sender_id != userId
         expect(MockedMessage.findAll).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
@@ -871,13 +878,15 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
     describe('when getting unread message count', () => {
       it('should return correct unread count for a chat', async () => {
+        // Messages with empty Reads arrays (eager-loaded with where
+        // filtering on user_id) are unread (plan 2.1).
         const mockMessages = [
-          createMockMessage({ message_id: 'msg-1', chat_id: chatId, sender_id: rescueStaffId }),
-          createMockMessage({ message_id: 'msg-2', chat_id: chatId, sender_id: rescueStaffId }),
+          { ...createMockMessage({ message_id: 'msg-1', sender_id: rescueStaffId }), Reads: [] },
+          {
+            ...createMockMessage({ message_id: 'msg-2', sender_id: rescueStaffId }),
+            Reads: [{ user_id: adopterId, read_at: new Date() }],
+          },
         ];
-
-        mockMessages[0].isReadBy = vi.fn().mockReturnValue(false);
-        mockMessages[1].isReadBy = vi.fn().mockReturnValue(true);
 
         MockedMessage.findAll = vi.fn().mockResolvedValue(mockMessages as never);
 
@@ -888,10 +897,11 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
       it('should return 0 if all messages are read', async () => {
         const mockMessages = [
-          createMockMessage({ message_id: 'msg-1', chat_id: chatId, sender_id: rescueStaffId }),
+          {
+            ...createMockMessage({ message_id: 'msg-1', sender_id: rescueStaffId }),
+            Reads: [{ user_id: adopterId, read_at: new Date() }],
+          },
         ];
-
-        mockMessages[0].isReadBy = vi.fn().mockReturnValue(true);
 
         MockedMessage.findAll = vi.fn().mockResolvedValue(mockMessages as never);
 
@@ -1490,15 +1500,12 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
         expect(message1).toBeDefined();
 
-        // Step 3: Mark message as read
-        mockMessage1.isReadBy = vi.fn().mockReturnValue(false);
-        mockMessage1.markAsRead = vi.fn();
-        mockMessage1.save = vi.fn().mockResolvedValue(mockMessage1);
-
+        // Step 3: Mark message as read (plan 2.1 — typed table writes).
         MockedMessage.findAll = vi.fn().mockResolvedValue([mockMessage1] as never);
+        MockedMessageRead.bulkCreate = vi.fn().mockResolvedValue([] as never);
 
         await ChatService.markMessagesAsRead(chatId, adopterId);
-        expect(mockMessage1.markAsRead).toHaveBeenCalledWith(adopterId);
+        expect(MockedMessageRead.bulkCreate).toHaveBeenCalled();
 
         // Step 4: React to message
         mockMessage1.addReaction = vi.fn();
@@ -1849,21 +1856,17 @@ function createMockMessage(overrides: Partial<Message> = {}): vi.Mocked<Message>
     content: 'Mock message content',
     content_format: MessageContentFormat.PLAIN,
     attachments: [],
-    reactions: [],
-    read_status: [],
+    // reactions / read_status moved to typed tables (plan 2.1) — the
+    // legacy Message instance methods (markAsRead / isReadBy /
+    // getReadCount / getUnreadUsers / addReaction / removeReaction
+    // / hasUserReacted) are gone.
+    Reads: [],
+    Reactions: [],
     search_vector: null,
     created_at: new Date(),
     updated_at: new Date(),
     Chat: undefined,
     Sender: undefined,
-    addReaction: vi.fn(),
-    removeReaction: vi.fn(),
-    getReactionCount: vi.fn().mockReturnValue(0),
-    hasUserReacted: vi.fn().mockReturnValue(false),
-    markAsRead: vi.fn(),
-    isReadBy: vi.fn().mockReturnValue(false),
-    getReadCount: vi.fn().mockReturnValue(0),
-    getUnreadUsers: vi.fn().mockReturnValue([]),
     toJSON: vi.fn().mockReturnValue({
       message_id: overrides.message_id ?? 'mock-message-123',
       chat_id: overrides.chat_id ?? 'chat-123',
