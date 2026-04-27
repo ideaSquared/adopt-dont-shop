@@ -23,7 +23,11 @@ interface ApplicationAnswerAttributes {
   answer_id: string;
   application_id: string;
   question_key: string;
-  answer_value: JsonValue;
+  // Nullable: a user can legitimately answer "no value" to an
+  // optional question (e.g. yard_size on an apartment-dweller's
+  // form). The presence of the row signals "this question was
+  // answered"; the value carries the answer, including null.
+  answer_value: JsonValue | null;
   answered_at: Date;
   created_at?: Date;
   updated_at?: Date;
@@ -42,7 +46,7 @@ export class ApplicationAnswer
   public answer_id!: string;
   public application_id!: string;
   public question_key!: string;
-  public answer_value!: JsonValue;
+  public answer_value!: JsonValue | null;
   public answered_at!: Date;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
@@ -74,7 +78,8 @@ ApplicationAnswer.init(
     },
     answer_value: {
       type: getJsonType(),
-      allowNull: false,
+      // See the attribute interface — null is a valid answer.
+      allowNull: true,
     },
     answered_at: {
       type: DataTypes.DATE,
