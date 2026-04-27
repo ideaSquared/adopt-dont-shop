@@ -1,5 +1,5 @@
 import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'sequelize';
-import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
+import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType, getCitextType } from '../sequelize';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { encryptSecret, hashBackupCode, hashToken } from '../utils/secrets';
 import { JsonObject } from '../types/common';
@@ -214,7 +214,7 @@ User.init(
       },
     },
     email: {
-      type: DataTypes.STRING(255),
+      type: getCitextType(),
       unique: true,
       allowNull: false,
       validate: {
@@ -494,10 +494,11 @@ User.init(
     ],
     hooks: {
       // Normalize identifier fields before validation so uniqueness /
-      // isEmail checks see the canonical form (lowercase, trimmed).
+      // isEmail checks see the canonical form (trimmed). Case is now
+      // handled at the column level via CITEXT (plan 5.5.7).
       beforeValidate: (user: User) => {
         if (user.email && typeof user.email === 'string') {
-          user.email = user.email.trim().toLowerCase();
+          user.email = user.email.trim();
         }
         if (user.phoneNumber && typeof user.phoneNumber === 'string') {
           // Light normalization only — strip surrounding whitespace and the

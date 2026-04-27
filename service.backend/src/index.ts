@@ -418,6 +418,12 @@ const startServer = async () => {
         await sequelize.query('SELECT PostGIS_Version();');
         logger.info('PostGIS extension is ready.');
 
+        // Ensure citext extension is available (plan 5.5.7). CITEXT provides
+        // native case-insensitive uniqueness on email columns so the DB enforces
+        // the constraint even for raw INSERTs that bypass application hooks.
+        await sequelize.query('CREATE EXTENSION IF NOT EXISTS citext;');
+        logger.info('citext extension ready.');
+
         if (forceSeed) {
           // Force recreate database (drops all tables)
           await sequelize.sync({ force: true });
