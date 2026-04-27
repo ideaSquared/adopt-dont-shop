@@ -848,22 +848,26 @@ export async function seedApplications() {
       defaults: defaults as any,
     });
 
-    for (const [question_key, answer_value] of Object.entries(answers ?? {})) {
-      await ApplicationAnswer.findOrCreate({
-        where: { application_id: appData.applicationId, question_key },
-        defaults: {
+    // Bulk-insert with ignoreDuplicates instead of per-row findOrCreate.
+    // 240 sequential round-trips (16 apps × ~15 answers) was tipping
+    // the CI backend health check past its 90s budget on cold starts.
+    // The (application_id, question_key) unique index keeps the seeder
+    // idempotent — duplicates from a re-run are dropped by Postgres.
+    const answerEntries = Object.entries(answers ?? {});
+    if (answerEntries.length > 0) {
+      await ApplicationAnswer.bulkCreate(
+        answerEntries.map(([question_key, answer_value]) => ({
           application_id: appData.applicationId,
           question_key,
           answer_value: answer_value as JsonValue,
-        },
-      });
+        })),
+        { ignoreDuplicates: true }
+      );
     }
 
-    for (let index = 0; index < references.length; index++) {
-      const ref = references[index];
-      await ApplicationReference.findOrCreate({
-        where: { application_id: appData.applicationId, legacy_id: ref.id },
-        defaults: {
+    if (references.length > 0) {
+      await ApplicationReference.bulkCreate(
+        references.map((ref, index) => ({
           application_id: appData.applicationId,
           legacy_id: ref.id,
           name: ref.name,
@@ -875,8 +879,9 @@ export async function seedApplications() {
           contacted_by: null,
           notes: ref.notes ?? null,
           order_index: index,
-        },
-      });
+        })),
+        { ignoreDuplicates: true }
+      );
     }
   }
 
