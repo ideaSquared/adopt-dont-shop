@@ -1,3 +1,4 @@
+import EmailTemplateVersion from '../models/EmailTemplateVersion';
 import EmailTemplate, {
   TemplateCategory,
   TemplateStatus,
@@ -504,25 +505,26 @@ The {{system.appName}} Team
           continue;
         }
 
-        // Create the template
+        // Create the template + seed initial version (plan 5.4 —
+        // typed table replaces the old JSONB array).
         const template = await EmailTemplate.create({
           ...templateData,
           status: TemplateStatus.ACTIVE,
-          versions: [
-            {
-              version: 1,
-              subject: templateData.subject,
-              htmlContent: templateData.htmlContent,
-              textContent: templateData.textContent,
-              createdAt: new Date(),
-              createdBy,
-            },
-          ],
           currentVersion: 1,
           usageCount: 0,
           testEmailsSent: 0,
           // created_by stamped by audit hook from request context.
         });
+
+        await EmailTemplateVersion.create({
+          template_id: template.templateId,
+          version: 1,
+          subject: templateData.subject,
+          html_content: templateData.htmlContent,
+          text_content: templateData.textContent ?? null,
+          change_notes: 'Initial version',
+          created_by: createdBy,
+        } as never);
 
         createdTemplates.push(template);
         logger.info(`Created default template: ${templateData.name}`);

@@ -2,6 +2,7 @@ import { Op, WhereOptions } from 'sequelize';
 import { config } from '../config';
 import EmailPreference, { EmailFrequency, NotificationType } from '../models/EmailPreference';
 import EmailQueue, { EmailPriority, EmailStatus, EmailType } from '../models/EmailQueue';
+import EmailTemplateVersion from '../models/EmailTemplateVersion';
 import EmailTemplate, {
   TemplateCategory,
   TemplateStatus,
@@ -113,16 +114,6 @@ class EmailService {
         ...templateData,
         locale: templateData.locale || 'en',
         status: TemplateStatus.DRAFT,
-        versions: [
-          {
-            version: 1,
-            subject: templateData.subject,
-            htmlContent: templateData.htmlContent,
-            textContent: templateData.textContent,
-            createdAt: new Date(),
-            createdBy: templateData.createdBy,
-          },
-        ],
         currentVersion: 1,
         usageCount: 0,
         testEmailsSent: 0,
@@ -130,6 +121,18 @@ class EmailService {
         variables: templateData.variables || [],
         isDefault: templateData.isDefault || false,
       });
+
+      // Seed the version history with the initial state (plan 5.4 —
+      // typed table replaces the old JSONB array).
+      await EmailTemplateVersion.create({
+        template_id: template.templateId,
+        version: 1,
+        subject: templateData.subject,
+        html_content: templateData.htmlContent,
+        text_content: templateData.textContent ?? null,
+        change_notes: 'Initial version',
+        created_by: templateData.createdBy,
+      } as never);
 
       await AuditLogService.log({
         action: 'CREATE',
@@ -187,20 +190,34 @@ class EmailService {
         throw new Error('Template not found');
       }
 
-      // Create new version if content changed
+      // Create new version if content changed (plan 5.4 — version
+      // history lives in the email_template_versions table now). The
+      // version row is inserted before the parent update so the
+      // history captures the pre-change state via the next bumped
+      // version number.
       const contentChanged =
         updates.subject !== undefined ||
         updates.htmlContent !== undefined ||
         updates.textContent !== undefined;
 
       if (contentChanged) {
-        template.addVersion(
-          updates.subject || template.subject,
-          updates.htmlContent || template.htmlContent,
-          updates.textContent || template.textContent,
-          updatedBy,
-          'Template updated'
-        );
+        const nextVersion = template.currentVersion + 1;
+        // created_by is set by the auditColumns hook from the
+        // request-context userId, but for explicit attribution (the
+        // updatedBy parameter is already known here) we cast it
+        // through. Audit columns aren't part of the typed attributes
+        // interface — they're bolted on at the model level — hence
+        // the `as never` to satisfy the typed create signature.
+        await EmailTemplateVersion.create({
+          template_id: template.templateId,
+          version: nextVersion,
+          subject: updates.subject || template.subject,
+          html_content: updates.htmlContent || template.htmlContent,
+          text_content: updates.textContent ?? template.textContent ?? null,
+          change_notes: 'Template updated',
+          created_by: updatedBy,
+        } as never);
+        template.currentVersion = nextVersion;
       }
 
       // Update other fields
