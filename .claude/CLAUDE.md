@@ -80,7 +80,7 @@ We follow Test-Driven Development (TDD) with a strong emphasis on behaviour-driv
 **Preferred Tools:**
 
 - **Language**: TypeScript (strict mode)
-- **Testing**: Jest + React Testing Library
+- **Testing**: Jest (lib.*) + Vitest (service.backend, apps) + React Testing Library
 - **State Management**: Prefer immutable patterns
 
 ---
