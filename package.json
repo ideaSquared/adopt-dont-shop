@@ -35,6 +35,7 @@
     "service.backend"
   ],
   "scripts": {
+    "prepare": "husky",
     "dev": "turbo run dev --parallel",
     "dev:apps": "turbo run dev --filter='@adopt-dont-shop/app.*' --parallel",
     "dev:backend": "turbo run dev --filter=@adopt-dont-shop/service-backend",
@@ -83,6 +84,7 @@
     "eslint-plugin-react": "^7.34.1",
     "eslint-plugin-react-hooks": "^4.6.0",
     "happy-dom": "^20.0.10",
+    "husky": "^9.1.0",
     "jest": "^30.2.0",
     "jsdom": "^27.1.0",
     "prettier": "^3.2.5",
