@@ -55,8 +55,11 @@ COPY eslint-config-node/ eslint-config-node/
 COPY lib.types/ lib.types/
 COPY lib.validation/ lib.validation/
 
-# Copy backend service
+# Copy backend service (including entrypoint script)
 COPY service.backend/ service.backend/
+
+# Make entrypoint script executable
+RUN chmod +x /app/service.backend/docker-entrypoint.sh
 
 # Build shared libraries first
 WORKDIR /app/lib.types
@@ -108,8 +111,11 @@ COPY eslint-config-node/ eslint-config-node/
 COPY lib.types/ lib.types/
 COPY lib.validation/ lib.validation/
 
-# Copy backend service
+# Copy backend service (including entrypoint script)
 COPY service.backend/ service.backend/
+
+# Make entrypoint script executable
+RUN chmod +x /app/service.backend/docker-entrypoint.sh
 
 # Build shared libraries first (required for backend TypeScript compilation)
 WORKDIR /app/lib.types

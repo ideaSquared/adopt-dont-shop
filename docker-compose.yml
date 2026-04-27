@@ -63,17 +63,8 @@ services:
       - /app/service.backend/node_modules
       - lib_types_node_modules:/app/lib.types/node_modules
       - ./uploads:/app/service.backend/uploads
-    # Build lib.types from bind-mounted source at startup, then COPY (not symlink)
-    # the built package into backend node_modules. Symlinks across Windows bind
-    # mounts into Linux containers are flaky; copy is reliable. Re-run via
-    # `npm run docker:rebuild:types` when lib.types source changes.
-    command: >
-      sh -c "set -e &&
-             cd /app/lib.types && npm run build &&
-             mkdir -p /app/service.backend/node_modules/@adopt-dont-shop &&
-             rm -rf /app/service.backend/node_modules/@adopt-dont-shop/lib.types &&
-             cp -r /app/lib.types /app/service.backend/node_modules/@adopt-dont-shop/lib.types &&
-             cd /app/service.backend && npm run dev"
+    entrypoint: ./service.backend/docker-entrypoint.sh
+    command: npm run dev
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 5000
