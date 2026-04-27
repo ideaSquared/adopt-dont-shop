@@ -22,6 +22,10 @@ jobs:
       - run: npm ci
       - run: npm run build-storybook
         working-directory: lib.components
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: lib.components/storybook-static
 
   deploy-storybook:
     name: Deploy to GitHub Pages
@@ -34,15 +38,4 @@ jobs:
     environment:
       name: github-pages
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run build-storybook
-        working-directory: lib.components
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: lib.components/storybook-static
       - uses: actions/deploy-pages@v4

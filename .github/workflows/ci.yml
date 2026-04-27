@@ -11,24 +11,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ============================================================================
+  # CHANGE DETECTION — gate all downstream jobs on relevant path changes
+  # ============================================================================
   changes:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      libs: ${{ steps.filter.outputs.libs }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Detect changed paths
-        uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
             backend:
               - 'service.backend/**'
               - 'lib.types/**'
+              - 'lib.validation/**'
               - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
@@ -47,7 +50,17 @@ jobs:
               - 'vite.shared.config.ts'
               - 'eslint-config-base/**'
               - 'eslint-config-react/**'
+            libs:
+              - 'lib.*/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'tsconfig.json'
+              - 'turbo.json'
+              - 'eslint-config-base/**'
 
+  # ============================================================================
+  # BACKEND — lint → test → build (tsc build doubles as type-check)
+  # ============================================================================
   test-backend:
     name: Backend Tests
     needs: changes
@@ -74,11 +87,9 @@ jobs:
           - 5432:5432
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -86,26 +97,29 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci
 
-      - name: Build libraries (required for backend)
+      - name: Build shared libraries
         run: npm run build:libs
 
-      - name: Lint code
+      - name: Lint
         run: npm run lint
         working-directory: service.backend
 
-      - name: Run tests
+      - name: Test
         run: npm test
         working-directory: service.backend
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
 
-      - name: Build application
+      - name: Build (type-checks via tsc)
         run: npm run build
         working-directory: service.backend
 
-  test-frontend-apps:
-    name: Frontend App Tests (Vitest)
+  # ============================================================================
+  # FRONTEND APPS — one runner per app, fail-fast disabled so all three report
+  # ============================================================================
+  test-frontend:
+    name: Frontend Tests (${{ matrix.app }})
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
@@ -115,35 +129,62 @@ jobs:
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
     strategy:
+      fail-fast: false
       matrix:
         app: [app.client, app.admin, app.rescue]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
-      - name: Build libraries (required for apps)
+      - name: Build shared libraries
         run: npm run build:libs
 
-      - name: Lint code
+      - name: Lint
         run: npm run lint
         working-directory: ${{ matrix.app }}
 
-      - name: Run Vitest tests
+      - name: Test
         run: npm test
         working-directory: ${{ matrix.app }}
 
-      - name: Build application
+      - name: Build
         run: npm run build
         working-directory: ${{ matrix.app }}
         env:
           CI: true
+
+  # ============================================================================
+  # SHARED LIBRARIES — all 21 lib.* packages tested via Turbo
+  # Turbo resolves build order via dependsOn, so libs build in dependency order
+  # ============================================================================
+  test-libs:
+    name: Library Tests
+    needs: changes
+    if: needs.changes.outputs.libs == 'true'
+    runs-on: ubuntu-latest
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build, lint and test all libraries
+        run: npx turbo run build lint test --filter='@adopt-dont-shop/lib.*'
