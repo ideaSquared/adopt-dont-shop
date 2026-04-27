@@ -91,7 +91,7 @@
     "prettier": "^3.2.5",
     "sqlite3": "^5.1.7",
     "ts-jest": "^29.4.6",
-    "turbo": "^2.5.4",
+    "turbo": "^2.9.6",
     "typescript": "^5.4.5",
     "vitest": "^4.0.8",
     "whatwg-fetch": "^3.6.20"
