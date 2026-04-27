@@ -119,7 +119,7 @@ When adding documentation:
 2. Update this README with links
 3. Follow existing naming conventions
 4. Keep docs concise (< 500 lines)
-5. Archive outdated docs to `_archive/` folder
+5. Delete (or rewrite) historical "completion" / "fix" / "status snapshot" docs once the work has shipped — they go stale fast and rarely help future contributors
 
 ## Documentation Standards
 
@@ -129,20 +129,11 @@ When adding documentation:
 - **Reference Docs**: Auto-generated when possible (API docs, schemas)
 - **Troubleshooting**: FAQ format, 200-300 lines
 
-## Archive
-
-Historical documentation moved to `_archive/` folder:
-
-- Phase 1 & 2 implementation summaries
-- API migration documentation
-- Library migration plans
-- Testing implementation history
-
 ## Maintenance
 
 - **Structure**: Organized by function (infrastructure, backend, frontend, libraries)
-- **Policy**: Archive historical docs to `_archive/`, don't delete
 - **Duplicates**: Consolidated overlapping documentation
+- **Stale docs**: Prefer deletion over archival — `git log` is the archive
 
 ---
 
