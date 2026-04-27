@@ -16,6 +16,9 @@ RUN apk update && apk upgrade && apk add --no-cache \
 
 WORKDIR /app
 
+# Skip Husky hooks during Docker builds (husky is a dev tool, not available in containers)
+ENV HUSKY=0
+
 # ============================================================================
 # DEPENDENCIES STAGE - Install production dependencies with cache mount
 # ============================================================================
