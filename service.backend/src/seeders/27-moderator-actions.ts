@@ -1,6 +1,8 @@
 import ModeratorAction, { ActionType, ActionSeverity } from '../models/ModeratorAction';
+import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/ModerationEvidence';
 import User from '../models/User';
 import Report from '../models/Report';
+import { generateUuidV7 } from '../utils/uuid';
 import { JsonObject, JsonValue } from '../types/common';
 
 export async function seedModeratorActions() {
@@ -246,14 +248,40 @@ export async function seedModeratorActions() {
       return cleaned;
     };
 
+    // Evidence rows live in moderation_evidence (plan 2.1). Generate
+    // action IDs upfront so the evidence rows reference them.
+    const actionsWithEvidence = actions.map(action => {
+      const { evidence, ...rest } = action as typeof action & { evidence?: unknown[] };
+      return {
+        actionId: generateUuidV7(),
+        fields: { ...rest, metadata: cleanMetadata(action.metadata || {}) },
+        evidence:
+          (evidence as Array<{
+            type: string;
+            content: string;
+            description?: string;
+          }>) || [],
+      };
+    });
     await ModeratorAction.bulkCreate(
-      actions.map(action => ({
-        ...action,
-        evidence: action.evidence || [],
-        metadata: cleanMetadata(action.metadata || {}),
+      actionsWithEvidence.map(a => ({ ...a.fields, actionId: a.actionId }))
+    );
+    const evidenceRows = actionsWithEvidence.flatMap(a =>
+      a.evidence.map(e => ({
+        parent_type: EvidenceParentType.MODERATOR_ACTION,
+        parent_id: a.actionId,
+        type: e.type as EvidenceType,
+        content: e.content,
+        description: e.description ?? null,
+        uploaded_at: new Date(),
       }))
     );
-    console.log(`✅ Created ${actions.length} moderator actions`);
+    if (evidenceRows.length > 0) {
+      await ModerationEvidence.bulkCreate(evidenceRows);
+    }
+    console.log(
+      `✅ Created ${actions.length} moderator actions + ${evidenceRows.length} evidence rows`
+    );
   } catch (error) {
     console.error('Error seeding moderator actions:', error);
     throw error;

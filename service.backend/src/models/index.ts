@@ -38,6 +38,7 @@ import StaffMember from './StaffMember';
 
 // Content Moderation Models
 import ModeratorAction from './ModeratorAction';
+import ModerationEvidence from './ModerationEvidence';
 import Report from './Report';
 import ReportStatusTransition from './ReportStatusTransition';
 import UserSanction from './UserSanction';
@@ -97,6 +98,7 @@ const models = {
   StaffMember,
   Invitation,
   ModeratorAction,
+  ModerationEvidence,
   Report,
   ReportStatusTransition,
   UserSanction,
@@ -343,6 +345,34 @@ try {
   Report.hasMany(ModeratorAction, { foreignKey: 'reportId', as: 'Actions' });
   ModeratorAction.belongsTo(Report, { foreignKey: 'reportId', as: 'Report' });
 
+  // ModerationEvidence is polymorphic across Report and ModeratorAction
+  // (plan 2.1). The FK column `parent_id` doesn't have a single
+  // referenced table, so the Sequelize associations declare
+  // `constraints: false` and `scope: { parent_type }` so each parent
+  // sees only its own evidence rows.
+  Report.hasMany(ModerationEvidence, {
+    foreignKey: 'parent_id',
+    as: 'Evidence',
+    constraints: false,
+    scope: { parent_type: 'report' },
+  });
+  ModerationEvidence.belongsTo(Report, {
+    foreignKey: 'parent_id',
+    as: 'Report',
+    constraints: false,
+  });
+  ModeratorAction.hasMany(ModerationEvidence, {
+    foreignKey: 'parent_id',
+    as: 'Evidence',
+    constraints: false,
+    scope: { parent_type: 'moderator_action' },
+  });
+  ModerationEvidence.belongsTo(ModeratorAction, {
+    foreignKey: 'parent_id',
+    as: 'ModeratorAction',
+    constraints: false,
+  });
+
   // UserSanction associations
   User.hasMany(UserSanction, { foreignKey: 'userId', as: 'ReceivedSanctions' });
   UserSanction.belongsTo(User, { foreignKey: 'userId', as: 'User' });
@@ -473,6 +503,7 @@ export {
   Invitation,
   Message,
   ModeratorAction,
+  ModerationEvidence,
   Notification,
   Permission,
   Pet,

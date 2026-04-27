@@ -41,12 +41,7 @@ interface ReportAttributes {
   status: ReportStatus;
   title: string;
   description: string;
-  evidence?: Array<{
-    type: 'screenshot' | 'url' | 'text' | 'file';
-    content: string;
-    description?: string;
-    uploadedAt: Date;
-  }>;
+  // evidence moved to moderation_evidence (plan 2.1).
   metadata?: JsonObject;
   assignedModerator?: string;
   assignedAt?: Date;
@@ -81,12 +76,6 @@ class Report extends Model<ReportAttributes, ReportCreationAttributes> implement
   public status!: ReportStatus;
   public title!: string;
   public description!: string;
-  public evidence?: Array<{
-    type: 'screenshot' | 'url' | 'text' | 'file';
-    content: string;
-    description?: string;
-    uploadedAt: Date;
-  }>;
   public metadata?: JsonObject;
   public assignedModerator?: string;
   public assignedAt?: Date;
@@ -194,10 +183,8 @@ Report.init(
         len: [10, 5000],
       },
     },
-    evidence: {
-      type: getJsonType(),
-      allowNull: false,
-    },
+    // evidence moved to moderation_evidence (plan 2.1) — Report.hasMany
+    // ModerationEvidence with scope: { parent_type: 'report' }.
     metadata: {
       type: getJsonType(),
       allowNull: false,

@@ -42,11 +42,7 @@ interface ModeratorActionAttributes {
   reversedBy?: string;
   reversedAt?: Date;
   reversalReason?: string;
-  evidence?: Array<{
-    type: 'screenshot' | 'url' | 'text' | 'file';
-    content: string;
-    description?: string;
-  }>;
+  // evidence moved to moderation_evidence (plan 2.1).
   notificationSent: boolean;
   internalNotes?: string;
   createdAt: Date;
@@ -77,11 +73,6 @@ class ModeratorAction
   public reversedBy?: string;
   public reversedAt?: Date;
   public reversalReason?: string;
-  public evidence?: Array<{
-    type: 'screenshot' | 'url' | 'text' | 'file';
-    content: string;
-    description?: string;
-  }>;
   public notificationSent!: boolean;
   public internalNotes?: string;
   public readonly createdAt!: Date;
@@ -230,10 +221,9 @@ ModeratorAction.init(
       allowNull: true,
       field: 'reversal_reason',
     },
-    evidence: {
-      type: getJsonType(),
-      allowNull: false,
-    },
+    // evidence moved to moderation_evidence (plan 2.1) —
+    // ModeratorAction.hasMany ModerationEvidence with scope:
+    // { parent_type: 'moderator_action' }.
     notificationSent: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

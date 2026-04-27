@@ -39,6 +39,7 @@ import { AuditLogService } from '../../services/auditLog.service';
 vi.mock('../../models/Report');
 vi.mock('../../models/ReportStatusTransition');
 vi.mock('../../models/ModeratorAction');
+vi.mock('../../models/ModerationEvidence');
 vi.mock('../../models/User');
 vi.mock('../../models/Rescue');
 vi.mock('../../services/auditLog.service');
