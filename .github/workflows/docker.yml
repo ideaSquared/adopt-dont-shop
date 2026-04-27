@@ -46,7 +46,7 @@ jobs:
             network=host
 
       - name: Cache Docker layers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-backend-${{ github.sha }}
@@ -104,7 +104,7 @@ jobs:
             network=host
 
       - name: Cache Docker layers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /tmp/.buildx-cache-${{ matrix.app }}
           key: ${{ runner.os }}-buildx-${{ matrix.app }}-${{ github.sha }}
