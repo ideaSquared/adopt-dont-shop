@@ -59,7 +59,7 @@ await notificationsService.sendBulkNotifications([
 
 | Property          | Type       | Default                                  | Description                    |
 | ----------------- | ---------- | ---------------------------------------- | ------------------------------ |
-| `apiUrl`          | `string`   | `process.env.VITE_API_URL`               | Base API URL                   |
+| `apiUrl`          | `string`   | `process.env.VITE_API_BASE_URL`               | Base API URL                   |
 | `debug`           | `boolean`  | `process.env.NODE_ENV === 'development'` | Enable debug logging           |
 | `defaultChannels` | `string[]` | `['in_app']`                             | Default delivery channels      |
 | `retryAttempts`   | `number`   | `3`                                      | Failed delivery retry attempts |
@@ -69,8 +69,7 @@ await notificationsService.sendBulkNotifications([
 
 ```bash
 # API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:5000
 
 # Notification Providers
 VITE_FIREBASE_CONFIG=your-firebase-config

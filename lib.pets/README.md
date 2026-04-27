@@ -59,5 +59,4 @@ npm run type-check
 
 ## Resources
 
-- Central docs: [docs/libraries/pets.md](../docs/libraries/pets.md)
 - Source of truth for exports: [src/index.ts](./src/index.ts)

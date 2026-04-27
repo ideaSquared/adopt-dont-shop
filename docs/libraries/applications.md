@@ -55,7 +55,7 @@ const service = new ApplicationsService({
 
 | Property              | Type      | Default                    | Description                          |
 | --------------------- | --------- | -------------------------- | ------------------------------------ |
-| `apiUrl`              | `string`  | `process.env.VITE_API_URL` | Backend API URL                      |
+| `apiUrl`              | `string`  | `process.env.VITE_API_BASE_URL` | Backend API URL                      |
 | `workflowEnabled`     | `boolean` | `true`                     | Enable automated workflow processing |
 | `autoEvaluation`      | `boolean` | `true`                     | Enable automatic application scoring |
 | `notificationEnabled` | `boolean` | `true`                     | Enable status change notifications   |
@@ -65,8 +65,7 @@ const service = new ApplicationsService({
 
 ```bash
 # API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:5000
 
 # Workflow
 WORKFLOW_ENABLED=true

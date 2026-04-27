@@ -1,8 +1,14 @@
 # @adopt-dont-shop/lib.validation
 
-Validation library scaffold. The service is currently a placeholder with `exampleMethod` / `healthCheck` and no real validation logic — form-validation schemas live in the consuming apps today.
+Canonical Zod schemas for the User, Pet, Rescue, and Application domains. One source of truth for entity-shaped data, used by:
 
-> **Status**: scaffolded. If you're looking for form validation, use Zod schemas inside each app or `@adopt-dont-shop/lib.support-tickets/schemas` as a reference pattern. This library will fill in once it has concrete responsibilities.
+- `service.backend` request validation (replaces ad-hoc express-validator chains)
+- `service.backend` Sequelize `beforeValidate` cross-checks
+- frontend forms (e.g. `lib.auth` login/register/profile)
+
+The schema definitions deliberately track the column-level validators in `service.backend/src/models/*.ts` — drift between the two is what this library exists to eliminate.
+
+> **Status**: schemas are live for the four domains above. The `ValidationService` class in this package is still a placeholder (`exampleMethod`, `healthCheck`) and isn't relied on by anything; treat the schema exports as the supported surface.
 
 Consumed as a workspace dependency:
 
@@ -16,10 +22,27 @@ Consumed as a workspace dependency:
 
 ## Exports
 
-See [src/index.ts](./src/index.ts) for the authoritative list.
+See [src/index.ts](./src/index.ts) for the authoritative list. Highlights:
 
-- **`ValidationService`** — class with placeholder `exampleMethod(data, options)` and `healthCheck()`.
-- **Types** — `ValidationServiceConfig`, `ValidationServiceOptions`, plus response types (`BaseResponse`, `ErrorResponse`, `PaginatedResponse`) re-exported from `./types`.
+- **User schemas** — `UserStatusSchema`, `UserTypeSchema`, plus request shapes used by `lib.auth`.
+- **Pet schemas** — `PetCreateRequestSchema`, `PetUpdateRequestSchema`, `PetStatusUpdateRequestSchema`, `PetSearchFiltersSchema`, `BulkPetOperationRequestSchema`, plus enums (`PetStatusSchema`, `PetTypeSchema`, `GenderSchema`, `SizeSchema`, `AgeGroupSchema`, `EnergyLevelSchema`, `VaccinationStatusSchema`, `SpayNeuterStatusSchema`, `GoodWithSchema`).
+- **Rescue schemas** — request and search shapes for the rescue domain.
+- **Application schemas** — adoption application request/update shapes.
+- **`ValidationService`** — placeholder class with `exampleMethod(data, options)` and `healthCheck()`. Not currently consumed; safe to ignore.
+
+Each schema also exports its inferred TypeScript type via `z.infer<>` (e.g. `PetCreateRequest`, `PetSearchFilters`).
+
+## Quick start
+
+```typescript
+import { PetCreateRequestSchema } from '@adopt-dont-shop/lib.validation';
+
+const parsed = PetCreateRequestSchema.safeParse(req.body);
+if (!parsed.success) {
+  return res.status(400).json({ errors: parsed.error.flatten() });
+}
+// parsed.data is fully typed (PetCreateRequest)
+```
 
 ## Scripts (from `lib.validation/`)
 
@@ -35,5 +58,6 @@ npm run type-check
 
 ## Resources
 
-- Central docs: [docs/libraries/validation.md](../docs/libraries/validation.md)
 - Source of truth for exports: [src/index.ts](./src/index.ts)
+- Schema modules: [src/schemas/](./src/schemas/)
+- Backend models the schemas track: [service.backend/src/models/](../service.backend/src/models/)

@@ -51,7 +51,7 @@ const service = new DiscoveryService({
 
 | Property       | Type      | Default                    | Description                       |
 | -------------- | --------- | -------------------------- | --------------------------------- |
-| `apiUrl`       | `string`  | `process.env.VITE_API_URL` | Backend API URL                   |
+| `apiUrl`       | `string`  | `process.env.VITE_API_BASE_URL` | Backend API URL                   |
 | `enableAI`     | `boolean` | `true`                     | Enable AI-powered recommendations |
 | `cacheTtl`     | `number`  | `300000`                   | Cache TTL in milliseconds (5 min) |
 | `maxFeedItems` | `number`  | `100`                      | Maximum items per feed            |
@@ -61,8 +61,7 @@ const service = new DiscoveryService({
 
 ```bash
 # API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:5000
 
 # AI Services
 OPENAI_API_KEY=your-openai-key

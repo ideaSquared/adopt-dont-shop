@@ -41,7 +41,7 @@ const customApi = new ApiService({
 
 | Property  | Type                     | Default                    | Description                      |
 | --------- | ------------------------ | -------------------------- | -------------------------------- |
-| `apiUrl`  | `string`                 | `process.env.VITE_API_URL` | Base API URL                     |
+| `apiUrl`  | `string`                 | `process.env.VITE_API_BASE_URL` | Base API URL                     |
 | `timeout` | `number`                 | `10000`                    | Request timeout in milliseconds  |
 | `retries` | `number`                 | `3`                        | Number of retry attempts         |
 | `headers` | `Record<string, string>` | `{}`                       | Default headers for all requests |
@@ -51,8 +51,7 @@ const customApi = new ApiService({
 
 ```bash
 # API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:5000
 
 # Development
 NODE_ENV=development
@@ -354,7 +353,7 @@ import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Configure API for client app
 apiService.updateConfig({
-  apiUrl: import.meta.env.VITE_API_URL,
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
   debug: import.meta.env.DEV,
 });
 
@@ -376,7 +375,7 @@ import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Configure API for rescue app
 apiService.updateConfig({
-  apiUrl: import.meta.env.VITE_API_URL,
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
   headers: { 'X-App': 'rescue' },
 });
 ```
@@ -389,7 +388,7 @@ import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Configure API for admin app with longer timeouts
 apiService.updateConfig({
-  apiUrl: import.meta.env.VITE_API_URL,
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
   timeout: 30000,
   headers: { 'X-App': 'admin' },
 });
