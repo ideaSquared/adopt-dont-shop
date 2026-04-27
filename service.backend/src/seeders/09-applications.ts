@@ -4,6 +4,22 @@ import Application, {
   ApplicationStage,
   ApplicationOutcome,
 } from '../models/Application';
+import ApplicationReference, { ApplicationReferenceStatus } from '../models/ApplicationReference';
+
+// Application.references[] moved to the application_references table
+// (plan 2.1). seedApplications() now does Application.findOrCreate first
+// and then ApplicationReference.findOrCreate per reference, keyed on
+// (application_id, legacy_id) to keep the seeder idempotent.
+type SeedReference = {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  email?: string;
+  status: 'pending' | 'contacted' | 'verified' | 'failed';
+  notes?: string;
+  contacted_at?: Date;
+};
 
 const applicationData = [
   {
@@ -809,10 +825,12 @@ const applicationData = [
 
 export async function seedApplications() {
   for (const appData of applicationData) {
-    // Type assertion justified: Application form data structure is intentionally flexible
-    // to support various rescue organization requirements
+    const { references, ...applicationFields } = appData as typeof appData & {
+      references: SeedReference[];
+    };
+
     const defaults = {
-      ...appData,
+      ...applicationFields,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -825,6 +843,26 @@ export async function seedApplications() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       defaults: defaults as any,
     });
+
+    for (let index = 0; index < references.length; index++) {
+      const ref = references[index];
+      await ApplicationReference.findOrCreate({
+        where: { application_id: appData.applicationId, legacy_id: ref.id },
+        defaults: {
+          application_id: appData.applicationId,
+          legacy_id: ref.id,
+          name: ref.name,
+          relationship: ref.relationship,
+          phone: ref.phone,
+          email: ref.email ?? null,
+          status: (ref.status as ApplicationReferenceStatus) ?? ApplicationReferenceStatus.PENDING,
+          contacted_at: ref.contacted_at ?? null,
+          contacted_by: null,
+          notes: ref.notes ?? null,
+          order_index: index,
+        },
+      });
+    }
   }
 
   // eslint-disable-next-line no-console

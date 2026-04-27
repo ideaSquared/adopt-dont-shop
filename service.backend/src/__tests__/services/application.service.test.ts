@@ -8,6 +8,7 @@ import { vi } from 'vitest';
 
 import { ApplicationService } from '../../services/application.service';
 import Application, { ApplicationStatus, ApplicationPriority } from '../../models/Application';
+import ApplicationReferenceModel from '../../models/ApplicationReference';
 import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus } from '../../models/Pet';
 import User, { UserType } from '../../models/User';
@@ -15,6 +16,9 @@ import { CreateApplicationRequest, ApplicationStatusUpdateRequest } from '../../
 
 // Cast models to mocked versions
 const MockedApplication = Application as vi.MockedObject<Application>;
+const MockedApplicationReference = ApplicationReferenceModel as vi.MockedObject<
+  typeof ApplicationReferenceModel
+>;
 const MockedPet = Pet as vi.MockedObject<Pet>;
 const MockedUser = User as vi.MockedObject<User>;
 const MockedApplicationStatusTransition = ApplicationStatusTransition as vi.MockedObject<
@@ -58,15 +62,8 @@ describe('ApplicationService - Business Logic', () => {
     rescueId: mockRescueId,
     status,
     answers: { experience: 'yes', has_yard: 'yes' },
-    references: [
-      {
-        id: 'ref-1',
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        phone: '555-0100',
-        relationship: 'friend',
-      },
-    ],
+    // references[] moved to application_references (plan 2.1) — no
+    // longer a column on Application.
     priority: ApplicationPriority.NORMAL,
     submittedAt: new Date(),
     update: vi.fn().mockResolvedValue(true),
@@ -106,6 +103,12 @@ describe('ApplicationService - Business Logic', () => {
     // care about service behaviour, not the trigger/hook plumbing, which has
     // its own dedicated tests.
     MockedApplicationStatusTransition.create = vi.fn().mockResolvedValue({} as never);
+    // Same reasoning as the transition stub: with mocked Application.create
+    // returning a fake row, ApplicationReference.bulkCreate would trip the
+    // FK on the SQLite test DB (plan 2.1).
+    MockedApplicationReference.bulkCreate = vi.fn().mockResolvedValue([] as never);
+    MockedApplicationReference.findAll = vi.fn().mockResolvedValue([] as never);
+    MockedApplicationReference.destroy = vi.fn().mockResolvedValue(0 as never);
   });
 
   describe('Business Rule: Application Creation', () => {

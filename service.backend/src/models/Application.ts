@@ -59,17 +59,8 @@ interface ApplicationAttributes {
   actionedBy?: string | null;
   actionedAt?: Date | null;
   answers: JsonObject;
-  references: Array<{
-    id: string;
-    name: string;
-    relationship: string;
-    phone: string;
-    email?: string;
-    contacted_at?: Date;
-    status: 'pending' | 'contacted' | 'verified' | 'failed';
-    notes?: string;
-    contacted_by?: string;
-  }>;
+  // references moved to the application_references table (plan 2.1) —
+  // see ApplicationReference. Application.hasMany(ApplicationReference).
   documents: Array<{
     documentId: string;
     documentType: string;
@@ -124,17 +115,7 @@ class Application
   public actionedBy!: string | null;
   public actionedAt!: Date | null;
   public answers!: JsonObject;
-  public references!: Array<{
-    id: string;
-    name: string;
-    relationship: string;
-    phone: string;
-    email?: string;
-    contacted_at?: Date;
-    status: 'pending' | 'contacted' | 'verified' | 'failed';
-    notes?: string;
-    contacted_by?: string;
-  }>;
+  // references moved to application_references (plan 2.1).
   public documents!: Array<{
     documentId: string;
     documentType: string;
@@ -327,34 +308,7 @@ Application.init(
         isValidAnswers: Application.prototype.isValidAnswers,
       },
     },
-    references: {
-      type: getJsonType(),
-      allowNull: false,
-      validate: {
-        isValidReferences(
-          value: Array<{
-            id: string;
-            name: string;
-            relationship: string;
-            phone: string;
-            email?: string;
-            contacted_at?: Date;
-            status: 'pending' | 'contacted' | 'verified' | 'failed';
-            notes?: string;
-            contacted_by?: string;
-          }>
-        ) {
-          if (!Array.isArray(value)) {
-            throw new Error('References must be an array');
-          }
-          value.forEach(ref => {
-            if (!ref.id || !ref.name || !ref.relationship || !ref.phone) {
-              throw new Error('Each reference must have id, name, relationship, and phone');
-            }
-          });
-        },
-      },
-    },
+    // references moved to the application_references table (plan 2.1).
     documents: {
       type: getJsonType(),
       allowNull: false,

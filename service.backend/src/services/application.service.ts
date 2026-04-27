@@ -1,6 +1,9 @@
 import { Includeable, Op, Order, WhereOptions } from 'sequelize';
 import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
+import ApplicationReferenceModel, {
+  ApplicationReferenceStatus,
+} from '../models/ApplicationReference';
 import { validateSortField } from '../utils/sort-validation';
 
 const APPLICATION_SORT_FIELDS = ['createdAt', 'updatedAt', 'status', 'actioned_at'] as const;
@@ -87,16 +90,8 @@ export class ApplicationService {
         );
       }
 
-      // Prepare references with default status
-      const processedReferences: ApplicationReference[] = (applicationData.references ?? []).map(
-        ref => ({
-          ...ref,
-          status: 'pending' as const,
-          contacted_at: undefined,
-        })
-      );
-
-      // Create application
+      // Create application — references are persisted to the
+      // application_references typed table after creation (plan 2.1).
       const application = await Application.create({
         userId: userId,
         petId: applicationData.petId,
@@ -104,11 +99,32 @@ export class ApplicationService {
         status: ApplicationStatus.SUBMITTED,
         priority: applicationData.priority || ApplicationPriority.NORMAL,
         answers: applicationData.answers,
-        references: processedReferences,
         documents: [],
         notes: applicationData.notes,
         tags: applicationData.tags || [],
       });
+
+      const incomingReferences = applicationData.references ?? [];
+      if (incomingReferences.length > 0) {
+        await ApplicationReferenceModel.bulkCreate(
+          incomingReferences.map((ref, index) => ({
+            application_id: application.applicationId,
+            // Preserve the caller-supplied id (legacy "ref-N" or any
+            // other shape) for backwards compatibility with the
+            // ID-based update path below.
+            legacy_id: ref.id || `ref-${index}`,
+            name: ref.name,
+            relationship: ref.relationship,
+            phone: ref.phone,
+            email: ref.email ?? null,
+            status: ApplicationReferenceStatus.PENDING,
+            contacted_at: null,
+            contacted_by: null,
+            notes: null,
+            order_index: index,
+          }))
+        );
+      }
 
       // Record the initial transition (from_status = null encodes
       // "initial state assigned at creation"). The trigger / hook will
@@ -521,17 +537,51 @@ export class ApplicationService {
         throw new Error('Application cannot be updated once processed');
       }
 
+      // References are persisted to the application_references table
+      // (plan 2.1) — strip them off the parent update payload and apply
+      // them separately below.
+      const { references: incomingReferences, ...applicationUpdate } = updateData;
+
       // Store original data for audit
+      const existingReferences = await ApplicationReferenceModel.findAll({
+        where: { application_id: applicationId },
+        order: [['order_index', 'ASC']],
+      });
       const originalData = {
         answers: application.answers,
-        references: application.references,
+        references: existingReferences.map(r => r.toJSON()),
         priority: application.priority,
         notes: application.notes,
         tags: application.tags,
       };
 
-      // Update application
-      await application.update(updateData);
+      // Update application — replace-all semantics for references
+      // mirror the JSONB era's array-overwrite behaviour.
+      await application.update(applicationUpdate);
+
+      if (incomingReferences !== undefined) {
+        await ApplicationReferenceModel.destroy({
+          where: { application_id: applicationId },
+        });
+        if (incomingReferences.length > 0) {
+          await ApplicationReferenceModel.bulkCreate(
+            incomingReferences.map((ref, index) => ({
+              application_id: applicationId,
+              legacy_id: ref.id || `ref-${index}`,
+              name: ref.name,
+              relationship: ref.relationship,
+              phone: ref.phone,
+              email: ref.email ?? null,
+              status:
+                (ref.status as ApplicationReferenceStatus) ?? ApplicationReferenceStatus.PENDING,
+              contacted_at: ref.contacted_at ?? null,
+              contacted_by: ref.contacted_by ?? null,
+              notes: ref.notes ?? null,
+              order_index: index,
+            }))
+          );
+        }
+      }
 
       // Create timeline event for application update
       await ApplicationTimelineService.createEvent({
@@ -982,25 +1032,30 @@ export class ApplicationService {
         throw new Error('Either referenceId or reference_index must be provided');
       }
 
+      // References live in the application_references typed table now
+      // (plan 2.1). Treat order_index as the addressable position to
+      // preserve the legacy "update by index" contract.
+      let referenceRows = await ApplicationReferenceModel.findAll({
+        where: { application_id: applicationId },
+        order: [['order_index', 'ASC']],
+      });
+
       logger.info(
-        `Updating reference for application ${applicationId}, index ${referenceIndex}, current references count: ${application.references.length}`
+        `Updating reference for application ${applicationId}, index ${referenceIndex}, current references count: ${referenceRows.length}`
       );
 
-      // If references array is empty but we have reference data in the application answers,
-      // initialize the references array from the client data
-      if (application.references.length === 0 && application.answers) {
+      // If references are empty but we have reference data in the
+      // application answers, seed the typed table from the client data.
+      if (referenceRows.length === 0 && application.answers) {
         logger.info('Initializing references array from client data');
         const answers = application.answers as JsonObject;
-        const initializedReferences: Array<{
-          id: string;
+        const seeds: Array<{
           name: string;
           relationship: string;
           phone: string;
           email?: string;
-          status: 'pending' | 'contacted' | 'verified' | 'failed';
         }> = [];
 
-        // Check for references in answers.references
         if (answers.references) {
           const clientRefs = answers.references as {
             veterinarian?: { name: string; phone?: string; email?: string; clinicName?: string };
@@ -1012,34 +1067,27 @@ export class ApplicationService {
             }>;
           };
 
-          // Add veterinarian reference if exists
           if (clientRefs.veterinarian && clientRefs.veterinarian.name) {
-            initializedReferences.push({
-              id: `ref-${initializedReferences.length}`,
+            seeds.push({
               name: clientRefs.veterinarian.name,
               relationship: 'Veterinarian',
               phone: clientRefs.veterinarian.phone || 'TBD',
               email: clientRefs.veterinarian.email || '',
-              status: 'pending' as const,
             });
           }
 
-          // Add personal references
           if (Array.isArray(clientRefs.personal)) {
             clientRefs.personal.forEach(ref => {
-              initializedReferences.push({
-                id: `ref-${initializedReferences.length}`,
+              seeds.push({
                 name: ref.name,
                 relationship: ref.relationship,
                 phone: ref.phone || 'TBD',
                 email: ref.email || '',
-                status: 'pending' as const,
               });
             });
           }
         }
 
-        // Also check for emergency_contact in answers
         if (answers.emergency_contact && typeof answers.emergency_contact === 'object') {
           const emergency = answers.emergency_contact as {
             name?: string;
@@ -1048,55 +1096,75 @@ export class ApplicationService {
             relationship?: string;
           };
           if (emergency.name) {
-            initializedReferences.push({
-              id: `ref-${initializedReferences.length}`,
+            seeds.push({
               name: emergency.name,
               relationship: emergency.relationship || 'Emergency Contact',
               phone: emergency.phone || 'TBD',
               email: emergency.email || '',
-              status: 'pending' as const,
             });
           }
         }
 
-        // Update the application with initialized references
-        if (initializedReferences.length > 0) {
-          await application.update({ references: initializedReferences });
-          await application.reload(); // Reload to get updated data
-          logger.info(`Initialized ${initializedReferences.length} references from client data`);
+        if (seeds.length > 0) {
+          await ApplicationReferenceModel.bulkCreate(
+            seeds.map((seed, index) => ({
+              application_id: applicationId,
+              legacy_id: `ref-${index}`,
+              name: seed.name,
+              relationship: seed.relationship,
+              phone: seed.phone,
+              email: seed.email ?? null,
+              status: ApplicationReferenceStatus.PENDING,
+              contacted_at: null,
+              contacted_by: null,
+              notes: null,
+              order_index: index,
+            }))
+          );
+          referenceRows = await ApplicationReferenceModel.findAll({
+            where: { application_id: applicationId },
+            order: [['order_index', 'ASC']],
+          });
+          logger.info(`Initialized ${referenceRows.length} references from client data`);
         }
       }
 
-      // If still out of bounds after initialization, extend the array with placeholders
-      if (referenceIndex >= application.references.length) {
-        const currentRefs = [...application.references];
-
-        // Extend array to accommodate the requested index
-        while (currentRefs.length <= referenceIndex) {
-          currentRefs.push({
-            id: `ref-${currentRefs.length}`,
-            name: `Reference ${currentRefs.length + 1}`,
+      // If still out of bounds after initialization, extend the list
+      // with placeholder rows so the caller's index resolves to a row.
+      if (referenceIndex >= referenceRows.length) {
+        const placeholderRows = [];
+        for (let i = referenceRows.length; i <= referenceIndex; i++) {
+          placeholderRows.push({
+            application_id: applicationId,
+            legacy_id: `ref-${i}`,
+            name: `Reference ${i + 1}`,
             relationship: 'Unknown',
-            phone: 'TBD', // Provide a non-empty placeholder phone
+            phone: 'TBD',
             email: '',
-            status: 'pending' as const,
+            status: ApplicationReferenceStatus.PENDING,
+            contacted_at: null,
+            contacted_by: null,
+            notes: null,
+            order_index: i,
           });
         }
-
-        await application.update({ references: currentRefs });
-        await application.reload();
-        logger.info(`Extended references array to ${currentRefs.length} items`);
+        if (placeholderRows.length > 0) {
+          await ApplicationReferenceModel.bulkCreate(placeholderRows);
+          referenceRows = await ApplicationReferenceModel.findAll({
+            where: { application_id: applicationId },
+            order: [['order_index', 'ASC']],
+          });
+          logger.info(`Extended references list to ${referenceRows.length} items`);
+        }
       }
 
-      const updatedReferences = [...application.references];
-      updatedReferences[referenceIndex] = {
-        ...updatedReferences[referenceIndex],
-        status: referenceUpdate.status,
-        notes: referenceUpdate.notes,
-        contacted_at: referenceUpdate.contactedAt,
-      };
-
-      await application.update({ references: updatedReferences });
+      const target = referenceRows[referenceIndex];
+      await target.update({
+        status: referenceUpdate.status as ApplicationReferenceStatus,
+        notes: referenceUpdate.notes ?? null,
+        contacted_at: referenceUpdate.contactedAt ?? null,
+        contacted_by: userId,
+      });
 
       // Create timeline event for reference update
       const eventType =
