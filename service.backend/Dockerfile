@@ -41,7 +41,7 @@ WORKDIR /app/service.backend
 
 # Use BuildKit cache mount for npm cache (industry standard optimization)
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --prefer-offline && \
+    HUSKY=0 npm ci --omit=dev --prefer-offline && \
     npm cache clean --force
 
 # ============================================================================
@@ -67,17 +67,17 @@ RUN chmod +x /app/service.backend/docker-entrypoint.sh
 # Build shared libraries first
 WORKDIR /app/lib.types
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline && npm run build
+    HUSKY=0 npm ci --prefer-offline && npm run build
 
 WORKDIR /app/lib.validation
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline && npm run build
+    HUSKY=0 npm ci --prefer-offline && npm run build
 
 WORKDIR /app/service.backend
 
 # Install all dependencies (including dev dependencies) with cache mount
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline
+    HUSKY=0 npm ci --prefer-offline
 
 # Copy built lib.types and lib.validation directly into node_modules for
 # reliable module resolution. Avoids symlink issues with partial npm
@@ -123,17 +123,17 @@ RUN chmod +x /app/service.backend/docker-entrypoint.sh
 # Build shared libraries first (required for backend TypeScript compilation)
 WORKDIR /app/lib.types
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline && npm run build
+    HUSKY=0 npm ci --prefer-offline && npm run build
 
 WORKDIR /app/lib.validation
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline && npm run build
+    HUSKY=0 npm ci --prefer-offline && npm run build
 
 WORKDIR /app/service.backend
 
 # Install all dependencies for building
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline
+    HUSKY=0 npm ci --prefer-offline
 
 # Copy built libs into node_modules for TypeScript compilation
 RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
