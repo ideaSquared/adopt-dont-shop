@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
@@ -247,8 +248,14 @@ class EmailPreference
       .map(p => p.type);
   }
 
+  // 32 bytes (256 bits) of randomness, base64url-encoded → 43 chars, URL-safe
+  // (no `+`/`/`/`=`). Brute-forcing the column is computationally infeasible,
+  // so the value is stored as-is and the unsubscribe endpoint matches on
+  // equality. The same token is reused across every email we send to a user
+  // (it lives in the unsubscribe footer link), so per-send hashing isn't
+  // viable — the email template would have no way to recover the raw value.
   public static generateUnsubscribeToken(): string {
-    return generateUuidV7();
+    return randomBytes(32).toString('base64url');
   }
 
   public static getDefaultPreferences(): NotificationPreference[] {
@@ -490,12 +497,6 @@ EmailPreference.init(
       },
       ...auditIndexes('email_preferences'),
     ],
-    // TODO (Phase 3 — secrets-at-rest): unsubscribeToken should be hashed on
-    // write, but the current emitter (email.service.generateUnsubscribeToken)
-    // produces a base64-encoded `userId:ts:random` and the unsubscribe
-    // endpoint decodes that blob rather than doing an equality lookup. Hashing
-    // without rewriting both sides would break the flow — deferred until the
-    // token is switched to crypto.randomBytes(32).
   })
 );
 
