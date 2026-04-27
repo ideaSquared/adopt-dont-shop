@@ -15,12 +15,17 @@ A monorepo containing three React frontends, a Node.js/Express backend, and shar
 ```bash
 git clone https://github.com/ideaSquared/adopt-dont-shop.git
 cd adopt-dont-shop
-cp .env.example .env
-npm install
+npm run setup
 npm run secrets:generate >> .env   # append fresh JWT/session secrets
 ```
 
-Edit `.env` to set `POSTGRES_PASSWORD` and any third-party keys you need.
+The `npm run setup` command will:
+1. Verify Node.js v20+
+2. Install all dependencies
+3. Build shared libraries (required by apps)
+4. Create `.env` from `.env.example`
+
+Then edit `.env` to set `POSTGRES_PASSWORD` and any third-party API keys you need.
 
 ### Run (Docker — recommended)
 
