@@ -32,6 +32,7 @@ import RolePermission from './RolePermission';
 import UserRole from './UserRole';
 
 // Additional Models
+import Address from './Address';
 import AuditLog from './AuditLog';
 import IdempotencyKey from './IdempotencyKey';
 import Invitation from './Invitation';
@@ -96,6 +97,7 @@ const models = {
   Permission,
   RolePermission,
   UserRole,
+  Address,
   AuditLog,
   IdempotencyKey,
   Rating,
@@ -232,6 +234,25 @@ try {
   Application.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
 
   Rescue.hasMany(Pet, { foreignKey: 'rescue_id', as: 'Pets' });
+
+  // Address (plan 5.5.11) — typed table for the addresses entity.
+  // Polymorphic via (owner_type, owner_id), so the FK isn't enforced
+  // at the DB level — Sequelize honours the `scope` shorthand by
+  // appending `owner_type = 'user' / 'rescue'` to every read through
+  // the association. Constraints disabled for the same reason as
+  // ModerationEvidence: there's no single referenced table.
+  User.hasMany(Address, {
+    foreignKey: 'owner_id',
+    as: 'Addresses',
+    scope: { owner_type: 'user' },
+    constraints: false,
+  });
+  Rescue.hasMany(Address, {
+    foreignKey: 'owner_id',
+    as: 'Addresses',
+    scope: { owner_type: 'rescue' },
+    constraints: false,
+  });
   Pet.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
 
   // Application Questions associations
@@ -505,6 +526,7 @@ export {
   ApplicationQuestion,
   ApplicationStatusTransition,
   ApplicationTimeline,
+  Address,
   AuditLog,
   Chat,
   ChatParticipant,
