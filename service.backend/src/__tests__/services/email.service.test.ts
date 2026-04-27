@@ -356,6 +356,47 @@ describe('EmailService - Real Database Testing', () => {
     });
   });
 
+  describe('Unsubscribe via token', () => {
+    it('mints a 32-byte base64url token, stores it, and looks it up on unsubscribe', async () => {
+      const preference = await emailService.createUserPreferences('user-123');
+
+      // 32 bytes base64url-encoded → exactly 43 chars, no padding, URL-safe
+      // alphabet only.
+      expect(preference.unsubscribeToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+
+      await emailService.unsubscribeUser(preference.unsubscribeToken);
+
+      const reloaded = await EmailPreference.findOne({ where: { userId: 'user-123' } });
+      expect(reloaded?.globalUnsubscribe).toBe(true);
+    });
+
+    it('rejects an unknown / forged token', async () => {
+      await emailService.createUserPreferences('user-123');
+
+      await expect(emailService.unsubscribeUser('not-a-real-token')).rejects.toThrow(
+        /Invalid or expired unsubscribe token|Failed to unsubscribe/
+      );
+    });
+
+    it('mints a unique token per user', async () => {
+      await User.create({
+        userId: 'user-456',
+        email: 'second@example.com',
+        password: 'hashedpassword',
+        firstName: 'Second',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+        emailVerified: true,
+      });
+
+      const a = await emailService.createUserPreferences('user-123');
+      const b = await emailService.createUserPreferences('user-456');
+
+      expect(a.unsubscribeToken).not.toBe(b.unsubscribeToken);
+    });
+  });
+
   describe('Bulk email sending', () => {
     describe('when sending to multiple recipients', () => {
       it('should batch emails and add delays', async () => {

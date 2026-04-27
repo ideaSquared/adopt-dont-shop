@@ -700,7 +700,7 @@ class EmailService {
         digestTime: '09:00',
         bounceCount: 0,
         isBlacklisted: false,
-        unsubscribeToken: this.generateUnsubscribeToken(userId),
+        unsubscribeToken: EmailPreference.generateUnsubscribeToken(),
       });
 
       logger.info(`Email preferences created for user: ${userId}`);
@@ -711,11 +711,6 @@ class EmailService {
         `Failed to create email preferences: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
-  }
-
-  private generateUnsubscribeToken(userId: string): string {
-    // Generate a secure unsubscribe token
-    return Buffer.from(`${userId}:${Date.now()}:${Math.random()}`).toString('base64');
   }
 
   public async updateUserPreferences(
@@ -751,13 +746,15 @@ class EmailService {
 
   public async unsubscribeUser(token: string, type?: NotificationType): Promise<void> {
     try {
-      // Decode token to get userId
-      const decoded = Buffer.from(token, 'base64').toString();
-      const [userId] = decoded.split(':');
-
-      const preference = await EmailPreference.findOne({ where: { userId } });
+      // Look up the preference row by the token's exact value. The token is
+      // a 32-byte random string (see EmailPreference.generateUnsubscribeToken)
+      // and the column has a unique index, so the lookup is O(1) and a single
+      // valid token can only ever address one user.
+      const preference = await EmailPreference.findOne({
+        where: { unsubscribeToken: token },
+      });
       if (!preference) {
-        throw new Error('Email preferences not found');
+        throw new Error('Invalid or expired unsubscribe token');
       }
 
       if (type) {
@@ -769,7 +766,7 @@ class EmailService {
         await preference.update({ globalUnsubscribe: true });
       }
 
-      logger.info(`User unsubscribed: ${userId} ${type ? `from ${type}` : 'globally'}`);
+      logger.info(`User unsubscribed: ${preference.userId} ${type ? `from ${type}` : 'globally'}`);
     } catch (error: unknown) {
       logger.error('Failed to unsubscribe user:', error);
       throw new Error(
