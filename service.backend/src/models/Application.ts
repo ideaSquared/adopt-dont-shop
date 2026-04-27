@@ -1,6 +1,5 @@
 import { DataTypes, Model, Op, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
-import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
@@ -58,7 +57,8 @@ interface ApplicationAttributes {
   // Action tracking
   actionedBy?: string | null;
   actionedAt?: Date | null;
-  answers: JsonObject;
+  // answers moved to the application_answers table (plan 2.1) — see
+  // ApplicationAnswer. Application.hasMany(ApplicationAnswer, as: 'Answers').
   // references moved to the application_references table (plan 2.1) —
   // see ApplicationReference. Application.hasMany(ApplicationReference).
   documents: Array<{
@@ -114,7 +114,7 @@ class Application
   // Action tracking
   public actionedBy!: string | null;
   public actionedAt!: Date | null;
-  public answers!: JsonObject;
+  // answers moved to application_answers (plan 2.1).
   // references moved to application_references (plan 2.1).
   public documents!: Array<{
     documentId: string;
@@ -181,12 +181,6 @@ class Application
     };
 
     return statusWeights[this.status] || 0;
-  }
-
-  isValidAnswers(value: JsonObject) {
-    if (typeof value !== 'object' || value === null) {
-      throw new Error('Answers must be a valid object');
-    }
   }
 }
 
@@ -300,14 +294,7 @@ Application.init(
       allowNull: true,
       field: 'actioned_at',
     },
-    answers: {
-      type: getJsonType(),
-      allowNull: false,
-      defaultValue: {},
-      validate: {
-        isValidAnswers: Application.prototype.isValidAnswers,
-      },
-    },
+    // answers moved to the application_answers table (plan 2.1).
     // references moved to the application_references table (plan 2.1).
     documents: {
       type: getJsonType(),

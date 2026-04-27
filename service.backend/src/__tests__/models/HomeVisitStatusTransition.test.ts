@@ -78,7 +78,6 @@ describe('HomeVisitStatusTransition', () => {
         status: ApplicationStatus.SUBMITTED,
         priority: 'normal',
         stage: 'questionnaire',
-        answers: '{}',
         documents: '[]',
         tags: '[]',
         created_at: new Date(),

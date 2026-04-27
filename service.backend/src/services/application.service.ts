@@ -1,6 +1,7 @@
 import { Includeable, Op, Order, WhereOptions } from 'sequelize';
 import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
+import ApplicationAnswer from '../models/ApplicationAnswer';
 import ApplicationReferenceModel, {
   ApplicationReferenceStatus,
 } from '../models/ApplicationReference';
@@ -35,6 +36,27 @@ import {
   ReferenceUpdateRequest,
   UpdateApplicationRequest,
 } from '../types/application';
+
+// Project a list of ApplicationAnswer rows back into the legacy
+// JsonObject shape (key -> value). Stable wire shape — callers that
+// used to read `application.answers` keep the same contract; the
+// answers now come from the typed table via the `Answers` association
+// (plan 2.1).
+const answersToJson = (rows: ApplicationAnswer[] | undefined | null): JsonObject => {
+  if (!rows || rows.length === 0) {
+    return {};
+  }
+  return Object.fromEntries(rows.map(row => [row.question_key, row.answer_value])) as JsonObject;
+};
+
+// Load all answer rows for an application and project to JsonObject.
+// Used by hot read paths that need the legacy `answers` shape.
+const loadAnswersJson = async (applicationId: string): Promise<JsonObject> => {
+  const rows = await ApplicationAnswer.findAll({
+    where: { application_id: applicationId },
+  });
+  return answersToJson(rows);
+};
 
 export class ApplicationService {
   /**
@@ -90,19 +112,33 @@ export class ApplicationService {
         );
       }
 
-      // Create application — references are persisted to the
-      // application_references typed table after creation (plan 2.1).
+      // Create application — answers and references are persisted to
+      // their typed tables after creation (plan 2.1).
       const application = await Application.create({
         userId: userId,
         petId: applicationData.petId,
         rescueId: pet.rescueId,
         status: ApplicationStatus.SUBMITTED,
         priority: applicationData.priority || ApplicationPriority.NORMAL,
-        answers: applicationData.answers,
         documents: [],
         notes: applicationData.notes,
         tags: applicationData.tags || [],
       });
+
+      // Persist answers to the application_answers typed table — one
+      // row per (application, question_key). The legacy JSONB shape
+      // becomes a row-per-key projection.
+      const incomingAnswers = applicationData.answers ?? {};
+      const answerEntries = Object.entries(incomingAnswers);
+      if (answerEntries.length > 0) {
+        await ApplicationAnswer.bulkCreate(
+          answerEntries.map(([question_key, answer_value]) => ({
+            application_id: application.applicationId,
+            question_key,
+            answer_value: answer_value as JsonValue,
+          }))
+        );
+      }
 
       const incomingReferences = applicationData.references ?? [];
       if (incomingReferences.length > 0) {
@@ -180,7 +216,12 @@ export class ApplicationService {
         userId
       );
 
-      return application.toJSON() as ApplicationData;
+      // Project the typed answer rows back onto the wire shape so
+      // callers continue to see `answers` as a JsonObject (plan 2.1).
+      return {
+        ...(application.toJSON() as ApplicationData),
+        answers: incomingAnswers,
+      };
     } catch (error) {
       logger.error('Failed to create application:', {
         error: error instanceof Error ? error.message : String(error),
@@ -235,6 +276,10 @@ export class ApplicationService {
             'status',
           ],
         },
+        // Eager-load the typed answer rows so the projected
+        // `answers` JsonObject is available without a second query
+        // (plan 2.1).
+        { model: ApplicationAnswer, as: 'Answers' },
       ];
 
       const application = await Application.findOne({
@@ -262,7 +307,11 @@ export class ApplicationService {
         // Additional rescue staff permission check would go here
       }
 
-      return application.toJSON() as ApplicationData;
+      const answerRows = (application as Application & { Answers?: ApplicationAnswer[] }).Answers;
+      return {
+        ...(application.toJSON() as ApplicationData),
+        answers: answersToJson(answerRows),
+      };
     } catch (error) {
       logger.error('Failed to get application by ID:', {
         error: error instanceof Error ? error.message : String(error),
@@ -460,6 +509,9 @@ export class ApplicationService {
           ],
         });
       }
+      // Always eager-load answer rows so the projected `answers`
+      // JsonObject is populated on every result (plan 2.1).
+      includeOptions.push({ model: ApplicationAnswer, as: 'Answers' });
 
       // Build order
       const safeSortBy = validateSortField(sortBy, APPLICATION_SORT_FIELDS, 'createdAt');
@@ -489,7 +541,13 @@ export class ApplicationService {
       });
 
       return {
-        applications: applications.map(app => app.toJSON()),
+        applications: applications.map(app => {
+          const answerRows = (app as Application & { Answers?: ApplicationAnswer[] }).Answers;
+          return {
+            ...(app.toJSON() as ApplicationData),
+            answers: answersToJson(answerRows),
+          };
+        }),
         pagination: {
           page,
           limit,
@@ -537,27 +595,50 @@ export class ApplicationService {
         throw new Error('Application cannot be updated once processed');
       }
 
-      // References are persisted to the application_references table
-      // (plan 2.1) — strip them off the parent update payload and apply
-      // them separately below.
-      const { references: incomingReferences, ...applicationUpdate } = updateData;
+      // Answers and references live in their typed tables (plan 2.1)
+      // — strip them off the parent update payload and apply them
+      // separately below.
+      const {
+        answers: incomingAnswers,
+        references: incomingReferences,
+        ...applicationUpdate
+      } = updateData;
 
       // Store original data for audit
       const existingReferences = await ApplicationReferenceModel.findAll({
         where: { application_id: applicationId },
         order: [['order_index', 'ASC']],
       });
+      const existingAnswerRows = await ApplicationAnswer.findAll({
+        where: { application_id: applicationId },
+      });
       const originalData = {
-        answers: application.answers,
+        answers: answersToJson(existingAnswerRows),
         references: existingReferences.map(r => r.toJSON()),
         priority: application.priority,
         notes: application.notes,
         tags: application.tags,
       };
 
-      // Update application — replace-all semantics for references
-      // mirror the JSONB era's array-overwrite behaviour.
+      // Update application — replace-all semantics for answers and
+      // references mirror the JSONB era's overwrite behaviour.
       await application.update(applicationUpdate);
+
+      if (incomingAnswers !== undefined) {
+        await ApplicationAnswer.destroy({
+          where: { application_id: applicationId },
+        });
+        const answerEntries = Object.entries(incomingAnswers);
+        if (answerEntries.length > 0) {
+          await ApplicationAnswer.bulkCreate(
+            answerEntries.map(([question_key, answer_value]) => ({
+              application_id: applicationId,
+              question_key,
+              answer_value: answer_value as JsonValue,
+            }))
+          );
+        }
+      }
 
       if (incomingReferences !== undefined) {
         await ApplicationReferenceModel.destroy({
@@ -620,7 +701,11 @@ export class ApplicationService {
         userId
       );
 
-      return (await application.reload()) as ApplicationData;
+      await application.reload();
+      return {
+        ...(application.toJSON() as ApplicationData),
+        answers: await loadAnswersJson(applicationId),
+      };
     } catch (error) {
       logger.error('Failed to update application:', {
         error: error instanceof Error ? error.message : String(error),
@@ -653,9 +738,12 @@ export class ApplicationService {
         throw new Error('Application is not in a valid state');
       }
 
-      // Validate application completeness
+      // Validate application completeness — answers live in the typed
+      // table now (plan 2.1); load them and project to the JsonObject
+      // shape the validator expects.
+      const currentAnswers = await loadAnswersJson(application.applicationId);
       const validationResult = await this.validateApplicationAnswers(
-        application.answers,
+        currentAnswers,
         application.rescueId
       );
 
@@ -682,7 +770,11 @@ export class ApplicationService {
 
       logger.info('Application submitted successfully', { applicationId, userId });
 
-      return (await application.reload()) as ApplicationData;
+      await application.reload();
+      return {
+        ...(application.toJSON() as ApplicationData),
+        answers: currentAnswers,
+      };
     } catch (error) {
       logger.error('Submit application failed:', error);
       throw error;
@@ -796,7 +888,11 @@ export class ApplicationService {
         actionedBy,
       });
 
-      return (await application.reload()) as ApplicationData;
+      await application.reload();
+      return {
+        ...(application.toJSON() as ApplicationData),
+        answers: await loadAnswersJson(applicationId),
+      };
     } catch (error) {
       logger.error('Update application status failed:', error);
       throw error;
@@ -868,7 +964,11 @@ export class ApplicationService {
 
       logger.info('Application withdrawn', { applicationId, userId });
 
-      return (await application.reload()) as ApplicationData;
+      await application.reload();
+      return {
+        ...(application.toJSON() as ApplicationData),
+        answers: await loadAnswersJson(applicationId),
+      };
     } catch (error) {
       logger.error('Withdraw application failed:', error);
       throw error;
@@ -938,7 +1038,11 @@ export class ApplicationService {
         userId,
       });
 
-      return (await application.reload()) as ApplicationData;
+      await application.reload();
+      return {
+        ...(application.toJSON() as ApplicationData),
+        answers: await loadAnswersJson(applicationId),
+      };
     } catch (error) {
       logger.error('Add document failed:', error);
       throw error;
@@ -1046,9 +1150,12 @@ export class ApplicationService {
 
       // If references are empty but we have reference data in the
       // application answers, seed the typed table from the client data.
-      if (referenceRows.length === 0 && application.answers) {
+      // Answers live in the application_answers table now (plan 2.1) —
+      // load them via the typed table rather than reading a column.
+      const answers =
+        referenceRows.length === 0 ? await loadAnswersJson(applicationId) : ({} as JsonObject);
+      if (referenceRows.length === 0 && Object.keys(answers).length > 0) {
         logger.info('Initializing references array from client data');
-        const answers = application.answers as JsonObject;
         const seeds: Array<{
           name: string;
           relationship: string;
@@ -1212,7 +1319,11 @@ export class ApplicationService {
         userId,
       });
 
-      return (await application.reload()) as ApplicationData;
+      await application.reload();
+      return {
+        ...(application.toJSON() as ApplicationData),
+        answers: await loadAnswersJson(applicationId),
+      };
     } catch (error) {
       logger.error('Update reference failed:', error);
       throw error;

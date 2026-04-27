@@ -4,12 +4,15 @@ import Application, {
   ApplicationStage,
   ApplicationOutcome,
 } from '../models/Application';
+import ApplicationAnswer from '../models/ApplicationAnswer';
 import ApplicationReference, { ApplicationReferenceStatus } from '../models/ApplicationReference';
+import { JsonValue } from '../types/common';
 
-// Application.references[] moved to the application_references table
-// (plan 2.1). seedApplications() now does Application.findOrCreate first
-// and then ApplicationReference.findOrCreate per reference, keyed on
-// (application_id, legacy_id) to keep the seeder idempotent.
+// Application.answers / Application.references[] moved to typed tables
+// (plan 2.1). seedApplications() now does Application.findOrCreate
+// first and then ApplicationAnswer.findOrCreate per question_key /
+// ApplicationReference.findOrCreate per reference to keep the seeder
+// idempotent.
 type SeedReference = {
   id: string;
   name: string;
@@ -825,8 +828,9 @@ const applicationData = [
 
 export async function seedApplications() {
   for (const appData of applicationData) {
-    const { references, ...applicationFields } = appData as typeof appData & {
+    const { references, answers, ...applicationFields } = appData as typeof appData & {
       references: SeedReference[];
+      answers: Record<string, JsonValue>;
     };
 
     const defaults = {
@@ -843,6 +847,17 @@ export async function seedApplications() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       defaults: defaults as any,
     });
+
+    for (const [question_key, answer_value] of Object.entries(answers ?? {})) {
+      await ApplicationAnswer.findOrCreate({
+        where: { application_id: appData.applicationId, question_key },
+        defaults: {
+          application_id: appData.applicationId,
+          question_key,
+          answer_value: answer_value as JsonValue,
+        },
+      });
+    }
 
     for (let index = 0; index < references.length; index++) {
       const ref = references[index];

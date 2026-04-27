@@ -8,6 +8,7 @@ import { vi } from 'vitest';
 
 import { ApplicationService } from '../../services/application.service';
 import Application, { ApplicationStatus, ApplicationPriority } from '../../models/Application';
+import ApplicationAnswer from '../../models/ApplicationAnswer';
 import ApplicationReferenceModel from '../../models/ApplicationReference';
 import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus } from '../../models/Pet';
@@ -16,6 +17,7 @@ import { CreateApplicationRequest, ApplicationStatusUpdateRequest } from '../../
 
 // Cast models to mocked versions
 const MockedApplication = Application as vi.MockedObject<Application>;
+const MockedApplicationAnswer = ApplicationAnswer as vi.MockedObject<typeof ApplicationAnswer>;
 const MockedApplicationReference = ApplicationReferenceModel as vi.MockedObject<
   typeof ApplicationReferenceModel
 >;
@@ -61,7 +63,9 @@ describe('ApplicationService - Business Logic', () => {
     petId: mockPetId,
     rescueId: mockRescueId,
     status,
-    answers: { experience: 'yes', has_yard: 'yes' },
+    // answers moved to application_answers (plan 2.1) — no longer a
+    // column on Application; tests that need answer rows mock
+    // ApplicationAnswer.findAll / bulkCreate directly.
     // references[] moved to application_references (plan 2.1) — no
     // longer a column on Application.
     priority: ApplicationPriority.NORMAL,
@@ -109,6 +113,10 @@ describe('ApplicationService - Business Logic', () => {
     MockedApplicationReference.bulkCreate = vi.fn().mockResolvedValue([] as never);
     MockedApplicationReference.findAll = vi.fn().mockResolvedValue([] as never);
     MockedApplicationReference.destroy = vi.fn().mockResolvedValue(0 as never);
+    // Same reasoning for the application_answers typed table (plan 2.1).
+    MockedApplicationAnswer.bulkCreate = vi.fn().mockResolvedValue([] as never);
+    MockedApplicationAnswer.findAll = vi.fn().mockResolvedValue([] as never);
+    MockedApplicationAnswer.destroy = vi.fn().mockResolvedValue(0 as never);
   });
 
   describe('Business Rule: Application Creation', () => {
@@ -138,14 +146,23 @@ describe('ApplicationService - Business Logic', () => {
           }),
         })
       );
+      // Answers are persisted to the application_answers typed table
+      // now (plan 2.1), not the parent Application row.
       expect(MockedApplication.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: mockUserId,
           petId: mockPetId,
           rescueId: mockRescueId,
           status: ApplicationStatus.SUBMITTED,
-          answers: request.answers,
         })
+      );
+      expect(MockedApplicationAnswer.bulkCreate).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            application_id: mockApplicationId,
+            question_key: 'experience',
+          }),
+        ])
       );
       expect(result).toBeDefined();
     });
@@ -395,11 +412,25 @@ describe('ApplicationService - Business Logic', () => {
 
       await ApplicationService.updateApplication(mockApplicationId, updates, mockUserId);
 
-      // Then: Application is updated
-      expect(mockApplication.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          answers: updates.answers,
-        })
+      // Then: answers are persisted to the typed table (plan 2.1).
+      // The parent Application.update no longer carries the answers
+      // field — replace-all semantics destroy + bulkCreate the rows.
+      expect(MockedApplicationAnswer.destroy).toHaveBeenCalledWith({
+        where: { application_id: mockApplicationId },
+      });
+      expect(MockedApplicationAnswer.bulkCreate).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            application_id: mockApplicationId,
+            question_key: 'experience',
+            answer_value: 'Updated experience details',
+          }),
+          expect.objectContaining({
+            application_id: mockApplicationId,
+            question_key: 'has_yard',
+            answer_value: 'yes',
+          }),
+        ])
       );
     });
 
