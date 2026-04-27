@@ -1,0 +1,24 @@
+# Global fallback
+*                           @paragonjenko
+
+# Frontend apps
+/app.admin/                 @paragonjenko
+/app.client/                @paragonjenko
+/app.rescue/                @paragonjenko
+
+# Backend
+/service.backend/           @paragonjenko
+
+# Shared libraries
+/lib.*/                     @paragonjenko
+
+# Infrastructure & CI
+/.github/                   @paragonjenko
+/docker-compose*.yml        @paragonjenko
+/Dockerfile*                @paragonjenko
+/nginx/                     @paragonjenko
+/turbo.json                 @paragonjenko
+
+# Documentation
+/docs/                      @paragonjenko
+/README.md                  @paragonjenko
