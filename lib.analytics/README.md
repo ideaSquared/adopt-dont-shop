@@ -81,6 +81,5 @@ npm run type-check
 
 ## Resources
 
-- Central docs: [docs/libraries/analytics.md](../docs/libraries/analytics.md)
 - Source of truth for exports: [src/index.ts](./src/index.ts)
 - Service implementation: [src/services/analytics-service.ts](./src/services/analytics-service.ts)

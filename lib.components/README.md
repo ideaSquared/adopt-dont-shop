@@ -4,8 +4,6 @@ Shared UI components and design system.
 
 ## Documentation
 
-See the centralized documentation: [docs/libraries/components.md](../docs/libraries/components.md)
-
 ## Installation
 
 ```bash
