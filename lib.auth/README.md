@@ -2,8 +2,6 @@
 
 Authentication and authorization for the Adopt Don't Shop monorepo. Wraps `lib.api` with user-facing auth flows (login, registration, sessions, two-factor), a React `AuthProvider` + `useAuth` hook, and drop-in login/register components.
 
-Detailed doc page: [docs/libraries/auth.md](../docs/libraries/auth.md)
-
 ## Installation
 
 Workspace package — add to a consumer's `package.json` and `npm install` at the repo root:

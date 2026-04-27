@@ -47,7 +47,7 @@ const service = new FeatureFlagsService({
 
 | Property           | Type      | Default                    | Description                       |
 | ------------------ | --------- | -------------------------- | --------------------------------- |
-| `apiUrl`           | `string`  | `process.env.VITE_API_URL` | Backend API URL                   |
+| `apiUrl`           | `string`  | `process.env.VITE_API_BASE_URL` | Backend API URL                   |
 | `statsigClientKey` | `string`  | `undefined`                | Statsig SDK client key            |
 | `enableStatsig`    | `boolean` | `true`                     | Enable Statsig integration        |
 | `debug`            | `boolean` | `false`                    | Enable debug logging              |
@@ -58,8 +58,7 @@ const service = new FeatureFlagsService({
 
 ```bash
 # API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:5000
 
 # Statsig Configuration
 VITE_STATSIG_CLIENT_KEY=client-your-statsig-key

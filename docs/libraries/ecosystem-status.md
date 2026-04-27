@@ -80,7 +80,7 @@ import { analyticsService } from '@adopt-dont-shop/lib.analytics';
 
 // Configure API for client app
 apiService.updateConfig({
-  apiUrl: import.meta.env.VITE_API_URL,
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
   debug: import.meta.env.DEV,
 });
 

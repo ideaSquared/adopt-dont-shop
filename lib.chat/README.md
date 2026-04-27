@@ -63,6 +63,5 @@ npm run type-check
 
 ## Resources
 
-- Central docs: [docs/libraries/chat.md](../docs/libraries/chat.md)
 - Source of truth for exports: [src/index.ts](./src/index.ts)
 - Service implementation: [src/services/chat-service.ts](./src/services/chat-service.ts)

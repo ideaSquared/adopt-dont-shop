@@ -58,7 +58,7 @@ const service = new SearchService({
 
 | Property           | Type      | Default                         | Description                       |
 | ------------------ | --------- | ------------------------------- | --------------------------------- |
-| `apiUrl`           | `string`  | `process.env.VITE_API_URL`      | Backend API URL                   |
+| `apiUrl`           | `string`  | `process.env.VITE_API_BASE_URL`      | Backend API URL                   |
 | `elasticsearchUrl` | `string`  | `process.env.ELASTICSEARCH_URL` | Elasticsearch cluster URL         |
 | `enableAI`         | `boolean` | `true`                          | Enable AI-powered recommendations |
 | `cacheTtl`         | `number`  | `300000`                        | Cache TTL in milliseconds (5 min) |
@@ -69,8 +69,7 @@ const service = new SearchService({
 
 ```bash
 # API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:5000
 
 # Elasticsearch
 ELASTICSEARCH_URL=http://localhost:9200

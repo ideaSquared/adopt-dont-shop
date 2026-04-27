@@ -57,7 +57,7 @@ const service = new RescueService({
 
 | Property  | Type      | Default                    | Description                     |
 | --------- | --------- | -------------------------- | ------------------------------- |
-| `apiUrl`  | `string`  | `process.env.VITE_API_URL` | Backend API URL                 |
+| `apiUrl`  | `string`  | `process.env.VITE_API_BASE_URL` | Backend API URL                 |
 | `timeout` | `number`  | `10000`                    | Request timeout in milliseconds |
 | `retries` | `number`  | `3`                        | Number of retry attempts        |
 | `debug`   | `boolean` | `false`                    | Enable debug logging            |
@@ -66,8 +66,7 @@ const service = new RescueService({
 
 ```bash
 # API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:5000
 
 # Development
 NODE_ENV=development
