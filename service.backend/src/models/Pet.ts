@@ -113,8 +113,13 @@ export interface PetAttributes {
   gender: Gender;
   status: PetStatus;
   type: PetType;
-  breed?: string | null;
-  secondaryBreed?: string | null;
+  // Plan 2.4 — breeds extracted into the breeds lookup table. Both FKs
+  // are nullable: an unknown-breed pet is a real case (stray of mixed
+  // ancestry, etc.) and a single-breed pet has no secondary FK. Read
+  // the human-readable breed name through the Breed / SecondaryBreed
+  // associations.
+  breedId?: string | null;
+  secondaryBreedId?: string | null;
   weightKg?: number | null;
   size: Size;
   color?: string | null;
@@ -200,8 +205,8 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
   public gender!: Gender;
   public status!: PetStatus;
   public type!: PetType;
-  public breed!: string | null;
-  public secondaryBreed!: string | null;
+  public breedId!: string | null;
+  public secondaryBreedId!: string | null;
   public weightKg!: number | null;
   public size!: Size;
   public color!: string | null;
@@ -470,14 +475,21 @@ Pet.init(
       type: DataTypes.ENUM(...Object.values(PetType)),
       allowNull: false,
     },
-    breed: {
-      type: DataTypes.STRING(100),
+    breedId: {
+      type: getUuidType(),
       allowNull: true,
+      field: 'breed_id',
+      references: { model: 'breeds', key: 'breed_id' },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE',
     },
-    secondaryBreed: {
-      type: DataTypes.STRING(100),
+    secondaryBreedId: {
+      type: getUuidType(),
       allowNull: true,
-      field: 'secondary_breed',
+      field: 'secondary_breed_id',
+      references: { model: 'breeds', key: 'breed_id' },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE',
     },
     weightKg: {
       type: DataTypes.DECIMAL(5, 2),
@@ -784,8 +796,12 @@ Pet.init(
         name: 'pets_gender_idx',
       },
       {
-        fields: ['breed'],
-        name: 'pets_breed_idx',
+        fields: ['breed_id'],
+        name: 'pets_breed_id_idx',
+      },
+      {
+        fields: ['secondary_breed_id'],
+        name: 'pets_secondary_breed_id_idx',
       },
       {
         fields: ['featured'],
@@ -908,13 +924,18 @@ Pet.init(
 // Install a Postgres trigger that maintains search_vector from row content
 // so the DB owns the value and there's no JS hook to forget. Weight
 // reflects search intent: name > breed > description > temperament.
+//
+// Plan 2.4 — breed strings now live in the breeds lookup table. The
+// trigger looks them up via subquery so search by breed name still
+// works; the cost is a per-row lookup against breeds (small reference
+// table, indexed by PK), in exchange for the canonical-breeds win.
 installGeneratedSearchVector(Pet, {
   table: 'pets',
   indexName: 'pets_search_vector_gin_idx',
   expression: [
     "setweight(to_tsvector('english', coalesce(NEW.name, '')), 'A')",
-    "setweight(to_tsvector('english', coalesce(NEW.breed, '')), 'B')",
-    "setweight(to_tsvector('english', coalesce(NEW.secondary_breed, '')), 'B')",
+    "setweight(to_tsvector('english', coalesce((SELECT name FROM breeds WHERE breed_id = NEW.breed_id), '')), 'B')",
+    "setweight(to_tsvector('english', coalesce((SELECT name FROM breeds WHERE breed_id = NEW.secondary_breed_id), '')), 'B')",
     "setweight(to_tsvector('english', coalesce(NEW.short_description, '')), 'C')",
     "setweight(to_tsvector('english', coalesce(NEW.long_description, '')), 'C')",
     "setweight(to_tsvector('english', coalesce(array_to_string(NEW.temperament, ' '), '')), 'D')",

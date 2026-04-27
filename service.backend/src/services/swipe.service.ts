@@ -184,16 +184,19 @@ export class SwipeService {
 
       const stats = (swipeResults as SwipeStatsRow[])[0];
 
-      // Get top breeds liked by user
+      // Get top breeds liked by user. Plan 2.4 — breed names live in
+      // the breeds lookup table, so the SQL joins through breeds and
+      // groups by the breed name from there.
       const [breedResults] = await sequelize.query(
         `
-        SELECT p.breed, COUNT(*) as count
+        SELECT b.name AS breed, COUNT(*) as count
         FROM swipe_actions sa
         JOIN pets p ON sa.pet_id = p.pet_id
+        LEFT JOIN breeds b ON p.breed_id = b.breed_id
         WHERE sa.user_id = :userId
           AND sa.action IN ('like', 'super_like')
-          AND p.breed IS NOT NULL
-        GROUP BY p.breed
+          AND b.name IS NOT NULL
+        GROUP BY b.name
         ORDER BY count DESC
         LIMIT 5
       `,
@@ -332,13 +335,17 @@ export class SwipeService {
     action: 'like' | 'super_like'
   ): Promise<void> {
     try {
-      // Get pet details for preference learning
+      // Get pet details for preference learning. Plan 2.4 — breed
+      // moved to the breeds lookup; LEFT JOIN through breeds so a pet
+      // with no breed still surfaces (breed comes back as null).
       const [petResults] = await sequelize.query(
         `
-        SELECT type, breed, age_group, size, gender, good_with_children,
-               good_with_dogs, good_with_cats, energy_level
-        FROM pets
-        WHERE pet_id = :petId
+        SELECT p.type, b.name AS breed, p.age_group, p.size, p.gender,
+               p.good_with_children, p.good_with_dogs, p.good_with_cats,
+               p.energy_level
+        FROM pets p
+        LEFT JOIN breeds b ON p.breed_id = b.breed_id
+        WHERE p.pet_id = :petId
       `,
         {
           replacements: { petId },

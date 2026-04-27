@@ -1,13 +1,17 @@
 import { Op, fn, literal } from 'sequelize';
+import Breed from '../models/Breed';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../models/Pet';
 import PetMedia, { PetMediaType } from '../models/PetMedia';
 import Rescue from '../models/Rescue';
+import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
 
 // Pet.images / Pet.videos are no longer JSONB on the pet row (plan
 // 2.1) — they're rows in pet_media. Inside discovery we only ever look
 // at images, so we narrow the typed Pet to the shape we project below.
-type PetWithMedia = Pet & { Media?: PetMedia[] };
+// Plan 2.4 also added the Breed association (eager-loaded for the
+// breed-name read paths).
+type PetWithMedia = Pet & { Media?: PetMedia[]; Breed?: Breed | null };
 
 const getImages = (pet: PetWithMedia): PetMedia[] =>
   (pet.Media ?? []).filter(m => m.type === PetMediaType.IMAGE);
@@ -96,7 +100,9 @@ export class DiscoveryService {
     try {
       logger.info('Loading more pets', { sessionId, lastPetId, limit });
 
-      // Get pets after the last pet ID
+      // Get pets after the last pet ID. Eager-load Breed so the
+      // discovery transform can read the human-readable breed name
+      // from the lookup table (plan 2.4).
       const pets = await Pet.findAll({
         where: {
           petId: {
@@ -114,6 +120,12 @@ export class DiscoveryService {
             model: PetMedia,
             as: 'Media',
             where: { type: PetMediaType.IMAGE },
+            required: false,
+          },
+          {
+            model: Breed,
+            as: 'Breed',
+            attributes: ['breed_id', 'name'],
             required: false,
           },
         ],
@@ -145,10 +157,23 @@ export class DiscoveryService {
       if (filters.type) {
         whereConditions.type = filters.type;
       }
+      // Plan 2.4 — breed is an FK; resolve free-form name to ids and
+      // filter on the FK columns instead of a string LIKE on the pet row.
       if (filters.breed) {
-        whereConditions.breed = {
-          [Op.iLike]: `%${filters.breed}%`,
-        };
+        const likeOp = sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
+        const breedRows = await Breed.findAll({
+          where: { name: { [likeOp]: `%${filters.breed}%` } },
+          attributes: ['breed_id'],
+        });
+        const breedIds = breedRows.map(b => b.breed_id);
+        if (breedIds.length === 0) {
+          whereConditions.breedId = '__never_matches__';
+        } else {
+          (whereConditions as Record<symbol, unknown>)[Op.or] = [
+            { breedId: { [Op.in]: breedIds } },
+            { secondaryBreedId: { [Op.in]: breedIds } },
+          ];
+        }
       }
       if (filters.ageGroup) {
         whereConditions.ageGroup = filters.ageGroup;
@@ -160,7 +185,9 @@ export class DiscoveryService {
         whereConditions.gender = filters.gender;
       }
 
-      // Smart sorting query with multiple factors
+      // Smart sorting query with multiple factors. Eager-load Breed
+      // so downstream transforms / dedup keys can read the canonical
+      // breed name (plan 2.4).
       const pets = await Pet.findAll({
         where: whereConditions,
         include: [
@@ -173,6 +200,12 @@ export class DiscoveryService {
             model: PetMedia,
             as: 'Media',
             where: { type: PetMediaType.IMAGE },
+            required: false,
+          },
+          {
+            model: Breed,
+            as: 'Breed',
+            attributes: ['breed_id', 'name'],
             required: false,
           },
         ],
@@ -241,7 +274,9 @@ export class DiscoveryService {
     const maxSameBreed = 2;
 
     for (const pet of pets) {
-      const breed = pet.breed || 'unknown';
+      // Plan 2.4 — dedupe on the breed FK so equal-breed pets are
+      // treated as same regardless of the human name resolution path.
+      const breed = pet.breedId || 'unknown';
       const recentBreedCount = recentBreeds.filter(b => b === breed).length;
 
       if (recentBreedCount < maxSameBreed) {
@@ -270,12 +305,13 @@ export class DiscoveryService {
    */
   private async transformToDiscoveryPets(pets: Pet[]): Promise<DiscoveryPet[]> {
     return pets.map(pet => {
-      // Type assertion to access included rescue data
-      const petWithRescue = pet as Pet & {
+      // Type assertion to access included rescue / breed data
+      const petWithIncludes = pet as Pet & {
         Rescue?: {
           name: string;
           status: 'pending' | 'verified' | 'suspended' | 'inactive';
         };
+        Breed?: { name: string } | null;
       };
 
       // Ensure petId is never undefined
@@ -293,7 +329,8 @@ export class DiscoveryService {
         petId,
         name: pet.name || 'Unknown',
         type: pet.type,
-        breed: pet.breed || undefined,
+        // Plan 2.4 — breed name comes from the eager-loaded Breed row.
+        breed: petWithIncludes.Breed?.name || undefined,
         ageGroup: pet.ageGroup,
         ageYears: pet.ageYears || undefined,
         ageMonths: pet.ageMonths || undefined,
@@ -301,8 +338,8 @@ export class DiscoveryService {
         gender: pet.gender,
         images: imageUrls,
         shortDescription: pet.shortDescription || undefined,
-        rescueName: petWithRescue.Rescue?.name || 'Unknown Rescue',
-        isSponsored: petWithRescue.Rescue?.status === 'verified' || false,
+        rescueName: petWithIncludes.Rescue?.name || 'Unknown Rescue',
+        isSponsored: petWithIncludes.Rescue?.status === 'verified' || false,
         compatibilityScore: this.calculateCompatibilityScore(pet),
       };
     });

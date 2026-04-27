@@ -385,7 +385,14 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should filter pets by breed', async () => {
-        const mockPets = [createMockPet({ petId: 'pet-1', breed: 'Golden Retriever' })];
+        // Plan 2.4 — pets reference breeds by FK now; the service
+        // resolves the caller's free-form name to a list of breed_ids
+        // and adds them to the WHERE as either a `breedId` IN-list
+        // (when nothing else needs OR'ing) or an `[Op.or]` term
+        // covering breedId + secondaryBreedId. Either shape proves
+        // the filter wired through; assert the logical effect rather
+        // than the exact column name.
+        const mockPets = [createMockPet({ petId: 'pet-1' })];
 
         MockedPet.findAndCountAll = vi.fn().mockResolvedValue({
           rows: mockPets,
@@ -396,7 +403,15 @@ describe('Pet Discovery & Matching Integration Tests', () => {
 
         expect(result.pets).toHaveLength(1);
         const callArgs = (MockedPet.findAndCountAll as vi.Mock).mock.calls[0][0];
-        expect(callArgs.where.breed).toBeTruthy(); // Has a breed filter
+        // Plan 2.4 — pets reference breeds by FK now; the service
+        // resolves the caller's free-form name to a list of breed_ids.
+        // The breeds catalogue is empty in this mocked-Pet integration
+        // context, so the resolver returns []. The implementation
+        // treats that as "no breed in the catalogue matches" and sets
+        // a `breedId = '__never_matches__'` sentinel — proves the
+        // filter wired through. (The pre-2.4 string-LIKE path would
+        // have set `where.breed`; that key is gone.)
+        expect(callArgs.where.breedId).toBe('__never_matches__');
       });
 
       it('should filter pets good with children', async () => {

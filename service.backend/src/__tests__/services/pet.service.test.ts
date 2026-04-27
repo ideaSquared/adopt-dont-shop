@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import { vi } from 'vitest';
 import { AuditLog } from '../../models/AuditLog';
+import Breed from '../../models/Breed';
 import Pet, {
   AgeGroup,
   EnergyLevel,
@@ -44,6 +45,19 @@ describe('PetService', () => {
   // Helper to generate unique IDs
   const uniqueId = (prefix: string) => `${prefix}-${Date.now()}-${testCounter++}`;
 
+  // Plan 2.4 — pet.breed is now an FK into the breeds lookup table.
+  // Tests that previously created pets with `breed: 'Golden Retriever'`
+  // need to find-or-create the breed and use the FK. This helper
+  // returns the breed_id for a (species, name) pair, creating the row
+  // on first ask.
+  const breedIdFor = async (species: PetType, name: string): Promise<string> => {
+    const [row] = await Breed.findOrCreate({
+      where: { species, name },
+      defaults: { species, name },
+    });
+    return row.breed_id;
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
     mockAuditLog.mockResolvedValue({
@@ -82,13 +96,16 @@ describe('PetService', () => {
       pet1Id = uniqueId('search-pet1');
       pet2Id = uniqueId('search-pet2');
 
+      const goldenId = await breedIdFor(PetType.DOG, 'Golden Retriever');
+      const persianId = await breedIdFor(PetType.CAT, 'Persian');
+
       // Create test pets
       await Pet.create({
         petId: pet1Id,
         name: 'Buddy',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
-        breed: 'Golden Retriever',
+        breedId: goldenId,
         size: Size.LARGE,
         ageGroup: AgeGroup.ADULT,
         gender: Gender.MALE,
@@ -106,7 +123,7 @@ describe('PetService', () => {
         name: 'Whiskers',
         type: PetType.CAT,
         status: PetStatus.AVAILABLE,
-        breed: 'Persian',
+        breedId: persianId,
         size: Size.MEDIUM,
         ageGroup: AgeGroup.YOUNG,
         gender: Gender.FEMALE,
@@ -142,8 +159,11 @@ describe('PetService', () => {
 
       const result = await PetService.searchPets(filters);
 
+      // Plan 2.4 — search resolves the term against the breeds
+      // lookup, so a search for "Golden" finds the Buddy pet whose
+      // breedId points at the "Golden Retriever" breed row.
       expect(result.pets).toHaveLength(1);
-      expect(result.pets[0].breed).toContain('Golden');
+      expect(result.pets[0].name).toBe('Buddy');
     });
 
     it('should handle range filters', async () => {
@@ -944,54 +964,14 @@ describe('PetService', () => {
   });
 
   describe('getPetBreedsByType', () => {
+    // Plan 2.4 — breeds live in the typed table now. The endpoint
+    // returns the catalogue of breed names per species, so the test
+    // setup seeds the breeds table directly rather than seeding pets
+    // and inferring breeds from them.
     beforeEach(async () => {
-      await Pet.bulkCreate([
-        {
-          petId: uniqueId('breeds-pet1'),
-          name: 'Dog 1',
-          type: PetType.DOG,
-          breed: 'Golden Retriever',
-          status: PetStatus.AVAILABLE,
-          size: Size.LARGE,
-          ageGroup: AgeGroup.ADULT,
-          gender: Gender.MALE,
-          energyLevel: EnergyLevel.MEDIUM,
-          vaccinationStatus: VaccinationStatus.UP_TO_DATE,
-          spayNeuterStatus: SpayNeuterStatus.NEUTERED,
-          rescueId: testRescue.rescueId,
-          archived: false,
-        },
-        {
-          petId: uniqueId('breeds-pet2'),
-          name: 'Dog 2',
-          type: PetType.DOG,
-          breed: 'Labrador Retriever',
-          status: PetStatus.AVAILABLE,
-          size: Size.LARGE,
-          ageGroup: AgeGroup.ADULT,
-          gender: Gender.MALE,
-          energyLevel: EnergyLevel.HIGH,
-          vaccinationStatus: VaccinationStatus.UP_TO_DATE,
-          spayNeuterStatus: SpayNeuterStatus.NEUTERED,
-          rescueId: testRescue.rescueId,
-          archived: false,
-        },
-        {
-          petId: uniqueId('breeds-pet3'),
-          name: 'Dog 3',
-          type: PetType.DOG,
-          breed: 'German Shepherd',
-          status: PetStatus.AVAILABLE,
-          size: Size.LARGE,
-          ageGroup: AgeGroup.ADULT,
-          gender: Gender.MALE,
-          energyLevel: EnergyLevel.HIGH,
-          vaccinationStatus: VaccinationStatus.UP_TO_DATE,
-          spayNeuterStatus: SpayNeuterStatus.NEUTERED,
-          rescueId: testRescue.rescueId,
-          archived: false,
-        },
-      ]);
+      await breedIdFor(PetType.DOG, 'Golden Retriever');
+      await breedIdFor(PetType.DOG, 'Labrador Retriever');
+      await breedIdFor(PetType.DOG, 'German Shepherd');
     });
 
     it('should return breeds for valid pet type', async () => {
@@ -1003,60 +983,17 @@ describe('PetService', () => {
       expect(result).toContain('Labrador Retriever');
     });
 
-    it('should filter out null and empty breeds', async () => {
-      await Pet.bulkCreate([
-        {
-          petId: uniqueId('breeds-pet4'),
-          name: 'Dog 4',
-          type: PetType.DOG,
-          breed: null as unknown as string,
-          status: PetStatus.AVAILABLE,
-          size: Size.MEDIUM,
-          ageGroup: AgeGroup.ADULT,
-          gender: Gender.MALE,
-          energyLevel: EnergyLevel.MEDIUM,
-          vaccinationStatus: VaccinationStatus.UP_TO_DATE,
-          spayNeuterStatus: SpayNeuterStatus.NEUTERED,
-          rescueId: testRescue.rescueId,
-          archived: false,
-        },
-        {
-          petId: uniqueId('breeds-pet5'),
-          name: 'Dog 5',
-          type: PetType.DOG,
-          breed: '  ',
-          status: PetStatus.AVAILABLE,
-          size: Size.MEDIUM,
-          ageGroup: AgeGroup.ADULT,
-          gender: Gender.MALE,
-          energyLevel: EnergyLevel.MEDIUM,
-          vaccinationStatus: VaccinationStatus.UP_TO_DATE,
-          spayNeuterStatus: SpayNeuterStatus.NEUTERED,
-          rescueId: testRescue.rescueId,
-          archived: false,
-        },
-        {
-          petId: uniqueId('breeds-pet6'),
-          name: 'Dog 6',
-          type: PetType.DOG,
-          breed: 'Poodle',
-          status: PetStatus.AVAILABLE,
-          size: Size.MEDIUM,
-          ageGroup: AgeGroup.ADULT,
-          gender: Gender.MALE,
-          energyLevel: EnergyLevel.MEDIUM,
-          vaccinationStatus: VaccinationStatus.UP_TO_DATE,
-          spayNeuterStatus: SpayNeuterStatus.NEUTERED,
-          rescueId: testRescue.rescueId,
-          archived: false,
-        },
-      ]);
+    it('should not return breeds from other species', async () => {
+      // Cat breeds shouldn't leak into a dog query (plan 2.4 — the
+      // species discriminator gates the result set).
+      await breedIdFor(PetType.CAT, 'Persian');
+      await breedIdFor(PetType.CAT, 'Siamese');
 
       const result = await PetService.getPetBreedsByType('dog');
 
-      expect(result).toContain('Poodle');
-      expect(result).not.toContain('');
-      expect(result).not.toContain(null);
+      expect(result).not.toContain('Persian');
+      expect(result).not.toContain('Siamese');
+      expect(result).toHaveLength(3);
     });
 
     it('should throw error for invalid pet type', async () => {
@@ -1066,14 +1003,19 @@ describe('PetService', () => {
     });
 
     it('should handle database errors', async () => {
-      const originalFindAll = Pet.findAll;
-      Pet.findAll = vi.fn().mockRejectedValue(new Error('Database error'));
-
-      await expect(PetService.getPetBreedsByType('dog')).rejects.toThrow(
-        'Failed to retrieve breeds for pet type: dog'
-      );
-
-      Pet.findAll = originalFindAll;
+      // Mock the new lookup target — Breed.findAll, not Pet.findAll.
+      // Use try/finally so a failed assertion doesn't leak the mock
+      // into downstream tests (the previous version did, breaking
+      // every later test that called Pet.findAll).
+      const originalFindAll = Breed.findAll;
+      Breed.findAll = vi.fn().mockRejectedValue(new Error('Database error'));
+      try {
+        await expect(PetService.getPetBreedsByType('dog')).rejects.toThrow(
+          'Failed to retrieve breeds for pet type: dog'
+        );
+      } finally {
+        Breed.findAll = originalFindAll;
+      }
     });
   });
 
@@ -1097,14 +1039,21 @@ describe('PetService', () => {
   describe('getSimilarPets', () => {
     let referencePet: Pet;
     let refPetId: string;
+    let goldenId: string;
+    let labradorId: string;
 
     beforeEach(async () => {
+      // Plan 2.4 — pets reference breeds by FK; resolve names to ids
+      // first so the similarity query can match on breed_id.
+      goldenId = await breedIdFor(PetType.DOG, 'Golden Retriever');
+      labradorId = await breedIdFor(PetType.DOG, 'Labrador Retriever');
+
       refPetId = uniqueId('similar-ref');
       referencePet = await Pet.create({
         petId: refPetId,
         name: 'Reference Dog',
         type: PetType.DOG,
-        breed: 'Golden Retriever',
+        breedId: goldenId,
         status: PetStatus.AVAILABLE,
         size: Size.LARGE,
         ageGroup: AgeGroup.ADULT,
@@ -1121,7 +1070,7 @@ describe('PetService', () => {
           petId: uniqueId('similar-1'),
           name: 'Similar Dog 1',
           type: PetType.DOG,
-          breed: 'Golden Retriever',
+          breedId: goldenId,
           status: PetStatus.AVAILABLE,
           size: Size.LARGE,
           ageGroup: AgeGroup.ADULT,
@@ -1136,7 +1085,7 @@ describe('PetService', () => {
           petId: uniqueId('similar-2'),
           name: 'Similar Dog 2',
           type: PetType.DOG,
-          breed: 'Labrador Retriever',
+          breedId: labradorId,
           status: PetStatus.AVAILABLE,
           size: Size.LARGE,
           ageGroup: AgeGroup.YOUNG,
@@ -1163,27 +1112,36 @@ describe('PetService', () => {
     });
 
     it('should handle database errors', async () => {
+      // try/finally so a failed assertion doesn't leak mocks into
+      // downstream tests (the previous version did and broke
+      // unrelated tests downstream).
       const originalFindByPk = Pet.findByPk;
       const originalFindAll = Pet.findAll;
-
       Pet.findByPk = vi.fn().mockResolvedValue(referencePet);
       Pet.findAll = vi.fn().mockRejectedValue(new Error('Database error'));
-
-      await expect(PetService.getSimilarPets(refPetId)).rejects.toThrow(
-        'Failed to retrieve similar pets'
-      );
-
-      Pet.findByPk = originalFindByPk;
-      Pet.findAll = originalFindAll;
+      try {
+        await expect(PetService.getSimilarPets(refPetId)).rejects.toThrow(
+          'Failed to retrieve similar pets'
+        );
+      } finally {
+        Pet.findByPk = originalFindByPk;
+        Pet.findAll = originalFindAll;
+      }
     });
 
-    it('should safely handle breed values containing SQL injection characters', async () => {
-      const maliciousPetId = uniqueId('sqli-ref');
+    it('should safely handle pets whose breed has SQL-injection-y characters', async () => {
+      // The breed name itself can't contain malicious SQL anymore —
+      // it's a row in the breeds catalogue. The id is a UUID. So the
+      // SQL-injection vector from the JSONB era is structurally
+      // closed. This test now just sanity-checks that a pet with an
+      // exotic breed name doesn't break the similar-pets query.
+      const exoticBreedId = await breedIdFor(PetType.DOG, "O'Reilly's Hound");
+      const exoticPetId = uniqueId('sqli-ref');
       await Pet.create({
-        petId: maliciousPetId,
-        name: 'Malicious Pet',
+        petId: exoticPetId,
+        name: 'Exotic Pet',
         type: PetType.DOG,
-        breed: "'; DROP TABLE pets; --",
+        breedId: exoticBreedId,
         status: PetStatus.AVAILABLE,
         size: Size.LARGE,
         ageGroup: AgeGroup.ADULT,
@@ -1195,11 +1153,9 @@ describe('PetService', () => {
         archived: false,
       });
 
-      // Should not throw - the SQL injection attempt is safely escaped
-      const result = await PetService.getSimilarPets(maliciousPetId, 6);
+      const result = await PetService.getSimilarPets(exoticPetId, 6);
       expect(Array.isArray(result)).toBe(true);
 
-      // Verify the pets table still exists and is functional
       const petCount = await Pet.count();
       expect(petCount).toBeGreaterThan(0);
     });
@@ -1227,13 +1183,15 @@ describe('PetService', () => {
         rescueId: null,
       });
 
+      const goldenId = await breedIdFor(PetType.DOG, 'Golden Retriever');
+
       petId = uniqueId('report-pet');
       testPet = await Pet.create({
         petId: petId,
         name: 'Buddy',
         type: PetType.DOG,
         status: PetStatus.AVAILABLE,
-        breed: 'Golden Retriever',
+        breedId: goldenId,
         size: Size.LARGE,
         ageGroup: AgeGroup.ADULT,
         gender: Gender.MALE,

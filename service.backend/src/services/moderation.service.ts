@@ -4,6 +4,7 @@ import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
 import ReportStatusTransition from '../models/ReportStatusTransition';
 import User from '../models/User';
+import Breed from '../models/Breed';
 import Pet from '../models/Pet';
 import Rescue from '../models/Rescue';
 import sequelize from '../sequelize';
@@ -1051,14 +1052,19 @@ class ModerationService {
               }
 
               case 'pet': {
-                const pet = await Pet.findByPk(report.reportedEntityId);
+                // Plan 2.4 — breed name lives in the breeds lookup
+                // table, eager-loaded via the Breed association.
+                const pet = await Pet.findByPk(report.reportedEntityId, {
+                  include: [{ model: Breed, as: 'Breed', attributes: ['name'] }],
+                });
+                const petWithBreed = pet as (Pet & { Breed?: { name: string } | null }) | null;
                 entityContext = pet
                   ? {
                       type: 'pet',
                       id: pet.petId,
                       displayName: pet.name,
                       petType: pet.type,
-                      breed: pet.breed,
+                      breed: petWithBreed?.Breed?.name ?? null,
                       rescueId: pet.rescueId,
                     }
                   : {
