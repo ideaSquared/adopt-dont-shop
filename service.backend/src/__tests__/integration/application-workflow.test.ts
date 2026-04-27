@@ -12,6 +12,7 @@ vi.mock('../../config/env', () => ({
 
 import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../../models/Application';
+import ApplicationAnswer from '../../models/ApplicationAnswer';
 import ApplicationReferenceModel, {
   ApplicationReferenceStatus,
 } from '../../models/ApplicationReference';
@@ -32,6 +33,7 @@ import { JsonObject } from '../../types/common';
 
 // Mock dependencies
 vi.mock('../../models/Application');
+vi.mock('../../models/ApplicationAnswer');
 vi.mock('../../models/ApplicationReference');
 vi.mock('../../models/ApplicationStatusTransition');
 vi.mock('../../models/Pet');
@@ -48,6 +50,7 @@ vi.mock('../../services/email.service', () => ({
 }));
 
 const MockedApplication = Application as vi.MockedObject<Application>;
+const MockedApplicationAnswer = ApplicationAnswer as vi.MockedObject<typeof ApplicationAnswer>;
 const MockedApplicationReference = ApplicationReferenceModel as vi.MockedObject<
   typeof ApplicationReferenceModel
 >;
@@ -90,6 +93,12 @@ describe('Application Submission Workflow Integration Tests', () => {
     MockedApplicationReference.bulkCreate = vi.fn().mockResolvedValue([] as never);
     MockedApplicationReference.findAll = vi.fn().mockResolvedValue([] as never);
     MockedApplicationReference.destroy = vi.fn().mockResolvedValue(0 as never);
+
+    // Same reasoning for the application_answers typed table — answers
+    // were extracted from JSONB to a typed model in this slice.
+    MockedApplicationAnswer.bulkCreate = vi.fn().mockResolvedValue([] as never);
+    MockedApplicationAnswer.findAll = vi.fn().mockResolvedValue([] as never);
+    MockedApplicationAnswer.destroy = vi.fn().mockResolvedValue(0 as never);
   });
 
   // Build a minimal ApplicationReference row instance — used by the
@@ -1650,7 +1659,9 @@ function createMockApplication(overrides: Partial<Application> = {}): vi.Mocked<
     rescueId: 'rescue-123',
     status: ApplicationStatus.SUBMITTED,
     priority: ApplicationPriority.NORMAL,
-    answers: {},
+    // answers moved to application_answers (plan 2.1) — no longer a
+    // column on Application; the test mocks the model directly where
+    // assertions are needed.
     // references[] moved to application_references (plan 2.1) — no
     // longer a column on Application; the test mocks the model directly
     // where assertions are needed.
@@ -1683,7 +1694,6 @@ function createMockApplication(overrides: Partial<Application> = {}): vi.Mocked<
       rescueId: overrides.rescueId ?? 'rescue-123',
       status: overrides.status ?? ApplicationStatus.SUBMITTED,
       priority: overrides.priority ?? ApplicationPriority.NORMAL,
-      answers: overrides.answers ?? {},
       documents: overrides.documents ?? [],
     }),
     update: vi.fn().mockResolvedValue(undefined),

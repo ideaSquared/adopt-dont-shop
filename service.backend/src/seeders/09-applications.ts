@@ -4,12 +4,15 @@ import Application, {
   ApplicationStage,
   ApplicationOutcome,
 } from '../models/Application';
+import ApplicationAnswer from '../models/ApplicationAnswer';
 import ApplicationReference, { ApplicationReferenceStatus } from '../models/ApplicationReference';
+import { JsonValue } from '../types/common';
 
-// Application.references[] moved to the application_references table
-// (plan 2.1). seedApplications() now does Application.findOrCreate first
-// and then ApplicationReference.findOrCreate per reference, keyed on
-// (application_id, legacy_id) to keep the seeder idempotent.
+// Application.answers / Application.references[] moved to typed tables
+// (plan 2.1). seedApplications() now does Application.findOrCreate
+// first and then ApplicationAnswer.findOrCreate per question_key /
+// ApplicationReference.findOrCreate per reference to keep the seeder
+// idempotent.
 type SeedReference = {
   id: string;
   name: string;
@@ -825,8 +828,9 @@ const applicationData = [
 
 export async function seedApplications() {
   for (const appData of applicationData) {
-    const { references, ...applicationFields } = appData as typeof appData & {
+    const { references, answers, ...applicationFields } = appData as typeof appData & {
       references: SeedReference[];
+      answers: Record<string, JsonValue>;
     };
 
     const defaults = {
@@ -844,11 +848,26 @@ export async function seedApplications() {
       defaults: defaults as any,
     });
 
-    for (let index = 0; index < references.length; index++) {
-      const ref = references[index];
-      await ApplicationReference.findOrCreate({
-        where: { application_id: appData.applicationId, legacy_id: ref.id },
-        defaults: {
+    // Bulk-insert with ignoreDuplicates instead of per-row findOrCreate.
+    // 240 sequential round-trips (16 apps × ~15 answers) was tipping
+    // the CI backend health check past its 90s budget on cold starts.
+    // The (application_id, question_key) unique index keeps the seeder
+    // idempotent — duplicates from a re-run are dropped by Postgres.
+    const answerEntries = Object.entries(answers ?? {});
+    if (answerEntries.length > 0) {
+      await ApplicationAnswer.bulkCreate(
+        answerEntries.map(([question_key, answer_value]) => ({
+          application_id: appData.applicationId,
+          question_key,
+          answer_value: answer_value as JsonValue,
+        })),
+        { ignoreDuplicates: true }
+      );
+    }
+
+    if (references.length > 0) {
+      await ApplicationReference.bulkCreate(
+        references.map((ref, index) => ({
           application_id: appData.applicationId,
           legacy_id: ref.id,
           name: ref.name,
@@ -860,8 +879,9 @@ export async function seedApplications() {
           contacted_by: null,
           notes: ref.notes ?? null,
           order_index: index,
-        },
-      });
+        })),
+        { ignoreDuplicates: true }
+      );
     }
   }
 

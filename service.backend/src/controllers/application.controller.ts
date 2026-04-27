@@ -79,8 +79,20 @@ export class ApplicationController extends BaseController {
     const User = applicationModel.User as Record<string, unknown> | undefined;
     const Pet = applicationModel.Pet as Record<string, unknown> | undefined;
 
-    // Extract personal info from answers (common pattern in adoption forms)
-    const answers = (applicationModel.answers as Record<string, unknown>) || {};
+    // Extract personal info from answers (common pattern in adoption forms).
+    // Answers live in the application_answers typed table now (plan 2.1).
+    // The service layer projects them back into the legacy JsonObject
+    // shape on `applicationModel.answers`, but eager-loaded reads can
+    // also surface them via the `Answers` association — fall back to that
+    // shape when the projected object isn't present.
+    let answers = (applicationModel.answers as Record<string, unknown>) || {};
+    if (Object.keys(answers).length === 0 && Array.isArray(applicationModel.Answers)) {
+      const rows = applicationModel.Answers as Array<{
+        question_key: string;
+        answer_value: unknown;
+      }>;
+      answers = Object.fromEntries(rows.map(r => [r.question_key, r.answer_value]));
+    }
 
     const personalInfo = {
       firstName:

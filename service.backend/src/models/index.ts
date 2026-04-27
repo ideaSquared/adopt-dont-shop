@@ -1,4 +1,5 @@
 import Application from './Application';
+import ApplicationAnswer from './ApplicationAnswer';
 import ApplicationQuestion from './ApplicationQuestion';
 import ApplicationReference from './ApplicationReference';
 import ApplicationStatusTransition from './ApplicationStatusTransition';
@@ -88,6 +89,7 @@ const models = {
   PetMedia,
   PetStatusTransition,
   Application,
+  ApplicationAnswer,
   ApplicationQuestion,
   ApplicationReference,
   ApplicationStatusTransition,
@@ -254,6 +256,18 @@ try {
     foreignKey: 'contacted_by',
     as: 'ContactedBy',
     constraints: false,
+  });
+
+  // ApplicationAnswer association (plan 2.1 — Application.answers JSONB
+  // extracted to a typed table). Cascade so deleting an application
+  // removes its answers.
+  Application.hasMany(ApplicationAnswer, {
+    foreignKey: 'application_id',
+    as: 'Answers',
+  });
+  ApplicationAnswer.belongsTo(Application, {
+    foreignKey: 'application_id',
+    as: 'Application',
   });
 
   // RescueSettings association (1:1, auto-created via Rescue.afterCreate
@@ -603,6 +617,7 @@ try {
 // Export all models
 export {
   Application,
+  ApplicationAnswer,
   ApplicationQuestion,
   ApplicationReference,
   ApplicationStatusTransition,

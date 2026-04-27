@@ -100,7 +100,6 @@ describe('ApplicationStatusTransition', () => {
         status,
         priority: 'normal',
         stage: 'questionnaire',
-        answers: '{}',
         documents: '[]',
         tags: '[]',
         created_at: new Date(),
