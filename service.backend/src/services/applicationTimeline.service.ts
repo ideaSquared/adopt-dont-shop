@@ -21,9 +21,25 @@ export class ApplicationTimelineService {
    * Create a new timeline event
    */
   static async createEvent(data: CreateTimelineEventData): Promise<ApplicationTimeline> {
+    // Snapshot the actor's email so the timeline stays readable if
+    // the user is later deleted (plan 4.5). The lookup is best-effort
+    // — if the user can't be resolved (e.g. test fixtures with mocked
+    // user IDs that don't exist in the DB), the snapshot stays null
+    // and the timeline degrades gracefully on display.
+    let created_by_email_snapshot: string | null = null;
+    if (data.created_by) {
+      try {
+        const actor = await User.findByPk(data.created_by, { attributes: ['email'] });
+        created_by_email_snapshot = actor?.email ?? null;
+      } catch {
+        // Soft-fail — the snapshot is a display hint, not a guarantee.
+      }
+    }
+
     return ApplicationTimeline.create({
       timeline_id: undefined, // Will be auto-generated
       ...data,
+      created_by_email_snapshot,
       created_at: new Date(),
       updated_at: new Date(),
     });
