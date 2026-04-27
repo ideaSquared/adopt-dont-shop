@@ -81,7 +81,6 @@ describe('HomeVisitStatusTransition', () => {
         answers: '{}',
         documents: '[]',
         tags: '[]',
-        references: '[]',
         created_at: new Date(),
         updated_at: new Date(),
         version: 0,

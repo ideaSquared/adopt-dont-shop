@@ -15,7 +15,11 @@ export interface ApplicationData {
   actionedAt?: Date | null;
   rejectionReason?: string | null;
   answers: JsonObject;
-  references: ApplicationReference[];
+  // references[] is sourced from the application_references table now
+  // (plan 2.1). Optional on the wire shape because most read paths
+  // don't eager-load it; populated by the routes that surface
+  // references explicitly.
+  references?: ApplicationReference[];
   documents: ApplicationDocument[];
   interviewNotes?: string | null;
   homeVisitNotes?: string | null;

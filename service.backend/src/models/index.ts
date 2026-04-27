@@ -1,5 +1,6 @@
 import Application from './Application';
 import ApplicationQuestion from './ApplicationQuestion';
+import ApplicationReference from './ApplicationReference';
 import ApplicationStatusTransition from './ApplicationStatusTransition';
 import ApplicationTimeline from './ApplicationTimeline';
 import Pet from './Pet';
@@ -83,6 +84,7 @@ const models = {
   PetStatusTransition,
   Application,
   ApplicationQuestion,
+  ApplicationReference,
   ApplicationStatusTransition,
   ApplicationTimeline,
   Chat,
@@ -220,6 +222,29 @@ try {
   ApplicationTimeline.belongsTo(User, {
     foreignKey: 'created_by',
     as: 'CreatedBy',
+    constraints: false,
+  });
+
+  // ApplicationReference association (plan 2.1 — Application.references
+  // JSONB extracted to a typed table). Cascade so deleting an
+  // application removes its references; references survive the
+  // contacted_by user being removed (SET NULL declared on the FK).
+  Application.hasMany(ApplicationReference, {
+    foreignKey: 'application_id',
+    as: 'References',
+  });
+  ApplicationReference.belongsTo(Application, {
+    foreignKey: 'application_id',
+    as: 'Application',
+  });
+  User.hasMany(ApplicationReference, {
+    foreignKey: 'contacted_by',
+    as: 'ContactedReferences',
+    constraints: false,
+  });
+  ApplicationReference.belongsTo(User, {
+    foreignKey: 'contacted_by',
+    as: 'ContactedBy',
     constraints: false,
   });
 
@@ -503,6 +528,7 @@ try {
 export {
   Application,
   ApplicationQuestion,
+  ApplicationReference,
   ApplicationStatusTransition,
   ApplicationTimeline,
   AuditLog,

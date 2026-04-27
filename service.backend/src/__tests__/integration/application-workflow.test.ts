@@ -12,6 +12,9 @@ vi.mock('../../config/env', () => ({
 
 import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../../models/Application';
+import ApplicationReferenceModel, {
+  ApplicationReferenceStatus,
+} from '../../models/ApplicationReference';
 import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus, PetType, AgeGroup, Gender } from '../../models/Pet';
 import User, { UserStatus, UserType } from '../../models/User';
@@ -29,6 +32,7 @@ import { JsonObject } from '../../types/common';
 
 // Mock dependencies
 vi.mock('../../models/Application');
+vi.mock('../../models/ApplicationReference');
 vi.mock('../../models/ApplicationStatusTransition');
 vi.mock('../../models/Pet');
 vi.mock('../../models/User');
@@ -44,6 +48,9 @@ vi.mock('../../services/email.service', () => ({
 }));
 
 const MockedApplication = Application as vi.MockedObject<Application>;
+const MockedApplicationReference = ApplicationReferenceModel as vi.MockedObject<
+  typeof ApplicationReferenceModel
+>;
 const MockedApplicationStatusTransition = ApplicationStatusTransition as vi.MockedObject<
   typeof ApplicationStatusTransition
 >;
@@ -75,7 +82,43 @@ describe('Application Submission Workflow Integration Tests', () => {
     // insert would trip the FK. Stub it — the trigger/hook path has its own
     // dedicated tests.
     MockedApplicationStatusTransition.create = vi.fn().mockResolvedValue({} as never);
+
+    // Application references are written to the application_references
+    // table now (plan 2.1). Stub the typed-table writes so the service
+    // code doesn't try to hit the real DB through the mocked
+    // Application model.
+    MockedApplicationReference.bulkCreate = vi.fn().mockResolvedValue([] as never);
+    MockedApplicationReference.findAll = vi.fn().mockResolvedValue([] as never);
+    MockedApplicationReference.destroy = vi.fn().mockResolvedValue(0 as never);
   });
+
+  // Build a minimal ApplicationReference row instance — used by the
+  // updateReference flow which calls `target.update(...)` on each
+  // row. (plan 2.1)
+  const mockReferenceRow = (
+    overrides: Partial<{
+      reference_id: string;
+      legacy_id: string;
+      name: string;
+      relationship: string;
+      phone: string;
+      status: 'pending' | 'contacted' | 'verified' | 'failed';
+      order_index: number;
+    }> = {}
+  ) => {
+    const row = {
+      reference_id: overrides.reference_id ?? 'ref-uuid-0',
+      legacy_id: overrides.legacy_id ?? 'ref-0',
+      name: overrides.name ?? 'John Doe',
+      relationship: overrides.relationship ?? 'Veterinarian',
+      phone: overrides.phone ?? '555-1234',
+      status: overrides.status ?? 'pending',
+      order_index: overrides.order_index ?? 0,
+      update: vi.fn().mockResolvedValue(undefined),
+      toJSON: vi.fn().mockReturnValue(overrides),
+    };
+    return row;
+  };
 
   describe('Browse and View Pets', () => {
     describe('when browsing available pets', () => {
@@ -272,11 +315,12 @@ describe('Application Submission Workflow Integration Tests', () => {
       });
 
       it('should initialize references with pending status', async () => {
+        // References live in the application_references typed table now
+        // (plan 2.1) — assert the bulkCreate payload rather than the
+        // Application model's removed `references` array column.
         const mockUser = createMockUser({ userId: adopterId });
         const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
-        const mockApplication = createMockApplication({
-          references: validReferences.map(ref => ({ ...ref, status: 'pending' as const })),
-        });
+        const mockApplication = createMockApplication();
 
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
         MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
@@ -289,10 +333,17 @@ describe('Application Submission Workflow Integration Tests', () => {
           references: validReferences,
         };
 
-        const result = await ApplicationService.createApplication(applicationData, adopterId);
+        await ApplicationService.createApplication(applicationData, adopterId);
 
-        expect(result.references).toHaveLength(2);
-        expect(result.references[0].status).toBe('pending');
+        expect(MockedApplicationReference.bulkCreate).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({
+              status: ApplicationReferenceStatus.PENDING,
+            }),
+          ])
+        );
+        const payload = (MockedApplicationReference.bulkCreate as vi.Mock).mock.calls[0][0];
+        expect(payload).toHaveLength(2);
       });
 
       it('should create timeline event when application is submitted', async () => {
@@ -672,56 +723,32 @@ describe('Application Submission Workflow Integration Tests', () => {
   describe('Reference Checks and Verification', () => {
     describe('when contacting references', () => {
       it('should update reference status to contacted', async () => {
-        const mockApplication = createMockApplication({
-          applicationId: applicationId,
-          references: [
-            {
-              id: 'ref-0',
-              name: 'John Doe',
-              relationship: 'Veterinarian',
-              phone: '555-1234',
-              status: 'pending',
-            },
-          ],
-        });
-
-        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        const mockApplication = createMockApplication({ applicationId: applicationId });
         mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
-
         MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
+
+        const refRow = mockReferenceRow({ status: 'pending' });
+        MockedApplicationReference.findAll = vi.fn().mockResolvedValue([refRow] as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
           status: 'contacted',
         };
 
-        const result = await ApplicationService.updateReference(
-          applicationId,
-          referenceUpdate,
-          rescueStaffId
-        );
+        await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
 
-        expect(mockApplication.update).toHaveBeenCalled();
+        expect(refRow.update).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'contacted' })
+        );
       });
 
       it('should update reference status to verified after successful check', async () => {
-        const mockApplication = createMockApplication({
-          applicationId: applicationId,
-          references: [
-            {
-              id: 'ref-0',
-              name: 'John Doe',
-              relationship: 'Veterinarian',
-              phone: '555-1234',
-              status: 'contacted',
-            },
-          ],
-        });
-
-        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        const mockApplication = createMockApplication({ applicationId: applicationId });
         mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
-
         MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
+
+        const refRow = mockReferenceRow({ status: 'contacted' });
+        MockedApplicationReference.findAll = vi.fn().mockResolvedValue([refRow] as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -731,27 +758,18 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
 
-        expect(mockApplication.update).toHaveBeenCalled();
+        expect(refRow.update).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'verified', notes: 'Confirmed excellent pet owner' })
+        );
       });
 
       it('should update reference status to failed if unreachable', async () => {
-        const mockApplication = createMockApplication({
-          applicationId: applicationId,
-          references: [
-            {
-              id: 'ref-0',
-              name: 'John Doe',
-              relationship: 'Veterinarian',
-              phone: '555-1234',
-              status: 'contacted',
-            },
-          ],
-        });
-
-        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        const mockApplication = createMockApplication({ applicationId: applicationId });
         mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
-
         MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
+
+        const refRow = mockReferenceRow({ status: 'contacted' });
+        MockedApplicationReference.findAll = vi.fn().mockResolvedValue([refRow] as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -761,57 +779,38 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
 
-        expect(mockApplication.update).toHaveBeenCalled();
+        expect(refRow.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
       });
 
       it('should track when reference was contacted', async () => {
-        const mockApplication = createMockApplication({
-          applicationId: applicationId,
-          references: [
-            {
-              id: 'ref-0',
-              name: 'John Doe',
-              relationship: 'Veterinarian',
-              phone: '555-1234',
-              status: 'pending',
-            },
-          ],
-        });
-
-        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        const mockApplication = createMockApplication({ applicationId: applicationId });
         mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
-
         MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
+        const refRow = mockReferenceRow({ status: 'pending' });
+        MockedApplicationReference.findAll = vi.fn().mockResolvedValue([refRow] as never);
+
+        const contactedAt = new Date();
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
           status: 'contacted',
-          contactedAt: new Date(),
+          contactedAt,
         };
 
         await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
 
-        expect(mockApplication.update).toHaveBeenCalled();
+        expect(refRow.update).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'contacted', contacted_at: contactedAt })
+        );
       });
 
       it('should allow adding notes to reference checks', async () => {
-        const mockApplication = createMockApplication({
-          applicationId: applicationId,
-          references: [
-            {
-              id: 'ref-0',
-              name: 'John Doe',
-              relationship: 'Veterinarian',
-              phone: '555-1234',
-              status: 'contacted',
-            },
-          ],
-        });
-
-        mockApplication.update = vi.fn().mockResolvedValue(mockApplication);
+        const mockApplication = createMockApplication({ applicationId: applicationId });
         mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
-
         MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
+
+        const refRow = mockReferenceRow({ status: 'contacted' });
+        MockedApplicationReference.findAll = vi.fn().mockResolvedValue([refRow] as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -821,7 +820,9 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
 
-        expect(mockApplication.update).toHaveBeenCalled();
+        expect(refRow.update).toHaveBeenCalledWith(
+          expect.objectContaining({ notes: 'Very positive reference - highly recommended' })
+        );
       });
     });
   });
@@ -1412,15 +1413,6 @@ describe('Application Submission Workflow Integration Tests', () => {
           applicationId: applicationId,
           userId: adopterId,
           petId: petId,
-          references: [
-            {
-              id: 'ref-0',
-              name: 'John Doe',
-              relationship: 'Veterinarian',
-              phone: '555-1234',
-              status: 'pending',
-            },
-          ],
         });
 
         MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
@@ -1443,6 +1435,9 @@ describe('Application Submission Workflow Integration Tests', () => {
         mockApplication.reload = vi.fn().mockResolvedValue(mockApplication);
 
         MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
+
+        const refRow = mockReferenceRow({ status: 'pending' });
+        MockedApplicationReference.findAll = vi.fn().mockResolvedValue([refRow] as never);
 
         const referenceUpdate: ReferenceUpdateRequest = {
           referenceId: 'ref-0',
@@ -1656,7 +1651,9 @@ function createMockApplication(overrides: Partial<Application> = {}): vi.Mocked<
     status: ApplicationStatus.SUBMITTED,
     priority: ApplicationPriority.NORMAL,
     answers: {},
-    references: [],
+    // references[] moved to application_references (plan 2.1) — no
+    // longer a column on Application; the test mocks the model directly
+    // where assertions are needed.
     documents: [],
     interviewNotes: null,
     homeVisitNotes: null,
@@ -1687,7 +1684,6 @@ function createMockApplication(overrides: Partial<Application> = {}): vi.Mocked<
       status: overrides.status ?? ApplicationStatus.SUBMITTED,
       priority: overrides.priority ?? ApplicationPriority.NORMAL,
       answers: overrides.answers ?? {},
-      references: overrides.references ?? [],
       documents: overrides.documents ?? [],
     }),
     update: vi.fn().mockResolvedValue(undefined),
