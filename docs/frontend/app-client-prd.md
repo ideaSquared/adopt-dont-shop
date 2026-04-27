@@ -281,5 +281,4 @@ The Client App is the public-facing React application for potential pet adopters
 
 - **Implementation Plan**: [implementation-plan.md](./implementation-plan.md)
 - **Technical Architecture**: [technical-architecture.md](./technical-architecture.md)
-- **Implementation Status**: [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md)
 - **API Documentation**: [../backend/api-endpoints.md](../backend/api-endpoints.md)

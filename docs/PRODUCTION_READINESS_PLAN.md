@@ -77,7 +77,6 @@ These **MUST** be resolved before any production deployment:
 - ✅ Build passing with zero TypeScript errors
 - ✅ Only 9 justified type assertions remain (all documented)
 
-**See:** [TYPESCRIPT_STRICT_MODE_COMPLETION.md](TYPESCRIPT_STRICT_MODE_COMPLETION.md)
 
 **Estimated Effort:** 3-5 days ✅ (Actual: 5 days)
 **Dependencies:** None
@@ -104,7 +103,6 @@ These **MUST** be resolved before any production deployment:
 - [ ] Add ESLint rule to prevent new unjustified type assertions
 - [ ] Add pre-commit hook to flag type assertions
 
-**See:** [TYPESCRIPT_STRICT_MODE_COMPLETION.md](TYPESCRIPT_STRICT_MODE_COMPLETION.md) - Section "Justified Type Assertions"
 
 **Estimated Effort:** 4-6 days ✅ (Actual: Completed with DB-1)
 **Dependencies:** DB-1 ✅
@@ -209,7 +207,6 @@ These **MUST** be resolved before any production deployment:
 - Token size: 64 bytes (cryptographically secure)
 - Session binding: User ID or IP address
 
-**See:** [CSRF_PROTECTION_COMPLETION.md](CSRF_PROTECTION_COMPLETION.md)
 
 **Estimated Effort:** 2-3 days ✅ (Actual: 1 day)
 **Dependencies:** None
@@ -233,7 +230,6 @@ These **MUST** be resolved before any production deployment:
 - ✅ Replaced all dangerous `process.env.VARIABLE!` assertions
 - ✅ Updated auth.service.ts and middleware/auth.ts to use validated env
 
-**See:** [TYPESCRIPT_STRICT_MODE_COMPLETION.md](TYPESCRIPT_STRICT_MODE_COMPLETION.md) - Section "Environment Variable Security"
 
 **Estimated Effort:** 1 day ✅
 **Dependencies:** None
@@ -330,7 +326,6 @@ These **MUST** be resolved before any production deployment:
 - Filtering: Validation errors excluded from tracking
 - Context: Node version, platform, server name added to events
 
-**See:** [SENTRY_APM_COMPLETION.md](SENTRY_APM_COMPLETION.md)
 
 **Estimated Effort:** 2-3 days ✅ (Actual: 1 day)
 **Dependencies:** None
@@ -439,7 +434,6 @@ These **MUST** be resolved before any production deployment:
 - Clear error messages guide developers to fix configuration
 - Impossible to accidentally deploy with weak secrets
 
-**See:** [SESSION_SECRET_VALIDATION_COMPLETION.md](SESSION_SECRET_VALIDATION_COMPLETION.md)
 
 **Estimated Effort:** 1 day ✅ (Actual: <1 day)
 **Priority:** P1
