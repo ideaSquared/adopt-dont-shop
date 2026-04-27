@@ -17,7 +17,9 @@ interface NotificationSeedData {
   status: NotificationStatus;
   data: JsonObject;
   related_entity_type: string;
-  related_entity_id: string;
+  // Optional now — campaign / system notifications don't point at a
+  // single entity; their action_url carries the routing.
+  related_entity_id: string | null;
   read_at?: Date;
   created_at: Date;
   updated_at: Date;
@@ -287,7 +289,10 @@ const emilyTestNotifications: NotificationSeedData[] = [
       pet_names: ['Mittens', 'Shadow', 'Princess'],
     },
     related_entity_type: 'pet',
-    related_entity_id: 'pet_cats_new',
+    // Campaign notification — points at a category page, not a single
+    // pet, so related_entity_id stays null. The action_url above
+    // carries the routing.
+    related_entity_id: null,
     created_at: new Date('2025-07-11T12:00:00Z'),
     updated_at: new Date('2025-07-11T12:00:00Z'),
   },
@@ -328,7 +333,9 @@ const emilyTestNotifications: NotificationSeedData[] = [
       discount_percentage: 50,
     },
     related_entity_type: 'rescue',
-    related_entity_id: 'clear-shelters-2025',
+    // Cross-rescue event notification — no single rescue id, the
+    // action_url above carries the routing.
+    related_entity_id: null,
     created_at: new Date('2025-07-10T14:00:00Z'),
     updated_at: new Date('2025-07-10T14:00:00Z'),
   },

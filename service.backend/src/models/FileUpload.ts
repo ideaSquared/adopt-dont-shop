@@ -119,11 +119,12 @@ FileUpload.init(
       onDelete: 'SET NULL',
     },
     entity_id: {
-      type: DataTypes.STRING(255),
+      // Plan 1.2 — polymorphic FK pointing at a UUIDv7 PK
+      // (application_id, pet_id, etc.). Same shape across all parents
+      // means a single UUID column is sufficient; the parent existence
+      // is enforced at the application layer.
+      type: getUuidType(),
       allowNull: true,
-      validate: {
-        len: [0, 255],
-      },
     },
     /**
      * Polymorphic discriminator for entity_id. Postgres ENUM gives us
