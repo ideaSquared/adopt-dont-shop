@@ -79,7 +79,6 @@ const emilyRabbitConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-18T09:30:00Z'),
@@ -100,7 +99,6 @@ const emilyRabbitConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-18T11:15:00Z'),
@@ -121,7 +119,6 @@ const emilyRabbitConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-18T12:45:00Z'),
@@ -142,7 +139,6 @@ const emilyRabbitConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-18T14:20:00Z'),
@@ -163,7 +159,6 @@ const emilyRabbitConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-18T16:10:00Z'),
@@ -184,7 +179,6 @@ const emilyRabbitConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-19T08:45:00Z'),
@@ -205,7 +199,6 @@ const emilyRabbitConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-19T10:30:00Z'),
@@ -226,7 +219,6 @@ const emilyRabbitConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [], // Most recent message from rescue staff, unread by Emily
 
       created_at: new Date('2024-07-19T12:20:00Z'),
@@ -247,7 +239,6 @@ const emilyRabbitConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [], // Most recent message from Emily
 
       created_at: new Date('2024-07-19T13:45:00Z'),

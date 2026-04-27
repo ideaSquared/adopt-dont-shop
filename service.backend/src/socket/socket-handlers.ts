@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import { config } from '../config';
 import { toFrontendMessage } from '../controllers/chat.controller';
+import MessageReaction from '../models/MessageReaction';
 import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
 import { getMessageBroker } from '../services/messageBroker.service';
@@ -359,14 +360,23 @@ export class SocketHandlers {
         try {
           const { messageId, emoji, chatId } = data;
 
-          const message = await ChatService.addMessageReaction(messageId, socket.userId!, emoji);
+          await ChatService.addMessageReaction(messageId, socket.userId!, emoji);
+          // Reactions live in message_reactions (plan 2.1) — refetch the
+          // current list so the broadcast carries an authoritative snapshot.
+          const reactions = await MessageReaction.findAll({
+            where: { message_id: messageId },
+            attributes: ['user_id', 'emoji', 'created_at'],
+          });
 
-          // Broadcast reaction to all participants
           this.io.to(`chat:${chatId}`).emit('reaction_added', {
             messageId,
             emoji,
             userId: socket.userId,
-            reactions: message.reactions,
+            reactions: reactions.map(r => ({
+              user_id: r.user_id,
+              emoji: r.emoji,
+              created_at: r.created_at,
+            })),
             timestamp: new Date(),
           });
         } catch (error) {
@@ -387,14 +397,21 @@ export class SocketHandlers {
         try {
           const { messageId, emoji, chatId } = data;
 
-          const message = await ChatService.removeMessageReaction(messageId, socket.userId!, emoji);
+          await ChatService.removeMessageReaction(messageId, socket.userId!, emoji);
+          const reactions = await MessageReaction.findAll({
+            where: { message_id: messageId },
+            attributes: ['user_id', 'emoji', 'created_at'],
+          });
 
-          // Broadcast reaction removal to all participants
           this.io.to(`chat:${chatId}`).emit('reaction_removed', {
             messageId,
             emoji,
             userId: socket.userId,
-            reactions: message.reactions,
+            reactions: reactions.map(r => ({
+              user_id: r.user_id,
+              emoji: r.emoji,
+              created_at: r.created_at,
+            })),
             timestamp: new Date(),
           });
         } catch (error) {

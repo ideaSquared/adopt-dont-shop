@@ -37,10 +37,8 @@ describe('Chat-family model defaults', () => {
       expect(attrs.message_id.defaultValue).toBeDefined();
     });
 
-    it('reactions defaults to an empty array', () => {
-      expect(attrs.reactions.allowNull).toBe(false);
-      expect(Array.isArray(attrs.reactions.defaultValue)).toBe(true);
-      expect(attrs.reactions.defaultValue).toHaveLength(0);
+    it('does not carry a reactions JSONB column (moved to message_reactions per plan 2.1)', () => {
+      expect(attrs.reactions).toBeUndefined();
     });
 
     it('read_status defaults to an empty array', () => {

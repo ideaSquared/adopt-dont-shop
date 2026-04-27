@@ -79,7 +79,6 @@ const emilyConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-08T14:30:00Z'),
@@ -100,7 +99,6 @@ const emilyConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-08T15:45:00Z'),
@@ -121,7 +119,6 @@ const emilyConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-08T16:20:00Z'),
@@ -142,7 +139,6 @@ const emilyConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-09T09:30:00Z'),
@@ -163,7 +159,6 @@ const emilyConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-09T11:15:00Z'),
@@ -184,7 +179,6 @@ const emilyConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [],
 
       created_at: new Date('2024-07-09T16:45:00Z'),
@@ -205,7 +199,6 @@ const emilyConversationData = {
       content_format: MessageContentFormat.PLAIN,
 
       attachments: [],
-      reactions: [],
       read_status: [], // Most recent message from Emily, unread by rescue staff
 
       created_at: new Date('2024-07-10T09:15:00Z'),

@@ -6,11 +6,8 @@ import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 import { installGeneratedSearchVector } from './generated-search-vector';
 
-export interface MessageReaction {
-  user_id: string;
-  emoji: string;
-  created_at: Date;
-}
+// Reactions moved to the message_reactions table (plan 2.1) — see
+// the MessageReaction model. The legacy in-memory shape is gone.
 
 export interface MessageReadStatus {
   user_id: string;
@@ -33,7 +30,7 @@ interface MessageAttributes {
   content: string;
   content_format: MessageContentFormat;
   attachments?: MessageAttachment[];
-  reactions?: MessageReaction[];
+  // reactions moved to message_reactions table (plan 2.1).
   read_status?: MessageReadStatus[];
   search_vector?: TsVector;
   created_at?: Date;
@@ -45,13 +42,7 @@ interface MessageAttributes {
 interface MessageCreationAttributes
   extends Optional<
     MessageAttributes,
-    | 'message_id'
-    | 'created_at'
-    | 'updated_at'
-    | 'search_vector'
-    | 'Chat'
-    | 'reactions'
-    | 'read_status'
+    'message_id' | 'created_at' | 'updated_at' | 'search_vector' | 'Chat' | 'read_status'
   > {}
 
 export class Message
@@ -64,7 +55,7 @@ export class Message
   public content!: string;
   public content_format!: MessageContentFormat;
   public attachments?: MessageAttachment[];
-  public reactions?: MessageReaction[];
+  // reactions moved to message_reactions (plan 2.1).
   public read_status?: MessageReadStatus[];
   public search_vector?: TsVector;
   public readonly created_at!: Date;
@@ -73,49 +64,9 @@ export class Message
   public Chat?: Chat;
   public Sender?: { firstName?: string; lastName?: string };
 
-  // Instance methods for reactions
-  public addReaction(userId: string, emoji: string): void {
-    if (!this.reactions) {
-      this.reactions = [];
-    }
-
-    // Remove existing reaction from this user with same emoji
-    this.reactions = this.reactions.filter(r => !(r.user_id === userId && r.emoji === emoji));
-
-    // Add new reaction
-    this.reactions.push({
-      user_id: userId,
-      emoji,
-      created_at: new Date(),
-    });
-  }
-
-  public removeReaction(userId: string, emoji: string): void {
-    if (!this.reactions) {
-      return;
-    }
-    this.reactions = this.reactions.filter(r => !(r.user_id === userId && r.emoji === emoji));
-  }
-
-  public getReactionCount(emoji?: string): number {
-    if (!this.reactions) {
-      return 0;
-    }
-    if (emoji) {
-      return this.reactions.filter(r => r.emoji === emoji).length;
-    }
-    return this.reactions.length;
-  }
-
-  public hasUserReacted(userId: string, emoji?: string): boolean {
-    if (!this.reactions) {
-      return false;
-    }
-    if (emoji) {
-      return this.reactions.some(r => r.user_id === userId && r.emoji === emoji);
-    }
-    return this.reactions.some(r => r.user_id === userId);
-  }
+  // Reaction-management methods moved to ChatService directly (plan
+  // 2.1) — they now create/delete rows in message_reactions instead of
+  // mutating an in-memory array on the Message instance.
 
   // Instance methods for read status
   public markAsRead(userId: string): void {
@@ -236,28 +187,8 @@ Message.init(
         },
       },
     },
-    reactions: {
-      type: getJsonType(),
-      allowNull: false,
-      // A brand new message has no reactions and no readers. Default both to
-      // empty arrays at the model level so every Message.create call site
-      // (service.sendMessage, seeders, tests, admin tools) doesn't have to
-      // remember to pass them. Without this, Sequelize rejected every insert
-      // from sendMessage with "Message.reactions cannot be null".
-      defaultValue: [],
-      validate: {
-        isValidReactions(value: MessageReaction[]) {
-          if (!Array.isArray(value)) {
-            throw new Error('Reactions must be an array');
-          }
-          value.forEach(reaction => {
-            if (!reaction.user_id || !reaction.emoji || !reaction.created_at) {
-              throw new Error('Invalid reaction format');
-            }
-          });
-        },
-      },
-    },
+    // reactions moved to message_reactions table (plan 2.1) —
+    // Message.hasMany(MessageReaction).
     read_status: {
       type: getJsonType(),
       allowNull: false,
@@ -310,11 +241,6 @@ Message.init(
         fields: ['search_vector'],
         using: 'gin',
         name: 'messages_search_vector_gin_idx',
-      },
-      {
-        fields: ['reactions'],
-        using: 'gin',
-        name: 'messages_reactions_gin_idx',
       },
       {
         fields: ['read_status'],
