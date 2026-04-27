@@ -1,0 +1,48 @@
+name: Storybook
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib.components/**'
+  pull_request:
+    paths:
+      - 'lib.components/**'
+
+jobs:
+  build-storybook:
+    name: Build Storybook
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build-storybook
+        working-directory: lib.components
+
+  deploy-storybook:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build-storybook
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build-storybook
+        working-directory: lib.components
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: lib.components/storybook-static
+      - uses: actions/deploy-pages@v4
