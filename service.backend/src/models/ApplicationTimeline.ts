@@ -36,6 +36,14 @@ export interface ApplicationTimelineAttributes {
   description?: string | null;
   metadata?: Record<string, unknown> | null;
   created_by?: string | null; // user_id of staff member who triggered the event
+  // Snapshot of the actor's email at the moment the timeline event
+  // was written. created_by is a soft reference (no FK enforcement)
+  // — the user may be deleted before the timeline is read, at which
+  // point the live lookup returns null. Snapshot keeps the history
+  // readable forever ("admin@x.test approved this application"
+  // instead of "[deleted user] approved this application"). Mirrors
+  // AuditLog.user_email_snapshot (plan 4.5).
+  created_by_email_snapshot?: string | null;
   created_by_system?: boolean; // true for automated events
   created_at?: Date;
   updated_at?: Date;
@@ -61,6 +69,7 @@ class ApplicationTimeline
   public description?: string | null;
   public metadata?: Record<string, unknown> | null;
   public created_by?: string | null;
+  public created_by_email_snapshot?: string | null;
   public created_by_system?: boolean;
   public created_at?: Date;
   public updated_at?: Date;
@@ -107,6 +116,12 @@ ApplicationTimeline.init(
       // FK relationship defined at association level with constraints: false
       // (see models/index.ts) so timeline events can be created in tests
       // without requiring the user row to exist.
+    },
+    // See the field comment on the attribute interface — display
+    // safety-net for when the actor is later deleted. Plan 4.5.
+    created_by_email_snapshot: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     created_by_system: {
       type: DataTypes.BOOLEAN,
