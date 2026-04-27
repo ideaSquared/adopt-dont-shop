@@ -1,7 +1,16 @@
 import { Op, fn, literal } from 'sequelize';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../models/Pet';
+import PetMedia, { PetMediaType } from '../models/PetMedia';
 import Rescue from '../models/Rescue';
 import { logger } from '../utils/logger';
+
+// Pet.images / Pet.videos are no longer JSONB on the pet row (plan
+// 2.1) — they're rows in pet_media. Inside discovery we only ever look
+// at images, so we narrow the typed Pet to the shape we project below.
+type PetWithMedia = Pet & { Media?: PetMedia[] };
+
+const getImages = (pet: PetWithMedia): PetMedia[] =>
+  (pet.Media ?? []).filter(m => m.type === PetMediaType.IMAGE);
 
 export interface DiscoveryFilters {
   type?: string;
@@ -101,6 +110,12 @@ export class DiscoveryService {
             as: 'Rescue',
             attributes: ['rescue_id', 'name', 'status'],
           },
+          {
+            model: PetMedia,
+            as: 'Media',
+            where: { type: PetMediaType.IMAGE },
+            required: false,
+          },
         ],
         limit,
         order: [['created_at', 'ASC']],
@@ -154,6 +169,12 @@ export class DiscoveryService {
             as: 'Rescue',
             attributes: ['rescue_id', 'name', 'status'],
           },
+          {
+            model: PetMedia,
+            as: 'Media',
+            where: { type: PetMediaType.IMAGE },
+            required: false,
+          },
         ],
         order: [
           // 1. Prioritize verified rescues
@@ -162,8 +183,12 @@ export class DiscoveryService {
           // 2. Prioritize recently added pets (within last 7 days)
           literal(`CASE WHEN "Pet"."created_at" > NOW() - INTERVAL '7 days' THEN 0 ELSE 1 END`),
 
-          // 3. Prioritize pets with good photos (more than 2 images)
-          literal(`CASE WHEN jsonb_array_length("Pet"."images") > 2 THEN 0 ELSE 1 END`),
+          // 3. Prioritize pets with good photos (more than 2 images).
+          // Counts the eager-loaded pet_media rows that are images —
+          // replaces the old jsonb_array_length on Pet.images (plan 2.1).
+          literal(
+            `CASE WHEN (SELECT COUNT(*) FROM pet_media WHERE pet_media.pet_id = "Pet"."pet_id" AND pet_media.type = 'image') > 2 THEN 0 ELSE 1 END`
+          ),
 
           // 4. Boost puppies and kittens (young pets are popular)
           literal(`CASE WHEN "Pet"."age_group" IN ('baby', 'young') THEN 0 ELSE 1 END`),
@@ -197,8 +222,9 @@ export class DiscoveryService {
     // For now, implement basic filtering
     // TODO: Implement ML-based filtering based on user behavior
 
-    // Remove pets with no images
-    const filtered = pets.filter(pet => pet.images && pet.images.length > 0);
+    // Remove pets with no images. Media is eager-loaded via PetMedia
+    // (plan 2.1).
+    const filtered = pets.filter(pet => getImages(pet).length > 0);
 
     // Implement diversity - don't show too many of the same breed in a row
     const diversified = this.diversifyBreeds(filtered);
@@ -255,13 +281,13 @@ export class DiscoveryService {
       // Ensure petId is never undefined
       const petId = pet.petId || `pet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // Get image URLs - only return valid URLs, let frontend handle placeholders
-      let imageUrls: string[] = [];
-      if (pet.images && Array.isArray(pet.images) && pet.images.length > 0) {
-        imageUrls = pet.images
-          .map(img => img.url)
-          .filter(url => url && !url.includes('placeholder') && !url.includes('via.placeholder'));
-      }
+      // Get image URLs - only return valid URLs, let frontend handle placeholders.
+      // Sort by order_index so the gallery surfaces images in the rescue's
+      // intended order (the eager-load doesn't impose ordering by default).
+      const images = [...getImages(pet)].sort((a, b) => a.order_index - b.order_index);
+      const imageUrls = images
+        .map(img => img.url)
+        .filter(url => url && !url.includes('placeholder') && !url.includes('via.placeholder'));
 
       return {
         petId,
@@ -289,7 +315,7 @@ export class DiscoveryService {
     let score = 50; // Base score
 
     // Boost for good photos
-    if (pet.images && pet.images.length >= 3) {
+    if (getImages(pet).length >= 3) {
       score += 15;
     }
 

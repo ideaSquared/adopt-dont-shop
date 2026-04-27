@@ -31,7 +31,8 @@ describe('PetStatusTransition', () => {
     rescueId = rescue.rescueId;
 
     // Same array-column workaround as the Application transition test —
-    // SQLite vs Postgres mismatch on Pet.images / .videos / .tags.
+    // SQLite vs Postgres mismatch on Pet.tags. (Pet.images / .videos
+    // were extracted to the pet_media table per plan 2.1.)
     petId = '22222222-2222-4222-a222-222222222222';
     await sequelize.getQueryInterface().bulkInsert('pets', [
       {
@@ -52,8 +53,6 @@ describe('PetStatusTransition', () => {
         view_count: 0,
         favorite_count: 0,
         application_count: 0,
-        images: '[]',
-        videos: '[]',
         tags: '[]',
         created_at: new Date(),
         updated_at: new Date(),

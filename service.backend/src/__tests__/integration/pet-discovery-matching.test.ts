@@ -138,9 +138,13 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     spayNeuterStatus: overrides.spayNeuterStatus || SpayNeuterStatus.NEUTERED,
     spayNeuterDate: overrides.spayNeuterDate || new Date('2024-01-10'),
     lastVetCheckup: overrides.lastVetCheckup || new Date('2024-01-20'),
-    images: overrides.images || [
+    // Pet.images / Pet.videos moved to the pet_media table (plan 2.1).
+    // Eager-loaded through the Media association.
+    Media: overrides.Media || [
       {
-        image_id: 'img_1',
+        media_id: 'img_1',
+        pet_id: overrides.petId || 'pet-123',
+        type: 'image',
         url: 'https://example.com/pet-image-1.jpg',
         thumbnail_url: 'https://example.com/pet-image-1-thumb.jpg',
         caption: 'Main photo',
@@ -149,7 +153,6 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
         uploaded_at: new Date(),
       },
     ],
-    videos: overrides.videos || [],
     location: overrides.location || { type: 'Point', coordinates: [-122.4194, 37.7749] },
     availableSince: overrides.availableSince || new Date('2024-01-01'),
     adoptedDate: overrides.adoptedDate || null,
@@ -171,7 +174,6 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
       .fn()
       .mockReturnValue(petData.status === PetStatus.AVAILABLE && !petData.archived),
     isAdopted: vi.fn().mockReturnValue(petData.status === PetStatus.ADOPTED),
-    getPrimaryImage: vi.fn().mockReturnValue(petData.images[0]?.url || null),
     getAgeInMonths: vi
       .fn()
       .mockReturnValue((petData.ageYears || 0) * 12 + (petData.ageMonths || 0)),
@@ -695,11 +697,15 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should retrieve pet images in correct order', async () => {
+        // Pet.images JSONB extracted to the pet_media table (plan 2.1)
+        // and surfaced through the eager-loaded Media association.
         const mockPet = createMockPet({
           petId: 'pet-1',
-          images: [
+          Media: [
             {
-              image_id: 'img_1',
+              media_id: 'img_1',
+              pet_id: 'pet-1',
+              type: 'image',
               url: 'https://example.com/img1.jpg',
               thumbnail_url: 'https://example.com/img1-thumb.jpg',
               caption: 'First photo',
@@ -708,7 +714,9 @@ describe('Pet Discovery & Matching Integration Tests', () => {
               uploaded_at: new Date(),
             },
             {
-              image_id: 'img_2',
+              media_id: 'img_2',
+              pet_id: 'pet-1',
+              type: 'image',
               url: 'https://example.com/img2.jpg',
               thumbnail_url: 'https://example.com/img2-thumb.jpg',
               caption: 'Second photo',
@@ -723,9 +731,12 @@ describe('Pet Discovery & Matching Integration Tests', () => {
 
         const result = await PetService.getPetById('pet-1', userId);
 
-        expect(result?.images).toHaveLength(2);
-        expect(result?.images[0].is_primary).toBe(true);
-        expect(result?.images[0].order_index).toBe(0);
+        const media = (
+          result as Pet & { Media?: Array<{ is_primary: boolean; order_index: number }> }
+        )?.Media;
+        expect(media).toHaveLength(2);
+        expect(media?.[0].is_primary).toBe(true);
+        expect(media?.[0].order_index).toBe(0);
       });
     });
   });
@@ -978,10 +989,22 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should filter out pets with no images', async () => {
+        // Pet.images JSONB extracted to pet_media (plan 2.1) — pets are
+        // checked by their eager-loaded Media association.
         const mockPets = [
           createMockPet({
             petId: 'pet-2',
-            images: [{ image_id: 'img_1', url: 'test.jpg' } as never],
+            Media: [
+              {
+                media_id: 'img_1',
+                pet_id: 'pet-2',
+                type: 'image',
+                url: 'test.jpg',
+                is_primary: true,
+                order_index: 0,
+                uploaded_at: new Date(),
+              },
+            ],
           }),
         ];
 
@@ -992,8 +1015,10 @@ describe('Pet Discovery & Matching Integration Tests', () => {
 
         const result = await PetService.searchPets({}, { page: 1, limit: 20 });
 
-        // All returned pets should have images
-        expect(result.pets.every(pet => pet.images && pet.images.length > 0)).toBe(true);
+        const allHaveImages = result.pets.every(
+          p => ((p as Pet & { Media?: unknown[] }).Media?.length ?? 0) > 0
+        );
+        expect(allHaveImages).toBe(true);
       });
     });
 

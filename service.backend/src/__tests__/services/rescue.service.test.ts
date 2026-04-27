@@ -274,8 +274,6 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
-        images: [],
-        videos: [],
       });
 
       const result = await RescueService.getRescueById(rescue.rescueId, true);
@@ -632,8 +630,6 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
-        images: [],
-        videos: [],
       });
 
       await Pet.create({
@@ -645,8 +641,6 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.ADOPTED,
-        images: [],
-        videos: [],
       });
 
       const result = await RescueService.getRescueStatistics(rescue.rescueId);
@@ -709,8 +703,6 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
-        images: [],
-        videos: [],
       });
 
       const result = await RescueService.getRescuePets(rescue.rescueId);
@@ -741,8 +733,6 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.AVAILABLE,
-        images: [],
-        videos: [],
       });
 
       await Pet.create({
@@ -754,8 +744,6 @@ describe('RescueService - Behavioral Testing', () => {
         gender: 'male',
         size: 'large',
         status: PetStatus.ADOPTED,
-        images: [],
-        videos: [],
       });
 
       const result = await RescueService.getRescuePets(rescue.rescueId, {

@@ -1,5 +1,6 @@
 import { col, fn, literal, Op, WhereOptions } from 'sequelize';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
+import PetMedia, { PetMediaType } from '../models/PetMedia';
 import PetStatusTransition from '../models/PetStatusTransition';
 import { validateSortField } from '../utils/sort-validation';
 import Rescue from '../models/Rescue';
@@ -387,34 +388,45 @@ export class PetService {
     try {
       const { initialImages, initialVideos, ...petAttributes } = petData;
 
-      // Prepare images with required fields
-      const images = (initialImages || []).map((img, index) => ({
-        image_id: `img_${Date.now()}_${index}`,
-        url: img.url,
-        thumbnail_url: img.thumbnailUrl,
-        caption: img.caption,
-        is_primary: img.isPrimary || false,
-        order_index: img.orderIndex || index,
-        uploaded_at: new Date(),
-      }));
-
-      // Prepare videos with required fields
-      const videos = (initialVideos || []).map((vid, index) => ({
-        video_id: `vid_${Date.now()}_${index}`,
-        url: vid.url,
-        thumbnail_url: vid.thumbnailUrl,
-        caption: vid.caption,
-        duration_seconds: vid.durationSeconds,
-        uploaded_at: new Date(),
-      }));
-
-      // Create pet
+      // Create pet first; media rows reference the new pet_id (plan 2.1).
       const pet = await Pet.create({
         ...petAttributes,
         rescueId,
-        images,
-        videos,
       });
+
+      // Initial gallery — images and videos are rows in pet_media now,
+      // not JSONB on the parent.
+      if ((initialImages?.length ?? 0) > 0) {
+        await PetMedia.bulkCreate(
+          (initialImages ?? []).map((img, index) => ({
+            pet_id: pet.petId,
+            type: PetMediaType.IMAGE,
+            url: img.url,
+            thumbnail_url: img.thumbnailUrl ?? null,
+            caption: img.caption ?? null,
+            is_primary: img.isPrimary || false,
+            order_index: img.orderIndex ?? index,
+            duration_seconds: null,
+            uploaded_at: new Date(),
+          }))
+        );
+      }
+
+      if ((initialVideos?.length ?? 0) > 0) {
+        await PetMedia.bulkCreate(
+          (initialVideos ?? []).map((vid, index) => ({
+            pet_id: pet.petId,
+            type: PetMediaType.VIDEO,
+            url: vid.url,
+            thumbnail_url: vid.thumbnailUrl ?? null,
+            caption: vid.caption ?? null,
+            is_primary: false,
+            order_index: index,
+            duration_seconds: vid.durationSeconds ?? null,
+            uploaded_at: new Date(),
+          }))
+        );
+      }
 
       // Seed the transition log with the initial status. The trigger /
       // hook would otherwise re-set pets.status to its default — a no-op
@@ -840,21 +852,25 @@ export class PetService {
         throw new Error('Pet not found');
       }
 
-      // Generate image IDs and prepare image data
-      const newImages = images.map((img, index) => ({
-        image_id: `img_${Date.now()}_${index}`,
-        url: img.url,
-        thumbnail_url: img.thumbnailUrl,
-        caption: img.caption,
-        is_primary: img.isPrimary || false,
-        order_index: img.orderIndex || pet.images.length + index,
-        uploaded_at: new Date(),
-      }));
+      // Existing image count drives the default order_index for the
+      // appended rows so they fall after the current gallery (plan 2.1).
+      const existingCount = await PetMedia.count({
+        where: { pet_id: petId, type: PetMediaType.IMAGE },
+      });
 
-      // Add to existing images
-      const updatedImages = [...pet.images, ...newImages];
-
-      await pet.update({ images: updatedImages });
+      const created = await PetMedia.bulkCreate(
+        images.map((img, index) => ({
+          pet_id: petId,
+          type: PetMediaType.IMAGE,
+          url: img.url,
+          thumbnail_url: img.thumbnailUrl ?? null,
+          caption: img.caption ?? null,
+          is_primary: img.isPrimary || false,
+          order_index: img.orderIndex ?? existingCount + index,
+          duration_seconds: null,
+          uploaded_at: new Date(),
+        }))
+      );
 
       // Log image addition
       await AuditLogService.log({
@@ -862,7 +878,7 @@ export class PetService {
         entity: 'Pet',
         entityId: petId,
         details: {
-          addedImages: JSON.parse(JSON.stringify(newImages)),
+          addedImages: created.map(m => JSON.parse(JSON.stringify(m.toJSON()))),
           addedBy,
         },
         userId: addedBy,
@@ -891,18 +907,28 @@ export class PetService {
         throw new Error('Pet not found');
       }
 
-      // Replace all images
-      const newImages = images.map((img, index) => ({
-        image_id: img.imageId || `img_${Date.now()}_${index}`,
-        url: img.url,
-        thumbnail_url: img.thumbnailUrl,
-        caption: img.caption,
-        is_primary: img.isPrimary || false,
-        order_index: img.orderIndex || index,
-        uploaded_at: new Date(),
-      }));
-
-      await pet.update({ images: newImages });
+      // Replace all images: delete-then-insert inside a transaction so a
+      // failed bulkCreate doesn't leave the pet with no media.
+      const created = await sequelize.transaction(async tx => {
+        await PetMedia.destroy({
+          where: { pet_id: petId, type: PetMediaType.IMAGE },
+          transaction: tx,
+        });
+        return PetMedia.bulkCreate(
+          images.map((img, index) => ({
+            pet_id: petId,
+            type: PetMediaType.IMAGE,
+            url: img.url,
+            thumbnail_url: img.thumbnailUrl ?? null,
+            caption: img.caption ?? null,
+            is_primary: img.isPrimary || false,
+            order_index: img.orderIndex ?? index,
+            duration_seconds: null,
+            uploaded_at: new Date(),
+          })),
+          { transaction: tx }
+        );
+      });
 
       // Log image update
       await AuditLogService.log({
@@ -910,7 +936,7 @@ export class PetService {
         entity: 'Pet',
         entityId: petId,
         details: {
-          newImages: JSON.parse(JSON.stringify(newImages)),
+          newImages: created.map(m => JSON.parse(JSON.stringify(m.toJSON()))),
           updatedBy,
         },
         userId: updatedBy,
@@ -939,14 +965,13 @@ export class PetService {
         throw new Error('Pet not found');
       }
 
-      const originalImages = pet.images;
-      const updatedImages = pet.images.filter(img => img.image_id !== imageId);
+      const deleted = await PetMedia.destroy({
+        where: { media_id: imageId, pet_id: petId, type: PetMediaType.IMAGE },
+      });
 
-      if (originalImages.length === updatedImages.length) {
+      if (deleted === 0) {
         throw new Error('Image not found');
       }
-
-      await pet.update({ images: updatedImages });
 
       // Log image removal
       await AuditLogService.log({

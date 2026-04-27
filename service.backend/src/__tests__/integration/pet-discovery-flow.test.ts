@@ -94,16 +94,12 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
     spayNeuterStatus: overrides.spayNeuterStatus || SpayNeuterStatus.UNKNOWN,
     spayNeuterDate: overrides.spayNeuterDate || new Date(),
     lastVetCheckup: overrides.lastVetCheckup || new Date(),
-    images: overrides.images || [
-      {
-        image_id: 'img-default',
-        url: 'https://example.com/pet.jpg',
-        is_primary: true,
-        order_index: 0,
-        uploaded_at: new Date(),
-      },
-    ],
-    videos: overrides.videos || [],
+    // Pet.images / Pet.videos moved to the pet_media table (plan 2.1).
+    // Tests that need media to flow through the service layer must
+    // mock PetMedia.findAll directly. Most discovery-flow tests don't
+    // assert on specific images, so we omit the field by default and
+    // surface the eager-loaded "Media" relation via overrides only.
+    Media: overrides.Media || [],
     location: overrides.location || { type: 'Point', coordinates: [-122.4194, 37.7749] },
     availableSince: overrides.availableSince || new Date('2024-01-01'),
     adoptedDate: overrides.adoptedDate || null,
@@ -125,7 +121,6 @@ const createMockPet = (overrides: Partial<PetAttributes> = {}): Pet => {
       .fn()
       .mockReturnValue(petData.status === PetStatus.AVAILABLE && !petData.archived),
     canBeAdopted: vi.fn().mockReturnValue(petData.status === PetStatus.AVAILABLE),
-    getPrimaryImage: vi.fn().mockReturnValue('https://example.com/pet.jpg'),
     getAgeDisplay: vi.fn().mockReturnValue(`${petData.ageYears} years`),
     increment: vi.fn().mockResolvedValue(undefined),
     toJSON: vi.fn().mockReturnValue(petData),
@@ -328,20 +323,26 @@ describe('Pet Discovery & Matching Flow Integration Tests', () => {
   describe('Workflow 2: View Pet Details', () => {
     describe('when user views a pet profile', () => {
       it('should retrieve complete pet details with images', async () => {
+        // Pet.images JSONB is now eager-loaded via the Media association
+        // (plan 2.1 — pet_media typed table).
         const mockPet = createMockPet({
           petId: 'pet-detail-1',
           name: 'Buddy',
           longDescription: 'Friendly and energetic dog',
-          images: [
+          Media: [
             {
-              image_id: 'img-buddy-1',
+              media_id: 'img-buddy-1',
+              pet_id: 'pet-detail-1',
+              type: 'image',
               url: 'https://example.com/buddy-1.jpg',
               is_primary: true,
               order_index: 0,
               uploaded_at: new Date(),
             },
             {
-              image_id: 'img-buddy-2',
+              media_id: 'img-buddy-2',
+              pet_id: 'pet-detail-1',
+              type: 'image',
               url: 'https://example.com/buddy-2.jpg',
               is_primary: false,
               order_index: 1,
@@ -356,7 +357,7 @@ describe('Pet Discovery & Matching Flow Integration Tests', () => {
 
         expect(result?.name).toBe('Buddy');
         expect(result?.longDescription).toBe('Friendly and energetic dog');
-        expect(result?.images).toHaveLength(2);
+        expect((result as Pet & { Media?: unknown[] })?.Media).toHaveLength(2);
       });
 
       it('should increment view count when pet is viewed', async () => {

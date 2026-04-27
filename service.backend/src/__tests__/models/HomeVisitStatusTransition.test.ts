@@ -61,8 +61,6 @@ describe('HomeVisitStatusTransition', () => {
         view_count: 0,
         favorite_count: 0,
         application_count: 0,
-        images: '[]',
-        videos: '[]',
         tags: '[]',
         created_at: new Date(),
         updated_at: new Date(),
