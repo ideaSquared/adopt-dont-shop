@@ -3,6 +3,7 @@ import ApplicationQuestion from './ApplicationQuestion';
 import ApplicationReference from './ApplicationReference';
 import ApplicationStatusTransition from './ApplicationStatusTransition';
 import ApplicationTimeline from './ApplicationTimeline';
+import Breed from './Breed';
 import Pet from './Pet';
 import PetMedia from './PetMedia';
 import PetStatusTransition from './PetStatusTransition';
@@ -82,6 +83,7 @@ const models = {
   UserApplicationPrefs,
   Rescue,
   RescueSettings,
+  Breed,
   Pet,
   PetMedia,
   PetStatusTransition,
@@ -543,6 +545,15 @@ try {
   Pet.hasMany(PetMedia, { foreignKey: 'pet_id', as: 'Media' });
   PetMedia.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
 
+  // Breed lookup (plan 2.4 — Pet.breed / Pet.secondaryBreed STRING
+  // columns extracted to the breeds typed table). Both FKs nullable;
+  // SET NULL on delete so a pet survives its breed row being removed.
+  // No reverse Breed.hasMany — the breed_id FK doesn't represent the
+  // pet's home in the breeds table (each pet has two distinct FKs into
+  // it), so the inverse association would be misleading.
+  Pet.belongsTo(Breed, { foreignKey: 'breed_id', as: 'Breed' });
+  Pet.belongsTo(Breed, { foreignKey: 'secondary_breed_id', as: 'SecondaryBreed' });
+
   User.hasOne(EmailPreference, { foreignKey: 'userId', as: 'EmailPreferences' });
   EmailPreference.belongsTo(User, { foreignKey: 'userId', as: 'User' });
 
@@ -598,6 +609,7 @@ export {
   ApplicationTimeline,
   Address,
   AuditLog,
+  Breed,
   Chat,
   ChatParticipant,
   IdempotencyKey,

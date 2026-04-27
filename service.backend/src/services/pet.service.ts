@@ -1,4 +1,5 @@
 import { col, fn, literal, Op, WhereOptions } from 'sequelize';
+import Breed from '../models/Breed';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
 import PetMedia, { PetMediaType } from '../models/PetMedia';
 import PetStatusTransition from '../models/PetStatusTransition';
@@ -37,7 +38,6 @@ const PET_SEARCH_SORT_FIELDS = [
   'updatedAt',
   'updated_at',
   'name',
-  'breed',
   'ageYears',
   'adoptionFeeMinor',
   'distance',
@@ -56,6 +56,26 @@ const PET_RESCUE_LIST_SORT_FIELDS = [
  */
 const getLikeOp = () => {
   return sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
+};
+
+/**
+ * Plan 2.4 — breed is now an FK into the breeds lookup table. Callers
+ * still pass a free-form breed name (the API contract didn't change);
+ * resolve it to a list of breed_ids the service can use as an IN-list
+ * filter. Returns an empty array when no breeds match — the caller
+ * should treat that as "no results", not "no filter".
+ */
+const resolveBreedIdsByName = async (name: string): Promise<string[]> => {
+  const rows = await Breed.findAll({
+    where: { name: { [getLikeOp()]: `%${name}%` } },
+    attributes: ['breed_id'],
+  });
+  // Filter out undefined/null breed_ids defensively. In some integration
+  // test contexts Sequelize's auto-mock surfaces phantom rows whose
+  // attribute getters return undefined; we never want those in the
+  // IN-list (they'd render as `breedId IN (NULL, NULL)`, which matches
+  // nothing semantically but produces noise).
+  return rows.map(b => b.breed_id).filter((id): id is string => Boolean(id));
 };
 
 export class PetService {
@@ -127,9 +147,11 @@ export class PetService {
       if (size) {
         whereConditions.size = size;
       }
-      if (breed) {
-        whereConditions.breed = { [getLikeOp()]: `%${breed}%` };
-      }
+      // Plan 2.4 — breed is an FK into the breeds table. Resolve the
+      // caller's free-form name to breed_ids; the actual WHERE
+      // contribution is merged in after all simple filters so it can
+      // share the [Op.or] slot with the text search if both are set.
+      const breedIdsForFilter = breed ? await resolveBreedIdsByName(breed) : null;
       if (ageGroup) {
         whereConditions.ageGroup = ageGroup;
       }
@@ -219,24 +241,53 @@ export class PetService {
         whereConditions.tags = { [Op.overlap]: tags };
       }
 
-      // Text search (applied last as it changes the structure)
+      // Plan 2.4 — breed filter and the text-search OR may both want
+      // to set [Op.or] on the where; bundle them as separate AND-ed
+      // OR groups so they coexist instead of overwriting each other.
+      const andClauses: WhereOptions[] = [];
+
+      if (breedIdsForFilter !== null) {
+        if (breedIdsForFilter.length === 0) {
+          whereConditions.breedId = '__never_matches__';
+        } else {
+          andClauses.push({
+            [Op.or]: [
+              { breedId: { [Op.in]: breedIdsForFilter } },
+              { secondaryBreedId: { [Op.in]: breedIdsForFilter } },
+            ],
+          });
+        }
+      }
+
+      // Text search (applied last as it changes the structure).
+      // Plan 2.4 — breed names live in the breeds lookup table now.
+      // Resolve the search term against breed names up-front so the
+      // OR can include breedId / secondaryBreedId IN-lists alongside
+      // the name / description LIKE clauses.
       if (search) {
+        const searchBreedIds = await resolveBreedIdsByName(search);
         const searchConditions: WhereOptions[] = [
           { name: { [getLikeOp()]: `%${search}%` } },
-          { breed: { [getLikeOp()]: `%${search}%` } },
-          { secondaryBreed: { [getLikeOp()]: `%${search}%` } },
           { shortDescription: { [getLikeOp()]: `%${search}%` } },
           { longDescription: { [getLikeOp()]: `%${search}%` } },
         ];
+        if (searchBreedIds.length > 0) {
+          searchConditions.push({ breedId: { [Op.in]: searchBreedIds } });
+          searchConditions.push({ secondaryBreedId: { [Op.in]: searchBreedIds } });
+        }
 
         // Only add tags search for PostgreSQL (SQLite doesn't support overlap operator)
         if (sequelize.getDialect() === 'postgres') {
           searchConditions.push({ tags: { [Op.overlap]: [search] } });
         }
 
+        andClauses.push({ [Op.or]: searchConditions });
+      }
+
+      if (andClauses.length > 0) {
         whereConditions = {
           ...whereConditions,
-          [Op.or]: searchConditions,
+          [Op.and]: andClauses,
         };
       }
 
@@ -504,7 +555,7 @@ export class PetService {
         ageYears: 'ageYears',
         ageMonths: 'ageMonths',
         ageGroup: 'ageGroup',
-        secondaryBreed: 'secondaryBreed',
+        secondaryBreedId: 'secondaryBreedId',
         weightKg: 'weightKg',
         microchipId: 'microchipId',
         priorityListing: 'priorityListing',
@@ -559,8 +610,8 @@ export class PetService {
       if (normalizedData.ageGroup !== undefined) {
         dbUpdateData.ageGroup = normalizedData.ageGroup;
       }
-      if (normalizedData.secondaryBreed !== undefined) {
-        dbUpdateData.secondaryBreed = normalizedData.secondaryBreed;
+      if (normalizedData.secondaryBreedId !== undefined) {
+        dbUpdateData.secondaryBreedId = normalizedData.secondaryBreedId;
       }
       if (normalizedData.weightKg !== undefined) {
         dbUpdateData.weightKg = normalizedData.weightKg;
@@ -643,7 +694,7 @@ export class PetService {
         'name',
         'gender',
         'status',
-        'breed',
+        'breedId',
         'size',
         'color',
         'markings',
@@ -1414,8 +1465,17 @@ export class PetService {
       if (status) {
         whereClause.status = status;
       }
+      // Plan 2.4 — resolve free-form breed name to FK ids before filtering.
       if (breed) {
-        whereClause.breed = { [getLikeOp()]: `%${breed}%` };
+        const breedIds = await resolveBreedIdsByName(breed);
+        if (breedIds.length === 0) {
+          whereClause.breedId = '__never_matches__';
+        } else {
+          (whereClause as Record<symbol, unknown>)[Op.or] = [
+            { breedId: { [Op.in]: breedIds } },
+            { secondaryBreedId: { [Op.in]: breedIds } },
+          ];
+        }
       }
       if (size) {
         whereClause.size = size;
@@ -1475,14 +1535,21 @@ export class PetService {
         whereClause.createdAt = dateFilter;
       }
 
-      // Search functionality
+      // Search functionality. Plan 2.4 — breed names live in the
+      // breeds lookup table, so the OR resolves the search term to
+      // breed_ids and adds an FK IN-list term.
       if (search) {
-        (whereClause as Record<symbol, unknown>)[Op.or] = [
+        const searchBreedIds = await resolveBreedIdsByName(search);
+        const searchOr: WhereOptions[] = [
           { name: { [getLikeOp()]: `%${search}%` } },
-          { breed: { [getLikeOp()]: `%${search}%` } },
           { shortDescription: { [getLikeOp()]: `%${search}%` } },
           { longDescription: { [getLikeOp()]: `%${search}%` } },
         ];
+        if (searchBreedIds.length > 0) {
+          searchOr.push({ breedId: { [Op.in]: searchBreedIds } });
+          searchOr.push({ secondaryBreedId: { [Op.in]: searchBreedIds } });
+        }
+        (whereClause as Record<symbol, unknown>)[Op.or] = searchOr;
       }
 
       const offset = (page - 1) * limit;
@@ -1664,7 +1731,9 @@ export class PetService {
   }
 
   /**
-   * Get pet breeds by type
+   * Get pet breeds by type. Plan 2.4 — reads from the breeds lookup
+   * table directly instead of `SELECT DISTINCT breed FROM pets` so the
+   * catalogue isn't gated on a pet of that breed currently existing.
    */
   static async getPetBreedsByType(type: string): Promise<string[]> {
     try {
@@ -1675,20 +1744,15 @@ export class PetService {
         throw new Error(`Invalid pet type: ${type}`);
       }
 
-      const breeds = await Pet.findAll({
-        attributes: ['breed'],
-        where: {
-          type: validType,
-          archived: false,
-        },
-        group: ['breed'],
-        order: [['breed', 'ASC']],
+      const breeds = await Breed.findAll({
+        where: { species: validType as PetType },
+        attributes: ['name'],
+        order: [['name', 'ASC']],
       });
 
       const breedNames = breeds
-        .map(pet => pet.breed)
-        .filter((breed): breed is string => breed !== null && breed.trim() !== '')
-        .sort();
+        .map(b => b.name)
+        .filter((name): name is string => name !== null && name.trim() !== '');
 
       logger.info(`Retrieved ${breedNames.length} breeds for type ${type}`);
       return breedNames;
@@ -1727,14 +1791,15 @@ export class PetService {
         throw new Error('Pet not found');
       }
 
-      // Find similar pets with priority scoring
+      // Plan 2.4 — breed is an FK; "same breed" is now an FK
+      // comparison (simpler and faster than the old string match).
       const similarPets = await Pet.findAll({
         where: {
           petId: { [Op.ne]: petId }, // Exclude the reference pet
           status: PetStatus.AVAILABLE,
           archived: false,
           [Op.or]: [
-            { breed: referencePet.breed }, // Same breed (highest priority)
+            { breedId: referencePet.breedId }, // Same breed (highest priority)
             { type: referencePet.type }, // Same type
             { size: referencePet.size }, // Same size
             { ageGroup: referencePet.ageGroup }, // Same age group
@@ -1748,10 +1813,10 @@ export class PetService {
           },
         ],
         order: [
-          // Prioritize exact breed matches first
+          // Prioritize exact breed matches first (FK comparison)
           [
             sequelize.literal(
-              `CASE WHEN breed = ${sequelize.escape(referencePet.breed ?? '')} THEN 0 ELSE 1 END`
+              `CASE WHEN breed_id = ${sequelize.escape(referencePet.breedId ?? '')} THEN 0 ELSE 1 END`
             ),
             'ASC',
           ],

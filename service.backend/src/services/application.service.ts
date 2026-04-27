@@ -9,6 +9,7 @@ import { validateSortField } from '../utils/sort-validation';
 const APPLICATION_SORT_FIELDS = ['createdAt', 'updatedAt', 'status', 'actioned_at'] as const;
 import ApplicationQuestion, { QuestionCategory } from '../models/ApplicationQuestion';
 import ApplicationStatusTransition from '../models/ApplicationStatusTransition';
+import Breed from '../models/Breed';
 import Pet from '../models/Pet';
 import User, { UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
@@ -423,9 +424,12 @@ export class ApplicationService {
           { '$User.first_name$': { [Op.iLike]: `%${filters.search}%` } },
           { '$User.last_name$': { [Op.iLike]: `%${filters.search}%` } },
           { '$User.email$': { [Op.iLike]: `%${filters.search}%` } },
-          // Search in pet fields
+          // Search in pet fields. Plan 2.4 — breed lives in the
+          // breeds lookup table; the `$Pet->Breed.name$` path follows
+          // the eager-loaded Breed association added to the include
+          // chain below.
           { '$Pet.name$': { [Op.iLike]: `%${filters.search}%` } },
-          { '$Pet.breed$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$Pet->Breed.name$': { [Op.iLike]: `%${filters.search}%` } },
         ];
         (whereConditions as Record<string | symbol, unknown>)[Op.or] = searchConditions;
       }
@@ -445,6 +449,10 @@ export class ApplicationService {
         });
       }
       if (include_pet) {
+        // Plan 2.4 — breed extracted to the breeds lookup table.
+        // Eager-load Breed so callers see the canonical name without
+        // a second round-trip; the application-controller transform
+        // reads `Pet.Breed?.name`.
         includeOptions.push({
           model: Pet,
           as: 'Pet',
@@ -452,12 +460,13 @@ export class ApplicationService {
             'petId',
             'name',
             'type',
-            'breed',
+            'breedId',
             'ageYears',
             'ageMonths',
             'ageGroup',
             'status',
           ],
+          include: [{ model: Breed, as: 'Breed', attributes: ['breed_id', 'name'] }],
         });
       }
 

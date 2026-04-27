@@ -182,11 +182,13 @@ export class ApplicationController extends BaseController {
       updatedAt: applicationModel.updatedAt as string,
     };
 
-    // Add pet information if available
+    // Add pet information if available. Plan 2.4 — breed name lives
+    // on the eager-loaded Breed association, not directly on Pet.
     if (Pet) {
       transformed.petName = Pet.name as string;
       transformed.petType = Pet.type as string;
-      transformed.petBreed = Pet.breed as string;
+      const petBreed = Pet.Breed as { name?: string } | undefined;
+      transformed.petBreed = petBreed?.name ?? '';
     }
 
     // Add user information if available

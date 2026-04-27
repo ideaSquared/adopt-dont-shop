@@ -1,3 +1,4 @@
+import Breed from '../models/Breed';
 import Pet, {
   AgeGroup,
   EnergyLevel,
@@ -38,7 +39,7 @@ const petProfiles = [
     gender: Gender.MALE,
     status: PetStatus.AVAILABLE,
     type: PetType.DOG,
-    breed: 'Golden Retriever',
+    breedName: 'Golden Retriever',
     weightKg: 28.5,
     size: Size.LARGE,
     color: 'Golden',
@@ -109,7 +110,7 @@ const petProfiles = [
     gender: Gender.FEMALE,
     status: PetStatus.AVAILABLE,
     type: PetType.CAT,
-    breed: 'Domestic Shorthair',
+    breedName: 'Domestic Shorthair',
     weightKg: 4.2,
     size: Size.MEDIUM,
     color: 'Brown Tabby',
@@ -172,8 +173,8 @@ const petProfiles = [
     gender: Gender.MALE,
     status: PetStatus.AVAILABLE,
     type: PetType.DOG,
-    breed: 'Pit Bull Mix',
-    secondaryBreed: 'American Staffordshire Terrier',
+    breedName: 'Pit Bull Mix',
+    secondaryBreedName: 'American Staffordshire Terrier',
     weightKg: 32.2,
     size: Size.LARGE,
     color: 'Brindle',
@@ -235,7 +236,7 @@ const petProfiles = [
     gender: Gender.FEMALE,
     status: PetStatus.PENDING,
     type: PetType.CAT,
-    breed: 'Siamese Mix',
+    breedName: 'Siamese Mix',
     weightKg: 3.8,
     size: Size.MEDIUM,
     color: 'Seal Point',
@@ -297,7 +298,7 @@ const petProfiles = [
     gender: Gender.MALE,
     status: PetStatus.AVAILABLE,
     type: PetType.DOG,
-    breed: 'German Shepherd Mix',
+    breedName: 'German Shepherd Mix',
     weightKg: 22.7,
     size: Size.LARGE,
     color: 'Black and Tan',
@@ -349,14 +350,48 @@ const petProfiles = [
 ];
 
 export async function seedPets() {
+  // Plan 2.4 — pets reference the breeds lookup table by FK. Seed the
+  // (species, name) pairs that appear in the pet seed data first, then
+  // resolve each pet's breedName / secondaryBreedName to the matching
+  // breed_id when inserting the pet rows.
+  const requiredBreeds = new Set<string>();
+  for (const profile of petProfiles) {
+    requiredBreeds.add(`${profile.type}::${profile.breedName}`);
+    if ('secondaryBreedName' in profile && profile.secondaryBreedName) {
+      requiredBreeds.add(`${profile.type}::${profile.secondaryBreedName}`);
+    }
+  }
+
+  const breedIdsByKey = new Map<string, string>();
+  for (const key of requiredBreeds) {
+    const [species, name] = key.split('::');
+    const [row] = await Breed.findOrCreate({
+      where: { species: species as PetType, name },
+      defaults: { species: species as PetType, name },
+    });
+    breedIdsByKey.set(key, row.breed_id);
+  }
+
   for (const petData of petProfiles) {
-    const { images, ...petAttributes } = petData as typeof petData & { images: SeedImage[] };
+    const profile = petData as typeof petData & {
+      images: SeedImage[];
+      breedName: string;
+      secondaryBreedName?: string;
+    };
+    const { images, breedName, secondaryBreedName, ...petAttributes } = profile;
+
+    const breedId = breedIdsByKey.get(`${profile.type}::${breedName}`) ?? null;
+    const secondaryBreedId = secondaryBreedName
+      ? (breedIdsByKey.get(`${profile.type}::${secondaryBreedName}`) ?? null)
+      : null;
 
     await Pet.findOrCreate({
       paranoid: false,
       where: { petId: petData.petId },
       defaults: {
         ...petAttributes,
+        breedId,
+        secondaryBreedId,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

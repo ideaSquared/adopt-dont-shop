@@ -22,6 +22,10 @@ export interface PetSearchFilters {
   size?: Size;
   ageGroup?: AgeGroup;
   energyLevel?: EnergyLevel;
+  // Plan 2.4 — caller-facing breed name (free-form). The pets table
+  // stores a breed_id FK; the service resolves the name to one or
+  // more breed_ids at the search boundary. Keep this a string so the
+  // public API stays human-typeable.
   breed?: string;
   rescueId?: string;
   goodWithChildren?: boolean;
@@ -74,8 +78,11 @@ export interface PetUpdateData {
   ageGroup?: AgeGroup;
   gender?: Gender;
   status?: PetStatus;
-  breed?: string;
-  secondaryBreed?: string;
+  // Plan 2.4 — direct FK references into the breeds table. Callers
+  // pass the breed_id (and secondary_breed_id) UUID; resolving from a
+  // free-form name lives one level up.
+  breedId?: string | null;
+  secondaryBreedId?: string | null;
   weightKg?: number;
   size?: Size;
   color?: string;

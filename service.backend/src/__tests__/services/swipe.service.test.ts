@@ -94,9 +94,13 @@ describe('SwipeService', () => {
       await swipeService.recordSwipeAction(mockSwipeAction);
 
       expect(mockSequelize.query).toHaveBeenCalledTimes(3);
+      // Plan 2.4 — breed is now an FK; the pet preference probe joins
+      // through the breeds lookup to surface the breed name. Match
+      // the canonical column expression rather than the legacy
+      // bare-column shape.
       expect(mockSequelize.query).toHaveBeenNthCalledWith(
         2,
-        expect.stringContaining('SELECT type, breed, age_group'),
+        expect.stringContaining('b.name AS breed'),
         {
           replacements: { petId: 'pet123' },
         }

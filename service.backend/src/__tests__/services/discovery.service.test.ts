@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import { Op } from 'sequelize';
+import Breed from '../../models/Breed';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../../models/Pet';
 import PetMedia, { PetMediaType } from '../../models/PetMedia';
 import Rescue from '../../models/Rescue';
@@ -182,6 +183,15 @@ describe('DiscoveryService', () => {
             model: PetMedia,
             as: 'Media',
             where: { type: PetMediaType.IMAGE },
+            required: false,
+          },
+          // Plan 2.4 — breeds eager-loaded so the discovery transform
+          // can surface the human-readable breed name from the lookup
+          // table.
+          {
+            model: Breed,
+            as: 'Breed',
+            attributes: ['breed_id', 'name'],
             required: false,
           },
         ],
