@@ -1421,7 +1421,6 @@ function createMockUser(overrides: Partial<User> = {}): vi.Mocked<User> {
     applicationDefaults: null,
     applicationPreferences: {},
     profileCompletionStatus: {},
-    applicationTemplateVersion: 1,
     Roles: [],
     isAccountLocked: vi.fn().mockReturnValue(false),
     getFullName: vi.fn().mockReturnValue('Mock User'),
