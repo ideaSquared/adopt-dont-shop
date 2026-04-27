@@ -64,3 +64,9 @@ docker-compose.override.yml
 ### Build artifacts ###
 *.tsbuildinfo
 *.timestamp-*.mjs
+
+### Claude Code agent state ###
+# Per-agent worktrees and transcripts written by the local CLI tooling —
+# transient working dirs, not source.
+.claude/worktrees/
+.claude/projects/
