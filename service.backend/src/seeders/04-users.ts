@@ -295,7 +295,6 @@ export async function seedUsers() {
                 })
               )
             : undefined,
-        applicationTemplateVersion: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

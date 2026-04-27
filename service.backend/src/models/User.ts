@@ -83,7 +83,9 @@ interface UserAttributes {
   applicationDefaults?: JsonObject | null;
   // applicationPreferences moved to user_application_prefs (plan 5.6).
   profileCompletionStatus?: JsonObject;
-  applicationTemplateVersion?: number;
+  // applicationTemplateVersion column removed (plan 5.5) — there was
+  // no backing application_templates table, so the field tracked
+  // nothing and was a known dead-end.
   Roles?: Role[];
 }
 
@@ -147,7 +149,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public privacyPolicyAcceptedAt!: Date | null;
   public applicationDefaults!: JsonObject | null;
   public profileCompletionStatus!: JsonObject;
-  public applicationTemplateVersion!: number;
+  // applicationTemplateVersion removed (plan 5.5).
 
   // Optional Roles property
   public Roles?: Role[];
@@ -441,12 +443,8 @@ User.init(
         last_updated: null,
       },
     },
-    applicationTemplateVersion: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      field: 'application_template_version',
-      defaultValue: 1,
-    },
+    // applicationTemplateVersion column removed (plan 5.5) — orphan
+    // field with no backing application_templates table.
     ...auditColumns,
   },
   withAuditHooks({
