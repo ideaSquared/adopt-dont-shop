@@ -1,6 +1,16 @@
 import Message from '../models/Message';
 import MessageReaction from '../models/MessageReaction';
+import MessageRead from '../models/MessageRead';
 import { MessageContentFormat } from '../types/chat';
+
+// Message.read_status[] moved to the message_reads table (plan 2.1).
+// Seeders inline the read receipts alongside each message for
+// readability; seedMessages() splits them out and bulk-inserts to the
+// typed table after the parent rows exist.
+type SeedReadStatus = {
+  user_id: string;
+  read_at: Date;
+};
 
 const messageData = [
   // Messages for Buddy application chat
@@ -219,12 +229,27 @@ const messageData = [
 ];
 
 export async function seedMessages() {
-  for (const message of messageData) {
+  for (const messageDatum of messageData) {
+    const { read_status, ...messageFields } = messageDatum as typeof messageDatum & {
+      read_status: SeedReadStatus[];
+    };
+
     await Message.findOrCreate({
       paranoid: false,
-      where: { message_id: message.message_id },
-      defaults: message,
+      where: { message_id: messageDatum.message_id },
+      defaults: messageFields,
     });
+
+    for (const status of read_status) {
+      await MessageRead.findOrCreate({
+        where: { message_id: messageDatum.message_id, user_id: status.user_id },
+        defaults: {
+          message_id: messageDatum.message_id,
+          user_id: status.user_id,
+          read_at: status.read_at,
+        },
+      });
+    }
   }
 
   // Seed the one historical reaction in this dataset (plan 2.1).

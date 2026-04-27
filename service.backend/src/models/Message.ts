@@ -8,11 +8,10 @@ import { installGeneratedSearchVector } from './generated-search-vector';
 
 // Reactions moved to the message_reactions table (plan 2.1) — see
 // the MessageReaction model. The legacy in-memory shape is gone.
-
-export interface MessageReadStatus {
-  user_id: string;
-  read_at: Date;
-}
+//
+// Read receipts moved to the message_reads table (plan 2.1) — see the
+// MessageRead model. Same reasoning: the JSONB array blocked per-user
+// indexes and made unread-count queries O(messages).
 
 export interface MessageAttachment {
   attachment_id: string;
@@ -30,8 +29,7 @@ interface MessageAttributes {
   content: string;
   content_format: MessageContentFormat;
   attachments?: MessageAttachment[];
-  // reactions moved to message_reactions table (plan 2.1).
-  read_status?: MessageReadStatus[];
+  // reactions / read_status moved to typed tables (plan 2.1).
   search_vector?: TsVector;
   created_at?: Date;
   updated_at?: Date;
@@ -42,7 +40,7 @@ interface MessageAttributes {
 interface MessageCreationAttributes
   extends Optional<
     MessageAttributes,
-    'message_id' | 'created_at' | 'updated_at' | 'search_vector' | 'Chat' | 'read_status'
+    'message_id' | 'created_at' | 'updated_at' | 'search_vector' | 'Chat'
   > {}
 
 export class Message
@@ -55,53 +53,15 @@ export class Message
   public content!: string;
   public content_format!: MessageContentFormat;
   public attachments?: MessageAttachment[];
-  // reactions moved to message_reactions (plan 2.1).
-  public read_status?: MessageReadStatus[];
+  // reactions / read_status moved to typed tables (plan 2.1) — see
+  // MessageReaction and MessageRead. Read-status helpers live in
+  // ChatService now.
   public search_vector?: TsVector;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
   public length!: number;
   public Chat?: Chat;
   public Sender?: { firstName?: string; lastName?: string };
-
-  // Reaction-management methods moved to ChatService directly (plan
-  // 2.1) — they now create/delete rows in message_reactions instead of
-  // mutating an in-memory array on the Message instance.
-
-  // Instance methods for read status
-  public markAsRead(userId: string): void {
-    if (!this.read_status) {
-      this.read_status = [];
-    }
-
-    // Remove existing read status for this user
-    this.read_status = this.read_status.filter(r => r.user_id !== userId);
-
-    // Add new read status
-    this.read_status.push({
-      user_id: userId,
-      read_at: new Date(),
-    });
-  }
-
-  public isReadBy(userId: string): boolean {
-    if (!this.read_status) {
-      return false;
-    }
-    return this.read_status.some(r => r.user_id === userId);
-  }
-
-  public getReadCount(): number {
-    return this.read_status?.length || 0;
-  }
-
-  public getUnreadUsers(chatParticipants: string[]): string[] {
-    if (!this.read_status) {
-      return chatParticipants;
-    }
-    const readUserIds = this.read_status.map(r => r.user_id);
-    return chatParticipants.filter(userId => !readUserIds.includes(userId));
-  }
 
   // Add static method type declaration
   public static searchMessages: (
@@ -187,25 +147,7 @@ Message.init(
         },
       },
     },
-    // reactions moved to message_reactions table (plan 2.1) —
-    // Message.hasMany(MessageReaction).
-    read_status: {
-      type: getJsonType(),
-      allowNull: false,
-      defaultValue: [],
-      validate: {
-        isValidReadStatus(value: MessageReadStatus[]) {
-          if (!Array.isArray(value)) {
-            throw new Error('Read status must be an array');
-          }
-          value.forEach(status => {
-            if (!status.user_id || !status.read_at) {
-              throw new Error('Invalid read status format');
-            }
-          });
-        },
-      },
-    },
+    // reactions / read_status moved to typed tables (plan 2.1).
     search_vector: {
       type: getTsVectorType(),
       allowNull: true,
@@ -241,11 +183,6 @@ Message.init(
         fields: ['search_vector'],
         using: 'gin',
         name: 'messages_search_vector_gin_idx',
-      },
-      {
-        fields: ['read_status'],
-        using: 'gin',
-        name: 'messages_read_status_gin_idx',
       },
       // Messaging pagination is always "latest N messages in this chat,
       // newest first" (plan 4.4) — composite covers the where + order

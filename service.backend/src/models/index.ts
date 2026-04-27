@@ -19,6 +19,7 @@ import ChatParticipant from './ChatParticipant';
 import FileUpload from './FileUpload';
 import Message from './Message';
 import MessageReaction from './MessageReaction';
+import MessageRead from './MessageRead';
 
 // Notification Models
 import DeviceToken from './DeviceToken';
@@ -89,6 +90,7 @@ const models = {
   ChatParticipant,
   Message,
   MessageReaction,
+  MessageRead,
   Notification,
   DeviceToken,
   RefreshToken,
@@ -259,6 +261,23 @@ try {
   MessageReaction.belongsTo(Message, { foreignKey: 'message_id', as: 'Message' });
   User.hasMany(MessageReaction, { foreignKey: 'user_id', as: 'MessageReactions' });
   MessageReaction.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+
+  // MessageRead (plan 2.1) — typed table replacing Message.read_status
+  // JSONB. CASCADE on the message FK so a deleted message takes its
+  // read receipts with it; SET NULL on the user FK preserves the
+  // forensic record if a user is removed.
+  Message.hasMany(MessageRead, { foreignKey: 'message_id', as: 'Reads' });
+  MessageRead.belongsTo(Message, { foreignKey: 'message_id', as: 'Message' });
+  User.hasMany(MessageRead, {
+    foreignKey: 'user_id',
+    as: 'MessageReads',
+    constraints: false,
+  });
+  MessageRead.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'User',
+    constraints: false,
+  });
 
   // Ensure Chat belongsTo Rescue with alias 'rescue'
   Chat.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'rescue' });
@@ -521,6 +540,7 @@ export {
   Invitation,
   Message,
   MessageReaction,
+  MessageRead,
   ModeratorAction,
   ModerationEvidence,
   Notification,

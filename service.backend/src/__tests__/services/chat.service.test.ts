@@ -40,6 +40,18 @@ vi.mock('../../models/MessageReaction', () => ({
   },
 }));
 
+// Mock MessageRead (plan 2.1) — chat.service uses it for the
+// markMessagesAsRead / getUnreadMessageCount / getMessageStatuses paths.
+vi.mock('../../models/MessageRead', () => ({
+  __esModule: true,
+  default: {
+    findOrCreate: vi.fn(),
+    bulkCreate: vi.fn(),
+    findAll: vi.fn(),
+    destroy: vi.fn(),
+  },
+}));
+
 // Mock NotificationType and NotificationPriority
 vi.mock('../../models/Notification', () => ({
   NotificationType: {
@@ -96,6 +108,7 @@ vi.mock('../../sequelize', () => {
 import { Op } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../../models';
 import MessageReaction from '../../models/MessageReaction';
+import MessageRead from '../../models/MessageRead';
 import { ChatService } from '../../services/chat.service';
 import { ChatStatus, ParticipantRole, MessageContentFormat } from '../../types/chat';
 import { AuditLogService } from '../../services/auditLog.service';
@@ -105,6 +118,7 @@ const MockedChat = Chat as vi.MockedObject<Chat>;
 const MockedChatParticipant = ChatParticipant as vi.MockedObject<ChatParticipant>;
 const MockedMessage = Message as vi.MockedObject<Message>;
 const MockedMessageReaction = MessageReaction as vi.MockedObject<typeof MessageReaction>;
+const MockedMessageRead = MessageRead as vi.MockedObject<typeof MessageRead>;
 const MockedUser = User as vi.MockedObject<User>;
 const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
 const mockCreateNotification = NotificationService.createNotification as vi.MockedFunction<
@@ -559,84 +573,51 @@ describe('ChatService', () => {
   });
 
   describe('Read receipts and unread counts', () => {
+    // Read receipts moved to the message_reads table (plan 2.1) —
+    // these tests assert the typed-table writes / reads instead of the
+    // removed Message.markAsRead / isReadBy instance methods.
     describe('when marking messages as read', () => {
       it('should mark all unread messages in a chat as read for the user', async () => {
         const chatId = 'chat-123';
         const userId = 'user-456';
 
         const mockMessages = [
-          {
-            message_id: 'msg-001',
-            chat_id: chatId,
-            sender_id: 'other-user',
-            content: 'Message 1',
-            isReadBy: vi.fn().mockReturnValue(false),
-            markAsRead: vi.fn(),
-            save: vi.fn().mockResolvedValue(undefined),
-          },
-          {
-            message_id: 'msg-002',
-            chat_id: chatId,
-            sender_id: 'other-user',
-            content: 'Message 2',
-            isReadBy: vi.fn().mockReturnValue(false),
-            markAsRead: vi.fn(),
-            save: vi.fn().mockResolvedValue(undefined),
-          },
+          { message_id: 'msg-001', chat_id: chatId, sender_id: 'other-user' },
+          { message_id: 'msg-002', chat_id: chatId, sender_id: 'other-user' },
         ];
 
         (MockedMessage.findAll as vi.Mock).mockResolvedValue(mockMessages);
+        (MockedMessageRead.bulkCreate as vi.Mock).mockResolvedValue([]);
 
         const result = await ChatService.markMessagesAsRead(chatId, userId);
 
-        expect(MockedMessage.findAll).toHaveBeenCalledWith({
-          where: {
-            chat_id: chatId,
-            sender_id: { [Op.ne]: userId },
-          },
-        });
+        expect(MockedMessage.findAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { chat_id: chatId, sender_id: { [Op.ne]: userId } },
+          })
+        );
 
-        expect(mockMessages[0].markAsRead).toHaveBeenCalledWith(userId);
-        expect(mockMessages[0].save).toHaveBeenCalled();
-        expect(mockMessages[1].markAsRead).toHaveBeenCalledWith(userId);
-        expect(mockMessages[1].save).toHaveBeenCalled();
+        expect(MockedMessageRead.bulkCreate).toHaveBeenCalledWith(
+          expect.arrayContaining([
+            expect.objectContaining({ message_id: 'msg-001', user_id: userId }),
+            expect.objectContaining({ message_id: 'msg-002', user_id: userId }),
+          ]),
+          expect.objectContaining({ ignoreDuplicates: true })
+        );
         expect(result).toBe(true);
       });
 
-      it('should not mark already-read messages again', async () => {
-        const chatId = 'chat-123';
-        const userId = 'user-456';
+      it('should be a no-op when there are no candidate messages', async () => {
+        // (plan 2.1) — uniqueness on (message_id, user_id) means
+        // re-marking already-read messages is harmless. The "skip
+        // already read" check is handled at the index level via
+        // ignoreDuplicates rather than as an explicit JS filter, so
+        // the only branch worth covering here is the empty case.
+        (MockedMessage.findAll as vi.Mock).mockResolvedValue([]);
 
-        const mockMessages = [
-          {
-            message_id: 'msg-001',
-            chat_id: chatId,
-            sender_id: 'other-user',
-            isReadBy: vi.fn().mockReturnValue(true), // Already read
-            markAsRead: vi.fn(),
-            save: vi.fn(),
-          },
-          {
-            message_id: 'msg-002',
-            chat_id: chatId,
-            sender_id: 'other-user',
-            isReadBy: vi.fn().mockReturnValue(false), // Unread
-            markAsRead: vi.fn(),
-            save: vi.fn().mockResolvedValue(undefined),
-          },
-        ];
+        await ChatService.markMessagesAsRead('chat-123', 'user-456');
 
-        (MockedMessage.findAll as vi.Mock).mockResolvedValue(mockMessages);
-
-        await ChatService.markMessagesAsRead(chatId, userId);
-
-        // First message should not be marked (already read)
-        expect(mockMessages[0].markAsRead).not.toHaveBeenCalled();
-        expect(mockMessages[0].save).not.toHaveBeenCalled();
-
-        // Second message should be marked
-        expect(mockMessages[1].markAsRead).toHaveBeenCalledWith(userId);
-        expect(mockMessages[1].save).toHaveBeenCalled();
+        expect(MockedMessageRead.bulkCreate).not.toHaveBeenCalled();
       });
     });
 
@@ -646,20 +627,12 @@ describe('ChatService', () => {
         const userId = 'user-456';
 
         const mockMessages = [
-          {
-            message_id: 'msg-001',
-            sender_id: 'other-user',
-            isReadBy: vi.fn().mockReturnValue(false),
-          },
-          {
-            message_id: 'msg-002',
-            sender_id: 'other-user',
-            isReadBy: vi.fn().mockReturnValue(false),
-          },
+          { message_id: 'msg-001', sender_id: 'other-user', Reads: [] },
+          { message_id: 'msg-002', sender_id: 'other-user', Reads: [] },
           {
             message_id: 'msg-003',
             sender_id: 'other-user',
-            isReadBy: vi.fn().mockReturnValue(true),
+            Reads: [{ user_id: userId, read_at: new Date() }],
           },
         ];
 
@@ -668,12 +641,14 @@ describe('ChatService', () => {
         const count = await ChatService.getUnreadMessageCount(chatId, userId);
 
         expect(count).toBe(2);
-        expect(MockedMessage.findAll).toHaveBeenCalledWith({
-          where: {
-            chat_id: chatId,
-            sender_id: { [Op.ne]: userId },
-          },
-        });
+        expect(MockedMessage.findAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { chat_id: chatId, sender_id: { [Op.ne]: userId } },
+            include: expect.arrayContaining([
+              expect.objectContaining({ as: 'Reads', where: { user_id: userId } }),
+            ]),
+          })
+        );
       });
 
       it('should return zero when all messages are read', async () => {
@@ -684,7 +659,7 @@ describe('ChatService', () => {
           {
             message_id: 'msg-001',
             sender_id: 'other-user',
-            isReadBy: vi.fn().mockReturnValue(true),
+            Reads: [{ user_id: userId, read_at: new Date() }],
           },
         ];
 

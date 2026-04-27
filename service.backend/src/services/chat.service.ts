@@ -1,6 +1,7 @@
 import { Op, WhereOptions } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
 import MessageReaction from '../models/MessageReaction';
+import MessageRead from '../models/MessageRead';
 import { validateSortField } from '../utils/sort-validation';
 
 const CHAT_SORT_FIELDS = ['created_at', 'updated_at'] as const;
@@ -852,20 +853,33 @@ export class ChatService {
   static async markMessagesAsRead(chatId: string, userId: string) {
     try {
       await this.requireChatParticipant(chatId, userId);
-      // Update read status using the model's instance method
+
+      // Read receipts moved to the message_reads table (plan 2.1) —
+      // bulk-insert one row per (message, user). The unique
+      // (message_id, user_id) constraint plus ignoreDuplicates makes
+      // the operation idempotent: re-marking already-read messages is
+      // a no-op without a per-row read+write round trip.
       const messages = await Message.findAll({
         where: {
           chat_id: chatId,
           sender_id: { [Op.ne]: userId },
         },
+        attributes: ['message_id'],
       });
 
-      for (const message of messages) {
-        if (!message.isReadBy(userId)) {
-          message.markAsRead(userId);
-          await message.save();
-        }
+      if (messages.length === 0) {
+        return true;
       }
+
+      const readAt = new Date();
+      await MessageRead.bulkCreate(
+        messages.map(m => ({
+          message_id: m.message_id,
+          user_id: userId,
+          read_at: readAt,
+        })),
+        { ignoreDuplicates: true }
+      );
 
       return true;
     } catch (error) {
@@ -880,14 +894,29 @@ export class ChatService {
   static async getUnreadMessageCount(chatId: string, userId: string) {
     try {
       await this.requireChatParticipant(chatId, userId);
+
+      // "Unread for user" = chat messages not authored by user that
+      // have no matching MessageRead row (plan 2.1). The eager-load
+      // surfaces only the user's own read row via the where clause,
+      // so missing Reads ⇔ unread.
       const messages = await Message.findAll({
         where: {
           chat_id: chatId,
           sender_id: { [Op.ne]: userId },
         },
+        attributes: ['message_id'],
+        include: [
+          {
+            model: MessageRead,
+            as: 'Reads',
+            where: { user_id: userId },
+            required: false,
+          },
+        ],
       });
 
-      return messages.filter(message => !message.isReadBy(userId)).length;
+      return messages.filter(msg => !(msg as Message & { Reads?: MessageRead[] }).Reads?.length)
+        .length;
     } catch (error) {
       logger.error('Error getting unread count:', error);
       throw error;
@@ -1735,18 +1764,27 @@ export class ChatService {
             as: 'Reactions',
             attributes: ['user_id', 'emoji', 'created_at'],
           },
+          // Reads eager-loaded from message_reads (plan 2.1) — surfaces
+          // both the read count (across all users) and whether the
+          // current user has read each message.
+          {
+            model: MessageRead,
+            as: 'Reads',
+            attributes: ['user_id', 'read_at'],
+          },
         ],
         order: [['created_at', 'ASC']],
       });
 
       return messages.map(message => {
         const reactions = (message as Message & { Reactions?: MessageReaction[] }).Reactions ?? [];
+        const reads = (message as Message & { Reads?: MessageRead[] }).Reads ?? [];
         return {
           messageId: message.message_id,
           senderId: message.sender_id,
           content: message.content,
-          isRead: message.isReadBy(userId),
-          readCount: message.getReadCount(),
+          isRead: reads.some(r => r.user_id === userId),
+          readCount: reads.length,
           reactions: reactions.map(r => ({
             user_id: r.user_id,
             emoji: r.emoji,

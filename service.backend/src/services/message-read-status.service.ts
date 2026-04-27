@@ -1,5 +1,5 @@
-import { DataTypes, Model, Op, Optional, Transaction } from 'sequelize';
-import { Chat, ChatParticipant, Message } from '../models';
+import { Op, Transaction } from 'sequelize';
+import { Chat, ChatParticipant, Message, MessageRead } from '../models';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
@@ -60,7 +60,7 @@ export class MessageReadStatusService {
       }
 
       // Update or create read status
-      const [readStatus, created] = await MessageReadStatus.findOrCreate({
+      const [readStatus, created] = await MessageRead.findOrCreate({
         where: {
           message_id: messageId,
           user_id: userId,
@@ -153,8 +153,8 @@ export class MessageReadStatusService {
         },
         include: [
           {
-            model: MessageReadStatus,
-            as: 'readStatus',
+            model: MessageRead,
+            as: 'Reads',
             where: { user_id: userId },
             required: false,
           },
@@ -162,15 +162,16 @@ export class MessageReadStatusService {
         transaction: t,
       });
 
-      const messagesToMark = unreadMessages.filter(
-        message => !message.read_status?.some(status => status.user_id === userId)
-      );
+      const messagesToMark = unreadMessages.filter(message => {
+        const reads = (message as Message & { Reads?: MessageRead[] }).Reads;
+        return !reads?.some(r => r.user_id === userId);
+      });
 
       if (messagesToMark.length > 0) {
         const readAt = new Date();
 
         // Create read status records in bulk
-        await MessageReadStatus.bulkCreate(
+        await MessageRead.bulkCreate(
           messagesToMark.map(message => ({
             message_id: message.message_id,
             user_id: userId,
@@ -243,15 +244,18 @@ export class MessageReadStatusService {
         },
         include: [
           {
-            model: MessageReadStatus,
-            as: 'read_status',
+            model: MessageRead,
+            as: 'Reads',
             where: { user_id: userId },
             required: false,
           },
         ],
       });
 
-      return result.filter(message => !message.read_status?.length).length;
+      return result.filter(message => {
+        const reads = (message as Message & { Reads?: MessageRead[] }).Reads;
+        return !reads?.length;
+      }).length;
     } catch (error) {
       logger.error('Error getting unread count:', error);
       throw new Error('Failed to get unread message count');
@@ -290,8 +294,8 @@ export class MessageReadStatusService {
         },
         include: [
           {
-            model: MessageReadStatus,
-            as: 'readStatus',
+            model: MessageRead,
+            as: 'Reads',
             where: { user_id: userId },
             required: false,
           },
@@ -307,7 +311,7 @@ export class MessageReadStatusService {
 
       messages.forEach(message => {
         const chatId = message.chat_id;
-        const isUnread = !message.read_status?.length;
+        const isUnread = !(message as Message & { Reads?: MessageRead[] }).Reads?.length;
 
         if (!chatUnreadCounts.has(chatId)) {
           chatUnreadCounts.set(chatId, {
@@ -336,7 +340,7 @@ export class MessageReadStatusService {
    */
   static async isMessageRead(messageId: string, userId: string): Promise<boolean> {
     try {
-      const readStatus = await MessageReadStatus.findOne({
+      const readStatus = await MessageRead.findOne({
         where: {
           message_id: messageId,
           user_id: userId,
@@ -367,7 +371,7 @@ export class MessageReadStatusService {
       });
 
       // Get read statuses for this message
-      const readStatuses = await MessageReadStatus.findAll({
+      const readStatuses = await MessageRead.findAll({
         where: { message_id: messageId },
         attributes: ['user_id'],
       });
@@ -417,8 +421,8 @@ export class MessageReadStatusService {
         },
         include: [
           {
-            model: MessageReadStatus,
-            as: 'readStatus',
+            model: MessageRead,
+            as: 'Reads',
             where: { user_id: userId },
             required: false,
           },
@@ -427,12 +431,14 @@ export class MessageReadStatusService {
       });
 
       const totalMessages = messages.length;
-      const unreadMessages = messages.filter(msg => !msg.read_status?.length).length;
+      const unreadMessages = messages.filter(
+        msg => !(msg as Message & { Reads?: MessageRead[] }).Reads?.length
+      ).length;
       const readPercentage =
         totalMessages > 0 ? ((totalMessages - unreadMessages) / totalMessages) * 100 : 0;
 
       // Find last read message - simplified approach
-      const readStatuses = await MessageReadStatus.findAll({
+      const readStatuses = await MessageRead.findAll({
         where: {
           message_id: { [Op.in]: messages.map(m => m.message_id) },
           user_id: userId,
@@ -489,7 +495,7 @@ export class MessageReadStatusService {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
-      const deletedCount = await MessageReadStatus.destroy({
+      const deletedCount = await MessageRead.destroy({
         where: {
           read_at: {
             [Op.lt]: cutoffDate,
@@ -510,85 +516,8 @@ export class MessageReadStatusService {
   }
 }
 
-interface MessageReadStatusAttributes {
-  read_status_id: string;
-  message_id: string;
-  user_id: string;
-  read_at: Date;
-  created_at?: Date;
-  updated_at?: Date;
-}
-
-interface MessageReadStatusCreationAttributes
-  extends Optional<MessageReadStatusAttributes, 'read_status_id' | 'created_at' | 'updated_at'> {}
-
-export class MessageReadStatus
-  extends Model<MessageReadStatusAttributes, MessageReadStatusCreationAttributes>
-  implements MessageReadStatusAttributes
-{
-  public read_status_id!: string;
-  public message_id!: string;
-  public user_id!: string;
-  public read_at!: Date;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
-}
-
-MessageReadStatus.init(
-  {
-    read_status_id: {
-      type: DataTypes.STRING,
-      primaryKey: true,
-      defaultValue: sequelize.literal(`'read_' || left(md5(random()::text), 12)`),
-    },
-    message_id: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      references: {
-        model: 'messages',
-        key: 'message_id',
-      },
-      onDelete: 'CASCADE',
-    },
-    user_id: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'user_id',
-      },
-    },
-    read_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    sequelize,
-    tableName: 'message_read_status',
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    indexes: [
-      {
-        unique: true,
-        fields: ['message_id', 'user_id'],
-      },
-      {
-        fields: ['user_id'],
-      },
-      {
-        fields: ['read_at'],
-      },
-    ],
-  }
-);
+// MessageRead model moved to src/models/MessageRead.ts (plan 2.1).
+// The legacy inline definition lived here as a service-private class
+// using STRING ids and a Postgres-only random() default; the new
+// model uses UUIDv7 PKs, audit columns, and unified onDelete semantics
+// across the codebase.
