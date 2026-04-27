@@ -268,7 +268,11 @@ Notification.init(
       allowNull: true,
     },
     related_entity_id: {
-      type: DataTypes.STRING,
+      // Plan 1.2 — polymorphic FK pointing at a UUIDv7 PK (pet_id,
+      // application_id, etc.). Stored as UUID so a typo won't pass
+      // through; the parent existence is enforced at the application
+      // layer (no single referenced table for a real FK).
+      type: getUuidType(),
       allowNull: true,
     },
     scheduled_for: {
