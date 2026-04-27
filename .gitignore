@@ -63,4 +63,4 @@ docker-compose.override.yml
 
 ### Build artifacts ###
 *.tsbuildinfo
-*.timestamp-*.mjs
+*.timestamp-*.mjs.claude/worktrees/
