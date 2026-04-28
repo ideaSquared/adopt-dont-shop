@@ -279,7 +279,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   };
 
   const updateProfile = async (profileData: Partial<User>) => {
-    if (!user) throw new Error('No user logged in');
+    if (!user) {
+      throw new Error('No user logged in');
+    }
 
     // In development mode, handle dev users differently
     if (import.meta.env?.DEV) {
@@ -302,7 +304,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       return;
     }
 
-    if (!authService.isAuthenticated()) return;
+    if (!authService.isAuthenticated()) {
+      return;
+    }
 
     try {
       const freshUser = await authService.getProfile();

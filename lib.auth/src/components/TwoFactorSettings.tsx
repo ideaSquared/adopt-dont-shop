@@ -329,9 +329,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
             <BackupCode key={code}>{code}</BackupCode>
           ))}
         </BackupCodesGrid>
-        <Button onClick={handleFinishSetup}>
-          I have saved my backup codes
-        </Button>
+        <Button onClick={handleFinishSetup}>I have saved my backup codes</Button>
       </Container>
     );
   }
@@ -378,10 +376,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
         </SetupStep>
 
         <ButtonRow>
-          <Button
-            onClick={handleVerifyAndEnable}
-            disabled={isLoading || verifyToken.length !== 6}
-          >
+          <Button onClick={handleVerifyAndEnable} disabled={isLoading || verifyToken.length !== 6}>
             {isLoading ? 'Verifying...' : 'Verify and Enable'}
           </Button>
           <Button variant="secondary" onClick={handleCancelSetup} disabled={isLoading}>
