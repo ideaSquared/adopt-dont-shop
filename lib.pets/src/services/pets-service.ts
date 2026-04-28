@@ -78,15 +78,15 @@ export class PetsService {
       apiFilters.sortOrder = filters.sortOrder.toUpperCase();
     }
 
-    // Map sortBy field names to backend format
+    // Map sortBy field names to backend camelCase format
     if (filters.sortBy) {
       const sortByMapping: Record<string, string> = {
-        createdAt: 'created_at',
-        created_at: 'created_at',
-        adoptionFee: 'adoption_fee',
-        adoption_fee: 'adoption_fee',
-        age: 'age_years',
-        age_years: 'age_years',
+        createdAt: 'createdAt',
+        created_at: 'createdAt',
+        adoptionFee: 'adoptionFeeMinor',
+        adoption_fee: 'adoptionFeeMinor',
+        age: 'ageYears',
+        age_years: 'ageYears',
         name: 'name',
         distance: 'distance',
       };
