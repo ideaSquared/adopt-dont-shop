@@ -1,6 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
-import { vars } from '@adopt-dont-shop/lib.components/dist/styles/theme.css';
+import { vars } from '../../../lib.components/src/styles/theme.css';
 
 export const form = style({
   display: 'flex',
