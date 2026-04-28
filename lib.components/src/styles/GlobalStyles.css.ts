@@ -14,9 +14,8 @@ globalStyle('*, *::before, *::after', {
 globalStyle('html', {
   fontSize: '16px',
   scrollBehavior: 'smooth',
-  // @ts-expect-error vendor prefix not in VE types
   WebkitTextSizeAdjust: '100%',
-  msTextSizeAdjust: '100%',
+  textSizeAdjust: '100%',
 });
 
 globalStyle('body', {
@@ -29,7 +28,6 @@ globalStyle('body', {
   WebkitFontSmoothing: 'antialiased',
   MozOsxFontSmoothing: 'grayscale',
   textRendering: 'optimizeLegibility',
-  // @ts-expect-error vendor prefix not in VE types
   WebkitTapHighlightColor: 'transparent',
 });
 
