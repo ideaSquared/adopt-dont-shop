@@ -106,7 +106,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
                 {loadingImages[index] && <Spinner />}
                 <img
                   src={src}
-                  alt={`Image ${index + 1}`}
+                  alt={`Gallery item ${index + 1}`}
                   className={galleryImage({ isLoading: loadingImages[index] })}
                   onLoad={() => handleImageLoad(index)}
                 />
@@ -130,7 +130,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
               {loadingImages[currentImageIndex] && <Spinner />}
               <img
                 src={galleryImages[currentImageIndex]}
-                alt='Gallery Image'
+                alt='Current gallery item'
                 className={galleryImage({ isLoading: loadingImages[currentImageIndex] })}
                 onLoad={() => handleImageLoad(currentImageIndex)}
               />

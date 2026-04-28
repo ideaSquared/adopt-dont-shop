@@ -66,19 +66,29 @@ const ListGroup: React.FC<ListGroupProps> = ({
       data-testid={dataTestId}
       role={interactive ? 'menu' : 'list'}
     >
-      {items.map((item, index) => (
-        <li
-          key={index}
-          className={listGroupItem({ variant, interactive: !!interactive })}
-          onClick={() => handleItemClick(item, index)}
-          onKeyDown={event => handleKeyDown(event, item, index)}
-          tabIndex={interactive ? 0 : undefined}
-          role={interactive ? 'menuitem' : 'listitem'}
-          aria-label={typeof item === 'string' ? item : `Item ${index + 1}`}
-        >
-          {renderItem ? renderItem(item, index) : item}
-        </li>
-      ))}
+      {items.map((item, index) =>
+        interactive ? (
+          <li
+            key={index}
+            className={listGroupItem({ variant, interactive: true })}
+            onClick={() => handleItemClick(item, index)}
+            onKeyDown={event => handleKeyDown(event, item, index)}
+            tabIndex={0}
+            role='menuitem'
+            aria-label={typeof item === 'string' ? item : `Item ${index + 1}`}
+          >
+            {renderItem ? renderItem(item, index) : item}
+          </li>
+        ) : (
+          <li
+            key={index}
+            className={listGroupItem({ variant, interactive: false })}
+            aria-label={typeof item === 'string' ? item : `Item ${index + 1}`}
+          >
+            {renderItem ? renderItem(item, index) : item}
+          </li>
+        )
+      )}
     </ul>
   );
 };

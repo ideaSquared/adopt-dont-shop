@@ -69,7 +69,9 @@ export const Badge: React.FC<BadgeProps> = ({
 }) => {
   const handleRemove = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    if (onRemove && !disabled) onRemove();
+    if (onRemove && !disabled) {
+      onRemove();
+    }
   };
 
   const displayChildren = clampCount(children, max);

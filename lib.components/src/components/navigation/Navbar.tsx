@@ -88,6 +88,12 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+  const handleBrandKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      handleBrandClick();
+    }
+  };
+
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
@@ -116,7 +122,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       style={fixed ? { position: 'fixed', top: 0, left: 0, right: 0 } : undefined}
       data-testid={dataTestId}
     >
-      <div className={brand} onClick={handleBrandClick}>
+      <div
+        className={brand}
+        onClick={handleBrandClick}
+        onKeyDown={handleBrandKeyDown}
+        role='button'
+        tabIndex={0}
+      >
         {brandHref ? (
           <a href={brandHref} className={brandLink}>
             {brandContent}

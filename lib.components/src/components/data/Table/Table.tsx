@@ -66,8 +66,12 @@ export type TableProps<T = Record<string, unknown>> = {
 };
 
 const getSortIconContent = (direction: SortDirection): string => {
-  if (direction === 'asc') return '↑';
-  if (direction === 'desc') return '↓';
+  if (direction === 'asc') {
+    return '↑';
+  }
+  if (direction === 'desc') {
+    return '↓';
+  }
   return '↕';
 };
 

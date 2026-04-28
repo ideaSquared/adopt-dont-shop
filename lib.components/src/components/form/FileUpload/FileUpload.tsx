@@ -184,6 +184,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     }
   };
 
+  const handleDropZoneKeyDown = (event: React.KeyboardEvent) => {
+    if ((event.key === 'Enter' || event.key === ' ') && !disabled) {
+      event.preventDefault();
+      handleClick();
+    }
+  };
+
   const handleRemoveFile = (index: number) => {
     if (onFileRemove) {
       onFileRemove(index);
@@ -212,9 +219,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       <div
         className={styles.dropZone({ size, state: finalState, isDragOver: isDragging, disabled })}
         onClick={handleClick}
+        onKeyDown={handleDropZoneKeyDown}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        role='button'
+        tabIndex={disabled ? -1 : 0}
       >
         <div className={styles.uploadIcon}>
           <UploadIconSVG />

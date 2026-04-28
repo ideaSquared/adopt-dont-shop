@@ -16,7 +16,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Card: React.FC<CardProps> = ({
   children,
   hoverable = false,
-  shadowed = true,
+  shadowed: _shadowed = true,
   bordered = false,
   padding = 'md',
   variant = 'default',

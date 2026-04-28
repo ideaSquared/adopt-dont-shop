@@ -30,9 +30,13 @@ const DefaultFallbackIcon = () => (
 );
 
 const generateInitials = (name: string): string => {
-  if (!name) return '';
+  if (!name) {
+    return '';
+  }
   const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
   return parts
     .slice(0, 2)
     .map(part => part.charAt(0).toUpperCase())
@@ -57,7 +61,9 @@ export const Avatar: React.FC<AvatarProps> = ({
   const [imageError, setImageError] = useState(false);
 
   const handleClick = () => {
-    if (clickable && onClick) onClick();
+    if (clickable && onClick) {
+      onClick();
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {

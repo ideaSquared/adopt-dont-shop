@@ -67,9 +67,28 @@ const CheckboxInputComponent = forwardRef<HTMLInputElement, CheckboxInputProps>(
       }
     };
 
+    const handleContainerKeyDown = (event: React.KeyboardEvent) => {
+      if (
+        (event.key === 'Enter' || event.key === ' ') &&
+        !disabled &&
+        ref &&
+        'current' in ref &&
+        ref.current
+      ) {
+        event.preventDefault();
+        ref.current.click();
+      }
+    };
+
     return (
       <div className={clsx(container, className)}>
-        <div className={checkboxContainer} onClick={handleContainerClick}>
+        <div
+          className={checkboxContainer}
+          onClick={handleContainerClick}
+          onKeyDown={handleContainerKeyDown}
+          role='button'
+          tabIndex={disabled ? -1 : 0}
+        >
           <input
             type='checkbox'
             ref={ref}

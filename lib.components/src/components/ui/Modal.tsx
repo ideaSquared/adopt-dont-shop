@@ -110,7 +110,14 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className={styles.overlay} onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
+    <div
+      className={styles.overlay}
+      onClick={handleOverlayClick}
+      onKeyDown={handleKeyDown}
+      role='button'
+      tabIndex={-1}
+      aria-label='Close modal'
+    >
       <div
         ref={modalRef}
         className={clsx(styles.modalContainer({ size, centered }), className)}
