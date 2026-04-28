@@ -223,8 +223,9 @@ export class ChatController {
     try {
       const { chatId } = req.params;
       const userId = req.user!.userId;
+      const isAdmin = req.user!.userType === UserType.ADMIN;
 
-      const chat = await ChatService.getChatById(chatId, userId);
+      const chat = await ChatService.getChatById(chatId, isAdmin ? undefined : userId);
 
       if (!chat) {
         return res.status(404).json({

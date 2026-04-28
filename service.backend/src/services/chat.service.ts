@@ -826,8 +826,8 @@ export class ChatService {
           mimeType: att.mimeType,
           size: att.size,
         })),
-        created_at: msg.created_at.toISOString(),
-        updated_at: msg.updated_at.toISOString(),
+        created_at: msg.created_at ? msg.created_at.toISOString() : new Date(0).toISOString(),
+        updated_at: msg.updated_at ? msg.updated_at.toISOString() : new Date(0).toISOString(),
         Sender: msg.Sender,
       })) as unknown as ChatMessage[];
 
