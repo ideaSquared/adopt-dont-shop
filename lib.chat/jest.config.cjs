@@ -3,7 +3,8 @@ module.exports = {
   ...base,
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   moduleNameMapper: {
-    '^@adopt-dont-shop/lib\\.components$': '<rootDir>/src/__mocks__/lib.components.tsx',
+    '\.css$': '<rootDir>/src/__mocks__/vanillaExtractMock.js',
+    '^@adopt-dont-shop/lib\.components$': '<rootDir>/src/__mocks__/lib.components.tsx',
     '^react-icons/md$': '<rootDir>/src/__mocks__/react-icons.tsx',
     '^@vanilla-extract/css$': '<rootDir>/src/__mocks__/vanilla-extract-css.ts',
     '^@vanilla-extract/recipes$': '<rootDir>/src/__mocks__/vanilla-extract-css.ts',
