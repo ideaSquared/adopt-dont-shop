@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from 'styled-components';
 import { Modal } from './Modal';
 import { Button } from './Button';
+import { messageText, buttonGroup } from './ConfirmDialog.css';
 
 export type ConfirmDialogProps = {
   isOpen: boolean;
@@ -14,20 +14,6 @@ export type ConfirmDialogProps = {
   variant?: 'danger' | 'warning' | 'info';
   'data-testid'?: string;
 };
-
-const MessageText = styled.p`
-  margin: 0;
-  font-size: ${({ theme }) => theme.typography.size.base};
-  color: ${({ theme }) => theme.text.secondary};
-  line-height: ${({ theme }) => theme.typography.lineHeight.relaxed};
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing[3]};
-  justify-content: flex-end;
-  margin-top: ${({ theme }) => theme.spacing[6]};
-`;
 
 const getVariantStyles = (variant: 'danger' | 'warning' | 'info') => {
   const variants = {
@@ -75,15 +61,15 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       showCloseButton={false}
       data-testid={dataTestId}
     >
-      <MessageText>{message}</MessageText>
-      <ButtonGroup>
+      <p className={messageText}>{message}</p>
+      <div className={buttonGroup}>
         <Button variant='secondary' onClick={onClose}>
           {cancelText}
         </Button>
         <Button variant={variantStyles.confirmVariant} onClick={handleConfirm}>
           {confirmText}
         </Button>
-      </ButtonGroup>
+      </div>
     </Modal>
   );
 };

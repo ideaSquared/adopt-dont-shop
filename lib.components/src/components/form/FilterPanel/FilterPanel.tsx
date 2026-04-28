@@ -1,26 +1,10 @@
 import { ChangeEvent } from 'react';
-import styled from 'styled-components';
 import { Input } from '../../ui/Input';
 import { CheckboxInput } from '../CheckboxInput';
 import { DateInput } from '../DateInput';
 import { SelectInput } from '../SelectInput';
 
-const FiltersContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  background: ${props => props.theme.background.overlay};
-  border-radius: ${props => props.theme.border.radius.md};
-
-  /* Ensure filters have a reasonable minimum width while allowing them to grow */
-  > * {
-    flex: 1 1 300px;
-    min-width: 200px;
-    max-width: 100%;
-  }
-`;
+import * as styles from './FilterPanel.css';
 
 export type FilterConfig = {
   name: string;
@@ -59,7 +43,7 @@ const GenericFilters = <T extends FilterRecord>({
   };
 
   return (
-    <FiltersContainer role='search' aria-label='Filter options'>
+    <div className={styles.filtersContainer} role='search' aria-label='Filter options'>
       {filterConfig.map(({ name, label, type, placeholder, options }) => {
         const inputId = `filter-${name}`;
         const value = filters[name];
@@ -95,7 +79,7 @@ const GenericFilters = <T extends FilterRecord>({
           </div>
         );
       })}
-    </FiltersContainer>
+    </div>
   );
 };
 

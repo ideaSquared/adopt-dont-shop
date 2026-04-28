@@ -1,5 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import styled, { css, keyframes, type DefaultTheme } from 'styled-components';
+import clsx from 'clsx';
+import {
+  emptyState,
+  loadingRowTd,
+  sortIconBase,
+  sortIconVariants,
+  stripedRow,
+  styledTable,
+  tableCell,
+  tableContainer,
+  tableHead,
+  tableHeaderCell,
+  tableRow,
+} from './Table.css';
 
 export type SortDirection = 'asc' | 'desc' | null;
 
@@ -52,314 +65,15 @@ export type TableProps<T = Record<string, unknown>> = {
   maxHeight?: string;
 };
 
-// Loading animation
-const pulse = keyframes`
-  0%, 100% {
-    opacity: 1;
+const getSortIconContent = (direction: SortDirection): string => {
+  if (direction === 'asc') {
+    return '↑';
   }
-  50% {
-    opacity: 0.5;
+  if (direction === 'desc') {
+    return '↓';
   }
-`;
-
-const getSizeStyles = (size: 'sm' | 'md' | 'lg', theme: DefaultTheme) => {
-  const sizes = {
-    sm: css`
-      font-size: ${theme.typography.size.sm};
-
-      th,
-      td {
-        padding: ${theme.spacing[2]} ${theme.spacing[3]};
-      }
-    `,
-    md: css`
-      font-size: ${theme.typography.size.base};
-
-      th,
-      td {
-        padding: ${theme.spacing[3]} ${theme.spacing[4]};
-      }
-    `,
-    lg: css`
-      font-size: ${theme.typography.size.lg};
-
-      th,
-      td {
-        padding: ${theme.spacing[4]} ${theme.spacing[5]};
-      }
-    `,
-  };
-  return sizes[size];
+  return '↕';
 };
-
-const getVariantStyles = (variant: 'default' | 'minimal' | 'bordered', theme: DefaultTheme) => {
-  const variants = {
-    default: css`
-      border: 1px solid ${theme.border.color.primary};
-      border-radius: ${theme.border.radius.lg};
-      overflow: hidden;
-    `,
-    minimal: css`
-      border: none;
-
-      thead th {
-        border-bottom: 2px solid ${theme.border.color.primary};
-      }
-    `,
-    bordered: css`
-      border: 1px solid ${theme.border.color.primary};
-      border-radius: ${theme.border.radius.lg};
-      overflow: hidden;
-
-      th,
-      td {
-        border-right: 1px solid ${theme.border.color.primary};
-
-        &:last-child {
-          border-right: none;
-        }
-      }
-
-      tbody tr {
-        border-bottom: 1px solid ${theme.border.color.primary};
-
-        &:last-child {
-          border-bottom: none;
-        }
-      }
-    `,
-  };
-  return variants[variant];
-};
-
-const TableContainer = styled.div<{
-  $responsive: boolean;
-  $maxHeight?: string;
-}>`
-  position: relative;
-  background: ${({ theme }) => theme.background.secondary};
-  border-radius: ${({ theme }) => theme.border.radius.lg};
-
-  ${({ $responsive }) =>
-    $responsive &&
-    css`
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    `}
-
-  ${({ $maxHeight }) =>
-    $maxHeight &&
-    css`
-      max-height: ${$maxHeight};
-      overflow-y: auto;
-    `}
-
-  /* Custom scrollbar styling */
-  &::-webkit-scrollbar {
-    height: 6px;
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: ${({ theme }) => theme.border.color.tertiary};
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: ${({ theme }) => theme.border.color.quaternary};
-  }
-`;
-
-const StyledTable = styled.table<{
-  $size: 'sm' | 'md' | 'lg';
-  $variant: 'default' | 'minimal' | 'bordered';
-  $striped: boolean;
-  $hoverable: boolean;
-}>`
-  width: 100%;
-  border-collapse: collapse;
-  font-family: ${({ theme }) => theme.typography.family.sans};
-  background: ${({ theme }) => theme.background.secondary};
-
-  ${({ $size, theme }) => getSizeStyles($size, theme)}
-  ${({ $variant, theme }) => getVariantStyles($variant, theme)}
-`;
-
-const TableHead = styled.thead<{ $sticky: boolean }>`
-  ${({ $sticky, theme }) =>
-    $sticky &&
-    css`
-      position: sticky;
-      top: 0;
-      z-index: ${theme.zIndex.sticky};
-      background: ${theme.background.secondary};
-    `}
-`;
-
-const TableBody = styled.tbody``;
-
-const TableRow = styled.tr<{
-  $striped: boolean;
-  $hoverable: boolean;
-  $clickable: boolean;
-  $index: number;
-}>`
-  transition: all ${({ theme }) => theme.transitions.fast};
-
-  ${({ $striped, $index, theme }) =>
-    $striped &&
-    $index % 2 === 1 &&
-    css`
-      background: ${theme.colors.neutral[100] || theme.background.tertiary};
-    `}
-
-  ${({ $hoverable, theme }) =>
-    $hoverable &&
-    css`
-      &:hover {
-        background: ${theme.background.tertiary};
-      }
-    `}
-
-  ${({ $clickable }) =>
-    $clickable &&
-    css`
-      cursor: pointer;
-    `}
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const TableHeaderCell = styled.th<{
-  $sortable: boolean;
-  $align: 'left' | 'center' | 'right';
-  $width?: string;
-  $minWidth?: string;
-  $maxWidth?: string;
-}>`
-  text-align: ${({ $align }) => $align};
-  font-weight: ${({ theme }) => theme.typography.weight.semibold};
-  color: ${({ theme }) => theme.text.primary};
-  background: ${({ theme }) => theme.background.secondary};
-  cursor: ${({ $sortable }) => ($sortable ? 'pointer' : 'default')};
-  user-select: none;
-  position: relative;
-  white-space: nowrap;
-  border-bottom: 1px solid ${({ theme }) => theme.border.color.primary};
-  transition: all ${({ theme }) => theme.transitions.fast};
-
-  ${({ $width }) =>
-    $width &&
-    css`
-      width: ${$width};
-    `}
-
-  ${({ $minWidth }) =>
-    $minWidth &&
-    css`
-      min-width: ${$minWidth};
-    `}
-
-  ${({ $maxWidth }) =>
-    $maxWidth &&
-    css`
-      max-width: ${$maxWidth};
-    `}
-
-  ${({ $sortable, theme }) =>
-    $sortable &&
-    css`
-      &:hover {
-        background: ${theme.background.tertiary};
-      }
-
-      &:focus-visible {
-        outline: none;
-        background: ${theme.background.tertiary};
-        box-shadow: inset 0 0 0 2px ${theme.colors.primary[500]};
-      }
-    `}
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const SortIcon = styled.span<{ $direction: SortDirection }>`
-  margin-left: ${({ theme }) => theme.spacing[1.5]};
-  opacity: ${({ $direction }) => ($direction ? 1 : 0.3)};
-  transition: opacity ${({ theme }) => theme.transitions.fast};
-  font-size: ${({ theme }) => theme.typography.size.sm};
-
-  &::after {
-    content: ${({ $direction }) =>
-      $direction === 'asc' ? '"↑"' : $direction === 'desc' ? '"↓"' : '"↕"'};
-  }
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const TableCell = styled.td<{
-  $align: 'left' | 'center' | 'right';
-}>`
-  text-align: ${({ $align }) => $align};
-  color: ${({ theme }) => theme.text.secondary};
-  vertical-align: top;
-  word-wrap: break-word;
-  line-height: ${({ theme }) => theme.typography.lineHeight.relaxed};
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${({ theme }) => theme.spacing[12]} ${({ theme }) => theme.spacing[6]};
-  color: ${({ theme }) => theme.text.tertiary};
-  text-align: center;
-`;
-
-const EmptyIcon = () => (
-  <svg
-    width='48'
-    height='48'
-    viewBox='0 0 24 24'
-    fill='none'
-    stroke='currentColor'
-    strokeWidth='1'
-    style={{ marginBottom: '16px', opacity: 0.5 }}
-  >
-    <rect x='3' y='3' width='18' height='18' rx='2' ry='2' />
-    <path d='M9 9h6v6H9z' />
-  </svg>
-);
-
-const LoadingRow = styled.tr`
-  td {
-    padding: ${({ theme }) => theme.spacing[4]};
-    background: ${({ theme }) => theme.background.tertiary};
-    animation: ${pulse} 1.5s ease-in-out infinite;
-  }
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    td {
-      animation: none;
-      opacity: 0.7;
-    }
-  }
-`;
 
 const getValue = <T,>(row: T, accessor: string | ((row: T) => unknown)): unknown => {
   if (typeof accessor === 'function') {
@@ -491,9 +205,11 @@ export const Table = <T,>({
     return index.toString();
   };
 
+  const containerStyle = maxHeight ? { maxHeight, overflowY: 'auto' as const } : undefined;
+
   if (loading) {
     return (
-      <TableContainer $responsive={responsive} $maxHeight={maxHeight} className={className}>
+      <div className={clsx(tableContainer({ responsive }), className)} style={containerStyle}>
         {/* Visually hidden spinner for a11y */}
         <div
           role='status'
@@ -508,75 +224,79 @@ export const Table = <T,>({
         >
           Loading…
         </div>
-        <StyledTable
-          $size={size}
-          $variant={variant}
-          $striped={striped}
-          $hoverable={hoverable}
-          data-testid={dataTestId}
-        >
-          <TableHead $sticky={stickyHeader}>
-            <TableRow $striped={false} $hoverable={false} $clickable={false} $index={0}>
+        <table className={styledTable({ size, variant })} data-testid={dataTestId}>
+          <thead className={tableHead({ sticky: stickyHeader })}>
+            <tr className={tableRow({ hoverable: false, clickable: false, striped: false })}>
               {columns.map(column => (
-                <TableHeaderCell
+                <th
                   key={column.key}
-                  $sortable={false}
-                  $align={column.align || 'left'}
-                  $width={column.width}
-                  $minWidth={column.minWidth}
-                  $maxWidth={column.maxWidth}
+                  className={tableHeaderCell({ sortable: false, align: column.align ?? 'left' })}
+                  style={{
+                    width: column.width,
+                    minWidth: column.minWidth,
+                    maxWidth: column.maxWidth,
+                  }}
                 >
                   {column.headerRender ? column.headerRender() : column.header}
-                </TableHeaderCell>
+                </th>
               ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
+            </tr>
+          </thead>
+          <tbody>
             {Array.from({ length: 5 }).map((_, index) => (
-              <LoadingRow key={index}>
+              <tr key={index}>
                 {columns.map(column => (
-                  <TableCell key={column.key} $align={column.align || 'left'}>
+                  <td key={column.key} className={loadingRowTd}>
                     <div style={{ height: '20px', width: '100%' }} />
-                  </TableCell>
+                  </td>
                 ))}
-              </LoadingRow>
+              </tr>
             ))}
-          </TableBody>
-        </StyledTable>
-      </TableContainer>
+          </tbody>
+        </table>
+      </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <TableContainer $responsive={responsive} $maxHeight={maxHeight} className={className}>
-        <EmptyState>
-          <EmptyIcon />
+      <div className={clsx(tableContainer({ responsive }), className)} style={containerStyle}>
+        <div className={emptyState}>
+          <svg
+            width='48'
+            height='48'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='1'
+            style={{ marginBottom: '16px', opacity: 0.5 }}
+          >
+            <rect x='3' y='3' width='18' height='18' rx='2' ry='2' />
+            <path d='M9 9h6v6H9z' />
+          </svg>
           <p>{emptyMessage}</p>
-        </EmptyState>
-      </TableContainer>
+        </div>
+      </div>
     );
   }
 
   return (
-    <TableContainer $responsive={responsive} $maxHeight={maxHeight} className={className}>
-      <StyledTable
-        $size={size}
-        $variant={variant}
-        $striped={striped}
-        $hoverable={hoverable}
-        data-testid={dataTestId}
-      >
-        <TableHead $sticky={stickyHeader}>
-          <TableRow $striped={false} $hoverable={false} $clickable={false} $index={0}>
+    <div className={clsx(tableContainer({ responsive }), className)} style={containerStyle}>
+      <table className={styledTable({ size, variant })} data-testid={dataTestId}>
+        <thead className={tableHead({ sticky: stickyHeader })}>
+          <tr className={tableRow({ hoverable: false, clickable: false, striped: false })}>
             {columns.map(column => (
-              <TableHeaderCell
+              <th
                 key={column.key}
-                $sortable={column.sortable || sortable}
-                $align={column.align || 'left'}
-                $width={column.width}
-                $minWidth={column.minWidth}
-                $maxWidth={column.maxWidth}
+                className={tableHeaderCell({
+                  sortable: !!(column.sortable || sortable),
+                  align: column.align || 'left',
+                })}
+                style={{
+                  width: column.width,
+                  minWidth: column.minWidth,
+                  maxWidth: column.maxWidth,
+                }}
                 onClick={() => handleSort(column)}
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -610,24 +330,37 @@ export const Table = <T,>({
                 >
                   {column.headerRender ? column.headerRender() : column.header}
                   {(column.sortable || sortable) && (
-                    <SortIcon
-                      $direction={column.key === effectiveSortBy ? effectiveSortDirection : null}
-                    />
+                    <span
+                      className={clsx(
+                        sortIconBase,
+                        column.key === effectiveSortBy && effectiveSortDirection
+                          ? sortIconVariants.active
+                          : sortIconVariants.inactive
+                      )}
+                    >
+                      {getSortIconContent(
+                        column.key === effectiveSortBy ? effectiveSortDirection : null
+                      )}
+                    </span>
                   )}
                 </div>
-              </TableHeaderCell>
+              </th>
             ))}
-          </TableRow>
-        </TableHead>
+          </tr>
+        </thead>
 
-        <TableBody>
+        <tbody>
           {sortedData.map((row, index) => (
-            <TableRow
+            <tr
               key={getRowKey(row, index)}
-              $striped={striped}
-              $hoverable={hoverable}
-              $clickable={!!onRowClick}
-              $index={index}
+              className={clsx(
+                tableRow({
+                  hoverable: !!hoverable,
+                  clickable: !!onRowClick,
+                  striped: !!striped,
+                }),
+                striped && index % 2 === 1 && stripedRow
+              )}
               onClick={() => handleRowClick(row, index)}
               onKeyDown={e => {
                 if (onRowClick && (e.key === 'Enter' || e.key === ' ')) {
@@ -650,16 +383,16 @@ export const Table = <T,>({
                   cellContent = value as React.ReactNode;
                 }
                 return (
-                  <TableCell key={column.key} $align={column.align || 'left'}>
+                  <td key={column.key} className={tableCell({ align: column.align || 'left' })}>
                     {cellContent}
-                  </TableCell>
+                  </td>
                 );
               })}
-            </TableRow>
+            </tr>
           ))}
-        </TableBody>
-      </StyledTable>
-    </TableContainer>
+        </tbody>
+      </table>
+    </div>
   );
 };
 

@@ -1,8 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import styled from 'styled-components';
+import clsx from 'clsx';
 import { Badge } from '../Badge';
 import { Spinner } from '../Spinner';
 import noImage from './no-image.png';
+import {
+  galleryContainer,
+  imageContainer,
+  imageWrapper,
+  galleryImage,
+  deleteButton,
+  navigationDots,
+  dot,
+  uploadButton,
+  hiddenInput,
+  centeredBadgeContainer,
+} from './ImageGallery.css';
 
 interface ImageGalleryProps {
   images: string[];
@@ -10,128 +22,6 @@ interface ImageGalleryProps {
   onUpload?: (file: File) => void;
   onDelete?: (fileName: string) => void;
 }
-
-const GalleryContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin: 12px;
-
-  @media (max-width: 480px) {
-    gap: 8px;
-    margin: 8px;
-  }
-`;
-
-const ImageContainer = styled.div`
-  position: relative;
-  width: 150px;
-  height: 150px;
-
-  @media (max-width: 480px) {
-    width: 120px;
-    height: 120px;
-  }
-`;
-
-const ImageWrapper = styled.div`
-  position: relative;
-  width: 100%;
-  max-width: 300px;
-  height: 300px;
-  margin: 20px auto;
-
-  @media (max-width: 480px) {
-    height: 250px;
-    margin: 12px auto;
-  }
-`;
-
-const Image = styled.img<{ loading: boolean }>`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 12px;
-  opacity: ${({ loading }) => (loading ? 0 : 1)};
-  transition: opacity 0.3s ease-in-out;
-`;
-
-const DeleteButton = styled.button`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: rgba(255, 0, 0, 0.8);
-  border: none;
-  color: white;
-  padding: 5px 10px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 12px;
-
-  @media (max-width: 480px) {
-    padding: 4px 8px;
-    font-size: 10px;
-    top: 5px;
-    right: 5px;
-  }
-
-  &:hover {
-    background-color: red;
-  }
-`;
-
-const NavigationDots = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
-
-  @media (max-width: 480px) {
-    margin-top: 12px;
-  }
-`;
-
-const Dot = styled.button<{ active: boolean }>`
-  width: ${({ theme }) => theme.spacing.xs};
-  height: ${({ theme }) => theme.spacing.xs};
-  margin: 0 ${({ theme }) => theme.spacing.xs};
-  background-color: ${({ active, theme }) => (active ? theme.text.link : theme.text.disabled)};
-  border: none;
-  border-radius: ${({ theme }) => theme.border.radius.full};
-  cursor: pointer;
-  transition: background-color ${({ theme }) => theme.transitions.fast};
-
-  &:hover {
-    background-color: ${({ theme }) => theme.text.linkHover};
-  }
-`;
-
-const UploadButton = styled.label`
-  display: block;
-  background-color: ${({ theme }) => theme.background.info};
-  color: ${({ theme }) => theme.text.inverse};
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  margin: ${({ theme }) => theme.spacing.md} auto;
-  text-align: center;
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  cursor: pointer;
-  font-size: ${({ theme }) => theme.typography.size.base};
-  transition: background-color ${({ theme }) => theme.transitions.fast};
-
-  &:hover {
-    background-color: ${({ theme }) => theme.text.linkHover};
-  }
-`;
-
-const HiddenInput = styled.input`
-  display: none;
-`;
-
-const CenteredBadgeContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-top: ${({ theme }) => theme.spacing.md};
-`;
 
 const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload, onDelete }) => {
   const [galleryImages, setGalleryImages] = useState<string[]>(
@@ -208,43 +98,45 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
   return (
     <>
       {viewMode === 'gallery' ? (
-        <GalleryContainer>
+        <div className={galleryContainer}>
           {galleryImages.map((src, index) => {
             const fileName = typeof src === 'string' ? src.split('/').pop() : '';
             return (
-              <ImageContainer key={index}>
+              <div className={imageContainer} key={index}>
                 {loadingImages[index] && <Spinner />}
-                <Image
+                <img
                   src={src}
-                  alt={`Image ${index + 1}`}
-                  loading={loadingImages[index]}
+                  alt={`Gallery item ${index + 1}`}
+                  className={galleryImage({ isLoading: loadingImages[index] })}
                   onLoad={() => handleImageLoad(index)}
                 />
                 {onDelete && src !== noImage && (
-                  <DeleteButton
+                  <button
+                    className={deleteButton}
                     onClick={() => handleDelete(fileName!)}
                     aria-label={`delete image ${fileName}`}
                   >
                     delete image
-                  </DeleteButton>
+                  </button>
                 )}
-              </ImageContainer>
+              </div>
             );
           })}
-        </GalleryContainer>
+        </div>
       ) : (
         <>
           {galleryImages.length > 0 && (
-            <ImageWrapper>
+            <div className={imageWrapper}>
               {loadingImages[currentImageIndex] && <Spinner />}
-              <Image
+              <img
                 src={galleryImages[currentImageIndex]}
-                alt='Gallery Image'
-                loading={loadingImages[currentImageIndex]}
+                alt='Current gallery item'
+                className={galleryImage({ isLoading: loadingImages[currentImageIndex] })}
                 onLoad={() => handleImageLoad(currentImageIndex)}
               />
               {onDelete && galleryImages[currentImageIndex] !== noImage && (
-                <DeleteButton
+                <button
+                  className={deleteButton}
                   onClick={() => {
                     const currentImage = galleryImages[currentImageIndex];
                     const fileName =
@@ -256,27 +148,28 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
                   aria-label={`delete image ${currentImageIndex + 1}`}
                 >
                   delete image
-                </DeleteButton>
+                </button>
               )}
-            </ImageWrapper>
+            </div>
           )}
 
-          <NavigationDots>
+          <div className={navigationDots}>
             {galleryImages.map((_, index) => (
-              <Dot
+              <button
                 key={index}
-                active={index === currentImageIndex}
+                className={clsx(dot({ active: index === currentImageIndex }))}
                 onClick={() => setCurrentImageIndex(index)}
                 aria-label={`dot ${index + 1}`}
               />
             ))}
-          </NavigationDots>
+          </div>
         </>
       )}
       {onUpload && galleryImages.length < 3 && (
-        <UploadButton>
+        <label className={uploadButton}>
           Upload Image
-          <HiddenInput
+          <input
+            className={hiddenInput}
             type='file'
             accept='image/*'
             onChange={event => {
@@ -285,12 +178,12 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
               }
             }}
           />
-        </UploadButton>
+        </label>
       )}
       {onUpload && galleryImages.length === 3 && (
-        <CenteredBadgeContainer>
+        <div className={centeredBadgeContainer}>
           <Badge variant='info'>Maximum amount of images reached</Badge>
-        </CenteredBadgeContainer>
+        </div>
       )}
     </>
   );

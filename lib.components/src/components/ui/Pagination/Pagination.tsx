@@ -1,5 +1,7 @@
 import React from 'react';
-import styled, { css, DefaultTheme } from 'styled-components';
+import clsx from 'clsx';
+
+import * as styles from './Pagination.css';
 
 export type PaginationSize = 'sm' | 'md' | 'lg';
 export type PaginationVariant = 'default' | 'outlined' | 'minimal';
@@ -18,126 +20,6 @@ export interface PaginationProps {
   'data-testid'?: string;
   onPageChange: (page: number) => void;
 }
-
-const getSizeStyles = (size: PaginationSize) => {
-  const sizes = {
-    sm: css`
-      height: 32px;
-      min-width: 32px;
-      padding: 0 8px;
-      font-size: ${({ theme }) => theme.typography.size.sm};
-    `,
-    md: css`
-      height: 40px;
-      min-width: 40px;
-      padding: 0 12px;
-      font-size: ${({ theme }) => theme.typography.size.base};
-    `,
-    lg: css`
-      height: 48px;
-      min-width: 48px;
-      padding: 0 16px;
-      font-size: ${({ theme }) => theme.typography.size.lg};
-    `,
-  };
-  return sizes[size];
-};
-
-const getVariantStyles = (variant: PaginationVariant, theme: DefaultTheme, isActive: boolean) => {
-  const variants = {
-    default: css`
-      background-color: ${isActive ? theme.colors.primary[500] : theme.colors.neutral[50]};
-      border: 1px solid ${isActive ? theme.colors.primary[500] : theme.colors.neutral[300]};
-      color: ${isActive ? theme.colors.neutral[50] : theme.colors.neutral[700]};
-
-      &:hover:not(:disabled) {
-        background-color: ${isActive ? theme.colors.primary[700] : theme.colors.neutral[50]};
-        border-color: ${isActive ? theme.colors.primary[700] : theme.colors.neutral[400]};
-      }
-    `,
-    outlined: css`
-      background-color: transparent;
-      border: 1px solid ${isActive ? theme.colors.primary[500] : theme.colors.neutral[300]};
-      color: ${isActive ? theme.colors.primary[500] : theme.colors.neutral[700]};
-
-      &:hover:not(:disabled) {
-        background-color: ${isActive ? theme.colors.primary[100] + '20' : theme.colors.neutral[50]};
-        border-color: ${theme.colors.primary[500]};
-        color: ${theme.colors.primary[500]};
-      }
-    `,
-    minimal: css`
-      background-color: transparent;
-      border: 1px solid transparent;
-      color: ${isActive ? theme.colors.primary[500] : theme.colors.neutral[600]};
-
-      &:hover:not(:disabled) {
-        background-color: ${theme.colors.neutral[100]};
-        color: ${theme.colors.neutral[700]};
-      }
-
-      ${isActive &&
-      css`
-        font-weight: ${theme.typography.weight.semibold};
-      `}
-    `,
-  };
-  return variants[variant];
-};
-
-const PaginationContainer = styled.nav`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.xs};
-`;
-
-const PaginationButton = styled.button<{
-  $size: PaginationSize;
-  $variant: PaginationVariant;
-  $isActive: boolean;
-}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: ${({ theme }) => theme.border.radius.sm};
-  font-weight: ${({ theme }) => theme.typography.weight.medium};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.transitions.fast};
-  text-decoration: none;
-
-  ${({ $size }) => getSizeStyles($size)}
-  ${({ $variant, theme, $isActive }) => getVariantStyles($variant, theme, $isActive)}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-
-    &:hover {
-      background-color: inherit;
-      border-color: inherit;
-      color: inherit;
-    }
-  }
-
-  &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors.primary[500]};
-    outline-offset: 2px;
-  }
-
-  svg {
-    width: 16px;
-    height: 16px;
-  }
-`;
-
-const EllipsisIndicator = styled.span<{ $size: PaginationSize }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${({ theme }) => theme.colors.neutral[500]};
-
-  ${({ $size }) => getSizeStyles($size)}
-`;
 
 const PrevIcon = () => (
   <svg viewBox='0 0 20 20' fill='currentColor'>
@@ -251,88 +133,78 @@ export const Pagination: React.FC<PaginationProps> = ({
   }
 
   return (
-    <PaginationContainer
-      className={className}
+    <nav
+      className={clsx(styles.container, className)}
       data-testid={testId}
       role='navigation'
       aria-label='Pagination'
     >
       {showFirstLast && (
-        <PaginationButton
-          $size={size}
-          $variant={variant}
-          $isActive={false}
+        <button
+          className={styles.button({ size, variant, isActive: false })}
           onClick={() => handlePageChange(1)}
           disabled={disabled || currentPage === 1}
           aria-label='Go to first page'
         >
           <FirstIcon />
-        </PaginationButton>
+        </button>
       )}
 
       {showPrevNext && (
-        <PaginationButton
-          $size={size}
-          $variant={variant}
-          $isActive={false}
+        <button
+          className={styles.button({ size, variant, isActive: false })}
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={disabled || currentPage === 1}
           aria-label='Go to previous page'
         >
           <PrevIcon />
-        </PaginationButton>
+        </button>
       )}
 
       {pages.map((page, index) => {
         if (typeof page === 'number') {
           return (
-            <PaginationButton
+            <button
               key={page}
-              $size={size}
-              $variant={variant}
-              $isActive={page === currentPage}
+              className={styles.button({ size, variant, isActive: page === currentPage })}
               onClick={() => handlePageChange(page)}
               disabled={disabled}
               aria-label={`Go to page ${page}`}
               aria-current={page === currentPage ? 'page' : undefined}
             >
               {page}
-            </PaginationButton>
+            </button>
           );
         }
 
         return (
-          <EllipsisIndicator key={index} $size={size}>
+          <span key={index} className={styles.ellipsis({ size })}>
             ...
-          </EllipsisIndicator>
+          </span>
         );
       })}
 
       {showPrevNext && (
-        <PaginationButton
-          $size={size}
-          $variant={variant}
-          $isActive={false}
+        <button
+          className={styles.button({ size, variant, isActive: false })}
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={disabled || currentPage === totalPages}
           aria-label='Go to next page'
         >
           <NextIcon />
-        </PaginationButton>
+        </button>
       )}
 
       {showFirstLast && (
-        <PaginationButton
-          $size={size}
-          $variant={variant}
-          $isActive={false}
+        <button
+          className={styles.button({ size, variant, isActive: false })}
           onClick={() => handlePageChange(totalPages)}
           disabled={disabled || currentPage === totalPages}
           aria-label='Go to last page'
         >
           <LastIcon />
-        </PaginationButton>
+        </button>
       )}
-    </PaginationContainer>
+    </nav>
   );
 };
