@@ -116,7 +116,7 @@ export const Modal: React.FC<ModalProps> = ({
       onKeyDown={handleKeyDown}
       role='button'
       tabIndex={-1}
-      aria-label='Close modal'
+      aria-label='Modal backdrop'
     >
       <div
         ref={modalRef}
