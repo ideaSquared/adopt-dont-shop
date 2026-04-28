@@ -1,4 +1,5 @@
-import { recipe, style } from '@vanilla-extract/recipes';
+import { style } from '@vanilla-extract/css';
+import { recipe } from '@vanilla-extract/recipes';
 
 import { vars } from '@adopt-dont-shop/lib.components';
 
