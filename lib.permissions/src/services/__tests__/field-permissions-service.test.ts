@@ -340,11 +340,7 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should allow rescue staff to see and edit internal notes', async () => {
-      const result = await service.getFieldAccess(
-        'applications',
-        'rescue_staff',
-        'interviewNotes'
-      );
+      const result = await service.getFieldAccess('applications', 'rescue_staff', 'interviewNotes');
 
       expect(result.effectiveLevel).toBe('write');
       expect(result.allowed).toBe(true);

@@ -209,7 +209,6 @@ export interface SystemPermissionsResponse {
   permissions: Permission[];
 }
 
-
 // ---------------------------------------------------------------------------
 // Money — integer minor units + ISO 4217 currency code
 // ---------------------------------------------------------------------------
@@ -244,5 +243,4 @@ export const money = (amount: number, currency: string): Money => ({
 export type CountryCode = string & { readonly __brand: 'CountryCode' };
 
 /** Build a CountryCode, normalising to uppercase. */
-export const countryCode = (code: string): CountryCode =>
-  code.toUpperCase() as CountryCode;
+export const countryCode = (code: string): CountryCode => code.toUpperCase() as CountryCode;

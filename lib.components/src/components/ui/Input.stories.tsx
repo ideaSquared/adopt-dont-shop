@@ -22,7 +22,13 @@ export const Default: Story = {
 };
 
 export const WithLabel: Story = {
-  args: { label: 'Email', placeholder: 'you@example.com', type: 'email', variant: 'default', size: 'md' },
+  args: {
+    label: 'Email',
+    placeholder: 'you@example.com',
+    type: 'email',
+    variant: 'default',
+    size: 'md',
+  },
 };
 
 export const WithError: Story = {
@@ -48,31 +54,77 @@ export const WithSuccess: Story = {
 };
 
 export const Required: Story = {
-  args: { label: 'Name', placeholder: 'Enter your name', type: 'text', variant: 'default', size: 'md', required: true },
+  args: {
+    label: 'Name',
+    placeholder: 'Enter your name',
+    type: 'text',
+    variant: 'default',
+    size: 'md',
+    required: true,
+  },
 };
 
 export const Small: Story = {
-  args: { label: 'Small Input', placeholder: 'Small', type: 'text', variant: 'default', size: 'sm' },
+  args: {
+    label: 'Small Input',
+    placeholder: 'Small',
+    type: 'text',
+    variant: 'default',
+    size: 'sm',
+  },
 };
 
 export const Large: Story = {
-  args: { label: 'Large Input', placeholder: 'Large', type: 'text', variant: 'default', size: 'lg' },
+  args: {
+    label: 'Large Input',
+    placeholder: 'Large',
+    type: 'text',
+    variant: 'default',
+    size: 'lg',
+  },
 };
 
 export const FullWidth: Story = {
-  args: { label: 'Full Width', placeholder: 'Full width', type: 'text', variant: 'default', size: 'md', isFullWidth: true },
+  args: {
+    label: 'Full Width',
+    placeholder: 'Full width',
+    type: 'text',
+    variant: 'default',
+    size: 'md',
+    isFullWidth: true,
+  },
 };
 
 export const Disabled: Story = {
-  args: { label: 'Disabled', placeholder: 'Cannot type', type: 'text', variant: 'default', size: 'md', disabled: true },
+  args: {
+    label: 'Disabled',
+    placeholder: 'Cannot type',
+    type: 'text',
+    variant: 'default',
+    size: 'md',
+    disabled: true,
+  },
 };
 
 export const ReadOnly: Story = {
-  args: { label: 'Read Only', value: 'Read-only content', type: 'text', variant: 'default', size: 'md', readOnly: true },
+  args: {
+    label: 'Read Only',
+    value: 'Read-only content',
+    type: 'text',
+    variant: 'default',
+    size: 'md',
+    readOnly: true,
+  },
 };
 
 export const PasswordInput: Story = {
-  args: { label: 'Password', placeholder: 'Enter password', type: 'password', variant: 'default', size: 'md' },
+  args: {
+    label: 'Password',
+    placeholder: 'Enter password',
+    type: 'password',
+    variant: 'default',
+    size: 'md',
+  },
 };
 
 export const NumberInput: Story = {

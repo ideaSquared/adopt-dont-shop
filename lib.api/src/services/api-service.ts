@@ -334,12 +334,7 @@ export class ApiService {
       clearTimeout(timeoutId);
 
       // Apply response interceptors
-      try {
-        response = await this.interceptors.applyResponseInterceptors(response);
-      } catch (interceptorError) {
-        // Response interceptor threw an error (e.g., due to !response.ok)
-        throw interceptorError;
-      }
+      response = await this.interceptors.applyResponseInterceptors(response);
 
       // Parse response
       const contentType = response.headers.get('content-type');
