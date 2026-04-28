@@ -153,6 +153,28 @@ describe('PetsService', () => {
         );
       });
 
+      it('sends createdAt in camelCase when sortBy is createdAt', async () => {
+        mockApiService.get.mockResolvedValueOnce(mockDistanceResponse);
+
+        await service.searchPets({ sortBy: 'createdAt' });
+
+        expect(mockApiService.get).toHaveBeenCalledWith(
+          '/api/v1/pets',
+          expect.objectContaining({ sortBy: 'createdAt' })
+        );
+      });
+
+      it('normalises snake_case created_at to camelCase createdAt for the API', async () => {
+        mockApiService.get.mockResolvedValueOnce(mockDistanceResponse);
+
+        await service.searchPets({ sortBy: 'created_at' });
+
+        expect(mockApiService.get).toHaveBeenCalledWith(
+          '/api/v1/pets',
+          expect.objectContaining({ sortBy: 'createdAt' })
+        );
+      });
+
       it('includes distance field from API response in returned pet data', async () => {
         mockApiService.get.mockResolvedValueOnce(mockDistanceResponse);
 
