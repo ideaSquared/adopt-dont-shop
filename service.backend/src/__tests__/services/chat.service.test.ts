@@ -423,6 +423,7 @@ describe('ChatService', () => {
         const result = await ChatService.getMessages(chatId);
         expect(result.messages).toHaveLength(1);
         expect(result.messages[0].created_at).toBeDefined();
+        expect(result.messages[0].updated_at).toBeDefined();
       });
     });
 
