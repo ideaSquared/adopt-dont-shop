@@ -127,7 +127,9 @@ export const BlogPostPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) {
+      return;
+    }
     cmsPublicService
       .getBlogPost(slug)
       .then(setPost)

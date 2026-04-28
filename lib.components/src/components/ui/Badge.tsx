@@ -383,14 +383,18 @@ const CloseIcon = () => (
 );
 
 const clampCount = (children: React.ReactNode, max: number | undefined): React.ReactNode => {
-  if (max === undefined) return children;
+  if (max === undefined) {
+    return children;
+  }
   const numeric =
     typeof children === 'number'
       ? children
       : typeof children === 'string' && /^-?\d+$/.test(children.trim())
         ? Number(children)
         : null;
-  if (numeric === null) return children;
+  if (numeric === null) {
+    return children;
+  }
   return numeric > max ? `${max}+` : String(numeric);
 };
 

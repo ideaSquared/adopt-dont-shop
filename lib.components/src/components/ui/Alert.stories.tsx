@@ -21,7 +21,12 @@ export const Success: Story = {
 };
 
 export const Error: Story = {
-  args: { children: 'An error occurred. Please try again.', variant: 'error', size: 'md', showIcon: true },
+  args: {
+    children: 'An error occurred. Please try again.',
+    variant: 'error',
+    size: 'md',
+    showIcon: true,
+  },
 };
 
 export const Warning: Story = {
@@ -43,7 +48,13 @@ export const WithTitle: Story = {
 };
 
 export const Closable: Story = {
-  args: { children: 'This alert can be closed.', variant: 'info', size: 'md', closable: true, showIcon: true },
+  args: {
+    children: 'This alert can be closed.',
+    variant: 'info',
+    size: 'md',
+    closable: true,
+    showIcon: true,
+  },
 };
 
 export const Small: Story = {
@@ -51,7 +62,12 @@ export const Small: Story = {
 };
 
 export const Large: Story = {
-  args: { children: 'Large alert with more visibility.', variant: 'info', size: 'lg', showIcon: true },
+  args: {
+    children: 'Large alert with more visibility.',
+    variant: 'info',
+    size: 'lg',
+    showIcon: true,
+  },
 };
 
 export const WithoutIcon: Story = {
