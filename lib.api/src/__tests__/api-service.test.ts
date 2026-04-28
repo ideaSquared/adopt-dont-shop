@@ -41,7 +41,7 @@ describe('ApiService', () => {
       apiService = new ApiService();
       const config = apiService.getConfig();
 
-      expect(config.apiUrl).toBe('http://localhost:5000');
+      expect(config.apiUrl).toBe('');
       expect(config.debug).toBe(false);
       expect(config.timeout).toBe(10000);
       expect(config.headers).toEqual({});
@@ -296,7 +296,7 @@ describe('ApiService', () => {
       // Verify localStorage was checked for authToken
       expect(mockLocalStorage.getItem).toHaveBeenCalledWith('authToken');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:5000/test',
+        '/test',
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: 'Bearer localStorage-token',
@@ -497,10 +497,7 @@ describe('ApiService', () => {
       const isHealthy = await apiService.healthCheck();
 
       expect(isHealthy).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/v1/health',
-        expect.any(Object)
-      );
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/health', expect.any(Object));
     });
 
     it('should return false for failed health check', async () => {
@@ -517,7 +514,7 @@ describe('ApiService', () => {
       apiService = new ApiService();
       const config = apiService.getConfig();
 
-      expect(config.apiUrl).toBe('http://localhost:5000');
+      expect(config.apiUrl).toBe('');
     });
   });
 

@@ -144,12 +144,15 @@ describe('AuthService', () => {
     });
 
     it('should clear storage even if API call fails', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
       (apiService.post as jest.Mock).mockRejectedValue(new Error('Network error'));
 
       await authService.logout();
 
-      expect(consoleSpy).toHaveBeenCalledWith('Logout API call failed:', expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Logout request failed, clearing local data anyway:',
+        expect.any(Error)
+      );
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.REFRESH_TOKEN);
