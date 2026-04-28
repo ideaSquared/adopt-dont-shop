@@ -205,10 +205,10 @@ export class ModerationController {
   async getModerationMetrics(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       let dateRange;
-      if (req.query.from && req.query.to) {
+      if (req.query.startDate && req.query.endDate) {
         dateRange = {
-          from: new Date(req.query.from as string),
-          to: new Date(req.query.to as string),
+          from: new Date(req.query.startDate as string),
+          to: new Date(req.query.endDate as string),
         };
       }
 
