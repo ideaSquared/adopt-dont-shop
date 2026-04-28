@@ -65,3 +65,4 @@ docker-compose.override.yml
 *.tsbuildinfo
 *.timestamp-*.mjs
 .claude/worktrees/
+storybook-static/
