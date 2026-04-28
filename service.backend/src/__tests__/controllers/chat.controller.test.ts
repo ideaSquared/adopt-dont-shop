@@ -315,6 +315,36 @@ describe('ChatController', () => {
       });
     });
 
+    describe('when the caller is an admin', () => {
+      it('should pass undefined userId to the service (bypass participant check)', async () => {
+        mockRequest.params = { chatId: 'chat-001' };
+        mockRequest.user = { ...mockUser, userType: UserType.ADMIN } as User;
+
+        const mockChat = {
+          toJSON: () => ({
+            chat_id: 'chat-001',
+            type: 'application',
+            status: 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            Participants: [],
+          }),
+        };
+
+        (ChatService.getChatById as Mock).mockResolvedValue(mockChat);
+
+        await ChatController.getChatById(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response
+        );
+
+        expect(ChatService.getChatById).toHaveBeenCalledWith('chat-001', undefined);
+        expect(mockResponse.json).toHaveBeenCalledWith(
+          expect.objectContaining({ success: true })
+        );
+      });
+    });
+
     describe('when user is not a participant', () => {
       it('should return chat data (no access control implemented)', async () => {
         mockRequest.params = { chatId: 'chat-001' };
@@ -568,6 +598,34 @@ describe('ChatController', () => {
               }),
             }),
           })
+        );
+      });
+    });
+
+    describe('when the caller is an admin', () => {
+      it('should pass undefined userId to the service (bypass participant check)', async () => {
+        mockRequest.params = { chatId: 'chat-001' };
+        mockRequest.query = { page: '1', limit: '50' };
+        mockRequest.user = { ...mockUser, userType: UserType.ADMIN } as User;
+
+        (ChatService.getMessages as Mock).mockResolvedValue({
+          messages: [],
+          page: 1,
+          total: 0,
+          totalPages: 0,
+        });
+
+        await ChatController.getMessages(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response
+        );
+
+        expect(ChatService.getMessages).toHaveBeenCalledWith(
+          'chat-001',
+          expect.objectContaining({ userId: undefined })
+        );
+        expect(mockResponse.json).toHaveBeenCalledWith(
+          expect.objectContaining({ success: true })
         );
       });
     });
