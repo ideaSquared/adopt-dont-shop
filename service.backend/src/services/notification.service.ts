@@ -912,13 +912,29 @@ type PrefsRowPatch = Partial<{
 
 function apiPatchToPrefsRow(input: Partial<NotificationPreferences>): PrefsRowPatch {
   const out: PrefsRowPatch = {};
-  if (input.email !== undefined) out.email_enabled = input.email;
-  if (input.push !== undefined) out.push_enabled = input.push;
-  if (input.sms !== undefined) out.sms_enabled = input.sms;
-  if (input.applications !== undefined) out.application_updates = input.applications;
-  if (input.messages !== undefined) out.chat_messages = input.messages;
-  if (input.quietHoursStart !== undefined) out.quiet_hours_start = input.quietHoursStart || null;
-  if (input.quietHoursEnd !== undefined) out.quiet_hours_end = input.quietHoursEnd || null;
-  if (input.timezone !== undefined) out.timezone = input.timezone;
+  if (input.email !== undefined) {
+    out.email_enabled = input.email;
+  }
+  if (input.push !== undefined) {
+    out.push_enabled = input.push;
+  }
+  if (input.sms !== undefined) {
+    out.sms_enabled = input.sms;
+  }
+  if (input.applications !== undefined) {
+    out.application_updates = input.applications;
+  }
+  if (input.messages !== undefined) {
+    out.chat_messages = input.messages;
+  }
+  if (input.quietHoursStart !== undefined) {
+    out.quiet_hours_start = input.quietHoursStart || null;
+  }
+  if (input.quietHoursEnd !== undefined) {
+    out.quiet_hours_end = input.quietHoursEnd || null;
+  }
+  if (input.timezone !== undefined) {
+    out.timezone = input.timezone;
+  }
   return out;
 }

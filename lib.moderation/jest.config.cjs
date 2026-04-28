@@ -1,4 +1,4 @@
-const base = require('../../jest.config.base.cjs');
+const base = require('../jest.config.base.cjs');
 module.exports = {
   ...base,
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts', '**/?(*.)+(spec|test).tsx'],

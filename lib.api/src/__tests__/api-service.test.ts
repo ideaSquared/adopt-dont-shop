@@ -41,7 +41,9 @@ describe('ApiService', () => {
       apiService = new ApiService();
       const config = apiService.getConfig();
 
-      expect(config.apiUrl).toBe('http://localhost:5000');
+      // Browser environments use a relative base URL so requests stay same-origin
+      // (Vite proxy in dev, nginx in prod) — required for CSRF cookie scoping.
+      expect(config.apiUrl).toBe('');
       expect(config.debug).toBe(false);
       expect(config.timeout).toBe(10000);
       expect(config.headers).toEqual({});
@@ -296,7 +298,7 @@ describe('ApiService', () => {
       // Verify localStorage was checked for authToken
       expect(mockLocalStorage.getItem).toHaveBeenCalledWith('authToken');
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:5000/test',
+        '/test',
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: 'Bearer localStorage-token',
@@ -497,10 +499,7 @@ describe('ApiService', () => {
       const isHealthy = await apiService.healthCheck();
 
       expect(isHealthy).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:5000/api/v1/health',
-        expect.any(Object)
-      );
+      expect(mockFetch).toHaveBeenCalledWith('/api/v1/health', expect.any(Object));
     });
 
     it('should return false for failed health check', async () => {
@@ -517,7 +516,8 @@ describe('ApiService', () => {
       apiService = new ApiService();
       const config = apiService.getConfig();
 
-      expect(config.apiUrl).toBe('http://localhost:5000');
+      // In browser environments, default is a relative URL (same-origin requests).
+      expect(config.apiUrl).toBe('');
     });
   });
 

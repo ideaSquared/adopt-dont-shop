@@ -127,6 +127,7 @@ describe('ApplicationsService', () => {
       get: jest.fn(),
       post: jest.fn(),
       put: jest.fn(),
+      patch: jest.fn(),
       delete: jest.fn(),
       updateConfig: jest.fn(),
     } as unknown as jest.Mocked<ApiService>;
@@ -201,25 +202,21 @@ describe('ApplicationsService', () => {
     it('should get application by ID successfully', async () => {
       const mockBackendResponse = {
         data: {
-          application_id: 'app-123',
-          pet_id: 'pet-123',
-          user_id: 'user-123',
-          rescue_id: 'rescue-123',
+          id: 'app-123',
+          petId: 'pet-123',
+          userId: 'user-123',
+          rescueId: 'rescue-123',
           status: 'pending',
-          submitted_at: '2024-01-01T00:00:00Z',
-          reviewed_at: '',
-          actioned_by: '',
-          notes: '',
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-          answers: {},
-          references: [],
+          submittedAt: '2024-01-01T00:00:00Z',
+          reviewedAt: '',
+          reviewedBy: '',
+          reviewNotes: '',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
           documents: [],
-          Pet: {
-            name: 'Buddy',
-            type: 'dog',
-            breed: 'Golden Retriever',
-          },
+          petName: 'Buddy',
+          petType: 'dog',
+          petBreed: 'Golden Retriever',
         },
       };
 
@@ -303,7 +300,7 @@ describe('ApplicationsService', () => {
   describe('updateApplicationStatus', () => {
     it('should update application status successfully', async () => {
       const updatedApplication = { ...mockApplication, status: 'approved' as ApplicationStatus };
-      mockApiService.put.mockResolvedValue({ data: updatedApplication });
+      mockApiService.patch.mockResolvedValue({ data: updatedApplication });
 
       const result = await applicationsService.updateApplicationStatus(
         'app-123',
@@ -311,7 +308,7 @@ describe('ApplicationsService', () => {
         'Application looks good'
       );
 
-      expect(mockApiService.put).toHaveBeenCalledWith('/api/v1/applications/app-123/status', {
+      expect(mockApiService.patch).toHaveBeenCalledWith('/api/v1/applications/app-123/status', {
         status: 'approved' as ApplicationStatus,
         notes: 'Application looks good',
       });
