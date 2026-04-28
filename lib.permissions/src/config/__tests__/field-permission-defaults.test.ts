@@ -121,12 +121,8 @@ describe('Field Permission Defaults', () => {
 
   describe('rescue staff access', () => {
     it('should allow rescue staff to write application internal notes', () => {
-      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'interviewNotes')).toBe(
-        'write'
-      );
-      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'homeVisitNotes')).toBe(
-        'write'
-      );
+      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'interviewNotes')).toBe('write');
+      expect(getDefaultFieldAccess('applications', 'rescue_staff', 'homeVisitNotes')).toBe('write');
       expect(getDefaultFieldAccess('applications', 'rescue_staff', 'score')).toBe('write');
     });
 
