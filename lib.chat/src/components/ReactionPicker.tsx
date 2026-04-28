@@ -1,74 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import styled from 'styled-components';
-
-const PickerTrigger = styled.button<{ $isOwn: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 1rem;
-  opacity: 0;
-  transition:
-    opacity 0.15s ease,
-    background 0.15s ease;
-  color: ${(props) => props.theme.text.secondary};
-
-  &:hover {
-    background: ${(props) => props.theme.background.secondary};
-    opacity: 1;
-  }
-`;
-
-const PickerWrapper = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-`;
-
-const PickerPopover = styled.div<{ $position: 'above' | 'below' }>`
-  position: absolute;
-  ${(props) => (props.$position === 'above' ? 'bottom: 100%' : 'top: 100%')};
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
-  background: ${(props) => props.theme.background.primary};
-  border: 1px solid ${(props) => props.theme.border.color.secondary};
-  border-radius: 24px;
-  padding: 0.25rem 0.375rem;
-  display: flex;
-  gap: 0.125rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  margin-bottom: ${(props) => (props.$position === 'above' ? '0.25rem' : '0')};
-  margin-top: ${(props) => (props.$position === 'below' ? '0.25rem' : '0')};
-`;
-
-const EmojiButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 1.125rem;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: ${(props) => props.theme.background.secondary};
-    transform: scale(1.2);
-  }
-
-  &:active {
-    transform: scale(0.9);
-  }
-`;
+import * as styles from './ReactionPicker.css';
 
 const QUICK_REACTIONS = [
   '\u{1F44D}',
@@ -84,7 +15,7 @@ type ReactionPickerProps = {
   onSelectReaction: (emoji: string) => void;
 };
 
-export function ReactionPicker({ isOwn, onSelectReaction }: ReactionPickerProps) {
+export function ReactionPicker({ isOwn: _isOwn, onSelectReaction }: ReactionPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<'above' | 'below'>('above');
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -134,31 +65,36 @@ export function ReactionPicker({ isOwn, onSelectReaction }: ReactionPickerProps)
   }, [isOpen]);
 
   return (
-    <PickerWrapper ref={wrapperRef} className="reaction-picker-wrapper">
-      <PickerTrigger
+    <div ref={wrapperRef} className={styles.pickerWrapper} data-classname="reaction-picker-wrapper">
+      <button
         ref={triggerRef}
-        $isOwn={isOwn}
+        className={`${styles.pickerTrigger} reaction-picker-trigger`}
         onClick={handleToggle}
         aria-label="Add reaction"
         aria-expanded={isOpen}
-        className="reaction-picker-trigger"
       >
         {'\u{1F600}'}
-      </PickerTrigger>
+      </button>
       {isOpen && (
-        <PickerPopover $position={position} role="listbox" aria-label="Choose a reaction">
+        <div
+          className={styles.pickerPopover[position]}
+          role="listbox"
+          aria-label="Choose a reaction"
+        >
           {QUICK_REACTIONS.map((emoji) => (
-            <EmojiButton
+            <button
               key={emoji}
+              className={styles.emojiButton}
               onClick={() => handleSelect(emoji)}
               role="option"
+              aria-selected={false}
               aria-label={`React with ${emoji}`}
             >
               {emoji}
-            </EmojiButton>
+            </button>
           ))}
-        </PickerPopover>
+        </div>
       )}
-    </PickerWrapper>
+    </div>
   );
 }
