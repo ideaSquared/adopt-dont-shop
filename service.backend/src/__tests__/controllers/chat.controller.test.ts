@@ -339,9 +339,7 @@ describe('ChatController', () => {
         );
 
         expect(ChatService.getChatById).toHaveBeenCalledWith('chat-001', undefined);
-        expect(mockResponse.json).toHaveBeenCalledWith(
-          expect.objectContaining({ success: true })
-        );
+        expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
       });
     });
 
@@ -624,9 +622,7 @@ describe('ChatController', () => {
           'chat-001',
           expect.objectContaining({ userId: undefined })
         );
-        expect(mockResponse.json).toHaveBeenCalledWith(
-          expect.objectContaining({ success: true })
-        );
+        expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
       });
     });
 
