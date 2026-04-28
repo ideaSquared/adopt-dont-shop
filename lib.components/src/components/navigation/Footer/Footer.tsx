@@ -13,12 +13,24 @@ export const Footer: React.FC<FooterProps> = ({ className }) => {
     <footer className={clsx(footer, className)}>
       <div className={footerContainer}>
         <div className={footerLinks}>
-          <Link to='/blog' className={footerLink}>Blog</Link>
-          <Link to='/help' className={footerLink}>Help</Link>
-          <Link to='/about' className={footerLink}>About</Link>
-          <Link to='/privacy' className={footerLink}>Privacy</Link>
-          <Link to='/terms' className={footerLink}>Terms</Link>
-          <Link to='/contact' className={footerLink}>Contact</Link>
+          <Link to='/blog' className={footerLink}>
+            Blog
+          </Link>
+          <Link to='/help' className={footerLink}>
+            Help
+          </Link>
+          <Link to='/about' className={footerLink}>
+            About
+          </Link>
+          <Link to='/privacy' className={footerLink}>
+            Privacy
+          </Link>
+          <Link to='/terms' className={footerLink}>
+            Terms
+          </Link>
+          <Link to='/contact' className={footerLink}>
+            Contact
+          </Link>
         </div>
         <p className={footerText}>
           © {new Date().getFullYear()} Adopt Don&apos;t Shop. All rights reserved.

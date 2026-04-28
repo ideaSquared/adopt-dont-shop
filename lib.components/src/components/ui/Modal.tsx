@@ -121,14 +121,23 @@ export const Modal: React.FC<ModalProps> = ({
       >
         {(title || header) && (
           <div className={styles.modalHeader}>
-            {header ?? <h2 id='modal-title' className={styles.modalTitle}>{title}</h2>}
+            {header ?? (
+              <h2 id='modal-title' className={styles.modalTitle}>
+                {title}
+              </h2>
+            )}
           </div>
         )}
 
         <div className={styles.modalContent}>{children}</div>
 
         {showCloseButton && (
-          <button className={styles.closeButton} onClick={onClose} aria-label='Close modal' type='button'>
+          <button
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label='Close modal'
+            type='button'
+          >
             <CloseIcon />
           </button>
         )}

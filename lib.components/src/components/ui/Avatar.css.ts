@@ -28,12 +28,36 @@ export const container = recipe({
   },
   variants: {
     size: {
-      xs: { width: vars.spacing['6'], height: vars.spacing['6'], fontSize: vars.typography.size.xs },
-      sm: { width: vars.spacing['8'], height: vars.spacing['8'], fontSize: vars.typography.size.sm },
-      md: { width: vars.spacing['10'], height: vars.spacing['10'], fontSize: vars.typography.size.base },
-      lg: { width: vars.spacing['12'], height: vars.spacing['12'], fontSize: vars.typography.size.lg },
-      xl: { width: vars.spacing['16'], height: vars.spacing['16'], fontSize: vars.typography.size.xl },
-      '2xl': { width: vars.spacing['20'], height: vars.spacing['20'], fontSize: vars.typography.size['2xl'] },
+      xs: {
+        width: vars.spacing['6'],
+        height: vars.spacing['6'],
+        fontSize: vars.typography.size.xs,
+      },
+      sm: {
+        width: vars.spacing['8'],
+        height: vars.spacing['8'],
+        fontSize: vars.typography.size.sm,
+      },
+      md: {
+        width: vars.spacing['10'],
+        height: vars.spacing['10'],
+        fontSize: vars.typography.size.base,
+      },
+      lg: {
+        width: vars.spacing['12'],
+        height: vars.spacing['12'],
+        fontSize: vars.typography.size.lg,
+      },
+      xl: {
+        width: vars.spacing['16'],
+        height: vars.spacing['16'],
+        fontSize: vars.typography.size.xl,
+      },
+      '2xl': {
+        width: vars.spacing['20'],
+        height: vars.spacing['20'],
+        fontSize: vars.typography.size['2xl'],
+      },
     },
     shape: {
       circle: { borderRadius: vars.border.radius.full },
@@ -79,7 +103,14 @@ export const initials = style({
   lineHeight: '1',
 });
 
-const fallbackBase = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: 'inherit' } as const;
+const fallbackBase = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '100%',
+  height: '100%',
+  color: 'inherit',
+} as const;
 export const fallbackIconContainer = styleVariants({
   xs: fallbackBase,
   sm: fallbackBase,

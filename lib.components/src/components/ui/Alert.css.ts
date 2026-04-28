@@ -47,7 +47,11 @@ export const alertContainer = recipe({
     },
     size: {
       sm: { padding: vars.spacing['3'], gap: vars.spacing['2'], fontSize: vars.typography.size.sm },
-      md: { padding: vars.spacing['4'], gap: vars.spacing['3'], fontSize: vars.typography.size.base },
+      md: {
+        padding: vars.spacing['4'],
+        gap: vars.spacing['3'],
+        fontSize: vars.typography.size.base,
+      },
       lg: { padding: vars.spacing['5'], gap: vars.spacing['4'], fontSize: vars.typography.size.lg },
     },
   },

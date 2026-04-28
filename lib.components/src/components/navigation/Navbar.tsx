@@ -127,12 +127,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {items.length > 0 && (
-        <div
-          className={clsx(
-            navItems,
-            mobileMenuOpen ? navItemsVisible : navItemsHidden,
-          )}
-        >
+        <div className={clsx(navItems, mobileMenuOpen ? navItemsVisible : navItemsHidden)}>
           {items.map((item, index) => (
             <a
               key={index}
@@ -189,9 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={toggleMobileMenu}
             aria-label='Toggle mobile menu'
           >
-            <div
-              className={clsx(menuIcon, mobileMenuOpen ? menuIconOpen : menuIconClosed)}
-            />
+            <div className={clsx(menuIcon, mobileMenuOpen ? menuIconOpen : menuIconClosed)} />
           </button>
         )}
       </div>

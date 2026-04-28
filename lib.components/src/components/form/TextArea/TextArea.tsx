@@ -142,10 +142,7 @@ const TextAreaComponent = forwardRef<HTMLTextAreaElement, TextAreaProps>(
     return (
       <div className={clsx(styles.container({ fullWidth }), className)}>
         {label && (
-          <label
-            htmlFor={inputId}
-            className={clsx(styles.label, required && styles.labelRequired)}
-          >
+          <label htmlFor={inputId} className={clsx(styles.label, required && styles.labelRequired)}>
             {label}
           </label>
         )}

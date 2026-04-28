@@ -28,7 +28,6 @@ export interface FileUploadProps {
   files?: File[];
 }
 
-
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) {
     return '0 Bytes';
@@ -197,9 +196,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   return (
     <div className={clsx(styles.container({ fullWidth }), className)} data-testid={testId}>
       {label && (
-        <label className={clsx(styles.label, required && styles.labelRequired)}>
-          {label}
-        </label>
+        <label className={clsx(styles.label, required && styles.labelRequired)}>{label}</label>
       )}
 
       <input

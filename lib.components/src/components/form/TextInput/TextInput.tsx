@@ -94,15 +94,11 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         })}
       >
         {leftIcon && (
-          <div className={styles.iconContainer({ position: 'left', size })}>
-            {leftIcon}
-          </div>
+          <div className={styles.iconContainer({ position: 'left', size })}>{leftIcon}</div>
         )}
         {inputEl}
         {rightIcon && (
-          <div className={styles.iconContainer({ position: 'right', size })}>
-            {rightIcon}
-          </div>
+          <div className={styles.iconContainer({ position: 'right', size })}>{rightIcon}</div>
         )}
       </div>
     );
@@ -111,15 +107,11 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
       leftAddon || rightAddon ? (
         <div className={styles.addonGroup}>
           {leftAddon && (
-            <div className={styles.addon({ position: 'left', size, variant })}>
-              {leftAddon}
-            </div>
+            <div className={styles.addon({ position: 'left', size, variant })}>{leftAddon}</div>
           )}
           {inputWithIcons}
           {rightAddon && (
-            <div className={styles.addon({ position: 'right', size, variant })}>
-              {rightAddon}
-            </div>
+            <div className={styles.addon({ position: 'right', size, variant })}>{rightAddon}</div>
           )}
         </div>
       ) : (
@@ -142,10 +134,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         )}
         {inputWithAddons}
         {effectiveHelperText && (
-          <div
-            className={styles.helperText({ state: effectiveState })}
-            id={`${inputId}-helper`}
-          >
+          <div className={styles.helperText({ state: effectiveState })} id={`${inputId}-helper`}>
             {effectiveHelperText}
           </div>
         )}

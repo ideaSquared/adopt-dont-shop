@@ -21,9 +21,15 @@ export const Header: React.FC<HeaderProps> = ({
         <nav className={navigation}>
           {children || (
             <>
-              <a href='/' className={navLink}>Home</a>
-              <a href='/pets' className={navLink}>Find Pets</a>
-              <a href='/about' className={navLink}>About</a>
+              <a href='/' className={navLink}>
+                Home
+              </a>
+              <a href='/pets' className={navLink}>
+                Find Pets
+              </a>
+              <a href='/about' className={navLink}>
+                About
+              </a>
             </>
           )}
         </nav>

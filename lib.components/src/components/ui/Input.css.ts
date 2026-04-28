@@ -47,7 +47,11 @@ export const styledInput = recipe({
     transition: `all ${vars.transitions.fast}`,
     fontFamily: vars.typography.family.sans,
     selectors: {
-      '&:disabled': { backgroundColor: vars.background.disabled, cursor: 'not-allowed', opacity: 0.6 },
+      '&:disabled': {
+        backgroundColor: vars.background.disabled,
+        cursor: 'not-allowed',
+        opacity: 0.6,
+      },
       '&::placeholder': { color: vars.text.secondary },
     },
   },
@@ -56,13 +60,19 @@ export const styledInput = recipe({
       default: {
         borderColor: vars.border.color.secondary,
         selectors: {
-          '&:focus': { borderColor: vars.colors.primary['500'], boxShadow: vars.shadows.focusPrimary },
+          '&:focus': {
+            borderColor: vars.colors.primary['500'],
+            boxShadow: vars.shadows.focusPrimary,
+          },
         },
       },
       success: {
         borderColor: vars.colors.semantic.success['500'],
         selectors: {
-          '&:focus': { borderColor: vars.colors.semantic.success['500'], boxShadow: vars.shadows.focusSuccess },
+          '&:focus': {
+            borderColor: vars.colors.semantic.success['500'],
+            boxShadow: vars.shadows.focusSuccess,
+          },
         },
       },
       error: {

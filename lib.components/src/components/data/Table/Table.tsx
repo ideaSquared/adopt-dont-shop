@@ -205,10 +205,7 @@ export const Table = <T,>({
 
   if (loading) {
     return (
-      <div
-        className={clsx(tableContainer({ responsive }), className)}
-        style={containerStyle}
-      >
+      <div className={clsx(tableContainer({ responsive }), className)} style={containerStyle}>
         {/* Visually hidden spinner for a11y */}
         <div
           role='status'
@@ -223,10 +220,7 @@ export const Table = <T,>({
         >
           Loading…
         </div>
-        <table
-          className={styledTable({ size, variant })}
-          data-testid={dataTestId}
-        >
+        <table className={styledTable({ size, variant })} data-testid={dataTestId}>
           <thead className={tableHead({ sticky: stickyHeader })}>
             <tr className={tableRow({ hoverable: false, clickable: false, striped: false })}>
               {columns.map(column => (
@@ -262,10 +256,7 @@ export const Table = <T,>({
 
   if (data.length === 0) {
     return (
-      <div
-        className={clsx(tableContainer({ responsive }), className)}
-        style={containerStyle}
-      >
+      <div className={clsx(tableContainer({ responsive }), className)} style={containerStyle}>
         <div className={emptyState}>
           <svg
             width='48'
@@ -286,14 +277,8 @@ export const Table = <T,>({
   }
 
   return (
-    <div
-      className={clsx(tableContainer({ responsive }), className)}
-      style={containerStyle}
-    >
-      <table
-        className={styledTable({ size, variant })}
-        data-testid={dataTestId}
-      >
+    <div className={clsx(tableContainer({ responsive }), className)} style={containerStyle}>
+      <table className={styledTable({ size, variant })} data-testid={dataTestId}>
         <thead className={tableHead({ sticky: stickyHeader })}>
           <tr className={tableRow({ hoverable: false, clickable: false, striped: false })}>
             {columns.map(column => (
@@ -346,11 +331,11 @@ export const Table = <T,>({
                         sortIconBase,
                         column.key === effectiveSortBy && effectiveSortDirection
                           ? sortIconVariants.active
-                          : sortIconVariants.inactive,
+                          : sortIconVariants.inactive
                       )}
                     >
                       {getSortIconContent(
-                        column.key === effectiveSortBy ? effectiveSortDirection : null,
+                        column.key === effectiveSortBy ? effectiveSortDirection : null
                       )}
                     </span>
                   )}
@@ -370,7 +355,7 @@ export const Table = <T,>({
                   clickable: !!onRowClick,
                   striped: !!striped,
                 }),
-                striped && index % 2 === 1 && stripedRow,
+                striped && index % 2 === 1 && stripedRow
               )}
               onClick={() => handleRowClick(row, index)}
               onKeyDown={e => {
@@ -394,10 +379,7 @@ export const Table = <T,>({
                   cellContent = value as React.ReactNode;
                 }
                 return (
-                  <td
-                    key={column.key}
-                    className={tableCell({ align: column.align || 'left' })}
-                  >
+                  <td key={column.key} className={tableCell({ align: column.align || 'left' })}>
                     {cellContent}
                   </td>
                 );

@@ -66,7 +66,8 @@ export const card = recipe({
             left: '0',
             right: '0',
             bottom: '0',
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+            background:
+              'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
             borderRadius: 'inherit',
             zIndex: '-1',
           },
@@ -113,11 +114,14 @@ const cardHeaderBase = style({
   paddingBottom: '0',
   marginBottom: vars.spacing['4'],
 });
-globalStyle(`${cardHeaderBase} h1, ${cardHeaderBase} h2, ${cardHeaderBase} h3, ${cardHeaderBase} h4, ${cardHeaderBase} h5, ${cardHeaderBase} h6`, {
-  marginBottom: vars.spacing['2'],
-  color: vars.text.primary,
-  fontWeight: vars.typography.weight.semibold,
-});
+globalStyle(
+  `${cardHeaderBase} h1, ${cardHeaderBase} h2, ${cardHeaderBase} h3, ${cardHeaderBase} h4, ${cardHeaderBase} h5, ${cardHeaderBase} h6`,
+  {
+    marginBottom: vars.spacing['2'],
+    color: vars.text.primary,
+    fontWeight: vars.typography.weight.semibold,
+  }
+);
 globalStyle(`${cardHeaderBase} p`, { color: vars.text.secondary, marginBottom: '0' });
 
 export const cardHeader = recipe({

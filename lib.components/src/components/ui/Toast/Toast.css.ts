@@ -95,12 +95,30 @@ export const toastWrapper = recipe({
     },
   },
   compoundVariants: [
-    { variants: { position: 'top-left', exiting: true }, style: { animation: `${slideOutLeft} 200ms ease-in-out forwards` } },
-    { variants: { position: 'bottom-left', exiting: true }, style: { animation: `${slideOutLeft} 200ms ease-in-out forwards` } },
-    { variants: { position: 'top-right', exiting: true }, style: { animation: `${slideOutRight} 200ms ease-in-out forwards` } },
-    { variants: { position: 'bottom-right', exiting: true }, style: { animation: `${slideOutRight} 200ms ease-in-out forwards` } },
-    { variants: { position: 'top-center', exiting: true }, style: { animation: `${slideOutTop} 200ms ease-in-out forwards` } },
-    { variants: { position: 'bottom-center', exiting: true }, style: { animation: `${slideOutBottom} 200ms ease-in-out forwards` } },
+    {
+      variants: { position: 'top-left', exiting: true },
+      style: { animation: `${slideOutLeft} 200ms ease-in-out forwards` },
+    },
+    {
+      variants: { position: 'bottom-left', exiting: true },
+      style: { animation: `${slideOutLeft} 200ms ease-in-out forwards` },
+    },
+    {
+      variants: { position: 'top-right', exiting: true },
+      style: { animation: `${slideOutRight} 200ms ease-in-out forwards` },
+    },
+    {
+      variants: { position: 'bottom-right', exiting: true },
+      style: { animation: `${slideOutRight} 200ms ease-in-out forwards` },
+    },
+    {
+      variants: { position: 'top-center', exiting: true },
+      style: { animation: `${slideOutTop} 200ms ease-in-out forwards` },
+    },
+    {
+      variants: { position: 'bottom-center', exiting: true },
+      style: { animation: `${slideOutBottom} 200ms ease-in-out forwards` },
+    },
   ],
   defaultVariants: { type: 'info', position: 'top-right', exiting: false },
 });
@@ -141,12 +159,50 @@ export const toastCloseButton = style({
 globalStyle(`${toastCloseButton} svg`, { width: '16px', height: '16px' });
 
 export const toastContainerPosition = styleVariants({
-  'top-left': { position: 'fixed', zIndex: vars.zIndex.toast, pointerEvents: 'none', top: vars.spacing.lg, left: vars.spacing.lg },
-  'top-center': { position: 'fixed', zIndex: vars.zIndex.toast, pointerEvents: 'none', top: vars.spacing.lg, left: '50%', transform: 'translateX(-50%)' },
-  'top-right': { position: 'fixed', zIndex: vars.zIndex.toast, pointerEvents: 'none', top: vars.spacing.lg, right: vars.spacing.lg },
-  'bottom-left': { position: 'fixed', zIndex: vars.zIndex.toast, pointerEvents: 'none', bottom: vars.spacing.lg, left: vars.spacing.lg },
-  'bottom-center': { position: 'fixed', zIndex: vars.zIndex.toast, pointerEvents: 'none', bottom: vars.spacing.lg, left: '50%', transform: 'translateX(-50%)' },
-  'bottom-right': { position: 'fixed', zIndex: vars.zIndex.toast, pointerEvents: 'none', bottom: vars.spacing.lg, right: vars.spacing.lg },
+  'top-left': {
+    position: 'fixed',
+    zIndex: vars.zIndex.toast,
+    pointerEvents: 'none',
+    top: vars.spacing.lg,
+    left: vars.spacing.lg,
+  },
+  'top-center': {
+    position: 'fixed',
+    zIndex: vars.zIndex.toast,
+    pointerEvents: 'none',
+    top: vars.spacing.lg,
+    left: '50%',
+    transform: 'translateX(-50%)',
+  },
+  'top-right': {
+    position: 'fixed',
+    zIndex: vars.zIndex.toast,
+    pointerEvents: 'none',
+    top: vars.spacing.lg,
+    right: vars.spacing.lg,
+  },
+  'bottom-left': {
+    position: 'fixed',
+    zIndex: vars.zIndex.toast,
+    pointerEvents: 'none',
+    bottom: vars.spacing.lg,
+    left: vars.spacing.lg,
+  },
+  'bottom-center': {
+    position: 'fixed',
+    zIndex: vars.zIndex.toast,
+    pointerEvents: 'none',
+    bottom: vars.spacing.lg,
+    left: '50%',
+    transform: 'translateX(-50%)',
+  },
+  'bottom-right': {
+    position: 'fixed',
+    zIndex: vars.zIndex.toast,
+    pointerEvents: 'none',
+    bottom: vars.spacing.lg,
+    right: vars.spacing.lg,
+  },
 });
 
 export const toastContainerInner = style({ pointerEvents: 'auto' });

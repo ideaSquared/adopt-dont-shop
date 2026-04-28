@@ -205,10 +205,7 @@ export const SelectInput = forwardRef<HTMLButtonElement, SelectInputProps>(
     const displayText = error || helperTextProp;
 
     return (
-      <div
-        className={clsx(container({ fullWidth }), className)}
-        data-testid={dataTestId}
-      >
+      <div className={clsx(container({ fullWidth }), className)} data-testid={dataTestId}>
         {label && (
           <label className={labelStyle({ required })} htmlFor={dataTestId}>
             {label}
@@ -287,9 +284,7 @@ export const SelectInput = forwardRef<HTMLButtonElement, SelectInputProps>(
             </Select.Portal>
           </Select.Root>
         </div>
-        {displayText && (
-          <div className={helperText({ state: actualState })}>{displayText}</div>
-        )}
+        {displayText && <div className={helperText({ state: actualState })}>{displayText}</div>}
       </div>
     );
   }

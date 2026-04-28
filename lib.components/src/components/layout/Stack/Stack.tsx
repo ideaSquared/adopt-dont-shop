@@ -38,7 +38,7 @@ export const Stack: React.FC<StackProps> = ({
     <div
       className={clsx(
         styles.stack({ direction, spacing, align, justify, wrap, fullWidth, fullHeight }),
-        className,
+        className
       )}
       data-testid={dataTestId}
       {...props}

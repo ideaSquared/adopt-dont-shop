@@ -44,21 +44,35 @@ export const tableContainer = recipe({
 const tableSizeSm = style({ fontSize: vars.typography.size.sm });
 const tableSizeMd = style({ fontSize: vars.typography.size.base });
 const tableSizeLg = style({ fontSize: vars.typography.size.lg });
-globalStyle(`${tableSizeSm} th, ${tableSizeSm} td`, { padding: `${vars.spacing['2']} ${vars.spacing['3']}` });
-globalStyle(`${tableSizeMd} th, ${tableSizeMd} td`, { padding: `${vars.spacing['3']} ${vars.spacing['4']}` });
-globalStyle(`${tableSizeLg} th, ${tableSizeLg} td`, { padding: `${vars.spacing['4']} ${vars.spacing['5']}` });
+globalStyle(`${tableSizeSm} th, ${tableSizeSm} td`, {
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+});
+globalStyle(`${tableSizeMd} th, ${tableSizeMd} td`, {
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
+});
+globalStyle(`${tableSizeLg} th, ${tableSizeLg} td`, {
+  padding: `${vars.spacing['4']} ${vars.spacing['5']}`,
+});
 
 const tableVariantMinimal = style({ border: 'none' });
-globalStyle(`${tableVariantMinimal} thead th`, { borderBottom: `2px solid ${vars.border.color.primary}` });
+globalStyle(`${tableVariantMinimal} thead th`, {
+  borderBottom: `2px solid ${vars.border.color.primary}`,
+});
 
 const tableVariantBordered = style({
   border: `1px solid ${vars.border.color.primary}`,
   borderRadius: vars.border.radius.lg,
   overflow: 'hidden',
 });
-globalStyle(`${tableVariantBordered} th, ${tableVariantBordered} td`, { borderRight: `1px solid ${vars.border.color.primary}` });
-globalStyle(`${tableVariantBordered} th:last-child, ${tableVariantBordered} td:last-child`, { borderRight: 'none' });
-globalStyle(`${tableVariantBordered} tbody tr`, { borderBottom: `1px solid ${vars.border.color.primary}` });
+globalStyle(`${tableVariantBordered} th, ${tableVariantBordered} td`, {
+  borderRight: `1px solid ${vars.border.color.primary}`,
+});
+globalStyle(`${tableVariantBordered} th:last-child, ${tableVariantBordered} td:last-child`, {
+  borderRight: 'none',
+});
+globalStyle(`${tableVariantBordered} tbody tr`, {
+  borderBottom: `1px solid ${vars.border.color.primary}`,
+});
 globalStyle(`${tableVariantBordered} tbody tr:last-child`, { borderBottom: 'none' });
 
 export const styledTable = recipe({
@@ -75,7 +89,11 @@ export const styledTable = recipe({
       lg: tableSizeLg,
     },
     variant: {
-      default: { border: `1px solid ${vars.border.color.primary}`, borderRadius: vars.border.radius.lg, overflow: 'hidden' },
+      default: {
+        border: `1px solid ${vars.border.color.primary}`,
+        borderRadius: vars.border.radius.lg,
+        overflow: 'hidden',
+      },
       minimal: tableVariantMinimal,
       bordered: tableVariantBordered,
     },

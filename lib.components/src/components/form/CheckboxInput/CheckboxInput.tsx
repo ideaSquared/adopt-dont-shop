@@ -103,16 +103,11 @@ const CheckboxInputComponent = forwardRef<HTMLInputElement, CheckboxInputProps>(
           {(labelText || descriptionText) && (
             <div className={labelContainer}>
               {labelText && (
-                <label
-                  htmlFor={inputId}
-                  className={label({ disabled, required })}
-                >
+                <label htmlFor={inputId} className={label({ disabled, required })}>
                   {labelText}
                 </label>
               )}
-              {descriptionText && (
-                <p className={description({ disabled })}>{descriptionText}</p>
-              )}
+              {descriptionText && <p className={description({ disabled })}>{descriptionText}</p>}
             </div>
           )}
         </div>

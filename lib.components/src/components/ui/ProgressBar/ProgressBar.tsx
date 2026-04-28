@@ -67,7 +67,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         aria-valuemax={max}
       >
         <div
-          className={styles.progressFill({ variant, striped, animated: animated && striped, indeterminate })}
+          className={styles.progressFill({
+            variant,
+            striped,
+            animated: animated && striped,
+            indeterminate,
+          })}
           style={indeterminate ? undefined : { width: `${percentage}%` }}
         />
         <span className={styles.srOnly}>

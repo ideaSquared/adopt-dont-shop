@@ -13,9 +13,18 @@ globalStyle(`${listGroupBordered} li:last-child`, { borderBottom: 'none' });
 const listGroupSm = style({});
 const listGroupMd = style({});
 const listGroupLg = style({});
-globalStyle(`${listGroupSm} li`, { padding: `${vars.spacing['2']} ${vars.spacing['3']}`, fontSize: vars.typography.size.sm });
-globalStyle(`${listGroupMd} li`, { padding: `${vars.spacing['3']} ${vars.spacing['4']}`, fontSize: vars.typography.size.base });
-globalStyle(`${listGroupLg} li`, { padding: `${vars.spacing['4']} ${vars.spacing['5']}`, fontSize: vars.typography.size.lg });
+globalStyle(`${listGroupSm} li`, {
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+  fontSize: vars.typography.size.sm,
+});
+globalStyle(`${listGroupMd} li`, {
+  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
+  fontSize: vars.typography.size.base,
+});
+globalStyle(`${listGroupLg} li`, {
+  padding: `${vars.spacing['4']} ${vars.spacing['5']}`,
+  fontSize: vars.typography.size.lg,
+});
 
 export const listGroup = recipe({
   base: {
@@ -26,7 +35,11 @@ export const listGroup = recipe({
   },
   variants: {
     variant: {
-      default: { border: `1px solid ${vars.border.color.primary}`, borderRadius: vars.border.radius.lg, overflow: 'hidden' },
+      default: {
+        border: `1px solid ${vars.border.color.primary}`,
+        borderRadius: vars.border.radius.lg,
+        overflow: 'hidden',
+      },
       flush: { border: 'none', borderRadius: 0 },
       bordered: listGroupBordered,
     },

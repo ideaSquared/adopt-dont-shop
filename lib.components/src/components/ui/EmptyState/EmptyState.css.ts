@@ -25,9 +25,33 @@ export const container = recipe({
 });
 
 export const iconContainer = styleVariants({
-  sm: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '48px', height: '48px', marginBottom: vars.spacing.sm },
-  md: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '64px', height: '64px', marginBottom: vars.spacing.md },
-  lg: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: '80px', height: '80px', marginBottom: vars.spacing.lg },
+  sm: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    width: '48px',
+    height: '48px',
+    marginBottom: vars.spacing.sm,
+  },
+  md: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    width: '64px',
+    height: '64px',
+    marginBottom: vars.spacing.md,
+  },
+  lg: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    width: '80px',
+    height: '80px',
+    marginBottom: vars.spacing.lg,
+  },
 });
 globalStyle(`${iconContainer.sm} svg`, { width: '100%', height: '100%' });
 globalStyle(`${iconContainer.md} svg`, { width: '100%', height: '100%' });

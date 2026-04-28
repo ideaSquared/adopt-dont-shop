@@ -29,7 +29,9 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         disabled={readOnly}
         aria-label='Message input'
       />
-      <div className={styles.markdownHint}>Supports Markdown: **bold**, *italic*, # headers, - lists, `code`</div>
+      <div className={styles.markdownHint}>
+        Supports Markdown: **bold**, *italic*, # headers, - lists, `code`
+      </div>
     </div>
   );
 };

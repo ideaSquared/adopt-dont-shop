@@ -31,11 +31,7 @@ export const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
   ) => {
     return (
       <div ref={ref} className={clsx(styles.container, className)} {...rest}>
-        <div
-          className={styles.spinner({ size, variant })}
-          role='status'
-          aria-label={label}
-        />
+        <div className={styles.spinner({ size, variant })} role='status' aria-label={label} />
         {showLabel && <span className={styles.label}>{text || label}</span>}
       </div>
     );

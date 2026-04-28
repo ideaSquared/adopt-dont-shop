@@ -74,13 +74,8 @@ export const RadioInput = forwardRef<HTMLInputElement, RadioInputProps>(
     const finalHelperText = error || helperTextProp;
 
     return (
-      <div
-        className={clsx(radioContainer({ fullWidth }), className)}
-        data-testid={testId}
-      >
-        {label && (
-          <label className={groupLabel({ required })}>{label}</label>
-        )}
+      <div className={clsx(radioContainer({ fullWidth }), className)} data-testid={testId}>
+        {label && <label className={groupLabel({ required })}>{label}</label>}
 
         <div className={radioGroup[direction]}>
           {options.map((option, index) => {
@@ -108,7 +103,11 @@ export const RadioInput = forwardRef<HTMLInputElement, RadioInputProps>(
                 />
                 <div
                   className={clsx(
-                    styledRadio({ state: finalState, checked: isChecked, disabled: isOptionDisabled }),
+                    styledRadio({
+                      state: finalState,
+                      checked: isChecked,
+                      disabled: isOptionDisabled,
+                    }),
                     styledRadioSizes[size]
                   )}
                 />
@@ -118,9 +117,7 @@ export const RadioInput = forwardRef<HTMLInputElement, RadioInputProps>(
           })}
         </div>
 
-        {finalHelperText && (
-          <div className={helperText[finalState]}>{finalHelperText}</div>
-        )}
+        {finalHelperText && <div className={helperText[finalState]}>{finalHelperText}</div>}
       </div>
     );
   }

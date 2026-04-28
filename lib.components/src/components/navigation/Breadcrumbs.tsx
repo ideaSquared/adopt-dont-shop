@@ -113,10 +113,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
     if (item.href) {
       return (
         <React.Fragment key={index}>
-          <a
-            href={item.href}
-            className={breadcrumbLink({ active: false, disabled: false })}
-          >
+          <a href={item.href} className={breadcrumbLink({ active: false, disabled: false })}>
             {item.label}
           </a>
           {!isLast && <span className={separator}>{separatorProp}</span>}
@@ -173,7 +170,11 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
       data-testid={dataTestId}
     >
       <ol className={breadcrumbList}>
-        {showHome && <li className={breadcrumbItem} key='home'>{renderHomeItem()}</li>}
+        {showHome && (
+          <li className={breadcrumbItem} key='home'>
+            {renderHomeItem()}
+          </li>
+        )}
         {displayItems.map((item, index) => (
           <li className={breadcrumbItem} key={index}>
             {renderBreadcrumbItem(item, index)}
