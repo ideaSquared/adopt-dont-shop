@@ -151,9 +151,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       return;
     }
 
-    const credentials: LoginRequest = needs2FA
-      ? { ...formData, twoFactorToken }
-      : formData;
+    const credentials: LoginRequest = needs2FA ? { ...formData, twoFactorToken } : formData;
 
     try {
       await login(credentials);
