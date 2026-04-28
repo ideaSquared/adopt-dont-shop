@@ -123,7 +123,7 @@ export class SwipeAction
       include: [
         {
           association: 'Pet',
-          attributes: ['pet_id', 'name', 'breed', 'type'],
+          attributes: ['pet_id', 'name', 'breed_id', 'type'],
         },
       ],
     });

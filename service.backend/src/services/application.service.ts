@@ -270,7 +270,7 @@ export class ApplicationService {
             'petId',
             'name',
             'type',
-            'breed',
+            'breedId',
             'ageYears',
             'ageMonths',
             'ageGroup',
