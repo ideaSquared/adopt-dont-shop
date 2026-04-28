@@ -63,7 +63,7 @@ services:
       - /app/service.backend/node_modules
       - lib_types_node_modules:/app/lib.types/node_modules
       - ./uploads:/app/service.backend/uploads
-    entrypoint: ./service.backend/docker-entrypoint.sh
+    entrypoint: /app/service.backend/docker-entrypoint.sh
     command: npm run dev
     environment:
       NODE_ENV: ${NODE_ENV:-development}
