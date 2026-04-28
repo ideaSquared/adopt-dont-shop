@@ -169,7 +169,7 @@ export class MessageSearchService {
           content: message.content,
           senderId: message.sender_id,
           senderName,
-          createdAt: message.created_at.toISOString(),
+          createdAt: (message.created_at ?? new Date()).toISOString(),
           highlight: this.highlightSearchTerms(message.content, searchTerms),
           relevanceScore: this.calculateRelevanceScore(message.content, searchTerms),
         };

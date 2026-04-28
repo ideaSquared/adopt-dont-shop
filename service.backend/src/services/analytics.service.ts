@@ -187,6 +187,7 @@ export class AnalyticsService {
         include: [
           {
             model: Message,
+            as: 'SentMessages',
             where: { created_at: dateFilter as unknown as Date },
             required: true,
           },
@@ -198,6 +199,7 @@ export class AnalyticsService {
         include: [
           {
             model: Application,
+            as: 'UserApplications',
             where: { created_at: dateFilter as unknown as Date },
             required: true,
           },
@@ -867,6 +869,7 @@ export class AnalyticsService {
         include: [
           {
             model: Chat,
+            as: 'Chat',
             where: rescueId ? { rescue_id: rescueId } : {},
           },
         ],
@@ -922,6 +925,7 @@ export class AnalyticsService {
           ? [
               {
                 model: Chat,
+                as: 'Chat',
                 where: { rescue_id: rescueId },
               },
             ]
@@ -1034,6 +1038,7 @@ export class AnalyticsService {
           include: [
             {
               model: AuditLog,
+              as: 'AuditLogs',
               where: { created_at: { [Op.gte]: lastHour } },
               required: true,
             },
@@ -1416,6 +1421,7 @@ export class AnalyticsService {
         include: [
           {
             model: Chat,
+            as: 'Chat',
             where: rescueId ? { rescue_id: rescueId } : {},
           },
         ],
@@ -1430,6 +1436,7 @@ export class AnalyticsService {
           ? [
               {
                 model: Chat,
+                as: 'Chat',
                 where: { rescue_id: rescueId },
               },
             ]

@@ -401,6 +401,30 @@ describe('ChatService', () => {
         await ChatService.getMessages(chatId);
         expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
       });
+
+      it('does not crash when a message has undefined created_at or updated_at', async () => {
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({
+          rows: [
+            {
+              message_id: 'msg-001',
+              chat_id: chatId,
+              sender_id: 'user-1',
+              content: 'hello',
+              content_format: 'text',
+              attachments: [],
+              created_at: undefined,
+              updated_at: undefined,
+              Sender: { userId: 'user-1', firstName: 'A', lastName: 'B' },
+            },
+          ],
+          count: 1,
+        });
+        (MockedChatParticipant.findOne as vi.Mock).mockReset();
+        const result = await ChatService.getMessages(chatId);
+        expect(result.messages).toHaveLength(1);
+        expect(result.messages[0].created_at).toBeDefined();
+        expect(result.messages[0].updated_at).toBeDefined();
+      });
     });
 
     describe('markMessagesAsRead', () => {

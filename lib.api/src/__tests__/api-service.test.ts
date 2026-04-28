@@ -41,6 +41,8 @@ describe('ApiService', () => {
       apiService = new ApiService();
       const config = apiService.getConfig();
 
+      // Browser environments use a relative base URL so requests stay same-origin
+      // (Vite proxy in dev, nginx in prod) — required for CSRF cookie scoping.
       expect(config.apiUrl).toBe('');
       expect(config.debug).toBe(false);
       expect(config.timeout).toBe(10000);
@@ -514,6 +516,7 @@ describe('ApiService', () => {
       apiService = new ApiService();
       const config = apiService.getConfig();
 
+      // In browser environments, default is a relative URL (same-origin requests).
       expect(config.apiUrl).toBe('');
     });
   });

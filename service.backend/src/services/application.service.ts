@@ -7,7 +7,13 @@ import ApplicationReferenceModel, {
 } from '../models/ApplicationReference';
 import { validateSortField } from '../utils/sort-validation';
 
-const APPLICATION_SORT_FIELDS = ['createdAt', 'updatedAt', 'status', 'actioned_at'] as const;
+const APPLICATION_SORT_FIELDS = [
+  'createdAt',
+  'updatedAt',
+  'status',
+  'actioned_at',
+  'submittedAt',
+] as const;
 import ApplicationQuestion, { QuestionCategory } from '../models/ApplicationQuestion';
 import ApplicationStatusTransition from '../models/ApplicationStatusTransition';
 import Breed from '../models/Breed';
@@ -270,7 +276,7 @@ export class ApplicationService {
             'petId',
             'name',
             'type',
-            'breed',
+            'breedId',
             'ageYears',
             'ageMonths',
             'ageGroup',

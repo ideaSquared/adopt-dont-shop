@@ -1,6 +1,6 @@
-import { AuditLogsService } from '../audit-logs-service';
+import { AuditLogsService } from '../services/audit-logs-service';
 import { api } from '@adopt-dont-shop/lib.api';
-import { AuditLogLevel, AuditLogStatus } from '../../types';
+import { AuditLogLevel, AuditLogStatus } from '../types';
 
 jest.mock('@adopt-dont-shop/lib.api');
 
@@ -88,6 +88,7 @@ describe('AuditLogsService', () => {
         endDate: '2025-01-07T23:59:59Z',
       });
 
+      // URLSearchParams encodes `:` as `%3A`, so assert against the encoded form.
       expect(mockApi.get).toHaveBeenCalledWith(
         expect.stringContaining('startDate=2025-01-01T00%3A00%3A00Z')
       );
@@ -130,6 +131,7 @@ describe('AuditLogsService', () => {
       });
 
       const callArgs = mockApi.get.mock.calls[0][0];
+      // URLSearchParams encodes `:` as `%3A`.
       expect(callArgs).toContain('startDate=2025-01-01T00%3A00%3A00.000Z');
       expect(callArgs).toContain('endDate=2025-01-07T23%3A59%3A59.000Z');
     });
