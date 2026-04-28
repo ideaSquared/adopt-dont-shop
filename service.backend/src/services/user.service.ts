@@ -1606,7 +1606,9 @@ function privacyPatchToPrefsRow(input: NonNullable<UserPreferences['privacySetti
         break;
     }
   }
-  if (input.showLocation !== undefined) out.show_location = input.showLocation;
+  if (input.showLocation !== undefined) {
+    out.show_location = input.showLocation;
+  }
   return out;
 }
 
