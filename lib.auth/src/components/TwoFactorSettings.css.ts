@@ -1,6 +1,6 @@
 import { recipe, style } from '@vanilla-extract/recipes';
 
-import { vars } from '../../../lib.components/src/styles/theme.css';
+import { vars } from '@adopt-dont-shop/lib.components';
 
 export const container = style({
   display: 'flex',
