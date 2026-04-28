@@ -1,14 +1,10 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme as theme } from '../../../styles/theme';
 import BaseSidebar from '../BaseSidebar';
 
 describe('BaseSidebar', () => {
-  const renderWithTheme = (ui: React.ReactElement) => {
-    return render(<StyledThemeProvider theme={theme}>{ui}</StyledThemeProvider>);
-  };
+  const renderWithTheme = (ui: React.ReactElement) => render(ui);
 
   it('renders the sidebar with the correct title and content', () => {
     renderWithTheme(

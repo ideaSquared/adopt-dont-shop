@@ -1,13 +1,9 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme } from '../../../styles/theme';
 import { ProgressBar } from './ProgressBar';
 
-const renderWithTheme = (component: React.ReactElement) => {
-  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
-};
+const renderWithTheme = (component: React.ReactElement) => render(component);
 
 describe('ProgressBar', () => {
   it('renders correctly with basic props', () => {
@@ -63,11 +59,7 @@ describe('ProgressBar', () => {
     let progressBar = screen.getByRole('progressbar');
     expect(progressBar).toHaveAttribute('aria-valuenow', '100');
 
-    rerender(
-      <StyledThemeProvider theme={lightTheme}>
-        <ProgressBar value={-10} max={100} data-testid='progress-bar' />
-      </StyledThemeProvider>
-    );
+    rerender(<ProgressBar value={-10} max={100} data-testid='progress-bar' />);
 
     progressBar = screen.getByRole('progressbar');
     expect(progressBar).toHaveAttribute('aria-valuenow', '0');
@@ -88,11 +80,7 @@ describe('ProgressBar', () => {
 
     expect(screen.getByTestId('progress-bar')).toBeInTheDocument();
 
-    rerender(
-      <StyledThemeProvider theme={lightTheme}>
-        <ProgressBar value={50} size='lg' data-testid='progress-bar' />
-      </StyledThemeProvider>
-    );
+    rerender(<ProgressBar value={50} size='lg' data-testid='progress-bar' />);
 
     expect(screen.getByTestId('progress-bar')).toBeInTheDocument();
   });

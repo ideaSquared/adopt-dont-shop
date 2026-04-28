@@ -2,13 +2,9 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme } from '../../styles/theme';
 import { Breadcrumbs } from './Breadcrumbs';
 
-const renderWithTheme = (component: React.ReactElement) => {
-  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
-};
+const renderWithTheme = (component: React.ReactElement) => render(component);
 
 const mockItems = [
   { label: 'Home', href: '/' },

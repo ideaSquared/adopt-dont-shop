@@ -2,7 +2,6 @@
 // Testing hot reload functionality - if you see this change, hot reload is working!
 
 // Theme exports
-export { GlobalStyles } from './styles/GlobalStyles';
 export { darkTheme, lightTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
 export { ThemeProvider, useTheme } from './styles/ThemeProvider';

@@ -2,13 +2,9 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme } from '../../styles/theme';
 import { Modal } from './Modal';
 
-const renderWithTheme = (component: React.ReactElement) => {
-  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
-};
+const renderWithTheme = (component: React.ReactElement) => render(component);
 
 const MockModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => (
   <Modal isOpen={isOpen} onClose={onClose} title='Test Modal'>
@@ -175,11 +171,7 @@ describe('Modal', () => {
 
     expect(document.body.style.overflow).toBe('hidden');
 
-    rerender(
-      <StyledThemeProvider theme={lightTheme}>
-        <MockModal isOpen={false} onClose={handleClose} />
-      </StyledThemeProvider>
-    );
+    rerender(<MockModal isOpen={false} onClose={handleClose} />);
 
     expect(document.body.style.overflow).toBe('');
   });

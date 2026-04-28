@@ -1,13 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme } from '../../../styles/theme';
 import { SelectInput, SelectOption } from './SelectInput';
 
-const renderWithTheme = (component: React.ReactElement) => {
-  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
-};
+const renderWithTheme = (component: React.ReactElement) => render(component);
 
 const mockOptions: SelectOption[] = [
   { value: 'option1', label: 'Option 1' },
