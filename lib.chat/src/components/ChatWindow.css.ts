@@ -1,5 +1,5 @@
 import { globalStyle, style } from '@vanilla-extract/css';
-import { vars } from '@adopt-dont-shop/lib.components';
+import { vars } from '../../../lib.components/src/styles/theme.css';
 
 export const chatContainer = style({
   display: 'flex',

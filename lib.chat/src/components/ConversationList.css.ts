@@ -1,5 +1,5 @@
 import { globalStyle, keyframes, style, styleVariants } from '@vanilla-extract/css';
-import { vars } from '@adopt-dont-shop/lib.components';
+import { vars } from '../../../lib.components/src/styles/theme.css';
 
 export const conversationContainer = style({
   background: vars.background.primary,
