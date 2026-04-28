@@ -1,5 +1,4 @@
-import type { QueryInterface } from 'sequelize';
-import { DataTypes } from 'sequelize';
+import { DataTypes, type QueryInterface } from 'sequelize';
 
 export default {
   up: async (queryInterface: QueryInterface) => {
