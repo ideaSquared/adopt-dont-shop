@@ -87,7 +87,7 @@ describe('User schemas', () => {
       expect(() => RegisterRequestSchema.parse({ ...valid, firstName: '   ' })).toThrow();
     });
 
-    it('strips any userType supplied in the payload — public registration always creates adopter', () => {
+    it('strips userType from the payload — public registration always creates adopter', () => {
       const parsed = RegisterRequestSchema.parse({ ...valid, userType: 'admin' });
       expect('userType' in parsed).toBe(false);
     });
