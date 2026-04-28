@@ -51,7 +51,9 @@ export const shouldShowQuestion = (
   answers: Record<string, unknown>
 ): boolean => {
   const condition = CONDITIONAL_QUESTIONS[question.questionKey];
-  if (!condition) return true;
+  if (!condition) {
+    return true;
+  }
   return answers[condition.dependsOn] === condition.showWhen;
 };
 
@@ -67,9 +69,13 @@ export const applyConditionalDefaults = (
   let changed = false;
   const next = { ...answers };
   for (const [key, condition] of Object.entries(CONDITIONAL_QUESTIONS)) {
-    if (answers[condition.dependsOn] === condition.showWhen) continue;
+    if (answers[condition.dependsOn] === condition.showWhen) {
+      continue;
+    }
     const desired = condition.defaultWhenHidden;
-    if (next[key] === desired) continue;
+    if (next[key] === desired) {
+      continue;
+    }
     if (desired === undefined) {
       if (Object.prototype.hasOwnProperty.call(next, key)) {
         delete next[key];

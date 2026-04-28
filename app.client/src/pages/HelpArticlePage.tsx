@@ -96,7 +96,9 @@ export const HelpArticlePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) {
+      return;
+    }
     cmsPublicService
       .getHelpArticle(slug)
       .then(setArticle)

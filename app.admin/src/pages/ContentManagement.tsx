@@ -159,15 +159,27 @@ const StatusBadge = styled.span<{ $status: string }>`
   font-size: 0.75rem;
   font-weight: 500;
   background: ${p => {
-    if (p.$status === 'published') return '#d1fae5';
-    if (p.$status === 'draft') return '#fef3c7';
-    if (p.$status === 'scheduled') return '#dbeafe';
+    if (p.$status === 'published') {
+      return '#d1fae5';
+    }
+    if (p.$status === 'draft') {
+      return '#fef3c7';
+    }
+    if (p.$status === 'scheduled') {
+      return '#dbeafe';
+    }
     return '#f3f4f6';
   }};
   color: ${p => {
-    if (p.$status === 'published') return '#065f46';
-    if (p.$status === 'draft') return '#92400e';
-    if (p.$status === 'scheduled') return '#1e40af';
+    if (p.$status === 'published') {
+      return '#065f46';
+    }
+    if (p.$status === 'draft') {
+      return '#92400e';
+    }
+    if (p.$status === 'scheduled') {
+      return '#1e40af';
+    }
     return '#374151';
   }};
 `;
@@ -186,8 +198,12 @@ const IconButton = styled.button<{ $variant?: 'danger' | 'primary' | 'default' }
   border-radius: 6px;
   border: 1px solid
     ${p => {
-      if (p.$variant === 'danger') return '#fca5a5';
-      if (p.$variant === 'primary') return '#93c5fd';
+      if (p.$variant === 'danger') {
+        return '#fca5a5';
+      }
+      if (p.$variant === 'primary') {
+        return '#93c5fd';
+      }
       return '#e5e7eb';
     }};
   background: ${p =>
@@ -470,7 +486,9 @@ const ContentManagement: React.FC = () => {
   }, [fetchContent]);
 
   useEffect(() => {
-    if (activeTab === 'menus') fetchMenus();
+    if (activeTab === 'menus') {
+      fetchMenus();
+    }
   }, [activeTab, fetchMenus]);
 
   const openCreateContent = () => {
@@ -501,7 +519,9 @@ const ContentManagement: React.FC = () => {
   };
 
   const handleSlugGenerate = async () => {
-    if (!contentForm.title) return;
+    if (!contentForm.title) {
+      return;
+    }
     try {
       const slug = await cmsService.generateSlug(contentForm.title);
       setContentForm(f => ({ ...f, slug }));
@@ -583,7 +603,9 @@ const ContentManagement: React.FC = () => {
   };
 
   const handleArchive = async (item: Content) => {
-    if (!window.confirm(`Archive "${item.title}"?`)) return;
+    if (!window.confirm(`Archive "${item.title}"?`)) {
+      return;
+    }
     try {
       await cmsService.archiveContent(item.contentId);
       fetchContent();
@@ -593,7 +615,9 @@ const ContentManagement: React.FC = () => {
   };
 
   const handleDeleteContent = async (item: Content) => {
-    if (!window.confirm(`Permanently delete "${item.title}"?`)) return;
+    if (!window.confirm(`Permanently delete "${item.title}"?`)) {
+      return;
+    }
     try {
       await cmsService.deleteContent(item.contentId);
       fetchContent();
@@ -615,7 +639,9 @@ const ContentManagement: React.FC = () => {
   };
 
   const handleSaveMenu = async () => {
-    if (!menuForm.name.trim()) return;
+    if (!menuForm.name.trim()) {
+      return;
+    }
     setSaving(true);
     try {
       if (editingMenu) {
@@ -637,7 +663,9 @@ const ContentManagement: React.FC = () => {
   };
 
   const handleDeleteMenu = async (menu: NavigationMenu) => {
-    if (!window.confirm(`Delete menu "${menu.name}"?`)) return;
+    if (!window.confirm(`Delete menu "${menu.name}"?`)) {
+      return;
+    }
     try {
       await cmsService.deleteMenu(menu.menuId);
       fetchMenus();

@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import sequelize, { getJsonType } from '../sequelize';
+import sequelize, { getJsonType, getUuidType } from '../sequelize';
 import { JsonObject } from '../types/common';
 
 export class AuditLog extends Model {
@@ -29,7 +29,7 @@ AuditLog.init(
       allowNull: false,
     },
     user: {
-      type: DataTypes.STRING,
+      type: getUuidType(),
       allowNull: true,
     },
     /**
