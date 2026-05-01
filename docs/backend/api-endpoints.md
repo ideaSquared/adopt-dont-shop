@@ -19,20 +19,26 @@ The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, 
 1. **Register**: `POST /api/v1/auth/register`
 2. **Login**: `POST /api/v1/auth/login` (returns JWT tokens)
 3. **Use Token**: Include in Authorization header: `Authorization: Bearer <token>`
-4. **Refresh**: `POST /api/v1/auth/refresh` (when token expires)
+4. **Refresh**: `POST /api/v1/auth/refresh-token` (when token expires)
 
 ### Auth Endpoints
 
-| Method | Endpoint                       | Description                 | Auth Required       |
-| ------ | ------------------------------ | --------------------------- | ------------------- |
-| POST   | `/api/v1/auth/register`        | Create new user account     | No                  |
-| POST   | `/api/v1/auth/login`           | Authenticate and get tokens | No                  |
-| POST   | `/api/v1/auth/logout`          | Invalidate current session  | Yes                 |
-| POST   | `/api/v1/auth/refresh`         | Refresh access token        | Yes (refresh token) |
-| POST   | `/api/v1/auth/password/forgot` | Request password reset      | No                  |
-| POST   | `/api/v1/auth/password/reset`  | Reset password with token   | No                  |
-| POST   | `/api/v1/auth/email/verify`    | Verify email address        | No                  |
-| GET    | `/api/v1/auth/me`              | Get current user profile    | Yes                 |
+| Method | Endpoint                              | Description                            | Auth Required       |
+| ------ | ------------------------------------- | -------------------------------------- | ------------------- |
+| POST   | `/api/v1/auth/register`               | Create new user account                | No                  |
+| POST   | `/api/v1/auth/login`                  | Authenticate and get tokens            | No                  |
+| POST   | `/api/v1/auth/logout`                 | Invalidate current session             | Yes                 |
+| POST   | `/api/v1/auth/refresh-token`          | Refresh access token                   | Yes (refresh token) |
+| POST   | `/api/v1/auth/forgot-password`        | Request password reset                 | No                  |
+| POST   | `/api/v1/auth/reset-password`         | Reset password with token              | No                  |
+| GET    | `/api/v1/auth/verify-email/:token`    | Verify email address                   | No                  |
+| POST   | `/api/v1/auth/resend-verification`    | Resend verification email              | No                  |
+| GET    | `/api/v1/auth/me`                     | Get current user profile               | Yes                 |
+| PUT    | `/api/v1/auth/me`                     | Update current user profile            | Yes                 |
+| POST   | `/api/v1/auth/2fa/setup`              | Begin two-factor enrolment             | Yes                 |
+| POST   | `/api/v1/auth/2fa/enable`             | Enable two-factor (verify OTP)         | Yes                 |
+| POST   | `/api/v1/auth/2fa/disable`            | Disable two-factor                     | Yes                 |
+| POST   | `/api/v1/auth/2fa/backup-codes`       | Regenerate backup codes                | Yes                 |
 
 ## Core Resources
 

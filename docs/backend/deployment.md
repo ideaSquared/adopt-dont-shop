@@ -10,18 +10,18 @@ This guide covers deploying the Adopt Don't Shop Backend Service across differen
 
 **Production Environment:**
 
-- Node.js 18+ LTS
-- PostgreSQL 13+
-- Redis 6+ (for session storage and caching)
+- Node.js 20+ LTS
+- PostgreSQL 16+ with PostGIS
+- Redis 7+ (for session storage and caching)
 - 2+ CPU cores, 4GB+ RAM
 - 20GB+ disk space
 
 **Development Environment:**
 
-- Node.js 18+
-- PostgreSQL 13+
+- Node.js 20+
+- PostgreSQL 16+
 - Git
-- Docker (optional)
+- Docker Desktop (recommended)
 
 ### Required Services
 
