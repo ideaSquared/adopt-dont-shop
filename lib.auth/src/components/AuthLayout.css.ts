@@ -1,6 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
-import { vars } from '@adopt-dont-shop/lib.components';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   minHeight: '100vh',
