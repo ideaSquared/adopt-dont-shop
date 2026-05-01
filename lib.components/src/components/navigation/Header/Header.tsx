@@ -1,46 +1,7 @@
 import React from 'react';
-import styled from 'styled-components';
+import clsx from 'clsx';
 
-const StyledHeader = styled.header`
-  background: ${({ theme }) => theme.background.secondary};
-  border-bottom: 1px solid ${({ theme }) => theme.border.color.primary};
-  padding: ${({ theme }) => theme.spacing.md} 0;
-  position: sticky;
-  top: 0;
-  z-index: ${({ theme }) => theme.zIndex.sticky};
-`;
-
-const HeaderContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 ${({ theme }) => theme.spacing.md};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const Logo = styled.h1`
-  margin: 0;
-  font-size: ${({ theme }) => theme.typography.size.xl};
-  font-weight: ${({ theme }) => theme.typography.weight.bold};
-  color: ${({ theme }) => theme.text.primary};
-`;
-
-const Navigation = styled.nav`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.md};
-`;
-
-const NavLink = styled.a`
-  color: ${({ theme }) => theme.text.secondary};
-  text-decoration: none;
-  font-size: ${({ theme }) => theme.typography.size.sm};
-
-  &:hover {
-    color: ${({ theme }) => theme.text.primary};
-  }
-`;
+import { header, headerContainer, logo, navigation, navLink } from './Header.css';
 
 export interface HeaderProps {
   title?: string;
@@ -54,20 +15,26 @@ export const Header: React.FC<HeaderProps> = ({
   children,
 }) => {
   return (
-    <StyledHeader className={className}>
-      <HeaderContainer>
-        <Logo>{title}</Logo>
-        <Navigation>
+    <header className={clsx(header, className)}>
+      <div className={headerContainer}>
+        <h1 className={logo}>{title}</h1>
+        <nav className={navigation}>
           {children || (
             <>
-              <NavLink href='/'>Home</NavLink>
-              <NavLink href='/pets'>Find Pets</NavLink>
-              <NavLink href='/about'>About</NavLink>
+              <a href='/' className={navLink}>
+                Home
+              </a>
+              <a href='/pets' className={navLink}>
+                Find Pets
+              </a>
+              <a href='/about' className={navLink}>
+                About
+              </a>
             </>
           )}
-        </Navigation>
-      </HeaderContainer>
-    </StyledHeader>
+        </nav>
+      </div>
+    </header>
   );
 };
 

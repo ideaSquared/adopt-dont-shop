@@ -1,5 +1,16 @@
 import React from 'react';
-import styled, { css, DefaultTheme } from 'styled-components';
+import clsx from 'clsx';
+
+import {
+  breadcrumbContainer,
+  breadcrumbList,
+  breadcrumbItem,
+  breadcrumbLink,
+  breadcrumbButton,
+  separator,
+  collapsedIndicator,
+  activeItemStyles,
+} from './Breadcrumbs.css';
 
 export type BreadcrumbItem = {
   label: string;
@@ -27,141 +38,6 @@ export type BreadcrumbsProps = {
   size?: 'sm' | 'md' | 'lg';
 };
 
-const getSizeStyles = (size: 'sm' | 'md' | 'lg', theme: DefaultTheme) => {
-  const sizes = {
-    sm: css`
-      font-size: ${theme.typography.size.sm};
-      gap: ${theme.spacing[1]};
-    `,
-    md: css`
-      font-size: ${theme.typography.size.base};
-      gap: ${theme.spacing[2]};
-    `,
-    lg: css`
-      font-size: ${theme.typography.size.lg};
-      gap: ${theme.spacing[3]};
-    `,
-  };
-  return sizes[size];
-};
-
-const BreadcrumbContainer = styled.nav<{ $size: 'sm' | 'md' | 'lg' }>`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  font-family: ${({ theme }) => theme.typography.family.sans};
-
-  ${({ $size, theme }) => getSizeStyles($size, theme)}
-`;
-
-const BreadcrumbList = styled.ol`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: inherit;
-`;
-
-const BreadcrumbItem = styled.li`
-  display: flex;
-  align-items: center;
-  gap: inherit;
-`;
-
-const BreadcrumbLink = styled.a<{ $active: boolean; $disabled: boolean }>`
-  color: ${({ theme, $active, $disabled }) =>
-    $disabled ? theme.text.disabled : $active ? theme.text.primary : theme.text.secondary};
-  text-decoration: none;
-  font-weight: ${({ theme, $active }) =>
-    $active ? theme.typography.weight.semibold : theme.typography.weight.normal};
-  transition: all ${({ theme }) => theme.transitions.fast};
-  border-radius: ${({ theme }) => theme.border.radius.sm};
-  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[1.5]};
-  margin: -${({ theme }) => theme.spacing[1]} -${({ theme }) => theme.spacing[1.5]};
-  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
-
-  ${({ $active, $disabled, theme }) =>
-    !$active &&
-    !$disabled &&
-    css`
-      &:hover {
-        color: ${theme.text.primary};
-        background: ${theme.background.tertiary};
-      }
-
-      &:focus-visible {
-        outline: none;
-        background: ${theme.background.tertiary};
-        box-shadow: ${theme.shadows.focus};
-      }
-    `}
-
-  ${({ $active }) =>
-    $active &&
-    css`
-      cursor: default;
-      pointer-events: none;
-    `}
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const BreadcrumbButton = styled.button<{ $active: boolean; $disabled: boolean }>`
-  background: none;
-  border: none;
-  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[1.5]};
-  margin: -${({ theme }) => theme.spacing[1]} -${({ theme }) => theme.spacing[1.5]};
-  color: ${({ theme, $active, $disabled }) =>
-    $disabled ? theme.text.disabled : $active ? theme.text.primary : theme.text.secondary};
-  font-family: inherit;
-  font-size: inherit;
-  font-weight: ${({ theme, $active }) =>
-    $active ? theme.typography.weight.semibold : theme.typography.weight.normal};
-  text-decoration: none;
-  transition: all ${({ theme }) => theme.transitions.fast};
-  border-radius: ${({ theme }) => theme.border.radius.sm};
-  cursor: ${({ $disabled, $active }) =>
-    $disabled ? 'not-allowed' : $active ? 'default' : 'pointer'};
-
-  ${({ $active, $disabled, theme }) =>
-    !$active &&
-    !$disabled &&
-    css`
-      &:hover {
-        color: ${theme.text.primary};
-        background: ${theme.background.tertiary};
-      }
-
-      &:focus-visible {
-        outline: none;
-        background: ${theme.background.tertiary};
-        box-shadow: ${theme.shadows.focus};
-      }
-    `}
-
-  ${({ $active }) =>
-    $active &&
-    css`
-      pointer-events: none;
-    `}
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const Separator = styled.span`
-  color: ${({ theme }) => theme.text.quaternary};
-  user-select: none;
-  font-weight: ${({ theme }) => theme.typography.weight.normal};
-`;
-
 const HomeIcon = () => (
   <svg width='16' height='16' viewBox='0 0 20 20' fill='currentColor'>
     <path
@@ -178,17 +54,9 @@ const EllipsisIcon = () => (
   </svg>
 );
 
-const CollapsedIndicator = styled.span`
-  color: ${({ theme }) => theme.text.quaternary};
-  display: flex;
-  align-items: center;
-  padding: ${({ theme }) => theme.spacing[1]};
-  cursor: default;
-`;
-
 export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
   items,
-  separator = '/',
+  separator: separatorProp = '/',
   showHome = false,
   homeHref = '/',
   onHomeClick,
@@ -215,10 +83,10 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
     if (isEllipsis) {
       return (
         <React.Fragment key={`ellipsis-${index}`}>
-          <CollapsedIndicator>
+          <span className={collapsedIndicator}>
             <EllipsisIcon />
-          </CollapsedIndicator>
-          {!isLast && <Separator>{separator}</Separator>}
+          </span>
+          {!isLast && <span className={separator}>{separatorProp}</span>}
         </React.Fragment>
       );
     }
@@ -229,16 +97,14 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
         <React.Fragment key={index}>
           <span
             aria-current={isActive ? 'page' : undefined}
-            style={{
-              color: item.disabled ? undefined : isActive ? undefined : undefined,
-              fontWeight: isActive ? 'bold' : undefined,
-              cursor: item.disabled ? 'not-allowed' : isActive ? 'default' : undefined,
-              opacity: item.disabled ? 0.5 : 1,
-            }}
+            className={clsx(
+              isActive && activeItemStyles.active,
+              item.disabled && activeItemStyles.disabled
+            )}
           >
             {item.label}
           </span>
-          {!isLast && <Separator>{separator}</Separator>}
+          {!isLast && <span className={separator}>{separatorProp}</span>}
         </React.Fragment>
       );
     }
@@ -247,68 +113,75 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({
     if (item.href) {
       return (
         <React.Fragment key={index}>
-          <BreadcrumbLink href={item.href} $active={false} $disabled={!!item.disabled}>
+          <a href={item.href} className={breadcrumbLink({ active: false, disabled: false })}>
             {item.label}
-          </BreadcrumbLink>
-          {!isLast && <Separator>{separator}</Separator>}
+          </a>
+          {!isLast && <span className={separator}>{separatorProp}</span>}
         </React.Fragment>
       );
     }
 
     return (
       <React.Fragment key={index}>
-        <BreadcrumbButton
+        <button
           onClick={item.onClick}
-          $active={false}
-          $disabled={!!item.disabled}
+          className={breadcrumbButton({ active: false, disabled: false })}
           type='button'
         >
           {item.label}
-        </BreadcrumbButton>
-        {!isLast && <Separator>{separator}</Separator>}
+        </button>
+        {!isLast && <span className={separator}>{separatorProp}</span>}
       </React.Fragment>
     );
   };
 
   const renderHomeItem = () => {
     const homeContent = homeHref ? (
-      <BreadcrumbLink href={homeHref} $active={false} $disabled={false} aria-label='Home'>
+      <a
+        href={homeHref}
+        className={breadcrumbLink({ active: false, disabled: false })}
+        aria-label='Home'
+      >
         <HomeIcon />
-      </BreadcrumbLink>
+      </a>
     ) : (
-      <BreadcrumbButton
+      <button
         onClick={onHomeClick}
-        $active={false}
-        $disabled={false}
+        className={breadcrumbButton({ active: false, disabled: false })}
         aria-label='Home'
         type='button'
       >
         <HomeIcon />
-      </BreadcrumbButton>
+      </button>
     );
 
     return (
       <React.Fragment>
         {homeContent}
-        {displayItems.length > 0 && <Separator>{separator}</Separator>}
+        {displayItems.length > 0 && <span className={separator}>{separatorProp}</span>}
       </React.Fragment>
     );
   };
 
   return (
-    <BreadcrumbContainer
-      className={className}
-      $size={size}
+    <nav
+      className={clsx(breadcrumbContainer({ size }), className)}
       aria-label='Breadcrumb navigation'
       data-testid={dataTestId}
     >
-      <BreadcrumbList>
-        {showHome && <BreadcrumbItem key='home'>{renderHomeItem()}</BreadcrumbItem>}
+      <ol className={breadcrumbList}>
+        {showHome && (
+          <li className={breadcrumbItem} key='home'>
+            {renderHomeItem()}
+          </li>
+        )}
         {displayItems.map((item, index) => (
-          <BreadcrumbItem key={index}>{renderBreadcrumbItem(item, index)}</BreadcrumbItem>
+          <li className={breadcrumbItem} key={index}>
+            {renderBreadcrumbItem(item, index)}
+          </li>
         ))}
-      </BreadcrumbList>
-    </BreadcrumbContainer>
+      </ol>
+    </nav>
   );
 };
 

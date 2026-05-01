@@ -742,6 +742,52 @@ describe('ApplicationService - Business Logic', () => {
     });
   });
 
+  describe('Business Rule: Application Search Sorting', () => {
+    const mockApplicationRow = () => {
+      const app = createMockApplication();
+      return {
+        ...app,
+        toJSON: vi.fn().mockReturnValue(app),
+        Answers: [],
+      };
+    };
+
+    beforeEach(() => {
+      MockedApplication.findAndCountAll = vi.fn().mockResolvedValue({
+        rows: [mockApplicationRow()],
+        count: 1,
+      });
+    });
+
+    it('allows sorting by submittedAt', async () => {
+      // Given: A request to sort by submittedAt (a valid Application column)
+      // When: searchApplications is called with sortBy=submittedAt
+      const result = await ApplicationService.searchApplications(
+        {},
+        { page: 1, limit: 10, sortBy: 'submittedAt', sortOrder: 'DESC' }
+      );
+
+      // Then: The query succeeds and returns results
+      expect(result.applications).toHaveLength(1);
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          order: [['submittedAt', 'DESC']],
+        })
+      );
+    });
+
+    it('rejects sorting by an unknown field', async () => {
+      // Given: A request with a non-existent sort field
+      // When & Then: An error is thrown
+      await expect(
+        ApplicationService.searchApplications(
+          {},
+          { page: 1, limit: 10, sortBy: 'notAField', sortOrder: 'DESC' }
+        )
+      ).rejects.toThrow('Failed to search applications');
+    });
+  });
+
   describe('Error Handling', () => {
     it('throws error when application not found', async () => {
       // Given: Application does not exist

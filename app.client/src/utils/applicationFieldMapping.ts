@@ -20,12 +20,24 @@ const PET_KINDS: readonly PetKind[] = [
 
 const coerceToPetKind = (raw: string): PetKind => {
   const normalised = raw.toLowerCase().trim();
-  if ((PET_KINDS as readonly string[]).includes(normalised)) return normalised as PetKind;
-  if (normalised.includes('dog') || normalised.includes('puppy')) return 'dog';
-  if (normalised.includes('cat') || normalised.includes('kitten')) return 'cat';
-  if (normalised.includes('rabbit') || normalised.includes('bunny')) return 'rabbit';
-  if (normalised.includes('bird') || normalised.includes('parrot')) return 'bird';
-  if (normalised.includes('fish')) return 'fish';
+  if ((PET_KINDS as readonly string[]).includes(normalised)) {
+    return normalised as PetKind;
+  }
+  if (normalised.includes('dog') || normalised.includes('puppy')) {
+    return 'dog';
+  }
+  if (normalised.includes('cat') || normalised.includes('kitten')) {
+    return 'cat';
+  }
+  if (normalised.includes('rabbit') || normalised.includes('bunny')) {
+    return 'rabbit';
+  }
+  if (normalised.includes('bird') || normalised.includes('parrot')) {
+    return 'bird';
+  }
+  if (normalised.includes('fish')) {
+    return 'fish';
+  }
   if (
     normalised.includes('reptile') ||
     normalised.includes('lizard') ||

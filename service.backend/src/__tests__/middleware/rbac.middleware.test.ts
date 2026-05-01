@@ -447,13 +447,57 @@ describe('RBAC Middleware', () => {
           Roles: [
             {
               name: 'admin',
-              Permissions: [{ name: 'pets:update' }],
+              Permissions: [{ permissionName: 'pets:update' }],
             },
           ],
         } as unknown as AuthenticatedRequest['user'];
         mockRequest.params = { petId: 'pet-456' };
 
         const middleware = requirePermissionOrOwnership('pets:update', 'petId');
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockResponse.status).not.toHaveBeenCalled();
+      });
+
+      it('should allow access when user has permission on a different resource they do not own', () => {
+        mockRequest.user = {
+          userId: 'admin-123',
+          userType: UserType.ADMIN,
+          Roles: [
+            {
+              name: 'admin',
+              Permissions: [{ permissionName: 'users:read' }],
+            },
+          ],
+        } as unknown as AuthenticatedRequest['user'];
+        mockRequest.params = { userId: 'other-user-456' };
+
+        const middleware = requirePermissionOrOwnership('users:read', 'userId');
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockResponse.status).not.toHaveBeenCalled();
+      });
+
+      it('should allow access when permission is found across multiple roles', () => {
+        mockRequest.user = {
+          userId: 'user-123',
+          userType: UserType.RESCUE_STAFF,
+          Roles: [
+            {
+              name: 'basic',
+              Permissions: [],
+            },
+            {
+              name: 'advanced',
+              Permissions: [{ permissionName: 'users:read' }],
+            },
+          ],
+        } as unknown as AuthenticatedRequest['user'];
+        mockRequest.params = { userId: 'other-user-456' };
+
+        const middleware = requirePermissionOrOwnership('users:read', 'userId');
         middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
         expect(mockNext).toHaveBeenCalled();

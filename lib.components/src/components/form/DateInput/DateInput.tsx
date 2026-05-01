@@ -1,25 +1,6 @@
 import React, { ChangeEvent } from 'react';
-import styled from 'styled-components';
 
-const StyledInput = styled.input`
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid ${({ theme }) => theme.border.color.primary};
-  border-radius: ${({ theme }) => theme.border.radius.sm};
-  font-size: 1rem;
-  color: ${({ theme }) => theme.text.primary};
-  background: ${({ theme }) => theme.background.primary};
-
-  &:focus {
-    outline: none;
-    border-color: ${({ theme }) => theme.border.color.focus};
-  }
-
-  &:disabled {
-    background: ${({ theme }) => theme.background.disabled};
-    cursor: not-allowed;
-  }
-`;
+import * as styles from './DateInput.css';
 
 type DateInputProps = {
   value: string;
@@ -39,7 +20,8 @@ export const DateInput: React.FC<DateInputProps> = ({
   id,
 }) => {
   return (
-    <StyledInput
+    <input
+      className={styles.input}
       type='date'
       value={value}
       onChange={onChange}
