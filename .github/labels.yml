@@ -1,0 +1,30 @@
+# Label definitions for the repository.
+# Run the "Sync Labels" workflow to create/update these in GitHub.
+
+- name: "area: backend"
+  color: "e11d48"
+  description: "Changes to service.backend"
+
+- name: "area: app.client"
+  color: "0ea5e9"
+  description: "Changes to app.client"
+
+- name: "area: app.admin"
+  color: "0ea5e9"
+  description: "Changes to app.admin"
+
+- name: "area: app.rescue"
+  color: "0ea5e9"
+  description: "Changes to app.rescue"
+
+- name: "area: libs"
+  color: "8b5cf6"
+  description: "Changes to any shared library"
+
+- name: "area: ci"
+  color: "f59e0b"
+  description: "Changes to CI/CD workflows or GitHub configuration"
+
+- name: "area: config"
+  color: "6b7280"
+  description: "Changes to root config files (package.json, turbo.json, etc.)"
