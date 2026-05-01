@@ -1,5 +1,5 @@
 import { keyframes, style, styleVariants } from '@vanilla-extract/css';
-import { vars } from '@adopt-dont-shop/lib.components';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 const bounce = keyframes({
   '0%, 60%, 100%': { transform: 'translateY(0)' },

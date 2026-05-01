@@ -1,5 +1,5 @@
 import { globalStyle, style, styleVariants } from '@vanilla-extract/css';
-import { vars } from '@adopt-dont-shop/lib.components';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const messageBubbleWrapper = style({
   display: 'flex',

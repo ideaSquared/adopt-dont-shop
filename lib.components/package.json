@@ -14,15 +14,20 @@
       "require": "./dist/adopt-dont-shop-components.umd.js",
       "types": "./dist/index.d.ts"
     },
+    "./theme": {
+      "import": "./dist/theme.es.js",
+      "types": "./theme.d.ts"
+    },
     "./styles": "./dist/adopt-dont-shop-components.css"
   },
   "files": [
-    "dist"
+    "dist",
+    "theme.d.ts"
   ],
   "scripts": {
     "dev": "vite build --watch",
     "dev:server": "vite --port 3010 --mode development",
-    "build": "rimraf dist && vite build",
+    "build": "rimraf dist && vite build && vite build --config vite.theme.config.ts",
     "build:types": "tsc --emitDeclarationOnly",
     "type-check": "tsc --noEmit",
     "preview": "vite preview",
