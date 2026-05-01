@@ -1,0 +1,123 @@
+# Automatically applied labels based on changed file paths.
+# Uses actions/labeler v5 syntax.
+
+area: backend:
+  - changed-files:
+    - any-glob-to-any-file: 'service.backend/**'
+
+area: app.client:
+  - changed-files:
+    - any-glob-to-any-file: 'app.client/**'
+
+area: app.admin:
+  - changed-files:
+    - any-glob-to-any-file: 'app.admin/**'
+
+area: app.rescue:
+  - changed-files:
+    - any-glob-to-any-file: 'app.rescue/**'
+
+area: libs:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.*/**'
+
+area: lib.analytics:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.analytics/**'
+
+area: lib.api:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.api/**'
+
+area: lib.applications:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.applications/**'
+
+area: lib.audit-logs:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.audit-logs/**'
+
+area: lib.auth:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.auth/**'
+
+area: lib.chat:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.chat/**'
+
+area: lib.components:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.components/**'
+
+area: lib.dev-tools:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.dev-tools/**'
+
+area: lib.discovery:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.discovery/**'
+
+area: lib.feature-flags:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.feature-flags/**'
+
+area: lib.invitations:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.invitations/**'
+
+area: lib.moderation:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.moderation/**'
+
+area: lib.notifications:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.notifications/**'
+
+area: lib.permissions:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.permissions/**'
+
+area: lib.pets:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.pets/**'
+
+area: lib.rescue:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.rescue/**'
+
+area: lib.search:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.search/**'
+
+area: lib.support-tickets:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.support-tickets/**'
+
+area: lib.types:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.types/**'
+
+area: lib.utils:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.utils/**'
+
+area: lib.validation:
+  - changed-files:
+    - any-glob-to-any-file: 'lib.validation/**'
+
+area: ci:
+  - changed-files:
+    - any-glob-to-any-file: '.github/**'
+
+area: config:
+  - changed-files:
+    - any-glob-to-any-file: 'package.json'
+    - any-glob-to-any-file: 'package-lock.json'
+    - any-glob-to-any-file: 'turbo.json'
+    - any-glob-to-any-file: 'tsconfig.json'
+    - any-glob-to-any-file: 'eslint-config-base/**'
+    - any-glob-to-any-file: 'eslint-config-node/**'
+    - any-glob-to-any-file: 'eslint-config-react/**'
+    - any-glob-to-any-file: 'vite.shared.config.ts'
+    - any-glob-to-any-file: 'docker-compose*.yml'
+    - any-glob-to-any-file: 'Dockerfile*'
