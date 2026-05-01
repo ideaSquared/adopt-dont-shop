@@ -35,7 +35,10 @@ export default defineConfig({
       '@/services': path.resolve(__dirname, './src/services'),
       '@/contexts': path.resolve(__dirname, './src/contexts'),
       '@/pages': path.resolve(__dirname, './src/pages'),
-      '@adopt-dont-shop/lib.components/theme': path.resolve(__dirname, '../lib.components/src/theme.ts'),
+      '@adopt-dont-shop/lib.components/theme': path.resolve(
+        __dirname,
+        '../lib.components/src/theme.ts'
+      ),
       '@adopt-dont-shop/lib.components': path.resolve(__dirname, '../lib.components/src/index.ts'),
       '@adopt-dont-shop/lib.auth': path.resolve(__dirname, '../lib.auth/src/index.ts'),
       '@adopt-dont-shop/lib.pets': path.resolve(__dirname, '../lib.pets/src/index.ts'),

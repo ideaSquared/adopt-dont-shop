@@ -32,7 +32,10 @@ export default defineConfig({
       '@/utils': path.resolve(__dirname, './src/utils'),
       '@/types': path.resolve(__dirname, './src/types'),
       '@/services': path.resolve(__dirname, './src/services'),
-      '@adopt-dont-shop/lib.components/theme': path.resolve(__dirname, '../lib.components/src/theme.ts'),
+      '@adopt-dont-shop/lib.components/theme': path.resolve(
+        __dirname,
+        '../lib.components/src/theme.ts'
+      ),
       '@adopt-dont-shop/lib.components': path.resolve(__dirname, '../lib.components/src/index.ts'),
       '@adopt-dont-shop/lib.auth': path.resolve(__dirname, '../lib.auth/src/index.ts'),
       '@adopt-dont-shop/lib.pets': path.resolve(__dirname, '../lib.pets/src/index.ts'),
