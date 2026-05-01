@@ -111,13 +111,15 @@ export type UserProfile = z.infer<typeof UserProfileSchema>;
  * controller adapter layer can translate snake_case at the edge during
  * the migration if needed.
  */
+// userType is intentionally absent — public registration always creates 'adopter'.
+// Elevation to rescue_staff/admin/moderator must go through authenticated,
+// role-gated invitation/promotion endpoints.
 export const RegisterRequestSchema = z.object({
   email: EmailSchema,
   password: StrongPasswordSchema,
   firstName: NameSchema,
   lastName: NameSchema,
   phoneNumber: PhoneNumberSchema.optional(),
-  userType: UserTypeSchema.optional(),
 });
 export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
 

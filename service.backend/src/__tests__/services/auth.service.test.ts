@@ -93,7 +93,6 @@ describe('AuthService', () => {
       firstName: 'John',
       lastName: 'Doe',
       phoneNumber: '+1234567890',
-      userType: UserType.ADOPTER,
     };
 
     it('should register user successfully', async () => {
@@ -103,7 +102,7 @@ describe('AuthService', () => {
         email: userData.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
-        userType: userData.userType,
+        userType: UserType.ADOPTER,
         status: UserStatus.PENDING_VERIFICATION,
         emailVerified: false,
         toJSON: vi.fn().mockReturnValue({
@@ -111,7 +110,7 @@ describe('AuthService', () => {
           email: userData.email,
           firstName: userData.firstName,
           lastName: userData.lastName,
-          userType: userData.userType,
+          userType: UserType.ADOPTER,
           status: UserStatus.PENDING_VERIFICATION,
           emailVerified: false,
         }),
@@ -137,7 +136,7 @@ describe('AuthService', () => {
           firstName: userData.firstName,
           lastName: userData.lastName,
           phoneNumber: userData.phoneNumber,
-          userType: userData.userType || UserType.ADOPTER,
+          userType: UserType.ADOPTER,
           status: UserStatus.PENDING_VERIFICATION,
           verificationToken: expect.any(String),
           verificationTokenExpiresAt: expect.any(Date),
@@ -723,7 +722,6 @@ describe('AuthService', () => {
           password: 'Password123!',
           firstName: 'John',
           lastName: 'Doe',
-          userType: UserType.ADOPTER,
         };
 
         const mockUser = {
@@ -731,7 +729,7 @@ describe('AuthService', () => {
           email: userData.email,
           firstName: userData.firstName,
           lastName: userData.lastName,
-          userType: userData.userType,
+          userType: UserType.ADOPTER,
           status: UserStatus.PENDING_VERIFICATION,
           emailVerified: false,
           verificationToken: 'mock-token',
@@ -741,7 +739,7 @@ describe('AuthService', () => {
             email: userData.email,
             firstName: userData.firstName,
             lastName: userData.lastName,
-            userType: userData.userType,
+            userType: UserType.ADOPTER,
             status: UserStatus.PENDING_VERIFICATION,
             emailVerified: false,
           }),

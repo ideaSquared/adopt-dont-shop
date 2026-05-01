@@ -16,7 +16,6 @@ export interface RegisterData {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
-  userType?: UserType;
 }
 
 export interface PasswordResetRequest {
