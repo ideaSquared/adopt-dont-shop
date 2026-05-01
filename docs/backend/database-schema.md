@@ -297,15 +297,16 @@ Most tables use soft delete (deleted_at timestamp) instead of hard delete for:
 
 ### Migration Management
 
-```bash
-# Create migration
-npm run migration:create -- --name add-new-field
+Migrations live in `service.backend/src/migrations/` as numbered TypeScript files (e.g. `30-create-file-uploads.ts`). Create a new one by adding the next sequential file following the existing pattern — the repo doesn't ship a `migration:create` npm script.
 
-# Run migrations
+```bash
+# Run migrations (from repo root, while the dev stack is running)
 npm run db:migrate
 
-# Rollback
-npm run db:migrate:undo
+# Rollback / status — shell into the backend container and use sequelize-cli directly
+npm run docker:shell:backend
+npx sequelize-cli db:migrate:undo
+npx sequelize-cli db:migrate:status
 ```
 
 ### Best Practices
