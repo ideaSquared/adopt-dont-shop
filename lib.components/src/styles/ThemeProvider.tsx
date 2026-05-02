@@ -1,8 +1,16 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 
 import { darkTheme, lightTheme, Theme, ThemeMode } from './theme';
 import { darkThemeClass, lightThemeClass } from './theme.css';
 import './GlobalStyles.css';
+
+// Keep DefaultTheme augmented while consuming apps still use styled-components.
+// Remove once all app.* styled-components are migrated to Vanilla Extract.
+declare module 'styled-components' {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  export interface DefaultTheme extends Theme {}
+}
 
 type ThemeContextType = {
   theme: Theme;
@@ -53,7 +61,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   return (
     <ThemeContext.Provider value={{ theme, themeMode, setThemeMode }}>
-      {children}
+      <StyledThemeProvider theme={theme}>{children}</StyledThemeProvider>
     </ThemeContext.Provider>
   );
 };
