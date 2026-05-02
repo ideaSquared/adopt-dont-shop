@@ -4,7 +4,7 @@ import { applicationService, authService, Application, User } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import * as styles from './ProfilePage.css';
 
 // Extended interface for applications with pet info
 interface ApplicationWithPetInfo extends Application {
@@ -12,174 +12,6 @@ interface ApplicationWithPetInfo extends Application {
   petType?: string;
   petBreed?: string;
 }
-
-const Container = styled.div`
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 2rem;
-
-  @media (max-width: 768px) {
-    padding: 1rem;
-  }
-`;
-
-const Header = styled.div`
-  margin-bottom: 3rem;
-
-  h1 {
-    font-size: 2.5rem;
-    color: ${props => props.theme.text.primary};
-    margin-bottom: 0.5rem;
-  }
-
-  p {
-    font-size: 1.1rem;
-    color: ${props => props.theme.text.secondary};
-  }
-
-  @media (max-width: 768px) {
-    margin-bottom: 2rem;
-
-    h1 {
-      font-size: 2rem;
-    }
-  }
-`;
-
-const TabContainer = styled.div`
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-  margin-bottom: 2rem;
-`;
-
-const TabList = styled.div`
-  display: flex;
-  gap: 2rem;
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-  background: none;
-  border: none;
-  padding: 1rem 0;
-  font-size: 1rem;
-  font-weight: 500;
-  color: ${props => (props.$active ? props.theme.colors.primary[600] : props.theme.text.secondary)};
-  border-bottom: 2px solid
-    ${props => (props.$active ? props.theme.colors.primary[600] : 'transparent')};
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    color: ${props => props.theme.colors.primary[600]};
-  }
-`;
-
-const Section = styled.div`
-  background: ${props => props.theme.background.primary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 1.5rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 1rem;
-`;
-
-const ProfileInfo = styled.div`
-  display: grid;
-  gap: 1rem;
-`;
-
-const InfoItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const InfoLabel = styled.span`
-  font-weight: 500;
-  color: ${props => props.theme.text.secondary};
-`;
-
-const InfoValue = styled.span`
-  color: ${props => props.theme.text.primary};
-`;
-
-const ApplicationsGrid = styled.div`
-  display: grid;
-  gap: 1rem;
-`;
-
-const ApplicationCard = styled.div`
-  background: ${props => props.theme.background.secondary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 8px;
-  padding: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const ApplicationInfo = styled.div`
-  h3 {
-    font-size: 1.1rem;
-    color: ${props => props.theme.text.primary};
-    margin-bottom: 0.5rem;
-  }
-
-  p {
-    color: ${props => props.theme.text.secondary};
-    font-size: 0.875rem;
-  }
-`;
-
-const StatusBadge = styled.span<{ $status: string }>`
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-
-  ${props => {
-    switch (props.$status) {
-      case 'submitted':
-        return `
-          background: ${props.theme.colors.secondary[100]};
-          color: ${props.theme.colors.secondary[700]};
-        `;
-      case 'approved':
-        return `
-          background: ${props.theme.colors.semantic.success[100]};
-          color: ${props.theme.colors.semantic.success[700]};
-        `;
-      case 'rejected':
-        return `
-          background: ${props.theme.colors.semantic.error[100]};
-          color: ${props.theme.colors.semantic.error[700]};
-        `;
-      default:
-        return `
-          background: ${props.theme.colors.neutral[100]};
-          color: ${props.theme.colors.neutral[700]};
-        `;
-    }
-  }}
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-`;
 
 type TabType = 'profile' | 'applications' | 'settings';
 
@@ -355,8 +187,8 @@ export const ProfilePage: React.FC = () => {
   };
 
   const renderProfileTab = () => (
-    <Section>
-      <SectionTitle>Profile Information</SectionTitle>
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Profile Information</h2>
       {successMessage && (
         <div style={{ marginBottom: '1rem' }}>
           <Alert variant='success'>{successMessage}</Alert>
@@ -373,51 +205,53 @@ export const ProfilePage: React.FC = () => {
             />
           ) : (
             <>
-              <ProfileInfo>
-                <InfoItem>
-                  <InfoLabel>Name</InfoLabel>
-                  <InfoValue>
+              <div className={styles.profileInfo}>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Name</span>
+                  <span className={styles.infoValue}>
                     {user.firstName} {user.lastName}
-                  </InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>Email</InfoLabel>
-                  <InfoValue>{user.email}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>Phone</InfoLabel>
-                  <InfoValue>{user.phone || 'Not provided'}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>Preferred Contact</InfoLabel>
-                  <InfoValue>{user.preferredContactMethod || 'Not specified'}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>Location</InfoLabel>
-                  <InfoValue>
+                  </span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Email</span>
+                  <span className={styles.infoValue}>{user.email}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Phone</span>
+                  <span className={styles.infoValue}>{user.phone || 'Not provided'}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Preferred Contact</span>
+                  <span className={styles.infoValue}>
+                    {user.preferredContactMethod || 'Not specified'}
+                  </span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Location</span>
+                  <span className={styles.infoValue}>
                     {(user.location?.city || user.city) &&
                     (user.location?.state || user.location?.country || user.country)
                       ? `${user.location?.city || user.city}, ${
                           user.location?.state || user.location?.country || user.country
                         }`
                       : 'Not provided'}
-                  </InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>Member Since</InfoLabel>
-                  <InfoValue>{formatDate(user.createdAt)}</InfoValue>
-                </InfoItem>
-                <InfoItem>
-                  <InfoLabel>Email Verified</InfoLabel>
-                  <InfoValue>{user.emailVerified ? 'Yes' : 'No'}</InfoValue>
-                </InfoItem>
+                  </span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Member Since</span>
+                  <span className={styles.infoValue}>{formatDate(user.createdAt)}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Email Verified</span>
+                  <span className={styles.infoValue}>{user.emailVerified ? 'Yes' : 'No'}</span>
+                </div>
                 {user.bio && (
-                  <InfoItem>
-                    <InfoLabel>Bio</InfoLabel>
-                    <InfoValue>{user.bio}</InfoValue>
-                  </InfoItem>
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>Bio</span>
+                    <span className={styles.infoValue}>{user.bio}</span>
+                  </div>
                 )}
-              </ProfileInfo>
+              </div>
               <div style={{ marginTop: '2rem' }}>
                 <Button onClick={() => setIsEditingProfile(true)}>Edit Profile</Button>
               </div>
@@ -426,12 +260,12 @@ export const ProfilePage: React.FC = () => {
           )}
         </>
       )}
-    </Section>
+    </div>
   );
 
   const renderApplicationsTab = () => (
-    <Section>
-      <SectionTitle>My Applications</SectionTitle>
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>My Applications</h2>
       {error && (
         <div style={{ marginBottom: '1rem' }}>
           <Alert variant='error'>{error}</Alert>
@@ -443,9 +277,9 @@ export const ProfilePage: React.FC = () => {
           <p>As a {user?.userType}, you don&apos;t submit adoption applications.</p>
         </div>
       ) : isLoading ? (
-        <LoadingContainer>
+        <div className={styles.loadingContainer}>
           <Spinner />
-        </LoadingContainer>
+        </div>
       ) : applications.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <p>You haven&apos;t submitted any adoption applications yet.</p>
@@ -454,10 +288,10 @@ export const ProfilePage: React.FC = () => {
           </Button>
         </div>
       ) : (
-        <ApplicationsGrid>
+        <div className={styles.applicationsGrid}>
           {applications.map(application => (
-            <ApplicationCard key={application.id}>
-              <ApplicationInfo>
+            <div key={application.id} className={styles.applicationCard}>
+              <div className={styles.applicationInfo}>
                 <h3>Application #{application.id.slice(-6)}</h3>
                 <p>Submitted {formatDate(application.submittedAt || application.createdAt)}</p>
                 {application.petName && (
@@ -466,11 +300,17 @@ export const ProfilePage: React.FC = () => {
                   </p>
                 )}
                 {application.petId && !application.petName && <p>Pet ID: {application.petId}</p>}
-              </ApplicationInfo>
+              </div>
               <div>
-                <StatusBadge $status={application.status}>
+                <span
+                  className={styles.statusBadge({
+                    status: (['submitted', 'approved', 'rejected'].includes(application.status)
+                      ? application.status
+                      : 'default') as 'submitted' | 'approved' | 'rejected' | 'default',
+                  })}
+                >
                   {application.status.replace('_', ' ')}
-                </StatusBadge>
+                </span>
                 <div style={{ marginTop: '0.5rem' }}>
                   <Button
                     variant='secondary'
@@ -481,16 +321,16 @@ export const ProfilePage: React.FC = () => {
                   </Button>
                 </div>
               </div>
-            </ApplicationCard>
+            </div>
           ))}
-        </ApplicationsGrid>
+        </div>
       )}
-    </Section>
+    </div>
   );
 
   const renderSettingsTab = () => (
-    <Section>
-      <SectionTitle>Settings</SectionTitle>
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Settings</h2>
       {user && (
         <SettingsForm
           user={user}
@@ -499,7 +339,7 @@ export const ProfilePage: React.FC = () => {
           isLoading={isSavingSettings}
         />
       )}
-    </Section>
+    </div>
   );
 
   if (!isAuthenticated) {
@@ -507,30 +347,39 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <Container>
-      <Header>
+    <div className={styles.container}>
+      <div className={styles.header}>
         <h1>My Profile</h1>
         <p>Manage your account, applications, and preferences</p>
-      </Header>
+      </div>
 
-      <TabContainer>
-        <TabList>
-          <Tab $active={activeTab === 'profile'} onClick={() => setActiveTab('profile')}>
+      <div className={styles.tabContainer}>
+        <div className={styles.tabList}>
+          <button
+            className={styles.tab({ active: activeTab === 'profile' })}
+            onClick={() => setActiveTab('profile')}
+          >
             Profile
-          </Tab>
-          <Tab $active={activeTab === 'applications'} onClick={() => setActiveTab('applications')}>
+          </button>
+          <button
+            className={styles.tab({ active: activeTab === 'applications' })}
+            onClick={() => setActiveTab('applications')}
+          >
             Applications
-          </Tab>
-          <Tab $active={activeTab === 'settings'} onClick={() => setActiveTab('settings')}>
+          </button>
+          <button
+            className={styles.tab({ active: activeTab === 'settings' })}
+            onClick={() => setActiveTab('settings')}
+          >
             Settings
-          </Tab>
-        </TabList>
-      </TabContainer>
+          </button>
+        </div>
+      </div>
 
       {activeTab === 'profile' && renderProfileTab()}
       {activeTab === 'applications' && renderApplicationsTab()}
       {activeTab === 'settings' && renderSettingsTab()}
-    </Container>
+    </div>
   );
 };
 

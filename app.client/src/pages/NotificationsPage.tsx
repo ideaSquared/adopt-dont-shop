@@ -2,69 +2,7 @@ import React from 'react';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { Button, Card } from '@adopt-dont-shop/lib.components';
-import styled from 'styled-components';
-
-const Container = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-`;
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-
-  h1 {
-    margin: 0;
-    color: ${props => props.theme.text.primary};
-  }
-`;
-
-const NotificationCard = styled(Card)<{ $isRead: boolean }>`
-  margin-bottom: 1rem;
-  cursor: pointer;
-  opacity: ${props => (props.$isRead ? 0.6 : 1)};
-  border-left: 4px solid
-    ${props => (props.$isRead ? 'transparent' : props.theme.colors.primary[500])};
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const NotificationContent = styled.div`
-  padding: 1rem;
-
-  .title {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  .message {
-    color: ${props => props.theme.text.secondary};
-    margin-bottom: 0.5rem;
-  }
-
-  .timestamp {
-    font-size: 0.875rem;
-    color: ${props => props.theme.text.tertiary};
-  }
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: ${props => props.theme.text.secondary};
-
-  .icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-  }
-`;
+import * as styles from './NotificationsPage.css';
 
 export const NotificationsPage: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -134,41 +72,41 @@ export const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <Container>
-      <Header>
+    <div className={styles.container}>
+      <div className={styles.header}>
         <h1>Notifications</h1>
         {unreadCount > 0 && (
           <Button variant='outline' onClick={handleMarkAllAsRead}>
             Mark All Read ({unreadCount})
           </Button>
         )}
-      </Header>
+      </div>
 
       {notifications.length === 0 ? (
-        <EmptyState>
+        <div className={styles.emptyState}>
           <div className='icon'>🔔</div>
           <h3>No notifications yet</h3>
           <p>
             You'll see notifications about your adoption applications, favorite pets, and more here.
           </p>
-        </EmptyState>
+        </div>
       ) : (
         notifications.map(notification => (
-          <NotificationCard
+          <Card
             key={notification.id}
-            $isRead={isNotificationRead(notification)}
+            className={styles.notificationCard({ isRead: isNotificationRead(notification) })}
             onClick={() =>
               handleNotificationClick(notification.id, isNotificationRead(notification))
             }
           >
-            <NotificationContent>
+            <div className={styles.notificationContent}>
               <div className='title'>{notification.title}</div>
               <div className='message'>{notification.message}</div>
               <div className='timestamp'>{formatTimestamp(notification.createdAt)}</div>
-            </NotificationContent>
-          </NotificationCard>
+            </div>
+          </Card>
         ))
       )}
-    </Container>
+    </div>
   );
 };
