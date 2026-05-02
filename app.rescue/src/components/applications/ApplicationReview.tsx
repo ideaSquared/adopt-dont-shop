@@ -975,8 +975,32 @@ const VisitDetailsHeader = styled.div`
   }
 `;
 
+type ApplicationData = {
+  id: string;
+  status: string;
+  petName?: string;
+  applicantName?: string;
+  userName?: string;
+  submittedDaysAgo?: number;
+  submittedAt?: string;
+  stage?: string;
+  references?: ApplicationReference[];
+  data?: Record<string, unknown>;
+};
+
+type ApplicationReference = {
+  id?: string;
+  name?: string;
+  relationship?: string;
+  phone?: string;
+  status?: string;
+  notes?: string;
+  contacted_at?: string;
+  contacted_by?: string;
+};
+
 interface ApplicationReviewProps {
-  application: any;
+  application: ApplicationData;
   references: ReferenceCheck[];
   homeVisits: HomeVisit[];
   timeline: ApplicationTimeline[];
@@ -992,9 +1016,9 @@ interface ApplicationReviewProps {
     assignedStaff: string;
     notes?: string;
   }) => void;
-  onUpdateVisit: (visitId: string, updateData: any) => void;
-  onAddTimelineEvent: (event: string, description: string, data?: any) => void;
-  onRefresh?: () => void; // Optional refresh function to update application data
+  onUpdateVisit: (visitId: string, updateData: Record<string, unknown>) => void;
+  onAddTimelineEvent: (event: string, description: string, data?: Record<string, unknown>) => void;
+  onRefresh?: () => void;
 }
 
 const ApplicationReview: React.FC<ApplicationReviewProps> = ({
@@ -1217,7 +1241,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     // First, try to get references from the main references array (backend format)
     const directReferences = application?.references || [];
     if (Array.isArray(directReferences) && directReferences.length > 0) {
-      directReferences.forEach((ref: any, index: number) => {
+      directReferences.forEach((ref: ApplicationReference, index: number) => {
         allRefs.push({
           id: ref.id || `ref-${index}`, // Use the reference ID if available, fallback to index-based ID
           applicationId: application.id,
@@ -1255,7 +1279,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
 
       // Add personal references
-      personalRefs.forEach((ref: any) => {
+      personalRefs.forEach((ref: ApplicationReference) => {
         if (ref.name) {
           allRefs.push({
             id: `ref-${referenceIndex}`,
@@ -1402,7 +1426,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   const handleCompleteVisit = async (visitId: string) => {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         status: 'completed',
         outcome: completeForm.outcome,
         notes: completeForm.notes,
@@ -1826,7 +1850,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               <Section>
                 <SectionTitle>Previous Pet Experience</SectionTitle>
                 <Grid>
-                  {getData('answers.previous_pets').map((pet: any, index: number) => (
+                  {(
+                    getData('answers.previous_pets') as Array<{
+                      type?: string;
+                      breed?: string;
+                      years_owned?: string;
+                    }>
+                  ).map((pet, index) => (
                     <Card key={index}>
                       <CardTitle>Previous Pet #{index + 1}</CardTitle>
                       <Field>
