@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import styled from 'styled-components';
+import clsx from 'clsx';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import type {
@@ -21,6 +21,7 @@ import {
   CardContent,
 } from '../components/ui';
 import { Skeleton } from '../components/ui/Skeleton';
+import styles from './FieldPermissions.css';
 
 const RESOURCES: ReadonlyArray<FieldPermissionResource> = [
   'users',
@@ -30,167 +31,18 @@ const RESOURCES: ReadonlyArray<FieldPermissionResource> = [
 ];
 const ROLES: ReadonlyArray<UserRole> = ['admin', 'moderator', 'rescue_staff', 'adopter'];
 
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const InfoBanner = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1e40af;
-  margin-bottom: 1.5rem;
-
-  svg {
-    flex-shrink: 0;
-    margin-top: 0.125rem;
+const getAccessSelectClass = (level: FieldAccessLevel): string => {
+  switch (level) {
+    case 'write':
+      return styles.accessSelectWrite;
+    case 'read':
+      return styles.accessSelectRead;
+    case 'none':
+      return styles.accessSelectNone;
+    default:
+      return styles.accessSelectDefault;
   }
-`;
-
-const TabRow = styled.div`
-  display: flex;
-  gap: 0;
-  border-bottom: 2px solid #e5e7eb;
-  margin-bottom: 1.5rem;
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-weight: ${props => (props.$active ? '600' : '400')};
-  color: ${props => (props.$active ? '#2563eb' : '#6b7280')};
-  border-bottom: 2px solid ${props => (props.$active ? '#2563eb' : 'transparent')};
-  margin-bottom: -2px;
-  text-transform: capitalize;
-  transition: all 0.2s;
-
-  &:hover {
-    color: #2563eb;
-  }
-`;
-
-const RoleSelector = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-`;
-
-const RoleChip = styled.button<{ $active: boolean }>`
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  border: 1px solid ${props => (props.$active ? '#2563eb' : '#d1d5db')};
-  background: ${props => (props.$active ? '#2563eb' : 'white')};
-  color: ${props => (props.$active ? 'white' : '#374151')};
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: capitalize;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: #2563eb;
-  }
-`;
-
-const FieldTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-`;
-
-const TableHeader = styled.th`
-  text-align: left;
-  padding: 0.75rem 1rem;
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const TableRow = styled.tr<{ $modified?: boolean }>`
-  background: ${props => (props.$modified ? '#fffbeb' : 'transparent')};
-
-  &:hover {
-    background: ${props => (props.$modified ? '#fef3c7' : '#f9fafb')};
-  }
-`;
-
-const TableCell = styled.td`
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-`;
-
-const FieldName = styled.code`
-  font-family: 'Fira Code', 'Consolas', monospace;
-  font-size: 0.8rem;
-  padding: 0.125rem 0.375rem;
-  background: #f3f4f6;
-  border-radius: 4px;
-`;
-
-const AccessSelect = styled.select<{ $level: FieldAccessLevel }>`
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  background: ${props => {
-    switch (props.$level) {
-      case 'write':
-        return '#dcfce7';
-      case 'read':
-        return '#dbeafe';
-      case 'none':
-        return '#fee2e2';
-      default:
-        return 'white';
-    }
-  }};
-  color: ${props => {
-    switch (props.$level) {
-      case 'write':
-        return '#166534';
-      case 'read':
-        return '#1e40af';
-      case 'none':
-        return '#991b1b';
-      default:
-        return '#374151';
-    }
-  }};
-`;
-
-const OverrideBadge = styled.span`
-  font-size: 0.7rem;
-  padding: 0.125rem 0.5rem;
-  background: #fef3c7;
-  color: #92400e;
-  border-radius: 10px;
-  font-weight: 600;
-  margin-left: 0.5rem;
-`;
-
-const StatusBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-`;
+};
 
 const FieldPermissions: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -268,12 +120,6 @@ const FieldPermissions: React.FC = () => {
     setSaving(true);
     setError(null);
 
-    // Partition pending changes into:
-    //  - bulkOverrides: entries that differ from the default (upsert)
-    //  - deletions: entries that match the default AND already have an
-    //    override stored in the DB (revert by DELETE)
-    // Entries that match the default and have no existing override are
-    // dropped entirely — we never persist rows that duplicate defaults.
     const bulkOverrides: Array<{
       resource: FieldPermissionResource;
       field_name: string;
@@ -292,7 +138,6 @@ const FieldPermissions: React.FC = () => {
         if (hasExistingOverride) {
           deletions.push(fieldName);
         }
-        // Otherwise: matches default with no override — nothing to persist.
         continue;
       }
 
@@ -304,8 +149,6 @@ const FieldPermissions: React.FC = () => {
       });
     }
 
-    // Capture error text so we can re-apply it after fetchData (which calls
-    // setError(null) internally, clearing any error set before it runs).
     let saveError: string | null = null;
 
     try {
@@ -314,7 +157,6 @@ const FieldPermissions: React.FC = () => {
       }
 
       if (deletions.length > 0) {
-        // Use allSettled so one failing delete doesn't hide the others.
         const results = await Promise.allSettled(
           deletions.map(fieldName =>
             apiService.delete(
@@ -332,9 +174,7 @@ const FieldPermissions: React.FC = () => {
     } catch (err) {
       saveError = 'Failed to save field permissions';
     } finally {
-      // Always re-fetch to show actual DB state, even after partial failures.
       await fetchData();
-      // Re-apply save error after fetchData, which resets error state internally.
       if (saveError !== null) {
         setError(saveError);
       }
@@ -352,7 +192,7 @@ const FieldPermissions: React.FC = () => {
           <FiShield size={24} />
           <Heading level='h1'>Field Permissions</Heading>
         </HeaderLeft>
-        <HeaderActions>
+        <div className={styles.headerActions}>
           <Button variant='secondary' onClick={fetchData} disabled={loading}>
             <FiRefreshCw size={16} />
             Refresh
@@ -363,10 +203,10 @@ const FieldPermissions: React.FC = () => {
               {saving ? 'Saving...' : `Save ${pendingCount} Change${pendingCount > 1 ? 's' : ''}`}
             </Button>
           )}
-        </HeaderActions>
+        </div>
       </PageHeader>
 
-      <InfoBanner>
+      <div className={styles.infoBanner}>
         <FiInfo size={16} />
         <div>
           <Text>
@@ -376,38 +216,42 @@ const FieldPermissions: React.FC = () => {
             but not editable, and <strong>write</strong> fields can be both viewed and modified.
           </Text>
         </div>
-      </InfoBanner>
+      </div>
 
-      <TabRow>
+      <div className={styles.tabRow}>
         {RESOURCES.map(resource => (
-          <Tab
+          <button
             key={resource}
-            $active={selectedResource === resource}
+            className={clsx(styles.tab, selectedResource === resource && styles.tabActive)}
             onClick={() => setSelectedResource(resource)}
           >
             {resource}
-          </Tab>
+          </button>
         ))}
-      </TabRow>
+      </div>
 
-      <RoleSelector>
+      <div className={styles.roleSelector}>
         {ROLES.map(role => (
-          <RoleChip
+          <button
             key={role}
-            $active={selectedRole === role}
+            className={clsx(styles.roleChip, selectedRole === role && styles.roleChipActive)}
             onClick={() => setSelectedRole(role)}
           >
             {role.replace('_', ' ')}
-          </RoleChip>
+          </button>
         ))}
-      </RoleSelector>
+      </div>
 
-      {error && <StatusBar style={{ background: '#fee2e2', color: '#991b1b' }}>{error}</StatusBar>}
+      {error && (
+        <div className={styles.statusBar} style={{ background: '#fee2e2', color: '#991b1b' }}>
+          {error}
+        </div>
+      )}
 
       {pendingCount > 0 && (
-        <StatusBar style={{ background: '#fffbeb', color: '#92400e' }}>
+        <div className={styles.statusBar} style={{ background: '#fffbeb', color: '#92400e' }}>
           {pendingCount} unsaved change{pendingCount > 1 ? 's' : ''}
-        </StatusBar>
+        </div>
       )}
 
       <Card>
@@ -442,13 +286,13 @@ const FieldPermissions: React.FC = () => {
           ) : fieldNames.length === 0 ? (
             <Text>No fields configured for this resource and role.</Text>
           ) : (
-            <FieldTable>
+            <table className={styles.fieldTable}>
               <thead>
                 <tr>
-                  <TableHeader>Field</TableHeader>
-                  <TableHeader>Default</TableHeader>
-                  <TableHeader>Effective Access</TableHeader>
-                  <TableHeader>Status</TableHeader>
+                  <th className={styles.tableHeader}>Field</th>
+                  <th className={styles.tableHeader}>Default</th>
+                  <th className={styles.tableHeader}>Effective Access</th>
+                  <th className={styles.tableHeader}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -459,18 +303,21 @@ const FieldPermissions: React.FC = () => {
                   const overridden = isOverridden(fieldName);
 
                   return (
-                    <TableRow key={fieldName} $modified={modified}>
-                      <TableCell>
-                        <FieldName>{fieldName}</FieldName>
-                      </TableCell>
-                      <TableCell>
-                        <AccessSelect $level={defaultLevel} disabled>
+                    <tr
+                      key={fieldName}
+                      className={modified ? styles.tableRowModified : styles.tableRow}
+                    >
+                      <td className={styles.tableCell}>
+                        <code className={styles.fieldName}>{fieldName}</code>
+                      </td>
+                      <td className={styles.tableCell}>
+                        <select className={getAccessSelectClass(defaultLevel)} disabled>
                           <option>{defaultLevel}</option>
-                        </AccessSelect>
-                      </TableCell>
-                      <TableCell>
-                        <AccessSelect
-                          $level={effectiveLevel}
+                        </select>
+                      </td>
+                      <td className={styles.tableCell}>
+                        <select
+                          className={getAccessSelectClass(effectiveLevel)}
                           value={effectiveLevel}
                           onChange={e =>
                             handleChange(fieldName, e.target.value as FieldAccessLevel)
@@ -479,17 +326,17 @@ const FieldPermissions: React.FC = () => {
                           <option value='none'>none</option>
                           <option value='read'>read</option>
                           <option value='write'>write</option>
-                        </AccessSelect>
-                      </TableCell>
-                      <TableCell>
-                        {overridden && <OverrideBadge>Override</OverrideBadge>}
-                        {modified && <OverrideBadge>Unsaved</OverrideBadge>}
-                      </TableCell>
-                    </TableRow>
+                        </select>
+                      </td>
+                      <td className={styles.tableCell}>
+                        {overridden && <span className={styles.overrideBadge}>Override</span>}
+                        {modified && <span className={styles.overrideBadge}>Unsaved</span>}
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
-            </FieldTable>
+            </table>
           )}
         </CardContent>
       </Card>

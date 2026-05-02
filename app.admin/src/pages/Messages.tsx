@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import styled from 'styled-components';
 import { Heading, Text, Input, useConfirm, ConfirmDialog } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
@@ -35,106 +34,20 @@ import {
   type Conversation,
 } from '@adopt-dont-shop/lib.chat';
 import { ChatDetailModal } from '../components/modals';
+import styles from './Messages.css';
 
-const MessagePreview = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  max-width: 400px;
-`;
-
-const MessageParticipants = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #111827;
-  font-weight: 600;
-
-  svg {
-    font-size: 0.875rem;
-    color: #9ca3af;
+const getStatusDotClass = (status: string): string => {
+  switch (status) {
+    case 'active':
+      return styles.statusDotActive;
+    case 'flagged':
+      return styles.statusDotFlagged;
+    case 'archived':
+      return styles.statusDotArchived;
+    default:
+      return styles.statusDotDefault;
   }
-`;
-
-const MessageSubject = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const MessageMeta = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  font-size: 0.75rem;
-  color: #9ca3af;
-`;
-
-const ParticipantInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const ParticipantName = styled.div`
-  font-size: 0.875rem;
-  color: #111827;
-  font-weight: 500;
-`;
-
-const ParticipantRole = styled.div`
-  font-size: 0.75rem;
-  color: #6b7280;
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const ActionButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f9fafb;
-    color: #111827;
-    border-color: #d1d5db;
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-`;
-
-const StatusDot = styled.div<{ $status: string }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${props => {
-    switch (props.$status) {
-      case 'active':
-        return '#10b981';
-      case 'flagged':
-        return '#f59e0b';
-      case 'archived':
-        return '#9ca3af';
-      default:
-        return '#6b7280';
-    }
-  }};
-`;
+};
 
 const Messages: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -142,7 +55,6 @@ const Messages: React.FC = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const { confirm, confirmProps } = useConfirm();
 
-  // Build filters for API
   const filters = useMemo(() => {
     const apiFilters: {
       status?: string;
@@ -161,7 +73,6 @@ const Messages: React.FC = () => {
     return apiFilters;
   }, [statusFilter, searchQuery]);
 
-  // Fetch chats and stats using hooks
   const { data: chatsData, isLoading, error: chatsError, refetch } = useAdminChats(filters);
   const { data: statsData } = useAdminChatStats();
   const { deleteChat, updateChatStatus } = useAdminChatMutations();
@@ -169,7 +80,6 @@ const Messages: React.FC = () => {
   const chats = chatsData?.data || [];
   const loading = isLoading;
 
-  // Stats from API
   const stats = {
     total: statsData?.totalChats || 0,
     active: statsData?.activeChats || 0,
@@ -228,7 +138,6 @@ const Messages: React.FC = () => {
     if (confirmed) {
       try {
         await deleteChat.mutateAsync(chatId);
-        // Refetch the chat list to update the UI
         await refetch();
       } catch (error) {
         console.error('Failed to delete chat:', error);
@@ -240,7 +149,6 @@ const Messages: React.FC = () => {
   const handleUpdateStatus = async (chatId: string, status: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Show confirmation for archiving
     if (status === 'archived') {
       const confirmed = await confirm({
         title: 'Archive Conversation',
@@ -257,7 +165,6 @@ const Messages: React.FC = () => {
 
     try {
       await updateChatStatus.mutateAsync({ chatId, status });
-      // Refetch the chat list to update the UI
       await refetch();
     } catch (error) {
       console.error('Failed to update chat status:', error);
@@ -268,33 +175,33 @@ const Messages: React.FC = () => {
     {
       id: 'status',
       header: '',
-      accessor: row => <StatusDot $status={row.status || 'active'} />,
+      accessor: row => <div className={getStatusDotClass(row.status || 'active')} />,
       width: '40px',
     },
     {
       id: 'conversation',
       header: 'Conversation',
       accessor: row => (
-        <MessagePreview>
-          <MessageParticipants>
+        <div className={styles.messagePreview}>
+          <div className={styles.messageParticipants}>
             {row.participants.map((p, i) => (
               <React.Fragment key={p.id}>
                 {i > 0 && ' ↔ '}
                 {p.name}
               </React.Fragment>
             ))}
-          </MessageParticipants>
-          <MessageSubject>
+          </div>
+          <div className={styles.messageSubject}>
             Chat #{row.id.slice(-6)}
             {row.rescueName && ` - ${row.rescueName}`}
             {row.petId && ` (Pet: ${row.petId.slice(-6)})`}
-          </MessageSubject>
-          <MessageMeta>
+          </div>
+          <div className={styles.messageMeta}>
             <span>{row.participants.length} participants</span>
             {row.unreadCount > 0 && <span>• {row.unreadCount} unread</span>}
             <span>• Last activity: {formatTimestamp(row.updatedAt)}</span>
-          </MessageMeta>
-        </MessagePreview>
+          </div>
+        </div>
       ),
       width: '420px',
     },
@@ -323,10 +230,10 @@ const Messages: React.FC = () => {
       accessor: row => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {row.participants.slice(0, 2).map(p => (
-            <ParticipantInfo key={p.id}>
-              <ParticipantName>{p.name}</ParticipantName>
-              <ParticipantRole>{p.type}</ParticipantRole>
-            </ParticipantInfo>
+            <div key={p.id} className={styles.participantInfo}>
+              <div className={styles.participantName}>{p.name}</div>
+              <div className={styles.participantRole}>{p.type}</div>
+            </div>
           ))}
           {row.participants.length > 2 && (
             <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
@@ -348,8 +255,9 @@ const Messages: React.FC = () => {
       id: 'actions',
       header: 'Actions',
       accessor: row => (
-        <ActionButtons>
-          <ActionButton
+        <div className={styles.actionButtons}>
+          <button
+            className={styles.actionButton}
             onClick={e => {
               e.stopPropagation();
               setSelectedChatId(row.id);
@@ -357,17 +265,22 @@ const Messages: React.FC = () => {
             title='View chat'
           >
             <FiEye />
-          </ActionButton>
-          <ActionButton
+          </button>
+          <button
+            className={styles.actionButton}
             onClick={e => handleUpdateStatus(row.id, 'archived', e)}
             title='Archive chat'
           >
             <FiFlag />
-          </ActionButton>
-          <ActionButton onClick={e => handleDeleteChat(row.id, e)} title='Delete chat'>
+          </button>
+          <button
+            className={styles.actionButton}
+            onClick={e => handleDeleteChat(row.id, e)}
+            title='Delete chat'
+          >
             <FiTrash />
-          </ActionButton>
-        </ActionButtons>
+          </button>
+        </div>
       ),
       width: '120px',
       align: 'center',

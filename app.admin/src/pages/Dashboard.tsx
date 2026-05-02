@@ -1,105 +1,7 @@
 import React from 'react';
-import styled, { keyframes } from 'styled-components';
 import { Heading, Text } from '@adopt-dont-shop/lib.components';
 import { usePlatformMetrics } from '../hooks';
-
-const DashboardContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-`;
-
-const PageHeader = styled.div`
-  margin-bottom: 1rem;
-
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 0.5rem 0;
-  }
-
-  p {
-    font-size: 1rem;
-    color: #6b7280;
-    margin: 0;
-  }
-`;
-
-const MetricsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-`;
-
-const MetricCard = styled.div`
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.5rem;
-  transition: all 0.2s ease;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transform: translateY(-2px);
-  }
-`;
-
-const MetricHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-
-  span {
-    font-size: 1.5rem;
-  }
-`;
-
-const MetricLabel = styled.div`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-`;
-
-const MetricValue = styled.div`
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 0.5rem;
-`;
-
-const MetricChange = styled.div<{ $positive?: boolean }>`
-  font-size: 0.875rem;
-  color: ${props => (props.$positive ? '#10b981' : '#ef4444')};
-  font-weight: 500;
-`;
-
-const shimmer = keyframes`
-  0% { background-position: -200px 0; }
-  100% { background-position: calc(200px + 100%) 0; }
-`;
-
-const SkeletonBlock = styled.div<{ $width?: string; $height?: string }>`
-  width: ${props => props.$width ?? '100%'};
-  height: ${props => props.$height ?? '1rem'};
-  border-radius: 6px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200px 100%;
-  animation: ${shimmer} 1.4s infinite linear;
-`;
-
-const ErrorBanner = styled.div`
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 12px;
-  padding: 1.5rem;
-  color: #991b1b;
-  font-size: 0.875rem;
-`;
+import styles from './Dashboard.css';
 
 const formatNumber = (n: number): string => n.toLocaleString();
 
@@ -175,42 +77,57 @@ const Dashboard: React.FC = () => {
     : [];
 
   return (
-    <DashboardContainer>
-      <PageHeader>
+    <div className={styles.dashboardContainer}>
+      <div className={styles.pageHeader}>
         <Heading level='h1'>Admin Dashboard</Heading>
         <Text>Welcome back! Here's what's happening across the platform today.</Text>
-      </PageHeader>
+      </div>
 
       {isError && (
-        <ErrorBanner role='alert'>
+        <div className={styles.errorBanner} role='alert'>
           Failed to load dashboard metrics:{' '}
           {error instanceof Error ? error.message : 'Unknown error'}
-        </ErrorBanner>
+        </div>
       )}
 
-      <MetricsGrid>
+      <div className={styles.metricsGrid}>
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => (
-              <MetricCard key={i} aria-busy='true'>
-                <MetricHeader>
-                  <SkeletonBlock $width='32px' $height='32px' />
-                  <SkeletonBlock $width='120px' $height='0.875rem' />
-                </MetricHeader>
-                <SkeletonBlock $width='80px' $height='2.25rem' style={{ marginBottom: '0.5rem' }} />
-                <SkeletonBlock $width='140px' $height='0.875rem' />
-              </MetricCard>
+              <div key={i} className={styles.metricCard} aria-busy='true'>
+                <div className={styles.metricHeader}>
+                  <div className={styles.skeletonBlock} style={{ width: '32px', height: '32px' }} />
+                  <div
+                    className={styles.skeletonBlock}
+                    style={{ width: '120px', height: '0.875rem' }}
+                  />
+                </div>
+                <div
+                  className={styles.skeletonBlock}
+                  style={{ width: '80px', height: '2.25rem', marginBottom: '0.5rem' }}
+                />
+                <div
+                  className={styles.skeletonBlock}
+                  style={{ width: '140px', height: '0.875rem' }}
+                />
+              </div>
             ))
           : metrics.map((metric, index) => (
-              <MetricCard key={index}>
-                <MetricHeader>
+              <div key={index} className={styles.metricCard}>
+                <div className={styles.metricHeader}>
                   <span>{metric.icon}</span>
-                  <MetricLabel>{metric.label}</MetricLabel>
-                </MetricHeader>
-                <MetricValue>{metric.value}</MetricValue>
-                <MetricChange $positive={metric.positive}>{metric.change}</MetricChange>
-              </MetricCard>
+                  <div className={styles.metricLabel}>{metric.label}</div>
+                </div>
+                <div className={styles.metricValue}>{metric.value}</div>
+                <div
+                  className={
+                    metric.positive ? styles.metricChangePositive : styles.metricChangeNegative
+                  }
+                >
+                  {metric.change}
+                </div>
+              </div>
             ))}
-      </MetricsGrid>
+      </div>
 
       <div
         style={{
@@ -226,7 +143,7 @@ const Dashboard: React.FC = () => {
           📊 Additional dashboard widgets will be added here: recent activity, charts, alerts, etc.
         </p>
       </div>
-    </DashboardContainer>
+    </div>
   );
 };
 

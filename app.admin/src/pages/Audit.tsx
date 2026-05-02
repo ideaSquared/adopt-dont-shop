@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import styled from 'styled-components';
 import { useQuery } from 'react-query';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
@@ -31,204 +30,24 @@ import {
   AuditLogStatus,
   type AuditLog,
 } from '@adopt-dont-shop/lib.audit-logs';
+import styles from './Audit.css';
 
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const LogDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const LogAction = styled.div`
-  font-weight: 600;
-  color: #111827;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  svg {
-    font-size: 0.875rem;
-    color: #6b7280;
+const getActionIconClass = (action: string): string => {
+  switch (action) {
+    case 'create':
+      return styles.actionIconCreate;
+    case 'update':
+      return styles.actionIconUpdate;
+    case 'delete':
+      return styles.actionIconDelete;
+    case 'login':
+      return styles.actionIconLogin;
+    case 'logout':
+      return styles.actionIconLogout;
+    default:
+      return styles.actionIconDefault;
   }
-`;
-
-const LogResource = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-`;
-
-const UserInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const UserAvatar = styled.div`
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 0.625rem;
-`;
-
-const UserName = styled.div`
-  font-size: 0.875rem;
-  color: #111827;
-  font-weight: 500;
-`;
-
-const ActionIcon = styled.div<{ $type: string }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: ${props => {
-    switch (props.$type) {
-      case 'create':
-        return '#d1fae5';
-      case 'update':
-        return '#dbeafe';
-      case 'delete':
-        return '#fee2e2';
-      case 'login':
-        return '#fef3c7';
-      case 'logout':
-        return '#f3f4f6';
-      default:
-        return '#e0e7ff';
-    }
-  }};
-  color: ${props => {
-    switch (props.$type) {
-      case 'create':
-        return '#065f46';
-      case 'update':
-        return '#1e40af';
-      case 'delete':
-        return '#991b1b';
-      case 'login':
-        return '#92400e';
-      case 'logout':
-        return '#374151';
-      default:
-        return '#3730a3';
-    }
-  }};
-
-  svg {
-    font-size: 0.875rem;
-  }
-`;
-
-const ChangesButton = styled.button`
-  padding: 0.25rem 0.625rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #6b7280;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-  }
-`;
-
-const IpAddress = styled.span`
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 0.75rem;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-`;
-
-const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow: auto;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const ModalTitle = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f3f4f6;
-    color: #111827;
-  }
-`;
-
-const JsonBlock = styled.pre`
-  background: #1f2937;
-  color: #f9fafb;
-  padding: 1rem;
-  border-radius: 8px;
-  overflow: auto;
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  margin: 0;
-`;
+};
 
 const Audit: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -238,7 +57,6 @@ const Audit: React.FC = () => {
   const [page, setPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
-  // Calculate default date range (7 days ago)
   const sevenDaysAgo = useMemo(() => {
     const date = new Date();
     date.setDate(date.getDate() - 7);
@@ -247,7 +65,6 @@ const Audit: React.FC = () => {
 
   const now = useMemo(() => new Date().toISOString(), []);
 
-  // Fetch audit logs using React Query
   const { data, isLoading, isError, error, refetch } = useQuery(
     ['auditLogs', page, actionFilter, resourceFilter, statusFilter],
     () =>
@@ -273,7 +90,6 @@ const Audit: React.FC = () => {
 
   const logs = data?.data || [];
 
-  // Filter logs by search query (client-side filtering)
   const filteredLogs = useMemo(() => {
     if (!searchQuery) {
       return logs;
@@ -356,15 +172,17 @@ const Audit: React.FC = () => {
       id: 'action',
       header: 'Action',
       accessor: row => (
-        <LogDetails>
-          <LogAction>
-            <ActionIcon $type={row.action.toLowerCase()}>
+        <div className={styles.logDetails}>
+          <div className={styles.logAction}>
+            <div className={getActionIconClass(row.action.toLowerCase())}>
               {getActionIcon(row.action.toLowerCase())}
-            </ActionIcon>
+            </div>
             {row.action} {formatResourceName(row.category)}
-          </LogAction>
-          {row.metadata?.entityId && <LogResource>ID: {row.metadata.entityId}</LogResource>}
-        </LogDetails>
+          </div>
+          {row.metadata?.entityId && (
+            <div className={styles.logResource}>ID: {row.metadata.entityId}</div>
+          )}
+        </div>
       ),
       width: '280px',
     },
@@ -372,13 +190,15 @@ const Audit: React.FC = () => {
       id: 'user',
       header: 'User',
       accessor: row => (
-        <UserInfo>
-          <UserAvatar>{row.userName ? getUserInitials(row.userName) : 'NA'}</UserAvatar>
+        <div className={styles.userInfo}>
+          <div className={styles.userAvatar}>
+            {row.userName ? getUserInitials(row.userName) : 'NA'}
+          </div>
           <div>
-            <UserName>{row.userName || 'System'}</UserName>
+            <div className={styles.userName}>{row.userName || 'System'}</div>
             <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{row.userType || 'system'}</div>
           </div>
-        </UserInfo>
+        </div>
       ),
       width: '180px',
     },
@@ -387,14 +207,15 @@ const Audit: React.FC = () => {
       header: 'Changes',
       accessor: row =>
         row.metadata?.details ? (
-          <ChangesButton
+          <button
+            className={styles.changesButton}
             onClick={e => {
               e.stopPropagation();
               setSelectedLog(row);
             }}
           >
             View Details
-          </ChangesButton>
+          </button>
         ) : (
           <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>—</span>
         ),
@@ -404,7 +225,8 @@ const Audit: React.FC = () => {
     {
       id: 'ipAddress',
       header: 'IP Address',
-      accessor: row => (row.ip_address ? <IpAddress>{row.ip_address}</IpAddress> : '—'),
+      accessor: row =>
+        row.ip_address ? <span className={styles.ipAddress}>{row.ip_address}</span> : '—',
       width: '140px',
     },
     {
@@ -430,12 +252,12 @@ const Audit: React.FC = () => {
           <Heading level='h1'>Audit Logs</Heading>
           <Text>System activity tracking and security monitoring (Last 7 days)</Text>
         </HeaderLeft>
-        <HeaderActions>
+        <div className={styles.headerActions}>
           <Button variant='outline' size='md' onClick={() => refetch()} disabled={isLoading}>
             <FiRefreshCw style={{ marginRight: '0.5rem' }} />
             Refresh
           </Button>
-        </HeaderActions>
+        </div>
       </PageHeader>
 
       <FilterBar>
@@ -509,13 +331,25 @@ const Audit: React.FC = () => {
       />
 
       {selectedLog && (
-        <Modal onClick={() => setSelectedLog(null)}>
-          <ModalContent onClick={e => e.stopPropagation()}>
-            <ModalHeader>
-              <ModalTitle>Audit Log Details</ModalTitle>
-              <CloseButton onClick={() => setSelectedLog(null)}>×</CloseButton>
-            </ModalHeader>
-            <JsonBlock>
+        <div
+          className={styles.modal}
+          onClick={() => setSelectedLog(null)}
+          onKeyDown={e => e.key === 'Escape' && setSelectedLog(null)}
+          role='presentation'
+        >
+          <div
+            className={styles.modalContent}
+            onClick={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
+            role='presentation'
+          >
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Audit Log Details</h3>
+              <button className={styles.closeButton} onClick={() => setSelectedLog(null)}>
+                ×
+              </button>
+            </div>
+            <pre className={styles.jsonBlock}>
               {JSON.stringify(
                 {
                   id: selectedLog.id,
@@ -542,9 +376,9 @@ const Audit: React.FC = () => {
                 null,
                 2
               )}
-            </JsonBlock>
-          </ModalContent>
-        </Modal>
+            </pre>
+          </div>
+        </div>
       )}
     </PageContainer>
   );

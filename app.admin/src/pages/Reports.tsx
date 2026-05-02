@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import {
   FiDownload,
@@ -25,202 +24,9 @@ import {
   Select,
   Badge,
 } from '../components/ui';
+import styles from './Reports.css';
 
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const ReportsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 1.5rem;
-`;
-
-const ReportCard = styled(Card)`
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-
-  &:hover {
-    border-color: #d1d5db;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-  }
-`;
-
-const ReportIcon = styled.div<{ $color: string }>`
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${props => props.$color}20;
-  color: ${props => props.$color};
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-`;
-
-const ReportTitle = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 0.5rem 0;
-`;
-
-const ReportDescription = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0 0 1rem 0;
-  line-height: 1.5;
-`;
-
-const ReportMeta = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const ReportFrequency = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-
-  svg {
-    font-size: 0.875rem;
-  }
-`;
-
-const ReportActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const GenerateButton = styled(Button)`
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
-`;
-
-const ScheduledReportsSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 1.5rem;
-`;
-
-const ScheduledReportItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #ffffff;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f9fafb;
-    border-color: #d1d5db;
-  }
-`;
-
-const ScheduledReportInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 1;
-`;
-
-const ScheduledReportIcon = styled.div<{ $color: string }>`
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${props => props.$color}20;
-  color: ${props => props.$color};
-  font-size: 1.25rem;
-`;
-
-const ScheduledReportDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const ScheduledReportName = styled.div`
-  font-weight: 600;
-  color: #111827;
-  font-size: 0.9375rem;
-`;
-
-const ScheduledReportSchedule = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-`;
-
-const ScheduledReportStatus = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-`;
-
-const LastRun = styled.div`
-  font-size: 0.75rem;
-  color: #9ca3af;
-`;
-
-const QuickStatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const QuickStatCard = styled.div`
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const QuickStatIcon = styled.div<{ $color: string }>`
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${props => props.$color}20;
-  color: ${props => props.$color};
-  font-size: 1.5rem;
-`;
-
-const QuickStatDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const QuickStatLabel = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const QuickStatValue = styled.div`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #111827;
-`;
+const headerActions = styles.headerActions;
 
 interface ReportTemplate {
   id: string;
@@ -378,7 +184,7 @@ const Reports: React.FC = () => {
           <Heading level='h1'>Reports & Exports</Heading>
           <Text>Generate custom reports and schedule automated exports</Text>
         </HeaderLeft>
-        <HeaderActions>
+        <div className={styles.headerActions}>
           <FilterBar style={{ padding: '0.5rem 0.75rem', marginBottom: 0 }}>
             <FilterGroup style={{ minWidth: '140px', marginBottom: 0 }}>
               <Select value={dateRange} onChange={e => setDateRange(e.target.value)}>
@@ -390,40 +196,76 @@ const Reports: React.FC = () => {
               </Select>
             </FilterGroup>
           </FilterBar>
-        </HeaderActions>
+        </div>
       </PageHeader>
 
-      <QuickStatsGrid>
-        <QuickStatCard>
-          <QuickStatIcon $color='#667eea'>
+      <div className={styles.quickStatsGrid}>
+        <div className={styles.quickStatCard}>
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#667eea20',
+              color: '#667eea',
+              fontSize: '1.5rem',
+            }}
+          >
             <FiFileText />
-          </QuickStatIcon>
-          <QuickStatDetails>
-            <QuickStatLabel>Reports Generated</QuickStatLabel>
-            <QuickStatValue>142</QuickStatValue>
-          </QuickStatDetails>
-        </QuickStatCard>
+          </div>
+          <div className={styles.quickStatDetails}>
+            <div className={styles.quickStatLabel}>Reports Generated</div>
+            <div className={styles.quickStatValue}>142</div>
+          </div>
+        </div>
 
-        <QuickStatCard>
-          <QuickStatIcon $color='#10b981'>
+        <div className={styles.quickStatCard}>
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#10b98120',
+              color: '#10b981',
+              fontSize: '1.5rem',
+            }}
+          >
             <FiCalendar />
-          </QuickStatIcon>
-          <QuickStatDetails>
-            <QuickStatLabel>Scheduled Reports</QuickStatLabel>
-            <QuickStatValue>{scheduledReports.length}</QuickStatValue>
-          </QuickStatDetails>
-        </QuickStatCard>
+          </div>
+          <div className={styles.quickStatDetails}>
+            <div className={styles.quickStatLabel}>Scheduled Reports</div>
+            <div className={styles.quickStatValue}>{scheduledReports.length}</div>
+          </div>
+        </div>
 
-        <QuickStatCard>
-          <QuickStatIcon $color='#f59e0b'>
+        <div className={styles.quickStatCard}>
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#f59e0b20',
+              color: '#f59e0b',
+              fontSize: '1.5rem',
+            }}
+          >
             <FiDownload />
-          </QuickStatIcon>
-          <QuickStatDetails>
-            <QuickStatLabel>Exports This Month</QuickStatLabel>
-            <QuickStatValue>38</QuickStatValue>
-          </QuickStatDetails>
-        </QuickStatCard>
-      </QuickStatsGrid>
+          </div>
+          <div className={styles.quickStatDetails}>
+            <div className={styles.quickStatLabel}>Exports This Month</div>
+            <div className={styles.quickStatValue}>38</div>
+          </div>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
@@ -439,21 +281,36 @@ const Reports: React.FC = () => {
           </FilterGroup>
         </CardHeader>
         <CardContent>
-          <ReportsGrid>
+          <div className={styles.reportsGrid}>
             {filteredReports.map(report => (
-              <ReportCard key={report.id}>
-                <ReportIcon $color={report.color}>{report.icon}</ReportIcon>
-                <ReportTitle>{report.name}</ReportTitle>
-                <ReportDescription>{report.description}</ReportDescription>
-                <ReportMeta>
-                  <ReportFrequency>
+              <Card key={report.id} className={styles.reportCard}>
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: `${report.color}20`,
+                    color: report.color,
+                    fontSize: '1.5rem',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  {report.icon}
+                </div>
+                <h3 className={styles.reportTitle}>{report.name}</h3>
+                <p className={styles.reportDescription}>{report.description}</p>
+                <div className={styles.reportMeta}>
+                  <div className={styles.reportFrequency}>
                     <FiCalendar />
                     {report.frequency}
-                  </ReportFrequency>
-                  <ReportActions>{getCategoryBadge(report.category)}</ReportActions>
-                </ReportMeta>
+                  </div>
+                  <div className={styles.reportActions}>{getCategoryBadge(report.category)}</div>
+                </div>
                 <div style={{ marginTop: '1rem' }}>
-                  <GenerateButton
+                  <Button
                     variant='primary'
                     size='sm'
                     onClick={e => {
@@ -463,11 +320,11 @@ const Reports: React.FC = () => {
                   >
                     <FiDownload style={{ marginRight: '0.5rem' }} />
                     Generate Report
-                  </GenerateButton>
+                  </Button>
                 </div>
-              </ReportCard>
+              </Card>
             ))}
-          </ReportsGrid>
+          </div>
         </CardContent>
       </Card>
 
@@ -480,18 +337,32 @@ const Reports: React.FC = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          <ScheduledReportsSection>
+          <div className={styles.scheduledReportsSection}>
             {scheduledReports.map(report => (
-              <ScheduledReportItem key={report.id}>
-                <ScheduledReportInfo>
-                  <ScheduledReportIcon $color={report.color}>{report.icon}</ScheduledReportIcon>
-                  <ScheduledReportDetails>
-                    <ScheduledReportName>{report.name}</ScheduledReportName>
-                    <ScheduledReportSchedule>{report.schedule}</ScheduledReportSchedule>
-                  </ScheduledReportDetails>
-                </ScheduledReportInfo>
-                <ScheduledReportStatus>
-                  <LastRun>Last run: {formatDate(report.lastRun)}</LastRun>
+              <div key={report.id} className={styles.scheduledReportItem}>
+                <div className={styles.scheduledReportInfo}>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: `${report.color}20`,
+                      color: report.color,
+                      fontSize: '1.25rem',
+                    }}
+                  >
+                    {report.icon}
+                  </div>
+                  <div className={styles.scheduledReportDetails}>
+                    <div className={styles.scheduledReportName}>{report.name}</div>
+                    <div className={styles.scheduledReportSchedule}>{report.schedule}</div>
+                  </div>
+                </div>
+                <div className={styles.scheduledReportStatus}>
+                  <div className={styles.lastRun}>Last run: {formatDate(report.lastRun)}</div>
                   <Badge $variant={report.status === 'active' ? 'success' : 'neutral'}>
                     {report.status === 'active' ? 'Active' : 'Paused'}
                   </Badge>
@@ -502,10 +373,10 @@ const Reports: React.FC = () => {
                   >
                     Edit
                   </Button>
-                </ScheduledReportStatus>
-              </ScheduledReportItem>
+                </div>
+              </div>
             ))}
-          </ScheduledReportsSection>
+          </div>
         </CardContent>
       </Card>
     </PageContainer>

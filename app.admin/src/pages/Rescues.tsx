@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
@@ -23,210 +22,29 @@ import {
 } from '@/components/modals';
 import { ExportButton, BulkActionToolbar } from '@/components/ui';
 import { useBulkUpdateRescues } from '@/hooks';
+import styles from './Rescues.css';
 
-const PageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const PageHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 1rem;
-`;
-
-const HeaderLeft = styled.div`
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 0.5rem 0;
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'verified':
+      return <span className={styles.badgeSuccess}>Verified</span>;
+    case 'pending':
+      return <span className={styles.badgeWarning}>Pending Review</span>;
+    case 'rejected':
+      return <span className={styles.badgeDanger}>Rejected</span>;
+    default:
+      return <span className={styles.badgeNeutral}>{status}</span>;
   }
+};
 
-  p {
-    font-size: 1rem;
-    color: #6b7280;
-    margin: 0;
-  }
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const FilterBar = styled.div`
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.5rem;
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  align-items: flex-end;
-`;
-
-const FilterGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 200px;
-  flex: 1;
-`;
-
-const FilterLabel = styled.label`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-`;
-
-const SearchInputWrapper = styled.div`
-  position: relative;
-  flex: 2;
-  min-width: 300px;
-
-  svg {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9ca3af;
-    font-size: 1.125rem;
-  }
-
-  input {
-    padding-left: 2.5rem;
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #111827;
-  background: #ffffff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #9ca3af;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: ${props => {
-    switch (props.$variant) {
-      case 'success':
-        return '#d1fae5';
-      case 'warning':
-        return '#fef3c7';
-      case 'danger':
-        return '#fee2e2';
-      case 'info':
-        return '#dbeafe';
-      default:
-        return '#f3f4f6';
-    }
-  }};
-  color: ${props => {
-    switch (props.$variant) {
-      case 'success':
-        return '#065f46';
-      case 'warning':
-        return '#92400e';
-      case 'danger':
-        return '#991b1b';
-      case 'info':
-        return '#1e40af';
-      default:
-        return '#374151';
-    }
-  }};
-`;
-
-const RescueInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const RescueName = styled.div`
-  font-weight: 600;
-  color: #111827;
-`;
-
-const RescueDetail = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-
-  svg {
-    font-size: 0.875rem;
-  }
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const IconButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f9fafb;
-    color: #111827;
-    border-color: #d1d5db;
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 1rem;
-  color: #991b1b;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  svg {
-    flex-shrink: 0;
-  }
-`;
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
 
 const Rescues: React.FC = () => {
   const { rescueId } = useParams<{ rescueId?: string }>();
@@ -240,40 +58,16 @@ const Rescues: React.FC = () => {
   const [currentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
-  // Modal states
   const [selectedRescue, setSelectedRescue] = useState<AdminRescue | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationAction, setVerificationAction] = useState<'approve' | 'reject'>('approve');
   const [showEmailModal, setShowEmailModal] = useState(false);
 
-  // Bulk selection state
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkRescueAction, setBulkRescueAction] = useState<'approve' | 'suspend' | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
   const bulkUpdateRescues = useBulkUpdateRescues();
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'verified':
-        return <Badge $variant='success'>Verified</Badge>;
-      case 'pending':
-        return <Badge $variant='warning'>Pending Review</Badge>;
-      case 'rejected':
-        return <Badge $variant='danger'>Rejected</Badge>;
-      default:
-        return <Badge $variant='neutral'>{status}</Badge>;
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
 
   const fetchRescues = useCallback(async (): Promise<void> => {
     try {
@@ -303,7 +97,6 @@ const Rescues: React.FC = () => {
     fetchRescues();
   }, [fetchRescues]);
 
-  // Load rescue from URL parameter
   useEffect(() => {
     if (rescueId && rescues.length > 0) {
       const rescue = rescues.find(r => r.rescueId === rescueId);
@@ -319,7 +112,6 @@ const Rescues: React.FC = () => {
     if (rescue) {
       setSelectedRescue(rescue);
       setShowDetailModal(true);
-      // Update URL to reflect selected rescue
       navigate(`/rescues/${rescueIdParam}`, { replace: true });
     }
   };
@@ -346,7 +138,6 @@ const Rescues: React.FC = () => {
     setShowVerificationModal(false);
     setShowEmailModal(false);
     setSelectedRescue(null);
-    // Clear URL parameter when closing modal
     if (rescueId) {
       navigate('/rescues', { replace: true });
     }
@@ -391,17 +182,17 @@ const Rescues: React.FC = () => {
       id: 'rescue',
       header: 'Rescue Organization',
       accessor: row => (
-        <RescueInfo>
-          <RescueName>{row.name}</RescueName>
-          <RescueDetail>
+        <div className={styles.rescueInfo}>
+          <div className={styles.rescueName}>{row.name}</div>
+          <div className={styles.rescueDetail}>
             <FiMail />
             {row.email}
-          </RescueDetail>
-          <RescueDetail>
+          </div>
+          <div className={styles.rescueDetail}>
             <FiMapPin />
             {row.city}, {row.state}
-          </RescueDetail>
-        </RescueInfo>
+          </div>
+        </div>
       ),
       width: '350px',
     },
@@ -430,32 +221,47 @@ const Rescues: React.FC = () => {
       id: 'actions',
       header: 'Actions',
       accessor: row => (
-        <ActionButtons onClick={e => e.stopPropagation()}>
-          <IconButton title='View details' onClick={() => handleViewDetails(row.rescueId)}>
+        <div
+          className={styles.actionButtons}
+          onClick={e => e.stopPropagation()}
+          onKeyDown={e => e.stopPropagation()}
+          role='presentation'
+        >
+          <button
+            className={styles.iconButton}
+            title='View details'
+            onClick={() => handleViewDetails(row.rescueId)}
+          >
             <FiEye />
-          </IconButton>
+          </button>
           {row.status === 'pending' && (
             <>
-              <IconButton
+              <button
+                className={styles.iconButton}
                 title='Approve'
                 style={{ color: '#10b981', borderColor: '#10b981' }}
                 onClick={() => handleApprove(row)}
               >
                 <FiCheckCircle />
-              </IconButton>
-              <IconButton
+              </button>
+              <button
+                className={styles.iconButton}
                 title='Reject'
                 style={{ color: '#ef4444', borderColor: '#ef4444' }}
                 onClick={() => handleReject(row)}
               >
                 <FiXCircle />
-              </IconButton>
+              </button>
             </>
           )}
-          <IconButton title='Send email' onClick={() => handleSendEmail(row)}>
+          <button
+            className={styles.iconButton}
+            title='Send email'
+            onClick={() => handleSendEmail(row)}
+          >
             <FiMail />
-          </IconButton>
-        </ActionButtons>
+          </button>
+        </div>
       ),
       width: '140px',
       align: 'center',
@@ -463,26 +269,26 @@ const Rescues: React.FC = () => {
   ];
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
+        <div className={styles.headerLeft}>
           <Heading level='h1'>Rescue Management</Heading>
           <Text>Manage rescue organizations and verification status</Text>
-        </HeaderLeft>
-        <HeaderActions>
+        </div>
+        <div className={styles.headerActions}>
           <ExportButton onExport={handleExport} disabled={loading || rescues.length === 0} />
-        </HeaderActions>
-      </PageHeader>
+        </div>
+      </div>
 
       {error && (
-        <ErrorMessage>
+        <div className={styles.errorMessage}>
           <FiAlertCircle />
           {error}
-        </ErrorMessage>
+        </div>
       )}
 
-      <FilterBar>
-        <SearchInputWrapper>
+      <div className={styles.filterBar}>
+        <div className={styles.searchInputWrapper}>
           <FiSearch />
           <Input
             type='text'
@@ -490,18 +296,25 @@ const Rescues: React.FC = () => {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
-        </SearchInputWrapper>
+        </div>
 
-        <FilterGroup>
-          <FilterLabel>Verification Status</FilterLabel>
-          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor='rescue-status-filter'>
+            Verification Status
+          </label>
+          <select
+            id='rescue-status-filter'
+            className={styles.select}
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+          >
             <option value='all'>All Statuses</option>
             <option value='verified'>Verified</option>
             <option value='pending'>Pending Review</option>
             <option value='rejected'>Rejected</option>
-          </Select>
-        </FilterGroup>
-      </FilterBar>
+          </select>
+        </div>
+      </div>
 
       <BulkActionToolbar
         selectedCount={selectedRows.size}
@@ -576,7 +389,7 @@ const Rescues: React.FC = () => {
         isLoading={bulkUpdateRescues.isLoading}
         resultSummary={bulkResult}
       />
-    </PageContainer>
+    </div>
   );
 };
 
