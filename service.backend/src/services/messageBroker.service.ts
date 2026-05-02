@@ -48,8 +48,7 @@ class MessageBroker {
 
   constructor(config: MessageBrokerConfig = {}) {
     this.config = config;
-    this.serverId =
-      config.serverId || `server-${Date.now()}-${randomBytes(5).toString('hex')}`;
+    this.serverId = config.serverId || `server-${Date.now()}-${randomBytes(5).toString('hex')}`;
   }
 
   /**

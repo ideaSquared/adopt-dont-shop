@@ -137,10 +137,9 @@ class AuthService {
       throw new Error('Only super admins can impersonate users');
     }
 
-    const response = await apiService.post<{ user: User }>(
-      '/api/v1/admin/impersonate',
-      { userId: userId }
-    );
+    const response = await apiService.post<{ user: User }>('/api/v1/admin/impersonate', {
+      userId: userId,
+    });
 
     // Track impersonation state; token is managed via HttpOnly cookie by the server
     localStorage.setItem('impersonating', 'true');

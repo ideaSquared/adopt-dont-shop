@@ -108,6 +108,5 @@ export const devAuthUtils: DevAuthUtils = {
   setDevUser,
   clearDevUser,
   createMockToken,
-  isDevTokenValid,
   clearDevTokens,
 };
