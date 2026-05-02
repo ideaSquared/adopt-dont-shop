@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
@@ -12,14 +12,13 @@ export const sectionHeader = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   marginBottom: '1rem',
-  selectors: {
-    '& h2': {
-      fontSize: '1.25rem',
-      fontWeight: '600',
-      color: '#1f2937',
-      margin: '0',
-    },
-  },
+});
+
+globalStyle(`${sectionHeader} h2`, {
+  fontSize: '1.25rem',
+  fontWeight: '600',
+  color: '#1f2937',
+  margin: '0',
 });
 
 export const questionCard = recipe({
@@ -54,18 +53,18 @@ export const questionHeader = style({
 
 export const questionText = style({
   flex: 1,
-  selectors: {
-    '& p': {
-      margin: '0 0 0.25rem 0',
-      fontSize: '0.9375rem',
-      fontWeight: '500',
-      color: '#111827',
-    },
-    '& span': {
-      fontSize: '0.8125rem',
-      color: '#6b7280',
-    },
-  },
+});
+
+globalStyle(`${questionText} p`, {
+  margin: '0 0 0.25rem 0',
+  fontSize: '0.9375rem',
+  fontWeight: '500',
+  color: '#111827',
+});
+
+globalStyle(`${questionText} span`, {
+  fontSize: '0.8125rem',
+  color: '#6b7280',
 });
 
 export const questionMeta = style({
@@ -135,16 +134,15 @@ export const orderButton = style({
 
 export const categorySection = style({
   marginBottom: '2rem',
-  selectors: {
-    '& h3': {
-      fontSize: '1rem',
-      fontWeight: '600',
-      color: '#374151',
-      margin: '0 0 0.75rem 0',
-      paddingBottom: '0.5rem',
-      borderBottom: '2px solid #e5e7eb',
-    },
-  },
+});
+
+globalStyle(`${categorySection} h3`, {
+  fontSize: '1rem',
+  fontWeight: '600',
+  color: '#374151',
+  margin: '0 0 0.75rem 0',
+  paddingBottom: '0.5rem',
+  borderBottom: '2px solid #e5e7eb',
 });
 
 export const emptyCategory = style({
@@ -263,14 +261,13 @@ export const formActions = style({
 
 export const templatesSection = style({
   marginBottom: '1.5rem',
-  selectors: {
-    '& h4': {
-      fontSize: '0.875rem',
-      fontWeight: '600',
-      color: '#374151',
-      margin: '0 0 0.75rem 0',
-    },
-  },
+});
+
+globalStyle(`${templatesSection} h4`, {
+  fontSize: '0.875rem',
+  fontWeight: '600',
+  color: '#374151',
+  margin: '0 0 0.75rem 0',
 });
 
 export const templateGrid = style({
