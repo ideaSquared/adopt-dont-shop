@@ -1,31 +1,31 @@
 # Automatically applied labels based on changed file paths.
 # Uses actions/labeler v5 syntax.
 
-area: backend:
+'area: backend':
   - changed-files:
     - any-glob-to-any-file: 'service.backend/**'
 
-area: app.client:
+'area: app.client':
   - changed-files:
     - any-glob-to-any-file: 'app.client/**'
 
-area: app.admin:
+'area: app.admin':
   - changed-files:
     - any-glob-to-any-file: 'app.admin/**'
 
-area: app.rescue:
+'area: app.rescue':
   - changed-files:
     - any-glob-to-any-file: 'app.rescue/**'
 
-area: libs:
+'area: libs':
   - changed-files:
     - any-glob-to-any-file: 'lib.*/**'
 
-area: ci:
+'area: ci':
   - changed-files:
     - any-glob-to-any-file: '.github/**'
 
-area: config:
+'area: config':
   - changed-files:
     - any-glob-to-any-file: 'package.json'
     - any-glob-to-any-file: 'package-lock.json'
