@@ -207,7 +207,7 @@ describe('Export functionality - Users page', () => {
     expect(screen.getByTestId('export-csv')).toBeVisible();
 
     await user.click(screen.getByTestId('export-csv'));
-    expect(screen.queryByTestId('export-csv')).not.toBeVisible();
+    expect(screen.getByTestId('export-button')).toHaveAttribute('aria-expanded', 'false');
   });
 });
 

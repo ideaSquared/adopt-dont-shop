@@ -1,21 +1,53 @@
-import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import react from '@vitejs/plugin-react';
+import { existsSync } from 'fs';
 import path from 'path';
+import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 
+// Stubs all Vanilla Extract CSS files with callable proxies.
+// Handles both `import styles from '...'` (default) and `import * as styles from '...'` (namespace).
+const veCssMock: Plugin = {
+  name: 've-css-stub',
+  enforce: 'pre',
+
+  resolveId(id, importer) {
+    if (!importer || !id.endsWith('.css') || id.endsWith('.module.css')) return;
+    const base = id.startsWith('.') ? path.resolve(path.dirname(importer), id) : id;
+    if (existsSync(base + '.ts')) return base + '.ts';
+    return `\0ve-stub:${id}`;
+  },
+
+  load(id) {
+    if (id.startsWith('\0ve-stub:')) return 'export default {};';
+  },
+
+  transform(code, id) {
+    if (!id.endsWith('.css.ts')) return;
+    const names: string[] = [];
+    const re = /^export\s+(?:const|let|var|function)\s+(\w+)/gm;
+    let m;
+    while ((m = re.exec(code)) !== null) names.push(m[1]);
+
+    const factory = `function _p(){const f=(..._a)=>'';return new Proxy(f,{get:(_,k)=>typeof k==='string'?_p():f[k],apply:()=>''});}`;
+    const named = names.map(n => `export const ${n}=_p();`).join('\n');
+    return { code: `${factory}\n${named}\nexport default _p();`, map: null };
+  },
+};
+
 export default defineConfig({
-  plugins: [react(), vanillaExtractPlugin()],
+  plugins: [react(), veCssMock],
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/setup-tests.ts'],
-    pool: 'forks',
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'src/**/__tests__/**/*.{ts,tsx}'],
+    pool: 'threads',
     poolOptions: {
-      forks: {
-        maxForks: 4,
+      threads: {
+        minThreads: 1,
+        maxThreads: 4,
       },
     },
-    include: ['src/**/*.{test,spec}.{ts,tsx}', 'src/**/__tests__/**/*.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
