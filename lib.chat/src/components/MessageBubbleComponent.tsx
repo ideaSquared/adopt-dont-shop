@@ -6,220 +6,17 @@ import {
   MdPictureAsPdf,
   MdVisibility,
 } from 'react-icons/md';
-import styled from 'styled-components';
 import { useChat } from '../context/use-chat';
 import type { Message } from '../types';
 import { safeFormatDistanceToNow } from '../utils/date-helpers';
 import { ImageLightbox } from './ImageLightbox';
+import * as styles from './MessageBubbleComponent.css';
 import { PDFPreview } from './PDFPreview';
 import { ReactionDisplay } from './ReactionDisplay';
 import { ReactionPicker } from './ReactionPicker';
 import { ReadReceiptIndicator } from './ReadReceiptIndicator';
 
 export type MessageGroupPosition = 'single' | 'first' | 'middle' | 'last';
-
-/** Per-position bubble corner radii — subtle but it matters visually. */
-const BUBBLE_RADIUS: Record<MessageGroupPosition, { own: string; other: string }> = {
-  single: {
-    own: '18px 18px 4px 18px',
-    other: '18px 18px 18px 4px',
-  },
-  first: {
-    own: '18px 18px 4px 18px',
-    other: '18px 18px 18px 4px',
-  },
-  middle: {
-    own: '18px 4px 4px 18px',
-    other: '4px 18px 18px 4px',
-  },
-  last: {
-    own: '18px 4px 18px 18px',
-    other: '4px 18px 18px 18px',
-  },
-};
-
-const MessageBubbleWrapper = styled.div<{ $isOwn: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: ${(props) => (props.$isOwn ? 'flex-end' : 'flex-start')};
-  position: relative;
-  width: 100%;
-
-  &:hover .reaction-picker-trigger {
-    opacity: 0.6;
-  }
-
-  &:hover .message-meta {
-    opacity: 1;
-  }
-`;
-
-const BubbleRow = styled.div<{ $isOwn: boolean }>`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.25rem;
-  ${(props) => (props.$isOwn ? 'flex-direction: row-reverse;' : '')}
-`;
-
-const MessageBubble = styled.div<{ $isOwn: boolean; $position: MessageGroupPosition }>`
-  max-width: 70%;
-  display: flex;
-  flex-direction: column;
-  padding: 0.5rem 0.875rem;
-  border-radius: ${(props) =>
-    props.$isOwn ? BUBBLE_RADIUS[props.$position].own : BUBBLE_RADIUS[props.$position].other};
-  background: ${(props) =>
-    props.$isOwn
-      ? (props.theme.colors.primary as Record<number, string>)[600]
-      : props.theme.background.secondary};
-  color: ${(props) => (props.$isOwn ? props.theme.text.inverse : props.theme.text.primary)};
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  font-size: 0.9375rem;
-  line-height: 1.45;
-  position: relative;
-  transition: background 0.12s ease;
-  border: ${(props) => (props.$isOwn ? 'none' : `1px solid ${props.theme.border.color.tertiary}`)};
-
-  @media (max-width: 600px) {
-    max-width: 82%;
-    font-size: 0.9rem;
-    padding: 0.4375rem 0.75rem;
-  }
-`;
-
-const MessageContent = styled.div`
-  word-break: break-word;
-  overflow-wrap: anywhere;
-`;
-
-/**
- * Timestamp + read receipt sit outside the bubble now, in a slim meta row
- * shown only on the last message of a group (or a standalone single
- * message). Also fades in on hover for earlier messages so you can still
- * see exact times without cluttering the default view.
- */
-const MessageMeta = styled.div<{ $isOwn: boolean; $alwaysVisible: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin: 0.25rem 0.25rem 0 0.25rem;
-  font-size: 0.6875rem;
-  color: ${(props) => props.theme.text.tertiary};
-  white-space: nowrap;
-  letter-spacing: 0.01em;
-  user-select: none;
-  font-weight: 500;
-  opacity: ${(props) => (props.$alwaysVisible ? 1 : 0)};
-  transition: opacity 0.15s ease;
-  ${(props) => (props.$isOwn ? 'align-self: flex-end;' : 'align-self: flex-start;')}
-`;
-
-const AttachmentsContainer = styled.div`
-  margin-top: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const AttachmentItem = styled.div<{ $isOwn: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  background: ${(props) =>
-    props.$isOwn ? 'rgba(255, 255, 255, 0.15)' : props.theme.background.secondary};
-  border-radius: 8px;
-  border: 1px solid
-    ${(props) => (props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.border.color.secondary)};
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${(props) =>
-      props.$isOwn ? 'rgba(255, 255, 255, 0.2)' : props.theme.background.tertiary};
-  }
-`;
-
-const ImageAttachment = styled.img`
-  max-width: 200px;
-  max-height: 150px;
-  width: auto;
-  height: auto;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  object-fit: cover;
-
-  &:hover {
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-`;
-
-const FileIcon = styled.div<{ $isOwn: boolean }>`
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  background: ${(props) =>
-    props.$isOwn
-      ? 'rgba(255, 255, 255, 0.2)'
-      : (props.theme.colors.primary as Record<number, string>)[100]};
-  color: ${(props) =>
-    props.$isOwn ? 'white' : (props.theme.colors.primary as Record<number, string>)[800]};
-`;
-
-const FileInfo = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const FileName = styled.div<{ $isOwn: boolean }>`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: ${(props) => (props.$isOwn ? 'white' : props.theme.text.primary)};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const FileSize = styled.div<{ $isOwn: boolean }>`
-  font-size: 0.75rem;
-  color: ${(props) => (props.$isOwn ? 'rgba(255, 255, 255, 0.9)' : props.theme.text.secondary)};
-`;
-
-const DownloadButton = styled.a<{ $isOwn: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  background: ${(props) =>
-    props.$isOwn
-      ? 'rgba(255, 255, 255, 0.2)'
-      : (props.theme.colors.primary as Record<number, string>)[500]};
-  color: ${(props) => (props.$isOwn ? 'white' : 'white')};
-  text-decoration: none;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${(props) =>
-      props.$isOwn
-        ? 'rgba(255, 255, 255, 0.3)'
-        : (props.theme.colors.primary as Record<number, string>)[600]};
-    transform: scale(1.05);
-  }
-`;
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) {
@@ -259,10 +56,6 @@ export function MessageBubbleComponent({
   onToggleReaction,
   position = 'single',
 }: MessageBubbleProps) {
-  // Image lightbox and PDF viewer are core to the pet-adoption chat flow
-  // (vet records, vaccination PDFs, pet photos), so they're unconditionally
-  // on. Only the analytics `logEvent` hook is kept for opens — apps that
-  // want to track can, apps that don't get a no-op.
   const { featureFlags, resolveFileUrl } = useChat();
   const { logEvent } = featureFlags;
 
@@ -313,40 +106,58 @@ export function MessageBubbleComponent({
     minute: '2-digit',
   });
 
+  const wrapperClass = isOwn ? styles.messageBubbleWrapperOwn : styles.messageBubbleWrapperOther;
+  const bubbleRowClass = isOwn ? styles.bubbleRowOwn : styles.bubbleRowOther;
+  const bubbleClass = isOwn
+    ? styles.messageBubbleOwn[position]
+    : styles.messageBubbleOther[position];
+  const metaClass = isOwn ? styles.messageMetaOwn : styles.messageMetaOther;
+  const metaVisibilityClass = showMeta ? styles.messageMetaVisible : styles.messageMetaHidden;
+
   return (
-    <MessageBubbleWrapper $isOwn={isOwn}>
-      <BubbleRow $isOwn={isOwn}>
-        <MessageBubble
-          $isOwn={isOwn}
-          $position={position}
-          tabIndex={0}
-          aria-label={isOwn ? 'Your message' : 'Received message'}
-        >
-          <MessageContent>{message.content}</MessageContent>
+    <div className={wrapperClass}>
+      <div className={bubbleRowClass}>
+        <article className={bubbleClass} aria-label={isOwn ? 'Your message' : 'Received message'}>
+          <div className={styles.messageContent}>{message.content}</div>
 
           {message.attachments && message.attachments.length > 0 && (
-            <AttachmentsContainer>
+            <div className={styles.attachmentsContainer}>
               {message.attachments.map((attachment, index) => (
-                <AttachmentItem key={attachment.id || index} $isOwn={isOwn}>
+                <div
+                  key={attachment.id || index}
+                  className={isOwn ? styles.attachmentItemOwn : styles.attachmentItemOther}
+                >
                   {isImageFile(attachment.mimeType) ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                      <ImageAttachment
-                        src={resolveFileUrl(attachment.url) || attachment.url}
-                        alt={attachment.filename}
+                    <div className={styles.imageWrapper}>
+                      <button
+                        type="button"
+                        className={styles.imageButtonWrapper}
                         onClick={() => handleImageClick(attachment)}
-                        loading="lazy"
-                        title={`Click to view ${attachment.filename}`}
-                      />
+                        aria-label={`View ${attachment.filename}`}
+                      >
+                        <img
+                          className={styles.imageAttachment}
+                          src={resolveFileUrl(attachment.url) || attachment.url}
+                          alt={attachment.filename}
+                          loading="lazy"
+                        />
+                      </button>
                     </div>
                   ) : isPDFFile(attachment.mimeType) ? (
                     <>
-                      <FileIcon $isOwn={isOwn}>{getFileIcon(attachment.mimeType)}</FileIcon>
-                      <FileInfo>
-                        <FileName $isOwn={isOwn}>{attachment.filename}</FileName>
-                        <FileSize $isOwn={isOwn}>{formatFileSize(attachment.size)}</FileSize>
-                      </FileInfo>
-                      <DownloadButton
-                        $isOwn={isOwn}
+                      <div className={isOwn ? styles.fileIconOwn : styles.fileIconOther}>
+                        {getFileIcon(attachment.mimeType)}
+                      </div>
+                      <div className={styles.fileInfo}>
+                        <div className={isOwn ? styles.fileNameOwn : styles.fileNameOther}>
+                          {attachment.filename}
+                        </div>
+                        <div className={isOwn ? styles.fileSizeOwn : styles.fileSizeOther}>
+                          {formatFileSize(attachment.size)}
+                        </div>
+                      </div>
+                      <a
+                        className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
                         href="#"
                         onClick={(e) => {
                           e.preventDefault();
@@ -355,50 +166,54 @@ export function MessageBubbleComponent({
                         aria-label={`Preview ${attachment.filename}`}
                       >
                         <MdVisibility size={16} />
-                      </DownloadButton>
-                      <DownloadButton
-                        $isOwn={isOwn}
+                      </a>
+                      <a
+                        className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
                         href={resolveFileUrl(attachment.url)}
                         download={attachment.filename}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
                         <MdDownload size={16} />
-                      </DownloadButton>
+                      </a>
                     </>
                   ) : (
                     <>
-                      <FileIcon $isOwn={isOwn}>{getFileIcon(attachment.mimeType)}</FileIcon>
-                      <FileInfo>
-                        <FileName $isOwn={isOwn}>{attachment.filename}</FileName>
-                        <FileSize $isOwn={isOwn}>{formatFileSize(attachment.size)}</FileSize>
-                      </FileInfo>
-                      <DownloadButton
-                        $isOwn={isOwn}
+                      <div className={isOwn ? styles.fileIconOwn : styles.fileIconOther}>
+                        {getFileIcon(attachment.mimeType)}
+                      </div>
+                      <div className={styles.fileInfo}>
+                        <div className={isOwn ? styles.fileNameOwn : styles.fileNameOther}>
+                          {attachment.filename}
+                        </div>
+                        <div className={isOwn ? styles.fileSizeOwn : styles.fileSizeOther}>
+                          {formatFileSize(attachment.size)}
+                        </div>
+                      </div>
+                      <a
+                        className={isOwn ? styles.downloadButtonOwn : styles.downloadButtonOther}
                         href={resolveFileUrl(attachment.url)}
                         download={attachment.filename}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
                         <MdDownload size={16} />
-                      </DownloadButton>
+                      </a>
                     </>
                   )}
-                </AttachmentItem>
+                </div>
               ))}
-            </AttachmentsContainer>
+            </div>
           )}
-        </MessageBubble>
+        </article>
 
         {onToggleReaction && (
           <ReactionPicker isOwn={isOwn} onSelectReaction={handleReactionSelect} />
         )}
-      </BubbleRow>
+      </div>
 
-      <MessageMeta
-        $isOwn={isOwn}
-        $alwaysVisible={showMeta}
-        className="message-meta"
+      <div
+        className={`${metaClass} ${metaVisibilityClass} message-meta`}
         title={safeFormatDistanceToNow(message.timestamp, 'just now')}
       >
         <span>{formattedTime}</span>
@@ -407,7 +222,7 @@ export function MessageBubbleComponent({
           isOwn={isOwn}
           readCount={message.readBy?.length}
         />
-      </MessageMeta>
+      </div>
 
       {message.reactions && message.reactions.length > 0 && currentUserId && (
         <ReactionDisplay
@@ -439,6 +254,6 @@ export function MessageBubbleComponent({
         isOpen={pdfPreviewOpen}
         onClose={() => setPdfPreviewOpen(false)}
       />
-    </MessageBubbleWrapper>
+    </div>
   );
 }

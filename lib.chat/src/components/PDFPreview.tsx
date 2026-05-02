@@ -1,153 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MdClose, MdDownload, MdZoomIn, MdZoomOut } from 'react-icons/md';
-import styled from 'styled-components';
-
-const PDFOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.95);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-`;
-
-const PDFContainer = styled.div`
-  position: relative;
-  width: 90vw;
-  height: 90vh;
-  max-width: 1000px;
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-`;
-
-const PDFHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-  flex-shrink: 0;
-`;
-
-const PDFTitle = styled.h3`
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #212529;
-  flex: 1;
-  truncate: true;
-`;
-
-const PDFControls = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const PDFButton = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  border: none;
-  background: ${(props) => (props.$variant === 'primary' ? '#007bff' : 'transparent')};
-  color: ${(props) => (props.$variant === 'primary' ? 'white' : '#6c757d')};
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${(props) => (props.$variant === 'primary' ? '#0056b3' : '#e9ecef')};
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const PDFContent = styled.div`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: #f8f9fa;
-  overflow: hidden;
-`;
-
-const PDFEmbed = styled.embed<{ $zoom: number }>`
-  width: 100%;
-  height: 100%;
-  border: none;
-  border-radius: 8px;
-  transform: scale(${(props) => props.$zoom});
-  transform-origin: center;
-  transition: transform 0.2s ease;
-`;
-
-const PDFIframe = styled.iframe<{ $zoom: number }>`
-  width: 100%;
-  height: 100%;
-  border: none;
-  border-radius: 8px;
-  transform: scale(${(props) => props.$zoom});
-  transform-origin: center;
-  transition: transform 0.2s ease;
-`;
-
-const PDFError = styled.div`
-  text-align: center;
-  color: #6c757d;
-
-  h4 {
-    margin: 0 0 12px 0;
-    color: #495057;
-  }
-
-  p {
-    margin: 0 0 16px 0;
-    font-size: 0.875rem;
-  }
-`;
-
-const DownloadButton = styled.a`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #007bff;
-  color: white;
-  text-decoration: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background: #0056b3;
-  }
-`;
+import * as styles from './PDFPreview.css';
 
 interface PDFPreviewProps {
   url: string;
@@ -257,7 +111,7 @@ Localhost: ${isLocalhost}`);
   const renderPDFContent = () => {
     if (viewMethod === 'error') {
       return (
-        <PDFError>
+        <div className={styles.pdfError}>
           <h4>PDF Preview Not Available</h4>
           <p>Firefox on localhost often has PDF embedding issues.</p>
           <div
@@ -277,7 +131,8 @@ Localhost: ${isLocalhost}`);
             <pre style={{ margin: 0, fontSize: '0.7rem', whiteSpace: 'pre-wrap' }}>{debugInfo}</pre>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <DownloadButton
+            <a
+              className={styles.downloadLink}
               href={url}
               download={filename}
               target="_blank"
@@ -285,17 +140,18 @@ Localhost: ${isLocalhost}`);
             >
               <MdDownload size={16} />
               Download PDF
-            </DownloadButton>
-            <DownloadButton href={url} target="_blank" rel="noopener noreferrer">
+            </a>
+            <a className={styles.downloadLink} href={url} target="_blank" rel="noopener noreferrer">
               🔗 Open in New Tab
-            </DownloadButton>
-            <DownloadButton
+            </a>
+            <a
+              className={styles.downloadLink}
               href={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
               target="_blank"
               rel="noopener noreferrer"
             >
               📖 Google Viewer
-            </DownloadButton>
+            </a>
           </div>
           <div style={{ marginTop: '12px', fontSize: '0.75rem' }}>
             Try: Press 1 (embed), 2 (iframe), 3 (Google), 4 (this view)
@@ -303,17 +159,18 @@ Localhost: ${isLocalhost}`);
             <strong>Firefox Tip:</strong> Try &quot;Open in New Tab&quot; or download and open
             locally
           </div>
-        </PDFError>
+        </div>
       );
     }
 
     if (viewMethod === 'google') {
       const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
       return (
-        <PDFIframe
+        <iframe
+          className={styles.pdfIframe}
+          style={{ transform: `scale(${zoom})` }}
           src={googleViewerUrl}
           title={filename}
-          $zoom={zoom}
           onError={() => setViewMethod('error')}
           onLoad={() => {
             setDebugInfo((prev) => `${prev}\nGoogle Viewer loaded successfully`);
@@ -324,10 +181,11 @@ Localhost: ${isLocalhost}`);
 
     if (viewMethod === 'iframe') {
       return (
-        <PDFIframe
+        <iframe
+          className={styles.pdfIframe}
+          style={{ transform: `scale(${zoom})` }}
           src={`${url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
           title={filename}
-          $zoom={zoom}
           onError={() => {
             setDebugInfo((prev) => `${prev}\niFrame failed, trying Google Viewer`);
             setViewMethod('google');
@@ -337,24 +195,35 @@ Localhost: ${isLocalhost}`);
     }
 
     return (
-      <PDFEmbed
+      <embed
+        className={styles.pdfEmbed}
+        style={{ transform: `scale(${zoom})` }}
         src={url}
         type="application/pdf"
         title={filename}
-        $zoom={zoom}
-        onError={() => {
-          setDebugInfo((prev) => `${prev}\nEmbed failed, trying iFrame`);
-          setViewMethod('iframe');
-        }}
       />
     );
   };
 
   return createPortal(
-    <PDFOverlay onClick={handleOverlayClick}>
-      <PDFContainer onClick={(e) => e.stopPropagation()}>
-        <PDFHeader>
-          <PDFTitle>{filename}</PDFTitle>
+    <div
+      className={styles.pdfOverlay}
+      role="presentation"
+      onClick={handleOverlayClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      }}
+    >
+      <div
+        className={styles.pdfContainer}
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        <div className={styles.pdfHeader}>
+          <h3 className={styles.pdfTitle}>{filename}</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
             <span>Method:</span>
             <select
@@ -392,36 +261,43 @@ Localhost: ${isLocalhost}`);
               {viewMethod === 'iframe' && '⚠ May fail on localhost'}
             </span>
           </div>
-          <PDFControls>
+          <div className={styles.pdfControls}>
             {viewMethod !== 'error' && (
               <>
-                <PDFButton onClick={handleZoomOut} disabled={zoom <= 0.5}>
+                <button
+                  className={styles.pdfButtonDefault}
+                  onClick={handleZoomOut}
+                  disabled={zoom <= 0.5}
+                >
                   <MdZoomOut size={18} />
-                </PDFButton>
-                <PDFButton onClick={handleZoomIn} disabled={zoom >= 2}>
+                </button>
+                <button
+                  className={styles.pdfButtonDefault}
+                  onClick={handleZoomIn}
+                  disabled={zoom >= 2}
+                >
                   <MdZoomIn size={18} />
-                </PDFButton>
+                </button>
               </>
             )}
-            <PDFButton
-              as="a"
+            <a
+              className={styles.pdfButtonPrimary}
               href={url}
               download={filename}
               target="_blank"
               rel="noopener noreferrer"
-              $variant="primary"
             >
               <MdDownload size={18} />
-            </PDFButton>
-            <PDFButton onClick={onClose}>
+            </a>
+            <button className={styles.pdfButtonDefault} onClick={onClose}>
               <MdClose size={18} />
-            </PDFButton>
-          </PDFControls>
-        </PDFHeader>
+            </button>
+          </div>
+        </div>
 
-        <PDFContent>{renderPDFContent()}</PDFContent>
-      </PDFContainer>
-    </PDFOverlay>,
+        <div className={styles.pdfContent}>{renderPDFContent()}</div>
+      </div>
+    </div>,
     document.body
   );
 };

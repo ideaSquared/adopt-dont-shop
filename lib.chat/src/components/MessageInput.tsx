@@ -1,180 +1,7 @@
-import { Button, TextArea } from '@adopt-dont-shop/lib.components';
+import { TextArea } from '@adopt-dont-shop/lib.components';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MdAttachFile, MdClose, MdSend } from 'react-icons/md';
-import styled from 'styled-components';
-
-const InputContainer = styled.div`
-  padding: 0.75rem 1rem 1.25rem 1rem;
-  background: ${(props) => props.theme.background.primary};
-`;
-
-const InputRow = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
-`;
-
-const MessageTextArea = styled(TextArea)`
-  flex: 1;
-  width: 100%;
-  min-width: 0;
-  min-height: 44px;
-  max-height: 120px;
-  resize: none;
-  border-radius: 22px;
-  padding: 0.75rem 1rem;
-  font-size: 0.95rem;
-  line-height: 1.4;
-  background: ${(props) => props.theme.background.secondary};
-  border: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-  overflow-y: auto;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-
-  &:focus {
-    outline: none;
-    background: ${(props) => props.theme.background.primary};
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-    transform: translateY(-1px);
-  }
-
-  &::placeholder {
-    color: ${(props) => props.theme.text.secondary};
-  }
-`;
-
-const AttachmentPreview = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-`;
-
-const AttachmentItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: ${(props) => props.theme.colors.primary[100]};
-  border: 1px solid ${(props) => props.theme.colors.primary[500]};
-  border-radius: 18px;
-  font-size: 0.875rem;
-`;
-
-const AttachmentName = styled.span`
-  color: ${(props) => props.theme.text.primary};
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 500;
-`;
-
-const RemoveButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border: none;
-  background: ${(props) => props.theme.colors.semantic.error[500]};
-  color: white;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 0.75rem;
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: ${(props) => props.theme.colors.semantic.error[600]};
-    transform: scale(1.1);
-  }
-
-  &:focus {
-    outline: 2px solid ${(props) => props.theme.colors.semantic.error[200]};
-    outline-offset: 2px;
-  }
-`;
-
-const AttachButton = styled.label`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  background: ${(props) => props.theme.background.secondary};
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: ${(props) => props.theme.text.secondary};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-
-  &:hover {
-    background: ${(props) => props.theme.colors.primary[100]};
-    border-color: ${(props) => props.theme.colors.primary[500]};
-    color: ${(props) => props.theme.colors.primary[500]};
-    transform: scale(1.05);
-  }
-
-  &:focus-within {
-    outline: 2px solid ${(props) => props.theme.colors.primary[500]};
-    outline-offset: 2px;
-  }
-
-  input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-`;
-
-const SendButton = styled(Button)`
-  min-width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  border: none;
-  background: ${(props) => props.theme.colors.primary[500]};
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-
-  &:enabled:hover {
-    transform: scale(1.05);
-  }
-
-  &:enabled:active {
-    transform: scale(0.95);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const VisuallyHidden = styled.span`
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-`;
+import * as styles from './MessageInput.css';
 
 interface MessageInputProps {
   value: string;
@@ -343,39 +170,44 @@ export function MessageInput({
   const remainingChars = maxLength - value.length;
 
   return (
-    <InputContainer>
+    <div className={styles.inputContainer}>
       {attachments.length > 0 && (
-        <AttachmentPreview role="list" aria-label="Attached files">
+        <div className={styles.attachmentPreview} role="list" aria-label="Attached files">
           {attachments.map((file, index) => (
-            <AttachmentItem key={`${file.name}-${index}`} role="listitem">
-              <AttachmentName title={file.name}>{file.name}</AttachmentName>
-              <RemoveButton
+            <div key={`${file.name}-${index}`} className={styles.attachmentItem} role="listitem">
+              <span className={styles.attachmentName} title={file.name}>
+                {file.name}
+              </span>
+              <button
+                className={styles.removeButton}
                 onClick={() => removeAttachment(index)}
                 aria-label={`Remove ${file.name}`}
                 type="button"
               >
                 <MdClose />
-              </RemoveButton>
-            </AttachmentItem>
+              </button>
+            </div>
           ))}
-        </AttachmentPreview>
+        </div>
       )}
 
-      <InputRow>
-        <MessageTextArea
-          ref={textAreaRef}
-          value={value}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled}
-          maxLength={maxLength}
-          fullWidth={true}
-          aria-label="Message input"
-          aria-describedby="char-count file-input-help"
-        />
+      <div className={styles.inputRow}>
+        <div className={styles.messageTextAreaWrapper}>
+          <TextArea
+            ref={textAreaRef}
+            value={value}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={disabled}
+            maxLength={maxLength}
+            fullWidth={true}
+            aria-label="Message input"
+            aria-describedby="char-count file-input-help"
+          />
+        </div>
 
-        <AttachButton>
+        <label className={styles.attachButton}>
           <input
             ref={fileInputRef}
             type="file"
@@ -384,40 +216,32 @@ export function MessageInput({
             onChange={handleFileSelect}
             disabled={disabled || attachments.length >= maxFiles}
             aria-describedby="file-input-help"
+            className={styles.hiddenFileInput}
           />
           <MdAttachFile size={20} aria-hidden="true" />
-          <VisuallyHidden>Attach files</VisuallyHidden>
-        </AttachButton>
+          <span className={styles.visuallyHidden}>Attach files</span>
+        </label>
 
-        <SendButton
+        <button
+          className={styles.sendButton}
           onClick={handleSend}
           disabled={!canSend}
-          variant="primary"
           aria-label="Send message"
+          type="button"
         >
           <MdSend size={20} aria-hidden="true" />
-        </SendButton>
-      </InputRow>
+        </button>
+      </div>
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: '0.5rem',
-          fontSize: '0.875rem',
-          color: '#666',
-        }}
-      >
+      <div className={styles.inputFooter}>
         <span id="file-input-help">{maxFiles - attachments.length} file slots remaining</span>
         <span
           id="char-count"
-          style={{
-            color: remainingChars < 100 ? '#ef4444' : '#666',
-          }}
+          className={remainingChars < 100 ? styles.charCountWarning : undefined}
         >
           {remainingChars} characters remaining
         </span>
       </div>
-    </InputContainer>
+    </div>
   );
 }

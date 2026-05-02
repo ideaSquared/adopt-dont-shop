@@ -1,111 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MdClose, MdNavigateBefore, MdNavigateNext, MdZoomIn, MdZoomOut } from 'react-icons/md';
-import styled from 'styled-components';
-
-const LightboxOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-`;
-
-const LightboxContainer = styled.div`
-  position: relative;
-  max-width: 90vw;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const LightboxImage = styled.img<{ $zoom: number }>`
-  max-width: 100%;
-  max-height: 85vh;
-  object-fit: contain;
-  border-radius: 8px;
-  transform: scale(${(props) => props.$zoom});
-  transition: transform 0.2s ease;
-  cursor: ${(props) => (props.$zoom > 1 ? 'grab' : 'default')};
-
-  &:active {
-    cursor: ${(props) => (props.$zoom > 1 ? 'grabbing' : 'default')};
-  }
-`;
-
-const LightboxControls = styled.div`
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  gap: 10px;
-`;
-
-const LightboxButton = styled.button`
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  backdrop-filter: blur(10px);
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const ImageInfo = styled.div`
-  margin-top: 15px;
-  color: white;
-  text-align: center;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 8px 16px;
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-`;
-
-const NavigationButton = styled(LightboxButton)`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 50px;
-  height: 50px;
-
-  &.prev {
-    left: 20px;
-  }
-
-  &.next {
-    right: 20px;
-  }
-`;
+import * as styles from './ImageLightbox.css';
 
 interface ImageAttachment {
   id: string;
@@ -205,48 +101,58 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
 
   return createPortal(
-    <LightboxOverlay onClick={handleOverlayClick}>
-      <LightboxContainer>
-        <LightboxControls>
-          <LightboxButton onClick={handleZoomOut} disabled={zoom <= 0.5}>
+    <div
+      className={styles.lightboxOverlay}
+      role="presentation"
+      onClick={handleOverlayClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      }}
+    >
+      <div className={styles.lightboxContainer}>
+        <div className={styles.lightboxControls}>
+          <button className={styles.lightboxButton} onClick={handleZoomOut} disabled={zoom <= 0.5}>
             <MdZoomOut size={20} />
-          </LightboxButton>
-          <LightboxButton onClick={handleZoomIn} disabled={zoom >= 3}>
+          </button>
+          <button className={styles.lightboxButton} onClick={handleZoomIn} disabled={zoom >= 3}>
             <MdZoomIn size={20} />
-          </LightboxButton>
-          <LightboxButton onClick={onClose}>
+          </button>
+          <button className={styles.lightboxButton} onClick={onClose}>
             <MdClose size={20} />
-          </LightboxButton>
-        </LightboxControls>
+          </button>
+        </div>
 
         {/* Navigation buttons for multiple images */}
         {images.length > 1 && onNavigate && (
           <>
-            <NavigationButton
-              className="prev"
+            <button
+              className={`${styles.navigationButton} ${styles.navigationButtonPrev}`}
               onClick={() => onNavigate(safeCurrentIndex - 1)}
               disabled={safeCurrentIndex === 0}
             >
               <MdNavigateBefore size={24} />
-            </NavigationButton>
-            <NavigationButton
-              className="next"
+            </button>
+            <button
+              className={`${styles.navigationButton} ${styles.navigationButtonNext}`}
               onClick={() => onNavigate(safeCurrentIndex + 1)}
               disabled={safeCurrentIndex === images.length - 1}
             >
               <MdNavigateNext size={24} />
-            </NavigationButton>
+            </button>
           </>
         )}
 
-        <LightboxImage
+        <img
+          className={styles.lightboxImage}
+          style={{ transform: `scale(${zoom})`, cursor: zoom > 1 ? 'grab' : 'default' }}
           src={currentImage.url}
           alt={currentImage.filename}
-          $zoom={zoom}
           onError={() => setImageError(true)}
         />
 
-        <ImageInfo>
+        <div className={styles.imageInfo}>
           <div>{currentImage.filename}</div>
           {images.length > 1 && (
             <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '4px' }}>
@@ -258,9 +164,9 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = ({
               Failed to load image
             </div>
           )}
-        </ImageInfo>
-      </LightboxContainer>
-    </LightboxOverlay>,
+        </div>
+      </div>
+    </div>,
     document.body
   );
 };

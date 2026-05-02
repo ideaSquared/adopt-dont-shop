@@ -5,6 +5,7 @@
 export { darkTheme, lightTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
 export { ThemeProvider, useTheme } from './styles/ThemeProvider';
+export { vars, lightThemeClass, darkThemeClass } from './styles/theme.css';
 
 // Hooks
 export { useConfirm } from './hooks/useConfirm';
