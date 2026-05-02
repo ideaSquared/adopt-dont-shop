@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import * as styles from './EditUserModal.css';
 import { Modal, Button, Input } from '@adopt-dont-shop/lib.components';
 import type { AdminUser, UserType, UserStatus } from '@/types';
 
@@ -9,72 +9,6 @@ type EditUserModalProps = {
   user: AdminUser | null;
   onSave: (userId: string, updates: Partial<AdminUser>) => Promise<void>;
 };
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const Select = styled.select`
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #111827;
-  background: #ffffff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #9ca3af;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const ErrorMessage = styled.div`
-  padding: 0.75rem 1rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  color: #991b1b;
-  font-size: 0.875rem;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
 
 export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, onSave }) => {
   const [formData, setFormData] = useState({
@@ -153,12 +87,12 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title='Edit User'>
-      <Form onSubmit={handleSubmit}>
-        {error && <ErrorMessage>{error}</ErrorMessage>}
+      <form className={styles.form} onSubmit={handleSubmit}>
+        {error && <div className={styles.errorMessage}>{error}</div>}
 
-        <FormRow>
-          <FormGroup>
-            <Label htmlFor='first_name'>First Name</Label>
+        <div className={styles.formRow}>
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor='first_name'>First Name</label>
             <Input
               id='first_name'
               type='text'
@@ -166,10 +100,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
               onChange={e => setFormData({ ...formData, firstName: e.target.value })}
               required
             />
-          </FormGroup>
+          </div>
 
-          <FormGroup>
-            <Label htmlFor='last_name'>Last Name</Label>
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor='last_name'>Last Name</label>
             <Input
               id='last_name'
               type='text'
@@ -177,11 +111,11 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
               onChange={e => setFormData({ ...formData, lastName: e.target.value })}
               required
             />
-          </FormGroup>
-        </FormRow>
+          </div>
+        </div>
 
-        <FormGroup>
-          <Label htmlFor='email'>Email</Label>
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor='email'>Email</label>
           <Input
             id='email'
             type='email'
@@ -189,22 +123,23 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
             onChange={e => setFormData({ ...formData, email: e.target.value })}
             required
           />
-        </FormGroup>
+        </div>
 
-        <FormGroup>
-          <Label htmlFor='phone_number'>Phone Number</Label>
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor='phone_number'>Phone Number</label>
           <Input
             id='phone_number'
             type='tel'
             value={formData.phoneNumber}
             onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
           />
-        </FormGroup>
+        </div>
 
-        <FormRow>
-          <FormGroup>
-            <Label htmlFor='role'>Role</Label>
-            <Select
+        <div className={styles.formRow}>
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor='role'>Role</label>
+            <select
+              className={styles.select}
               id='role'
               value={formData.userType}
               onChange={e => setFormData({ ...formData, userType: e.target.value as UserType })}
@@ -213,31 +148,32 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
               <option value='admin'>Admin</option>
               <option value='moderator'>Moderator</option>
               <option value='super_admin'>Super Admin</option>
-            </Select>
-          </FormGroup>
+            </select>
+          </div>
 
-          <FormGroup>
-            <Label htmlFor='is_active'>Status</Label>
-            <Select
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor='is_active'>Status</label>
+            <select
+              className={styles.select}
               id='is_active'
               value={formData.status === 'active' ? 'active' : 'suspended'}
               onChange={e => setFormData({ ...formData, status: e.target.value as UserStatus })}
             >
               <option value='active'>Active</option>
               <option value='suspended'>Suspended</option>
-            </Select>
-          </FormGroup>
-        </FormRow>
+            </select>
+          </div>
+        </div>
 
-        <ButtonGroup>
+        <div className={styles.buttonGroup}>
           <Button type='button' variant='outline' onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type='submit' variant='primary' disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Button>
-        </ButtonGroup>
-      </Form>
+        </div>
+      </form>
     </Modal>
   );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import styled from 'styled-components';
+import * as styles from './AdminSidebar.css';
 import {
   FiHome,
   FiUsers,
@@ -24,288 +24,167 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const SidebarContainer = styled.aside<{ $collapsed: boolean }>`
-  width: ${props => (props.$collapsed ? '80px' : '280px')};
-  height: 100vh;
-  background: #1f2937;
-  color: #f9fafb;
-  display: flex;
-  flex-direction: column;
-  transition: width 0.3s ease;
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 100;
-  border-right: 1px solid #374151;
-  overflow-y: auto;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #4b5563;
-    border-radius: 3px;
-  }
-`;
-
-const SidebarHeader = styled.div<{ $collapsed: boolean }>`
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: ${props => (props.$collapsed ? 'center' : 'space-between')};
-  border-bottom: 1px solid #374151;
-  min-height: 80px;
-`;
-
-const Logo = styled.div<{ $collapsed: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: 700;
-  font-size: ${props => (props.$collapsed ? '1.5rem' : '1.25rem')};
-  color: ${props => props.theme.colors.primary[400]};
-`;
-
-const ToggleButton = styled.button`
-  background: transparent;
-  border: 1px solid #4b5563;
-  color: #f9fafb;
-  padding: 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #374151;
-    border-color: ${props => props.theme.colors.primary[500]};
-  }
-`;
-
-const Nav = styled.nav`
-  flex: 1;
-  padding: 1rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const NavSection = styled.div<{ $collapsed: boolean }>`
-  margin: ${props => (props.$collapsed ? '1rem 0' : '1rem 0 0.5rem 0')};
-  padding: ${props => (props.$collapsed ? '0' : '0 1rem')};
-`;
-
-const NavSectionTitle = styled.div<{ $collapsed: boolean }>`
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #9ca3af;
-  margin-bottom: 0.5rem;
-  display: ${props => (props.$collapsed ? 'none' : 'block')};
-  padding-left: 0.5rem;
-`;
-
-const NavDivider = styled.div<{ $collapsed: boolean }>`
-  height: 1px;
-  background: #374151;
-  margin: ${props => (props.$collapsed ? '1rem 0.75rem' : '1rem 1rem')};
-`;
-
-const StyledNavLink = styled(NavLink)<{ $collapsed: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: ${props => (props.$collapsed ? '0.75rem' : '0.75rem 1rem')};
-  margin: ${props => (props.$collapsed ? '0 0.5rem' : '0 0.5rem')};
-  color: #d1d5db;
-  text-decoration: none;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  font-size: 0.875rem;
-  font-weight: 500;
-  justify-content: ${props => (props.$collapsed ? 'center' : 'flex-start')};
-  position: relative;
-
-  &:hover {
-    background: #374151;
-    color: #ffffff;
-  }
-
-  &.active {
-    background: ${props => props.theme.colors.primary[600]};
-    color: #ffffff;
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 3px;
-      height: 70%;
-      background: ${props => props.theme.colors.primary[300]};
-      border-radius: 0 2px 2px 0;
-    }
-  }
-
-  svg {
-    font-size: 1.25rem;
-    min-width: 1.25rem;
-  }
-
-  span {
-    display: ${props => (props.$collapsed ? 'none' : 'block')};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-`;
-
-const SidebarFooter = styled.div<{ $collapsed: boolean }>`
-  padding: 1rem;
-  border-top: 1px solid #374151;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: ${props => (props.$collapsed ? 'center' : 'stretch')};
-`;
-
-const FooterText = styled.div<{ $collapsed: boolean }>`
-  font-size: 0.75rem;
-  color: #9ca3af;
-  text-align: ${props => (props.$collapsed ? 'center' : 'left')};
-  display: ${props => (props.$collapsed ? 'none' : 'block')};
-`;
-
 export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   return (
-    <SidebarContainer $collapsed={collapsed}>
-      <SidebarHeader $collapsed={collapsed}>
-        <Logo $collapsed={collapsed}>
+    <aside className={styles.sidebarContainer({ collapsed })}>
+      <div className={styles.sidebarHeader({ collapsed })}>
+        <div className={styles.logo({ collapsed })}>
           <span>🐾</span>
           {!collapsed && <span>Admin</span>}
-        </Logo>
+        </div>
         {!collapsed && (
-          <ToggleButton onClick={onToggle} aria-label='Toggle sidebar'>
+          <button className={styles.toggleButton} onClick={onToggle} aria-label='Toggle sidebar'>
             <FiChevronLeft size={16} />
-          </ToggleButton>
+          </button>
         )}
-      </SidebarHeader>
+      </div>
 
       {collapsed && (
         <div style={{ padding: '1rem 0', display: 'flex', justifyContent: 'center' }}>
-          <ToggleButton onClick={onToggle} aria-label='Expand sidebar'>
+          <button className={styles.toggleButton} onClick={onToggle} aria-label='Expand sidebar'>
             <FiChevronRight size={16} />
-          </ToggleButton>
+          </button>
         </div>
       )}
 
-      <Nav>
+      <nav className={styles.nav}>
         {/* Main Section */}
-        <NavSection $collapsed={collapsed}>
-          <NavSectionTitle $collapsed={collapsed}>Main</NavSectionTitle>
-          <StyledNavLink to='/' $collapsed={collapsed} end>
+        <div className={`${styles.navSection({ collapsed })} ${styles.navSectionPadding({ collapsed })}`}>
+          <div className={styles.navSectionTitle({ collapsed })}>Main</div>
+          <NavLink
+            to='/'
+            end
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiHome />
-            <span>Dashboard</span>
-          </StyledNavLink>
-          <StyledNavLink to='/analytics' $collapsed={collapsed}>
+            <span className={styles.navLinkSpan({ collapsed })}>Dashboard</span>
+          </NavLink>
+          <NavLink
+            to='/analytics'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiBarChart2 />
-            <span>Analytics</span>
-          </StyledNavLink>
-        </NavSection>
+            <span className={styles.navLinkSpan({ collapsed })}>Analytics</span>
+          </NavLink>
+        </div>
 
-        <NavDivider $collapsed={collapsed} />
+        <div className={styles.navDivider({ collapsed })} />
 
         {/* Management Section */}
-        <NavSection $collapsed={collapsed}>
-          <NavSectionTitle $collapsed={collapsed}>Management</NavSectionTitle>
-          <StyledNavLink to='/users' $collapsed={collapsed}>
+        <div className={`${styles.navSection({ collapsed })} ${styles.navSectionPadding({ collapsed })}`}>
+          <div className={styles.navSectionTitle({ collapsed })}>Management</div>
+          <NavLink
+            to='/users'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiUsers />
-            <span>Users</span>
-          </StyledNavLink>
-          <StyledNavLink to='/rescues' $collapsed={collapsed}>
+            <span className={styles.navLinkSpan({ collapsed })}>Users</span>
+          </NavLink>
+          <NavLink
+            to='/rescues'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiShield />
-            <span>Rescues</span>
-          </StyledNavLink>
-        </NavSection>
+            <span className={styles.navLinkSpan({ collapsed })}>Rescues</span>
+          </NavLink>
+        </div>
 
-        <NavDivider $collapsed={collapsed} />
+        <div className={styles.navDivider({ collapsed })} />
 
         {/* Safety & Support Section */}
-        <NavSection $collapsed={collapsed}>
-          <NavSectionTitle $collapsed={collapsed}>Safety & Support</NavSectionTitle>
-          <StyledNavLink to='/moderation' $collapsed={collapsed}>
+        <div className={`${styles.navSection({ collapsed })} ${styles.navSectionPadding({ collapsed })}`}>
+          <div className={styles.navSectionTitle({ collapsed })}>Safety &amp; Support</div>
+          <NavLink
+            to='/moderation'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiAlertTriangle />
-            <span>Moderation</span>
-          </StyledNavLink>
-          <StyledNavLink to='/support' $collapsed={collapsed}>
+            <span className={styles.navLinkSpan({ collapsed })}>Moderation</span>
+          </NavLink>
+          <NavLink
+            to='/support'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiHelpCircle />
-            <span>Support Tickets</span>
-          </StyledNavLink>
-          <StyledNavLink to='/messages' $collapsed={collapsed}>
+            <span className={styles.navLinkSpan({ collapsed })}>Support Tickets</span>
+          </NavLink>
+          <NavLink
+            to='/messages'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiMessageSquare />
-            <span>Messages</span>
-          </StyledNavLink>
-        </NavSection>
+            <span className={styles.navLinkSpan({ collapsed })}>Messages</span>
+          </NavLink>
+        </div>
 
-        <NavDivider $collapsed={collapsed} />
+        <div className={styles.navDivider({ collapsed })} />
 
         {/* Content Section */}
-        <NavSection $collapsed={collapsed}>
-          <NavSectionTitle $collapsed={collapsed}>Content</NavSectionTitle>
-          <StyledNavLink to='/content' $collapsed={collapsed}>
+        <div className={`${styles.navSection({ collapsed })} ${styles.navSectionPadding({ collapsed })}`}>
+          <div className={styles.navSectionTitle({ collapsed })}>Content</div>
+          <NavLink
+            to='/content'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiLayout />
-            <span>Content Management</span>
-          </StyledNavLink>
-        </NavSection>
+            <span className={styles.navLinkSpan({ collapsed })}>Content Management</span>
+          </NavLink>
+        </div>
 
-        <NavDivider $collapsed={collapsed} />
+        <div className={styles.navDivider({ collapsed })} />
 
         {/* System Section */}
-        <NavSection $collapsed={collapsed}>
-          <NavSectionTitle $collapsed={collapsed}>System</NavSectionTitle>
-          <StyledNavLink to='/configuration' $collapsed={collapsed}>
+        <div className={`${styles.navSection({ collapsed })} ${styles.navSectionPadding({ collapsed })}`}>
+          <div className={styles.navSectionTitle({ collapsed })}>System</div>
+          <NavLink
+            to='/configuration'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiSettings />
-            <span>Configuration</span>
-          </StyledNavLink>
-          <StyledNavLink to='/field-permissions' $collapsed={collapsed}>
+            <span className={styles.navLinkSpan({ collapsed })}>Configuration</span>
+          </NavLink>
+          <NavLink
+            to='/field-permissions'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiSliders />
-            <span>Field Permissions</span>
-          </StyledNavLink>
-          <StyledNavLink to='/audit' $collapsed={collapsed}>
+            <span className={styles.navLinkSpan({ collapsed })}>Field Permissions</span>
+          </NavLink>
+          <NavLink
+            to='/audit'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiActivity />
-            <span>Audit Logs</span>
-          </StyledNavLink>
-          <StyledNavLink to='/reports' $collapsed={collapsed}>
+            <span className={styles.navLinkSpan({ collapsed })}>Audit Logs</span>
+          </NavLink>
+          <NavLink
+            to='/reports'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiFileText />
-            <span>Reports</span>
-          </StyledNavLink>
-        </NavSection>
+            <span className={styles.navLinkSpan({ collapsed })}>Reports</span>
+          </NavLink>
+        </div>
 
-        <NavDivider $collapsed={collapsed} />
+        <div className={styles.navDivider({ collapsed })} />
 
         {/* Account Section */}
-        <NavSection $collapsed={collapsed}>
-          <NavSectionTitle $collapsed={collapsed}>Account</NavSectionTitle>
-          <StyledNavLink to='/account' $collapsed={collapsed}>
+        <div className={`${styles.navSection({ collapsed })} ${styles.navSectionPadding({ collapsed })}`}>
+          <div className={styles.navSectionTitle({ collapsed })}>Account</div>
+          <NavLink
+            to='/account'
+            className={({ isActive }) => styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')}
+          >
             <FiLock />
-            <span>Account Settings</span>
-          </StyledNavLink>
-        </NavSection>
-      </Nav>
+            <span className={styles.navLinkSpan({ collapsed })}>Account Settings</span>
+          </NavLink>
+        </div>
+      </nav>
 
-      <SidebarFooter $collapsed={collapsed}>
-        <FooterText $collapsed={collapsed}>Admin Panel v1.0.0</FooterText>
-        <FooterText $collapsed={collapsed}>Adopt Don't Shop</FooterText>
-      </SidebarFooter>
-    </SidebarContainer>
+      <div className={styles.sidebarFooter({ collapsed })}>
+        <div className={styles.footerText({ collapsed })}>Admin Panel v1.0.0</div>
+        <div className={styles.footerText({ collapsed })}>Adopt Don't Shop</div>
+      </div>
+    </aside>
   );
 };

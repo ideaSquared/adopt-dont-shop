@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { Question, QuestionField } from './QuestionField';
 import { shouldShowQuestion } from './questionConditions';
+import * as styles from './QuestionCategoryStep.css';
 
 type QuestionCategoryStepProps = {
   stepId: string;
@@ -13,27 +13,6 @@ type QuestionCategoryStepProps = {
   onComplete: (answers: Record<string, unknown>) => void;
   onChange: (answers: Record<string, unknown>) => void;
 };
-
-const StepContainer = styled.div`
-  max-width: 640px;
-`;
-
-const StepTitle = styled.h2`
-  font-size: 1.5rem;
-  color: ${props => props.theme.text.primary};
-  margin: 0 0 0.5rem 0;
-`;
-
-const StepDescription = styled.p`
-  color: ${props => props.theme.text.secondary};
-  margin: 0 0 2rem 0;
-`;
-
-const RequiredNote = styled.p`
-  font-size: 0.8125rem;
-  color: ${props => props.theme.text.secondary};
-  margin: 0 0 1.5rem 0;
-`;
 
 const hasAnswer = (value: unknown): boolean => {
   if (value === null || value === undefined || value === '') {
@@ -103,10 +82,10 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
   const hasRequired = visibleQuestions.some(q => q.isRequired);
 
   return (
-    <StepContainer>
-      <StepTitle>{title}</StepTitle>
-      {description && <StepDescription>{description}</StepDescription>}
-      {hasRequired && <RequiredNote>Fields marked with * are required.</RequiredNote>}
+    <div className={styles.stepContainer}>
+      <h2 className={styles.stepTitle}>{title}</h2>
+      {description && <p className={styles.stepDescription}>{description}</p>}
+      {hasRequired && <p className={styles.requiredNote}>Fields marked with * are required.</p>}
 
       <form id={`step-${stepId}-form`} onSubmit={handleSubmit} noValidate>
         {visibleQuestions.map(question => {
@@ -126,6 +105,6 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
           );
         })}
       </form>
-    </StepContainer>
+    </div>
   );
 };

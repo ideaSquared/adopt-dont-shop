@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import * as styles from './DataTable.css';
 import {
   FiChevronUp,
   FiChevronDown,
@@ -41,157 +41,9 @@ export interface DataTableProps<T> {
   getRowId?: (row: T) => string;
 }
 
-const TableContainer = styled.div`
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  overflow: hidden;
-`;
-
-const TableWrapper = styled.div`
-  overflow-x: auto;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-`;
-
-const Thead = styled.thead`
-  background: #f9fafb;
-  border-bottom: 2px solid #e5e7eb;
-`;
-
-const Th = styled.th<{
-  $width?: string;
-  $align?: 'left' | 'center' | 'right';
-  $sortable?: boolean;
-}>`
-  padding: 1rem;
-  text-align: ${props => props.$align || 'left'};
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  white-space: nowrap;
-  width: ${props => props.$width || 'auto'};
-  cursor: ${props => (props.$sortable ? 'pointer' : 'default')};
-  user-select: none;
-  transition: background 0.2s ease;
-
-  &:hover {
-    background: ${props => (props.$sortable ? '#f3f4f6' : 'transparent')};
-  }
-`;
-
-const ThContent = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: flex-start;
-`;
-
-const SortIcon = styled.span`
-  display: flex;
-  align-items: center;
-  color: #9ca3af;
-
-  svg {
-    font-size: 1rem;
-  }
-`;
-
-const Tbody = styled.tbody``;
-
-const Tr = styled.tr<{ $clickable?: boolean }>`
-  border-bottom: 1px solid #e5e7eb;
-  cursor: ${props => (props.$clickable ? 'pointer' : 'default')};
-  transition: background 0.2s ease;
-
-  &:hover {
-    background: ${props => (props.$clickable ? '#f9fafb' : 'transparent')};
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const Td = styled.td<{ $align?: 'left' | 'center' | 'right' }>`
-  padding: 1rem;
-  text-align: ${props => props.$align || 'left'};
-  font-size: 0.875rem;
-  color: #111827;
-`;
-
-const Checkbox = styled.input.attrs({ type: 'checkbox' })`
-  width: 1rem;
-  height: 1rem;
-  cursor: pointer;
-  accent-color: ${props => props.theme.colors.primary[600]};
-`;
-
 const SKELETON_ROW_COUNT = 5;
 
-const EmptyRow = styled.tr`
-  td {
-    padding: 3rem;
-    text-align: center;
-    color: #6b7280;
-  }
-`;
-
-const PaginationContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
-`;
-
-const PaginationInfo = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const PaginationControls = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const PageButton = styled.button<{ $active?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 0.5rem;
-  background: ${props => (props.$active ? props.theme.colors.primary[600] : '#ffffff')};
-  color: ${props => (props.$active ? '#ffffff' : '#374151')};
-  border: 1px solid ${props => (props.$active ? props.theme.colors.primary[600] : '#d1d5db')};
-  border-radius: 6px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover:not(:disabled) {
-    background: ${props => (props.$active ? props.theme.colors.primary[700] : '#f9fafb')};
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  svg {
-    font-size: 1rem;
-  }
-`;
-
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T extends Record<string, unknown>>({
   columns,
   data,
   loading = false,
@@ -206,7 +58,7 @@ export function DataTable<T extends Record<string, any>>({
   selectable = false,
   selectedRows = new Set(),
   onSelectionChange,
-  getRowId = row => row.id || String(Math.random()),
+  getRowId = row => (row.id as string) || String(Math.random()),
 }: DataTableProps<T>) {
   const [localSort, setLocalSort] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(
     null
@@ -257,37 +109,38 @@ export function DataTable<T extends Record<string, any>>({
     if (typeof column.accessor === 'function') {
       return column.accessor(row);
     }
-    return row[column.accessor];
+    return row[column.accessor] as React.ReactNode;
   };
 
   const allSelected = data.length > 0 && data.every(row => selectedRows.has(getRowId(row)));
 
   return (
-    <TableContainer>
-      <TableWrapper>
-        <Table>
-          <Thead>
+    <div className={styles.tableContainer}>
+      <div className={styles.tableWrapper}>
+        <table className={styles.table}>
+          <thead className={styles.thead}>
             <tr>
               {selectable && (
-                <Th $width='48px' $align='center'>
-                  <Checkbox
+                <th className={styles.th({ align: 'center', sortable: false })} style={{ width: '48px' }}>
+                  <input
+                    className={styles.checkbox}
+                    type='checkbox'
                     checked={allSelected}
                     onChange={e => handleSelectAll(e.target.checked)}
                   />
-                </Th>
+                </th>
               )}
               {columns.map(column => (
-                <Th
+                <th
                   key={column.id}
-                  $width={column.width}
-                  $align={column.align}
-                  $sortable={column.sortable}
+                  className={styles.th({ align: column.align ?? 'left', sortable: column.sortable ?? false })}
+                  style={{ width: column.width }}
                   onClick={() => column.sortable && handleSort(column.id)}
                 >
-                  <ThContent>
+                  <div className={styles.thContent}>
                     {column.header}
                     {column.sortable && (
-                      <SortIcon>
+                      <span className={styles.sortIcon}>
                         {(sortColumn || localSort?.column) === column.id ? (
                           (sortDirection || localSort?.direction) === 'asc' ? (
                             <FiChevronUp />
@@ -297,103 +150,109 @@ export function DataTable<T extends Record<string, any>>({
                         ) : (
                           <FiChevronDown style={{ opacity: 0.3 }} />
                         )}
-                      </SortIcon>
+                      </span>
                     )}
-                  </ThContent>
-                </Th>
+                  </div>
+                </th>
               ))}
             </tr>
-          </Thead>
-          <Tbody>
+          </thead>
+          <tbody className={styles.tbody}>
             {loading ? (
               Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
                 <SkeletonTableRow key={i} columnCount={columns.length} hasCheckbox={selectable} />
               ))
             ) : data.length === 0 ? (
-              <EmptyRow>
+              <tr className={styles.emptyRow}>
                 <td colSpan={columns.length + (selectable ? 1 : 0)}>{emptyMessage}</td>
-              </EmptyRow>
+              </tr>
             ) : (
               data.map(row => {
                 const rowId = getRowId(row);
                 return (
-                  <Tr
+                  <tr
                     key={rowId}
-                    $clickable={!!onRowClick}
+                    className={styles.tr({ clickable: !!onRowClick })}
                     onClick={() => onRowClick && onRowClick(row)}
                   >
                     {selectable && (
-                      <Td $align='center' onClick={e => e.stopPropagation()}>
-                        <Checkbox
+                      <td className={styles.td({ align: 'center' })} onClick={e => e.stopPropagation()}>
+                        <input
+                          className={styles.checkbox}
+                          type='checkbox'
                           checked={selectedRows.has(rowId)}
                           onChange={e => handleSelectRow(rowId, e.target.checked)}
                         />
-                      </Td>
+                      </td>
                     )}
                     {columns.map(column => (
-                      <Td key={column.id} $align={column.align}>
+                      <td key={column.id} className={styles.td({ align: column.align ?? 'left' })}>
                         {getCellValue(row, column)}
-                      </Td>
+                      </td>
                     ))}
-                  </Tr>
+                  </tr>
                 );
               })
             )}
-          </Tbody>
-        </Table>
-      </TableWrapper>
+          </tbody>
+        </table>
+      </div>
 
       {onPageChange && totalPages > 1 && (
-        <PaginationContainer>
-          <PaginationInfo>
+        <div className={styles.paginationContainer}>
+          <div className={styles.paginationInfo}>
             Page {currentPage} of {totalPages}
-          </PaginationInfo>
-          <PaginationControls>
-            <PageButton
+          </div>
+          <div className={styles.paginationControls}>
+            <button
+              className={styles.pageButton({ active: false })}
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
               aria-label='First page'
             >
               <FiChevronsLeft />
-            </PageButton>
-            <PageButton
+            </button>
+            <button
+              className={styles.pageButton({ active: false })}
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
               aria-label='Previous page'
             >
               <FiChevronLeft />
-            </PageButton>
+            </button>
 
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = Math.max(1, Math.min(currentPage - 2 + i, totalPages - 4 + i));
               return (
-                <PageButton
+                <button
                   key={pageNum}
-                  $active={currentPage === pageNum}
+                  className={styles.pageButton({ active: currentPage === pageNum })}
                   onClick={() => onPageChange(pageNum)}
                 >
                   {pageNum}
-                </PageButton>
+                </button>
               );
             })}
 
-            <PageButton
+            <button
+              className={styles.pageButton({ active: false })}
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
               aria-label='Next page'
             >
               <FiChevronRight />
-            </PageButton>
-            <PageButton
+            </button>
+            <button
+              className={styles.pageButton({ active: false })}
               onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages}
               aria-label='Last page'
             >
               <FiChevronsRight />
-            </PageButton>
-          </PaginationControls>
-        </PaginationContainer>
+            </button>
+          </div>
+        </div>
       )}
-    </TableContainer>
+    </div>
   );
 }

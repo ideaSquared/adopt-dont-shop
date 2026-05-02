@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { FiCalendar, FiChevronDown } from 'react-icons/fi';
 import { DateRange } from '../../services/analyticsService';
+import * as styles from './DateRangePicker.css';
 
 interface DateRangePickerProps {
   value: DateRange;
@@ -11,133 +11,6 @@ interface DateRangePickerProps {
     getDates: () => DateRange;
   }[];
 }
-
-const Container = styled.div`
-  position: relative;
-`;
-
-const Trigger = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  background: white;
-  border: 1px solid ${props => props.theme.colors.neutral[300]};
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: ${props => props.theme.text.primary};
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: ${props => props.theme.colors.primary[400]};
-    background: ${props => props.theme.colors.primary[50]};
-  }
-
-  svg {
-    color: ${props => props.theme.text.secondary};
-  }
-`;
-
-const Dropdown = styled.div<{ $isOpen: boolean }>`
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  background: white;
-  border: 1px solid ${props => props.theme.colors.neutral[200]};
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  min-width: 320px;
-  display: ${props => (props.$isOpen ? 'block' : 'none')};
-`;
-
-const PresetsSection = styled.div`
-  padding: 0.5rem;
-  border-bottom: 1px solid ${props => props.theme.colors.neutral[200]};
-`;
-
-const PresetButton = styled.button<{ $active: boolean }>`
-  display: block;
-  width: 100%;
-  padding: 0.625rem 0.75rem;
-  text-align: left;
-  font-size: 0.875rem;
-  background: ${props => (props.$active ? props.theme.colors.primary[50] : 'transparent')};
-  color: ${props => (props.$active ? props.theme.colors.primary[700] : props.theme.text.primary)};
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: ${props => (props.$active ? '600' : '400')};
-
-  &:hover {
-    background: ${props => props.theme.colors.primary[50]};
-    color: ${props => props.theme.colors.primary[700]};
-  }
-`;
-
-const CustomSection = styled.div`
-  padding: 1rem;
-`;
-
-const DateInputs = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-`;
-
-const DateInputGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-`;
-
-const Label = styled.label`
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: ${props => props.theme.text.secondary};
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-`;
-
-const DateInput = styled.input`
-  padding: 0.5rem;
-  border: 1px solid ${props => props.theme.colors.neutral[300]};
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: ${props => props.theme.text.primary};
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[400]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const ApplyButton = styled.button`
-  width: 100%;
-  margin-top: 0.75rem;
-  padding: 0.625rem;
-  background: ${props => props.theme.colors.primary[600]};
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${props => props.theme.colors.primary[700]};
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-`;
 
 const defaultPresets = [
   {
@@ -246,51 +119,55 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
   }, [isOpen]);
 
   return (
-    <Container data-date-picker>
-      <Trigger onClick={() => setIsOpen(!isOpen)}>
+    <div className={styles.container} data-date-picker="">
+      <button className={styles.trigger} onClick={() => setIsOpen(!isOpen)}>
         <FiCalendar />
         <span>{formatDateRange(value)}</span>
         <FiChevronDown />
-      </Trigger>
+      </button>
 
-      <Dropdown $isOpen={isOpen}>
-        <PresetsSection>
+      <div className={styles.dropdown({ open: isOpen })}>
+        <div className={styles.presetsSection}>
           {presets.map(preset => (
-            <PresetButton
+            <button
               key={preset.label}
-              $active={activePreset === preset.label}
+              className={styles.presetButton({ active: activePreset === preset.label })}
               onClick={() => handlePresetClick(preset)}
             >
               {preset.label}
-            </PresetButton>
+            </button>
           ))}
-        </PresetsSection>
+        </div>
 
-        <CustomSection>
-          <DateInputs>
-            <DateInputGroup>
-              <Label>Start Date</Label>
-              <DateInput
+        <div className={styles.customSection}>
+          <div className={styles.dateInputs}>
+            <div className={styles.dateInputGroup}>
+              <label className={styles.label}>Start Date</label>
+              <input
+                className={styles.dateInput}
                 type="date"
                 value={customStart}
                 onChange={e => setCustomStart(e.target.value)}
               />
-            </DateInputGroup>
+            </div>
 
-            <DateInputGroup>
-              <Label>End Date</Label>
-              <DateInput
+            <div className={styles.dateInputGroup}>
+              <label className={styles.label}>End Date</label>
+              <input
+                className={styles.dateInput}
                 type="date"
                 value={customEnd}
                 onChange={e => setCustomEnd(e.target.value)}
               />
-            </DateInputGroup>
-          </DateInputs>
+            </div>
+          </div>
 
-          <ApplyButton onClick={handleCustomApply}>Apply Custom Range</ApplyButton>
-        </CustomSection>
-      </Dropdown>
-    </Container>
+          <button className={styles.applyButton} onClick={handleCustomApply}>
+            Apply Custom Range
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

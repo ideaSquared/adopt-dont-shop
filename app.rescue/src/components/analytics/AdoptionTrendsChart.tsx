@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import * as styles from './AdoptionTrendsChart.css';
 
 interface DataPoint {
   date: string;
@@ -12,135 +12,6 @@ interface AdoptionTrendsChartProps {
   height?: number;
 }
 
-const ChartContainer = styled.div`
-  width: 100%;
-  padding: 1rem 0;
-`;
-
-const SVGContainer = styled.svg`
-  width: 100%;
-  overflow: visible;
-`;
-
-const GridLine = styled.line`
-  stroke: ${props => props.theme.colors.neutral[200]};
-  stroke-width: 1;
-  stroke-dasharray: 4 4;
-`;
-
-const GridLabel = styled.text`
-  fill: ${props => props.theme.text.tertiary};
-  font-size: 0.75rem;
-  font-family: inherit;
-`;
-
-const AxisLabel = styled.text`
-  fill: ${props => props.theme.text.secondary};
-  font-size: 0.75rem;
-  font-family: inherit;
-`;
-
-const LinePath = styled.path`
-  fill: none;
-  stroke: ${props => props.theme.colors.primary[500]};
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
-`;
-
-const AreaPath = styled.path`
-  fill: url(#areaGradient);
-  opacity: 0.2;
-`;
-
-const DataPoint = styled.circle<{ $active: boolean }>`
-  cursor: pointer;
-  transition: all 0.2s ease;
-  fill: white;
-  stroke: ${props => props.theme.colors.primary[500]};
-  stroke-width: ${props => (props.$active ? '3' : '2')};
-  r: ${props => (props.$active ? '6' : '4')};
-
-  &:hover {
-    r: 6;
-    stroke-width: 3;
-  }
-`;
-
-const TooltipContainer = styled.div<{ $x: number; $y: number }>`
-  position: absolute;
-  left: ${props => props.$x}px;
-  top: ${props => props.$y}px;
-  transform: translate(-50%, -100%);
-  background: ${props => props.theme.colors.neutral[900]};
-  color: white;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid ${props => props.theme.colors.neutral[900]};
-  }
-`;
-
-const TooltipDate = styled.div`
-  font-weight: 600;
-  margin-bottom: 0.125rem;
-`;
-
-const TooltipValue = styled.div`
-  color: ${props => props.theme.colors.primary[300]};
-  font-weight: 500;
-`;
-
-const LoadingSkeleton = styled.div<{ $height: number }>`
-  width: 100%;
-  height: ${props => props.$height}px;
-  background: ${props => props.theme.colors.neutral[100]};
-  border-radius: 8px;
-  position: relative;
-  overflow: hidden;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      ${props => props.theme.colors.neutral[200]},
-      transparent
-    );
-    animation: shimmer 1.5s infinite;
-  }
-
-  @keyframes shimmer {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
-  }
-`;
-
 const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
   data,
   loading = false,
@@ -150,7 +21,7 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
 
   if (loading) {
-    return <LoadingSkeleton $height={height} />;
+    return <div className={styles.loadingSkeleton} style={{ height: `${height}px` }} />;
   }
 
   if (!data || data.length === 0) {
@@ -216,9 +87,13 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
   };
 
   return (
-    <ChartContainer>
+    <div className={styles.chartContainer}>
       <div style={{ position: 'relative' }}>
-        <SVGContainer height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+        <svg
+          className={styles.svgContainer}
+          height={chartHeight}
+          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+        >
           <defs>
             <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
@@ -232,27 +107,39 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
             const y = yScale(value);
             return (
               <g key={i}>
-                <GridLine x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} />
-                <GridLabel x={padding.left - 10} y={y + 4} textAnchor="end">
+                <line
+                  className={styles.gridLine}
+                  x1={padding.left}
+                  y1={y}
+                  x2={chartWidth - padding.right}
+                  y2={y}
+                />
+                <text
+                  className={styles.gridLabel}
+                  x={padding.left - 10}
+                  y={y + 4}
+                  textAnchor="end"
+                >
                   {value}
-                </GridLabel>
+                </text>
               </g>
             );
           })}
 
           {/* Area */}
-          <AreaPath d={areaPath} />
+          <path className={styles.areaPath} d={areaPath} />
 
           {/* Line */}
-          <LinePath d={linePath} />
+          <path className={styles.linePath} d={linePath} />
 
           {/* Data points */}
           {data.map((point, index) => (
-            <DataPoint
+            <circle
               key={index}
+              className={styles.dataPoint({ active: activePoint === index })}
               cx={xScale(index)}
               cy={yScale(point.count)}
-              $active={activePoint === index}
+              r={activePoint === index ? 6 : 4}
               onMouseEnter={e => handlePointHover(index, e)}
               onMouseLeave={() => {
                 setActivePoint(null);
@@ -270,27 +157,31 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
             }
 
             return (
-              <AxisLabel
+              <text
                 key={index}
+                className={styles.axisLabel}
                 x={xScale(index)}
                 y={chartHeight - padding.bottom + 25}
                 textAnchor="middle"
               >
                 {formatDate(point.date)}
-              </AxisLabel>
+              </text>
             );
           })}
-        </SVGContainer>
+        </svg>
 
         {/* Tooltip */}
         {activePoint !== null && tooltipPosition && (
-          <TooltipContainer $x={tooltipPosition.x} $y={tooltipPosition.y}>
-            <TooltipDate>{formatDate(data[activePoint].date)}</TooltipDate>
-            <TooltipValue>{data[activePoint].count} adoptions</TooltipValue>
-          </TooltipContainer>
+          <div
+            className={styles.tooltipContainer}
+            style={{ left: tooltipPosition.x, top: tooltipPosition.y }}
+          >
+            <div className={styles.tooltipDate}>{formatDate(data[activePoint].date)}</div>
+            <div className={styles.tooltipValue}>{data[activePoint].count} adoptions</div>
+          </div>
         )}
       </div>
-    </ChartContainer>
+    </div>
   );
 };
 

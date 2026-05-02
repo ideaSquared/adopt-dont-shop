@@ -1,99 +1,13 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import styled from 'styled-components';
 import { ADMIN_USER_TYPES } from '@/types';
+import * as styles from './ProtectedRoute.css';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: 'admin' | 'moderator' | 'super_admin';
 }
-
-const LoadingContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: #f3f4f6;
-`;
-
-const LoadingSpinner = styled.div`
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e5e7eb;
-  border-top-color: ${props => props.theme.colors.primary[500]};
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const LoadingText = styled.p`
-  margin-top: 1rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-`;
-
-const UnauthorizedContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: #f3f4f6;
-  padding: 2rem;
-  text-align: center;
-`;
-
-const UnauthorizedCard = styled.div`
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 3rem 2rem;
-  max-width: 500px;
-`;
-
-const UnauthorizedIcon = styled.div`
-  font-size: 4rem;
-  margin-bottom: 1.5rem;
-`;
-
-const UnauthorizedTitle = styled.h1`
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 1rem 0;
-`;
-
-const UnauthorizedMessage = styled.p`
-  font-size: 1rem;
-  color: #6b7280;
-  margin: 0 0 2rem 0;
-  line-height: 1.6;
-`;
-
-const BackButton = styled.button`
-  background: ${props => props.theme.colors.primary[600]};
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${props => props.theme.colors.primary[700]};
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-  }
-`;
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -101,10 +15,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <LoadingContainer>
-        <LoadingSpinner />
-        <LoadingText>Verifying admin access...</LoadingText>
-      </LoadingContainer>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner} />
+        <p className={styles.loadingText}>Verifying admin access...</p>
+      </div>
     );
   }
 
@@ -118,17 +32,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
 
   if (!isAdmin) {
     return (
-      <UnauthorizedContainer>
-        <UnauthorizedCard>
-          <UnauthorizedIcon>🔒</UnauthorizedIcon>
-          <UnauthorizedTitle>Access Denied</UnauthorizedTitle>
-          <UnauthorizedMessage>
+      <div className={styles.unauthorizedContainer}>
+        <div className={styles.unauthorizedCard}>
+          <div className={styles.unauthorizedIcon}>🔒</div>
+          <h1 className={styles.unauthorizedTitle}>Access Denied</h1>
+          <p className={styles.unauthorizedMessage}>
             You don't have permission to access the admin panel. This area is restricted to platform
             administrators only.
-          </UnauthorizedMessage>
-          <BackButton onClick={() => (window.location.href = '/')}>Return to Home</BackButton>
-        </UnauthorizedCard>
-      </UnauthorizedContainer>
+          </p>
+          <button className={styles.backButton} onClick={() => (window.location.href = '/')}>Return to Home</button>
+        </div>
+      </div>
     );
   }
 
@@ -136,17 +50,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
   if (requiredRole && user.userType !== 'super_admin') {
     if (user.userType !== requiredRole) {
       return (
-        <UnauthorizedContainer>
-          <UnauthorizedCard>
-            <UnauthorizedIcon>⚠️</UnauthorizedIcon>
-            <UnauthorizedTitle>Insufficient Permissions</UnauthorizedTitle>
-            <UnauthorizedMessage>
+        <div className={styles.unauthorizedContainer}>
+          <div className={styles.unauthorizedCard}>
+            <div className={styles.unauthorizedIcon}>⚠️</div>
+            <h1 className={styles.unauthorizedTitle}>Insufficient Permissions</h1>
+            <p className={styles.unauthorizedMessage}>
               This section requires {requiredRole} privileges. Please contact your system
               administrator if you need access.
-            </UnauthorizedMessage>
-            <BackButton onClick={() => window.history.back()}>Go Back</BackButton>
-          </UnauthorizedCard>
-        </UnauthorizedContainer>
+            </p>
+            <button className={styles.backButton} onClick={() => window.history.back()}>Go Back</button>
+          </div>
+        </div>
       );
     }
   }

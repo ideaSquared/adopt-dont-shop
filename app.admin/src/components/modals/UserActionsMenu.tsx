@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import * as styles from './UserActionsMenu.css';
 import { ActionMenu, type ActionMenuItem } from '../ui/ActionMenu';
 import type { AdminUser } from '@/types';
 import {
   FiCheckCircle,
-  FiXCircle,
   FiLock,
   FiUnlock,
   FiTrash2,
-  FiMail,
   FiShield,
 } from 'react-icons/fi';
 import { Modal, Button } from '@adopt-dont-shop/lib.components';
@@ -20,82 +18,6 @@ type UserActionsMenuProps = {
   onVerify: (userId: string) => Promise<void>;
   onDelete: (userId: string, reason?: string) => Promise<void>;
 };
-
-const ConfirmationContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const ConfirmationMessage = styled.p`
-  margin: 0;
-  color: #374151;
-  line-height: 1.5;
-`;
-
-const UserInfoBox = styled.div`
-  padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-weight: 500;
-  color: #111827;
-`;
-
-const ReasonTextArea = styled.textarea`
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #111827;
-  background: #ffffff;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 100px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #9ca3af;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const WarningBox = styled.div`
-  padding: 0.75rem 1rem;
-  background: #fef3c7;
-  border: 1px solid #fde68a;
-  border-radius: 8px;
-  color: #92400e;
-  font-size: 0.875rem;
-  font-weight: 500;
-`;
-
-const DangerBox = styled.div`
-  padding: 0.75rem 1rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  color: #991b1b;
-  font-size: 0.875rem;
-  font-weight: 500;
-`;
 
 type ConfirmationModalProps = {
   isOpen: boolean;
@@ -151,15 +73,15 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       closeOnOverlayClick={!isSubmitting}
       closeOnEscape={!isSubmitting}
     >
-      <ConfirmationContent>
-        <ConfirmationMessage>{message}</ConfirmationMessage>
+      <div className={styles.confirmationContent}>
+        <p className={styles.confirmationMessage}>{message}</p>
 
-        <UserInfoBox>{userName}</UserInfoBox>
+        <div className={styles.userInfoBox}>{userName}</div>
 
         {isDanger && (
-          <DangerBox>
+          <div className={styles.dangerBox}>
             <strong>Warning:</strong> This action cannot be undone.
-          </DangerBox>
+          </div>
         )}
 
         {requiresReason && (
@@ -176,7 +98,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             >
               Reason {!isDanger && '(Optional)'}
             </label>
-            <ReasonTextArea
+            <textarea
+              className={styles.reasonTextArea}
               id='reason'
               value={reason}
               onChange={e => setReason(e.target.value)}
@@ -186,7 +109,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </div>
         )}
 
-        <ButtonGroup>
+        <div className={styles.buttonGroup}>
           <Button
             type='button'
             variant='outline'
@@ -205,8 +128,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           >
             {isSubmitting ? 'Processing...' : confirmButtonText}
           </Button>
-        </ButtonGroup>
-      </ConfirmationContent>
+        </div>
+      </div>
     </Modal>
   );
 };

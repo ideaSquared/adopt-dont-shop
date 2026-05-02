@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'styled-components';
+import clsx from 'clsx';
 import { Button } from '@adopt-dont-shop/lib.components';
 import type { SaveStatus } from '@/hooks/use-auto-save';
 import type { Pet } from '@/services';
@@ -8,6 +8,7 @@ import type { Question } from './QuestionField';
 import { formatHouseholdMembers, parseHouseholdMembers } from './HouseholdMembersField';
 import { formatCurrentPets, parseCurrentPets } from './CurrentPetsField';
 import { shouldShowQuestion } from './questionConditions';
+import * as styles from './ApplicationForm.css';
 
 export type CategoryGroup = {
   category: string;
@@ -32,115 +33,6 @@ type ApplicationFormProps = {
   lastSaved: Date | null;
 };
 
-const FormContainer = styled.div`
-  min-height: 400px;
-`;
-
-const ReviewContainer = styled.div`
-  max-width: 640px;
-`;
-
-const ReviewTitle = styled.h2`
-  font-size: 1.5rem;
-  color: ${props => props.theme.text.primary};
-  margin: 0 0 0.5rem 0;
-`;
-
-const ReviewDescription = styled.p`
-  color: ${props => props.theme.text.secondary};
-  margin: 0 0 2rem 0;
-`;
-
-const ReviewCategory = styled.div`
-  margin-bottom: 1.5rem;
-  padding: 1.25rem 1.5rem;
-  background: ${props => props.theme.background.secondary};
-  border-radius: 0.5rem;
-`;
-
-const ReviewCategoryTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 600;
-  color: ${props => props.theme.text.primary};
-  margin: 0 0 1rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-`;
-
-const ReviewItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  padding: 0.5rem 0;
-
-  & + & {
-    border-top: 1px solid ${props => props.theme.border.color.primary};
-  }
-`;
-
-const ReviewLabel = styled.span`
-  font-size: 0.8125rem;
-  color: ${props => props.theme.text.secondary};
-`;
-
-const ReviewValue = styled.span`
-  font-size: 0.9375rem;
-  color: ${props => props.theme.text.primary};
-`;
-
-const NavigationButtons = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid ${props => props.theme.border.color.primary};
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 1rem;
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    button {
-      flex: 1;
-    }
-  }
-`;
-
-const SaveIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: space-between;
-  }
-`;
-
-const SaveStatusText = styled.span<{ $status: SaveStatus }>`
-  font-size: 0.8125rem;
-  color: ${props => {
-    switch (props.$status) {
-      case 'saved':
-        return props.theme.colors.semantic.success[600];
-      case 'saving':
-        return props.theme.colors.neutral[500];
-      case 'error':
-        return props.theme.colors.semantic.error[600];
-      default:
-        return props.theme.colors.neutral[400];
-    }
-  }};
-`;
-
 const formatLastSaved = (date: Date): string => {
   const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (diffSeconds < 60) {
@@ -155,15 +47,25 @@ const SaveStatusMessage: React.FC<{ status: SaveStatus; lastSaved: Date | null }
   lastSaved,
 }) => {
   if (status === 'saving') {
-    return <SaveStatusText $status={status}>Saving draft…</SaveStatusText>;
+    return (
+      <span className={clsx(styles.saveStatusText, styles.saveStatusVariants.saving)}>
+        Saving draft…
+      </span>
+    );
   }
   if (status === 'saved' && lastSaved) {
     return (
-      <SaveStatusText $status={status}>Draft saved {formatLastSaved(lastSaved)}</SaveStatusText>
+      <span className={clsx(styles.saveStatusText, styles.saveStatusVariants.saved)}>
+        Draft saved {formatLastSaved(lastSaved)}
+      </span>
     );
   }
   if (status === 'error') {
-    return <SaveStatusText $status={status}>Failed to save draft</SaveStatusText>;
+    return (
+      <span className={clsx(styles.saveStatusText, styles.saveStatusVariants.error)}>
+        Failed to save draft
+      </span>
+    );
   }
   return null;
 };
@@ -196,11 +98,11 @@ const ReviewStep: React.FC<{ categories: CategoryGroup[]; answers: Record<string
   categories,
   answers,
 }) => (
-  <ReviewContainer>
-    <ReviewTitle>One last look 👀</ReviewTitle>
-    <ReviewDescription>
+  <div className={styles.reviewContainer}>
+    <h2 className={styles.reviewTitle}>One last look 👀</h2>
+    <p className={styles.reviewDescription}>
       Everything checked? You can pop back to any section to tweak an answer before we send it off.
-    </ReviewDescription>
+    </p>
     {categories.map(({ category, title, questions }) => {
       const answeredQuestions = questions.filter(
         q =>
@@ -212,18 +114,18 @@ const ReviewStep: React.FC<{ categories: CategoryGroup[]; answers: Record<string
         return null;
       }
       return (
-        <ReviewCategory key={category}>
-          <ReviewCategoryTitle>{title}</ReviewCategoryTitle>
+        <div className={styles.reviewCategory} key={category}>
+          <h3 className={styles.reviewCategoryTitle}>{title}</h3>
           {answeredQuestions.map(q => (
-            <ReviewItem key={q.questionId}>
-              <ReviewLabel>{q.questionText}</ReviewLabel>
-              <ReviewValue>{formatAnswerValue(answers[q.questionKey])}</ReviewValue>
-            </ReviewItem>
+            <div className={styles.reviewItem} key={q.questionId}>
+              <span className={styles.reviewLabel}>{q.questionText}</span>
+              <span className={styles.reviewValue}>{formatAnswerValue(answers[q.questionKey])}</span>
+            </div>
           ))}
-        </ReviewCategory>
+        </div>
       );
     })}
-  </ReviewContainer>
+  </div>
 );
 
 export const ApplicationForm: React.FC<ApplicationFormProps> = ({
@@ -241,7 +143,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   saveStatus,
   lastSaved,
 }) => {
-  const totalSteps = categories.length + 1; // categories + review
+  const totalSteps = categories.length + 1;
   const isFirstStep = currentStep === 1;
   const isReviewStep = currentStep === totalSteps;
 
@@ -270,10 +172,10 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   };
 
   return (
-    <FormContainer>
+    <div className={styles.formContainer}>
       {renderStep()}
 
-      <NavigationButtons>
+      <div className={styles.navigationButtons}>
         <div>
           {!isFirstStep && (
             <Button variant='secondary' onClick={onStepBack} disabled={isSubmitting}>
@@ -282,8 +184,8 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         </div>
 
-        <ButtonGroup>
-          <SaveIndicator>
+        <div className={styles.buttonGroup}>
+          <div className={styles.saveIndicator}>
             <SaveStatusMessage status={saveStatus} lastSaved={lastSaved} />
             <Button
               variant='ghost'
@@ -293,7 +195,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
             >
               Save for later
             </Button>
-          </SaveIndicator>
+          </div>
 
           {isReviewStep ? (
             <Button
@@ -309,8 +211,8 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
               Continue →
             </Button>
           )}
-        </ButtonGroup>
-      </NavigationButtons>
-    </FormContainer>
+        </div>
+      </div>
+    </div>
   );
 };

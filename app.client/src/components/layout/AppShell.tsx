@@ -1,35 +1,25 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import styled from 'styled-components';
 import { Footer } from '@adopt-dont-shop/lib.components';
 import { AppNavbar } from '@/components/navigation/AppNavbar';
 import { BottomTabBar } from '@/components/navigation/BottomTabBar';
 import { SwipeOnboarding } from '@/components/onboarding/SwipeOnboarding';
 import { SwipeFloatingButton } from '@/components/ui/SwipeFloatingButton';
-
-const Shell = styled.div`
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-`;
-
-const Main = styled.main`
-  flex: 1;
-`;
+import * as styles from './AppShell.css';
 
 export const AppShell: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(true);
 
   return (
-    <Shell>
+    <div className={styles.shell}>
       <AppNavbar />
-      <Main>
+      <main className={styles.main}>
         <Outlet />
-      </Main>
+      </main>
       <SwipeFloatingButton />
       <BottomTabBar />
       {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
       <Footer />
-    </Shell>
+    </div>
   );
 };
