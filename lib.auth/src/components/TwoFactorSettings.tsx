@@ -1,139 +1,8 @@
 import React, { useState } from 'react';
 import { Alert, Button } from '@adopt-dont-shop/lib.components';
-import styled from 'styled-components';
 import { authService } from '../services/auth-service';
 import { useAuth } from '../hooks/useAuth';
-
-// --- Styled Components ---
-
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const StatusBadge = styled.span<{ $enabled: boolean }>`
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background-color: ${(props) =>
-    props.$enabled
-      ? props.theme?.colors?.semantic?.success?.[100] || '#dcfce7'
-      : props.theme?.colors?.neutral?.[100] || '#f3f4f6'};
-  color: ${(props) =>
-    props.$enabled
-      ? props.theme?.colors?.semantic?.success?.[700] || '#15803d'
-      : props.theme?.colors?.neutral?.[600] || '#4b5563'};
-`;
-
-const SetupStep = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const StepNumber = styled.div`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background-color: ${(props) => props.theme?.colors?.primary?.[500] || '#2563eb'};
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
-  flex-shrink: 0;
-`;
-
-const StepHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: 500;
-  color: ${(props) => props.theme?.text?.primary || '#111827'};
-`;
-
-const QrCodeImage = styled.img`
-  display: block;
-  max-width: 200px;
-  height: auto;
-  border: 1px solid ${(props) => props.theme?.border?.color?.primary || '#e5e7eb'};
-  border-radius: 8px;
-  padding: 0.5rem;
-  background: white;
-`;
-
-const SecretKey = styled.code`
-  display: block;
-  padding: 0.75rem;
-  background: ${(props) => props.theme?.background?.secondary || '#f9fafb'};
-  border: 1px solid ${(props) => props.theme?.border?.color?.primary || '#e5e7eb'};
-  border-radius: 6px;
-  font-size: 0.875rem;
-  letter-spacing: 0.05em;
-  word-break: break-all;
-  user-select: all;
-`;
-
-const TokenInput = styled.input`
-  padding: 0.75rem;
-  border: 1px solid ${(props) => props.theme?.border?.color?.primary || '#e5e7eb'};
-  border-radius: 6px;
-  font-size: 1.25rem;
-  letter-spacing: 0.3em;
-  text-align: center;
-  max-width: 200px;
-  background: ${(props) => props.theme?.background?.primary || '#ffffff'};
-  color: ${(props) => props.theme?.text?.primary || '#111827'};
-
-  &:focus {
-    outline: none;
-    border-color: ${(props) => props.theme?.colors?.primary?.[500] || '#2563eb'};
-    box-shadow: 0 0 0 2px ${(props) => props.theme?.colors?.primary?.[100] || '#dbeafe'};
-  }
-`;
-
-const BackupCodesGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-  max-width: 320px;
-`;
-
-const BackupCode = styled.code`
-  padding: 0.5rem 0.75rem;
-  background: ${(props) => props.theme?.background?.secondary || '#f9fafb'};
-  border: 1px solid ${(props) => props.theme?.border?.color?.primary || '#e5e7eb'};
-  border-radius: 4px;
-  font-size: 0.875rem;
-  text-align: center;
-  letter-spacing: 0.05em;
-`;
-
-const Description = styled.p`
-  font-size: 0.875rem;
-  color: ${(props) => props.theme?.text?.secondary || '#6b7280'};
-  margin: 0;
-  line-height: 1.5;
-`;
-
-const ButtonRow = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-`;
-
-const WarningBox = styled.div`
-  padding: 1rem;
-  background: ${(props) => props.theme?.colors?.semantic?.warning?.[50] || '#fffbeb'};
-  border: 1px solid ${(props) => props.theme?.colors?.semantic?.warning?.[300] || '#fcd34d'};
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: ${(props) => props.theme?.colors?.semantic?.warning?.[800] || '#92400e'};
-`;
+import * as styles from './TwoFactorSettings.css';
 
 // --- Component Types ---
 
@@ -261,36 +130,37 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
   // --- Render: 2FA Enabled State ---
   if (isEnabled && disablePhase === 'idle' && setupPhase !== 'backup-codes') {
     return (
-      <Container>
+      <div className={styles.container}>
         <div>
-          <StatusBadge $enabled>Enabled</StatusBadge>
+          <span className={styles.statusBadge({ enabled: true })}>Enabled</span>
         </div>
-        <Description>
+        <p className={styles.description}>
           Two-factor authentication is active on your account. You will be asked for a verification
           code from your authenticator app each time you sign in.
-        </Description>
+        </p>
         {error && <Alert variant="error">{error}</Alert>}
-        <ButtonRow>
+        <div className={styles.buttonRow}>
           <Button variant="secondary" onClick={handleRegenerateBackupCodes} disabled={isLoading}>
             {isLoading ? 'Generating...' : 'Regenerate Backup Codes'}
           </Button>
           <Button variant="secondary" onClick={() => setDisablePhase('confirming')}>
             Disable 2FA
           </Button>
-        </ButtonRow>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   // --- Render: Disable Confirmation ---
   if (disablePhase === 'confirming') {
     return (
-      <Container>
-        <Description>
+      <div className={styles.container}>
+        <p className={styles.description}>
           Enter a code from your authenticator app to confirm disabling two-factor authentication.
-        </Description>
+        </p>
         {error && <Alert variant="error">{error}</Alert>}
-        <TokenInput
+        <input
+          className={styles.tokenInput}
           type="text"
           inputMode="numeric"
           maxLength={6}
@@ -299,72 +169,75 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
           onChange={(e) => setDisableToken(e.target.value.replace(/\D/g, ''))}
           autoFocus
         />
-        <ButtonRow>
+        <div className={styles.buttonRow}>
           <Button onClick={handleDisable} disabled={isLoading || disableToken.length !== 6}>
             {isLoading ? 'Disabling...' : 'Confirm Disable'}
           </Button>
           <Button variant="secondary" onClick={handleCancelDisable} disabled={isLoading}>
             Cancel
           </Button>
-        </ButtonRow>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   // --- Render: Backup Codes Display ---
   if (setupPhase === 'backup-codes') {
     return (
-      <Container>
+      <div className={styles.container}>
         {isEnabled && (
           <div>
-            <StatusBadge $enabled>Enabled</StatusBadge>
+            <span className={styles.statusBadge({ enabled: true })}>Enabled</span>
           </div>
         )}
-        <WarningBox>
+        <div className={styles.warningBox}>
           Save these backup codes in a safe place. Each code can only be used once. If you lose
           access to your authenticator app, you can use one of these codes to sign in.
-        </WarningBox>
-        <BackupCodesGrid>
+        </div>
+        <div className={styles.backupCodesGrid}>
           {backupCodes.map((code) => (
-            <BackupCode key={code}>{code}</BackupCode>
+            <code className={styles.backupCode} key={code}>
+              {code}
+            </code>
           ))}
-        </BackupCodesGrid>
+        </div>
         <Button onClick={handleFinishSetup}>I have saved my backup codes</Button>
-      </Container>
+      </div>
     );
   }
 
   // --- Render: Setup - Scanning QR Code ---
   if (setupPhase === 'scanning') {
     return (
-      <Container>
+      <div className={styles.container}>
         {error && <Alert variant="error">{error}</Alert>}
 
-        <SetupStep>
-          <StepHeader>
-            <StepNumber>1</StepNumber>
+        <div className={styles.setupStep}>
+          <div className={styles.stepHeader}>
+            <div className={styles.stepNumber}>1</div>
             Scan this QR code with your authenticator app
-          </StepHeader>
-          <Description>
+          </div>
+          <p className={styles.description}>
             Use an app like Google Authenticator, Authy, or Microsoft Authenticator.
-          </Description>
-          <QrCodeImage src={qrCodeDataUrl} alt="2FA QR Code" />
-        </SetupStep>
+          </p>
+          <img className={styles.qrCodeImage} src={qrCodeDataUrl} alt="2FA QR Code" />
+        </div>
 
-        <SetupStep>
-          <StepHeader>
-            <StepNumber>2</StepNumber>
+        <div className={styles.setupStep}>
+          <div className={styles.stepHeader}>
+            <div className={styles.stepNumber}>2</div>
             Or enter this secret key manually
-          </StepHeader>
-          <SecretKey>{secret}</SecretKey>
-        </SetupStep>
+          </div>
+          <code className={styles.secretKey}>{secret}</code>
+        </div>
 
-        <SetupStep>
-          <StepHeader>
-            <StepNumber>3</StepNumber>
+        <div className={styles.setupStep}>
+          <div className={styles.stepHeader}>
+            <div className={styles.stepNumber}>3</div>
             Enter the 6-digit code from your app
-          </StepHeader>
-          <TokenInput
+          </div>
+          <input
+            className={styles.tokenInput}
             type="text"
             inputMode="numeric"
             maxLength={6}
@@ -373,37 +246,37 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
             onChange={(e) => setVerifyToken(e.target.value.replace(/\D/g, ''))}
             autoFocus
           />
-        </SetupStep>
+        </div>
 
-        <ButtonRow>
+        <div className={styles.buttonRow}>
           <Button onClick={handleVerifyAndEnable} disabled={isLoading || verifyToken.length !== 6}>
             {isLoading ? 'Verifying...' : 'Verify and Enable'}
           </Button>
           <Button variant="secondary" onClick={handleCancelSetup} disabled={isLoading}>
             Cancel
           </Button>
-        </ButtonRow>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   // --- Render: Idle / Not Enabled ---
   return (
-    <Container>
+    <div className={styles.container}>
       <div>
-        <StatusBadge $enabled={false}>Disabled</StatusBadge>
+        <span className={styles.statusBadge({ enabled: false })}>Disabled</span>
       </div>
-      <Description>
+      <p className={styles.description}>
         Add an extra layer of security to your account by requiring a verification code from your
         authenticator app when you sign in.
-      </Description>
+      </p>
       {error && <Alert variant="error">{error}</Alert>}
       <div>
         <Button onClick={handleStartSetup} disabled={isLoading}>
           {isLoading ? 'Setting up...' : 'Set Up Two-Factor Authentication'}
         </Button>
       </div>
-    </Container>
+    </div>
   );
 };
 

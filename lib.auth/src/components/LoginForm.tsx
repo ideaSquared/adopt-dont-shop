@@ -1,91 +1,9 @@
 import React, { useState } from 'react';
 import { Alert, Button, Input } from '@adopt-dont-shop/lib.components';
 import { LoginRequestSchema } from '@adopt-dont-shop/lib.validation';
-import styled from 'styled-components';
 import { useAuth } from '../hooks/useAuth';
 import { LoginRequest } from '../types';
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 1rem;
-`;
-
-const HelperText = styled.small`
-  color: ${(props) => props.theme?.text?.secondary || '#6b7280'};
-  margin-top: 0.5rem;
-  display: block;
-  font-size: 0.875rem;
-  line-height: 1.4;
-
-  strong {
-    color: ${(props) => props.theme?.text?.primary || '#374151'};
-  }
-`;
-
-const TwoFactorGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: ${(props) => props.theme?.background?.secondary || '#f9fafb'};
-  border: 1px solid ${(props) => props.theme?.border?.color?.primary || '#e5e7eb'};
-  border-radius: 8px;
-`;
-
-const TwoFactorLabel = styled.div`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: ${(props) => props.theme?.text?.primary || '#374151'};
-`;
-
-const TwoFactorDescription = styled.p`
-  font-size: 0.8rem;
-  color: ${(props) => props.theme?.text?.secondary || '#6b7280'};
-  margin: 0;
-`;
-
-const TokenInput = styled.input`
-  padding: 0.75rem;
-  border: 1px solid ${(props) => props.theme?.border?.color?.primary || '#e5e7eb'};
-  border-radius: 6px;
-  font-size: 1.25rem;
-  letter-spacing: 0.3em;
-  text-align: center;
-  max-width: 200px;
-  background: ${(props) => props.theme?.background?.primary || '#ffffff'};
-  color: ${(props) => props.theme?.text?.primary || '#111827'};
-
-  &:focus {
-    outline: none;
-    border-color: ${(props) => props.theme?.colors?.primary?.[500] || '#2563eb'};
-    box-shadow: 0 0 0 2px ${(props) => props.theme?.colors?.primary?.[100] || '#dbeafe'};
-  }
-`;
-
-const BackLink = styled.button`
-  background: none;
-  border: none;
-  color: ${(props) => props.theme?.colors?.primary?.[500] || '#2563eb'};
-  cursor: pointer;
-  font-size: 0.875rem;
-  padding: 0;
-  text-align: left;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
+import * as styles from './LoginForm.css';
 
 const TWO_FACTOR_REQUIRED_MESSAGE = 'Two-factor authentication code required';
 
@@ -196,12 +114,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   return (
     <>
-      {error && <StyledAlert variant="error">{error}</StyledAlert>}
+      {error && (
+        <Alert variant="error" className={styles.styledAlert}>
+          {error}
+        </Alert>
+      )}
 
-      <Form onSubmit={handleSubmit}>
+      <form className={styles.form} onSubmit={handleSubmit}>
         {!needs2FA ? (
           <>
-            <FormGroup>
+            <div className={styles.formGroup}>
               <Input
                 label="Email Address"
                 type="email"
@@ -212,9 +134,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 error={fieldErrors.email}
                 required
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup}>
               <Input
                 label="Password"
                 type="password"
@@ -242,15 +164,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                   Forgot your password?
                 </a>
               )}
-            </FormGroup>
+            </div>
           </>
         ) : (
-          <TwoFactorGroup>
-            <TwoFactorLabel>Two-Factor Authentication</TwoFactorLabel>
-            <TwoFactorDescription>
+          <div className={styles.twoFactorGroup}>
+            <div className={styles.twoFactorLabel}>Two-Factor Authentication</div>
+            <p className={styles.twoFactorDescription}>
               Enter the 6-digit code from your authenticator app, or a backup code.
-            </TwoFactorDescription>
-            <TokenInput
+            </p>
+            <input
+              className={styles.tokenInput}
               type="text"
               inputMode="numeric"
               maxLength={8}
@@ -259,10 +182,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               onChange={(e) => setTwoFactorToken(e.target.value.replace(/[^a-fA-F0-9]/g, ''))}
               autoFocus
             />
-            <BackLink type="button" onClick={handleBack}>
+            <button className={styles.backLink} type="button" onClick={handleBack}>
               Back to login
-            </BackLink>
-          </TwoFactorGroup>
+            </button>
+          </div>
         )}
 
         <Button
@@ -275,8 +198,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           {isLoading ? 'Signing In...' : needs2FA ? 'Verify' : 'Sign In'}
         </Button>
 
-        {helperText && <HelperText>{helperText}</HelperText>}
-      </Form>
+        {helperText && <small className={styles.helperText}>{helperText}</small>}
+      </form>
     </>
   );
 };

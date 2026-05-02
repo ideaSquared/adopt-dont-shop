@@ -1,111 +1,10 @@
 import React, { useState } from 'react';
 import { Alert, Button, Input } from '@adopt-dont-shop/lib.components';
 import { RegisterRequestSchema } from '@adopt-dont-shop/lib.validation';
-import styled from 'styled-components';
 import { z } from 'zod';
 import { useAuth } from '../hooks/useAuth';
 import { RegisterRequest } from '../types';
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 1rem;
-`;
-
-const PasswordRequirements = styled.div`
-  font-size: 0.8rem;
-  color: ${(props) => props.theme?.text?.secondary || '#6b7280'};
-  margin-top: 0.5rem;
-
-  ul {
-    margin: 0.5rem 0 0 1rem;
-    padding: 0;
-    list-style: none;
-  }
-
-  li {
-    margin-bottom: 0.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: color 0.2s ease;
-
-    .check-icon {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      transition: all 0.2s ease;
-    }
-
-    &.valid {
-      color: #10b981;
-
-      .check-icon {
-        background-color: #10b981;
-        color: white;
-      }
-    }
-
-    &.invalid {
-      color: #ef4444;
-
-      .check-icon {
-        background-color: #e5e7eb;
-        color: #9ca3af;
-      }
-    }
-  }
-`;
-
-const TermsCheckbox = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  margin: 1rem 0;
-
-  input[type='checkbox'] {
-    margin-top: 0.25rem;
-  }
-
-  label {
-    font-size: 0.9rem;
-    color: ${(props) => props.theme?.text?.secondary || '#6b7280'};
-    line-height: 1.4;
-
-    a {
-      color: #667eea;
-      text-decoration: none;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-  }
-`;
+import * as styles from './RegisterForm.css';
 
 // Canonical request schema lives in @adopt-dont-shop/lib.validation. The
 // form layers on UI-only fields (confirmPassword, acceptTerms) that the
@@ -232,11 +131,15 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
   return (
     <>
-      {error && <StyledAlert variant="error">{error}</StyledAlert>}
+      {error && (
+        <Alert variant="error" className={styles.styledAlert}>
+          {error}
+        </Alert>
+      )}
 
-      <Form onSubmit={handleSubmit}>
-        <FormRow>
-          <FormGroup>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <div className={styles.formRow}>
+          <div className={styles.formGroup}>
             <Input
               label="First Name"
               name="firstName"
@@ -246,8 +149,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               error={fieldErrors.firstName}
               required
             />
-          </FormGroup>
-          <FormGroup>
+          </div>
+          <div className={styles.formGroup}>
             <Input
               label="Last Name"
               name="lastName"
@@ -257,10 +160,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               error={fieldErrors.lastName}
               required
             />
-          </FormGroup>
-        </FormRow>
+          </div>
+        </div>
 
-        <FormGroup>
+        <div className={styles.formGroup}>
           <Input
             label="Email Address"
             type="email"
@@ -271,10 +174,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             error={fieldErrors.email}
             required
           />
-        </FormGroup>
+        </div>
 
         {requirePhoneNumber && (
-          <FormGroup>
+          <div className={styles.formGroup}>
             <Input
               label="Phone Number"
               type="tel"
@@ -285,10 +188,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               error={fieldErrors.phoneNumber}
               required={requirePhoneNumber}
             />
-          </FormGroup>
+          </div>
         )}
 
-        <FormGroup>
+        <div className={styles.formGroup}>
           <Input
             label="Password"
             type="password"
@@ -301,21 +204,28 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             required
           />
           {formData.password && !allRequirementsMet && (
-            <PasswordRequirements>
+            <div className={styles.passwordRequirements}>
               <div>Password requirements:</div>
-              <ul>
+              <ul className={styles.passwordRequirementsList}>
                 {passwordRequirements.map((req, index) => (
-                  <li key={index} className={req.valid ? 'valid' : 'invalid'}>
-                    <span className="check-icon">{req.valid && '✓'}</span>
+                  <li
+                    key={index}
+                    className={`${styles.requirementItem} ${req.valid ? styles.requirementItemValid : styles.requirementItemInvalid}`}
+                  >
+                    <span
+                      className={`${styles.checkIcon} ${req.valid ? styles.checkIconValid : styles.checkIconInvalid}`}
+                    >
+                      {req.valid && '✓'}
+                    </span>
                     {req.text}
                   </li>
                 ))}
               </ul>
-            </PasswordRequirements>
+            </div>
           )}
-        </FormGroup>
+        </div>
 
-        <FormGroup>
+        <div className={styles.formGroup}>
           <Input
             label="Confirm Password"
             type="password"
@@ -326,9 +236,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             error={fieldErrors.confirmPassword}
             required
           />
-        </FormGroup>
+        </div>
 
-        <TermsCheckbox>
+        <div className={styles.termsCheckbox}>
           <input
             type="checkbox"
             id="acceptTerms"
@@ -336,7 +246,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             checked={formData.acceptTerms}
             onChange={handleChange}
           />
-          <label htmlFor="acceptTerms">
+          <label className={styles.termsCheckboxLabel} htmlFor="acceptTerms">
             I agree to the{' '}
             <a href={termsUrl} target="_blank" rel="noopener noreferrer">
               Terms of Service
@@ -346,7 +256,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               Privacy Policy
             </a>
           </label>
-        </TermsCheckbox>
+        </div>
         {fieldErrors.acceptTerms && (
           <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '-0.5rem' }}>
             {fieldErrors.acceptTerms}
@@ -376,7 +286,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             {helperText}
           </small>
         )}
-      </Form>
+      </form>
     </>
   );
 };
