@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
-import { ThemeProvider } from 'styled-components';
-import { lightTheme } from '@adopt-dont-shop/lib.components';
+
+import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { AppShell } from '@/components/layout/AppShell';
 
 vi.mock('@adopt-dont-shop/lib.auth', async () => {
@@ -50,7 +50,7 @@ import { ApplicationDetailsPage } from '@/pages/ApplicationDetailsPage';
 
 const renderAt = (path: string) =>
   render(
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route element={<AppShell />}>

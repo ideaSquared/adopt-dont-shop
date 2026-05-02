@@ -1,8 +1,7 @@
 import { render, RenderOptions } from '@testing-library/react';
 import { ReactElement } from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider } from 'styled-components';
-import { lightTheme } from '@adopt-dont-shop/lib.components';
+import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 
 /**
  * All providers wrapper for tests
@@ -14,7 +13,7 @@ type AllProvidersProps = {
 
 const AllProviders = ({ children }: AllProvidersProps) => (
   <BrowserRouter>
-    <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>
+    <ThemeProvider>{children}</ThemeProvider>
   </BrowserRouter>
 );
 

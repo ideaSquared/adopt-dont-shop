@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
-import { ThemeProvider } from 'styled-components';
-import { lightTheme } from '@adopt-dont-shop/lib.components';
+
+import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { AppShell } from './AppShell';
 
 vi.mock('@adopt-dont-shop/lib.auth', async () => {
@@ -42,7 +42,7 @@ vi.mock('@/components/onboarding/SwipeOnboarding', () => ({
 
 const renderShell = () =>
   render(
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider>
       <MemoryRouter initialEntries={['/']}>
         <Routes>
           <Route element={<AppShell />}>
