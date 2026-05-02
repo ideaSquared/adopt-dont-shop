@@ -315,7 +315,6 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
               placeholder="staff@example.com"
               disabled={loading}
               required
-              autoFocus
             />
             {errors.email && <FormError>{errors.email}</FormError>}
             <FormHelp>Enter the email address of the person you want to invite</FormHelp>

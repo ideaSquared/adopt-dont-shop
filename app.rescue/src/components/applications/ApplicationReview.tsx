@@ -983,7 +983,7 @@ type ApplicationData = {
   userName?: string;
   submittedDaysAgo?: number;
   submittedAt?: string;
-  stage?: string;
+  stage?: ApplicationStage;
   references?: ApplicationReference[];
   data?: Record<string, unknown>;
 };
@@ -993,7 +993,8 @@ type ApplicationReference = {
   name?: string;
   relationship?: string;
   phone?: string;
-  status?: string;
+  clinicName?: string;
+  status?: 'pending' | 'contacted' | 'completed' | 'failed';
   notes?: string;
   contacted_at?: string;
   contacted_by?: string;
@@ -1222,16 +1223,19 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   };
 
   // Helper function to safely extract data from both legacy nested and current flat structures
-  const getData = (path: string) => {
-    // Try current flat structure first: application.data.personalInfo
-    const flatPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data);
-    if (flatPath !== undefined) {
-      return flatPath;
-    }
-
-    // Fallback to legacy nested structure: application.data.data.personalInfo
-    const nestedPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data?.data);
-    return nestedPath;
+  const getData = (path: string): unknown => {
+    const keys = path.split('.');
+    const traverse = (start: unknown): unknown => {
+      let current = start;
+      for (const key of keys) {
+        if (current === null || current === undefined || typeof current !== 'object')
+          return undefined;
+        current = (current as Record<string, unknown>)[key];
+      }
+      return current;
+    };
+    const flat = traverse(application?.data);
+    return flat !== undefined ? flat : traverse(application?.data?.['data']);
   };
 
   // Extract references from application data
@@ -1256,9 +1260,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       });
     } else {
       // Fallback: try to get references from nested client data structure
-      const clientRefs = getData('references') || {};
-      const personalRefs = clientRefs.personal || [];
-      const vetRef = clientRefs.veterinarian;
+      const clientRefs = (getData('references') ?? {}) as Record<string, unknown>;
+      const personalRefs = Array.isArray(clientRefs['personal'])
+        ? (clientRefs['personal'] as ApplicationReference[])
+        : [];
+      const vetRef = clientRefs['veterinarian'] as ApplicationReference | undefined;
 
       let referenceIndex = 0;
 
@@ -1300,6 +1306,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     // References found and processed
 
     return allRefs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getData depends only on application, which is already listed
   }, [application]);
 
   const handleReferenceUpdate = async (referenceId: string, status: string, notes: string) => {
@@ -1575,7 +1582,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 Submitted by{' '}
                 {application.applicantName ||
                   application.userName ||
-                  `${application.data?.personalInfo?.firstName || application.data?.data?.personalInfo?.firstName || 'Unknown'} ${application.data?.personalInfo?.lastName || application.data?.data?.personalInfo?.lastName || ''}`.trim() ||
+                  `${(getData('personalInfo.firstName') as string) || 'Unknown'} ${(getData('personalInfo.lastName') as string) || ''}`.trim() ||
                   'Unknown Applicant'}{' '}
                 •{' '}
                 {application.submittedDaysAgo !== undefined
@@ -2103,8 +2110,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 <EmptyVisits>
                   <p>No home visits scheduled yet.</p>
                   <p>
-                    Schedule a home visit to assess the applicant's living situation and suitability
-                    for pet adoption.
+                    Schedule a home visit to assess the applicant&apos;s living situation and
+                    suitability for pet adoption.
                   </p>
                 </EmptyVisits>
               ) : (

@@ -205,8 +205,8 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
     setErrors({});
   }, [pet, isOpen]);
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: string, value: unknown) => {
+    setFormData(prev => ({ ...prev, [field]: value }) as typeof prev);
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -463,7 +463,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
               <select
                 id="goodWithChildren"
                 value={
-                  formData.goodWithChildren == null ? '' : formData.goodWithChildren.toString()
+                  formData.goodWithChildren === null || formData.goodWithChildren === undefined
+                    ? ''
+                    : formData.goodWithChildren.toString()
                 }
                 onChange={e =>
                   handleInputChange(
@@ -482,7 +484,11 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
               <label htmlFor="goodWithDogs">Good with Dogs</label>
               <select
                 id="goodWithDogs"
-                value={formData.goodWithDogs == null ? '' : formData.goodWithDogs.toString()}
+                value={
+                  formData.goodWithDogs === null || formData.goodWithDogs === undefined
+                    ? ''
+                    : formData.goodWithDogs.toString()
+                }
                 onChange={e =>
                   handleInputChange(
                     'goodWithDogs',
@@ -500,7 +506,11 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
               <label htmlFor="goodWithCats">Good with Cats</label>
               <select
                 id="goodWithCats"
-                value={formData.goodWithCats == null ? '' : formData.goodWithCats.toString()}
+                value={
+                  formData.goodWithCats === null || formData.goodWithCats === undefined
+                    ? ''
+                    : formData.goodWithCats.toString()
+                }
                 onChange={e =>
                   handleInputChange(
                     'goodWithCats',
