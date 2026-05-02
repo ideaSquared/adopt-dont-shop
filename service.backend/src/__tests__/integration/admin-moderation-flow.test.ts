@@ -26,7 +26,6 @@ vi.mock('../../sequelize', async importOriginal => {
   };
 });
 
-import { Op } from 'sequelize';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../../models/Report';
 import ReportStatusTransition from '../../models/ReportStatusTransition';
 import ModeratorAction, { ActionType, ActionSeverity } from '../../models/ModeratorAction';
@@ -51,7 +50,7 @@ const MockedReportStatusTransition = ReportStatusTransition as vi.MockedObject<
 >;
 const MockedModeratorAction = ModeratorAction as vi.MockedObject<ModeratorAction>;
 const MockedUser = User as vi.MockedObject<User>;
-const MockedRescue = Rescue as vi.MockedObject<Rescue>;
+const _MockedRescue = Rescue as vi.MockedObject<Rescue>;
 const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
 
 describe('Admin Moderation Workflow Integration Tests', () => {
@@ -322,7 +321,7 @@ describe('Admin Moderation Workflow Integration Tests', () => {
           assignedModerator: undefined,
         });
 
-        const updatedReport = createMockReport({
+        const _updatedReport = createMockReport({
           reportId: 'report-assign',
           status: ReportStatus.UNDER_REVIEW,
           assignedModerator: moderatorId as string | undefined,

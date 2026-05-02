@@ -10,7 +10,6 @@ vi.mock('../../config/env', () => ({
   getDatabaseName: () => 'test_db',
 }));
 
-import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../../models/Application';
 import ApplicationAnswer from '../../models/ApplicationAnswer';
 import ApplicationReferenceModel, {
@@ -18,6 +17,7 @@ import ApplicationReferenceModel, {
 } from '../../models/ApplicationReference';
 import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus, PetType, AgeGroup, Gender } from '../../models/Pet';
+import StaffMember from '../../models/StaffMember';
 import User, { UserStatus, UserType } from '../../models/User';
 import { ApplicationService } from '../../services/application.service';
 import { PetService } from '../../services/pet.service';
@@ -27,7 +27,6 @@ import {
   CreateApplicationRequest,
   ApplicationStatusUpdateRequest,
   ReferenceUpdateRequest,
-  ApplicationReference,
 } from '../../types/application';
 import { JsonObject } from '../../types/common';
 
@@ -37,6 +36,7 @@ vi.mock('../../models/ApplicationAnswer');
 vi.mock('../../models/ApplicationReference');
 vi.mock('../../models/ApplicationStatusTransition');
 vi.mock('../../models/Pet');
+vi.mock('../../models/StaffMember');
 vi.mock('../../models/User');
 vi.mock('../../services/auditLog.service');
 vi.mock('../../services/applicationTimeline.service');
@@ -58,6 +58,7 @@ const MockedApplicationStatusTransition = ApplicationStatusTransition as vi.Mock
   typeof ApplicationStatusTransition
 >;
 const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedStaffMember = StaffMember as vi.MockedObject<typeof StaffMember>;
 const MockedUser = User as vi.MockedObject<User>;
 const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
 const MockedApplicationTimelineService = ApplicationTimelineService as vi.Mocked<
@@ -523,9 +524,13 @@ describe('Application Submission Workflow Integration Tests', () => {
         const mockApplication = createMockApplication({
           applicationId: applicationId,
           userId: adopterId,
+          rescueId: rescueId,
         });
 
         MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication as never);
+        MockedStaffMember.findOne = vi
+          .fn()
+          .mockResolvedValue({ userId: rescueStaffId, rescueId: rescueId });
 
         const result = await ApplicationService.getApplicationById(
           applicationId,
@@ -587,7 +592,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           actionedBy: rescueStaffId,
         };
 
-        const result = await ApplicationService.updateApplicationStatus(
+        const _result = await ApplicationService.updateApplicationStatus(
           applicationId,
           statusUpdate,
           rescueStaffId
@@ -625,7 +630,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           rejectionReason: 'Not suitable for high-energy dog',
         };
 
-        const result = await ApplicationService.updateApplicationStatus(
+        const _result = await ApplicationService.updateApplicationStatus(
           applicationId,
           statusUpdate,
           rescueStaffId
@@ -940,7 +945,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           notes: 'Great fit for our dog!',
         };
 
-        const result = await ApplicationService.updateApplicationStatus(
+        const _result = await ApplicationService.updateApplicationStatus(
           applicationId,
           statusUpdate,
           rescueStaffId
@@ -1064,7 +1069,7 @@ describe('Application Submission Workflow Integration Tests', () => {
           rejectionReason: 'Not suitable living conditions for this pet',
         };
 
-        const result = await ApplicationService.updateApplicationStatus(
+        const _result = await ApplicationService.updateApplicationStatus(
           applicationId,
           statusUpdate,
           rescueStaffId
@@ -1219,7 +1224,7 @@ describe('Application Submission Workflow Integration Tests', () => {
 
         MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
 
-        const result = await ApplicationService.withdrawApplication(applicationId, adopterId);
+        const _result = await ApplicationService.withdrawApplication(applicationId, adopterId);
 
         expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
           expect.objectContaining({

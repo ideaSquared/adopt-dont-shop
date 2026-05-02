@@ -9,7 +9,7 @@ interface ApplicationStageCardProps {
   stage: ApplicationStage;
   availableActions: StageAction[];
   onClick: () => void;
-  onAction: (action: string, data?: any) => void;
+  onAction: (action: string, data?: Record<string, unknown>) => void;
 }
 
 const CardContainer = styled.div`

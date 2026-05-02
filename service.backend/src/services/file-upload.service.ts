@@ -508,40 +508,11 @@ export class FileUploadService {
    * - [ ] Document scanning configuration in deployment docs
    */
   private static async scanForMalware(filePath: string): Promise<boolean> {
-    // TODO: Implement actual malware scanning
-    // For now, return true (safe) but log that scanning is not implemented
-    logger.warn('Malware scanning not yet implemented - file accepted without scan', {
-      filePath,
-    });
-
-    // Example ClamAV integration (commented out until implemented):
-    /*
-    try {
-      const ClamScan = require('clamscan');
-      const clamscan = await new ClamScan().init({
-        clamdscan: {
-          socket: '/var/run/clamav/clamd.ctl',
-          timeout: 60000,
-        },
-      });
-
-      const { isInfected, viruses } = await clamscan.isInfected(filePath);
-
-      if (isInfected) {
-        logger.error('Malware detected in file', { filePath, viruses });
-        return false;
-      }
-
-      logger.info('File passed malware scan', { filePath });
-      return true;
-    } catch (error) {
-      logger.error('Malware scan failed:', error);
-      // Fail-safe: reject file if scan fails
-      return false;
-    }
-    */
-
-    return true; // Placeholder - returns safe by default
+    // AV scanning is not yet integrated. Fail closed: reject all uploads until
+    // a real scanner (e.g. ClamAV) is wired in. Remove this guard and wire up
+    // clamscan.isInfected(filePath) when the scanner is available.
+    logger.error('Malware scanning not implemented — upload rejected (fail-closed)', { filePath });
+    return false;
   }
 
   /**

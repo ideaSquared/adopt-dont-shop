@@ -275,10 +275,12 @@ export class UtilsService {
     };
 
     const chars = charsets[opts.charset];
+    const randomBuffer = new Uint8Array(opts.length);
+    globalThis.crypto.getRandomValues(randomBuffer);
     let id = '';
 
     for (let i = 0; i < opts.length; i++) {
-      id += chars.charAt(Math.floor(Math.random() * chars.length));
+      id += chars.charAt(randomBuffer[i] % chars.length);
     }
 
     if (opts.includeTimestamp) {

@@ -12,6 +12,7 @@ import ApplicationAnswer from '../../models/ApplicationAnswer';
 import ApplicationReferenceModel from '../../models/ApplicationReference';
 import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus } from '../../models/Pet';
+import StaffMember from '../../models/StaffMember';
 import User, { UserType } from '../../models/User';
 import { CreateApplicationRequest, ApplicationStatusUpdateRequest } from '../../types/application';
 
@@ -22,6 +23,7 @@ const MockedApplicationReference = ApplicationReferenceModel as vi.MockedObject<
   typeof ApplicationReferenceModel
 >;
 const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedStaffMember = StaffMember as vi.MockedObject<typeof StaffMember>;
 const MockedUser = User as vi.MockedObject<User>;
 const MockedApplicationStatusTransition = ApplicationStatusTransition as vi.MockedObject<
   typeof ApplicationStatusTransition
@@ -531,6 +533,9 @@ describe('ApplicationService - Business Logic', () => {
       mockApplication.rescueId = mockRescueId;
 
       MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
+      MockedStaffMember.findOne = vi
+        .fn()
+        .mockResolvedValue({ userId: 'rescue-staff-123', rescueId: mockRescueId });
 
       // When: Rescue staff views application
       const result = await ApplicationService.getApplicationById(

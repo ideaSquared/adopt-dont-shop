@@ -23,6 +23,14 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
+const ACCESS_TOKEN_COOKIE = 'accessToken';
+const ACCESS_TOKEN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  maxAge: 15 * 60 * 1000, // 15 minutes
+};
+
 export const authValidation = {
   register: validateBody(RegisterRequestSchema),
   login: validateBody(LoginRequestSchema),
@@ -55,8 +63,9 @@ export class AuthController {
       const result = await AuthService.register(req.body);
 
       res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+      res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
 
-      const { refreshToken: _, ...responseBody } = result;
+      const { refreshToken: _, token: __, ...responseBody } = result;
       res.status(201).json(responseBody);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -79,8 +88,9 @@ export class AuthController {
       const result = await AuthService.login(req.body);
 
       res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+      res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
 
-      const { refreshToken: _, ...responseBody } = result;
+      const { refreshToken: _, token: __, ...responseBody } = result;
       res.json(responseBody);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -114,6 +124,11 @@ export class AuthController {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
       });
+      res.clearCookie(ACCESS_TOKEN_COOKIE, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+      });
 
       res.json({ message: 'Logged out successfully' });
     } catch (error) {
@@ -137,8 +152,9 @@ export class AuthController {
       const result = await AuthService.refreshToken(refreshToken);
 
       res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+      res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
 
-      const { refreshToken: _, ...responseBody } = result;
+      const { refreshToken: _, token: __, ...responseBody } = result;
       res.json(responseBody);
     } catch (error) {
       logger.error('Token refresh failed:', error);

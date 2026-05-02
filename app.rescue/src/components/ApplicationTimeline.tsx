@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { formatDateTime } from '@adopt-dont-shop/lib.utils';
 
 // Timeline Event Types (matching backend)
+// eslint-disable-next-line react-refresh/only-export-components
 export enum TimelineEventType {
   STAGE_CHANGE = 'stage_change',
   STATUS_UPDATE = 'status_update',
@@ -34,7 +35,7 @@ export interface TimelineEvent {
   event_type: TimelineEventType;
   title: string;
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_by?: string;
   created_by_system?: boolean;
   created_at: string;

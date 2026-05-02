@@ -4,6 +4,7 @@
  * Part of Phase 3 - Message Broker Integration
  */
 
+import { randomBytes } from 'crypto';
 import { logger } from '../utils/logger';
 
 export interface BrokerMessage {
@@ -47,8 +48,7 @@ class MessageBroker {
 
   constructor(config: MessageBrokerConfig = {}) {
     this.config = config;
-    this.serverId =
-      config.serverId || `server-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.serverId = config.serverId || `server-${Date.now()}-${randomBytes(5).toString('hex')}`;
   }
 
   /**

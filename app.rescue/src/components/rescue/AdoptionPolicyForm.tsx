@@ -154,11 +154,11 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
     }
   }, [policy]);
 
-  const handleChange = (field: keyof AdoptionPolicy, value: any) => {
+  const handleChange = (field: keyof AdoptionPolicy, value: unknown) => {
     setHasChanges(true);
     setSuccessMessage(null);
     setErrorMessage(null);
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({ ...prev, [field]: value }) as AdoptionPolicy);
   };
 
   const handleFeeChange = (type: 'min' | 'max', value: string) => {

@@ -305,13 +305,17 @@ export class ApplicationService {
       }
 
       // Check permissions
-      if (userId && userType !== UserType.ADMIN) {
-        // Users can only see their own applications
-        // Rescue staff can see applications for their rescue
+      if (userId && userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
         if (userType === UserType.ADOPTER && application.userId !== userId) {
           throw new Error('Access denied');
         }
-        // Additional rescue staff permission check would go here
+        if (userType === UserType.RESCUE_STAFF) {
+          const StaffMember = (await import('../models/StaffMember')).default;
+          const membership = await StaffMember.findOne({ where: { userId } });
+          if (!membership || membership.rescueId !== application.rescueId) {
+            throw new Error('Access denied');
+          }
+        }
       }
 
       const answerRows = (application as Application & { Answers?: ApplicationAnswer[] }).Answers;

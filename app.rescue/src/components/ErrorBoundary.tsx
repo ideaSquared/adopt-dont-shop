@@ -182,7 +182,8 @@ class ErrorBoundary extends Component<Props, State> {
             <ErrorTitle>Oops! Something went wrong</ErrorTitle>
 
             <ErrorMessage>
-              We're sorry, but something unexpected happened. Don't worry, your data is safe.
+              We&apos;re sorry, but something unexpected happened. Don&apos;t worry, your data is
+              safe.
             </ErrorMessage>
 
             <ButtonContainer>

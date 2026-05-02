@@ -975,8 +975,33 @@ const VisitDetailsHeader = styled.div`
   }
 `;
 
+type ApplicationData = {
+  id: string;
+  status: string;
+  petName?: string;
+  applicantName?: string;
+  userName?: string;
+  submittedDaysAgo?: number;
+  submittedAt?: string;
+  stage?: ApplicationStage;
+  references?: ApplicationReference[];
+  data?: Record<string, unknown>;
+};
+
+type ApplicationReference = {
+  id?: string;
+  name?: string;
+  relationship?: string;
+  phone?: string;
+  clinicName?: string;
+  status?: 'pending' | 'contacted' | 'completed' | 'failed';
+  notes?: string;
+  contacted_at?: string;
+  contacted_by?: string;
+};
+
 interface ApplicationReviewProps {
-  application: any;
+  application: ApplicationData;
   references: ReferenceCheck[];
   homeVisits: HomeVisit[];
   timeline: ApplicationTimeline[];
@@ -992,9 +1017,9 @@ interface ApplicationReviewProps {
     assignedStaff: string;
     notes?: string;
   }) => void;
-  onUpdateVisit: (visitId: string, updateData: any) => void;
-  onAddTimelineEvent: (event: string, description: string, data?: any) => void;
-  onRefresh?: () => void; // Optional refresh function to update application data
+  onUpdateVisit: (visitId: string, updateData: Record<string, unknown>) => void;
+  onAddTimelineEvent: (event: string, description: string, data?: Record<string, unknown>) => void;
+  onRefresh?: () => void;
 }
 
 const ApplicationReview: React.FC<ApplicationReviewProps> = ({
@@ -1198,16 +1223,25 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   };
 
   // Helper function to safely extract data from both legacy nested and current flat structures
-  const getData = (path: string) => {
-    // Try current flat structure first: application.data.personalInfo
-    const flatPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data);
-    if (flatPath !== undefined) {
-      return flatPath;
-    }
+  const getData = (path: string): unknown => {
+    const keys = path.split('.');
+    const traverse = (start: unknown): unknown => {
+      let current = start;
+      for (const key of keys) {
+        if (current === null || current === undefined || typeof current !== 'object')
+          return undefined;
+        current = (current as Record<string, unknown>)[key];
+      }
+      return current;
+    };
+    const flat = traverse(application?.data);
+    return flat !== undefined ? flat : traverse(application?.data?.['data']);
+  };
 
-    // Fallback to legacy nested structure: application.data.data.personalInfo
-    const nestedPath = path.split('.').reduce((obj, key) => obj?.[key], application?.data?.data);
-    return nestedPath;
+  const getStr = (path: string): string => (getData(path) as string | null | undefined) ?? '';
+  const getArr = (path: string): unknown[] => {
+    const val = getData(path);
+    return Array.isArray(val) ? val : [];
   };
 
   // Extract references from application data
@@ -1217,12 +1251,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     // First, try to get references from the main references array (backend format)
     const directReferences = application?.references || [];
     if (Array.isArray(directReferences) && directReferences.length > 0) {
-      directReferences.forEach((ref: any, index: number) => {
+      directReferences.forEach((ref: ApplicationReference, index: number) => {
         allRefs.push({
           id: ref.id || `ref-${index}`, // Use the reference ID if available, fallback to index-based ID
           applicationId: application.id,
           type: ref.relationship?.toLowerCase().includes('vet') ? 'veterinarian' : 'personal',
-          contactName: ref.name,
+          contactName: ref.name ?? '',
           contactInfo: `${ref.phone} - ${ref.relationship}`,
           status: ref.status || 'pending',
           notes: ref.notes || '',
@@ -1232,9 +1266,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       });
     } else {
       // Fallback: try to get references from nested client data structure
-      const clientRefs = getData('references') || {};
-      const personalRefs = clientRefs.personal || [];
-      const vetRef = clientRefs.veterinarian;
+      const clientRefs = (getData('references') ?? {}) as Record<string, unknown>;
+      const personalRefs = Array.isArray(clientRefs['personal'])
+        ? (clientRefs['personal'] as ApplicationReference[])
+        : [];
+      const vetRef = clientRefs['veterinarian'] as ApplicationReference | undefined;
 
       let referenceIndex = 0;
 
@@ -1255,7 +1291,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
 
       // Add personal references
-      personalRefs.forEach((ref: any) => {
+      personalRefs.forEach((ref: ApplicationReference) => {
         if (ref.name) {
           allRefs.push({
             id: `ref-${referenceIndex}`,
@@ -1276,6 +1312,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     // References found and processed
 
     return allRefs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getData depends only on application, which is already listed
   }, [application]);
 
   const handleReferenceUpdate = async (referenceId: string, status: string, notes: string) => {
@@ -1402,7 +1439,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   const handleCompleteVisit = async (visitId: string) => {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         status: 'completed',
         outcome: completeForm.outcome,
         notes: completeForm.notes,
@@ -1551,7 +1588,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 Submitted by{' '}
                 {application.applicantName ||
                   application.userName ||
-                  `${application.data?.personalInfo?.firstName || application.data?.data?.personalInfo?.firstName || 'Unknown'} ${application.data?.personalInfo?.lastName || application.data?.data?.personalInfo?.lastName || ''}`.trim() ||
+                  `${getStr('personalInfo.firstName') || 'Unknown'} ${getStr('personalInfo.lastName') || ''}`.trim() ||
                   'Unknown Applicant'}{' '}
                 •{' '}
                 {application.submittedDaysAgo !== undefined
@@ -1662,33 +1699,33 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Name</FieldLabel>
                     <FieldValue>
-                      {getData('personalInfo.firstName') || 'N/A'}{' '}
-                      {getData('personalInfo.lastName') || ''}
+                      {getStr('personalInfo.firstName') || 'N/A'}{' '}
+                      {getStr('personalInfo.lastName') || ''}
                     </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Email</FieldLabel>
-                    <FieldValue>{getData('personalInfo.email') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('personalInfo.email') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Phone</FieldLabel>
-                    <FieldValue>{getData('personalInfo.phone') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('personalInfo.phone') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Address</FieldLabel>
                     <FieldValue>
-                      {getData('personalInfo.address') || 'N/A'}
+                      {getStr('personalInfo.address') || 'N/A'}
                       <br />
-                      {getData('personalInfo.city') || 'N/A'},{' '}
-                      {getData('personalInfo.state') || 'N/A'}{' '}
-                      {getData('personalInfo.zipCode') || 'N/A'}
+                      {getStr('personalInfo.city') || 'N/A'},{' '}
+                      {getStr('personalInfo.state') || 'N/A'}{' '}
+                      {getStr('personalInfo.zipCode') || 'N/A'}
                     </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Date of Birth</FieldLabel>
                     <FieldValue>
-                      {getData('personalInfo.dateOfBirth')
-                        ? new Date(getData('personalInfo.dateOfBirth')).toLocaleDateString()
+                      {getStr('personalInfo.dateOfBirth')
+                        ? new Date(getStr('personalInfo.dateOfBirth')).toLocaleDateString()
                         : 'N/A'}
                     </FieldValue>
                   </Field>
@@ -1698,11 +1735,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <CardTitle>Household</CardTitle>
                   <Field>
                     <FieldLabel>Household Size</FieldLabel>
-                    <FieldValue>{getData('livingsituation.householdSize') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('livingsituation.householdSize') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Housing Type</FieldLabel>
-                    <FieldValue>{getData('livingsituation.housingType') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('livingsituation.housingType') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Own/Rent</FieldLabel>
@@ -1721,7 +1758,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Household Members</FieldLabel>
                     <FieldValue>
-                      {getData('answers.household_members')?.length || 0} members
+                      {getArr('answers.household_members').length || 0} members
                     </FieldValue>
                   </Field>
                 </Card>
@@ -1735,7 +1772,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <CardTitle>Experience & Preferences</CardTitle>
                   <Field>
                     <FieldLabel>Experience Level</FieldLabel>
-                    <FieldValue>{getData('petExperience.experienceLevel') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('petExperience.experienceLevel') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Willing to Train</FieldLabel>
@@ -1745,11 +1782,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   </Field>
                   <Field>
                     <FieldLabel>Hours Alone Daily</FieldLabel>
-                    <FieldValue>{getData('petExperience.hoursAloneDaily') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('petExperience.hoursAloneDaily') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Exercise Plans</FieldLabel>
-                    <FieldValue>{getData('petExperience.exercisePlans') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('petExperience.exercisePlans') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Currently Has Pets</FieldLabel>
@@ -1764,18 +1801,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Veterinarian</FieldLabel>
                     <FieldValue>
-                      {getData('references.veterinarian.name') || 'N/A'}
-                      {getData('references.veterinarian.clinicName') &&
-                        ` - ${getData('references.veterinarian.clinicName')}`}
+                      {getStr('references.veterinarian.name') || 'N/A'}
+                      {getStr('references.veterinarian.clinicName') &&
+                        ` - ${getStr('references.veterinarian.clinicName')}`}
                     </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Vet Phone</FieldLabel>
-                    <FieldValue>{getData('references.veterinarian.phone') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('references.veterinarian.phone') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Personal References</FieldLabel>
-                    <FieldValue>{getData('references.personal')?.length || 0} provided</FieldValue>
+                    <FieldValue>{getArr('references.personal').length || 0} provided</FieldValue>
                   </Field>
                 </Card>
               </Grid>
@@ -1789,13 +1826,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <FieldVertical>
                     <FieldLabel>Why Adopt</FieldLabel>
                     <FieldValueFullWidth>
-                      {getData('answers.why_adopt') || 'N/A'}
+                      {getStr('answers.why_adopt') || 'N/A'}
                     </FieldValueFullWidth>
                   </FieldVertical>
                   <FieldVertical>
                     <FieldLabel>Exercise Plan</FieldLabel>
                     <FieldValueFullWidth>
-                      {getData('answers.exercise_plan') || 'N/A'}
+                      {getStr('answers.exercise_plan') || 'N/A'}
                     </FieldValueFullWidth>
                   </FieldVertical>
                 </Card>
@@ -1804,7 +1841,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <CardTitle>Home Details</CardTitle>
                   <Field>
                     <FieldLabel>Yard Size</FieldLabel>
-                    <FieldValue>{getData('answers.yard_size') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('answers.yard_size') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Yard Fenced</FieldLabel>
@@ -1812,21 +1849,28 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   </Field>
                   <Field>
                     <FieldLabel>Hours Pet Alone</FieldLabel>
-                    <FieldValue>{getData('answers.hours_alone') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('answers.hours_alone') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Current Pets</FieldLabel>
-                    <FieldValue>{getData('answers.current_pets')?.length || 0} pets</FieldValue>
+                    <FieldValue>{getArr('answers.current_pets').length || 0} pets</FieldValue>
                   </Field>
                 </Card>
               </Grid>
             </Section>
 
-            {getData('answers.previous_pets')?.length > 0 && (
+            {getArr('answers.previous_pets').length > 0 && (
               <Section>
                 <SectionTitle>Previous Pet Experience</SectionTitle>
                 <Grid>
-                  {getData('answers.previous_pets').map((pet: any, index: number) => (
+                  {(
+                    getArr('answers.previous_pets') as Array<{
+                      type?: string;
+                      breed?: string;
+                      years_owned?: string;
+                      what_happened?: string;
+                    }>
+                  ).map((pet, index) => (
                     <Card key={index}>
                       <CardTitle>Previous Pet #{index + 1}</CardTitle>
                       <Field>
@@ -2073,8 +2117,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 <EmptyVisits>
                   <p>No home visits scheduled yet.</p>
                   <p>
-                    Schedule a home visit to assess the applicant's living situation and suitability
-                    for pet adoption.
+                    Schedule a home visit to assess the applicant&apos;s living situation and
+                    suitability for pet adoption.
                   </p>
                 </EmptyVisits>
               ) : (

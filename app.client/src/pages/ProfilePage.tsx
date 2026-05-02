@@ -321,20 +321,6 @@ export const ProfilePage: React.FC = () => {
     try {
       setError(null);
 
-      // In dev mode, check if using dev token before calling API
-      if (import.meta.env.DEV) {
-        const token = localStorage.getItem('accessToken');
-        if (token?.startsWith('dev-token-')) {
-          // Clear dev mode data
-          localStorage.removeItem('dev_user');
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user_settings');
-          navigate('/');
-          return;
-        }
-      }
-
       // Call the API to delete account
       await authService.deleteAccount('User requested account deletion');
 
