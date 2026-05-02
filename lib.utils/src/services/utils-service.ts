@@ -1,4 +1,3 @@
-import { randomBytes } from 'crypto';
 import {
   UtilsServiceConfig,
   DateFormatOptions,
@@ -276,7 +275,8 @@ export class UtilsService {
     };
 
     const chars = charsets[opts.charset];
-    const randomBuffer = randomBytes(opts.length);
+    const randomBuffer = new Uint8Array(opts.length);
+    globalThis.crypto.getRandomValues(randomBuffer);
     let id = '';
 
     for (let i = 0; i < opts.length; i++) {
