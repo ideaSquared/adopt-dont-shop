@@ -1,8 +1,6 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme } from '../../../styles/theme';
 import ImageGallery from './ImageGallery';
 
 describe('ImageGallery Component', () => {
@@ -12,9 +10,7 @@ describe('ImageGallery Component', () => {
     'https://via.placeholder.com/150/FF0000',
   ];
 
-  const renderWithTheme = (ui: React.ReactElement) => {
-    return render(<StyledThemeProvider theme={lightTheme}>{ui}</StyledThemeProvider>);
-  };
+  const renderWithTheme = (ui: React.ReactElement) => render(ui);
 
   it('renders images correctly in gallery view', () => {
     renderWithTheme(<ImageGallery images={initialImages} viewMode='gallery' />);

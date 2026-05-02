@@ -1,13 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme as theme } from '../../../styles/theme';
 import GenericFilters, { FilterConfig } from './FilterPanel';
 
 describe('GenericFilters Component', () => {
-  const renderWithTheme = (ui: React.ReactElement) => {
-    return render(<StyledThemeProvider theme={theme}>{ui}</StyledThemeProvider>);
-  };
+  const renderWithTheme = (ui: React.ReactElement) => render(ui);
 
   const mockOnFilterChange = jest.fn();
 

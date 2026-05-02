@@ -1,13 +1,9 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme } from '../../../styles/theme';
 import { EmptyState } from './EmptyState';
 
-const renderWithTheme = (component: React.ReactElement) => {
-  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
-};
+const renderWithTheme = (component: React.ReactElement) => render(component);
 
 describe('EmptyState', () => {
   it('renders correctly with basic props', () => {
@@ -117,19 +113,11 @@ describe('EmptyState', () => {
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
 
-    rerender(
-      <StyledThemeProvider theme={lightTheme}>
-        <EmptyState title='Medium' size='md' data-testid='empty-state' />
-      </StyledThemeProvider>
-    );
+    rerender(<EmptyState title='Medium' size='md' data-testid='empty-state' />);
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
 
-    rerender(
-      <StyledThemeProvider theme={lightTheme}>
-        <EmptyState title='Large' size='lg' data-testid='empty-state' />
-      </StyledThemeProvider>
-    );
+    rerender(<EmptyState title='Large' size='lg' data-testid='empty-state' />);
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
   });

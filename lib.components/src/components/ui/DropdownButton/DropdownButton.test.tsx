@@ -1,8 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme } from '../../../styles/theme';
 
 // Create comprehensive mocks for Radix UI components
 const mockRadixUI = {
@@ -98,9 +96,7 @@ jest.mock('@radix-ui/react-dropdown-menu', () => mockRadixUI);
 // Import the component after mocking
 import { DropdownButton } from './DropdownButton';
 
-const renderWithTheme = (component: React.ReactElement) => {
-  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
-};
+const renderWithTheme = (component: React.ReactElement) => render(component);
 
 describe('DropdownButton', () => {
   const mockOnClick = jest.fn();

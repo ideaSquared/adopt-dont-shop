@@ -1,12 +1,9 @@
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme } from '../../../styles/theme';
 import ListGroup from './ListGroup';
 
-const renderWithTheme = (component: React.ReactElement) =>
-  render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
+const renderWithTheme = (component: React.ReactElement) => render(component);
 
 describe('ListGroup', () => {
   it('renders correctly with items', () => {

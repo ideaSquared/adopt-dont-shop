@@ -1,12 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
-import { lightTheme } from '../../../styles/theme';
 import { FileUpload } from './FileUpload';
 
-const renderWithTheme = (component: React.ReactElement) => {
-  return render(<StyledThemeProvider theme={lightTheme}>{component}</StyledThemeProvider>);
-};
+const renderWithTheme = (component: React.ReactElement) => render(component);
 
 // Mock file for testing
 const createMockFile = (name: string, size: number, type: string) => {
@@ -181,11 +177,7 @@ describe('FileUpload', () => {
 
     expect(screen.getByTestId('file-upload')).toBeInTheDocument();
 
-    rerender(
-      <StyledThemeProvider theme={lightTheme}>
-        <FileUpload size='lg' data-testid='file-upload' />
-      </StyledThemeProvider>
-    );
+    rerender(<FileUpload size='lg' data-testid='file-upload' />);
 
     expect(screen.getByTestId('file-upload')).toBeInTheDocument();
   });
@@ -195,11 +187,7 @@ describe('FileUpload', () => {
 
     expect(screen.getByTestId('file-upload')).toBeInTheDocument();
 
-    rerender(
-      <StyledThemeProvider theme={lightTheme}>
-        <FileUpload state='warning' data-testid='file-upload' />
-      </StyledThemeProvider>
-    );
+    rerender(<FileUpload state='warning' data-testid='file-upload' />);
 
     expect(screen.getByTestId('file-upload')).toBeInTheDocument();
   });
