@@ -69,7 +69,9 @@ const Navigation: React.FC = () => {
             <li key={item.path} className={styles.navItem}>
               <Link
                 to={item.path}
-                className={clsx(styles.navLink({ active: isActive, hasUnread: hasUnread && !isActive }))}
+                className={clsx(
+                  styles.navLink({ active: isActive, hasUnread: hasUnread && !isActive })
+                )}
               >
                 <span className={styles.navIcon}>{item.icon}</span>
                 <span className={styles.navLabel}>{item.label}</span>
@@ -89,7 +91,9 @@ const Navigation: React.FC = () => {
 
       <div className={styles.navFooter}>
         <div className={styles.userInfo}>
-          <div className={styles.userAvatar}>{getUserInitials(user?.firstName, user?.lastName)}</div>
+          <div className={styles.userAvatar}>
+            {getUserInitials(user?.firstName, user?.lastName)}
+          </div>
           <div className={styles.userDetails}>
             <span className={styles.userName}>
               {user?.firstName} {user?.lastName}

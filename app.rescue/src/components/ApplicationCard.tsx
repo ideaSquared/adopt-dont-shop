@@ -70,7 +70,13 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
   };
 
   const statusKey = application.status.toLowerCase() as
-    | 'pending' | 'reviewing' | 'visiting' | 'deciding' | 'approved' | 'rejected' | 'default';
+    | 'pending'
+    | 'reviewing'
+    | 'visiting'
+    | 'deciding'
+    | 'approved'
+    | 'rejected'
+    | 'default';
   const validStatuses = ['pending', 'reviewing', 'visiting', 'deciding', 'approved', 'rejected'];
   const statusVariant = validStatuses.includes(statusKey) ? statusKey : 'default';
 
@@ -82,7 +88,12 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
         <div className={styles.basicInfo}>
           <h3 className={styles.applicantName}>{application.applicant_name}</h3>
           <div className={styles.petName}>Applying for: {application.pet_name}</div>
-          <span className={styles.statusBadge({ status: statusVariant, highPriority: application.priority === 'high' })}>
+          <span
+            className={styles.statusBadge({
+              status: statusVariant,
+              highPriority: application.priority === 'high',
+            })}
+          >
             <div className={styles.priorityIndicator({ priority: priorityKey })} />
             {application.status}
           </span>
@@ -129,7 +140,10 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
         <button className={styles.actionButton({ variant: 'primary' })} onClick={handleViewDetails}>
           View Details
         </button>
-        <button className={styles.actionButton({ variant: 'secondary' })} onClick={handleViewTimeline}>
+        <button
+          className={styles.actionButton({ variant: 'secondary' })}
+          onClick={handleViewTimeline}
+        >
           Timeline ({recentEventCount})
         </button>
       </div>

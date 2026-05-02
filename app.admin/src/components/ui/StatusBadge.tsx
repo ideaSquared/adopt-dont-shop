@@ -10,9 +10,5 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ variant, children, size = 'medium' }) => {
-  return (
-    <span className={styles.badge({ variant, size })}>
-      {children}
-    </span>
-  );
+  return <span className={styles.badge({ variant, size })}>{children}</span>;
 };

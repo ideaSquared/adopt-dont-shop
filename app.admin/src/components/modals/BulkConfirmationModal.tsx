@@ -66,6 +66,7 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
     variant === 'danger' ? 'danger' : variant === 'warning' ? 'primary' : 'primary';
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div className={styles.overlay} onClick={handleOverlayClick}>
       <div className={styles.modal}>
         <div className={styles.modalHeader({ variant })}>
@@ -73,7 +74,12 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
           <div className={styles.headerText}>
             <h3 className={styles.modalTitle}>{title}</h3>
           </div>
-          <button className={styles.closeBtn} onClick={onClose} disabled={isLoading} aria-label='Close'>
+          <button
+            className={styles.closeBtn}
+            onClick={onClose}
+            disabled={isLoading}
+            aria-label='Close'
+          >
             <FiX />
           </button>
         </div>

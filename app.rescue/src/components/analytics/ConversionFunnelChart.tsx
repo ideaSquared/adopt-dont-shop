@@ -82,7 +82,9 @@ const ConversionFunnelChart: React.FC<ConversionFunnelChartProps> = ({ data, loa
                 >
                   {stage.conversionRate.toFixed(1)}%
                 </span>
-                <span className={styles.applicantCount}>{stage.applicationsCount} applications</span>
+                <span className={styles.applicantCount}>
+                  {stage.applicationsCount} applications
+                </span>
               </div>
             </div>
 

@@ -92,7 +92,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       </div>
 
       {onApply && (
-        <button className={styles.applyButton} onClick={onApply}>Apply Filters</button>
+        <button className={styles.applyButton} onClick={onApply}>
+          Apply Filters
+        </button>
       )}
     </div>
   );

@@ -40,7 +40,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
             You don't have permission to access the admin panel. This area is restricted to platform
             administrators only.
           </p>
-          <button className={styles.backButton} onClick={() => (window.location.href = '/')}>Return to Home</button>
+          <button className={styles.backButton} onClick={() => (window.location.href = '/')}>
+            Return to Home
+          </button>
         </div>
       </div>
     );
@@ -58,7 +60,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
               This section requires {requiredRole} privileges. Please contact your system
               administrator if you need access.
             </p>
-            <button className={styles.backButton} onClick={() => window.history.back()}>Go Back</button>
+            <button className={styles.backButton} onClick={() => window.history.back()}>
+              Go Back
+            </button>
           </div>
         </div>
       );

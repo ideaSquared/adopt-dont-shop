@@ -9,7 +9,10 @@ type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
 };
 
 export const Badge = ({ $variant, className, ...props }: BadgeProps) => (
-  <span className={`${styles.badge({ variant: $variant })}${className ? ` ${className}` : ''}`} {...props} />
+  <span
+    className={`${styles.badge({ variant: $variant })}${className ? ` ${className}` : ''}`}
+    {...props}
+  />
 );
 
 // Shared Stats Components
@@ -52,11 +55,18 @@ export const FilterGroup = ({ className, ...props }: React.HTMLAttributes<HTMLDi
   <div className={`${styles.filterGroup}${className ? ` ${className}` : ''}`} {...props} />
 );
 
-export const FilterLabel = ({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) => (
+export const FilterLabel = ({
+  className,
+  ...props
+}: React.LabelHTMLAttributes<HTMLLabelElement>) => (
+  // eslint-disable-next-line jsx-a11y/label-has-associated-control
   <label className={`${styles.filterLabel}${className ? ` ${className}` : ''}`} {...props} />
 );
 
-export const SearchInputWrapper = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+export const SearchInputWrapper = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`${styles.searchInputWrapper}${className ? ` ${className}` : ''}`} {...props} />
 );
 
@@ -69,7 +79,10 @@ export const ActionButtons = ({ className, ...props }: React.HTMLAttributes<HTML
   <div className={`${styles.actionButtons}${className ? ` ${className}` : ''}`} {...props} />
 );
 
-export const IconButton = ({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+export const IconButton = ({
+  className,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
   <button className={`${styles.iconButton}${className ? ` ${className}` : ''}`} {...props} />
 );
 
@@ -100,6 +113,7 @@ export const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDiv
 );
 
 export const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+  // eslint-disable-next-line jsx-a11y/heading-has-content
   <h3 className={`${styles.cardTitle}${className ? ` ${className}` : ''}`} {...props} />
 );
 

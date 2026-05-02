@@ -45,7 +45,11 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({ items, trigger }) => {
 
   return (
     <div className={styles.menuContainer} ref={menuRef}>
-      <button className={styles.triggerButton} onClick={() => setIsOpen(!isOpen)} aria-label='Actions menu'>
+      <button
+        className={styles.triggerButton}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label='Actions menu'
+      >
         {trigger || <FiMoreVertical />}
       </button>
 
@@ -56,7 +60,10 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({ items, trigger }) => {
               <div className={styles.divider} />
             ) : (
               <button
-                className={styles.menuItem({ danger: item.danger ?? false, disabled: item.disabled ?? false })}
+                className={styles.menuItem({
+                  danger: item.danger ?? false,
+                  disabled: item.disabled ?? false,
+                })}
                 onClick={() => handleItemClick(item)}
               >
                 {item.icon}

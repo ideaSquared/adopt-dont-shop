@@ -52,14 +52,24 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
 
       <div className={styles.dropdown({ isOpen })} role='menu' aria-label='Export options'>
         <div className={styles.dropdownHeader}>Export as</div>
-        <button className={styles.formatItem} role='menuitem' onClick={() => handleExport('csv')} data-testid='export-csv'>
+        <button
+          className={styles.formatItem}
+          role='menuitem'
+          onClick={() => handleExport('csv')}
+          data-testid='export-csv'
+        >
           <FiFileText />
           <div className={styles.formatLabel}>
             CSV
             <div className={styles.formatDesc}>Spreadsheet-compatible</div>
           </div>
         </button>
-        <button className={styles.formatItem} role='menuitem' onClick={() => handleExport('pdf')} data-testid='export-pdf'>
+        <button
+          className={styles.formatItem}
+          role='menuitem'
+          onClick={() => handleExport('pdf')}
+          data-testid='export-pdf'
+        >
           <FiFile />
           <div className={styles.formatLabel}>
             PDF

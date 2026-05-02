@@ -58,12 +58,12 @@ const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({ data, loading = f
             </div>
 
             <div className={styles.barsContainer}>
+              <div className={styles.targetBar} style={{ width: `${targetWidth}%` }} />
               <div
-                className={styles.targetBar}
-                style={{ width: `${targetWidth}%` }}
-              />
-              <div
-                className={styles.actualBar({ compliant: isCompliant, active: activeIndex === index })}
+                className={styles.actualBar({
+                  compliant: isCompliant,
+                  active: activeIndex === index,
+                })}
                 style={{ width: `${actualWidth}%` }}
               >
                 <div className={styles.barLabel}>{item.averageHours.toFixed(1)}h</div>

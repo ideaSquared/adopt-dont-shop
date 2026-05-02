@@ -92,7 +92,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
 
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='first_name'>First Name</label>
+            <label className={styles.label} htmlFor='first_name'>
+              First Name
+            </label>
             <Input
               id='first_name'
               type='text'
@@ -103,7 +105,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
           </div>
 
           <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='last_name'>Last Name</label>
+            <label className={styles.label} htmlFor='last_name'>
+              Last Name
+            </label>
             <Input
               id='last_name'
               type='text'
@@ -115,7 +119,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor='email'>Email</label>
+          <label className={styles.label} htmlFor='email'>
+            Email
+          </label>
           <Input
             id='email'
             type='email'
@@ -126,7 +132,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor='phone_number'>Phone Number</label>
+          <label className={styles.label} htmlFor='phone_number'>
+            Phone Number
+          </label>
           <Input
             id='phone_number'
             type='tel'
@@ -137,7 +145,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
 
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='role'>Role</label>
+            <label className={styles.label} htmlFor='role'>
+              Role
+            </label>
             <select
               className={styles.select}
               id='role'
@@ -152,7 +162,9 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
           </div>
 
           <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor='is_active'>Status</label>
+            <label className={styles.label} htmlFor='is_active'>
+              Status
+            </label>
             <select
               className={styles.select}
               id='is_active'

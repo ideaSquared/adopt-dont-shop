@@ -26,7 +26,19 @@ const MetricCard: React.FC<MetricCardProps> = ({
   loading = false,
 }) => {
   return (
-    <div className={styles.card({ clickable: !!onClick })} onClick={onClick}>
+    <div
+      className={styles.card({ clickable: !!onClick })}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? e => {
+              if (e.key === 'Enter' || e.key === ' ') onClick();
+            }
+          : undefined
+      }
+    >
       <div className={styles.header}>
         <div className={styles.title}>{title}</div>
         {icon && <div className={styles.iconContainer}>{icon}</div>}

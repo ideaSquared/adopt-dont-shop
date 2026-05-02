@@ -37,7 +37,12 @@ export const ApplicationProgress: React.FC<ApplicationProgressProps> = ({
                   isClickable ? styles.stepItemClickable : styles.stepItemDefault,
                   isActive && styles.stepItemActiveMobile
                 )}
+                role={isClickable ? 'button' : undefined}
+                tabIndex={isClickable ? 0 : undefined}
                 onClick={() => isClickable && onStepClick(step.id)}
+                onKeyDown={e =>
+                  isClickable && (e.key === 'Enter' || e.key === ' ') && onStepClick(step.id)
+                }
               >
                 <div
                   className={clsx(

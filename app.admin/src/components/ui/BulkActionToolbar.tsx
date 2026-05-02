@@ -57,7 +57,12 @@ export const BulkActionToolbar: React.FC<BulkActionToolbarProps> = ({
         ))}
       </div>
 
-      <button className={styles.clearButton} onClick={onClearSelection} type='button' aria-label='Clear selection'>
+      <button
+        className={styles.clearButton}
+        onClick={onClearSelection}
+        type='button'
+        aria-label='Clear selection'
+      >
         <FiX />
         Clear
       </button>

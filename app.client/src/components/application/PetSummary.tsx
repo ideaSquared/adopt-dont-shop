@@ -66,9 +66,7 @@ export const PetSummary: React.FC<PetSummaryProps> = ({ pet }) => {
 
       <div className={styles.rescueInfo}>
         <h4 className={styles.rescueName}>{pet.rescue?.name || 'Rescue Organization'}</h4>
-        {pet.rescue?.location && (
-          <p className={styles.rescueLocation}>{pet.rescue.location}</p>
-        )}
+        {pet.rescue?.location && <p className={styles.rescueLocation}>{pet.rescue.location}</p>}
       </div>
     </div>
   );

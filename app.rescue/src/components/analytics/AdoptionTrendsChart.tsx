@@ -114,12 +114,7 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
                   x2={chartWidth - padding.right}
                   y2={y}
                 />
-                <text
-                  className={styles.gridLabel}
-                  x={padding.left - 10}
-                  y={y + 4}
-                  textAnchor="end"
-                >
+                <text className={styles.gridLabel} x={padding.left - 10} y={y + 4} textAnchor="end">
                   {value}
                 </text>
               </g>

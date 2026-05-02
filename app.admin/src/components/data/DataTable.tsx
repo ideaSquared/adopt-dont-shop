@@ -121,7 +121,10 @@ export function DataTable<T extends Record<string, unknown>>({
           <thead className={styles.thead}>
             <tr>
               {selectable && (
-                <th className={styles.th({ align: 'center', sortable: false })} style={{ width: '48px' }}>
+                <th
+                  className={styles.th({ align: 'center', sortable: false })}
+                  style={{ width: '48px' }}
+                >
                   <input
                     className={styles.checkbox}
                     type='checkbox'
@@ -133,7 +136,10 @@ export function DataTable<T extends Record<string, unknown>>({
               {columns.map(column => (
                 <th
                   key={column.id}
-                  className={styles.th({ align: column.align ?? 'left', sortable: column.sortable ?? false })}
+                  className={styles.th({
+                    align: column.align ?? 'left',
+                    sortable: column.sortable ?? false,
+                  })}
                   style={{ width: column.width }}
                   onClick={() => column.sortable && handleSort(column.id)}
                 >
@@ -176,7 +182,10 @@ export function DataTable<T extends Record<string, unknown>>({
                     onClick={() => onRowClick && onRowClick(row)}
                   >
                     {selectable && (
-                      <td className={styles.td({ align: 'center' })} onClick={e => e.stopPropagation()}>
+                      <td
+                        className={styles.td({ align: 'center' })}
+                        onClick={e => e.stopPropagation()}
+                      >
                         <input
                           className={styles.checkbox}
                           type='checkbox'

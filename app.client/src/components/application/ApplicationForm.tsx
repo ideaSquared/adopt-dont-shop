@@ -119,7 +119,9 @@ const ReviewStep: React.FC<{ categories: CategoryGroup[]; answers: Record<string
           {answeredQuestions.map(q => (
             <div className={styles.reviewItem} key={q.questionId}>
               <span className={styles.reviewLabel}>{q.questionText}</span>
-              <span className={styles.reviewValue}>{formatAnswerValue(answers[q.questionKey])}</span>
+              <span className={styles.reviewValue}>
+                {formatAnswerValue(answers[q.questionKey])}
+              </span>
             </div>
           ))}
         </div>

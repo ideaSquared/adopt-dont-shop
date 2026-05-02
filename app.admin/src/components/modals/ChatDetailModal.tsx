@@ -278,13 +278,19 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
             const isDeleted = message.content === '[Message deleted]';
             return (
               <div key={message.id} className={styles.messageBubble({ isOwn: false })}>
-                <div className={styles.messageAvatar}>{getInitials(message.senderName || 'Unknown')}</div>
+                <div className={styles.messageAvatar}>
+                  {getInitials(message.senderName || 'Unknown')}
+                </div>
                 <div className={styles.messageContent}>
                   <div className={styles.messageHeader}>
-                    <span className={styles.messageSender}>{message.senderName || 'Unknown User'}</span>
+                    <span className={styles.messageSender}>
+                      {message.senderName || 'Unknown User'}
+                    </span>
                     <span className={styles.messageTime}>{formatTimestamp(message.timestamp)}</span>
                   </div>
-                  <div className={styles.messageBody({ deleted: isDeleted })}>{message.content}</div>
+                  <div className={styles.messageBody({ deleted: isDeleted })}>
+                    {message.content}
+                  </div>
                   {!isDeleted && (
                     <div className={styles.messageActions}>
                       <button
@@ -407,7 +413,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
               <FiMessageSquare />
               Last Message
             </div>
-            <div className={styles.detailValue}>{formatTimestamp(conversation.lastMessage.timestamp || '')}</div>
+            <div className={styles.detailValue}>
+              {formatTimestamp(conversation.lastMessage.timestamp || '')}
+            </div>
           </div>
         )}
       </div>
@@ -416,7 +424,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
 
   const renderModeration = () => {
     if (!chat) {
-      return <LoadingState>Loading moderation info...</LoadingState>;
+      return <div className={styles.loadingState}>Loading moderation info...</div>;
     }
 
     return (
@@ -590,44 +598,56 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size='xl'>
-      <ModalContent>
-        <ChatHeader>
-          <ChatTitle>
+      <div className={styles.modalContent}>
+        <div className={styles.chatHeader}>
+          <div className={styles.chatTitle}>
             <FiMessageSquare />
             Conversation Details
-          </ChatTitle>
+          </div>
           {conversation && (
             <>
-              <ChatId>Chat #{conversation.id.slice(-8)}</ChatId>
+              <span className={styles.chatId}>Chat #{conversation.id.slice(-8)}</span>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {getStatusBadge(conversation.status)}
               </div>
             </>
           )}
-        </ChatHeader>
+        </div>
 
-        <TabBar>
-          <Tab $active={activeTab === 'messages'} onClick={() => setActiveTab('messages')}>
+        <div className={styles.tabBar}>
+          <button
+            className={styles.tab({ active: activeTab === 'messages' })}
+            onClick={() => setActiveTab('messages')}
+          >
             <FiMessageSquare />
             Messages
-          </Tab>
-          <Tab $active={activeTab === 'participants'} onClick={() => setActiveTab('participants')}>
+          </button>
+          <button
+            className={styles.tab({ active: activeTab === 'participants' })}
+            onClick={() => setActiveTab('participants')}
+          >
             <FiUsers />
             Participants
-          </Tab>
-          <Tab $active={activeTab === 'details'} onClick={() => setActiveTab('details')}>
+          </button>
+          <button
+            className={styles.tab({ active: activeTab === 'details' })}
+            onClick={() => setActiveTab('details')}
+          >
             <FiInfo />
             Details
-          </Tab>
-          <Tab $active={activeTab === 'moderation'} onClick={() => setActiveTab('moderation')}>
+          </button>
+          <button
+            className={styles.tab({ active: activeTab === 'moderation' })}
+            onClick={() => setActiveTab('moderation')}
+          >
             <FiAlertTriangle />
             Moderation
-          </Tab>
-        </TabBar>
+          </button>
+        </div>
 
-        <TabContent>
+        <div className={styles.tabContent}>
           {chatLoading ? (
-            <LoadingState>Loading...</LoadingState>
+            <div className={styles.loadingState}>Loading...</div>
           ) : (
             <>
               {activeTab === 'messages' && renderMessages()}
@@ -636,9 +656,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
               {activeTab === 'moderation' && renderModeration()}
             </>
           )}
-        </TabContent>
+        </div>
 
-        <ActionBar>
+        <div className={styles.actionBar}>
           <Button
             variant='secondary'
             leftIcon={<FiArchive />}
@@ -655,26 +675,29 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
               Close
             </Button>
           </div>
-        </ActionBar>
-      </ModalContent>
+        </div>
+      </div>
 
       {showDeleteReasonPrompt && (
-        <DeletePrompt onClick={handleCancelDelete}>
-          <DeletePromptContent onClick={e => e.stopPropagation()}>
-            <DeletePromptTitle>
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <div className={styles.deletePrompt} onClick={handleCancelDelete}>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+          <div className={styles.deletePromptContent} onClick={e => e.stopPropagation()}>
+            <div className={styles.deletePromptTitle}>
               <FiAlertTriangle />
               Delete Message
-            </DeletePromptTitle>
-            <DeletePromptText>
+            </div>
+            <p className={styles.deletePromptText}>
               Are you sure you want to delete this message? This action cannot be undone. You can
               optionally provide a reason for the deletion.
-            </DeletePromptText>
-            <TextArea
+            </p>
+            <textarea
+              className={styles.textArea}
               placeholder='Reason for deletion (optional)...'
               value={deleteReason}
               onChange={e => setDeleteReason(e.target.value)}
             />
-            <DeletePromptActions>
+            <div className={styles.deletePromptActions}>
               <Button variant='secondary' onClick={handleCancelDelete}>
                 Cancel
               </Button>
@@ -685,9 +708,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
               >
                 {deleteMessage.isLoading ? 'Deleting...' : 'Delete Message'}
               </Button>
-            </DeletePromptActions>
-          </DeletePromptContent>
-        </DeletePrompt>
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog {...confirmProps} />

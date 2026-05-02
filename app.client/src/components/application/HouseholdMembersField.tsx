@@ -148,10 +148,7 @@ export const HouseholdMembersField: React.FC<Props> = ({ value, onChange, hasErr
                         value={member.age ?? ''}
                         className={styles.ageInputNarrow}
                         onChange={e =>
-                          updateAge(
-                            member.id,
-                            e.target.value ? Number(e.target.value) : undefined
-                          )
+                          updateAge(member.id, e.target.value ? Number(e.target.value) : undefined)
                         }
                       />
                     </div>
@@ -176,9 +173,7 @@ export const HouseholdMembersField: React.FC<Props> = ({ value, onChange, hasErr
       )}
 
       {members.length === 0 && (
-        <p className={styles.emptyHint}>
-          Tap a button above to add each person in your household
-        </p>
+        <p className={styles.emptyHint}>Tap a button above to add each person in your household</p>
       )}
     </div>
   );

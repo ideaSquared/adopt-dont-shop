@@ -2,13 +2,7 @@ import React, { useState } from 'react';
 import * as styles from './UserActionsMenu.css';
 import { ActionMenu, type ActionMenuItem } from '../ui/ActionMenu';
 import type { AdminUser } from '@/types';
-import {
-  FiCheckCircle,
-  FiLock,
-  FiUnlock,
-  FiTrash2,
-  FiShield,
-} from 'react-icons/fi';
+import { FiCheckCircle, FiLock, FiUnlock, FiTrash2, FiShield } from 'react-icons/fi';
 import { Modal, Button } from '@adopt-dont-shop/lib.components';
 
 type UserActionsMenuProps = {

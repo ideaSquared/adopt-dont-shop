@@ -93,7 +93,9 @@ export const TimelineWidget: React.FC<TimelineWidgetProps> = ({
       <div className={styles.widgetHeader}>
         <h4 className={styles.widgetTitle}>Recent Activity</h4>
         {showViewAll && onViewAll && (hasMoreEvents || events.length > 0) && (
-          <button className={styles.viewAllButton} onClick={onViewAll}>View All ({events.length})</button>
+          <button className={styles.viewAllButton} onClick={onViewAll}>
+            View All ({events.length})
+          </button>
         )}
       </div>
 
@@ -113,7 +115,9 @@ export const TimelineWidget: React.FC<TimelineWidgetProps> = ({
             </div>
 
             {event.created_by_system && (
-              <span className={styles.systemIndicator} title="Automated event">🤖</span>
+              <span className={styles.systemIndicator} title="Automated event">
+                🤖
+              </span>
             )}
           </div>
         ))}

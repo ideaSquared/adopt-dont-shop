@@ -55,7 +55,10 @@ export const SkeletonTableRow: React.FC<SkeletonTableRowProps> = ({
   <tr aria-hidden='true' data-testid='skeleton-row'>
     {hasCheckbox && (
       <td style={{ padding: '1rem' }}>
-        <div className={styles.skeletonBase} style={{ width: '1rem', height: '1rem', borderRadius: '2px' }} />
+        <div
+          className={styles.skeletonBase}
+          style={{ width: '1rem', height: '1rem', borderRadius: '2px' }}
+        />
       </td>
     )}
     {Array.from({ length: columnCount }, (_, i) => (
@@ -81,7 +84,11 @@ export const SkeletonTableRow: React.FC<SkeletonTableRowProps> = ({
           ) : (
             <div
               className={styles.skeletonBase}
-              style={{ height: '0.875rem', width: i % 3 === 0 ? '60%' : '80%', borderRadius: '4px' }}
+              style={{
+                height: '0.875rem',
+                width: i % 3 === 0 ? '60%' : '80%',
+                borderRadius: '4px',
+              }}
             />
           )}
         </div>

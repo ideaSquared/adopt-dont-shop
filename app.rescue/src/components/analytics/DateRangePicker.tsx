@@ -142,8 +142,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
         <div className={styles.customSection}>
           <div className={styles.dateInputs}>
             <div className={styles.dateInputGroup}>
-              <label className={styles.label}>Start Date</label>
+              <label className={styles.label} htmlFor="date-range-start">
+                Start Date
+              </label>
               <input
+                id="date-range-start"
                 className={styles.dateInput}
                 type="date"
                 value={customStart}
@@ -152,8 +155,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({
             </div>
 
             <div className={styles.dateInputGroup}>
-              <label className={styles.label}>End Date</label>
+              <label className={styles.label} htmlFor="date-range-end">
+                End Date
+              </label>
               <input
+                id="date-range-end"
                 className={styles.dateInput}
                 type="date"
                 value={customEnd}
