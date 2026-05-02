@@ -1141,6 +1141,43 @@ class ModerationService {
       pagination: result.pagination,
     };
   }
+
+  async getFlaggedMessages(options: {
+    severity?: string;
+    moderationStatus?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    messages: import('../models/Message').Message[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const { Op } = await import('sequelize');
+    const { default: Message } = await import('../models/Message');
+    const { page = 1, limit = 20, severity, moderationStatus } = options;
+
+    const where: Record<string, unknown> = { is_flagged: true };
+
+    if (severity) {
+      where['flag_severity'] = severity;
+    }
+    if (moderationStatus) {
+      where['moderation_status'] = moderationStatus;
+    } else {
+      where['moderation_status'] = { [Op.ne]: 'rejected' };
+    }
+
+    const { rows: messages, count: total } = await Message.findAndCountAll({
+      where,
+      order: [['flagged_at', 'DESC']],
+      limit,
+      offset: (page - 1) * limit,
+    });
+
+    return {
+      messages,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  }
 }
 
 export default new ModerationService();
