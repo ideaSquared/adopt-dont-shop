@@ -97,7 +97,10 @@ describe('AuthService', () => {
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/login', credentials);
       // Access token stored in sessionStorage (not localStorage)
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN, 'mock-token');
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.AUTH_TOKEN,
+        'mock-token'
+      );
       expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
         STORAGE_KEYS.ACCESS_TOKEN,
         'mock-token'
@@ -108,10 +111,7 @@ describe('AuthService', () => {
         JSON.stringify(mockUser)
       );
       // Refresh token NOT stored in localStorage (it's an httpOnly cookie)
-      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(
-        'refreshToken',
-        expect.any(String)
-      );
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith('refreshToken', expect.any(String));
       expect(result).toEqual({ ...mockAuthResponse, accessToken: 'mock-token' });
     });
 
@@ -143,7 +143,10 @@ describe('AuthService', () => {
       const result = await authService.register(userData);
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/register', userData);
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN, 'mock-token');
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.AUTH_TOKEN,
+        'mock-token'
+      );
       // Refresh token NOT stored locally
       expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith('refreshToken', expect.any(String));
       expect(result).toEqual({ ...mockAuthResponse, accessToken: 'mock-token' });
@@ -243,7 +246,10 @@ describe('AuthService', () => {
       authService.setToken('new-token');
 
       expect(mockSessionStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN, 'new-token');
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN, 'new-token');
+      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.ACCESS_TOKEN,
+        'new-token'
+      );
     });
   });
 

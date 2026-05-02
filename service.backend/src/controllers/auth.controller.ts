@@ -23,7 +23,6 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
-
 export const authValidation = {
   register: validateBody(RegisterRequestSchema),
   login: validateBody(LoginRequestSchema),
