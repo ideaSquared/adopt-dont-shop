@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import clsx from 'clsx';
 import { useAuth, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { apiService, rescueService } from '../services/libraryServices';
@@ -9,127 +9,7 @@ import AdoptionPolicyForm from '../components/rescue/AdoptionPolicyForm';
 import NotificationPreferencesForm from '../components/rescue/NotificationPreferencesForm';
 import QuestionsBuilder from '../components/rescue/QuestionsBuilder';
 import type { RescueProfile, AdoptionPolicy } from '../types/rescue';
-
-const PageContainer = styled.div`
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-`;
-
-const PageHeader = styled.div`
-  margin-bottom: 2rem;
-
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 0 0 0.5rem 0;
-  }
-
-  p {
-    font-size: 1.1rem;
-    color: #6b7280;
-    margin: 0;
-  }
-`;
-
-const TabContainer = styled.div`
-  border-bottom: 2px solid #e5e7eb;
-  margin-bottom: 2rem;
-`;
-
-const TabList = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-  padding: 1rem 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border: none;
-  background: none;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  color: ${props => (props.$active ? '#3b82f6' : '#6b7280')};
-  border-bottom-color: ${props => (props.$active ? '#3b82f6' : 'transparent')};
-  transition: all 0.2s;
-  position: relative;
-  bottom: -2px;
-
-  &:hover {
-    color: #3b82f6;
-  }
-`;
-
-const TabPanel = styled.div<{ $active: boolean }>`
-  display: ${props => (props.$active ? 'block' : 'none')};
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 400px;
-  font-size: 1.125rem;
-  color: #6b7280;
-`;
-
-const ErrorContainer = styled.div`
-  background-color: #fee2e2;
-  color: #991b1b;
-  padding: 2rem;
-  border-radius: 0.5rem;
-  text-align: center;
-
-  h3 {
-    font-size: 1.25rem;
-    margin: 0 0 1rem 0;
-  }
-
-  p {
-    margin: 0;
-  }
-`;
-
-const PlaceholderSection = styled.div`
-  background: #f9fafb;
-  border: 2px dashed #d1d5db;
-  border-radius: 0.75rem;
-  padding: 3rem;
-  text-align: center;
-
-  h2 {
-    font-size: 1.5rem;
-    color: #374151;
-    margin: 0 0 1rem 0;
-  }
-
-  p {
-    font-size: 1rem;
-    color: #6b7280;
-    margin: 0;
-  }
-`;
-
-const SecuritySection = styled.div`
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  padding: 2rem;
-
-  h2 {
-    font-size: 1.25rem;
-    color: #374151;
-    margin: 0 0 0.5rem 0;
-  }
-
-  > p {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin: 0 0 1.5rem 0;
-  }
-`;
+import * as styles from './RescueSettings.css';
 
 type TabType = 'profile' | 'policies' | 'questions' | 'preferences' | 'security';
 
@@ -211,107 +91,122 @@ const RescueSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <PageContainer>
-        <LoadingContainer>Loading rescue settings...</LoadingContainer>
-      </PageContainer>
+      <div className={styles.pageContainer}>
+        <div className={styles.loadingContainer}>Loading rescue settings...</div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <PageContainer>
-        <PageHeader>
+      <div className={styles.pageContainer}>
+        <div className={styles.pageHeader}>
           <h1>Rescue Settings</h1>
           <p>Configure your rescue profile, adoption policies, and application questions.</p>
-        </PageHeader>
-        <ErrorContainer>
+        </div>
+        <div className={styles.errorContainer}>
           <h3>Unable to Load Settings</h3>
           <p>{error}</p>
-        </ErrorContainer>
-      </PageContainer>
+        </div>
+      </div>
     );
   }
 
   if (!canEdit) {
     return (
-      <PageContainer>
-        <PageHeader>
+      <div className={styles.pageContainer}>
+        <div className={styles.pageHeader}>
           <h1>Rescue Settings</h1>
           <p>Configure your rescue profile, adoption policies, and application questions.</p>
-        </PageHeader>
-        <ErrorContainer>
+        </div>
+        <div className={styles.errorContainer}>
           <h3>Access Denied</h3>
           <p>You don't have permission to modify rescue settings.</p>
-        </ErrorContainer>
-      </PageContainer>
+        </div>
+      </div>
     );
   }
 
   return (
-    <PageContainer>
-      <PageHeader>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
         <h1>Rescue Settings</h1>
         <p>Configure your rescue profile, adoption policies, and application questions.</p>
-      </PageHeader>
+      </div>
 
-      <TabContainer>
-        <TabList>
-          <Tab $active={activeTab === 'profile'} onClick={() => setActiveTab('profile')}>
+      <div className={styles.tabContainer}>
+        <div className={styles.tabList}>
+          <button
+            className={clsx(styles.tab, activeTab === 'profile' && styles.tabActive)}
+            onClick={() => setActiveTab('profile')}
+          >
             Rescue Profile
-          </Tab>
-          <Tab $active={activeTab === 'policies'} onClick={() => setActiveTab('policies')}>
+          </button>
+          <button
+            className={clsx(styles.tab, activeTab === 'policies' && styles.tabActive)}
+            onClick={() => setActiveTab('policies')}
+          >
             Adoption Policies
-          </Tab>
-          <Tab $active={activeTab === 'questions'} onClick={() => setActiveTab('questions')}>
+          </button>
+          <button
+            className={clsx(styles.tab, activeTab === 'questions' && styles.tabActive)}
+            onClick={() => setActiveTab('questions')}
+          >
             Application Questions
-          </Tab>
-          <Tab $active={activeTab === 'preferences'} onClick={() => setActiveTab('preferences')}>
+          </button>
+          <button
+            className={clsx(styles.tab, activeTab === 'preferences' && styles.tabActive)}
+            onClick={() => setActiveTab('preferences')}
+          >
             Preferences
-          </Tab>
-          <Tab $active={activeTab === 'security'} onClick={() => setActiveTab('security')}>
+          </button>
+          <button
+            className={clsx(styles.tab, activeTab === 'security' && styles.tabActive)}
+            onClick={() => setActiveTab('security')}
+          >
             Security
-          </Tab>
-        </TabList>
-      </TabContainer>
+          </button>
+        </div>
+      </div>
 
-      <TabPanel $active={activeTab === 'profile'}>
+      <div className={clsx(activeTab === 'profile' ? styles.tabPanel : styles.tabPanelHidden)}>
         <RescueProfileForm rescue={rescue} onSave={handleSaveProfile} loading={loading} />
-      </TabPanel>
+      </div>
 
-      <TabPanel $active={activeTab === 'policies'}>
+      <div className={clsx(activeTab === 'policies' ? styles.tabPanel : styles.tabPanelHidden)}>
         <AdoptionPolicyForm
           policy={rescue?.adoptionPolicies || null}
           onSave={handleSavePolicies}
           loading={loading}
         />
-      </TabPanel>
+      </div>
 
-      <TabPanel $active={activeTab === 'questions'}>
+      <div className={clsx(activeTab === 'questions' ? styles.tabPanel : styles.tabPanelHidden)}>
         {rescue?.rescueId ? (
           <QuestionsBuilder rescueId={rescue.rescueId} />
         ) : (
-          <PlaceholderSection>
+          <div className={styles.placeholderSection}>
             <h2>Custom Application Questions</h2>
             <p>Loading rescue information...</p>
-          </PlaceholderSection>
+          </div>
         )}
-      </TabPanel>
+      </div>
 
-      <TabPanel $active={activeTab === 'preferences'}>
+      <div className={clsx(activeTab === 'preferences' ? styles.tabPanel : styles.tabPanelHidden)}>
         <NotificationPreferencesForm />
-      </TabPanel>
+      </div>
 
-      <TabPanel $active={activeTab === 'security'}>
-        <SecuritySection>
+      <div className={clsx(activeTab === 'security' ? styles.tabPanel : styles.tabPanelHidden)}>
+        <div className={styles.securitySection}>
           <h2>Two-Factor Authentication</h2>
           <p>
             Add an extra layer of security to your account by requiring a verification code when you
             sign in.
           </p>
           <TwoFactorSettings />
-        </SecuritySection>
-      </TabPanel>
-    </PageContainer>
+        </div>
+      </div>
+    </div>
   );
 };
 

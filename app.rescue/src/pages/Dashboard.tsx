@@ -1,76 +1,9 @@
 import React from 'react';
-import styled from 'styled-components';
 import { Card, Container, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useDashboardData } from '../hooks';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
-
-const DashboardContainer = styled(Container)`
-  max-width: none;
-  margin: 0;
-  width: 100%;
-  padding: 0;
-`;
-
-const DashboardHeader = styled.div`
-  margin-bottom: 2rem;
-
-  h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: ${props => props.theme.text.primary};
-    margin: 0 0 0.5rem 0;
-  }
-
-  p {
-    font-size: 1.1rem;
-    color: ${props => props.theme.text.secondary};
-    margin: 0;
-  }
-`;
-
-const WelcomeMessage = styled.div`
-  background: linear-gradient(
-    135deg,
-    ${props => props.theme.colors.primary[50]} 0%,
-    ${props => props.theme.colors.primary[100]} 100%
-  );
-  border: 1px solid ${props => props.theme.colors.primary[200]};
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-
-  h2 {
-    margin: 0 0 0.5rem 0;
-    color: ${props => props.theme.colors.primary[800]};
-    font-size: 1.25rem;
-  }
-
-  p {
-    margin: 0;
-    color: ${props => props.theme.colors.primary[700]};
-  }
-`;
-
-const MetricsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-  width: 100%;
-`;
-
-const AnalyticsGrid = styled.div`
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-  width: 100%;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
-`;
+import * as styles from './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -78,11 +11,11 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <DashboardContainer>
-        <DashboardHeader>
+      <Container className={styles.dashboardContainer}>
+        <div className={styles.dashboardHeader}>
           <Heading level="h1">Rescue Dashboard</Heading>
           <Text>Loading dashboard data...</Text>
-        </DashboardHeader>
+        </div>
         <div
           style={{
             display: 'flex',
@@ -93,17 +26,17 @@ const Dashboard: React.FC = () => {
         >
           <Text>📊 Loading...</Text>
         </div>
-      </DashboardContainer>
+      </Container>
     );
   }
 
   if (error) {
     return (
-      <DashboardContainer>
-        <DashboardHeader>
+      <Container className={styles.dashboardContainer}>
+        <div className={styles.dashboardHeader}>
           <Heading level="h1">Rescue Dashboard</Heading>
           <Text>Welcome back! Here's what's happening with your rescue today.</Text>
-        </DashboardHeader>
+        </div>
         <Card>
           <div style={{ padding: '1.5rem', textAlign: 'center' }}>
             <Text style={{ color: '#ef4444', marginBottom: '1rem' }}>
@@ -151,18 +84,18 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </Card>
-      </DashboardContainer>
+      </Container>
     );
   }
 
   if (!dashboardData) {
     return (
-      <DashboardContainer>
-        <DashboardHeader>
+      <Container className={styles.dashboardContainer}>
+        <div className={styles.dashboardHeader}>
           <Heading level="h1">Rescue Dashboard</Heading>
           <Text>No dashboard data available.</Text>
-        </DashboardHeader>
-      </DashboardContainer>
+        </div>
+      </Container>
     );
   }
 
@@ -176,23 +109,23 @@ const Dashboard: React.FC = () => {
   } = dashboardData;
 
   return (
-    <DashboardContainer>
-      <DashboardHeader>
+    <Container className={styles.dashboardContainer}>
+      <div className={styles.dashboardHeader}>
         <Heading level="h1">Rescue Dashboard</Heading>
         <Text>Welcome back! Here's what's happening with your rescue today.</Text>
-      </DashboardHeader>
+      </div>
 
       {/* Welcome Message for Current User */}
-      <WelcomeMessage>
+      <div className={styles.welcomeMessage}>
         <h2>Welcome back, {user?.firstName || 'Team Member'}! 👋</h2>
         <p>
           You're logged in as a {user?.userType?.replace('_', ' ') || 'rescue staff member'}. Here's
           your rescue overview for today.
         </p>
-      </WelcomeMessage>
+      </div>
 
       {/* Key Metrics Row */}
-      <MetricsGrid>
+      <div className={styles.metricsGrid}>
         <Card>
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
@@ -284,10 +217,10 @@ const Dashboard: React.FC = () => {
             <Text style={{ fontSize: '0.875rem', color: '#10b981' }}>↑ 3% from last month</Text>
           </div>
         </Card>
-      </MetricsGrid>
+      </div>
 
       {/* Charts and Analytics Row */}
-      <AnalyticsGrid>
+      <div className={styles.analyticsGrid}>
         <Card>
           <div style={{ padding: '1.5rem 1.5rem 1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
             <Heading level="h3" style={{ margin: 0 }}>
@@ -443,7 +376,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </Card>
-      </AnalyticsGrid>
+      </div>
 
       {/* Notifications */}
       <Card style={{ gridColumn: '1 / -1' }}>
@@ -566,7 +499,7 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
       </Card>
-    </DashboardContainer>
+    </Container>
   );
 };
 

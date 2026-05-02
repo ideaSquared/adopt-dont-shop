@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import {
   StaffList,
   StaffForm,
@@ -14,149 +13,7 @@ import { usePermissions } from '../contexts/PermissionsContext';
 import { STAFF_CREATE, STAFF_DELETE, STAFF_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import { InvitationPayload, PendingInvitation } from '@adopt-dont-shop/lib.invitations';
 import { invitationService } from '../services/libraryServices';
-
-const PageContainer = styled.div`
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-`;
-
-const PageHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-  gap: 2rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-const HeaderContent = styled.div`
-  h1 {
-    margin: 0 0 0.5rem 0;
-    font-size: 2rem;
-    color: #333;
-    font-weight: 600;
-  }
-
-  p {
-    margin: 0;
-    color: #666;
-    font-size: 1.1rem;
-  }
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-`;
-
-const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
-  background: ${props => (props.variant === 'secondary' ? '#6c757d' : '#1976d2')};
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover:not(:disabled) {
-    background: ${props => (props.variant === 'secondary' ? '#5a6268' : '#1565c0')};
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const Alert = styled.div<{ type?: 'error' | 'success' }>`
-  background: ${props => (props.type === 'success' ? '#d4edda' : '#f8d7da')};
-  color: ${props => (props.type === 'success' ? '#155724' : '#721c24')};
-  border: 1px solid ${props => (props.type === 'success' ? '#c3e6cb' : '#f5c6cb')};
-  border-radius: 8px;
-  padding: 1rem 1.5rem;
-  margin-bottom: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const AlertClose = styled.button`
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: 1.25rem;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const PageContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-`;
-
-const Section = styled.div`
-  h2 {
-    margin: 0 0 1rem 0;
-    color: #333;
-    font-weight: 600;
-    font-size: 1.5rem;
-  }
-`;
-
-const ErrorState = styled.div`
-  text-align: center;
-  padding: 3rem 2rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const ErrorIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-`;
-
-const ErrorTitle = styled.h3`
-  margin: 0 0 1rem 0;
-  color: #333;
-  font-weight: 600;
-`;
-
-const ErrorText = styled.p`
-  margin: 0 0 2rem 0;
-  color: #666;
-`;
-
-const RetryButton = styled.button`
-  background: #1976d2;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background: #1565c0;
-  }
-`;
+import * as styles from './StaffManagement.css';
 
 const StaffManagement: React.FC = () => {
   const { user } = useAuth();
@@ -358,77 +215,83 @@ const StaffManagement: React.FC = () => {
 
   if (error) {
     return (
-      <PageContainer>
-        <PageHeader>
-          <HeaderContent>
+      <div className={styles.pageContainer}>
+        <div className={styles.pageHeader}>
+          <div className={styles.headerContent}>
             <h1>Staff & Volunteer Management</h1>
-          </HeaderContent>
-        </PageHeader>
+          </div>
+        </div>
 
-        <ErrorState>
-          <ErrorIcon>⚠️</ErrorIcon>
-          <ErrorTitle>Unable to Load Staff</ErrorTitle>
-          <ErrorText>{error}</ErrorText>
-          <RetryButton onClick={refetch}>Try Again</RetryButton>
-        </ErrorState>
-      </PageContainer>
+        <div className={styles.errorState}>
+          <div className={styles.errorIcon}>⚠️</div>
+          <h3 className={styles.errorTitle}>Unable to Load Staff</h3>
+          <p className={styles.errorText}>{error}</p>
+          <button className={styles.retryButton} onClick={refetch}>
+            Try Again
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderContent>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
+        <div className={styles.headerContent}>
           <h1>Staff & Volunteer Management</h1>
           <p>Manage your rescue team, send invitations, and coordinate activities.</p>
-        </HeaderContent>
+        </div>
 
         {canAddStaff && (
-          <HeaderActions>
-            <ActionButton
-              variant="primary"
+          <div className={styles.headerActions}>
+            <button
+              className={styles.actionButtonPrimary}
               onClick={() => setShowInviteModal(true)}
               disabled={actionLoading}
             >
               Invite Staff Member
-            </ActionButton>
-            <ActionButton
-              variant="secondary"
+            </button>
+            <button
+              className={styles.actionButtonSecondary}
               onClick={() => setShowAddForm(true)}
               disabled={actionLoading}
             >
               Add Existing User
-            </ActionButton>
-          </HeaderActions>
+            </button>
+          </div>
         )}
-      </PageHeader>
+      </div>
 
       {actionError && (
-        <Alert type="error">
+        <div className={styles.alertError}>
           <span>
             <strong>Error:</strong> {actionError}
           </span>
-          <AlertClose onClick={() => setActionError(null)}>✕</AlertClose>
-        </Alert>
+          <button className={styles.alertClose} onClick={() => setActionError(null)}>
+            ✕
+          </button>
+        </div>
       )}
 
       {actionSuccess && (
-        <Alert type="success">
+        <div className={styles.alertSuccess}>
           <span>
             <strong>Success:</strong> {actionSuccess}
           </span>
-          <AlertClose onClick={() => setActionSuccess(null)}>✕</AlertClose>
-        </Alert>
+          <button className={styles.alertClose} onClick={() => setActionSuccess(null)}>
+            ✕
+          </button>
+        </div>
       )}
 
-      <PageContent>
-        <Section>
+      <div className={styles.pageContent}>
+        <div className={styles.section}>
           <h2>Team Overview</h2>
           <StaffOverview staff={staff} loading={loading} />
-        </Section>
+        </div>
 
         {pendingInvitations.length > 0 && (
-          <Section>
+          <div className={styles.section}>
             <h2>Pending Invitations</h2>
             <PendingInvitations
               invitations={pendingInvitations}
@@ -436,10 +299,10 @@ const StaffManagement: React.FC = () => {
               onCancel={canDeleteStaff ? handleCancelInvitation : undefined}
               canCancel={canDeleteStaff}
             />
-          </Section>
+          </div>
         )}
 
-        <Section>
+        <div className={styles.section}>
           <h2>Staff Directory</h2>
           <StaffList
             staff={staff}
@@ -451,8 +314,8 @@ const StaffManagement: React.FC = () => {
             showSearch={true}
             currentUserId={user?.userId}
           />
-        </Section>
-      </PageContent>
+        </div>
+      </div>
 
       {showInviteModal && (
         <InviteStaffModal
@@ -475,7 +338,7 @@ const StaffManagement: React.FC = () => {
           loading={actionLoading}
         />
       )}
-    </PageContainer>
+    </div>
   );
 };
 
