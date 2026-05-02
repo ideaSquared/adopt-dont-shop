@@ -6,192 +6,9 @@ import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder, MdLocationOn } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
 import { resolveFileUrl } from '../utils/fileUtils';
 import { LoginPromptModal } from './modals/LoginPromptModal';
-
-const StyledCard = styled(Card)`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.2s ease-in-out;
-  cursor: pointer;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const ImageContainer = styled.div`
-  position: relative;
-  height: 200px;
-  overflow: hidden;
-  border-radius: 8px 8px 0 0;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-  }
-
-  &:hover img {
-    transform: scale(1.05);
-  }
-`;
-
-const PlaceholderImage = styled.div`
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a0a0a0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
-    opacity: 0.3;
-  }
-
-  &::after {
-    content: 'No Photo Available';
-    position: absolute;
-    bottom: 20px;
-    font-size: 0.9rem;
-    opacity: 0.8;
-    color: #666;
-  }
-`;
-
-const FavoriteButton = styled.button`
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(255, 255, 255, 0.9);
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: white;
-    transform: scale(1.1);
-  }
-
-  svg {
-    width: 20px;
-    height: 20px;
-    fill: ${props => props.color || '#ccc'};
-  }
-`;
-
-const StatusBadge = styled(Badge)`
-  position: absolute;
-  top: 12px;
-  left: 12px;
-`;
-
-const CardContent = styled.div`
-  padding: 1.5rem;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-`;
-
-const PetName = styled.h3`
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: ${props => props.theme.text.primary};
-`;
-
-const PetDetails = styled.div`
-  margin-bottom: 1rem;
-  flex-grow: 1;
-
-  .detail-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.25rem;
-    font-size: 0.9rem;
-
-    .label {
-      color: ${props => props.theme.text.secondary};
-    }
-
-    .value {
-      font-weight: 500;
-      color: ${props => props.theme.text.primary};
-    }
-  }
-`;
-
-const Description = styled.p`
-  font-size: 0.9rem;
-  color: ${props => props.theme.text.secondary};
-  line-height: 1.4;
-  margin-bottom: 1rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-`;
-
-const CardActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-top: auto;
-`;
-
-const RescueInfo = styled.div`
-  font-size: 0.8rem;
-  color: ${props => props.theme.text.secondary};
-  margin-bottom: 1rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid ${props => props.theme.border.color.primary};
-`;
-
-const DistanceBadge = styled.div`
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border-radius: 9999px;
-  padding: 0.25rem 0.6rem 0.25rem 0.45rem;
-  letter-spacing: 0.01em;
-  pointer-events: none;
-
-  svg {
-    flex-shrink: 0;
-    color: #6ee7b7;
-  }
-`;
+import * as styles from './PetCard.css';
 
 interface PetCardProps {
   pet: Pet;
@@ -356,8 +173,13 @@ export const PetCard: React.FC<PetCardProps> = ({
     }
   };
   return (
-    <StyledCard as={Link} to={`/pets/${pet.pet_id}`} onClick={handleCardClick}>
-      <ImageContainer>
+    <Card
+      as={Link}
+      to={`/pets/${pet.pet_id}`}
+      onClick={handleCardClick}
+      className={styles.styledCard}
+    >
+      <div className={styles.imageContainer}>
         {resolvedImageUrl ? (
           <>
             <img
@@ -369,65 +191,68 @@ export const PetCard: React.FC<PetCardProps> = ({
                 e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
               }}
             />
-            <PlaceholderImage style={{ display: 'none' }} />
+            <div className={styles.placeholderImage} style={{ display: 'none' }} />
           </>
         ) : (
-          <PlaceholderImage />
+          <div className={styles.placeholderImage} />
         )}
 
-        <StatusBadge variant={getStatusColor(pet.status)}>{getStatusLabel(pet.status)}</StatusBadge>
+        <Badge variant={getStatusColor(pet.status)} className={styles.statusBadge}>
+          {getStatusLabel(pet.status)}
+        </Badge>
 
         {pet.distance !== undefined && pet.distance !== null && (
-          <DistanceBadge>
+          <div className={styles.distanceBadge}>
             <MdLocationOn size={13} />
             {pet.distance} mi
-          </DistanceBadge>
+          </div>
         )}
 
         {showFavoriteButton && isAuthenticated && (
-          <FavoriteButton
+          <button
+            className={styles.favoriteButton}
             onClick={handleFavoriteClick}
             disabled={isLoadingFavorite}
-            color={isFavorite ? '#ff6b6b' : '#ccc'}
+            style={{ color: isFavorite ? '#ff6b6b' : '#ccc' }}
           >
             {isFavorite ? <MdFavorite size={24} /> : <MdFavoriteBorder size={24} />}
-          </FavoriteButton>
+          </button>
         )}
-      </ImageContainer>
+      </div>
 
-      <CardContent>
-        <PetName>{pet.name}</PetName>
+      <div className={styles.cardContent}>
+        <h3 className={styles.petName}>{pet.name}</h3>
 
-        <PetDetails>
-          <div className='detail-row'>
-            <span className='label'>Type:</span>
-            <span className='value'>{pet.type}</span>
+        <div className={styles.petDetails}>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Type:</span>
+            <span className={styles.detailValue}>{pet.type}</span>
           </div>
           {pet.breed && (
-            <div className='detail-row'>
-              <span className='label'>Breed:</span>
-              <span className='value'>{pet.breed}</span>
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>Breed:</span>
+              <span className={styles.detailValue}>{pet.breed}</span>
             </div>
           )}
-          <div className='detail-row'>
-            <span className='label'>Age:</span>
-            <span className='value'>{formatAge(pet.age_years, pet.age_months)}</span>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Age:</span>
+            <span className={styles.detailValue}>{formatAge(pet.age_years, pet.age_months)}</span>
           </div>
-          <div className='detail-row'>
-            <span className='label'>Size:</span>
-            <span className='value'>{formatSize(pet.size)}</span>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Size:</span>
+            <span className={styles.detailValue}>{formatSize(pet.size)}</span>
           </div>
-          <div className='detail-row'>
-            <span className='label'>Gender:</span>
-            <span className='value'>{pet.gender}</span>
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>Gender:</span>
+            <span className={styles.detailValue}>{pet.gender}</span>
           </div>
-        </PetDetails>
+        </div>
 
-        {pet.short_description && <Description>{pet.short_description}</Description>}
+        {pet.short_description && <p className={styles.description}>{pet.short_description}</p>}
 
-        {pet.rescue_id && <RescueInfo>Rescue ID: {pet.rescue_id}</RescueInfo>}
+        {pet.rescue_id && <div className={styles.rescueInfo}>Rescue ID: {pet.rescue_id}</div>}
 
-        <CardActions>
+        <div className={styles.cardActions}>
           <Button size='sm' variant='primary' style={{ flex: 1 }}>
             View Details
           </Button>
@@ -436,14 +261,14 @@ export const PetCard: React.FC<PetCardProps> = ({
               Apply
             </Button>
           )}
-        </CardActions>
-      </CardContent>
+        </div>
+      </div>
 
       <LoginPromptModal
         isOpen={showLoginPrompt}
         onClose={handleCloseLoginPrompt}
         action='apply for adoption'
       />
-    </StyledCard>
+    </Card>
   );
 };

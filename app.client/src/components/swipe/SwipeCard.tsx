@@ -5,8 +5,8 @@ import { useDrag } from '@use-gesture/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { MdCheckCircle, MdPets, MdRefresh, MdStar } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
 import { resolveFileUrl } from '../../utils/fileUtils';
+import * as styles from './SwipeCard.css';
 
 interface SwipeCardProps {
   pet: DiscoveryPet;
@@ -17,89 +17,26 @@ interface SwipeCardProps {
   disabled?: boolean;
 }
 
-const CardContainer = styled(animated.div)<{ $isTop: boolean; $disabled: boolean }>`
-  position: absolute;
-  width: 100%;
-  max-width: 350px;
-  height: 600px;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  cursor: ${props => (props.$isTop && !props.$disabled ? 'grab' : 'default')};
-  user-select: none;
-  overflow: hidden;
-  will-change: transform;
+const petTypeGradients: Record<string, string> = {
+  dog: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  cat: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  rabbit: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  bird: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+};
 
-  &:active {
-    cursor: ${props => (props.$isTop ? 'grabbing' : 'default')};
-  }
-
-  @media (max-width: 768px) {
-    max-width: 90vw;
-    height: 70vh;
-  }
-`;
-
-const ImageContainer = styled.div`
-  position: relative;
-  height: 70%;
-  overflow: hidden;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-`;
-
-const PlaceholderImage = styled.div<{ $isLoading?: boolean; $petName?: string; $petType?: string }>`
-  width: 100%;
-  height: 100%;
-  background: ${props => {
-    // Create a pet-type specific gradient
-    switch (props.$petType) {
-      case 'dog':
-        return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-      case 'cat':
-        return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
-      case 'rabbit':
-        return 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
-      case 'bird':
-        return 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
-      default:
-        return 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
-    }
-  }};
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  color: white;
-  text-align: center;
-
-  .placeholder-icon {
-    font-size: 80px;
-    margin-bottom: 20px;
-    animation: ${props => (props.$isLoading ? 'spin 2s linear infinite' : 'none')};
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
+const overlayColors: Record<string, string> = {
+  like: 'rgba(76, 217, 100, 0.9)',
+  pass: 'rgba(255, 59, 92, 0.9)',
+  super_like: 'rgba(0, 149, 246, 0.9)',
+  info: 'rgba(255, 193, 7, 0.9)',
+};
 
 const PlaceholderIcon: React.FC<{ isLoading?: boolean; petType?: string }> = ({
   isLoading,
   petType,
 }) => {
   if (isLoading) {
-    return <MdRefresh className='placeholder-icon' />;
+    return <MdRefresh className={styles.placeholderIconSpin} />;
   }
 
   switch (petType) {
@@ -111,166 +48,6 @@ const PlaceholderIcon: React.FC<{ isLoading?: boolean; petType?: string }> = ({
       return <MdCheckCircle className='placeholder-icon' />;
   }
 };
-
-const PlaceholderText = styled.div`
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 8px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-`;
-
-const PlaceholderSubtext = styled.div`
-  font-size: 1rem;
-  opacity: 0.9;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-`;
-
-const SwipeOverlay = styled(animated.div)<{ $action: string }>`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 48px;
-  color: white;
-  font-weight: bold;
-  border: 4px solid white;
-  background: ${props => {
-    switch (props.$action) {
-      case 'like':
-        return 'rgba(76, 217, 100, 0.9)';
-      case 'pass':
-        return 'rgba(255, 59, 92, 0.9)';
-      case 'super_like':
-        return 'rgba(0, 149, 246, 0.9)';
-      case 'info':
-        return 'rgba(255, 193, 7, 0.9)';
-      default:
-        return 'transparent';
-    }
-  }};
-  z-index: 10;
-`;
-
-const CardContent = styled.div`
-  padding: 20px;
-  height: 30%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-`;
-
-const PetName = styled.h3`
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: #333;
-`;
-
-const PetDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const DetailRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  font-size: 16px;
-  color: #666;
-`;
-
-const Badge = styled.span<{ $variant: 'age' | 'size' | 'breed' }>`
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  background: ${props => {
-    switch (props.$variant) {
-      case 'age':
-        return '#e3f2fd';
-      case 'size':
-        return '#f3e5f5';
-      case 'breed':
-        return '#e8f5e8';
-      default:
-        return '#f5f5f5';
-    }
-  }};
-  color: ${props => {
-    switch (props.$variant) {
-      case 'age':
-        return '#1976d2';
-      case 'size':
-        return '#7b1fa2';
-      case 'breed':
-        return '#388e3c';
-      default:
-        return '#666';
-    }
-  }};
-`;
-
-const LoginPromptOverlay = styled.div<{ $show: boolean }>`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  display: ${props => (props.$show ? 'flex' : 'none')};
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  border-radius: 20px;
-  text-align: center;
-  padding: 2rem;
-`;
-
-const PromptIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  color: #4ecdc4;
-`;
-
-const PromptTitle = styled.h3`
-  color: white;
-  font-size: 1.2rem;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-`;
-
-const PromptText = styled.p`
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.9rem;
-  line-height: 1.4;
-  margin-bottom: 1.5rem;
-`;
-
-const PromptButton = styled.button`
-  background: linear-gradient(45deg, #4ecdc4, #44a08d);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
-  }
-`;
 
 const SWIPE_THRESHOLD = 100;
 const ROTATION_MULTIPLIER = 0.1;
@@ -558,12 +335,14 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     age = pet.ageGroup || 'Unknown age';
   }
 
+  const placeholderBackground =
+    petTypeGradients[pet.type ?? ''] ?? 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+
   return (
-    <CardContainer
+    <animated.div
       ref={cardRef}
       {...(disabled ? {} : bind())}
-      $isTop={isTop}
-      $disabled={disabled}
+      className={styles.cardContainer({ isTop, disabled })}
       tabIndex={isTop ? 0 : -1}
       onKeyDown={handleKeyDown}
       role='button'
@@ -578,7 +357,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         opacity,
       }}
     >
-      <ImageContainer>
+      <div className={styles.imageContainer}>
         {imageUrl ? (
           <>
             <img
@@ -593,72 +372,74 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
               }}
             />
             {(!imageLoaded || imageError) && (
-              <PlaceholderImage
-                $isLoading={!imageError && !imageLoaded}
-                $petName={pet.name}
-                $petType={pet.type}
+              <div
+                className={styles.placeholderImage}
+                style={{ background: placeholderBackground }}
               >
                 <PlaceholderIcon isLoading={!imageError && !imageLoaded} petType={pet.type} />
                 {!imageLoaded && !imageError ? (
                   <>
-                    <PlaceholderText>Loading...</PlaceholderText>
-                    <PlaceholderSubtext>{pet.name}</PlaceholderSubtext>
+                    <div className={styles.placeholderText}>Loading...</div>
+                    <div className={styles.placeholderSubtext}>{pet.name}</div>
                   </>
                 ) : (
                   <>
-                    <PlaceholderText>{pet.name}</PlaceholderText>
-                    <PlaceholderSubtext>{pet.breed || pet.type}</PlaceholderSubtext>
+                    <div className={styles.placeholderText}>{pet.name}</div>
+                    <div className={styles.placeholderSubtext}>{pet.breed || pet.type}</div>
                   </>
                 )}
-              </PlaceholderImage>
+              </div>
             )}
           </>
         ) : (
-          <PlaceholderImage $petName={pet.name} $petType={pet.type}>
+          <div className={styles.placeholderImage} style={{ background: placeholderBackground }}>
             <PlaceholderIcon petType={pet.type} />
-            <PlaceholderText>{pet.name}</PlaceholderText>
-            <PlaceholderSubtext>{pet.breed || pet.type}</PlaceholderSubtext>
-          </PlaceholderImage>
+            <div className={styles.placeholderText}>{pet.name}</div>
+            <div className={styles.placeholderSubtext}>{pet.breed || pet.type}</div>
+          </div>
         )}
 
-        <SwipeOverlay
-          $action={overlayAction}
+        <animated.div
+          className={styles.swipeOverlay}
           style={{
             opacity: overlaySpring.opacity,
             transform: overlaySpring.scale.to(s => `translate(-50%, -50%) scale(${s})`),
+            background: overlayColors[overlayAction] ?? 'transparent',
           }}
         >
           {overlayAction === 'like' && '❤️'}
           {overlayAction === 'pass' && '❌'}
           {overlayAction === 'super_like' && '⭐'}
           {overlayAction === 'info' && 'ℹ️'}
-        </SwipeOverlay>
-      </ImageContainer>
+        </animated.div>
+      </div>
 
-      <CardContent>
+      <div className={styles.cardContent}>
         <div>
-          <PetName>{pet.name}</PetName>
-          <PetDetails>
-            <DetailRow>
-              <Badge $variant='age'>{age} old</Badge>
-              <Badge $variant='size'>{pet.size}</Badge>
-            </DetailRow>
-            <DetailRow>
-              <Badge $variant='breed'>{pet.breed}</Badge>
+          <h3 className={styles.petName}>{pet.name}</h3>
+          <div className={styles.petDetails}>
+            <div className={styles.detailRow}>
+              <span className={styles.badge({ variant: 'age' })}>{age} old</span>
+              <span className={styles.badge({ variant: 'size' })}>{pet.size}</span>
+            </div>
+            <div className={styles.detailRow}>
+              <span className={styles.badge({ variant: 'breed' })}>{pet.breed}</span>
               <span>{pet.gender}</span>
-            </DetailRow>
-          </PetDetails>
+            </div>
+          </div>
         </div>
-      </CardContent>
+      </div>
 
-      <LoginPromptOverlay $show={disabled && isTop}>
-        <PromptIcon>🐾</PromptIcon>
-        <PromptTitle>Join to Start Swiping!</PromptTitle>
-        <PromptText>
+      <div className={styles.loginPromptOverlay({ show: disabled && isTop })}>
+        <div className={styles.promptIcon}>🐾</div>
+        <h3 className={styles.promptTitle}>Join to Start Swiping!</h3>
+        <p className={styles.promptText}>
           Create an account to like pets, save favorites, and find your perfect companion.
-        </PromptText>
-        <PromptButton onClick={() => onSwipe('like', pet.petId)}>Sign Up to Continue</PromptButton>
-      </LoginPromptOverlay>
-    </CardContainer>
+        </p>
+        <button className={styles.promptButton} onClick={() => onSwipe('like', pet.petId)}>
+          Sign Up to Continue
+        </button>
+      </div>
+    </animated.div>
   );
 };

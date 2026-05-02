@@ -1,7 +1,7 @@
 import { ApplicationData } from '@/types';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import styled from 'styled-components';
+import * as styles from './AdditionalInfoStep.css';
 
 interface AdditionalInfoStepProps {
   data: ApplicationData['additionalInfo'];
@@ -15,92 +15,6 @@ interface AdditionalInfoFormData {
   emergencyPlan: string;
   agreement: boolean;
 }
-
-const StepContainer = styled.div`
-  max-width: 600px;
-`;
-
-const StepTitle = styled.h2`
-  font-size: 1.5rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 0.5rem;
-`;
-
-const StepDescription = styled.p`
-  color: ${props => props.theme.text.secondary};
-  margin-bottom: 2rem;
-`;
-
-const Form = styled.form`
-  display: grid;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const Label = styled.label`
-  font-weight: 500;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 0.5rem;
-`;
-
-const TextArea = styled.textarea<{ hasError?: boolean }>`
-  width: 100%;
-  min-height: 100px;
-  padding: 0.75rem;
-  border: 1px solid
-    ${props =>
-      props.hasError ? props.theme.colors.semantic.error[500] : props.theme.border.color.secondary};
-  border-radius: 4px;
-  background: ${props => props.theme.background.primary};
-  color: ${props => props.theme.text.primary};
-  resize: vertical;
-
-  &:focus {
-    outline: none;
-    border-color: ${props =>
-      props.hasError ? props.theme.colors.semantic.error[500] : props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 2px
-      ${props =>
-        props.hasError ? props.theme.colors.semantic.error[100] : props.theme.colors.primary[100]};
-  }
-`;
-
-const CheckboxGroup = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  margin-top: 1rem;
-`;
-
-const CheckboxLabel = styled.label`
-  font-size: 0.9rem;
-  color: ${props => props.theme.text.primary};
-  line-height: 1.5;
-`;
-
-const ErrorMessage = styled.span`
-  color: ${props => props.theme.colors.semantic.error[500]};
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-`;
-
-const CheckboxInput = styled.input<{ hasError?: boolean }>`
-  margin: 0;
-  border: 1px solid
-    ${props =>
-      props.hasError ? props.theme.colors.semantic.error[500] : props.theme.border.color.secondary};
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px
-      ${props =>
-        props.hasError ? props.theme.colors.semantic.error[100] : props.theme.colors.primary[100]};
-  }
-`;
 
 export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   data,
@@ -137,17 +51,20 @@ export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   };
 
   return (
-    <StepContainer>
-      <StepTitle>Additional Information</StepTitle>
-      <StepDescription>
+    <div className={styles.stepContainer}>
+      <h2 className={styles.stepTitle}>Additional Information</h2>
+      <p className={styles.stepDescription}>
         Help us understand your motivations and expectations for pet adoption.
-      </StepDescription>
+      </p>
 
-      <Form id='step-5-form' onSubmit={handleSubmit(onSubmit)}>
-        <FormGroup>
-          <Label>Why do you want to adopt a pet? *</Label>
-          <TextArea
-            hasError={!!errors.whyAdopt}
+      <form className={styles.form} id='step-5-form' onSubmit={handleSubmit(onSubmit)}>
+        <div className={styles.formGroup}>
+          <label htmlFor='whyAdopt' className={styles.label}>
+            Why do you want to adopt a pet? *
+          </label>
+          <textarea
+            id='whyAdopt'
+            className={styles.textArea({ hasError: !!errors.whyAdopt })}
             {...register('whyAdopt', {
               required: 'Please tell us why you want to adopt a pet',
               minLength: {
@@ -158,13 +75,18 @@ export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
             })}
             placeholder='Tell us about your motivations for adopting a pet. What are you hoping to gain from the experience?'
           />
-          {errors.whyAdopt && <ErrorMessage>{errors.whyAdopt.message}</ErrorMessage>}
-        </FormGroup>
+          {errors.whyAdopt && (
+            <span className={styles.errorMessage}>{errors.whyAdopt.message}</span>
+          )}
+        </div>
 
-        <FormGroup>
-          <Label>What are your expectations for pet ownership? *</Label>
-          <TextArea
-            hasError={!!errors.expectations}
+        <div className={styles.formGroup}>
+          <label htmlFor='expectations' className={styles.label}>
+            What are your expectations for pet ownership? *
+          </label>
+          <textarea
+            id='expectations'
+            className={styles.textArea({ hasError: !!errors.expectations })}
             {...register('expectations', {
               required: 'Please describe your expectations for pet ownership',
               minLength: {
@@ -175,13 +97,18 @@ export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
             })}
             placeholder='Describe what you expect from daily life with a pet. Consider time commitment, costs, behavioral aspects, etc.'
           />
-          {errors.expectations && <ErrorMessage>{errors.expectations.message}</ErrorMessage>}
-        </FormGroup>
+          {errors.expectations && (
+            <span className={styles.errorMessage}>{errors.expectations.message}</span>
+          )}
+        </div>
 
-        <FormGroup>
-          <Label>Emergency Plan *</Label>
-          <TextArea
-            hasError={!!errors.emergencyPlan}
+        <div className={styles.formGroup}>
+          <label htmlFor='emergencyPlan' className={styles.label}>
+            Emergency Plan *
+          </label>
+          <textarea
+            id='emergencyPlan'
+            className={styles.textArea({ hasError: !!errors.emergencyPlan })}
             {...register('emergencyPlan', {
               required: 'Please describe your emergency plan for pet care',
               minLength: {
@@ -191,26 +118,31 @@ export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
             })}
             placeholder='Describe your plan for pet care during emergencies, vacations, or unexpected situations. Include backup caregivers and emergency vet information.'
           />
-          {errors.emergencyPlan && <ErrorMessage>{errors.emergencyPlan.message}</ErrorMessage>}
-        </FormGroup>
+          {errors.emergencyPlan && (
+            <span className={styles.errorMessage}>{errors.emergencyPlan.message}</span>
+          )}
+        </div>
 
-        <CheckboxGroup>
-          <CheckboxInput
+        <div className={styles.checkboxGroup}>
+          <input
+            id='agreement'
             type='checkbox'
+            className={styles.checkboxInput({ hasError: !!errors.agreement })}
             {...register('agreement', {
               required: 'You must agree to the terms before proceeding',
             })}
-            hasError={!!errors.agreement}
           />
-          <CheckboxLabel>
+          <label htmlFor='agreement' className={styles.checkboxLabel}>
             I understand that adopting a pet is a long-term commitment and I agree to provide proper
             care, including regular veterinary checkups, appropriate nutrition, exercise, and a safe
             living environment. I also understand that the rescue organization may conduct follow-up
             visits to ensure the pet&apos;s welfare.
-          </CheckboxLabel>
-        </CheckboxGroup>
-        {errors.agreement && <ErrorMessage>{errors.agreement.message}</ErrorMessage>}
-      </Form>
-    </StepContainer>
+          </label>
+        </div>
+        {errors.agreement && (
+          <span className={styles.errorMessage}>{errors.agreement.message}</span>
+        )}
+      </form>
+    </div>
   );
 };

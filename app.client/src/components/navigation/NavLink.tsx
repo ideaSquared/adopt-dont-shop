@@ -1,54 +1,6 @@
 import React from 'react';
 import { Link, useLocation, type LinkProps } from 'react-router-dom';
-import styled, { css } from 'styled-components';
-
-type StyledLinkProps = {
-  $active: boolean;
-  $primary: boolean;
-  $iconOnly: boolean;
-};
-
-const StyledLink = styled(Link)<StyledLinkProps>`
-  display: inline-flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[2]};
-  padding: ${({ theme, $iconOnly }) =>
-    $iconOnly ? theme.spacing[2] : `${theme.spacing[2]} ${theme.spacing[3]}`};
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  color: #fff;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  transition: background ${({ theme }) => theme.transitions.fast};
-  position: relative;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.12);
-  }
-
-  &:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
-  }
-
-  ${({ $active }) =>
-    $active &&
-    css`
-      background: rgba(255, 255, 255, 0.18);
-    `}
-
-  ${({ $primary }) =>
-    $primary &&
-    css`
-      background: rgba(255, 255, 255, 0.15);
-      font-weight: 600;
-    `}
-
-  .nav-icon {
-    font-size: 1.25rem;
-    display: inline-flex;
-  }
-`;
+import * as styles from './NavLink.css';
 
 export type NavLinkProps = Omit<LinkProps, 'to'> & {
   to: string;
@@ -70,9 +22,9 @@ export const NavLink: React.FC<NavLinkProps> = ({
   const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
 
   return (
-    <StyledLink to={to} $active={active} $primary={primary} $iconOnly={iconOnly} {...rest}>
-      {icon && <span className='nav-icon'>{icon}</span>}
+    <Link className={styles.styledLink({ active, primary, iconOnly })} to={to} {...rest}>
+      {icon && <span className={styles.navIcon}>{icon}</span>}
       {!iconOnly && children}
-    </StyledLink>
+    </Link>
   );
 };

@@ -1,7 +1,6 @@
 import React from 'react';
 import { MdChat, MdFavorite, MdNotifications, MdSearch, MdSwipe } from 'react-icons/md';
 import { Link, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
 import { Badge } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useChat } from '@/contexts/ChatContext';
@@ -9,121 +8,7 @@ import { useNotifications } from '@/contexts/NotificationsContext';
 import { AuthCtas } from './AuthCtas';
 import { NavLink } from './NavLink';
 import { NavUserMenu } from './NavUserMenu';
-
-const NavbarContainer = styled.nav`
-  background: ${({ theme }) => theme.colors.gradients.primary};
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  box-shadow: ${({ theme }) => theme.shadows.md};
-`;
-
-const NavContent = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 ${({ theme }) => theme.spacing[4]};
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[4]};
-  height: 64px;
-
-  @media (max-width: 768px) {
-    height: 56px;
-    padding: 0 ${({ theme }) => theme.spacing[3]};
-    gap: ${({ theme }) => theme.spacing[2]};
-  }
-`;
-
-const Logo = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[2]};
-  font-size: ${({ theme }) => theme.typography.size.lg};
-  font-weight: 700;
-  color: #fff;
-  text-decoration: none;
-  white-space: nowrap;
-
-  &:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
-    border-radius: ${({ theme }) => theme.border.radius.sm};
-  }
-`;
-
-const LogoIcon = styled.span`
-  font-size: 1.75rem;
-  line-height: 1;
-`;
-
-const PrimaryLinks = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[1]};
-
-  @media (max-width: 768px) {
-    display: none;
-  }
-`;
-
-const RightSlot = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing[1]};
-  margin-left: auto;
-`;
-
-const IconLinkAnchor = styled(Link)<{ $active: boolean }>`
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  color: #fff;
-  text-decoration: none;
-  transition: background ${({ theme }) => theme.transitions.fast};
-  background: ${({ $active }) => ($active ? 'rgba(255, 255, 255, 0.18)' : 'transparent')};
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.12);
-  }
-
-  &:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.8);
-    outline-offset: 2px;
-  }
-
-  svg {
-    font-size: 1.375rem;
-  }
-`;
-
-const BadgeOverlay = styled.span<{ $hasCount: boolean }>`
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  pointer-events: none;
-
-  /* Overrides the shared Badge's defaults: bigger, heavier, with a ring in
-     the surrounding navbar color so the bubble separates cleanly from the
-     dark icon underneath. Colors come from the theme so the bubble follows
-     light/dark/custom themes rather than being pinned to a specific red. */
-  span[role='status'] {
-    min-width: 18px;
-    min-height: 18px;
-    padding: 0 5px;
-    font-size: 11px;
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: 0.02em;
-    background: ${({ theme }) => theme.colors.semantic.error[600]};
-    color: ${({ theme }) => theme.text.inverse};
-    border: 2px solid ${({ theme }) => theme.colors.primary[700]};
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-  }
-`;
+import * as styles from './AppNavbar.css';
 
 const srOnly = {
   position: 'absolute' as const,
@@ -150,18 +35,18 @@ const IconLink: React.FC<IconLinkProps> = ({ to, label, icon, count = 0 }) => {
   const ariaLabel =
     count > 0 ? `${label}, ${count} unread ${count === 1 ? 'item' : 'items'}` : label;
   return (
-    <IconLinkAnchor to={to} $active={active} aria-label={ariaLabel}>
+    <Link className={styles.iconLinkAnchor({ active })} to={to} aria-label={ariaLabel}>
       {icon}
       {count > 0 && (
-        <BadgeOverlay $hasCount aria-hidden='true'>
+        <span className={styles.badgeOverlay} aria-hidden='true'>
           <Badge variant='count' max={99}>
             {count}
           </Badge>
-        </BadgeOverlay>
+        </span>
       )}
       {/* Redundant sr-only counter for AT users who don't surface aria-label */}
       {count > 0 && <span style={srOnly}>{`${count} unread`}</span>}
-    </IconLinkAnchor>
+    </Link>
   );
 };
 
@@ -175,14 +60,16 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
   const { unreadMessageCount } = useChat();
 
   return (
-    <NavbarContainer className={className}>
-      <NavContent>
-        <Logo to='/'>
-          <LogoIcon aria-hidden='true'>🐾</LogoIcon>
+    <nav className={`${styles.navbarContainer}${className ? ` ${className}` : ''}`}>
+      <div className={styles.navContent}>
+        <Link className={styles.logo} to='/'>
+          <span className={styles.logoIcon} aria-hidden='true'>
+            🐾
+          </span>
           Adopt Don&apos;t Shop
-        </Logo>
+        </Link>
 
-        <PrimaryLinks>
+        <div className={styles.primaryLinks}>
           <NavLink to='/discover' icon={<MdSwipe aria-hidden='true' />} primary>
             Discover
           </NavLink>
@@ -194,9 +81,9 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
               Favorites
             </NavLink>
           )}
-        </PrimaryLinks>
+        </div>
 
-        <RightSlot>
+        <div className={styles.rightSlot}>
           {isAuthenticated ? (
             <>
               <IconLink
@@ -216,8 +103,8 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
           ) : (
             <AuthCtas />
           )}
-        </RightSlot>
-      </NavContent>
-    </NavbarContainer>
+        </div>
+      </div>
+    </nav>
   );
 };

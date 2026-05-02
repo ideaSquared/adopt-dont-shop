@@ -6,187 +6,7 @@ import { NotificationType, getNotificationTypeLabel } from '@/types/notification
 import { Button } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
-
-const NotificationCenter = styled.div`
-  background: ${props => props.theme.background.primary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 12px;
-  overflow: hidden;
-  max-width: 600px;
-  width: 100%;
-`;
-
-const Header = styled.div`
-  padding: 1.5rem;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  h2 {
-    font-size: 1.25rem;
-    color: ${props => props.theme.text.primary};
-    margin: 0;
-  }
-`;
-
-const FilterBar = styled.div`
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-const FilterSelect = styled.select`
-  padding: 0.5rem;
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 6px;
-  background: ${props => props.theme.background.primary};
-  color: ${props => props.theme.text.primary};
-  font-size: 0.875rem;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-  }
-`;
-
-const NotificationList = styled.div`
-  max-height: 500px;
-  overflow-y: auto;
-`;
-
-const NotificationItem = styled.div<{ $isRead: boolean }>`
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-  background: ${props =>
-    props.$isRead ? props.theme.background.primary : props.theme.background.secondary};
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background: ${props => props.theme.background.secondary};
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const NotificationHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-`;
-
-const NotificationTitle = styled.h3<{ $isRead: boolean }>`
-  font-size: 1rem;
-  color: ${props => props.theme.text.primary};
-  margin: 0;
-  font-weight: ${props => (props.$isRead ? 'normal' : '600')};
-`;
-
-const NotificationTime = styled.span`
-  font-size: 0.75rem;
-  color: ${props => props.theme.text.secondary};
-  white-space: nowrap;
-`;
-
-const NotificationMessage = styled.p`
-  font-size: 0.875rem;
-  color: ${props => props.theme.text.secondary};
-  margin: 0;
-  line-height: 1.4;
-`;
-
-const NotificationActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-`;
-
-const ActionButton = styled.button`
-  padding: 0.25rem 0.5rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  background: ${props => props.theme.colors.neutral[200]};
-  color: ${props => props.theme.text.primary};
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background: ${props => props.theme.colors.neutral[300]};
-  }
-
-  &.primary {
-    background: ${props => props.theme.colors.primary[500]};
-    color: white;
-
-    &:hover {
-      background: ${props => props.theme.colors.primary[600]};
-    }
-  }
-
-  &.danger {
-    background: ${props => props.theme.colors.semantic.error[500]};
-    color: white;
-
-    &:hover {
-      background: ${props => props.theme.colors.semantic.error[600]};
-    }
-  }
-`;
-
-const EmptyState = styled.div`
-  padding: 3rem 1.5rem;
-  text-align: center;
-  color: ${props => props.theme.text.secondary};
-
-  h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  p {
-    font-size: 0.875rem;
-    margin: 0;
-  }
-`;
-
-const LoadingState = styled.div`
-  padding: 2rem 1.5rem;
-  text-align: center;
-  color: ${props => props.theme.text.secondary};
-`;
-
-const Pagination = styled.div`
-  padding: 1rem 1.5rem;
-  border-top: 1px solid ${props => props.theme.border.color.primary};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  span {
-    font-size: 0.875rem;
-    color: ${props => props.theme.text.secondary};
-  }
-`;
-
-const PaginationButtons = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
+import * as styles from './NotificationCenter.css';
 
 interface NotificationCenterProps {
   onClose?: () => void;
@@ -318,8 +138,8 @@ export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({
   const unreadCount = notifications.filter(n => !n.read_at).length;
 
   return (
-    <NotificationCenter>
-      <Header>
+    <div className={styles.notificationCenter}>
+      <div className={styles.header}>
         <h2>Notifications {unreadCount > 0 && `(${unreadCount} unread)`}</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           {unreadCount > 0 && (
@@ -333,19 +153,21 @@ export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({
             </Button>
           )}
         </div>
-      </Header>
+      </div>
 
-      <FilterBar>
-        <FilterSelect
+      <div className={styles.filterBar}>
+        <select
+          className={styles.filterSelect}
           value={filters.status || ''}
           onChange={e => handleFilterChange('status', e.target.value)}
         >
           <option value=''>All notifications</option>
           <option value='unread'>Unread only</option>
           <option value='read'>Read only</option>
-        </FilterSelect>
+        </select>
 
-        <FilterSelect
+        <select
+          className={styles.filterSelect}
           value={filters.type || ''}
           onChange={e => handleFilterChange('type', e.target.value)}
         >
@@ -355,60 +177,67 @@ export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({
               {getNotificationTypeLabel(type)}
             </option>
           ))}
-        </FilterSelect>
-      </FilterBar>
+        </select>
+      </div>
 
-      <NotificationList>
+      <div className={styles.notificationList}>
         {isLoading ? (
-          <LoadingState>Loading notifications...</LoadingState>
+          <div className={styles.loadingState}>Loading notifications...</div>
         ) : notifications.length === 0 ? (
-          <EmptyState>
+          <div className={styles.emptyState}>
             <h3>No notifications</h3>
             <p>You&apos;re all caught up! New notifications will appear here.</p>
-          </EmptyState>
+          </div>
         ) : (
           notifications.map(notification => (
-            <NotificationItem
+            <div
+              className={styles.notificationItem({ isRead: !!notification.read_at })}
               key={notification.notification_id}
-              $isRead={!!notification.read_at}
               onClick={() => handleNotificationClick(notification)}
+              role='button'
+              tabIndex={0}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') handleNotificationClick(notification);
+              }}
             >
-              <NotificationHeader>
-                <NotificationTitle $isRead={!!notification.read_at}>
+              <div className={styles.notificationHeader}>
+                <h3 className={styles.notificationTitle({ isRead: !!notification.read_at })}>
                   {notification.title}
-                </NotificationTitle>
-                <NotificationTime>{formatRelativeTime(notification.created_at)}</NotificationTime>
-              </NotificationHeader>
+                </h3>
+                <span className={styles.notificationTime}>
+                  {formatRelativeTime(notification.created_at)}
+                </span>
+              </div>
 
-              <NotificationMessage>{notification.message}</NotificationMessage>
+              <p className={styles.notificationMessage}>{notification.message}</p>
 
-              <NotificationActions>
+              <div className={styles.notificationActions}>
                 {!notification.read_at && (
-                  <ActionButton
-                    className='primary'
+                  <button
+                    className={styles.actionButtonPrimary}
                     onClick={e => handleMarkAsRead(notification.notification_id, e)}
                   >
                     Mark as Read
-                  </ActionButton>
+                  </button>
                 )}
-                <ActionButton
-                  className='danger'
+                <button
+                  className={styles.actionButtonDanger}
                   onClick={e => handleDeleteNotification(notification.notification_id, e)}
                 >
                   Delete
-                </ActionButton>
-              </NotificationActions>
-            </NotificationItem>
+                </button>
+              </div>
+            </div>
           ))
         )}
-      </NotificationList>
+      </div>
 
       {pagination.pages > 1 && (
-        <Pagination>
+        <div className={styles.pagination}>
           <span>
             Page {pagination.page} of {pagination.pages} ({pagination.total} total)
           </span>
-          <PaginationButtons>
+          <div className={styles.paginationButtons}>
             <Button
               variant='secondary'
               size='sm'
@@ -425,10 +254,10 @@ export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({
             >
               Next
             </Button>
-          </PaginationButtons>
-        </Pagination>
+          </div>
+        </div>
       )}
-    </NotificationCenter>
+    </div>
   );
 };
 

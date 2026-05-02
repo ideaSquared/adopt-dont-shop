@@ -2,7 +2,7 @@ import { ApplicationData } from '@/services';
 import { Input } from '@adopt-dont-shop/lib.components';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import styled from 'styled-components';
+import * as styles from './LivingSituationStep.css';
 
 interface LivingSituationStepProps {
   data: Partial<ApplicationData['livingsituation']>;
@@ -27,53 +27,6 @@ interface LivingSituationFormData {
   hasAllergies: boolean;
   allergyDetails?: string;
 }
-
-const StepContainer = styled.div`
-  max-width: 600px;
-`;
-
-const StepTitle = styled.h2`
-  font-size: 1.5rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 0.5rem;
-`;
-
-const StepDescription = styled.p`
-  color: ${props => props.theme.text.secondary};
-  margin-bottom: 2rem;
-`;
-
-const Form = styled.form`
-  display: grid;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const Label = styled.label`
-  font-weight: 500;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-`;
-
-const StyledSelect = styled.select`
-  padding: 0.75rem;
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 8px;
-  font-size: 1rem;
-  background: ${props => props.theme.background.primary};
-  color: ${props => props.theme.text.primary};
-`;
-
-const CheckboxGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
 
 export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({
   data,
@@ -107,79 +60,112 @@ export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({
   };
 
   return (
-    <StepContainer>
-      <StepTitle>Living Situation</StepTitle>
-      <StepDescription>
+    <div className={styles.stepContainer}>
+      <h2 className={styles.stepTitle}>Living Situation</h2>
+      <p className={styles.stepDescription}>
         Tell us about your living environment to help us ensure it&apos;s a good fit for the pet.
-      </StepDescription>
+      </p>
 
-      <Form id='step-2-form' onSubmit={handleSubmit(onSubmit)}>
-        <FormGroup>
-          <Label>Housing Type *</Label>
-          <StyledSelect {...register('housingType', { required: true })}>
+      <form className={styles.form} id='step-2-form' onSubmit={handleSubmit(onSubmit)}>
+        <div className={styles.formGroup}>
+          <label htmlFor='housingType' className={styles.label}>
+            Housing Type *
+          </label>
+          <select
+            id='housingType'
+            className={styles.styledSelect}
+            {...register('housingType', { required: true })}
+          >
             <option value=''>Select housing type</option>
             <option value='house'>House</option>
             <option value='apartment'>Apartment</option>
             <option value='condo'>Condo</option>
             <option value='other'>Other</option>
-          </StyledSelect>
-        </FormGroup>
+          </select>
+        </div>
 
-        <CheckboxGroup>
-          <input type='checkbox' {...register('isOwned')} />
-          <Label>I own my home</Label>
-        </CheckboxGroup>
+        <div className={styles.checkboxGroup}>
+          <input id='isOwned' type='checkbox' {...register('isOwned')} />
+          <label htmlFor='isOwned' className={styles.label}>
+            I own my home
+          </label>
+        </div>
 
-        <CheckboxGroup>
-          <input type='checkbox' {...register('hasYard')} />
-          <Label>I have a yard</Label>
-        </CheckboxGroup>
+        <div className={styles.checkboxGroup}>
+          <input id='hasYard' type='checkbox' {...register('hasYard')} />
+          <label htmlFor='hasYard' className={styles.label}>
+            I have a yard
+          </label>
+        </div>
 
-        <FormGroup>
-          <Label>Yard Size</Label>
-          <StyledSelect {...register('yardSize')}>
+        <div className={styles.formGroup}>
+          <label htmlFor='yardSize' className={styles.label}>
+            Yard Size
+          </label>
+          <select id='yardSize' className={styles.styledSelect} {...register('yardSize')}>
             <option value=''>Select yard size</option>
             <option value='small'>Small</option>
             <option value='medium'>Medium</option>
             <option value='large'>Large</option>
-          </StyledSelect>
-        </FormGroup>
+          </select>
+        </div>
 
-        <CheckboxGroup>
-          <input type='checkbox' {...register('yardFenced')} />
-          <Label>My yard is fenced</Label>
-        </CheckboxGroup>
+        <div className={styles.checkboxGroup}>
+          <input id='yardFenced' type='checkbox' {...register('yardFenced')} />
+          <label htmlFor='yardFenced' className={styles.label}>
+            My yard is fenced
+          </label>
+        </div>
 
-        <CheckboxGroup>
-          <input type='checkbox' {...register('allowsPets')} />
-          <Label>Pets are allowed in my housing</Label>
-        </CheckboxGroup>
+        <div className={styles.checkboxGroup}>
+          <input id='allowsPets' type='checkbox' {...register('allowsPets')} />
+          <label htmlFor='allowsPets' className={styles.label}>
+            Pets are allowed in my housing
+          </label>
+        </div>
 
-        <FormGroup>
-          <Label>Landlord Contact (if renting)</Label>
-          <Input {...register('landlordContact')} placeholder='Landlord name and phone number' />
-        </FormGroup>
-
-        <FormGroup>
-          <Label>Household Size *</Label>
+        <div className={styles.formGroup}>
+          <label htmlFor='landlordContact' className={styles.label}>
+            Landlord Contact (if renting)
+          </label>
           <Input
+            id='landlordContact'
+            {...register('landlordContact')}
+            placeholder='Landlord name and phone number'
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label htmlFor='householdSize' className={styles.label}>
+            Household Size *
+          </label>
+          <Input
+            id='householdSize'
             {...register('householdSize', { required: true })}
             type='number'
             min='1'
             placeholder='Number of people in household'
           />
-        </FormGroup>
+        </div>
 
-        <CheckboxGroup>
-          <input type='checkbox' {...register('hasAllergies')} />
-          <Label>Someone in my household has pet allergies</Label>
-        </CheckboxGroup>
+        <div className={styles.checkboxGroup}>
+          <input id='hasAllergies' type='checkbox' {...register('hasAllergies')} />
+          <label htmlFor='hasAllergies' className={styles.label}>
+            Someone in my household has pet allergies
+          </label>
+        </div>
 
-        <FormGroup>
-          <Label>Allergy Details</Label>
-          <Input {...register('allergyDetails')} placeholder='Please describe any allergies' />
-        </FormGroup>
-      </Form>
-    </StepContainer>
+        <div className={styles.formGroup}>
+          <label htmlFor='allergyDetails' className={styles.label}>
+            Allergy Details
+          </label>
+          <Input
+            id='allergyDetails'
+            {...register('allergyDetails')}
+            placeholder='Please describe any allergies'
+          />
+        </div>
+      </form>
+    </div>
   );
 };
