@@ -1,12 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 
 import { darkTheme, lightTheme, Theme, ThemeMode } from './theme';
-
-declare module 'styled-components' {
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  export interface DefaultTheme extends Theme {}
-}
 import { darkThemeClass, lightThemeClass } from './theme.css';
 import './GlobalStyles.css';
 
@@ -59,7 +53,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   return (
     <ThemeContext.Provider value={{ theme, themeMode, setThemeMode }}>
-      <StyledThemeProvider theme={theme}>{children}</StyledThemeProvider>
+      {children}
     </ThemeContext.Provider>
   );
 };

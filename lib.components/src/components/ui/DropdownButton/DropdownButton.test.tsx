@@ -215,7 +215,7 @@ describe('DropdownButton', () => {
     await user.tab();
     expect(trigger).toHaveFocus();
 
-    // Trigger should be focusable and interactive (styled-components button)
+    // Trigger should be focusable and interactive
     expect(trigger).toBeInTheDocument();
     expect(trigger.tagName).toBe('BUTTON');
   });
