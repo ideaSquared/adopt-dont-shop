@@ -9,17 +9,9 @@ import {
 import { apiService } from './libraryServices';
 
 class AuthService {
-  // Token management helpers
-  private setToken(token: string): void {
-    localStorage.setItem('authToken', token);
-    localStorage.setItem('accessToken', token); // Keep both for compatibility
-  }
-
-  private clearToken(): void {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+  private clearUserData(): void {
     localStorage.removeItem('user');
+    localStorage.removeItem('impersonating');
   }
 
   // Login admin user
@@ -29,16 +21,8 @@ class AuthService {
 
     const response = await apiService.post<AuthResponse>('/api/v1/auth/admin/login', credentials);
 
-    // Store tokens and user data
-    localStorage.setItem('authToken', response.token);
-    localStorage.setItem('accessToken', response.token); // Keep both for compatibility
-    if (response.refreshToken) {
-      localStorage.setItem('refreshToken', response.refreshToken);
-    }
+    // Store only non-sensitive user data; tokens are in HttpOnly cookies
     localStorage.setItem('user', JSON.stringify(response.user));
-
-    // Set token in API service
-    this.setToken(response.token);
 
     return response;
   }
@@ -47,16 +31,8 @@ class AuthService {
   async register(userData: RegisterRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>('/api/v1/auth/admin/register', userData);
 
-    // Store tokens and user data
-    localStorage.setItem('authToken', response.token);
-    localStorage.setItem('accessToken', response.token); // Keep both for compatibility
-    if (response.refreshToken) {
-      localStorage.setItem('refreshToken', response.refreshToken);
-    }
+    // Store only non-sensitive user data; tokens are in HttpOnly cookies
     localStorage.setItem('user', JSON.stringify(response.user));
-
-    // Set token in API service
-    this.setToken(response.token);
 
     return response;
   }
@@ -69,14 +45,7 @@ class AuthService {
       // Continue with logout even if API call fails
       console.error('Logout API call failed:', error);
     } finally {
-      // Clear local storage
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-
-      // Clear token from API service
-      this.clearToken();
+      this.clearUserData();
     }
   }
 
@@ -95,12 +64,9 @@ class AuthService {
     }
   }
 
-  // Check if admin is authenticated
+  // Check if admin is authenticated (user data present; token is in HttpOnly cookie)
   isAuthenticated(): boolean {
-    return (
-      !!(localStorage.getItem('authToken') || localStorage.getItem('accessToken')) &&
-      !!this.getCurrentUser()
-    );
+    return !!this.getCurrentUser();
   }
 
   // Check if current user has specific admin role
@@ -120,29 +86,9 @@ class AuthService {
     return user !== null && (ADMIN_USER_TYPES as readonly string[]).includes(user.userType);
   }
 
-  // Refresh access token
-  async refreshToken(): Promise<string> {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
-    const response = await apiService.post<{ token: string; refreshToken: string }>(
-      '/api/v1/auth/admin/refresh-token',
-      {
-        refreshToken,
-      }
-    );
-
-    // Update stored tokens
-    localStorage.setItem('authToken', response.token);
-    localStorage.setItem('accessToken', response.token); // Keep both for compatibility
-    localStorage.setItem('refreshToken', response.refreshToken);
-
-    // Set token in API service
-    this.setToken(response.token);
-
-    return response.token;
+  // Refresh access token (cookie-based — no body token needed)
+  async refreshToken(): Promise<void> {
+    await apiService.post('/api/v1/auth/admin/refresh-token', {});
   }
 
   // Update admin profile
@@ -186,53 +132,35 @@ class AuthService {
   }
 
   // Impersonate user (super admin only)
-  async impersonateUser(userId: string): Promise<{ originalToken: string }> {
+  async impersonateUser(userId: string): Promise<void> {
     if (!this.isSuperAdmin()) {
       throw new Error('Only super admins can impersonate users');
     }
 
-    const originalToken = localStorage.getItem('authToken') || '';
-
-    const response = await apiService.post<{ token: string; user: User }>(
+    const response = await apiService.post<{ user: User }>(
       '/api/v1/admin/impersonate',
       { userId: userId }
     );
 
-    // Store impersonation token
-    localStorage.setItem('authToken', response.token);
-    localStorage.setItem('accessToken', response.token);
-    localStorage.setItem('impersonation_original_token', originalToken);
+    // Track impersonation state; token is managed via HttpOnly cookie by the server
+    localStorage.setItem('impersonating', 'true');
     localStorage.setItem('user', JSON.stringify(response.user));
-
-    // Set token in API service
-    this.setToken(response.token);
-
-    return { originalToken };
   }
 
   // Stop impersonation
   async stopImpersonation(): Promise<void> {
-    const originalToken = localStorage.getItem('impersonation_original_token');
-    if (!originalToken) {
-      throw new Error('No impersonation session found');
-    }
+    await apiService.post('/api/v1/admin/impersonate/stop', {});
 
-    // Restore original token
-    localStorage.setItem('authToken', originalToken);
-    localStorage.setItem('accessToken', originalToken);
-    localStorage.removeItem('impersonation_original_token');
+    localStorage.removeItem('impersonating');
 
-    // Get original user data
+    // Refresh user data from server
     const response = await apiService.get<User>('/api/v1/admin/profile');
     localStorage.setItem('user', JSON.stringify(response));
-
-    // Set token in API service
-    this.setToken(originalToken);
   }
 
   // Check if currently impersonating
   isImpersonating(): boolean {
-    return !!localStorage.getItem('impersonation_original_token');
+    return !!localStorage.getItem('impersonating');
   }
 }
 

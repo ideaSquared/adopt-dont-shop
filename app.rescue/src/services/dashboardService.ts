@@ -37,14 +37,7 @@ export class DashboardService {
    */
   async getRescueDashboardData(): Promise<RescueDashboardData> {
     try {
-      // Debug: Log authentication status
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('authToken');
       if (isDevelopment()) {
-        console.log('🔐 Dashboard API Call - Token exists:', !!token);
-        console.log(
-          '🔐 Dashboard API Call - Token preview:',
-          token ? `${token.substring(0, 20)}...` : 'none'
-        );
         console.log('🐋 Docker Environment - API Base URL:', getApiBaseUrl());
       }
 

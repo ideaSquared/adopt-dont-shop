@@ -15,11 +15,8 @@ export function setDevUserToken(user: {
   // Create mock dev token (same pattern as app.client)
   const mockToken = `dev-token-${user.userId}-${Date.now()}`;
 
-  // Store both token formats for compatibility
-  localStorage.setItem('authToken', mockToken);
-  localStorage.setItem('accessToken', mockToken);
-
-  console.log('🔧 Dev token generated and stored:', mockToken);
+  // In dev mode, tokens are still cookie-based. Log for diagnostics only.
+  console.log('🔧 Dev token generated (cookie-based auth):', mockToken);
 
   return mockToken;
 }

@@ -10,13 +10,10 @@ export interface DevAuthUtils {
   setDevUser: (user: User) => void;
   clearDevUser: () => void;
   createMockToken: (userId: string) => string;
-  isDevTokenValid: (token: string | null) => boolean;
   clearDevTokens: () => void;
 }
 
 const DEV_USER_KEY = 'dev_user';
-const ACCESS_TOKEN_KEY = 'accessToken';
-const AUTH_TOKEN_KEY = 'authToken';
 
 /**
  * Get development user from localStorage
@@ -43,13 +40,8 @@ export const setDevUser = (user: User): void => {
     return;
   }
 
-  // Store dev user
+  // Store dev user data (tokens are in HttpOnly cookies)
   localStorage.setItem(DEV_USER_KEY, JSON.stringify(user));
-
-  // Create and store mock token
-  const mockToken = createMockToken(user.userId);
-  localStorage.setItem(ACCESS_TOKEN_KEY, mockToken);
-  localStorage.setItem(AUTH_TOKEN_KEY, mockToken);
 };
 
 /**
@@ -72,28 +64,10 @@ export const createMockToken = (userId: string): string => {
 };
 
 /**
- * Check if a token is a valid dev token
- */
-export const isDevTokenValid = (token: string | null): boolean => {
-  if (!import.meta.env.DEV || !token) {
-    return false;
-  }
-  return token.startsWith('dev-token-');
-};
-
-/**
- * Clear development tokens
+ * Clear development tokens (no-op: tokens are in HttpOnly cookies)
  */
 export const clearDevTokens = (): void => {
-  if (!import.meta.env.DEV) {
-    return;
-  }
-
-  const token = localStorage.getItem(ACCESS_TOKEN_KEY);
-  if (isDevTokenValid(token)) {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-  }
+  // Tokens are stored in HttpOnly cookies — nothing to clear from localStorage
 };
 
 /**
@@ -108,14 +82,6 @@ export const initializeDevAuth = (): User | null => {
   const devUser = getDevUser();
   if (!devUser) {
     return null;
-  }
-
-  // Ensure dev user has a mock token
-  const existingToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-  if (!isDevTokenValid(existingToken)) {
-    const mockToken = createMockToken(devUser.userId);
-    localStorage.setItem(ACCESS_TOKEN_KEY, mockToken);
-    localStorage.setItem(AUTH_TOKEN_KEY, mockToken);
   }
 
   return devUser;

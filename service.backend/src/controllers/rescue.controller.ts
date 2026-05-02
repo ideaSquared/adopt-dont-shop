@@ -8,6 +8,8 @@ import { logger } from '../utils/logger';
 import { AdoptionPolicy } from '../types/rescue';
 import EmailService from '../services/email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
+import { UserType } from '../models/User';
+import StaffMember from '../models/StaffMember';
 
 export class RescueController {
   /**
@@ -573,7 +575,7 @@ export class RescueController {
   /**
    * Get rescue analytics and statistics
    */
-  getRescueAnalytics = async (req: Request, res: Response) => {
+  getRescueAnalytics = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -585,6 +587,15 @@ export class RescueController {
       }
 
       const { rescueId } = req.params;
+      const userType = req.user!.userType as UserType;
+      const userId = req.user!.userId;
+
+      if (userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
+        const membership = await StaffMember.findOne({ where: { userId, rescueId } });
+        if (!membership) {
+          return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+      }
 
       const statistics = await RescueService.getRescueStatistics(rescueId);
 

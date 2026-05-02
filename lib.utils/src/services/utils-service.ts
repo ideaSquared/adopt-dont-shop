@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import {
   UtilsServiceConfig,
   DateFormatOptions,
@@ -275,10 +276,11 @@ export class UtilsService {
     };
 
     const chars = charsets[opts.charset];
+    const randomBuffer = randomBytes(opts.length);
     let id = '';
 
     for (let i = 0; i < opts.length; i++) {
-      id += chars.charAt(Math.floor(Math.random() * chars.length));
+      id += chars.charAt(randomBuffer[i] % chars.length);
     }
 
     if (opts.includeTimestamp) {

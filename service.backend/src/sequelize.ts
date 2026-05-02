@@ -4,15 +4,16 @@ import { env, getDatabaseName } from './config/env';
 
 dotenv.config();
 
-/**
- * Build a PostgreSQL connection string from individual environment variables
- * Follows the format: postgresql://username:password@host:port/database
- */
 const buildConnectionString = (database: string): string => {
-  const username = process.env.DB_USERNAME || 'user';
-  const password = process.env.DB_PASSWORD || 'password';
-  const host = process.env.DB_HOST || 'localhost';
-  const port = process.env.DB_PORT || '5432';
+  const username = process.env.DB_USERNAME;
+  const password = process.env.DB_PASSWORD;
+  const host = process.env.DB_HOST;
+  const port = process.env.DB_PORT;
+
+  if (!username) throw new Error('DB_USERNAME environment variable is not set');
+  if (!password) throw new Error('DB_PASSWORD environment variable is not set');
+  if (!host) throw new Error('DB_HOST environment variable is not set');
+  if (!port) throw new Error('DB_PORT environment variable is not set');
 
   return `postgresql://${username}:${password}@${host}:${port}/${database}`;
 };

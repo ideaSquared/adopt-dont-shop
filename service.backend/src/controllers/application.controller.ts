@@ -841,7 +841,21 @@ export class ApplicationController extends BaseController {
   // Get application statistics
   getApplicationStatistics = async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const rescueId = req.query.rescueId as string;
+      const userType = req.user!.userType as UserType;
+      const userId = req.user!.userId;
+
+      let rescueId: string | undefined;
+      if (userType === UserType.ADMIN || userType === UserType.MODERATOR) {
+        rescueId = req.query.rescueId as string | undefined;
+      } else {
+        const StaffMember = (await import('../models/StaffMember')).default;
+        const membership = await StaffMember.findOne({ where: { userId } });
+        if (!membership) {
+          return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+        rescueId = membership.rescueId;
+      }
+
       const statistics = await ApplicationService.getApplicationStatistics(rescueId);
 
       res.status(200).json({
