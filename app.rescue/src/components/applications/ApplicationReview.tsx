@@ -11,8 +11,33 @@ import StageTransitionModal from './StageTransitionModal';
 import { ApplicationStage, STAGE_CONFIG, StageAction } from '../../types/applicationStages';
 import * as styles from './ApplicationReview.css';
 
+type ApplicationData = {
+  id: string;
+  status: string;
+  petName?: string;
+  applicantName?: string;
+  userName?: string;
+  submittedDaysAgo?: number;
+  submittedAt?: string;
+  stage?: ApplicationStage;
+  references?: ApplicationReference[];
+  data?: Record<string, unknown>;
+};
+
+type ApplicationReference = {
+  id?: string;
+  name?: string;
+  relationship?: string;
+  phone?: string;
+  clinicName?: string;
+  status?: 'pending' | 'contacted' | 'completed' | 'failed';
+  notes?: string;
+  contacted_at?: string;
+  contacted_by?: string;
+};
+
 interface ApplicationReviewProps {
-  application: any;
+  application: ApplicationData;
   references: ReferenceCheck[];
   homeVisits: HomeVisit[];
   timeline: ApplicationTimeline[];
@@ -28,9 +53,9 @@ interface ApplicationReviewProps {
     assignedStaff: string;
     notes?: string;
   }) => void;
-  onUpdateVisit: (visitId: string, updateData: any) => void;
-  onAddTimelineEvent: (event: string, description: string, data?: any) => void;
-  onRefresh?: () => void; // Optional refresh function to update application data
+  onUpdateVisit: (visitId: string, updateData: Record<string, unknown>) => void;
+  onAddTimelineEvent: (event: string, description: string, data?: Record<string, unknown>) => void;
+  onRefresh?: () => void;
 }
 
 const ApplicationReview: React.FC<ApplicationReviewProps> = ({
@@ -234,18 +259,25 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   };
 
   // Helper function to safely extract data from both legacy nested and current flat structures
-  const getData = (path: string) => {
-    // Try current flat structure first: application.data.personalInfo
-    const flatPath = path.split('.').reduce((obj: any, key) => obj?.[key], application?.data);
-    if (flatPath !== undefined) {
-      return flatPath;
-    }
+  const getData = (path: string): unknown => {
+    const keys = path.split('.');
+    const traverse = (start: unknown): unknown => {
+      let current = start;
+      for (const key of keys) {
+        if (current === null || current === undefined || typeof current !== 'object')
+          return undefined;
+        current = (current as Record<string, unknown>)[key];
+      }
+      return current;
+    };
+    const flat = traverse(application?.data);
+    return flat !== undefined ? flat : traverse(application?.data?.['data']);
+  };
 
-    // Fallback to legacy nested structure: application.data.data.personalInfo
-    const nestedPath = path
-      .split('.')
-      .reduce((obj: any, key) => obj?.[key], application?.data?.data);
-    return nestedPath;
+  const getStr = (path: string): string => (getData(path) as string | null | undefined) ?? '';
+  const getArr = (path: string): unknown[] => {
+    const val = getData(path);
+    return Array.isArray(val) ? val : [];
   };
 
   // Extract references from application data
@@ -255,12 +287,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     // First, try to get references from the main references array (backend format)
     const directReferences = application?.references || [];
     if (Array.isArray(directReferences) && directReferences.length > 0) {
-      directReferences.forEach((ref: any, index: number) => {
+      directReferences.forEach((ref: ApplicationReference, index: number) => {
         allRefs.push({
           id: ref.id || `ref-${index}`, // Use the reference ID if available, fallback to index-based ID
           applicationId: application.id,
           type: ref.relationship?.toLowerCase().includes('vet') ? 'veterinarian' : 'personal',
-          contactName: ref.name,
+          contactName: ref.name ?? '',
           contactInfo: `${ref.phone} - ${ref.relationship}`,
           status: ref.status || 'pending',
           notes: ref.notes || '',
@@ -270,9 +302,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       });
     } else {
       // Fallback: try to get references from nested client data structure
-      const clientRefs = getData('references') || {};
-      const personalRefs = clientRefs.personal || [];
-      const vetRef = clientRefs.veterinarian;
+      const clientRefs = (getData('references') ?? {}) as Record<string, unknown>;
+      const personalRefs = Array.isArray(clientRefs['personal'])
+        ? (clientRefs['personal'] as ApplicationReference[])
+        : [];
+      const vetRef = clientRefs['veterinarian'] as ApplicationReference | undefined;
 
       let referenceIndex = 0;
 
@@ -293,7 +327,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
 
       // Add personal references
-      personalRefs.forEach((ref: any) => {
+      personalRefs.forEach((ref: ApplicationReference) => {
         if (ref.name) {
           allRefs.push({
             id: `ref-${referenceIndex}`,
@@ -314,6 +348,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     // References found and processed
 
     return allRefs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getData depends only on application, which is already listed
   }, [application]);
 
   const handleReferenceUpdate = async (referenceId: string, status: string, notes: string) => {
@@ -440,7 +475,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   const handleCompleteVisit = async (visitId: string) => {
     try {
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         status: 'completed',
         outcome: completeForm.outcome,
         notes: completeForm.notes,
@@ -621,7 +656,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 Submitted by{' '}
                 {application.applicantName ||
                   application.userName ||
-                  `${application.data?.personalInfo?.firstName || application.data?.data?.personalInfo?.firstName || 'Unknown'} ${application.data?.personalInfo?.lastName || application.data?.data?.personalInfo?.lastName || ''}`.trim() ||
+                  `${getStr('personalInfo.firstName') || 'Unknown'} ${getStr('personalInfo.lastName') || ''}`.trim() ||
                   'Unknown Applicant'}{' '}
                 •{' '}
                 {application.submittedDaysAgo !== undefined
@@ -769,37 +804,37 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Name</span>
                     <span className={styles.fieldValue}>
-                      {getData('personalInfo.firstName') || 'N/A'}{' '}
-                      {getData('personalInfo.lastName') || ''}
+                      {getStr('personalInfo.firstName') || 'N/A'}{' '}
+                      {getStr('personalInfo.lastName') || ''}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Email</span>
                     <span className={styles.fieldValue}>
-                      {getData('personalInfo.email') || 'N/A'}
+                      {getStr('personalInfo.email') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Phone</span>
                     <span className={styles.fieldValue}>
-                      {getData('personalInfo.phone') || 'N/A'}
+                      {getStr('personalInfo.phone') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Address</span>
                     <span className={styles.fieldValue}>
-                      {getData('personalInfo.address') || 'N/A'}
+                      {getStr('personalInfo.address') || 'N/A'}
                       <br />
-                      {getData('personalInfo.city') || 'N/A'},{' '}
-                      {getData('personalInfo.state') || 'N/A'}{' '}
-                      {getData('personalInfo.zipCode') || 'N/A'}
+                      {getStr('personalInfo.city') || 'N/A'},{' '}
+                      {getStr('personalInfo.state') || 'N/A'}{' '}
+                      {getStr('personalInfo.zipCode') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Date of Birth</span>
                     <span className={styles.fieldValue}>
-                      {getData('personalInfo.dateOfBirth')
-                        ? new Date(getData('personalInfo.dateOfBirth')).toLocaleDateString()
+                      {getStr('personalInfo.dateOfBirth')
+                        ? new Date(getStr('personalInfo.dateOfBirth')).toLocaleDateString()
                         : 'N/A'}
                     </span>
                   </div>
@@ -810,13 +845,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Household Size</span>
                     <span className={styles.fieldValue}>
-                      {getData('livingsituation.householdSize') || 'N/A'}
+                      {getStr('livingsituation.householdSize') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Housing Type</span>
                     <span className={styles.fieldValue}>
-                      {getData('livingsituation.housingType') || 'N/A'}
+                      {getStr('livingsituation.housingType') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
@@ -840,7 +875,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Household Members</span>
                     <span className={styles.fieldValue}>
-                      {getData('answers.household_members')?.length || 0} members
+                      {getArr('answers.household_members').length || 0} members
                     </span>
                   </div>
                 </div>
@@ -855,7 +890,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Experience Level</span>
                     <span className={styles.fieldValue}>
-                      {getData('petExperience.experienceLevel') || 'N/A'}
+                      {getStr('petExperience.experienceLevel') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
@@ -867,13 +902,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Hours Alone Daily</span>
                     <span className={styles.fieldValue}>
-                      {getData('petExperience.hoursAloneDaily') || 'N/A'}
+                      {getStr('petExperience.hoursAloneDaily') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Exercise Plans</span>
                     <span className={styles.fieldValue}>
-                      {getData('petExperience.exercisePlans') || 'N/A'}
+                      {getStr('petExperience.exercisePlans') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
@@ -889,21 +924,21 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Veterinarian</span>
                     <span className={styles.fieldValue}>
-                      {getData('references.veterinarian.name') || 'N/A'}
-                      {getData('references.veterinarian.clinicName') &&
-                        ` - ${getData('references.veterinarian.clinicName')}`}
+                      {getStr('references.veterinarian.name') || 'N/A'}
+                      {getStr('references.veterinarian.clinicName') &&
+                        ` - ${getStr('references.veterinarian.clinicName')}`}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Vet Phone</span>
                     <span className={styles.fieldValue}>
-                      {getData('references.veterinarian.phone') || 'N/A'}
+                      {getStr('references.veterinarian.phone') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Personal References</span>
                     <span className={styles.fieldValue}>
-                      {getData('references.personal')?.length || 0} provided
+                      {getArr('references.personal').length || 0} provided
                     </span>
                   </div>
                 </div>
@@ -918,13 +953,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.fieldVertical}>
                     <span className={styles.fieldLabel}>Why Adopt</span>
                     <div className={styles.fieldValueFullWidth}>
-                      {getData('answers.why_adopt') || 'N/A'}
+                      {getStr('answers.why_adopt') || 'N/A'}
                     </div>
                   </div>
                   <div className={styles.fieldVertical}>
                     <span className={styles.fieldLabel}>Exercise Plan</span>
                     <div className={styles.fieldValueFullWidth}>
-                      {getData('answers.exercise_plan') || 'N/A'}
+                      {getStr('answers.exercise_plan') || 'N/A'}
                     </div>
                   </div>
                 </div>
@@ -934,7 +969,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Yard Size</span>
                     <span className={styles.fieldValue}>
-                      {getData('answers.yard_size') || 'N/A'}
+                      {getStr('answers.yard_size') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
@@ -946,24 +981,31 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Hours Pet Alone</span>
                     <span className={styles.fieldValue}>
-                      {getData('answers.hours_alone') || 'N/A'}
+                      {getStr('answers.hours_alone') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Current Pets</span>
                     <span className={styles.fieldValue}>
-                      {getData('answers.current_pets')?.length || 0} pets
+                      {getArr('answers.current_pets').length || 0} pets
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {getData('answers.previous_pets')?.length > 0 && (
+            {getArr('answers.previous_pets').length > 0 && (
               <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>Previous Pet Experience</h3>
                 <div className={styles.grid}>
-                  {getData('answers.previous_pets').map((pet: any, index: number) => (
+                  {(
+                    getArr('answers.previous_pets') as Array<{
+                      type?: string;
+                      breed?: string;
+                      years_owned?: string;
+                      what_happened?: string;
+                    }>
+                  ).map((pet, index) => (
                     <div key={index} className={styles.card}>
                       <h4 className={styles.cardTitle}>Previous Pet #{index + 1}</h4>
                       <div className={styles.field}>
@@ -1244,8 +1286,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 <div className={styles.emptyVisits}>
                   <p>No home visits scheduled yet.</p>
                   <p>
-                    Schedule a home visit to assess the applicant's living situation and suitability
-                    for pet adoption.
+                    Schedule a home visit to assess the applicant&apos;s living situation and
+                    suitability for pet adoption.
                   </p>
                 </div>
               ) : (

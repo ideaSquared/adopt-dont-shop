@@ -192,8 +192,11 @@ export class InvitationService {
       // Generate unique user ID
       const userIdPrefix = 'user_rescue_staff_';
       const timestamp = Date.now().toString().slice(-6);
-      const randomSuffix = Math.floor(Math.random() * 1000)
+      const randomSuffix = crypto
+        .randomBytes(2)
+        .readUInt16BE(0)
         .toString()
+        .slice(-3)
         .padStart(3, '0');
       const userId = `${userIdPrefix}${timestamp}${randomSuffix}`;
 

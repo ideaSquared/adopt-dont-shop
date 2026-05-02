@@ -47,15 +47,15 @@ export function createTestDatabase(logging = false): Sequelize {
  * @param sequelize - Test database instance
  */
 export async function initializeTestModels(sequelize: Sequelize): Promise<void> {
-  // Import all models
-  const User = (await import('../../models/User')).default;
-  const Pet = (await import('../../models/Pet')).default;
-  const Application = (await import('../../models/Application')).default;
-  const ApplicationQuestion = (await import('../../models/ApplicationQuestion')).default;
-  const ApplicationTimeline = (await import('../../models/ApplicationTimeline')).default;
-  const Rescue = (await import('../../models/Rescue')).default;
-  const SwipeAction = (await import('../../models/SwipeAction')).default;
-  const Rating = (await import('../../models/Rating')).default;
+  // Import all models (side-effect: registers them with their sequelize instance)
+  await import('../../models/User');
+  await import('../../models/Pet');
+  await import('../../models/Application');
+  await import('../../models/ApplicationQuestion');
+  await import('../../models/ApplicationTimeline');
+  await import('../../models/Rescue');
+  await import('../../models/SwipeAction');
+  await import('../../models/Rating');
 
   // Note: Models are already initialized with their original sequelize instance
   // For integration tests, we need to re-initialize them with our test database

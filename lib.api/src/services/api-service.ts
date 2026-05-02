@@ -180,11 +180,7 @@ export class ApiService {
       return this.config.getAuthToken();
     }
 
-    // Fallback to localStorage if available
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem('authToken') || localStorage.getItem('accessToken');
-    }
-
+    // Tokens are now stored in HttpOnly cookies — do not read from localStorage.
     return null;
   }
 

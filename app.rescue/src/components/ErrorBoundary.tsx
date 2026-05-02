@@ -53,7 +53,12 @@ class ErrorBoundary extends Component<Props, State> {
         <div className={styles.errorContainer}>
           <div className={styles.errorCard}>
             <div className={styles.iconContainer}>
-              <svg className={styles.errorIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className={styles.errorIcon}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -66,13 +71,18 @@ class ErrorBoundary extends Component<Props, State> {
             <h1 className={styles.errorTitle}>Oops! Something went wrong</h1>
 
             <p className={styles.errorMessage}>
-              We're sorry, but something unexpected happened. Don't worry, your data is safe.
+              We&apos;re sorry, but something unexpected happened. Don&apos;t worry, your data is
+              safe.
             </p>
 
             <div className={styles.buttonContainer}>
-              <button className={styles.primaryButton} onClick={this.handleReset}>Try Again</button>
+              <button className={styles.primaryButton} onClick={this.handleReset}>
+                Try Again
+              </button>
 
-              <button className={styles.secondaryButton} onClick={this.handleReload}>Reload Page</button>
+              <button className={styles.secondaryButton} onClick={this.handleReload}>
+                Reload Page
+              </button>
             </div>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (

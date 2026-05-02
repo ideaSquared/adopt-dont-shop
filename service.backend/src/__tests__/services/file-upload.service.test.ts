@@ -112,6 +112,31 @@ const setupSuccessfulUpload = (mimetype = 'image/jpeg') => {
 // ──── Tests ───────────────────────────────────────────────────────────────────
 
 describe('FileUploadService', () => {
+  beforeEach(() => {
+    // scanForMalware is a private method; spy on it so upload tests exercise
+    // validation/processing logic independently of the AV scanner state.
+    vi.spyOn(
+      FileUploadService as unknown as { scanForMalware: (path: string) => Promise<boolean> },
+      'scanForMalware'
+    ).mockResolvedValue(true);
+  });
+
+  describe('malware scan (fail-closed)', () => {
+    it('rejects upload when scanner reports file as infected', async () => {
+      vi.spyOn(
+        FileUploadService as unknown as { scanForMalware: (path: string) => Promise<boolean> },
+        'scanForMalware'
+      ).mockResolvedValue(false);
+
+      const file = makeFile();
+      setupSuccessfulUpload();
+
+      await expect(
+        FileUploadService.uploadFile(file, 'pets', { uploadedBy: 'user-456' })
+      ).rejects.toThrow('File failed malware scan');
+    });
+  });
+
   describe('validateFile() — file size enforcement', () => {
     it('rejects a file that exceeds the 10 MB size limit', async () => {
       const file = makeFile({ size: 10 * 1024 * 1024 + 1 });

@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import { Op, fn, literal } from 'sequelize';
 import Breed from '../models/Breed';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../models/Pet';
@@ -315,7 +316,7 @@ export class DiscoveryService {
       };
 
       // Ensure petId is never undefined
-      const petId = pet.petId || `pet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const petId = pet.petId || `pet_${Date.now()}_${randomBytes(5).toString('hex')}`;
 
       // Get image URLs - only return valid URLs, let frontend handle placeholders.
       // Sort by order_index so the gallery surfaces images in the rescue's
@@ -384,6 +385,6 @@ export class DiscoveryService {
    * Generate a unique session ID
    */
   private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `session_${Date.now()}_${randomBytes(5).toString('hex')}`;
   }
 }

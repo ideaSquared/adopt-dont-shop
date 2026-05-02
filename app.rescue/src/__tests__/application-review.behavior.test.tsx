@@ -245,7 +245,7 @@ const server = setupServer(
 
   // Approve application
   http.patch('/api/v1/applications/:applicationId/approve', async ({ params, request }) => {
-    const body = (await request.json()) as { notes?: string };
+    const _body = (await request.json()) as { notes?: string };
     const application = mockApplications.find(a => a.applicationId === params.applicationId);
 
     if (!application) {

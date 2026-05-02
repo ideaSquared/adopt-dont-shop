@@ -5,6 +5,7 @@ import type {
   ApplicationFilter,
   ApplicationSort,
 } from '../../types/applications';
+import { ApplicationStatus } from '@adopt-dont-shop/lib.applications';
 import ApplicationStats from './ApplicationStats';
 import ApplicationFilters from './ApplicationFilters';
 import * as styles from './ApplicationList.css';
@@ -192,7 +193,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
         newFilter.searchQuery = value || undefined;
         break;
       case 'status':
-        newFilter.status = value ? [value as any] : undefined;
+        newFilter.status = value ? [value as ApplicationStatus] : undefined;
         break;
       case 'priority':
         newFilter.priority = value ? [value] : undefined;
@@ -294,7 +295,10 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
             value={`${sort.field}-${sort.direction}`}
             onChange={e => {
               const [field, direction] = e.target.value.split('-');
-              onSortChange({ field: field as any, direction: direction as 'asc' | 'desc' });
+              onSortChange({
+                field: field as ApplicationSort['field'],
+                direction: direction as 'asc' | 'desc',
+              });
             }}
           >
             <option value="submittedAt-desc">Newest First</option>

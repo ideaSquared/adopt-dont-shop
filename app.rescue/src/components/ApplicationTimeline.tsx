@@ -3,6 +3,7 @@ import { formatDateTime } from '@adopt-dont-shop/lib.utils';
 import * as styles from './ApplicationTimeline.css';
 
 // Timeline Event Types (matching backend)
+// eslint-disable-next-line react-refresh/only-export-components
 export enum TimelineEventType {
   STAGE_CHANGE = 'stage_change',
   STATUS_UPDATE = 'status_update',
@@ -163,7 +164,9 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
           <div className={styles.eventContent}>
             <div className={styles.eventHeader}>
               <h4 className={styles.eventTitle}>{event.title}</h4>
-              <span className={styles.eventTimestamp}>{formatDateTime(new Date(event.created_at))}</span>
+              <span className={styles.eventTimestamp}>
+                {formatDateTime(new Date(event.created_at))}
+              </span>
             </div>
 
             {event.created_by_system && <span className={styles.systemBadge}>🤖 Automated</span>}

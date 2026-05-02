@@ -1,13 +1,9 @@
 import { ApiService, AuthenticationError } from '@adopt-dont-shop/lib.api';
 
-// Create the global API service instance with auth token function
+// Create the global API service instance (tokens are in HttpOnly cookies)
 export const globalApiService = new ApiService({
   apiUrl: import.meta.env.VITE_API_BASE_URL ?? '',
   debug: import.meta.env.DEV,
-  // Provide function to get auth token from localStorage
-  getAuthToken: () => {
-    return localStorage.getItem('authToken') || localStorage.getItem('accessToken');
-  },
 });
 
 // Add error interceptor for handling 401 responses
@@ -16,9 +12,7 @@ globalApiService.interceptors.addErrorInterceptor((error: unknown) => {
     error instanceof AuthenticationError ||
     (error as { response?: { status?: number } })?.response?.status === 401
   ) {
-    // Clear authentication token
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('accessToken');
+    // Clear non-sensitive user data
     localStorage.removeItem('user');
 
     // Redirect to login page

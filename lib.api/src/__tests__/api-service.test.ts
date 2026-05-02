@@ -266,24 +266,10 @@ describe('ApiService', () => {
       );
     });
 
-    it('should fallback to localStorage for auth token', async () => {
-      // Mock a scenario where localStorage is available but getAuthToken is not configured
-      // We need to override the private getAuthToken method to test the localStorage fallback
+    it('should not set Authorization header when no getAuthToken is configured (tokens are in HttpOnly cookies)', async () => {
+      // Tokens are now in HttpOnly cookies — no localStorage fallback
       apiService = new ApiService({ debug: false });
-
-      // Override the config to remove the getAuthToken function to test localStorage fallback
       (apiService as any).config.getAuthToken = null;
-
-      // Mock localStorage.getItem to return a token
-      mockLocalStorage.getItem.mockImplementation((key: string) => {
-        if (key === 'authToken') {
-          return 'localStorage-token';
-        }
-        if (key === 'accessToken') {
-          return 'localStorage-token';
-        }
-        return null;
-      });
 
       const mockHeaders = new Headers([['content-type', 'application/json']]);
 
@@ -295,13 +281,13 @@ describe('ApiService', () => {
 
       await apiService.fetchWithAuth('/test');
 
-      // Verify localStorage was checked for authToken
-      expect(mockLocalStorage.getItem).toHaveBeenCalledWith('authToken');
+      // No Authorization header should be set; cookie is sent automatically by the browser
+      expect(mockLocalStorage.getItem).not.toHaveBeenCalledWith('authToken');
       expect(mockFetch).toHaveBeenCalledWith(
         '/test',
         expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer localStorage-token',
+          headers: expect.not.objectContaining({
+            Authorization: expect.any(String),
           }),
         })
       );

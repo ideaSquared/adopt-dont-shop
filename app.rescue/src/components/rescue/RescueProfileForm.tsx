@@ -82,7 +82,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
     }
   }, [rescue]);
 
-  const handleChange = (field: keyof RescueProfile | string, value: any) => {
+  const handleChange = (field: keyof RescueProfile | string, value: unknown) => {
     setHasChanges(true);
     setSuccessMessage(null);
     setErrorMessage(null);
@@ -97,10 +97,13 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
         } as RescueAddress,
       }));
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value,
-      }));
+      setFormData(
+        prev =>
+          ({
+            ...prev,
+            [field]: value,
+          }) as RescueProfile
+      );
     }
   };
 

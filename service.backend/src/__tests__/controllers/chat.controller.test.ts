@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 
 // Mock services and models before importing
 vi.mock('../../services/chat.service');
@@ -433,17 +433,6 @@ describe('ChatController', () => {
       it('should include sender info in request', async () => {
         mockRequest.params = { chatId: 'chat-001' };
         mockRequest.body = { content: 'Test', messageType: 'text' };
-
-        const mockMessage = {
-          toJSON: () => ({
-            message_id: 'msg-002',
-            chat_id: 'chat-001',
-            sender_id: 'user-123',
-            content: 'Test',
-            created_at: new Date().toISOString(),
-          }),
-          Sender: { userId: 'user-123', firstName: 'John', lastName: 'Doe' },
-        };
 
         (ChatService.sendMessage as Mock).mockResolvedValue({});
 

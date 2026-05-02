@@ -25,7 +25,9 @@ export const authenticateToken = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+    const token =
+      (authHeader && authHeader.split(' ')[1]) ||
+      (req.cookies as Record<string, string> | undefined)?.['accessToken'];
 
     if (!token) {
       loggerHelpers.logSecurity(
@@ -165,7 +167,9 @@ export const optionalAuth = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+    const token =
+      (authHeader && authHeader.split(' ')[1]) ||
+      (req.cookies as Record<string, string> | undefined)?.['accessToken'];
 
     if (!token) {
       // No token provided, continue without authentication
@@ -282,7 +286,9 @@ export const authenticateOptionalToken = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+    const token =
+      (authHeader && authHeader.split(' ')[1]) ||
+      (req.cookies as Record<string, string> | undefined)?.['accessToken'];
 
     if (!token) {
       // No token provided, continue without authentication
