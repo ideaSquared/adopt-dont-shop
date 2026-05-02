@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import {
   Button,
   Card,
@@ -9,112 +8,7 @@ import {
   CheckboxInput,
 } from '@adopt-dont-shop/lib.components';
 import type { AdoptionPolicy } from '../../types/rescue';
-
-const FormContainer = styled(Card)`
-  padding: 2rem;
-  margin-bottom: 2rem;
-`;
-
-const FormSection = styled.div`
-  margin-bottom: 2rem;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e5e7eb;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const ListInput = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const ListItem = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-`;
-
-const ListItemInput = styled.input`
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  transition: border-color 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
-const RemoveButton = styled.button`
-  padding: 0.5rem 0.75rem;
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #fecaca;
-  }
-`;
-
-const AddButton = styled.button`
-  padding: 0.5rem 1rem;
-  background-color: #dbeafe;
-  color: #1e40af;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #bfdbfe;
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const CheckboxWrapper = styled.div`
-  margin-bottom: 0.75rem;
-`;
+import * as styles from './AdoptionPolicyForm.css';
 
 interface AdoptionPolicyFormProps {
   policy: AdoptionPolicy | null;
@@ -236,33 +130,33 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
   };
 
   return (
-    <FormContainer>
+    <Card className={styles.formContainer}>
       <form onSubmit={handleSubmit}>
         {successMessage && <Alert variant="success">{successMessage}</Alert>}
         {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
 
-        <FormSection>
-          <SectionTitle>Application Requirements</SectionTitle>
+        <div className={styles.formSection}>
+          <h3 className={styles.sectionTitle}>Application Requirements</h3>
 
-          <CheckboxWrapper>
+          <div className={styles.checkboxWrapper}>
             <CheckboxInput
               label="Require home visit for all adoptions"
               checked={formData.requireHomeVisit}
               onChange={e => handleChange('requireHomeVisit', e.target.checked)}
             />
-          </CheckboxWrapper>
+          </div>
 
-          <CheckboxWrapper>
+          <div className={styles.checkboxWrapper}>
             <CheckboxInput
               label="Require personal references"
               checked={formData.requireReferences}
               onChange={e => handleChange('requireReferences', e.target.checked)}
             />
-          </CheckboxWrapper>
+          </div>
 
           {formData.requireReferences && (
-            <FormRow>
-              <FormGroup>
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
                 <TextInput
                   label="Minimum Number of References"
                   type="number"
@@ -274,25 +168,25 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                   }
                   fullWidth
                 />
-              </FormGroup>
+              </div>
 
-              <FormGroup>
-                <CheckboxWrapper>
+              <div className={styles.formGroup}>
+                <div className={styles.checkboxWrapper}>
                   <CheckboxInput
                     label="Require veterinarian reference"
                     checked={formData.requireVeterinarianReference}
                     onChange={e => handleChange('requireVeterinarianReference', e.target.checked)}
                   />
-                </CheckboxWrapper>
-              </FormGroup>
-            </FormRow>
+                </div>
+              </div>
+            </div>
           )}
-        </FormSection>
+        </div>
 
-        <FormSection>
-          <SectionTitle>Adoption Fees</SectionTitle>
-          <FormRow>
-            <FormGroup>
+        <div className={styles.formSection}>
+          <h3 className={styles.sectionTitle}>Adoption Fees</h3>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
               <TextInput
                 label="Minimum Fee (£)"
                 type="number"
@@ -302,9 +196,9 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                 onChange={e => handleFeeChange('min', e.target.value)}
                 fullWidth
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup}>
               <TextInput
                 label="Maximum Fee (£)"
                 type="number"
@@ -315,57 +209,75 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
                 helperText="Set the range for your adoption fees"
                 fullWidth
               />
-            </FormGroup>
-          </FormRow>
-        </FormSection>
+            </div>
+          </div>
+        </div>
 
-        <FormSection>
-          <SectionTitle>Adoption Requirements</SectionTitle>
-          <ListInput>
+        <div className={styles.formSection}>
+          <h3 className={styles.sectionTitle}>Adoption Requirements</h3>
+          <div className={styles.listInput}>
             {formData.requirements.map((req, index) => (
-              <ListItem key={index}>
-                <ListItemInput
+              <div key={index} className={styles.listItem}>
+                <input
+                  className={styles.listItemInput}
                   type="text"
                   value={req}
                   onChange={e => updateListItem('requirements', index, e.target.value)}
                   placeholder="e.g., Must be 21 years or older"
                 />
-                <RemoveButton type="button" onClick={() => removeListItem('requirements', index)}>
+                <button
+                  className={styles.removeButton}
+                  type="button"
+                  onClick={() => removeListItem('requirements', index)}
+                >
                   Remove
-                </RemoveButton>
-              </ListItem>
+                </button>
+              </div>
             ))}
-            <AddButton type="button" onClick={() => addListItem('requirements')}>
+            <button
+              className={styles.addButton}
+              type="button"
+              onClick={() => addListItem('requirements')}
+            >
               + Add Requirement
-            </AddButton>
-          </ListInput>
-        </FormSection>
+            </button>
+          </div>
+        </div>
 
-        <FormSection>
-          <SectionTitle>Policies</SectionTitle>
-          <ListInput>
-            {formData.policies.map((policy, index) => (
-              <ListItem key={index}>
-                <ListItemInput
+        <div className={styles.formSection}>
+          <h3 className={styles.sectionTitle}>Policies</h3>
+          <div className={styles.listInput}>
+            {formData.policies.map((p, index) => (
+              <div key={index} className={styles.listItem}>
+                <input
+                  className={styles.listItemInput}
                   type="text"
-                  value={policy}
+                  value={p}
                   onChange={e => updateListItem('policies', index, e.target.value)}
                   placeholder="e.g., All pets must be spayed/neutered"
                 />
-                <RemoveButton type="button" onClick={() => removeListItem('policies', index)}>
+                <button
+                  className={styles.removeButton}
+                  type="button"
+                  onClick={() => removeListItem('policies', index)}
+                >
                   Remove
-                </RemoveButton>
-              </ListItem>
+                </button>
+              </div>
             ))}
-            <AddButton type="button" onClick={() => addListItem('policies')}>
+            <button
+              className={styles.addButton}
+              type="button"
+              onClick={() => addListItem('policies')}
+            >
               + Add Policy
-            </AddButton>
-          </ListInput>
-        </FormSection>
+            </button>
+          </div>
+        </div>
 
-        <FormSection>
-          <SectionTitle>Additional Policies</SectionTitle>
-          <FormGroup>
+        <div className={styles.formSection}>
+          <h3 className={styles.sectionTitle}>Additional Policies</h3>
+          <div className={styles.formGroup}>
             <LibTextArea
               label="Return Policy"
               value={formData.returnPolicy || ''}
@@ -373,9 +285,9 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
               placeholder="Describe your policy for returning adopted pets..."
               fullWidth
             />
-          </FormGroup>
+          </div>
 
-          <FormGroup>
+          <div className={styles.formGroup}>
             <LibTextArea
               label="Spay/Neuter Policy"
               value={formData.spayNeuterPolicy || ''}
@@ -383,9 +295,9 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
               placeholder="Describe your spay/neuter requirements..."
               fullWidth
             />
-          </FormGroup>
+          </div>
 
-          <FormGroup>
+          <div className={styles.formGroup}>
             <LibTextArea
               label="Follow-up Policy"
               value={formData.followUpPolicy || ''}
@@ -393,10 +305,10 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
               placeholder="Describe your follow-up procedures after adoption..."
               fullWidth
             />
-          </FormGroup>
-        </FormSection>
+          </div>
+        </div>
 
-        <ButtonGroup>
+        <div className={styles.buttonGroup}>
           <Button
             type="button"
             variant="outline"
@@ -408,9 +320,9 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
           <Button type="submit" variant="primary" disabled={!hasChanges || saving || loading}>
             {saving ? 'Saving...' : 'Save Policies'}
           </Button>
-        </ButtonGroup>
+        </div>
       </form>
-    </FormContainer>
+    </Card>
   );
 };
 

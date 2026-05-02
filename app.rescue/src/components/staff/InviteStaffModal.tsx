@@ -1,231 +1,12 @@
 import { InvitationPayload } from '@adopt-dont-shop/lib.invitations';
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import * as styles from './InviteStaffModal.css';
 
 interface InviteStaffModalProps {
   onSubmit: (invitation: InvitationPayload) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
-
-const FormOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 2rem;
-`;
-
-const FormModal = styled.div`
-  background: white;
-  border-radius: 12px;
-  max-width: 600px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2rem 2rem 1rem 2rem;
-  border-bottom: 1px solid #e9ecef;
-`;
-
-const ModalTitle = styled.h2`
-  margin: 0;
-  color: #333;
-  font-weight: 600;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #666;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f5f5f5;
-    color: #333;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const Form = styled.form`
-  padding: 2rem;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const FormLabel = styled.label`
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #333;
-`;
-
-const RequiredIndicator = styled.span`
-  color: #dc3545;
-`;
-
-const FormInput = styled.input<{ hasError?: boolean }>`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid ${props => (props.hasError ? '#dc3545' : '#e9ecef')};
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => (props.hasError ? '#dc3545' : '#1976d2')};
-  }
-
-  &:disabled {
-    background-color: #f8f9fa;
-    color: #6c757d;
-  }
-`;
-
-const FormError = styled.span`
-  display: block;
-  color: #dc3545;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-`;
-
-const FormHelp = styled.small`
-  display: block;
-  color: #666;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-`;
-
-const FormActions = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-  }
-`;
-
-const ActionButton = styled.button<{ variant: 'primary' | 'secondary' }>`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  ${props =>
-    props.variant === 'primary' &&
-    `
-    background: #1976d2;
-    color: white;
-
-    &:hover:not(:disabled) {
-      background: #1565c0;
-    }
-  `}
-
-  ${props =>
-    props.variant === 'secondary' &&
-    `
-    background: #f8f9fa;
-    color: #495057;
-    border: 1px solid #dee2e6;
-
-    &:hover:not(:disabled) {
-      background: #e9ecef;
-      color: #212529;
-    }
-  `}
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const FormInfo = styled.div`
-  background: #e3f2fd;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-top: 1.5rem;
-  border: 1px solid #bbdefb;
-`;
-
-const InfoSection = styled.div`
-  h4 {
-    margin: 0 0 0.75rem 0;
-    color: #1976d2;
-    font-weight: 600;
-    font-size: 0.95rem;
-  }
-
-  p {
-    margin: 0;
-    color: #555;
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-
-  ul {
-    margin: 0.5rem 0 0 0;
-    padding-left: 1.25rem;
-    color: #555;
-    font-size: 0.9rem;
-
-    li {
-      margin-bottom: 0.25rem;
-    }
-  }
-`;
-
-const LoadingSpinner = styled.span`
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-`;
 
 const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
   onSubmit,
@@ -286,30 +67,40 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
   };
 
   return (
-    <FormOverlay
+    <div
+      className={styles.formOverlay}
       onClick={e => {
         if (e.target === e.currentTarget) {
           onCancel();
         }
       }}
+      onKeyDown={e => e.key === 'Escape' && onCancel()}
+      role="button"
+      tabIndex={-1}
+      aria-label="Close modal"
     >
-      <FormModal>
-        <ModalHeader>
-          <ModalTitle>Invite Staff Member</ModalTitle>
-          <CloseButton onClick={onCancel} disabled={loading} type="button">
+      <div className={styles.formModal}>
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>Invite Staff Member</h2>
+          <button
+            className={styles.closeButton}
+            onClick={onCancel}
+            disabled={loading}
+            type="button"
+          >
             ✕
-          </CloseButton>
-        </ModalHeader>
+          </button>
+        </div>
 
-        <Form onSubmit={handleSubmit}>
-          <FormGroup>
-            <FormLabel htmlFor="email">
-              Email Address <RequiredIndicator>*</RequiredIndicator>
-            </FormLabel>
-            <FormInput
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel} htmlFor="email">
+              Email Address <span className={styles.requiredIndicator}>*</span>
+            </label>
+            <input
+              className={styles.formInput({ hasError: !!errors.email })}
               id="email"
               type="email"
-              hasError={!!errors.email}
               value={formData.email}
               onChange={e => handleInputChange('email', e.target.value)}
               placeholder="staff@example.com"
@@ -317,28 +108,32 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
               required
               autoFocus
             />
-            {errors.email && <FormError>{errors.email}</FormError>}
-            <FormHelp>Enter the email address of the person you want to invite</FormHelp>
-          </FormGroup>
+            {errors.email && <span className={styles.formError}>{errors.email}</span>}
+            <small className={styles.formHelp}>
+              Enter the email address of the person you want to invite
+            </small>
+          </div>
 
-          <FormGroup>
-            <FormLabel htmlFor="title">Title/Role</FormLabel>
-            <FormInput
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel} htmlFor="title">
+              Title/Role
+            </label>
+            <input
+              className={styles.formInput({ hasError: !!errors.title })}
               id="title"
               type="text"
-              hasError={!!errors.title}
               value={formData.title || ''}
               onChange={e => handleInputChange('title', e.target.value)}
               placeholder="e.g., Volunteer, Coordinator, Manager"
               disabled={loading}
               maxLength={100}
             />
-            {errors.title && <FormError>{errors.title}</FormError>}
-            <FormHelp>Optional: Specify the person's role or title</FormHelp>
-          </FormGroup>
+            {errors.title && <span className={styles.formError}>{errors.title}</span>}
+            <small className={styles.formHelp}>Optional: Specify the person's role or title</small>
+          </div>
 
-          <FormInfo>
-            <InfoSection>
+          <div className={styles.formInfo}>
+            <div className={styles.infoSection}>
               <h4>📧 How invitations work:</h4>
               <ul>
                 <li>An invitation email will be sent to the provided address</li>
@@ -346,27 +141,36 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
                 <li>The invitation is valid for 7 days</li>
                 <li>They'll be automatically added to your rescue team after signing up</li>
               </ul>
-            </InfoSection>
-          </FormInfo>
+            </div>
+          </div>
 
-          <FormActions>
-            <ActionButton type="button" variant="secondary" onClick={onCancel} disabled={loading}>
+          <div className={styles.formActions}>
+            <button
+              type="button"
+              className={styles.actionButton({ variant: 'secondary' })}
+              onClick={onCancel}
+              disabled={loading}
+            >
               Cancel
-            </ActionButton>
-            <ActionButton type="submit" variant="primary" disabled={loading}>
+            </button>
+            <button
+              type="submit"
+              className={styles.actionButton({ variant: 'primary' })}
+              disabled={loading}
+            >
               {loading ? (
                 <>
-                  <LoadingSpinner />
+                  <span className={styles.loadingSpinner} />
                   Sending Invitation...
                 </>
               ) : (
                 'Send Invitation'
               )}
-            </ActionButton>
-          </FormActions>
-        </Form>
-      </FormModal>
-    </FormOverlay>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 

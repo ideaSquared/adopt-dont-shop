@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
 import { Button, Card, Alert } from '@adopt-dont-shop/lib.components';
 import { apiService } from '../../services/libraryServices';
 import { getApiBaseUrl } from '../../utils/env';
+import * as styles from './QuestionsBuilder.css';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -143,296 +143,6 @@ const QUESTION_TEMPLATES: Array<{ label: string; data: Partial<QuestionFormData>
     },
   },
 ];
-
-// ─── Styled Components ───────────────────────────────────────────────────────
-
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const SectionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-
-  h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #1f2937;
-    margin: 0;
-  }
-`;
-
-const QuestionCard = styled(Card)<{ $isCore?: boolean }>`
-  padding: 1rem 1.25rem;
-  background: ${props => (props.$isCore ? '#f9fafb' : '#ffffff')};
-  border: 1px solid ${props => (props.$isCore ? '#d1d5db' : '#e5e7eb')};
-  margin-bottom: 0.5rem;
-  opacity: ${props => (props.$isCore ? 0.85 : 1)};
-`;
-
-const QuestionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-`;
-
-const QuestionText = styled.div`
-  flex: 1;
-
-  p {
-    margin: 0 0 0.25rem 0;
-    font-size: 0.9375rem;
-    font-weight: 500;
-    color: #111827;
-  }
-
-  span {
-    font-size: 0.8125rem;
-    color: #6b7280;
-  }
-`;
-
-const QuestionMeta = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 0.5rem;
-`;
-
-const Badge = styled.span<{ $variant?: 'required' | 'optional' | 'type' | 'core' | 'disabled' }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-
-  ${props => {
-    switch (props.$variant) {
-      case 'required':
-        return 'background: #fee2e2; color: #991b1b;';
-      case 'optional':
-        return 'background: #e5e7eb; color: #6b7280;';
-      case 'type':
-        return 'background: #eff6ff; color: #1d4ed8;';
-      case 'core':
-        return 'background: #fef9c3; color: #854d0e;';
-      case 'disabled':
-        return 'background: #f3f4f6; color: #9ca3af;';
-      default:
-        return 'background: #e5e7eb; color: #374151;';
-    }
-  }}
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-shrink: 0;
-`;
-
-const OrderControls = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-`;
-
-const OrderButton = styled.button`
-  background: none;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.25rem;
-  padding: 0.125rem 0.375rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-  color: #6b7280;
-  line-height: 1;
-
-  &:hover:not(:disabled) {
-    background: #f3f4f6;
-    color: #374151;
-  }
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-`;
-
-const CategorySection = styled.div`
-  margin-bottom: 2rem;
-
-  h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #374151;
-    margin: 0 0 0.75rem 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e5e7eb;
-  }
-`;
-
-const EmptyCategory = styled.div`
-  padding: 1rem;
-  text-align: center;
-  color: #9ca3af;
-  font-size: 0.875rem;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
-  border-radius: 0.5rem;
-`;
-
-const FormContainer = styled(Card)`
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  border: 2px solid #3b82f6;
-`;
-
-const FormTitle = styled.h3`
-  font-size: 1.0625rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1.25rem 0;
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-
-  &.full-width {
-    grid-column: 1 / -1;
-  }
-`;
-
-const Label = styled.label`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-`;
-
-const Input = styled.input`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  color: #1f2937;
-  outline: none;
-
-  &:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-  }
-`;
-
-const TextArea = styled.textarea`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  color: #1f2937;
-  outline: none;
-  resize: vertical;
-  min-height: 80px;
-
-  &:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  color: #1f2937;
-  outline: none;
-  background: white;
-
-  &:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-  }
-`;
-
-const CheckboxLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #374151;
-  cursor: pointer;
-`;
-
-const FormActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const TemplatesSection = styled.div`
-  margin-bottom: 1.5rem;
-
-  h4 {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #374151;
-    margin: 0 0 0.75rem 0;
-  }
-`;
-
-const TemplateGrid = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-`;
-
-const TemplateButton = styled.button`
-  padding: 0.375rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.8125rem;
-  color: #374151;
-  background: white;
-  cursor: pointer;
-
-  &:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-  }
-`;
-
-const HelpText = styled.p`
-  font-size: 0.8125rem;
-  color: #6b7280;
-  margin: 0.25rem 0 0 0;
-`;
-
-const ErrorText = styled.p`
-  font-size: 0.8125rem;
-  color: #dc2626;
-  margin: 0.25rem 0 0 0;
-`;
 
 // ─── Default Form Values ──────────────────────────────────────────────────────
 
@@ -740,24 +450,24 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
 
   if (loading) {
     return (
-      <Container>
+      <div className={styles.container}>
         <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
           Loading questions...
         </div>
-      </Container>
+      </div>
     );
   }
 
   return (
-    <Container>
-      <SectionHeader>
+    <div className={styles.container}>
+      <div className={styles.sectionHeader}>
         <h2>Custom Application Questions</h2>
         {!showForm && (
           <Button onClick={handleOpenCreate} data-testid="add-question-btn">
             + Add Question
           </Button>
         )}
-      </SectionHeader>
+      </div>
 
       {error && (
         <Alert variant="error" closable onClose={() => setError(null)}>
@@ -772,43 +482,54 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
       )}
 
       {showForm && (
-        <FormContainer data-testid="question-form">
-          <FormTitle>{editingQuestion ? 'Edit Question' : 'Add New Question'}</FormTitle>
+        <Card className={styles.formContainer} data-testid="question-form">
+          <h3 className={styles.formTitle}>
+            {editingQuestion ? 'Edit Question' : 'Add New Question'}
+          </h3>
 
           {!editingQuestion && (
-            <TemplatesSection>
+            <div className={styles.templatesSection}>
               <h4>Quick templates</h4>
-              <TemplateGrid>
+              <div className={styles.templateGrid}>
                 {QUESTION_TEMPLATES.map(template => (
-                  <TemplateButton
+                  <button
                     key={template.label}
                     type="button"
+                    className={styles.templateButton}
                     onClick={() => handleApplyTemplate(template)}
                     data-testid={`template-${template.label.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     {template.label}
-                  </TemplateButton>
+                  </button>
                 ))}
-              </TemplateGrid>
-            </TemplatesSection>
+              </div>
+            </div>
           )}
 
-          <FormGrid>
-            <FormGroup className="full-width">
-              <Label htmlFor="question-text">Question text *</Label>
-              <Input
+          <div className={styles.formGrid}>
+            <div className={styles.formGroupFullWidth}>
+              <label className={styles.label} htmlFor="question-text">
+                Question text *
+              </label>
+              <input
+                className={styles.input}
                 id="question-text"
                 data-testid="question-text-input"
                 value={formData.questionText}
                 onChange={e => handleFieldChange('questionText', e.target.value)}
                 placeholder="e.g. Do you have a garden or outdoor space?"
               />
-              {formErrors.questionText && <ErrorText>{formErrors.questionText}</ErrorText>}
-            </FormGroup>
+              {formErrors.questionText && (
+                <p className={styles.errorText}>{formErrors.questionText}</p>
+              )}
+            </div>
 
-            <FormGroup>
-              <Label htmlFor="question-category">Category *</Label>
-              <Select
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="question-category">
+                Category *
+              </label>
+              <select
+                className={styles.select}
                 id="question-category"
                 data-testid="question-category-select"
                 value={formData.category}
@@ -819,12 +540,15 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                     {CATEGORY_LABELS[cat]}
                   </option>
                 ))}
-              </Select>
-            </FormGroup>
+              </select>
+            </div>
 
-            <FormGroup>
-              <Label htmlFor="question-type">Question type *</Label>
-              <Select
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="question-type">
+                Question type *
+              </label>
+              <select
+                className={styles.select}
                 id="question-type"
                 data-testid="question-type-select"
                 value={formData.questionType}
@@ -835,48 +559,64 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                     {QUESTION_TYPE_LABELS[type]}
                   </option>
                 ))}
-              </Select>
-            </FormGroup>
+              </select>
+            </div>
 
-            <FormGroup>
-              <Label htmlFor="question-key">Question key *</Label>
-              <Input
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="question-key">
+                Question key *
+              </label>
+              <input
+                className={styles.input}
                 id="question-key"
                 data-testid="question-key-input"
                 value={formData.questionKey}
                 onChange={e => handleFieldChange('questionKey', e.target.value)}
                 placeholder="e.g. has_garden"
               />
-              <HelpText>Unique identifier (auto-generated from question text)</HelpText>
-              {formErrors.questionKey && <ErrorText>{formErrors.questionKey}</ErrorText>}
-            </FormGroup>
+              <p className={styles.helpText}>
+                Unique identifier (auto-generated from question text)
+              </p>
+              {formErrors.questionKey && (
+                <p className={styles.errorText}>{formErrors.questionKey}</p>
+              )}
+            </div>
 
-            <FormGroup>
-              <Label htmlFor="question-placeholder">Placeholder text</Label>
-              <Input
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="question-placeholder">
+                Placeholder text
+              </label>
+              <input
+                className={styles.input}
                 id="question-placeholder"
                 data-testid="question-placeholder-input"
                 value={formData.placeholder}
                 onChange={e => handleFieldChange('placeholder', e.target.value)}
                 placeholder="Enter placeholder text..."
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup className="full-width">
-              <Label htmlFor="question-help">Help text</Label>
-              <Input
+            <div className={styles.formGroupFullWidth}>
+              <label className={styles.label} htmlFor="question-help">
+                Help text
+              </label>
+              <input
+                className={styles.input}
                 id="question-help"
                 data-testid="question-help-input"
                 value={formData.helpText}
                 onChange={e => handleFieldChange('helpText', e.target.value)}
                 placeholder="Additional guidance for the applicant..."
               />
-            </FormGroup>
+            </div>
 
             {needsOptions && (
-              <FormGroup className="full-width">
-                <Label htmlFor="question-options">Options * (one per line)</Label>
-                <TextArea
+              <div className={styles.formGroupFullWidth}>
+                <label className={styles.label} htmlFor="question-options">
+                  Options * (one per line)
+                </label>
+                <textarea
+                  className={styles.textArea}
                   id="question-options"
                   data-testid="question-options-input"
                   value={formData.options}
@@ -884,13 +624,16 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                   placeholder={'Option 1\nOption 2\nOption 3'}
                   rows={4}
                 />
-                {formErrors.options && <ErrorText>{formErrors.options}</ErrorText>}
-              </FormGroup>
+                {formErrors.options && <p className={styles.errorText}>{formErrors.options}</p>}
+              </div>
             )}
 
-            <FormGroup className="full-width">
-              <Label htmlFor="conditional-logic">Conditional logic (optional, JSON)</Label>
-              <TextArea
+            <div className={styles.formGroupFullWidth}>
+              <label className={styles.label} htmlFor="conditional-logic">
+                Conditional logic (optional, JSON)
+              </label>
+              <textarea
+                className={styles.textArea}
                 id="conditional-logic"
                 data-testid="conditional-logic-input"
                 value={formData.conditionalLogic}
@@ -898,12 +641,16 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                 placeholder={'{"showWhen": {"questionKey": "has_pets", "operator": "is_true"}}'}
                 rows={3}
               />
-              <HelpText>Show this question only when a specific condition is met</HelpText>
-              {formErrors.conditionalLogic && <ErrorText>{formErrors.conditionalLogic}</ErrorText>}
-            </FormGroup>
+              <p className={styles.helpText}>
+                Show this question only when a specific condition is met
+              </p>
+              {formErrors.conditionalLogic && (
+                <p className={styles.errorText}>{formErrors.conditionalLogic}</p>
+              )}
+            </div>
 
-            <FormGroup>
-              <CheckboxLabel>
+            <div className={styles.formGroup}>
+              <label className={styles.checkboxLabel}>
                 <input
                   type="checkbox"
                   data-testid="question-required-checkbox"
@@ -911,20 +658,20 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                   onChange={e => handleFieldChange('isRequired', e.target.checked)}
                 />
                 Required field
-              </CheckboxLabel>
-              <HelpText>Applicants must answer this question</HelpText>
-            </FormGroup>
-          </FormGrid>
+              </label>
+              <p className={styles.helpText}>Applicants must answer this question</p>
+            </div>
+          </div>
 
-          <FormActions>
+          <div className={styles.formActions}>
             <Button variant="secondary" onClick={handleCancel} disabled={submitting}>
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={submitting} data-testid="save-question-btn">
               {submitting ? 'Saving...' : editingQuestion ? 'Update Question' : 'Add Question'}
             </Button>
-          </FormActions>
-        </FormContainer>
+          </div>
+        </Card>
       )}
 
       {Array.from(categorizedQuestions.entries()).map(([category, categoryQs]) => {
@@ -936,58 +683,71 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
         }
 
         return (
-          <CategorySection key={category} data-testid={`category-${category}`}>
+          <div
+            key={category}
+            className={styles.categorySection}
+            data-testid={`category-${category}`}
+          >
             <h3>{CATEGORY_LABELS[category]}</h3>
 
             {coreQs.map(question => (
-              <QuestionCard key={question.questionId} $isCore>
-                <QuestionHeader>
-                  <QuestionText>
+              <Card key={question.questionId} className={styles.questionCard({ isCore: true })}>
+                <div className={styles.questionHeader}>
+                  <div className={styles.questionText}>
                     <p>{question.questionText}</p>
                     {question.helpText && <span>{question.helpText}</span>}
-                    <QuestionMeta>
-                      <Badge $variant="core">Core question</Badge>
-                      <Badge $variant="type">{QUESTION_TYPE_LABELS[question.questionType]}</Badge>
-                      {question.isRequired && <Badge $variant="required">Required</Badge>}
-                      {!question.isRequired && <Badge $variant="optional">Optional</Badge>}
-                    </QuestionMeta>
-                  </QuestionText>
-                </QuestionHeader>
-              </QuestionCard>
+                    <div className={styles.questionMeta}>
+                      <span className={styles.badge({ variant: 'core' })}>Core question</span>
+                      <span className={styles.badge({ variant: 'type' })}>
+                        {QUESTION_TYPE_LABELS[question.questionType]}
+                      </span>
+                      {question.isRequired && (
+                        <span className={styles.badge({ variant: 'required' })}>Required</span>
+                      )}
+                      {!question.isRequired && (
+                        <span className={styles.badge({ variant: 'optional' })}>Optional</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
             ))}
 
             {rescueQs.length === 0 && (
-              <EmptyCategory>
+              <div className={styles.emptyCategory}>
                 No custom questions in this section. Click &quot;+ Add Question&quot; to add one.
-              </EmptyCategory>
+              </div>
             )}
 
             {rescueQs.map((question, index) => (
-              <QuestionCard
+              <Card
                 key={question.questionId}
+                className={styles.questionCard({ isCore: false })}
                 data-testid={`question-${question.questionId}`}
               >
-                <QuestionHeader>
-                  <OrderControls>
-                    <OrderButton
+                <div className={styles.questionHeader}>
+                  <div className={styles.orderControls}>
+                    <button
+                      className={styles.orderButton}
                       onClick={() => handleMoveQuestion(question, 'up', rescueQs)}
                       disabled={index === 0}
                       aria-label="Move question up"
                       data-testid={`move-up-${question.questionId}`}
                     >
                       ▲
-                    </OrderButton>
-                    <OrderButton
+                    </button>
+                    <button
+                      className={styles.orderButton}
                       onClick={() => handleMoveQuestion(question, 'down', rescueQs)}
                       disabled={index === rescueQs.length - 1}
                       aria-label="Move question down"
                       data-testid={`move-down-${question.questionId}`}
                     >
                       ▼
-                    </OrderButton>
-                  </OrderControls>
+                    </button>
+                  </div>
 
-                  <QuestionText>
+                  <div className={styles.questionText}>
                     <p
                       style={{
                         textDecoration: question.isEnabled ? 'none' : 'line-through',
@@ -1001,16 +761,26 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                         {question.helpText}
                       </span>
                     )}
-                    <QuestionMeta>
-                      <Badge $variant="type">{QUESTION_TYPE_LABELS[question.questionType]}</Badge>
-                      {question.isRequired && <Badge $variant="required">Required</Badge>}
-                      {!question.isRequired && <Badge $variant="optional">Optional</Badge>}
-                      {!question.isEnabled && <Badge $variant="disabled">Disabled</Badge>}
-                      {question.conditionalLogic && <Badge>Conditional</Badge>}
-                    </QuestionMeta>
-                  </QuestionText>
+                    <div className={styles.questionMeta}>
+                      <span className={styles.badge({ variant: 'type' })}>
+                        {QUESTION_TYPE_LABELS[question.questionType]}
+                      </span>
+                      {question.isRequired && (
+                        <span className={styles.badge({ variant: 'required' })}>Required</span>
+                      )}
+                      {!question.isRequired && (
+                        <span className={styles.badge({ variant: 'optional' })}>Optional</span>
+                      )}
+                      {!question.isEnabled && (
+                        <span className={styles.badge({ variant: 'disabled' })}>Disabled</span>
+                      )}
+                      {question.conditionalLogic && (
+                        <span className={styles.badge({})}>Conditional</span>
+                      )}
+                    </div>
+                  </div>
 
-                  <ActionButtons>
+                  <div className={styles.actionButtons}>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -1035,14 +805,14 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
                     >
                       Delete
                     </Button>
-                  </ActionButtons>
-                </QuestionHeader>
-              </QuestionCard>
+                  </div>
+                </div>
+              </Card>
             ))}
-          </CategorySection>
+          </div>
         );
       })}
-    </Container>
+    </div>
   );
 };
 

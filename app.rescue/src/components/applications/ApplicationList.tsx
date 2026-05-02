@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'styled-components';
 import StatusBadge from '../common/StatusBadge';
 import type {
   ApplicationListItem,
@@ -8,375 +7,7 @@ import type {
 } from '../../types/applications';
 import ApplicationStats from './ApplicationStats';
 import ApplicationFilters from './ApplicationFilters';
-
-// Styled Components
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const StatsSection = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const FiltersSection = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const Title = styled.h2`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-`;
-
-const SelectionCount = styled.span`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const SortSelect = styled.select`
-  font-size: 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  padding: 0.5rem;
-  background: white;
-`;
-
-const TableContainer = styled.div`
-  background: white;
-  box-shadow:
-    0 1px 3px 0 rgba(0, 0, 0, 0.1),
-    0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  border-radius: 0.375rem;
-  overflow: hidden;
-
-  @media (max-width: 640px) {
-    border-radius: 0.375rem;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  padding: 2rem;
-  text-align: center;
-`;
-
-const Spinner = styled.div`
-  display: inline-block;
-  width: 2rem;
-  height: 2rem;
-  border: 2px solid #e5e7eb;
-  border-top: 2px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const LoadingText = styled.p`
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const EmptyContainer = styled.div`
-  padding: 2rem;
-  text-align: center;
-`;
-
-const EmptyText = styled.p`
-  color: #6b7280;
-`;
-
-const TableWrapper = styled.div`
-  overflow-x: auto;
-`;
-
-const Table = styled.table`
-  min-width: 100%;
-  border-collapse: collapse;
-`;
-
-const TableHead = styled.thead`
-  background: #f9fafb;
-`;
-
-const TableRow = styled.tr`
-  &:hover {
-    background: #f9fafb;
-  }
-
-  cursor: pointer;
-`;
-
-const TableHeader = styled.th`
-  padding: 0.75rem 1.5rem;
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const TableBody = styled.tbody`
-  background: white;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const TableCell = styled.td`
-  padding: 1rem 1.5rem;
-  white-space: nowrap;
-  border-bottom: 1px solid #e5e7eb;
-
-  &:last-child {
-    text-align: right;
-  }
-`;
-
-const CheckboxCell = styled.td`
-  padding: 1rem 1.5rem;
-  white-space: nowrap;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const Checkbox = styled.input`
-  border-radius: 0.25rem;
-  border: 1px solid #d1d5db;
-`;
-
-const ApplicantInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const ApplicantName = styled.div`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #111827;
-`;
-
-const ApplicantEmail = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const PetInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const PetName = styled.div`
-  font-size: 0.875rem;
-  color: #111827;
-`;
-
-const PetDetails = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const PriorityBadge = styled.span<{ $priority: string }>`
-  display: inline-flex;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 9999px;
-
-  ${props => {
-    switch (props.$priority) {
-      case 'urgent':
-        return 'background: #fecaca; color: #dc2626; border: 1px solid #dc2626; animation: pulse 2s infinite;';
-      case 'high':
-        return 'background: #fed7d7; color: #c53030;';
-      case 'medium':
-        return 'background: #fef3c7; color: #92400e;';
-      case 'low':
-        return 'background: #dcfce7; color: #166534;';
-      default:
-        return 'background: #f3f4f6; color: #374151;';
-    }
-  }}
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.7;
-    }
-  }
-`;
-
-const ProgressIndicators = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 200px;
-`;
-
-const ProgressBar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.125rem;
-  flex: 1;
-`;
-
-const ProgressStep = styled.div<{
-  $status: 'completed' | 'current' | 'pending';
-  $isLast?: boolean;
-}>`
-  height: 4px;
-  flex: 1;
-  border-radius: 2px;
-  position: relative;
-
-  ${props => {
-    switch (props.$status) {
-      case 'completed':
-        return 'background: #10b981;';
-      case 'current':
-        return 'background: #3b82f6;';
-      default:
-        return 'background: #e5e7eb;';
-    }
-  }}
-
-  &::after {
-    content: '';
-    position: absolute;
-    right: -3px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    ${props => {
-      if (props.$isLast) {
-        return 'display: none;';
-      }
-      switch (props.$status) {
-        case 'completed':
-          return 'background: #10b981; border: 2px solid white; box-shadow: 0 0 0 2px #10b981;';
-        case 'current':
-          return 'background: #3b82f6; border: 2px solid white; box-shadow: 0 0 0 2px #3b82f6;';
-        default:
-          return 'background: #9ca3af; border: 2px solid white;';
-      }
-    }}
-  }
-`;
-
-const ProgressLabel = styled.span`
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-left: 0.5rem;
-  white-space: nowrap;
-`;
-
-const ActionsContainer = styled.div`
-  display: flex;
-  gap: 0.25rem;
-  align-items: center;
-`;
-
-const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 0.375rem;
-  border: 1px solid;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-
-  ${props => {
-    switch (props.$variant) {
-      case 'primary':
-        return `
-          background: #3b82f6;
-          color: white;
-          border-color: #3b82f6;
-          &:hover { background: #2563eb; border-color: #2563eb; }
-        `;
-      case 'danger':
-        return `
-          background: #ef4444;
-          color: white;
-          border-color: #ef4444;
-          &:hover { background: #dc2626; border-color: #dc2626; }
-        `;
-      default:
-        return `
-          background: white;
-          color: #374151;
-          border-color: #d1d5db;
-          &:hover { background: #f9fafb; border-color: #9ca3af; }
-        `;
-    }
-  }}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const ErrorContainer = styled.div`
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 0.375rem;
-  padding: 1rem;
-`;
-
-const ErrorContent = styled.div`
-  display: flex;
-`;
-
-const ErrorText = styled.div`
-  margin-left: 0.75rem;
-`;
-
-const ErrorTitle = styled.h3`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #991b1b;
-  margin: 0 0 0.25rem 0;
-`;
-
-const ErrorMessage = styled.p`
-  font-size: 0.875rem;
-  color: #b91c1c;
-  margin: 0;
-`;
+import * as styles from './ApplicationList.css';
 
 // Helper functions for progress calculation - Updated for 5-stage workflow
 const getApplicationProgress = (application: ApplicationListItem) => {
@@ -620,45 +251,46 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
 
   if (error) {
     return (
-      <ErrorContainer>
-        <ErrorContent>
-          <ErrorText>
-            <ErrorTitle>Error loading applications</ErrorTitle>
-            <ErrorMessage>{error}</ErrorMessage>
-          </ErrorText>
-        </ErrorContent>
-      </ErrorContainer>
+      <div className={styles.errorContainer}>
+        <div className={styles.errorContent}>
+          <div className={styles.errorText}>
+            <h3 className={styles.errorTitle}>Error loading applications</h3>
+            <p className={styles.errorMessage}>{error}</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container>
+    <div className={styles.container}>
       {/* Statistics Section - Always shows full totals */}
-      <StatsSection>
+      <div className={styles.statsSection}>
         <ApplicationStats />
-      </StatsSection>
+      </div>
 
       {/* Filters Section - Always Visible */}
-      <FiltersSection>
+      <div className={styles.filtersSection}>
         <ApplicationFilters
           filters={uiFilters}
           onFilterChange={handleFilterChange}
           onClearFilters={() => onFilterChange({})}
         />
-      </FiltersSection>
+      </div>
 
       {/* Header and Controls */}
-      <Header>
-        <HeaderLeft>
-          <Title>Applications ({pagination.total})</Title>
-        </HeaderLeft>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <h2 className={styles.title}>Applications ({pagination.total})</h2>
+        </div>
 
-        <HeaderRight>
+        <div className={styles.headerRight}>
           {selectedApplications.length > 0 && (
-            <SelectionCount>{selectedApplications.length} selected</SelectionCount>
+            <span className={styles.selectionCount}>{selectedApplications.length} selected</span>
           )}
 
-          <SortSelect
+          <select
+            className={styles.sortSelect}
             value={`${sort.field}-${sort.direction}`}
             onChange={e => {
               const [field, direction] = e.target.value.split('-');
@@ -670,28 +302,29 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
             <option value="status-asc">Status A-Z</option>
             <option value="applicantName-asc">Name A-Z</option>
             <option value="priority-desc">High Priority First</option>
-          </SortSelect>
-        </HeaderRight>
-      </Header>
+          </select>
+        </div>
+      </div>
 
       {/* Application Table */}
-      <TableContainer>
+      <div className={styles.tableContainer}>
         {loading ? (
-          <LoadingContainer>
-            <Spinner />
-            <LoadingText>Loading applications...</LoadingText>
-          </LoadingContainer>
+          <div className={styles.loadingContainer}>
+            <div className={styles.spinner} />
+            <p className={styles.loadingText}>Loading applications...</p>
+          </div>
         ) : applications.length === 0 ? (
-          <EmptyContainer>
-            <EmptyText>No applications found matching your criteria.</EmptyText>
-          </EmptyContainer>
+          <div className={styles.emptyContainer}>
+            <p className={styles.emptyText}>No applications found matching your criteria.</p>
+          </div>
         ) : (
-          <TableWrapper>
-            <Table>
-              <TableHead>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead className={styles.tableHead}>
                 <tr>
-                  <TableHeader>
-                    <Checkbox
+                  <th className={styles.tableHeader}>
+                    <input
+                      className={styles.checkbox}
                       type="checkbox"
                       checked={
                         applications.length > 0 &&
@@ -699,58 +332,72 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                       }
                       onChange={e => handleSelectAll(e.target.checked)}
                     />
-                  </TableHeader>
-                  <TableHeader>Applicant</TableHeader>
-                  <TableHeader>Pet</TableHeader>
-                  <TableHeader>Status</TableHeader>
-                  <TableHeader>Priority</TableHeader>
-                  <TableHeader>Submitted</TableHeader>
-                  <TableHeader>Progress</TableHeader>
-                  <TableHeader>Actions</TableHeader>
+                  </th>
+                  <th className={styles.tableHeader}>Applicant</th>
+                  <th className={styles.tableHeader}>Pet</th>
+                  <th className={styles.tableHeader}>Status</th>
+                  <th className={styles.tableHeader}>Priority</th>
+                  <th className={styles.tableHeader}>Submitted</th>
+                  <th className={styles.tableHeader}>Progress</th>
+                  <th className={styles.tableHeader}>Actions</th>
                 </tr>
-              </TableHead>
-              <TableBody>
+              </thead>
+              <tbody className={styles.tableBody}>
                 {applications.map(application => (
-                  <TableRow key={application.id} onClick={() => onApplicationSelect(application)}>
-                    <CheckboxCell onClick={e => e.stopPropagation()}>
-                      <Checkbox
+                  <tr
+                    key={application.id}
+                    className={styles.tableRow}
+                    onClick={() => onApplicationSelect(application)}
+                  >
+                    <td className={styles.checkboxCell} onClick={e => e.stopPropagation()}>
+                      <input
+                        className={styles.checkbox}
                         type="checkbox"
                         checked={selectedApplications.includes(application.id)}
                         onChange={e => handleSelectApplication(application.id, e.target.checked)}
                       />
-                    </CheckboxCell>
-                    <TableCell>
-                      <ApplicantInfo>
-                        <ApplicantName>{application.applicantName}</ApplicantName>
-                        <ApplicantEmail>
+                    </td>
+                    <td className={styles.tableCell}>
+                      <div className={styles.applicantInfo}>
+                        <div className={styles.applicantName}>{application.applicantName}</div>
+                        <div className={styles.applicantEmail}>
                           {application.data?.personalInfo?.email || 'No email provided'}
-                        </ApplicantEmail>
-                      </ApplicantInfo>
-                    </TableCell>
-                    <TableCell>
-                      <PetInfo>
-                        <PetName>{application.petName || 'Unknown Pet'}</PetName>
-                        <PetDetails>
+                        </div>
+                      </div>
+                    </td>
+                    <td className={styles.tableCell}>
+                      <div className={styles.petInfo}>
+                        <div className={styles.petName}>{application.petName || 'Unknown Pet'}</div>
+                        <div className={styles.petDetails}>
                           {application.petType} • {application.petBreed}
-                        </PetDetails>
-                      </PetInfo>
-                    </TableCell>
-                    <TableCell>
+                        </div>
+                      </div>
+                    </td>
+                    <td className={styles.tableCell}>
                       <StatusBadge status={application.status || 'unknown'} />
-                    </TableCell>
-                    <TableCell>
-                      <PriorityBadge $priority={application.priority}>
+                    </td>
+                    <td className={styles.tableCell}>
+                      <span
+                        className={styles.priorityBadge({
+                          priority: application.priority as
+                            | 'urgent'
+                            | 'high'
+                            | 'medium'
+                            | 'low'
+                            | 'default',
+                        })}
+                      >
                         {application.priority}
-                      </PriorityBadge>
-                    </TableCell>
-                    <TableCell>
+                      </span>
+                    </td>
+                    <td className={styles.tableCell}>
                       {application.submittedDaysAgo === 0
                         ? 'Today'
                         : `${application.submittedDaysAgo} days ago`}
-                    </TableCell>
-                    <TableCell>
-                      <ProgressIndicators>
-                        <ProgressBar>
+                    </td>
+                    <td className={styles.tableCell}>
+                      <div className={styles.progressIndicators}>
+                        <div className={styles.progressBar}>
                           {[0, 1, 2, 3, 4].map(stepIndex => {
                             const progress = getApplicationProgress(application);
                             const stepStatus = getStepStatus(
@@ -760,47 +407,49 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                               progress.finalOutcome
                             );
                             return (
-                              <ProgressStep
+                              <div
                                 key={stepIndex}
-                                $status={stepStatus}
-                                $isLast={stepIndex === 4}
+                                className={styles.progressStep({
+                                  status: stepStatus,
+                                  isLast: stepIndex === 4,
+                                })}
                               />
                             );
                           })}
-                        </ProgressBar>
-                        <ProgressLabel>
+                        </div>
+                        <span className={styles.progressLabel}>
                           {getStepLabel(
                             getApplicationProgress(application).current,
                             application.stage,
                             application.finalOutcome
                           )}
-                        </ProgressLabel>
-                      </ProgressIndicators>
-                    </TableCell>
-                    <TableCell onClick={e => e.stopPropagation()}>
-                      <ActionsContainer>
+                        </span>
+                      </div>
+                    </td>
+                    <td className={styles.tableCell} onClick={e => e.stopPropagation()}>
+                      <div className={styles.actionsContainer}>
                         {getActionButtons(application).map((action, index) => (
-                          <ActionButton
+                          <button
                             key={index}
-                            $variant={action.variant}
+                            className={styles.actionButton({ variant: action.variant })}
                             onClick={e => {
                               e.stopPropagation();
                               action.action();
                             }}
                           >
                             {action.label}
-                          </ActionButton>
+                          </button>
                         ))}
-                      </ActionsContainer>
-                    </TableCell>
-                  </TableRow>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </TableWrapper>
+              </tbody>
+            </table>
+          </div>
         )}
-      </TableContainer>
-    </Container>
+      </div>
+    </div>
   );
 };
 
