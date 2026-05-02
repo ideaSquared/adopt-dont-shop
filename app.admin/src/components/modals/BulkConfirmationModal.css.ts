@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -49,11 +49,6 @@ export const iconWrap = recipe({
     borderRadius: '10px',
     background: '#ffffff',
     flexShrink: 0,
-    selectors: {
-      '& svg': {
-        fontSize: '1.25rem',
-      },
-    },
   },
   variants: {
     variant: {
@@ -62,6 +57,10 @@ export const iconWrap = recipe({
       info: { color: '#3b82f6' },
     },
   },
+});
+
+globalStyle(`${iconWrap.classNames.base} svg`, {
+  fontSize: '1.25rem',
 });
 
 export const headerText = style({

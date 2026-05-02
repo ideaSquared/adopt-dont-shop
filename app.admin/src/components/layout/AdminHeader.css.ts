@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -84,11 +84,6 @@ export const iconButton = recipe({
       borderColor: vars.colors.primary['500'],
       color: vars.colors.primary['600'],
     },
-    selectors: {
-      '& svg': {
-        fontSize: '1.25rem',
-      },
-    },
   },
   variants: {
     hasNotification: {
@@ -110,6 +105,10 @@ export const iconButton = recipe({
       false: {},
     },
   },
+});
+
+globalStyle(`${iconButton.classNames.base} svg`, {
+  fontSize: '1.25rem',
 });
 
 export const userMenu = style({
@@ -198,11 +197,6 @@ export const dropdownItem = recipe({
     fontSize: '0.875rem',
     textAlign: 'left',
     transition: 'all 0.2s ease',
-    selectors: {
-      '& svg': {
-        fontSize: '1rem',
-      },
-    },
   },
   variants: {
     danger: {
@@ -216,6 +210,10 @@ export const dropdownItem = recipe({
       },
     },
   },
+});
+
+globalStyle(`${dropdownItem.classNames.base} svg`, {
+  fontSize: '1rem',
 });
 
 export const dropdownDivider = style({

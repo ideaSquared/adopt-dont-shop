@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -145,45 +145,48 @@ export const navDivider = recipe({
   },
 });
 
-export const styledNavLink = recipe({
-  base: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    margin: '0 0.5rem',
-    color: '#d1d5db',
-    textDecoration: 'none',
-    borderRadius: '8px',
-    transition: 'all 0.2s ease',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    position: 'relative',
-    ':hover': {
-      background: '#374151',
+export const styledNavLinkBase = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+  margin: '0 0.5rem',
+  color: '#d1d5db',
+  textDecoration: 'none',
+  borderRadius: '8px',
+  transition: 'all 0.2s ease',
+  fontSize: '0.875rem',
+  fontWeight: '500',
+  position: 'relative',
+  ':hover': {
+    background: '#374151',
+    color: '#ffffff',
+  },
+  selectors: {
+    '&.active': {
+      background: vars.colors.primary['600'],
       color: '#ffffff',
     },
-    selectors: {
-      '&.active': {
-        background: vars.colors.primary['600'],
-        color: '#ffffff',
-      },
-      '&.active::before': {
-        content: "''",
-        position: 'absolute',
-        left: 0,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        width: '3px',
-        height: '70%',
-        background: vars.colors.primary['300'],
-        borderRadius: '0 2px 2px 0',
-      },
-      '& svg': {
-        fontSize: '1.25rem',
-        minWidth: '1.25rem',
-      },
+    '&.active::before': {
+      content: "''",
+      position: 'absolute',
+      left: 0,
+      top: '50%',
+      transform: 'translateY(-50%)',
+      width: '3px',
+      height: '70%',
+      background: vars.colors.primary['300'],
+      borderRadius: '0 2px 2px 0',
     },
   },
+});
+
+globalStyle(`${styledNavLinkBase} svg`, {
+  fontSize: '1.25rem',
+  minWidth: '1.25rem',
+});
+
+export const styledNavLink = recipe({
+  base: [styledNavLinkBase],
   variants: {
     collapsed: {
       true: {

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -65,11 +65,10 @@ export const sortIcon = style({
   display: 'flex',
   alignItems: 'center',
   color: '#9ca3af',
-  selectors: {
-    '& svg': {
-      fontSize: '1rem',
-    },
-  },
+});
+
+globalStyle(`${sortIcon} svg`, {
+  fontSize: '1rem',
 });
 
 export const tbody = style({});
@@ -120,14 +119,12 @@ export const checkbox = style({
   accentColor: vars.colors.primary['600'],
 });
 
-export const emptyRow = style({
-  selectors: {
-    '& td': {
-      padding: '3rem',
-      textAlign: 'center',
-      color: '#6b7280',
-    },
-  },
+export const emptyRow = style({});
+
+globalStyle(`${emptyRow} td`, {
+  padding: '3rem',
+  textAlign: 'center',
+  color: '#6b7280',
 });
 
 export const paginationContainer = style({
@@ -150,29 +147,30 @@ export const paginationControls = style({
   gap: '0.5rem',
 });
 
-export const pageButton = recipe({
-  base: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: '32px',
-    height: '32px',
-    padding: '0 0.5rem',
-    border: '1px solid',
-    borderRadius: '6px',
-    fontSize: '0.875rem',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    ':disabled': {
-      opacity: 0.5,
-      cursor: 'not-allowed',
-    },
-    selectors: {
-      '& svg': {
-        fontSize: '1rem',
-      },
-    },
+export const pageButtonBase = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: '32px',
+  height: '32px',
+  padding: '0 0.5rem',
+  border: '1px solid',
+  borderRadius: '6px',
+  fontSize: '0.875rem',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  ':disabled': {
+    opacity: 0.5,
+    cursor: 'not-allowed',
   },
+});
+
+globalStyle(`${pageButtonBase} svg`, {
+  fontSize: '1rem',
+});
+
+export const pageButton = recipe({
+  base: [pageButtonBase],
   variants: {
     active: {
       true: {

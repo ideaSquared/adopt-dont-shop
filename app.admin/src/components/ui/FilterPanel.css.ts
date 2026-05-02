@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const panelContainer = style({
@@ -22,11 +22,10 @@ export const title = style({
   fontSize: '1rem',
   fontWeight: '600',
   color: '#111827',
-  selectors: {
-    '& svg': {
-      color: '#6b7280',
-    },
-  },
+});
+
+globalStyle(`${title} svg`, {
+  color: '#6b7280',
 });
 
 export const clearButton = style({
@@ -45,11 +44,10 @@ export const clearButton = style({
     background: '#f9fafb',
     borderColor: '#9ca3af',
   },
-  selectors: {
-    '& svg': {
-      fontSize: '1rem',
-    },
-  },
+});
+
+globalStyle(`${clearButton} svg`, {
+  fontSize: '1rem',
 });
 
 export const filtersGrid = style({
@@ -80,7 +78,8 @@ export const select = style({
   color: '#111827',
   cursor: 'pointer',
   appearance: 'none',
-  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E\")",
+  backgroundImage:
+    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E\")",
   backgroundRepeat: 'no-repeat',
   backgroundPosition: 'right 0.75rem center',
   transition: 'all 0.2s ease',

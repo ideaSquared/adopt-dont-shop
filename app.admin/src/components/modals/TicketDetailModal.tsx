@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { Modal, Button } from '@adopt-dont-shop/lib.components';
 import {
   type SupportTicket,
@@ -7,8 +6,6 @@ import {
   getStatusLabel,
   getPriorityLabel,
   getCategoryLabel,
-  getStatusColor,
-  getPriorityColor,
   formatRelativeTime,
   formatDate,
   formatTicketId,
@@ -22,6 +19,8 @@ import {
   FiMessageSquare,
   FiSend,
 } from 'react-icons/fi';
+import clsx from 'clsx';
+import styles from './TicketDetailModal.css';
 
 type TicketDetailModalProps = {
   isOpen: boolean;
@@ -31,243 +30,6 @@ type TicketDetailModalProps = {
   onStatusChange?: (status: string) => Promise<void>;
   onPriorityChange?: (priority: string) => Promise<void>;
 };
-
-const DetailSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  max-height: 70vh;
-  overflow-y: auto;
-`;
-
-const TicketHeader = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const TicketTitle = styled.h3`
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #111827;
-`;
-
-const TicketId = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-family: 'Courier New', monospace;
-`;
-
-const BadgeRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-`;
-
-const Badge = styled.span<{ $color?: string; $bgColor?: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: ${props => props.$bgColor || '#f3f4f6'};
-  color: ${props => props.$color || '#374151'};
-`;
-
-const DetailGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const DetailItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const DetailLabel = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #6b7280;
-
-  svg {
-    font-size: 0.875rem;
-  }
-`;
-
-const DetailValue = styled.div`
-  font-size: 0.875rem;
-  color: #111827;
-  font-weight: 500;
-`;
-
-const EmptyValue = styled.span`
-  color: #9ca3af;
-  font-style: italic;
-`;
-
-const DescriptionSection = styled.div`
-  padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-`;
-
-const DescriptionLabel = styled.div`
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #6b7280;
-  margin-bottom: 0.75rem;
-`;
-
-const DescriptionText = styled.div`
-  font-size: 0.875rem;
-  color: #111827;
-  line-height: 1.6;
-  white-space: pre-wrap;
-`;
-
-const ResponsesSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const ResponsesHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-
-  svg {
-    color: #6b7280;
-  }
-`;
-
-const ResponseCard = styled.div<{ $isInternal?: boolean }>`
-  padding: 1rem;
-  background: ${props => (props.$isInternal ? '#fef3c7' : '#ffffff')};
-  border: 1px solid ${props => (props.$isInternal ? '#fbbf24' : '#e5e7eb')};
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const ResponseHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const ResponseMeta = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const ResponderInfo = styled.div`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-`;
-
-const ResponseTime = styled.div`
-  font-size: 0.75rem;
-  color: #6b7280;
-`;
-
-const ResponseContent = styled.div`
-  font-size: 0.875rem;
-  color: #374151;
-  line-height: 1.6;
-  white-space: pre-wrap;
-`;
-
-const ReplyForm = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const TextArea = styled.textarea`
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #111827;
-  background: #ffffff;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 100px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #9ca3af;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
-`;
-
-const CheckboxLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #374151;
-  cursor: pointer;
-
-  input {
-    cursor: pointer;
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-`;
-
-const EmptyState = styled.div`
-  padding: 2rem;
-  text-align: center;
-  color: #9ca3af;
-  font-style: italic;
-`;
-
-const InternalBadge = styled(Badge)`
-  font-size: 0.625rem;
-`;
 
 export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   isOpen,
@@ -304,9 +66,6 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     return null;
   }
 
-  // Use responses length as key to force re-render when responses change
-  const responsesKey = ticket.responses?.length || 0;
-
   const statusColorMap: Record<string, { bg: string; color: string }> = {
     open: { bg: '#dbeafe', color: '#1e40af' },
     in_progress: { bg: '#fef3c7', color: '#92400e' },
@@ -337,147 +96,167 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
       closeOnOverlayClick={!isSubmitting}
       closeOnEscape={!isSubmitting}
     >
-      <DetailSection>
-        <TicketHeader>
+      <div className={styles.detailSection}>
+        <div className={styles.ticketHeader}>
           <div>
-            <TicketId>{formatTicketId(ticket.ticketId)}</TicketId>
-            <TicketTitle>{ticket.subject}</TicketTitle>
+            <div className={styles.ticketId}>{formatTicketId(ticket.ticketId)}</div>
+            <h3 className={styles.ticketTitle}>{ticket.subject}</h3>
           </div>
-          <BadgeRow>
-            <Badge $bgColor={statusColors.bg} $color={statusColors.color}>
+          <div className={styles.badgeRow}>
+            <span
+              className={styles.badge}
+              style={{ background: statusColors.bg, color: statusColors.color }}
+            >
               <FiCheckCircle />
               {getStatusLabel(ticket.status)}
-            </Badge>
-            <Badge $bgColor={priorityColors.bg} $color={priorityColors.color}>
+            </span>
+            <span
+              className={styles.badge}
+              style={{ background: priorityColors.bg, color: priorityColors.color }}
+            >
               <FiAlertCircle />
               {getPriorityLabel(ticket.priority)}
-            </Badge>
-            <Badge>
+            </span>
+            <span className={styles.badge}>
               <FiTag />
               {getCategoryLabel(ticket.category)}
-            </Badge>
-          </BadgeRow>
-        </TicketHeader>
+            </span>
+          </div>
+        </div>
 
-        <DetailGrid>
-          <DetailItem>
-            <DetailLabel>
+        <div className={styles.detailGrid}>
+          <div className={styles.detailItem}>
+            <div className={styles.detailLabel}>
               <FiUser />
               Customer
-            </DetailLabel>
-            <DetailValue>{ticket.userName || <EmptyValue>Not provided</EmptyValue>}</DetailValue>
-            <DetailValue style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
+            </div>
+            <div className={styles.detailValue}>
+              {ticket.userName || <span className={styles.emptyValue}>Not provided</span>}
+            </div>
+            <div className={styles.detailValue} style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
               {ticket.userEmail}
-            </DetailValue>
-          </DetailItem>
+            </div>
+          </div>
 
-          <DetailItem>
-            <DetailLabel>
+          <div className={styles.detailItem}>
+            <div className={styles.detailLabel}>
               <FiUser />
               Assigned To
-            </DetailLabel>
-            <DetailValue>{ticket.assignedTo || <EmptyValue>Unassigned</EmptyValue>}</DetailValue>
-          </DetailItem>
+            </div>
+            <div className={styles.detailValue}>
+              {ticket.assignedTo || <span className={styles.emptyValue}>Unassigned</span>}
+            </div>
+          </div>
 
-          <DetailItem>
-            <DetailLabel>
+          <div className={styles.detailItem}>
+            <div className={styles.detailLabel}>
               <FiClock />
               Created
-            </DetailLabel>
-            <DetailValue>
+            </div>
+            <div className={styles.detailValue}>
               {formatDate(ticket.createdAt)}
               <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
                 ({formatRelativeTime(ticket.createdAt)})
               </div>
-            </DetailValue>
-          </DetailItem>
+            </div>
+          </div>
 
-          <DetailItem>
-            <DetailLabel>
+          <div className={styles.detailItem}>
+            <div className={styles.detailLabel}>
               <FiClock />
               Last Updated
-            </DetailLabel>
-            <DetailValue>
+            </div>
+            <div className={styles.detailValue}>
               {formatDate(ticket.updatedAt)}
               <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
                 ({formatRelativeTime(ticket.updatedAt)})
               </div>
-            </DetailValue>
-          </DetailItem>
+            </div>
+          </div>
 
           {ticket.firstResponseAt && (
-            <DetailItem>
-              <DetailLabel>
+            <div className={styles.detailItem}>
+              <div className={styles.detailLabel}>
                 <FiMessageSquare />
                 First Response
-              </DetailLabel>
-              <DetailValue>{formatRelativeTime(ticket.firstResponseAt)}</DetailValue>
-            </DetailItem>
+              </div>
+              <div className={styles.detailValue}>{formatRelativeTime(ticket.firstResponseAt)}</div>
+            </div>
           )}
 
           {ticket.resolvedAt && (
-            <DetailItem>
-              <DetailLabel>
+            <div className={styles.detailItem}>
+              <div className={styles.detailLabel}>
                 <FiCheckCircle />
                 Resolved
-              </DetailLabel>
-              <DetailValue>{formatRelativeTime(ticket.resolvedAt)}</DetailValue>
-            </DetailItem>
+              </div>
+              <div className={styles.detailValue}>{formatRelativeTime(ticket.resolvedAt)}</div>
+            </div>
           )}
-        </DetailGrid>
+        </div>
 
-        <DescriptionSection>
-          <DescriptionLabel>Description</DescriptionLabel>
-          <DescriptionText>{ticket.description}</DescriptionText>
-        </DescriptionSection>
+        <div className={styles.descriptionSection}>
+          <div className={styles.descriptionLabel}>Description</div>
+          <div className={styles.descriptionText}>{ticket.description}</div>
+        </div>
 
         {ticket.internalNotes && (
-          <DescriptionSection style={{ background: '#fef3c7', borderColor: '#fbbf24' }}>
-            <DescriptionLabel style={{ color: '#92400e' }}>Internal Notes</DescriptionLabel>
-            <DescriptionText>{ticket.internalNotes}</DescriptionText>
-          </DescriptionSection>
+          <div
+            className={styles.descriptionSection}
+            style={{ background: '#fef3c7', borderColor: '#fbbf24' }}
+          >
+            <div className={styles.descriptionLabel} style={{ color: '#92400e' }}>
+              Internal Notes
+            </div>
+            <div className={styles.descriptionText}>{ticket.internalNotes}</div>
+          </div>
         )}
 
-        <ResponsesSection>
-          <ResponsesHeader>
+        <div className={styles.responsesSection}>
+          <div className={styles.responsesHeader}>
             <FiMessageSquare />
             Responses ({ticket.responses?.length || 0})
-          </ResponsesHeader>
+          </div>
 
           {ticket.responses && ticket.responses.length > 0 ? (
             ticket.responses.map((response: TicketResponse) => (
-              <ResponseCard key={response.responseId} $isInternal={response.isInternal}>
-                <ResponseHeader>
-                  <ResponseMeta>
-                    <ResponderInfo>
+              <div
+                key={response.responseId}
+                className={clsx(
+                  styles.responseCard,
+                  response.isInternal && styles.responseCardInternal
+                )}
+              >
+                <div className={styles.responseHeader}>
+                  <div className={styles.responseMeta}>
+                    <div className={styles.responderInfo}>
                       {response.responderType === 'staff' ? 'Staff' : 'Customer'} Response
                       {response.isInternal && (
-                        <InternalBadge
-                          $bgColor='#92400e'
-                          $color='#ffffff'
-                          style={{ marginLeft: '0.5rem' }}
-                        >
+                        <span className={styles.internalBadge} style={{ marginLeft: '0.5rem' }}>
                           Internal
-                        </InternalBadge>
+                        </span>
                       )}
-                    </ResponderInfo>
-                    <ResponseTime>{formatRelativeTime(response.createdAt)}</ResponseTime>
-                  </ResponseMeta>
-                </ResponseHeader>
-                <ResponseContent>{response.content}</ResponseContent>
-              </ResponseCard>
+                    </div>
+                    <div className={styles.responseTime}>
+                      {formatRelativeTime(response.createdAt)}
+                    </div>
+                  </div>
+                </div>
+                <div className={styles.responseContent}>{response.content}</div>
+              </div>
             ))
           ) : (
-            <EmptyState>No responses yet</EmptyState>
+            <div className={styles.emptyState}>No responses yet</div>
           )}
-        </ResponsesSection>
+        </div>
 
-        <ReplyForm onSubmit={handleSubmitReply}>
-          <DetailLabel>
+        <form className={styles.replyForm} onSubmit={handleSubmitReply}>
+          <div className={styles.detailLabel}>
             <FiSend />
             Add Response
-          </DetailLabel>
-          <TextArea
+          </div>
+          <textarea
+            className={styles.textArea}
             value={replyContent}
             onChange={e => setReplyContent(e.target.value)}
             placeholder='Type your response here...'
@@ -486,7 +265,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             minLength={1}
             maxLength={10000}
           />
-          <CheckboxLabel>
+          <label className={styles.checkboxLabel}>
             <input
               type='checkbox'
               checked={isInternal}
@@ -494,8 +273,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               disabled={isSubmitting}
             />
             Internal note (not visible to customer)
-          </CheckboxLabel>
-          <ButtonGroup>
+          </label>
+          <div className={styles.buttonGroup}>
             <Button
               type='button'
               variant='outline'
@@ -513,9 +292,9 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             >
               {isSubmitting ? 'Sending...' : 'Send Response'}
             </Button>
-          </ButtonGroup>
-        </ReplyForm>
-      </DetailSection>
+          </div>
+        </form>
+      </div>
     </Modal>
   );
 };

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -101,19 +101,19 @@ export const searchInputWrapper = style({
   position: 'relative',
   flex: 2,
   minWidth: '300px',
-  selectors: {
-    '& svg': {
-      position: 'absolute',
-      left: '0.75rem',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      color: '#9ca3af',
-      fontSize: '1.125rem',
-    },
-    '& input': {
-      paddingLeft: '2.5rem',
-    },
-  },
+});
+
+globalStyle(`${searchInputWrapper} svg`, {
+  position: 'absolute',
+  left: '0.75rem',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  color: '#9ca3af',
+  fontSize: '1.125rem',
+});
+
+globalStyle(`${searchInputWrapper} input`, {
+  paddingLeft: '2.5rem',
 });
 
 export const select = style({
@@ -182,20 +182,19 @@ export const pageHeader = style({
   gap: '1rem',
 });
 
-export const headerLeft = style({
-  selectors: {
-    '& h1': {
-      fontSize: '2rem',
-      fontWeight: '700',
-      color: '#111827',
-      margin: '0 0 0.5rem 0',
-    },
-    '& p': {
-      fontSize: '1rem',
-      color: '#6b7280',
-      margin: '0',
-    },
-  },
+export const headerLeft = style({});
+
+globalStyle(`${headerLeft} h1`, {
+  fontSize: '2rem',
+  fontWeight: '700',
+  color: '#111827',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${headerLeft} p`, {
+  fontSize: '1rem',
+  color: '#6b7280',
+  margin: '0',
 });
 
 export const headerActions = style({

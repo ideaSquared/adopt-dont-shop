@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -29,11 +29,10 @@ export const triggerButton = style({
     outline: 'none',
     borderColor: vars.colors.primary['500'],
   },
-  selectors: {
-    '& svg': {
-      fontSize: '1.125rem',
-    },
-  },
+});
+
+globalStyle(`${triggerButton} svg`, {
+  fontSize: '1.125rem',
 });
 
 export const dropdown = recipe({
@@ -70,12 +69,6 @@ export const menuItem = recipe({
     fontSize: '0.875rem',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    selectors: {
-      '& svg': {
-        fontSize: '1rem',
-        flexShrink: 0,
-      },
-    },
   },
   variants: {
     danger: {
@@ -98,6 +91,11 @@ export const menuItem = recipe({
       false: {},
     },
   },
+});
+
+globalStyle(`${menuItem.classNames.base} svg`, {
+  fontSize: '1rem',
+  flexShrink: 0,
 });
 
 export const divider = style({

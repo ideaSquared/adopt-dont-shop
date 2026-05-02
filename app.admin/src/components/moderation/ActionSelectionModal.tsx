@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { FiX } from 'react-icons/fi';
+import clsx from 'clsx';
+import styles from './ActionSelectionModal.css';
 
 export type ActionType =
   | 'no_action'
@@ -25,209 +26,6 @@ interface ActionSelectionModalProps {
   reportTitle: string;
   isLoading?: boolean;
 }
-
-const Overlay = styled.div<{ $isOpen: boolean }>`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: ${props => (props.$isOpen ? 'flex' : 'none')};
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
-
-const Modal = styled.div`
-  background: #ffffff;
-  border-radius: 12px;
-  max-width: 600px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-`;
-
-const ModalHeader = styled.div`
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f3f4f6;
-    color: #111827;
-  }
-
-  svg {
-    font-size: 1.25rem;
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const ReportInfo = styled.div`
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const ReportTitle = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-bottom: 0.25rem;
-`;
-
-const ReportText = styled.div`
-  font-size: 1rem;
-  font-weight: 500;
-  color: #111827;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const Label = styled.label`
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 0.5rem;
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #111827;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #111827;
-  min-height: 100px;
-  resize: vertical;
-  font-family: inherit;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #111827;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const HelpText = styled.p`
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.25rem;
-  margin-bottom: 0;
-`;
-
-const ModalFooter = styled.div`
-  padding: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-`;
-
-const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-  padding: 0.625rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-
-  ${props =>
-    props.$variant === 'primary'
-      ? `
-    background: ${props.theme.colors.primary[600]};
-    color: #ffffff;
-
-    &:hover:not(:disabled) {
-      background: ${props.theme.colors.primary[700]};
-    }
-  `
-      : `
-    background: #ffffff;
-    color: #374151;
-    border: 1px solid #d1d5db;
-
-    &:hover:not(:disabled) {
-      background: #f9fafb;
-    }
-  `}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
 
 const actionTypeLabels: Record<ActionType, string> = {
   no_action: 'No Action Required',
@@ -289,26 +87,39 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
   };
 
   return (
-    <Overlay $isOpen={isOpen} onClick={handleClose}>
-      <Modal onClick={e => e.stopPropagation()}>
-        <ModalHeader>
-          <ModalTitle>Take Moderation Action</ModalTitle>
-          <CloseButton onClick={handleClose} disabled={isLoading}>
+    <div
+      className={clsx(styles.overlay, !isOpen && styles.overlayHidden)}
+      onClick={handleClose}
+      onKeyDown={e => e.key === 'Escape' && handleClose()}
+      role='presentation'
+    >
+      <div
+        className={styles.modal}
+        onClick={e => e.stopPropagation()}
+        onKeyDown={e => e.stopPropagation()}
+        role='presentation'
+      >
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>Take Moderation Action</h2>
+          <button className={styles.closeButton} onClick={handleClose} disabled={isLoading}>
             <FiX />
-          </CloseButton>
-        </ModalHeader>
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit}>
-          <ModalBody>
-            <ReportInfo>
-              <ReportTitle>Report:</ReportTitle>
-              <ReportText>{reportTitle}</ReportText>
-            </ReportInfo>
+          <div className={styles.modalBody}>
+            <div className={styles.reportInfo}>
+              <div className={styles.reportTitle}>Report:</div>
+              <div className={styles.reportText}>{reportTitle}</div>
+            </div>
 
-            <FormGroup>
-              <Label htmlFor='actionType'>Action Type *</Label>
-              <Select
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor='actionType'>
+                Action Type *
+              </label>
+              <select
                 id='actionType'
+                className={styles.select}
                 value={actionType}
                 onChange={e => setActionType(e.target.value as ActionType)}
                 disabled={isLoading}
@@ -318,15 +129,18 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
                     {label}
                   </option>
                 ))}
-              </Select>
-              <HelpText>{actionTypeDescriptions[actionType]}</HelpText>
-            </FormGroup>
+              </select>
+              <p className={styles.helpText}>{actionTypeDescriptions[actionType]}</p>
+            </div>
 
             {actionType === 'user_suspended' && (
-              <FormGroup>
-                <Label htmlFor='duration'>Suspension Duration (hours) *</Label>
-                <Input
+              <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor='duration'>
+                  Suspension Duration (hours) *
+                </label>
+                <input
                   id='duration'
+                  className={styles.input}
                   type='number'
                   min='1'
                   max='8760'
@@ -334,48 +148,59 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
                   onChange={e => setDuration(parseInt(e.target.value) || 24)}
                   disabled={isLoading}
                 />
-                <HelpText>
+                <p className={styles.helpText}>
                   Duration in hours (24 hours = 1 day, 168 hours = 1 week, 720 hours = 30 days)
-                </HelpText>
-              </FormGroup>
+                </p>
+              </div>
             )}
 
-            <FormGroup>
-              <Label htmlFor='reason'>Reason (visible to user) *</Label>
-              <TextArea
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor='reason'>
+                Reason (visible to user) *
+              </label>
+              <textarea
                 id='reason'
+                className={styles.textArea}
                 value={reason}
                 onChange={e => setReason(e.target.value)}
                 placeholder='Explain why this action is being taken. This will be shown to the user.'
                 disabled={isLoading}
                 required
               />
-              <HelpText>This message will be visible to the affected user</HelpText>
-            </FormGroup>
+              <p className={styles.helpText}>This message will be visible to the affected user</p>
+            </div>
 
-            <FormGroup>
-              <Label htmlFor='internalNotes'>Internal Notes (optional)</Label>
-              <TextArea
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor='internalNotes'>
+                Internal Notes (optional)
+              </label>
+              <textarea
                 id='internalNotes'
+                className={styles.textArea}
                 value={internalNotes}
                 onChange={e => setInternalNotes(e.target.value)}
                 placeholder='Add any internal notes for other moderators (not visible to users)'
                 disabled={isLoading}
               />
-              <HelpText>These notes are only visible to moderators</HelpText>
-            </FormGroup>
-          </ModalBody>
+              <p className={styles.helpText}>These notes are only visible to moderators</p>
+            </div>
+          </div>
 
-          <ModalFooter>
-            <Button type='button' $variant='secondary' onClick={handleClose} disabled={isLoading}>
+          <div className={styles.modalFooter}>
+            <button
+              type='button'
+              className={styles.buttonSecondary}
+              onClick={handleClose}
+              disabled={isLoading}
+            >
               Cancel
-            </Button>
-            <Button type='submit' $variant='primary' disabled={isLoading}>
+            </button>
+            <button type='submit' className={styles.buttonPrimary} disabled={isLoading}>
               {isLoading ? 'Processing...' : 'Take Action'}
-            </Button>
-          </ModalFooter>
+            </button>
+          </div>
         </form>
-      </Modal>
-    </Overlay>
+      </div>
+    </div>
   );
 };

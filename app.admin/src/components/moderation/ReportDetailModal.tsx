@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'styled-components';
 import {
   FiX,
   FiAlertTriangle,
@@ -8,268 +7,14 @@ import {
   FiFileText,
   FiExternalLink,
 } from 'react-icons/fi';
+import clsx from 'clsx';
 import {
   Report,
   getSeverityLabel,
   getStatusLabel,
   formatRelativeTime,
 } from '@adopt-dont-shop/lib.moderation';
-
-const Overlay = styled.div<{ $isOpen: boolean }>`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: ${props => (props.$isOpen ? 'flex' : 'none')};
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  background: #ffffff;
-  border-radius: 12px;
-  max-width: 700px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-`;
-
-const ModalHeader = styled.div`
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-`;
-
-const HeaderContent = styled.div`
-  flex: 1;
-`;
-
-const Title = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 0.5rem 0;
-`;
-
-const Subtitle = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f3f4f6;
-    color: #111827;
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const Section = styled.div`
-  margin-bottom: 1.5rem;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 0.75rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const InfoGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-`;
-
-const InfoItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const InfoLabel = styled.div`
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 500;
-`;
-
-const InfoValue = styled.div`
-  font-size: 0.875rem;
-  color: #111827;
-  font-weight: 500;
-`;
-
-const Description = styled.div`
-  font-size: 0.875rem;
-  color: #374151;
-  line-height: 1.6;
-  background: #f9fafb;
-  padding: 1rem;
-  border-radius: 8px;
-  white-space: pre-wrap;
-`;
-
-const Badge = styled.span<{ $variant: 'success' | 'danger' | 'info' | 'neutral' | 'warning' }>`
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-
-  ${props => {
-    switch (props.$variant) {
-      case 'success':
-        return `
-          background: #dcfce7;
-          color: #15803d;
-        `;
-      case 'danger':
-        return `
-          background: #fee2e2;
-          color: #dc2626;
-        `;
-      case 'info':
-        return `
-          background: #dbeafe;
-          color: #1e40af;
-        `;
-      case 'warning':
-        return `
-          background: #fef3c7;
-          color: #92400e;
-        `;
-      case 'neutral':
-      default:
-        return `
-          background: #f3f4f6;
-          color: #4b5563;
-        `;
-    }
-  }}
-`;
-
-const EntityCard = styled.div`
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-`;
-
-const EntityType = styled.div`
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
-`;
-
-const EntityName = styled.div`
-  font-size: 1rem;
-  color: #111827;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-`;
-
-const EntityDetail = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const Divider = styled.div`
-  height: 1px;
-  background: #e5e7eb;
-  margin: 1.5rem 0;
-`;
-
-const ViewContentButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 0.75rem;
-
-  &:hover {
-    background: #2563eb;
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-  }
-`;
-
-const EntityId = styled.div`
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-family: monospace;
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: #f9fafb;
-  border-radius: 4px;
-  border: 1px solid #e5e7eb;
-`;
-
-const WarningBox = styled.div`
-  background: #fef3c7;
-  border: 1px solid #fbbf24;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  margin-top: 0.75rem;
-  font-size: 0.875rem;
-  color: #92400e;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-`;
+import styles from './ReportDetailModal.css';
 
 export interface ReportDetailModalProps {
   isOpen: boolean;
@@ -277,39 +22,39 @@ export interface ReportDetailModalProps {
   report: Report | null;
 }
 
-const getStatusBadgeVariant = (
+const getStatusBadgeClass = (
   status: string
-): 'success' | 'danger' | 'info' | 'neutral' | 'warning' => {
+): 'badgeSuccess' | 'badgeDanger' | 'badgeInfo' | 'badgeNeutral' | 'badgeWarning' => {
   switch (status) {
     case 'pending':
-      return 'danger';
+      return 'badgeDanger';
     case 'under_review':
-      return 'info';
+      return 'badgeInfo';
     case 'resolved':
-      return 'success';
+      return 'badgeSuccess';
     case 'dismissed':
-      return 'neutral';
+      return 'badgeNeutral';
     case 'escalated':
-      return 'warning';
+      return 'badgeWarning';
     default:
-      return 'neutral';
+      return 'badgeNeutral';
   }
 };
 
-const getSeverityBadgeVariant = (
+const getSeverityBadgeClass = (
   severity: string
-): 'success' | 'danger' | 'info' | 'neutral' | 'warning' => {
+): 'badgeSuccess' | 'badgeDanger' | 'badgeInfo' | 'badgeNeutral' | 'badgeWarning' => {
   switch (severity) {
     case 'critical':
-      return 'danger';
+      return 'badgeDanger';
     case 'high':
-      return 'warning';
+      return 'badgeWarning';
     case 'medium':
-      return 'info';
+      return 'badgeInfo';
     case 'low':
-      return 'neutral';
+      return 'badgeNeutral';
     default:
-      return 'neutral';
+      return 'badgeNeutral';
   }
 };
 
@@ -361,7 +106,19 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     return null;
   }
 
-  const entityContext = (report as any).entityContext;
+  const entityContext = (report as Record<string, unknown>).entityContext as
+    | {
+        displayName?: string;
+        deleted?: boolean;
+        error?: boolean;
+        email?: string;
+        userType?: string;
+        petType?: string;
+        breed?: string;
+        city?: string;
+        country?: string;
+      }
+    | undefined;
   const viewUrl = getEntityViewUrl(report.reportedEntityType, report.reportedEntityId);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -377,189 +134,208 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   };
 
   return (
-    <Overlay $isOpen={isOpen} onClick={handleOverlayClick}>
-      <ModalContainer>
-        <ModalHeader>
-          <HeaderContent>
-            <Title>{report.title}</Title>
-            <Subtitle>
+    <div
+      className={clsx(styles.overlay, !isOpen && styles.overlayHidden)}
+      onClick={handleOverlayClick}
+      onKeyDown={e => e.key === 'Escape' && onClose()}
+      role='presentation'
+    >
+      <div className={styles.modalContainer}>
+        <div className={styles.modalHeader}>
+          <div className={styles.headerContent}>
+            <h2 className={styles.title}>{report.title}</h2>
+            <div className={styles.subtitle}>
               <FiCalendar size={14} />
               Reported {formatRelativeTime(report.createdAt)}
-            </Subtitle>
-          </HeaderContent>
-          <CloseButton onClick={onClose} aria-label='Close'>
+            </div>
+          </div>
+          <button className={styles.closeButton} onClick={onClose} aria-label='Close'>
             <FiX size={20} />
-          </CloseButton>
-        </ModalHeader>
+          </button>
+        </div>
 
-        <ModalBody>
-          <Section>
-            <SectionTitle>
+        <div className={styles.modalBody}>
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>
               <FiAlertTriangle size={16} />
               Report Status
-            </SectionTitle>
-            <InfoGrid>
-              <InfoItem>
-                <InfoLabel>Status</InfoLabel>
-                <InfoValue>
-                  <Badge $variant={getStatusBadgeVariant(report.status)}>
+            </h3>
+            <div className={styles.infoGrid}>
+              <div className={styles.infoItem}>
+                <div className={styles.infoLabel}>Status</div>
+                <div className={styles.infoValue}>
+                  <span className={styles[getStatusBadgeClass(report.status)]}>
                     {getStatusLabel(report.status)}
-                  </Badge>
-                </InfoValue>
-              </InfoItem>
-              <InfoItem>
-                <InfoLabel>Severity</InfoLabel>
-                <InfoValue>
-                  <Badge $variant={getSeverityBadgeVariant(report.severity)}>
+                  </span>
+                </div>
+              </div>
+              <div className={styles.infoItem}>
+                <div className={styles.infoLabel}>Severity</div>
+                <div className={styles.infoValue}>
+                  <span className={styles[getSeverityBadgeClass(report.severity)]}>
                     {getSeverityLabel(report.severity)}
-                  </Badge>
-                </InfoValue>
-              </InfoItem>
-              <InfoItem>
-                <InfoLabel>Category</InfoLabel>
-                <InfoValue>{report.category}</InfoValue>
-              </InfoItem>
-              <InfoItem>
-                <InfoLabel>Report ID</InfoLabel>
-                <InfoValue style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                  </span>
+                </div>
+              </div>
+              <div className={styles.infoItem}>
+                <div className={styles.infoLabel}>Category</div>
+                <div className={styles.infoValue}>{report.category}</div>
+              </div>
+              <div className={styles.infoItem}>
+                <div className={styles.infoLabel}>Report ID</div>
+                <div
+                  className={styles.infoValue}
+                  style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                >
                   {report.reportId.substring(0, 8)}...
-                </InfoValue>
-              </InfoItem>
-            </InfoGrid>
-          </Section>
+                </div>
+              </div>
+            </div>
+          </div>
 
-          <Divider />
+          <div className={styles.divider} />
 
-          <Section>
-            <SectionTitle>
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>
               <FiFileText size={16} />
               Description
-            </SectionTitle>
-            <Description>{report.description}</Description>
-          </Section>
+            </h3>
+            <div className={styles.description}>{report.description}</div>
+          </div>
 
-          <Divider />
+          <div className={styles.divider} />
 
-          <Section>
-            <SectionTitle>
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>
               <FiUser size={16} />
               Reported Entity
-            </SectionTitle>
-            <EntityCard>
-              <EntityType>{report.reportedEntityType}</EntityType>
+            </h3>
+            <div className={styles.entityCard}>
+              <div className={styles.entityType}>{report.reportedEntityType}</div>
               {entityContext ? (
                 <>
-                  <EntityName>
+                  <div className={styles.entityName}>
                     {entityContext.displayName}
                     {entityContext.deleted && ' (Deleted)'}
                     {entityContext.error && ' (Error Loading)'}
-                  </EntityName>
-                  {entityContext.email && <EntityDetail>{entityContext.email}</EntityDetail>}
+                  </div>
+                  {entityContext.email && (
+                    <div className={styles.entityDetail}>{entityContext.email}</div>
+                  )}
                   {entityContext.userType && (
-                    <EntityDetail>Type: {entityContext.userType}</EntityDetail>
+                    <div className={styles.entityDetail}>Type: {entityContext.userType}</div>
                   )}
                   {entityContext.petType && (
-                    <EntityDetail>
+                    <div className={styles.entityDetail}>
                       {entityContext.petType}
                       {entityContext.breed && ` • ${entityContext.breed}`}
-                    </EntityDetail>
+                    </div>
                   )}
                   {entityContext.city && entityContext.country && (
-                    <EntityDetail>
+                    <div className={styles.entityDetail}>
                       {entityContext.city}, {entityContext.country}
-                    </EntityDetail>
+                    </div>
                   )}
-
-                  <EntityId>
+                  <div className={styles.entityId}>
                     <strong>ID:</strong> {report.reportedEntityId}
-                  </EntityId>
+                  </div>
                 </>
               ) : (
                 <>
-                  <EntityName>Entity ID: {report.reportedEntityId}</EntityName>
-                  <EntityDetail>No additional context available</EntityDetail>
-
-                  <EntityId>
+                  <div className={styles.entityName}>Entity ID: {report.reportedEntityId}</div>
+                  <div className={styles.entityDetail}>No additional context available</div>
+                  <div className={styles.entityId}>
                     <strong>Full ID:</strong> {report.reportedEntityId}
-                  </EntityId>
+                  </div>
                 </>
               )}
 
               {viewUrl && (
                 <>
-                  <ViewContentButton onClick={handleViewContent}>
+                  <button className={styles.viewContentButton} onClick={handleViewContent}>
                     <FiExternalLink size={16} />
                     View {getEntityTypeLabel(report.reportedEntityType)}
-                  </ViewContentButton>
+                  </button>
                   {(entityContext?.deleted || entityContext?.error) && (
-                    <WarningBox>
+                    <div className={styles.warningBox}>
                       <FiAlertTriangle size={16} />
                       <div>
                         {entityContext.deleted
                           ? 'This entity has been deleted. The link may not work.'
                           : 'There was an error loading this entity. The link may not work.'}
                       </div>
-                    </WarningBox>
+                    </div>
                   )}
                 </>
               )}
-            </EntityCard>
-          </Section>
+            </div>
+          </div>
 
-          <Divider />
+          <div className={styles.divider} />
 
-          <Section>
-            <SectionTitle>
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>
               <FiUser size={16} />
               Reporter Information
-            </SectionTitle>
-            <InfoGrid>
-              <InfoItem>
-                <InfoLabel>Reporter ID</InfoLabel>
-                <InfoValue style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+            </h3>
+            <div className={styles.infoGrid}>
+              <div className={styles.infoItem}>
+                <div className={styles.infoLabel}>Reporter ID</div>
+                <div
+                  className={styles.infoValue}
+                  style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                >
                   {report.reporterId.substring(0, 8)}...
-                </InfoValue>
-              </InfoItem>
+                </div>
+              </div>
               {report.reportedUserId && (
-                <InfoItem>
-                  <InfoLabel>Reported User ID</InfoLabel>
-                  <InfoValue style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                <div className={styles.infoItem}>
+                  <div className={styles.infoLabel}>Reported User ID</div>
+                  <div
+                    className={styles.infoValue}
+                    style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
+                  >
                     {report.reportedUserId.substring(0, 8)}...
-                  </InfoValue>
-                </InfoItem>
+                  </div>
+                </div>
               )}
-            </InfoGrid>
-            <ViewContentButton
+            </div>
+            <button
+              className={styles.viewContentButton}
               onClick={() => window.open(`/users/${report.reporterId}`, '_blank')}
               style={{ marginTop: '1rem' }}
             >
               <FiExternalLink size={16} />
               View Reporter Profile
-            </ViewContentButton>
-          </Section>
+            </button>
+          </div>
 
-          <Divider />
+          <div className={styles.divider} />
 
-          <Section>
-            <SectionTitle>
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>
               <FiCalendar size={16} />
               Timeline
-            </SectionTitle>
-            <InfoGrid>
-              <InfoItem>
-                <InfoLabel>Reported</InfoLabel>
-                <InfoValue>{new Date(report.createdAt).toLocaleString()}</InfoValue>
-                <EntityDetail>{formatRelativeTime(report.createdAt)}</EntityDetail>
-              </InfoItem>
-              <InfoItem>
-                <InfoLabel>Last Updated</InfoLabel>
-                <InfoValue>{new Date(report.updatedAt).toLocaleString()}</InfoValue>
-                <EntityDetail>{formatRelativeTime(report.updatedAt)}</EntityDetail>
-              </InfoItem>
-            </InfoGrid>
-          </Section>
-        </ModalBody>
-      </ModalContainer>
-    </Overlay>
+            </h3>
+            <div className={styles.infoGrid}>
+              <div className={styles.infoItem}>
+                <div className={styles.infoLabel}>Reported</div>
+                <div className={styles.infoValue}>
+                  {new Date(report.createdAt).toLocaleString()}
+                </div>
+                <div className={styles.entityDetail}>{formatRelativeTime(report.createdAt)}</div>
+              </div>
+              <div className={styles.infoItem}>
+                <div className={styles.infoLabel}>Last Updated</div>
+                <div className={styles.infoValue}>
+                  {new Date(report.updatedAt).toLocaleString()}
+                </div>
+                <div className={styles.entityDetail}>{formatRelativeTime(report.updatedAt)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };

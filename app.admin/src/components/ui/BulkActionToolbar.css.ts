@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const toolbar = style({
@@ -20,11 +20,10 @@ export const selectionInfo = style({
   fontWeight: '600',
   color: '#1e40af',
   whiteSpace: 'nowrap',
-  selectors: {
-    '& svg': {
-      fontSize: '1.125rem',
-    },
-  },
+});
+
+globalStyle(`${selectionInfo} svg`, {
+  fontSize: '1.125rem',
 });
 
 export const divider = style({
@@ -89,11 +88,10 @@ export const clearButton = style({
   ':hover': {
     background: '#dbeafe',
   },
-  selectors: {
-    '& svg': {
-      fontSize: '0.875rem',
-    },
-  },
+});
+
+globalStyle(`${clearButton} svg`, {
+  fontSize: '0.875rem',
 });
 
 export const selectAllButton = style({

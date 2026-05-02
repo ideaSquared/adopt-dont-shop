@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const modalContent = style({
@@ -51,11 +51,6 @@ export const tab = recipe({
     cursor: 'pointer',
     borderRadius: '6px 6px 0 0',
     transition: 'all 0.2s ease',
-    selectors: {
-      '& svg': {
-        fontSize: '1rem',
-      },
-    },
   },
   variants: {
     active: {
@@ -78,6 +73,10 @@ export const tab = recipe({
   defaultVariants: {
     active: false,
   },
+});
+
+globalStyle(`${tab.classNames.base} svg`, {
+  fontSize: '1rem',
 });
 
 export const tabContent = style({
@@ -195,11 +194,10 @@ export const actionButton = style({
     color: '#ef4444',
     borderColor: '#fecaca',
   },
-  selectors: {
-    '& svg': {
-      fontSize: '0.875rem',
-    },
-  },
+});
+
+globalStyle(`${actionButton} svg`, {
+  fontSize: '0.875rem',
 });
 
 export const participantList = style({
@@ -299,11 +297,10 @@ export const detailLabel = style({
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   color: '#6b7280',
-  selectors: {
-    '& svg': {
-      fontSize: '1rem',
-    },
-  },
+});
+
+globalStyle(`${detailLabel} svg`, {
+  fontSize: '1rem',
 });
 
 export const detailValue = style({
@@ -329,11 +326,10 @@ export const emptyState = style({
   padding: '3rem',
   color: '#9ca3af',
   textAlign: 'center',
-  selectors: {
-    '& svg': {
-      fontSize: '3rem',
-    },
-  },
+});
+
+globalStyle(`${emptyState} svg`, {
+  fontSize: '3rem',
 });
 
 export const loadingState = style({
@@ -374,11 +370,10 @@ export const deletePromptTitle = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.5rem',
-  selectors: {
-    '& svg': {
-      color: '#ef4444',
-    },
-  },
+});
+
+globalStyle(`${deletePromptTitle} svg`, {
+  color: '#ef4444',
 });
 
 export const deletePromptText = style({

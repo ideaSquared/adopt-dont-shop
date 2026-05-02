@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { Button, Input, Modal } from '@adopt-dont-shop/lib.components';
 import { FiMail, FiAlertCircle, FiFileText } from 'react-icons/fi';
+import clsx from 'clsx';
 import type { AdminRescue, RescueEmailPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
+import styles from './SendEmailModal.css';
 
 type SendEmailModalProps = {
   isOpen: boolean;
@@ -43,210 +44,6 @@ const EMAIL_TEMPLATES: EmailTemplate[] = [
     templateId: 'tmpl_rescue_reminder_001',
   },
 ];
-
-const FormGroup = styled.div`
-  margin-bottom: 1.25rem;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const Label = styled.label`
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.text.primary};
-  margin-bottom: 0.5rem;
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  min-height: 200px;
-  padding: 0.75rem;
-  border: 1px solid ${({ theme }) => theme.border.color.primary};
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  font-size: 0.9375rem;
-  font-family: inherit;
-  color: ${({ theme }) => theme.text.primary};
-  background: ${({ theme }) => theme.background.primary};
-  resize: vertical;
-  transition: all ${({ theme }) => theme.transitions.fast};
-
-  &:focus {
-    outline: none;
-    border-color: ${({ theme }) => theme.colors.primary[500]};
-    box-shadow: ${({ theme }) => theme.shadows.focus};
-  }
-
-  &::placeholder {
-    color: ${({ theme }) => theme.text.tertiary};
-  }
-`;
-
-const InfoBox = styled.div`
-  background: ${({ theme }) => theme.background.tertiary};
-  border: 1px solid ${({ theme }) => theme.border.color.secondary};
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  padding: 1rem;
-  margin-bottom: 1.25rem;
-`;
-
-const InfoLabel = styled.div`
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.text.tertiary};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.375rem;
-`;
-
-const InfoValue = styled.div`
-  font-size: 0.9375rem;
-  color: ${({ theme }) => theme.text.primary};
-  font-weight: 500;
-`;
-
-const HelpText = styled.div`
-  font-size: 0.8125rem;
-  color: ${({ theme }) => theme.text.tertiary};
-  margin-top: 0.375rem;
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  padding: 0.875rem;
-  color: #991b1b;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  svg {
-    flex-shrink: 0;
-  }
-`;
-
-const SuccessMessage = styled.div`
-  background: #d1fae5;
-  border: 1px solid #a7f3d0;
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  padding: 0.875rem;
-  color: #065f46;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const RequiredIndicator = styled.span`
-  color: #ef4444;
-  margin-left: 0.25rem;
-`;
-
-const TemplateGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-`;
-
-const TemplateCard = styled.button<{ $selected: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 1rem;
-  border: 2px solid
-    ${props =>
-      props.$selected ? props.theme.colors.primary[500] : props.theme.border.color.primary};
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  background: ${props =>
-    props.$selected ? props.theme.colors.primary[50] : props.theme.background.primary};
-  cursor: pointer;
-  transition: all ${({ theme }) => theme.transitions.fast};
-  text-align: left;
-
-  &:hover {
-    border-color: ${props => props.theme.colors.primary[400]};
-    background: ${props => props.theme.colors.primary[50]};
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-`;
-
-const TemplateIcon = styled.div<{ $selected: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  background: ${props =>
-    props.$selected ? props.theme.colors.primary[100] : props.theme.background.tertiary};
-  color: ${props =>
-    props.$selected ? props.theme.colors.primary[600] : props.theme.text.tertiary};
-  margin-bottom: 0.75rem;
-
-  svg {
-    font-size: 1.25rem;
-  }
-`;
-
-const TemplateName = styled.div`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.text.primary};
-  margin-bottom: 0.25rem;
-`;
-
-const TemplateDescription = styled.div`
-  font-size: 0.75rem;
-  color: ${({ theme }) => theme.text.secondary};
-  line-height: 1.4;
-`;
-
-const TemplatePreview = styled.div`
-  background: ${({ theme }) => theme.background.tertiary};
-  border: 1px solid ${({ theme }) => theme.border.color.secondary};
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  padding: 1rem;
-  margin-bottom: 1.25rem;
-`;
-
-const PreviewLabel = styled.div`
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.text.tertiary};
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
-`;
-
-const PreviewSubject = styled.div`
-  font-size: 0.9375rem;
-  color: ${({ theme }) => theme.text.primary};
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-`;
-
-const PreviewDescription = styled.div`
-  font-size: 0.875rem;
-  color: ${({ theme }) => theme.text.secondary};
-  line-height: 1.5;
-`;
-
-const FooterButtons = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-`;
 
 export const SendEmailModal: React.FC<SendEmailModalProps> = ({
   isOpen,
@@ -331,7 +128,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
   );
 
   const modalFooter = (
-    <FooterButtons>
+    <div className={styles.footerButtons}>
       <Button type='button' variant='outline' onClick={onClose} disabled={loading || success}>
         {success ? 'Close' : 'Cancel'}
       </Button>
@@ -345,7 +142,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
           {loading ? 'Sending...' : 'Send Email'}
         </Button>
       )}
-    </FooterButtons>
+    </div>
   );
 
   return (
@@ -359,76 +156,95 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
     >
       <form onSubmit={handleSubmit}>
         {error && (
-          <ErrorMessage>
+          <div className={styles.errorMessage}>
             <FiAlertCircle />
             {error}
-          </ErrorMessage>
+          </div>
         )}
 
         {success && (
-          <SuccessMessage>
+          <div className={styles.successMessage}>
             <FiMail />
             Email sent successfully!
-          </SuccessMessage>
+          </div>
         )}
 
-        <InfoBox>
-          <InfoLabel>Recipient</InfoLabel>
-          <InfoValue>{rescue.email}</InfoValue>
-        </InfoBox>
+        <div className={styles.infoBox}>
+          <div className={styles.infoLabel}>Recipient</div>
+          <div className={styles.infoValue}>{rescue.email}</div>
+        </div>
 
-        <FormGroup>
-          <Label>Select Email Template</Label>
-          <TemplateGrid>
+        <div className={styles.formGroup}>
+          <span className={styles.label}>Select Email Template</span>
+          <div className={styles.templateGrid}>
             {EMAIL_TEMPLATES.map(template => (
-              <TemplateCard
+              <button
                 key={template.id}
                 type='button'
-                $selected={selectedTemplate === template.id}
+                className={clsx(
+                  styles.templateCard,
+                  selectedTemplate === template.id && styles.templateCardSelected
+                )}
                 onClick={() => handleTemplateSelect(template.id)}
                 disabled={loading || success}
               >
-                <TemplateIcon $selected={selectedTemplate === template.id}>
+                <div
+                  className={clsx(
+                    styles.templateIcon,
+                    selectedTemplate === template.id && styles.templateIconSelected
+                  )}
+                >
                   <FiFileText />
-                </TemplateIcon>
-                <TemplateName>{template.name}</TemplateName>
-                <TemplateDescription>{template.description}</TemplateDescription>
-              </TemplateCard>
+                </div>
+                <div className={styles.templateName}>{template.name}</div>
+                <div className={styles.templateDescription}>{template.description}</div>
+              </button>
             ))}
-            <TemplateCard
+            <button
               type='button'
-              $selected={selectedTemplate === 'custom'}
+              className={clsx(
+                styles.templateCard,
+                selectedTemplate === 'custom' && styles.templateCardSelected
+              )}
               onClick={handleCustomSelect}
               disabled={loading || success}
             >
-              <TemplateIcon $selected={selectedTemplate === 'custom'}>
+              <div
+                className={clsx(
+                  styles.templateIcon,
+                  selectedTemplate === 'custom' && styles.templateIconSelected
+                )}
+              >
                 <FiMail />
-              </TemplateIcon>
-              <TemplateName>Custom Email</TemplateName>
-              <TemplateDescription>Write your own message</TemplateDescription>
-            </TemplateCard>
-          </TemplateGrid>
-          <HelpText>Select a professional template or create a custom message</HelpText>
-        </FormGroup>
+              </div>
+              <div className={styles.templateName}>Custom Email</div>
+              <div className={styles.templateDescription}>Write your own message</div>
+            </button>
+          </div>
+          <div className={styles.helpText}>
+            Select a professional template or create a custom message
+          </div>
+        </div>
 
         {selectedTemplateData && (
-          <TemplatePreview>
-            <PreviewLabel>Template Preview</PreviewLabel>
-            <PreviewSubject>{selectedTemplateData.subject}</PreviewSubject>
-            <PreviewDescription>
+          <div className={styles.templatePreview}>
+            <div className={styles.previewLabel}>Template Preview</div>
+            <div className={styles.previewSubject}>{selectedTemplateData.subject}</div>
+            <div className={styles.previewDescription}>
               Professional HTML email will be sent with personalized content for {rescue.name}
-            </PreviewDescription>
-          </TemplatePreview>
+            </div>
+          </div>
         )}
 
         {selectedTemplate === 'custom' && (
           <>
-            <FormGroup>
-              <Label>
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor='email-subject'>
                 Subject
-                <RequiredIndicator>*</RequiredIndicator>
-              </Label>
+                <span className={styles.requiredIndicator}>*</span>
+              </label>
               <Input
+                id='email-subject'
                 type='text'
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
@@ -436,22 +252,24 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
                 required
                 disabled={loading || success}
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
-              <Label>
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor='email-message'>
                 Message
-                <RequiredIndicator>*</RequiredIndicator>
-              </Label>
-              <TextArea
+                <span className={styles.requiredIndicator}>*</span>
+              </label>
+              <textarea
+                id='email-message'
+                className={styles.textArea}
                 value={body}
                 onChange={e => setBody(e.target.value)}
                 placeholder='Type your message here...'
                 required
                 disabled={loading || success}
               />
-              <HelpText>Plain text message for custom emails</HelpText>
-            </FormGroup>
+              <div className={styles.helpText}>Plain text message for custom emails</div>
+            </div>
           </>
         )}
       </form>

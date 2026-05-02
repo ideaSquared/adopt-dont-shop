@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
@@ -19,11 +19,6 @@ export const triggerButton = recipe({
     fontWeight: '500',
     color: '#374151',
     transition: 'all 0.2s ease',
-    selectors: {
-      '& svg': {
-        fontSize: '1rem',
-      },
-    },
   },
   variants: {
     disabled: {
@@ -37,6 +32,10 @@ export const triggerButton = recipe({
       },
     },
   },
+});
+
+globalStyle(`${triggerButton.classNames.base} svg`, {
+  fontSize: '1rem',
 });
 
 export const dropdown = recipe({
@@ -86,13 +85,12 @@ export const formatItem = style({
   ':hover': {
     background: '#f9fafb',
   },
-  selectors: {
-    '& svg': {
-      fontSize: '1rem',
-      color: '#6b7280',
-      flexShrink: 0,
-    },
-  },
+});
+
+globalStyle(`${formatItem} svg`, {
+  fontSize: '1rem',
+  color: '#6b7280',
+  flexShrink: 0,
 });
 
 export const formatLabel = style({
