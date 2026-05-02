@@ -1238,6 +1238,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     return flat !== undefined ? flat : traverse(application?.data?.['data']);
   };
 
+  const getStr = (path: string): string => (getData(path) as string | null | undefined) ?? '';
+  const getArr = (path: string): unknown[] => {
+    const val = getData(path);
+    return Array.isArray(val) ? val : [];
+  };
+
   // Extract references from application data
   const extractedReferences: ReferenceCheck[] = useMemo(() => {
     const allRefs: ReferenceCheck[] = [];
@@ -1250,7 +1256,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           id: ref.id || `ref-${index}`, // Use the reference ID if available, fallback to index-based ID
           applicationId: application.id,
           type: ref.relationship?.toLowerCase().includes('vet') ? 'veterinarian' : 'personal',
-          contactName: ref.name,
+          contactName: ref.name ?? '',
           contactInfo: `${ref.phone} - ${ref.relationship}`,
           status: ref.status || 'pending',
           notes: ref.notes || '',
@@ -1582,7 +1588,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 Submitted by{' '}
                 {application.applicantName ||
                   application.userName ||
-                  `${(getData('personalInfo.firstName') as string) || 'Unknown'} ${(getData('personalInfo.lastName') as string) || ''}`.trim() ||
+                  `${getStr('personalInfo.firstName') || 'Unknown'} ${getStr('personalInfo.lastName') || ''}`.trim() ||
                   'Unknown Applicant'}{' '}
                 •{' '}
                 {application.submittedDaysAgo !== undefined
@@ -1693,33 +1699,33 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Name</FieldLabel>
                     <FieldValue>
-                      {getData('personalInfo.firstName') || 'N/A'}{' '}
-                      {getData('personalInfo.lastName') || ''}
+                      {getStr('personalInfo.firstName') || 'N/A'}{' '}
+                      {getStr('personalInfo.lastName') || ''}
                     </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Email</FieldLabel>
-                    <FieldValue>{getData('personalInfo.email') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('personalInfo.email') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Phone</FieldLabel>
-                    <FieldValue>{getData('personalInfo.phone') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('personalInfo.phone') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Address</FieldLabel>
                     <FieldValue>
-                      {getData('personalInfo.address') || 'N/A'}
+                      {getStr('personalInfo.address') || 'N/A'}
                       <br />
-                      {getData('personalInfo.city') || 'N/A'},{' '}
-                      {getData('personalInfo.state') || 'N/A'}{' '}
-                      {getData('personalInfo.zipCode') || 'N/A'}
+                      {getStr('personalInfo.city') || 'N/A'},{' '}
+                      {getStr('personalInfo.state') || 'N/A'}{' '}
+                      {getStr('personalInfo.zipCode') || 'N/A'}
                     </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Date of Birth</FieldLabel>
                     <FieldValue>
-                      {getData('personalInfo.dateOfBirth')
-                        ? new Date(getData('personalInfo.dateOfBirth')).toLocaleDateString()
+                      {getStr('personalInfo.dateOfBirth')
+                        ? new Date(getStr('personalInfo.dateOfBirth')).toLocaleDateString()
                         : 'N/A'}
                     </FieldValue>
                   </Field>
@@ -1729,11 +1735,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <CardTitle>Household</CardTitle>
                   <Field>
                     <FieldLabel>Household Size</FieldLabel>
-                    <FieldValue>{getData('livingsituation.householdSize') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('livingsituation.householdSize') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Housing Type</FieldLabel>
-                    <FieldValue>{getData('livingsituation.housingType') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('livingsituation.housingType') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Own/Rent</FieldLabel>
@@ -1752,7 +1758,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Household Members</FieldLabel>
                     <FieldValue>
-                      {getData('answers.household_members')?.length || 0} members
+                      {getArr('answers.household_members').length || 0} members
                     </FieldValue>
                   </Field>
                 </Card>
@@ -1766,7 +1772,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <CardTitle>Experience & Preferences</CardTitle>
                   <Field>
                     <FieldLabel>Experience Level</FieldLabel>
-                    <FieldValue>{getData('petExperience.experienceLevel') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('petExperience.experienceLevel') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Willing to Train</FieldLabel>
@@ -1776,11 +1782,11 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   </Field>
                   <Field>
                     <FieldLabel>Hours Alone Daily</FieldLabel>
-                    <FieldValue>{getData('petExperience.hoursAloneDaily') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('petExperience.hoursAloneDaily') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Exercise Plans</FieldLabel>
-                    <FieldValue>{getData('petExperience.exercisePlans') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('petExperience.exercisePlans') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Currently Has Pets</FieldLabel>
@@ -1795,18 +1801,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <Field>
                     <FieldLabel>Veterinarian</FieldLabel>
                     <FieldValue>
-                      {getData('references.veterinarian.name') || 'N/A'}
-                      {getData('references.veterinarian.clinicName') &&
-                        ` - ${getData('references.veterinarian.clinicName')}`}
+                      {getStr('references.veterinarian.name') || 'N/A'}
+                      {getStr('references.veterinarian.clinicName') &&
+                        ` - ${getStr('references.veterinarian.clinicName')}`}
                     </FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Vet Phone</FieldLabel>
-                    <FieldValue>{getData('references.veterinarian.phone') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('references.veterinarian.phone') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Personal References</FieldLabel>
-                    <FieldValue>{getData('references.personal')?.length || 0} provided</FieldValue>
+                    <FieldValue>{getArr('references.personal').length || 0} provided</FieldValue>
                   </Field>
                 </Card>
               </Grid>
@@ -1820,13 +1826,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <FieldVertical>
                     <FieldLabel>Why Adopt</FieldLabel>
                     <FieldValueFullWidth>
-                      {getData('answers.why_adopt') || 'N/A'}
+                      {getStr('answers.why_adopt') || 'N/A'}
                     </FieldValueFullWidth>
                   </FieldVertical>
                   <FieldVertical>
                     <FieldLabel>Exercise Plan</FieldLabel>
                     <FieldValueFullWidth>
-                      {getData('answers.exercise_plan') || 'N/A'}
+                      {getStr('answers.exercise_plan') || 'N/A'}
                     </FieldValueFullWidth>
                   </FieldVertical>
                 </Card>
@@ -1835,7 +1841,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <CardTitle>Home Details</CardTitle>
                   <Field>
                     <FieldLabel>Yard Size</FieldLabel>
-                    <FieldValue>{getData('answers.yard_size') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('answers.yard_size') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Yard Fenced</FieldLabel>
@@ -1843,25 +1849,26 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   </Field>
                   <Field>
                     <FieldLabel>Hours Pet Alone</FieldLabel>
-                    <FieldValue>{getData('answers.hours_alone') || 'N/A'}</FieldValue>
+                    <FieldValue>{getStr('answers.hours_alone') || 'N/A'}</FieldValue>
                   </Field>
                   <Field>
                     <FieldLabel>Current Pets</FieldLabel>
-                    <FieldValue>{getData('answers.current_pets')?.length || 0} pets</FieldValue>
+                    <FieldValue>{getArr('answers.current_pets').length || 0} pets</FieldValue>
                   </Field>
                 </Card>
               </Grid>
             </Section>
 
-            {getData('answers.previous_pets')?.length > 0 && (
+            {getArr('answers.previous_pets').length > 0 && (
               <Section>
                 <SectionTitle>Previous Pet Experience</SectionTitle>
                 <Grid>
                   {(
-                    getData('answers.previous_pets') as Array<{
+                    getArr('answers.previous_pets') as Array<{
                       type?: string;
                       breed?: string;
                       years_owned?: string;
+                      what_happened?: string;
                     }>
                   ).map((pet, index) => (
                     <Card key={index}>
