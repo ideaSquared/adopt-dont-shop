@@ -5,120 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import styled from 'styled-components';
 import { z } from 'zod';
-
-const Container = styled.div`
-  min-height: calc(100vh - 200px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  background: linear-gradient(
-    135deg,
-    ${props => props.theme.background.primary} 0%,
-    ${props => props.theme.background.secondary} 100%
-  );
-`;
-
-const ResetPasswordCard = styled(Card)`
-  width: 100%;
-  max-width: 450px;
-  padding: 2rem;
-`;
-
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: 2rem;
-
-  h1 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  p {
-    color: ${props => props.theme.text.secondary};
-    line-height: 1.6;
-  }
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const PasswordRequirements = styled.div`
-  background: ${props => props.theme.background.tertiary || props.theme.background.secondary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 0.5rem;
-
-  h4 {
-    font-size: 0.9rem;
-    color: ${props => props.theme.text.primary};
-    margin: 0 0 0.5rem 0;
-  }
-
-  ul {
-    margin: 0;
-    padding-left: 1.5rem;
-    list-style: disc;
-  }
-
-  li {
-    font-size: 0.85rem;
-    color: ${props => props.theme.text.secondary};
-    line-height: 1.5;
-  }
-`;
-
-const BackToLoginLink = styled(Link)`
-  font-size: 0.9rem;
-  color: ${props => props.theme.colors.primary[500]};
-  text-decoration: none;
-  text-align: center;
-  margin-top: 1rem;
-  display: block;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 1.5rem;
-`;
-
-const SuccessContainer = styled.div`
-  text-align: center;
-
-  h2 {
-    font-size: 1.5rem;
-    color: ${props => props.theme.colors.semantic.success[600]};
-    margin-bottom: 1rem;
-  }
-
-  p {
-    color: ${props => props.theme.text.secondary};
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-  }
-
-  .redirect-message {
-    font-size: 0.9rem;
-    color: ${props => props.theme.text.tertiary || props.theme.text.secondary};
-    font-style: italic;
-  }
-`;
+import * as styles from './ResetPasswordPage.css';
 
 const resetPasswordSchema = z
   .object({
@@ -233,9 +121,9 @@ export const ResetPasswordPage: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <Container>
-        <ResetPasswordCard>
-          <SuccessContainer>
+      <div className={styles.container}>
+        <Card className={styles.resetPasswordCard}>
+          <div className={styles.successContainer}>
             <h2>Password Reset Successful!</h2>
             <p>Your password has been successfully updated.</p>
             <p>You can now log in with your new password.</p>
@@ -252,24 +140,28 @@ export const ResetPasswordPage: React.FC = () => {
             >
               Go to Login Now
             </Button>
-          </SuccessContainer>
-        </ResetPasswordCard>
-      </Container>
+          </div>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Container>
-      <ResetPasswordCard>
-        <Header>
+    <div className={styles.container}>
+      <Card className={styles.resetPasswordCard}>
+        <div className={styles.header}>
           <h1>Reset Your Password</h1>
           <p>Enter your new password below to complete the reset process.</p>
-        </Header>
+        </div>
 
-        {error && <StyledAlert variant='error'>{error}</StyledAlert>}
+        {error && (
+          <Alert className={styles.styledAlert} variant='error'>
+            {error}
+          </Alert>
+        )}
 
-        <Form onSubmit={handleSubmit(onSubmit)}>
-          <FormGroup>
+        <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
+          <div className={styles.formGroup}>
             <Input
               label='New Password'
               type='password'
@@ -279,7 +171,7 @@ export const ResetPasswordPage: React.FC = () => {
               disabled={!token}
               {...register('password')}
             />
-            <PasswordRequirements>
+            <div className={styles.passwordRequirements}>
               <h4>Password Requirements:</h4>
               <ul>
                 <li>At least 8 characters long</li>
@@ -288,10 +180,10 @@ export const ResetPasswordPage: React.FC = () => {
                 <li>At least one number (0-9)</li>
                 <li>At least one special character (@$!%*?&)</li>
               </ul>
-            </PasswordRequirements>
-          </FormGroup>
+            </div>
+          </div>
 
-          <FormGroup>
+          <div className={styles.formGroup}>
             <Input
               label='Confirm New Password'
               type='password'
@@ -300,7 +192,7 @@ export const ResetPasswordPage: React.FC = () => {
               disabled={!token}
               {...register('confirmPassword')}
             />
-          </FormGroup>
+          </div>
 
           <Button
             type='submit'
@@ -311,10 +203,12 @@ export const ResetPasswordPage: React.FC = () => {
           >
             {isLoading ? 'Resetting Password...' : 'Reset Password'}
           </Button>
-        </Form>
+        </form>
 
-        <BackToLoginLink to='/login'>Back to Login</BackToLoginLink>
-      </ResetPasswordCard>
-    </Container>
+        <Link className={styles.backToLoginLink} to='/login'>
+          Back to Login
+        </Link>
+      </Card>
+    </div>
   );
 };

@@ -3,156 +3,8 @@ import { petService, Pet } from '@/services';
 import { Alert, Container, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import styled from 'styled-components';
 import { PetCard } from '../components/PetCard';
-
-const PageContainer = styled(Container)`
-  min-height: 100vh;
-  padding: 2rem 0;
-`;
-
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: 3rem;
-
-  h1 {
-    font-size: 2.5rem;
-    color: #333;
-    margin-bottom: 1rem;
-  }
-
-  p {
-    font-size: 1.1rem;
-    color: #666;
-    max-width: 600px;
-    margin: 0 auto;
-    line-height: 1.6;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-`;
-
-const PetGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 4rem 2rem;
-  background: #f9f9f9;
-  border-radius: 12px;
-  margin: 2rem 0;
-
-  .emoji {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    display: block;
-  }
-
-  h2 {
-    font-size: 1.8rem;
-    color: #333;
-    margin-bottom: 1rem;
-  }
-
-  p {
-    font-size: 1.1rem;
-    color: #666;
-    margin-bottom: 2rem;
-    line-height: 1.6;
-  }
-`;
-
-const CTAButton = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #667eea;
-  color: white;
-  padding: 0.8rem 1.5rem;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #5a67d8;
-    transform: translateY(-1px);
-  }
-`;
-
-const LoginPrompt = styled.div`
-  text-align: center;
-  padding: 4rem 2rem;
-  background: #f0f4f8;
-  border-radius: 12px;
-  margin: 2rem 0;
-
-  h2 {
-    font-size: 1.8rem;
-    color: #333;
-    margin-bottom: 1rem;
-  }
-
-  p {
-    font-size: 1.1rem;
-    color: #666;
-    margin-bottom: 2rem;
-    line-height: 1.6;
-  }
-`;
-
-const StatsContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  margin-bottom: 3rem;
-  flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    gap: 1rem;
-  }
-`;
-
-const StatCard = styled.div`
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 1.5rem;
-  text-align: center;
-  min-width: 120px;
-
-  .number {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #667eea;
-    margin-bottom: 0.5rem;
-  }
-
-  .label {
-    font-size: 0.9rem;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-`;
-
-const ErrorAlert = styled(Alert)`
-  margin: 2rem 0;
-`;
+import * as styles from './FavoritesPage.css';
 
 export const FavoritesPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -194,64 +46,70 @@ export const FavoritesPage: React.FC = () => {
   // Show login prompt for unauthenticated users
   if (!isAuthenticated) {
     return (
-      <PageContainer>
-        <LoginPrompt>
+      <Container className={styles.pageContainer}>
+        <div className={styles.loginPrompt}>
           <h2>🔐 Login Required</h2>
           <p>
             Please log in to view your favorite pets. Your favorites will be saved across all your
             devices.
           </p>
-          <CTAButton to='/login'>Sign In to View Favorites</CTAButton>
-        </LoginPrompt>
-      </PageContainer>
+          <Link to='/login' className={styles.ctaButton}>
+            Sign In to View Favorites
+          </Link>
+        </div>
+      </Container>
     );
   }
 
   return (
-    <PageContainer>
-      <Header>
+    <Container className={styles.pageContainer}>
+      <div className={styles.header}>
         <h1>❤️ Your Favorite Pets</h1>
         <p>
           Keep track of the pets that caught your heart. Your favorites are saved and synced across
           all your devices.
         </p>
-      </Header>
+      </div>
 
       {/* Show stats if user has favorites */}
       {!loading && favorites.length > 0 && (
-        <StatsContainer>
-          <StatCard>
+        <div className={styles.statsContainer}>
+          <div className={styles.statCard}>
             <div className='number'>{favorites.length}</div>
             <div className='label'>Favorite{favorites.length !== 1 ? 's' : ''}</div>
-          </StatCard>
-          <StatCard>
+          </div>
+          <div className={styles.statCard}>
             <div className='number'>
               {favorites.filter(pet => pet.status === 'available').length}
             </div>
             <div className='label'>Available</div>
-          </StatCard>
-          <StatCard>
+          </div>
+          <div className={styles.statCard}>
             <div className='number'>{new Set(favorites.map(pet => pet.type)).size}</div>
             <div className='label'>
               Pet Type{new Set(favorites.map(pet => pet.type)).size !== 1 ? 's' : ''}
             </div>
-          </StatCard>
-        </StatsContainer>
+          </div>
+        </div>
       )}
 
       {/* Loading state */}
       {loading && (
-        <LoadingContainer>
+        <div className={styles.loadingContainer}>
           <Spinner size='lg' />
-        </LoadingContainer>
+        </div>
       )}
 
       {/* Error state */}
-      {error && <ErrorAlert variant='error'>{error}</ErrorAlert>}
+      {error && (
+        <Alert variant='error' className={styles.errorAlert}>
+          {error}
+        </Alert>
+      )}
 
       {/* Favorites grid */}
       {!loading && !error && favorites.length > 0 && (
-        <PetGrid>
+        <div className={styles.petGrid}>
           {favorites.map(pet => (
             <PetCard
               key={pet.pet_id}
@@ -261,12 +119,12 @@ export const FavoritesPage: React.FC = () => {
               isFavorite={true}
             />
           ))}
-        </PetGrid>
+        </div>
       )}
 
       {/* Empty state */}
       {!loading && !error && favorites.length === 0 && (
-        <EmptyState>
+        <div className={styles.emptyState}>
           <span className='emoji'>💔</span>
           <h2>No favorites yet</h2>
           <p>
@@ -274,13 +132,15 @@ export const FavoritesPage: React.FC = () => {
             steal your heart!
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <CTAButton to='/discover'>🔍 Start Swiping</CTAButton>
-            <CTAButton to='/search' style={{ background: '#48bb78' }}>
+            <Link to='/discover' className={styles.ctaButton}>
+              🔍 Start Swiping
+            </Link>
+            <Link to='/search' className={styles.ctaButton} style={{ background: '#48bb78' }}>
               📋 Browse All Pets
-            </CTAButton>
+            </Link>
           </div>
-        </EmptyState>
+        </div>
       )}
-    </PageContainer>
+    </Container>
   );
 };

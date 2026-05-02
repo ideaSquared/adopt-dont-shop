@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import styled from 'styled-components';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
+import * as styles from './ApplicationPage.css';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { ApplicationForm, ApplicationProgress, QuickApplyView } from '@/components/application';
 import type { CategoryGroup } from '@/components/application/ApplicationForm';
@@ -56,34 +56,6 @@ const MACRO_STEPS: readonly MacroStepDef[] = [
     categories: ['final_acknowledgments'],
   },
 ];
-
-const Container = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-`;
-
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: 2rem;
-
-  h1 {
-    color: ${props => props.theme.colors.neutral[900]};
-    margin-bottom: 0.5rem;
-  }
-
-  p {
-    color: ${props => props.theme.colors.neutral[600]};
-    font-size: 1.1rem;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-`;
 
 const CATEGORY_ORDER = [
   'personal_information',
@@ -364,33 +336,33 @@ export const ApplicationPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Container>
-        <LoadingContainer>
+      <div className={styles.container}>
+        <div className={styles.loadingContainer}>
           <Spinner size='lg' />
-        </LoadingContainer>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   if (error && !pet) {
     return (
-      <Container>
+      <div className={styles.container}>
         <Alert variant='error' title='Error'>
           {error}
         </Alert>
         <Button onClick={() => navigate('/search')} style={{ marginTop: '1rem' }}>
           Back to Search
         </Button>
-      </Container>
+      </div>
     );
   }
 
   const showQuickApply = viewMode === 'quick' && pet && allQuestions.length > 0;
 
   return (
-    <Container>
+    <div className={styles.container}>
       {!showQuickApply && (
-        <Header>
+        <div className={styles.header}>
           <h1>Let&apos;s get you adopting {pet?.name} 🐾</h1>
           <p>A few quick questions and {pet?.name}&apos;s rescue will take it from there.</p>
           {loadedDraft && (
@@ -398,7 +370,7 @@ export const ApplicationPage: React.FC = () => {
               Welcome back — we picked up where you left off. ✨
             </p>
           )}
-        </Header>
+        </div>
       )}
 
       {error && (
@@ -466,6 +438,6 @@ export const ApplicationPage: React.FC = () => {
           )}
         </>
       )}
-    </Container>
+    </div>
   );
 };

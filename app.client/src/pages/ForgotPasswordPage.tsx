@@ -5,112 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
-import styled from 'styled-components';
 import { z } from 'zod';
-
-const Container = styled.div`
-  min-height: calc(100vh - 200px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  background: linear-gradient(
-    135deg,
-    ${props => props.theme.background.primary} 0%,
-    ${props => props.theme.background.secondary} 100%
-  );
-`;
-
-const ForgotPasswordCard = styled(Card)`
-  width: 100%;
-  max-width: 450px;
-  padding: 2rem;
-`;
-
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: 2rem;
-
-  h1 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  p {
-    color: ${props => props.theme.text.secondary};
-    line-height: 1.6;
-  }
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const BackToLoginLink = styled(Link)`
-  font-size: 0.9rem;
-  color: ${props => props.theme.colors.primary[500]};
-  text-decoration: none;
-  text-align: center;
-  margin-top: 1rem;
-  display: block;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 1.5rem;
-`;
-
-const SuccessContainer = styled.div`
-  text-align: center;
-
-  h2 {
-    font-size: 1.5rem;
-    color: ${props => props.theme.colors.semantic.success[600]};
-    margin-bottom: 1rem;
-  }
-
-  p {
-    color: ${props => props.theme.text.secondary};
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-  }
-
-  .email-highlight {
-    color: ${props => props.theme.text.primary};
-    font-weight: 600;
-  }
-`;
-
-const InfoBox = styled.div`
-  background: ${props => props.theme.background.tertiary || props.theme.background.secondary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 1rem;
-
-  p {
-    font-size: 0.9rem;
-    color: ${props => props.theme.text.secondary};
-    margin: 0;
-    line-height: 1.5;
-  }
-
-  strong {
-    color: ${props => props.theme.text.primary};
-  }
-`;
+import * as styles from './ForgotPasswordPage.css';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -182,9 +78,9 @@ export const ForgotPasswordPage: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <Container>
-        <ForgotPasswordCard>
-          <SuccessContainer>
+      <div className={styles.container}>
+        <Card className={styles.forgotPasswordCard}>
+          <div className={styles.successContainer}>
             <h2>Check Your Email</h2>
             <p>
               If an account exists for <span className='email-highlight'>{submittedEmail}</span>,
@@ -192,34 +88,40 @@ export const ForgotPasswordPage: React.FC = () => {
             </p>
             <p>Please check your email inbox and follow the link to reset your password.</p>
 
-            <InfoBox>
+            <div className={styles.infoBox}>
               <p>
                 <strong>Didn&apos;t receive the email?</strong>
               </p>
               <p>Check your spam folder or wait a few minutes before trying again.</p>
-            </InfoBox>
+            </div>
 
-            <BackToLoginLink to='/login'>Return to Login</BackToLoginLink>
-          </SuccessContainer>
-        </ForgotPasswordCard>
-      </Container>
+            <Link to='/login' className={styles.backToLoginLink}>
+              Return to Login
+            </Link>
+          </div>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Container>
-      <ForgotPasswordCard>
-        <Header>
+    <div className={styles.container}>
+      <Card className={styles.forgotPasswordCard}>
+        <div className={styles.header}>
           <h1>Forgot Password?</h1>
           <p>
             Enter your email address and we&apos;ll send you instructions to reset your password.
           </p>
-        </Header>
+        </div>
 
-        {error && <StyledAlert variant='error'>{error}</StyledAlert>}
+        {error && (
+          <Alert variant='error' className={styles.styledAlert}>
+            {error}
+          </Alert>
+        )}
 
-        <Form onSubmit={handleSubmit(onSubmit)}>
-          <FormGroup>
+        <form className={styles.form} onSubmit={handleSubmit(onSubmit)}>
+          <div className={styles.formGroup}>
             <Input
               label='Email Address'
               type='email'
@@ -228,7 +130,7 @@ export const ForgotPasswordPage: React.FC = () => {
               autoFocus
               {...register('email')}
             />
-          </FormGroup>
+          </div>
 
           <Button
             type='submit'
@@ -239,10 +141,12 @@ export const ForgotPasswordPage: React.FC = () => {
           >
             {isLoading ? 'Sending Instructions...' : 'Send Reset Instructions'}
           </Button>
-        </Form>
+        </form>
 
-        <BackToLoginLink to='/login'>Back to Login</BackToLoginLink>
-      </ForgotPasswordCard>
-    </Container>
+        <Link to='/login' className={styles.backToLoginLink}>
+          Back to Login
+        </Link>
+      </Card>
+    </div>
   );
 };
