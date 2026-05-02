@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const dashboardContainer = style({
   maxWidth: 'none',
@@ -9,19 +9,19 @@ export const dashboardContainer = style({
 
 export const dashboardHeader = style({
   marginBottom: '2rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2.5rem',
-      fontWeight: 700,
-      color: '#111827',
-      margin: '0 0 0.5rem 0',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: '#6b7280',
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${dashboardHeader} h1`, {
+  fontSize: '2.5rem',
+  fontWeight: 700,
+  color: '#111827',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${dashboardHeader} p`, {
+  fontSize: '1.1rem',
+  color: '#6b7280',
+  margin: 0,
 });
 
 export const welcomeMessage = style({
@@ -30,17 +30,17 @@ export const welcomeMessage = style({
   borderRadius: '12px',
   padding: '1.5rem',
   marginBottom: '2rem',
-  selectors: {
-    '& h2': {
-      margin: '0 0 0.5rem 0',
-      color: '#1e40af',
-      fontSize: '1.25rem',
-    },
-    '& p': {
-      margin: 0,
-      color: '#1d4ed8',
-    },
-  },
+});
+
+globalStyle(`${welcomeMessage} h2`, {
+  margin: '0 0 0.5rem 0',
+  color: '#1e40af',
+  fontSize: '1.25rem',
+});
+
+globalStyle(`${welcomeMessage} p`, {
+  margin: 0,
+  color: '#1d4ed8',
 });
 
 export const metricsGrid = style({

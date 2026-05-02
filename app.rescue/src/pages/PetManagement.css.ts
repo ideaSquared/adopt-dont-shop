@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   maxWidth: '1200px',
@@ -38,19 +38,19 @@ export const pageHeader = style({
 
 export const headerContent = style({
   flex: 1,
-  selectors: {
-    '& h1': {
-      fontSize: '2.5rem',
-      fontWeight: 700,
-      color: '#111827',
-      margin: '0 0 0.5rem 0',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: '#6b7280',
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${headerContent} h1`, {
+  fontSize: '2.5rem',
+  fontWeight: 700,
+  color: '#111827',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${headerContent} p`, {
+  fontSize: '1.1rem',
+  color: '#6b7280',
+  margin: 0,
 });
 
 export const headerActions = style({

@@ -1,4 +1,4 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 const spin = keyframes({
@@ -88,12 +88,6 @@ export const exportOption = recipe({
     color: '#111827',
     transition: 'all 0.2s ease',
     textAlign: 'left',
-    selectors: {
-      '& svg': {
-        fontSize: '1rem',
-        flexShrink: 0,
-      },
-    },
   },
   variants: {
     loading: {
@@ -115,6 +109,11 @@ export const exportOption = recipe({
   defaultVariants: {
     loading: false,
   },
+});
+
+globalStyle(`${exportOption.classNames.base} svg`, {
+  fontSize: '1rem',
+  flexShrink: 0,
 });
 
 export const optionLabel = style({

@@ -1,4 +1,4 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -18,13 +18,12 @@ export const mainNavigation = style({
 export const navHeader = style({
   padding: '2rem 1.5rem',
   borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-  selectors: {
-    '& h2': {
-      margin: 0,
-      fontSize: '1.5rem',
-      fontWeight: '600',
-    },
-  },
+});
+
+globalStyle(`${navHeader} h2`, {
+  margin: 0,
+  fontSize: '1.5rem',
+  fontWeight: '600',
 });
 
 export const navList = style({
@@ -85,7 +84,9 @@ export const navLabel = style({
 });
 
 const badgePulse = keyframes({
-  '0%': { boxShadow: `0 0 0 0 color-mix(in srgb, ${vars.colors.semantic.error['500']} 60%, transparent)` },
+  '0%': {
+    boxShadow: `0 0 0 0 color-mix(in srgb, ${vars.colors.semantic.error['500']} 60%, transparent)`,
+  },
   '70%': { boxShadow: '0 0 0 7px transparent' },
   '100%': { boxShadow: '0 0 0 0 transparent' },
 });

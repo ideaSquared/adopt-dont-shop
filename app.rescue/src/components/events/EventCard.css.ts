@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const card = style({
@@ -77,11 +77,10 @@ export const eventDetail = style({
   gap: '0.5rem',
   fontSize: '0.875rem',
   color: '#6b7280',
-  selectors: {
-    '& span:first-child': {
-      fontSize: '1rem',
-    },
-  },
+});
+
+globalStyle(`${eventDetail} span:first-child`, {
+  fontSize: '1rem',
 });
 
 export const eventFooter = style({
@@ -98,9 +97,8 @@ export const attendanceInfo = style({
   gap: '0.5rem',
   fontSize: '0.875rem',
   color: '#6b7280',
-  selectors: {
-    '& strong': {
-      color: '#111827',
-    },
-  },
+});
+
+globalStyle(`${attendanceInfo} strong`, {
+  color: '#111827',
 });

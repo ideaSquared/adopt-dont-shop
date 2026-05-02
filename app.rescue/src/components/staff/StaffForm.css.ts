@@ -1,4 +1,4 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 const spin = keyframes({
@@ -195,22 +195,22 @@ export const formInfo = style({
   border: '1px solid #e9ecef',
 });
 
-export const infoSection = style({
-  selectors: {
-    '& h4': {
-      margin: '0 0 1rem 0',
-      color: '#333',
-      fontWeight: '600',
-    },
-    '& ol': {
-      margin: '0',
-      paddingLeft: '1.25rem',
-      color: '#666',
-    },
-    '& ol li': {
-      marginBottom: '0.5rem',
-    },
-  },
+export const infoSection = style({});
+
+globalStyle(`${infoSection} h4`, {
+  margin: '0 0 1rem 0',
+  color: '#333',
+  fontWeight: '600',
+});
+
+globalStyle(`${infoSection} ol`, {
+  margin: '0',
+  paddingLeft: '1.25rem',
+  color: '#666',
+});
+
+globalStyle(`${infoSection} ol li`, {
+  marginBottom: '0.5rem',
 });
 
 export const loadingSpinner = style({

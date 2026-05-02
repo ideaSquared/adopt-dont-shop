@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   padding: '2rem',
@@ -20,20 +20,19 @@ export const pageHeader = style({
   },
 });
 
-export const headerContent = style({
-  selectors: {
-    '& h1': {
-      margin: '0 0 0.5rem 0',
-      fontSize: '2rem',
-      color: '#333333',
-      fontWeight: 600,
-    },
-    '& p': {
-      margin: 0,
-      color: '#666666',
-      fontSize: '1.1rem',
-    },
-  },
+export const headerContent = style({});
+
+globalStyle(`${headerContent} h1`, {
+  margin: '0 0 0.5rem 0',
+  fontSize: '2rem',
+  color: '#333333',
+  fontWeight: 600,
+});
+
+globalStyle(`${headerContent} p`, {
+  margin: 0,
+  color: '#666666',
+  fontSize: '1.1rem',
 });
 
 export const headerActions = style({
@@ -130,15 +129,13 @@ export const pageContent = style({
   gap: '2rem',
 });
 
-export const section = style({
-  selectors: {
-    '& h2': {
-      margin: '0 0 1rem 0',
-      color: '#333333',
-      fontWeight: 600,
-      fontSize: '1.5rem',
-    },
-  },
+export const section = style({});
+
+globalStyle(`${section} h2`, {
+  margin: '0 0 1rem 0',
+  color: '#333333',
+  fontWeight: 600,
+  fontSize: '1.5rem',
 });
 
 export const errorState = style({

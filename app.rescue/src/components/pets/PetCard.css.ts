@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const styledCard = style({
@@ -50,19 +50,20 @@ export const petContent = style({
 export const petHeader = style({
   marginBottom: '1rem',
   selectors: {
-    '& h3': {
-      fontSize: '1.25rem',
-      fontWeight: '600',
-      color: '#111827',
-      margin: '0 0 0.25rem 0',
-      lineHeight: '1.2',
-    },
     '& .pet-info': {
       fontSize: '0.875rem',
       color: '#6b7280',
       margin: 0,
     },
   },
+});
+
+globalStyle(`${petHeader} h3`, {
+  fontSize: '1.25rem',
+  fontWeight: '600',
+  color: '#111827',
+  margin: '0 0 0.25rem 0',
+  lineHeight: '1.2',
 });
 
 export const petDetails = style({
@@ -90,30 +91,28 @@ export const petDetails = style({
 
 export const petDescription = style({
   marginBottom: '1rem',
-  selectors: {
-    '& p': {
-      fontSize: '0.875rem',
-      color: '#6b7280',
-      lineHeight: '1.4',
-      margin: 0,
-      overflow: 'hidden',
-      display: '-webkit-box',
-      WebkitLineClamp: 2,
-      WebkitBoxOrient: 'vertical',
-    },
-  },
+});
+
+globalStyle(`${petDescription} p`, {
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  lineHeight: '1.4',
+  margin: 0,
+  overflow: 'hidden',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
 });
 
 export const petActions = style({
   display: 'flex',
   gap: '0.5rem',
   marginTop: '1rem',
-  selectors: {
-    '& button': {
-      flex: 1,
-      fontSize: '0.875rem',
-    },
-  },
+});
+
+globalStyle(`${petActions} button`, {
+  flex: 1,
+  fontSize: '0.875rem',
 });
 
 export const statusUpdateModal = style({
@@ -134,51 +133,58 @@ export const modalContent = style({
   width: '100%',
   maxWidth: '400px',
   padding: '1.5rem',
-  selectors: {
-    '& h3': {
-      margin: '0 0 1rem 0',
-      color: '#111827',
-    },
-    '& .form-group': {
-      marginBottom: '1rem',
-    },
-    '& .form-group label': {
-      display: 'block',
-      marginBottom: '0.5rem',
-      fontWeight: '500',
-      color: '#111827',
-    },
-    '& .form-group select, & .form-group textarea': {
-      width: '100%',
-      padding: '0.75rem',
-      border: '1px solid #d1d5db',
-      borderRadius: '4px',
-      fontSize: '0.875rem',
-      fontFamily: 'inherit',
-    },
-    '& .form-group textarea': {
-      resize: 'vertical',
-      minHeight: '80px',
-    },
-    '& .modal-actions': {
-      display: 'flex',
-      gap: '0.5rem',
-      justifyContent: 'flex-end',
-      marginTop: '1.5rem',
-    },
-    '& .modal-actions button': {
-      minWidth: '80px',
-    },
-    '& .form-actions': {
-      display: 'flex',
-      gap: '0.5rem',
-      justifyContent: 'flex-end',
-      marginTop: '1.5rem',
-    },
-    '& .form-actions button': {
-      minWidth: '80px',
-    },
-  },
+});
+
+globalStyle(`${modalContent} h3`, {
+  margin: '0 0 1rem 0',
+  color: '#111827',
+});
+
+globalStyle(`${modalContent} .form-group`, {
+  marginBottom: '1rem',
+});
+
+globalStyle(`${modalContent} .form-group label`, {
+  display: 'block',
+  marginBottom: '0.5rem',
+  fontWeight: '500',
+  color: '#111827',
+});
+
+globalStyle(`${modalContent} .form-group select, ${modalContent} .form-group textarea`, {
+  width: '100%',
+  padding: '0.75rem',
+  border: '1px solid #d1d5db',
+  borderRadius: '4px',
+  fontSize: '0.875rem',
+  fontFamily: 'inherit',
+});
+
+globalStyle(`${modalContent} .form-group textarea`, {
+  resize: 'vertical',
+  minHeight: '80px',
+});
+
+globalStyle(`${modalContent} .modal-actions`, {
+  display: 'flex',
+  gap: '0.5rem',
+  justifyContent: 'flex-end',
+  marginTop: '1.5rem',
+});
+
+globalStyle(`${modalContent} .modal-actions button`, {
+  minWidth: '80px',
+});
+
+globalStyle(`${modalContent} .form-actions`, {
+  display: 'flex',
+  gap: '0.5rem',
+  justifyContent: 'flex-end',
+  marginTop: '1.5rem',
+});
+
+globalStyle(`${modalContent} .form-actions button`, {
+  minWidth: '80px',
 });
 
 export const statusBadge = recipe({

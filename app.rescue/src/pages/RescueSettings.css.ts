@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   padding: '2rem',
@@ -8,19 +8,19 @@ export const pageContainer = style({
 
 export const pageHeader = style({
   marginBottom: '2rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2rem',
-      fontWeight: 700,
-      color: '#1f2937',
-      margin: '0 0 0.5rem 0',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: '#6b7280',
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${pageHeader} h1`, {
+  fontSize: '2rem',
+  fontWeight: 700,
+  color: '#1f2937',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${pageHeader} p`, {
+  fontSize: '1.1rem',
+  color: '#6b7280',
+  margin: 0,
 });
 
 export const tabContainer = style({
@@ -80,15 +80,15 @@ export const errorContainer = style({
   padding: '2rem',
   borderRadius: '0.5rem',
   textAlign: 'center',
-  selectors: {
-    '& h3': {
-      fontSize: '1.25rem',
-      margin: '0 0 1rem 0',
-    },
-    '& p': {
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${errorContainer} h3`, {
+  fontSize: '1.25rem',
+  margin: '0 0 1rem 0',
+});
+
+globalStyle(`${errorContainer} p`, {
+  margin: 0,
 });
 
 export const placeholderSection = style({
@@ -97,18 +97,18 @@ export const placeholderSection = style({
   borderRadius: '0.75rem',
   padding: '3rem',
   textAlign: 'center',
-  selectors: {
-    '& h2': {
-      fontSize: '1.5rem',
-      color: '#374151',
-      margin: '0 0 1rem 0',
-    },
-    '& p': {
-      fontSize: '1rem',
-      color: '#6b7280',
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${placeholderSection} h2`, {
+  fontSize: '1.5rem',
+  color: '#374151',
+  margin: '0 0 1rem 0',
+});
+
+globalStyle(`${placeholderSection} p`, {
+  fontSize: '1rem',
+  color: '#6b7280',
+  margin: 0,
 });
 
 export const securitySection = style({
@@ -116,16 +116,16 @@ export const securitySection = style({
   border: '1px solid #e5e7eb',
   borderRadius: '0.75rem',
   padding: '2rem',
-  selectors: {
-    '& h2': {
-      fontSize: '1.25rem',
-      color: '#374151',
-      margin: '0 0 0.5rem 0',
-    },
-    '& > p': {
-      fontSize: '0.875rem',
-      color: '#6b7280',
-      margin: '0 0 1.5rem 0',
-    },
-  },
+});
+
+globalStyle(`${securitySection} h2`, {
+  fontSize: '1.25rem',
+  color: '#374151',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${securitySection} > p`, {
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  margin: '0 0 1.5rem 0',
 });

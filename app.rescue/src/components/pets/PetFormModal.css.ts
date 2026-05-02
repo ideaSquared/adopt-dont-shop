@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const modalOverlay = style({
@@ -21,14 +21,13 @@ export const modalContent = style({
   maxHeight: '90vh',
   overflowY: 'auto',
   padding: '2rem',
-  selectors: {
-    '& h2': {
-      margin: '0 0 1.5rem 0',
-      color: '#111827',
-      fontSize: '1.5rem',
-      fontWeight: '600',
-    },
-  },
+});
+
+globalStyle(`${modalContent} h2`, {
+  margin: '0 0 1.5rem 0',
+  color: '#111827',
+  fontSize: '1.5rem',
+  fontWeight: '600',
 });
 
 export const formGrid = style({
@@ -46,25 +45,6 @@ export const formGrid = style({
 export const formGroup = recipe({
   base: {
     selectors: {
-      '& label': {
-        display: 'block',
-        marginBottom: '0.5rem',
-        fontWeight: '500',
-        fontSize: '0.875rem',
-        color: '#111827',
-      },
-      '& input, & select, & textarea': {
-        width: '100%',
-        padding: '0.75rem',
-        border: '1px solid #d1d5db',
-        borderRadius: '4px',
-        fontSize: '0.875rem',
-        fontFamily: 'inherit',
-      },
-      '& textarea': {
-        resize: 'vertical',
-        minHeight: '100px',
-      },
       '& .error': {
         color: '#ef4444',
         fontSize: '0.75rem',
@@ -83,20 +63,45 @@ export const formGroup = recipe({
   },
 });
 
+globalStyle(`${formGroup.classNames.base} label`, {
+  display: 'block',
+  marginBottom: '0.5rem',
+  fontWeight: '500',
+  fontSize: '0.875rem',
+  color: '#111827',
+});
+
+globalStyle(
+  `${formGroup.classNames.base} input, ${formGroup.classNames.base} select, ${formGroup.classNames.base} textarea`,
+  {
+    width: '100%',
+    padding: '0.75rem',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    fontSize: '0.875rem',
+    fontFamily: 'inherit',
+  }
+);
+
+globalStyle(`${formGroup.classNames.base} textarea`, {
+  resize: 'vertical',
+  minHeight: '100px',
+});
+
 export const checkboxGroup = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.5rem',
   marginTop: '0.5rem',
-  selectors: {
-    '& input[type="checkbox"]': {
-      width: 'auto',
-    },
-    '& label': {
-      margin: 0,
-      fontWeight: 'normal',
-    },
-  },
+});
+
+globalStyle(`${checkboxGroup} input[type="checkbox"]`, {
+  width: 'auto',
+});
+
+globalStyle(`${checkboxGroup} label`, {
+  margin: 0,
+  fontWeight: 'normal',
 });
 
 export const modalActions = style({

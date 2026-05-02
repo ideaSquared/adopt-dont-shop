@@ -1,4 +1,4 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 const spin = keyframes({
@@ -198,30 +198,31 @@ export const formInfo = style({
   border: '1px solid #bbdefb',
 });
 
-export const infoSection = style({
-  selectors: {
-    '& h4': {
-      margin: '0 0 0.75rem 0',
-      color: '#1976d2',
-      fontWeight: '600',
-      fontSize: '0.95rem',
-    },
-    '& p': {
-      margin: '0',
-      color: '#555',
-      fontSize: '0.9rem',
-      lineHeight: '1.5',
-    },
-    '& ul': {
-      margin: '0.5rem 0 0 0',
-      paddingLeft: '1.25rem',
-      color: '#555',
-      fontSize: '0.9rem',
-    },
-    '& ul li': {
-      marginBottom: '0.25rem',
-    },
-  },
+export const infoSection = style({});
+
+globalStyle(`${infoSection} h4`, {
+  margin: '0 0 0.75rem 0',
+  color: '#1976d2',
+  fontWeight: '600',
+  fontSize: '0.95rem',
+});
+
+globalStyle(`${infoSection} p`, {
+  margin: '0',
+  color: '#555',
+  fontSize: '0.9rem',
+  lineHeight: '1.5',
+});
+
+globalStyle(`${infoSection} ul`, {
+  margin: '0.5rem 0 0 0',
+  paddingLeft: '1.25rem',
+  color: '#555',
+  fontSize: '0.9rem',
+});
+
+globalStyle(`${infoSection} ul li`, {
+  marginBottom: '0.25rem',
 });
 
 export const loadingSpinner = style({

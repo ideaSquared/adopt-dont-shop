@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const detailsContainer = style({
@@ -85,11 +85,10 @@ export const metaItem = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.5rem',
-  selectors: {
-    '& span:first-child': {
-      fontSize: '1rem',
-    },
-  },
+});
+
+globalStyle(`${metaItem} span:first-child`, {
+  fontSize: '1rem',
 });
 
 export const body = style({

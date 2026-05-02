@@ -1,4 +1,4 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 
 const loading = keyframes({
   '0%': { backgroundPosition: '200% 0' },
@@ -83,13 +83,12 @@ export const detailSection = style({
   borderRadius: '12px',
   padding: '1.5rem',
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-  selectors: {
-    '& h4': {
-      margin: '0 0 1rem 0',
-      color: '#333',
-      fontWeight: '600',
-    },
-  },
+});
+
+globalStyle(`${detailSection} h4`, {
+  margin: '0 0 1rem 0',
+  color: '#333',
+  fontWeight: '600',
 });
 
 export const progressBar = style({
@@ -175,15 +174,15 @@ export const emptyMessage = style({
   borderRadius: '12px',
   padding: '2rem',
   border: '2px solid #e9ecef',
-  selectors: {
-    '& h3': {
-      margin: '0 0 0.5rem 0',
-      color: '#333',
-      fontWeight: '600',
-    },
-    '& p': {
-      margin: '0',
-      color: '#666',
-    },
-  },
+});
+
+globalStyle(`${emptyMessage} h3`, {
+  margin: '0 0 0.5rem 0',
+  color: '#333',
+  fontWeight: '600',
+});
+
+globalStyle(`${emptyMessage} p`, {
+  margin: '0',
+  color: '#666',
 });

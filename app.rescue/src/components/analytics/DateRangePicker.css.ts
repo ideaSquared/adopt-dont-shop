@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -23,11 +23,10 @@ export const trigger = style({
     borderColor: vars.colors.primary['400'],
     background: vars.colors.primary['50'],
   },
-  selectors: {
-    '& svg': {
-      color: vars.text.secondary,
-    },
-  },
+});
+
+globalStyle(`${trigger} svg`, {
+  color: vars.text.secondary,
 });
 
 export const dropdown = recipe({

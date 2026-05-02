@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const filtersContainer = style({
   padding: '0.75rem',
@@ -13,14 +13,13 @@ export const filtersHeader = style({
   alignItems: 'center',
   justifyContent: 'space-between',
   marginBottom: '0.75rem',
-  selectors: {
-    '& h3': {
-      margin: 0,
-      color: '#111827',
-      fontSize: '1.25rem',
-      fontWeight: '600',
-    },
-  },
+});
+
+globalStyle(`${filtersHeader} h3`, {
+  margin: 0,
+  color: '#111827',
+  fontSize: '1.25rem',
+  fontWeight: '600',
 });
 
 export const filtersGrid = style({

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   height: '100%',
@@ -11,25 +11,25 @@ export const pageHeader = style({
   padding: '1.5rem 2rem',
   background: '#ffffff',
   borderBottom: '1px solid #e5e7eb',
-  selectors: {
-    '& h1': {
-      margin: 0,
-      fontSize: '1.875rem',
-      fontWeight: 700,
-      color: '#111827',
-      letterSpacing: '-0.025em',
-    },
-    '& p': {
-      margin: '0.5rem 0 0 0',
-      color: '#6b7280',
-      fontSize: '1rem',
-    },
-  },
   '@media': {
     'screen and (max-width: 768px)': {
       padding: '1rem 1.25rem',
     },
   },
+});
+
+globalStyle(`${pageHeader} h1`, {
+  margin: 0,
+  fontSize: '1.875rem',
+  fontWeight: 700,
+  color: '#111827',
+  letterSpacing: '-0.025em',
+});
+
+globalStyle(`${pageHeader} p`, {
+  margin: '0.5rem 0 0 0',
+  color: '#6b7280',
+  fontSize: '1rem',
 });
 
 export const chatContainer = style({

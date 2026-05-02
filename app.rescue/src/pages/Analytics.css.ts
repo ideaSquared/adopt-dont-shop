@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   maxWidth: '100%',
@@ -24,20 +24,19 @@ export const headerTop = style({
   },
 });
 
-export const headerTitle = style({
-  selectors: {
-    '& h1': {
-      fontSize: '2rem',
-      fontWeight: 700,
-      color: '#111827',
-      margin: '0 0 0.5rem 0',
-    },
-    '& p': {
-      fontSize: '1rem',
-      color: '#6b7280',
-      margin: 0,
-    },
-  },
+export const headerTitle = style({});
+
+globalStyle(`${headerTitle} h1`, {
+  fontSize: '2rem',
+  fontWeight: 700,
+  color: '#111827',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${headerTitle} p`, {
+  fontSize: '1rem',
+  color: '#6b7280',
+  margin: 0,
 });
 
 export const headerActions = style({
@@ -117,18 +116,18 @@ export const cardTitle = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.5rem',
-  selectors: {
-    '& h3': {
-      margin: 0,
-      fontSize: '1.125rem',
-      fontWeight: 600,
-      color: '#111827',
-    },
-    '& svg': {
-      color: '#2563eb',
-      fontSize: '1.25rem',
-    },
-  },
+});
+
+globalStyle(`${cardTitle} h3`, {
+  margin: 0,
+  fontSize: '1.125rem',
+  fontWeight: 600,
+  color: '#111827',
+});
+
+globalStyle(`${cardTitle} svg`, {
+  color: '#2563eb',
+  fontSize: '1.25rem',
 });
 
 export const cardBody = style({
@@ -139,22 +138,23 @@ export const emptyState = style({
   textAlign: 'center',
   padding: '3rem 1rem',
   color: '#6b7280',
-  selectors: {
-    '& svg': {
-      fontSize: '3rem',
-      color: '#d1d5db',
-      marginBottom: '1rem',
-    },
-    '& h3': {
-      fontSize: '1.125rem',
-      fontWeight: 600,
-      color: '#111827',
-      margin: '0 0 0.5rem 0',
-    },
-    '& p': {
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${emptyState} svg`, {
+  fontSize: '3rem',
+  color: '#d1d5db',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${emptyState} h3`, {
+  fontSize: '1.125rem',
+  fontWeight: 600,
+  color: '#111827',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${emptyState} p`, {
+  margin: 0,
 });
 
 export const errorState = style({
@@ -164,9 +164,8 @@ export const errorState = style({
   background: '#fef2f2',
   border: '1px solid #fecaca',
   borderRadius: '8px',
-  selectors: {
-    '& p': {
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${errorState} p`, {
+  margin: 0,
 });

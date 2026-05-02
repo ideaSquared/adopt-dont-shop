@@ -1,4 +1,4 @@
-import { keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 const spin = keyframes({
@@ -350,19 +350,19 @@ export const timelineData = style({
   padding: '1rem',
   margin: '0.75rem 0',
   fontSize: '0.8125rem',
-  selectors: {
-    '& strong': {
-      color: '#374151',
-      display: 'block',
-      marginBottom: '0.5rem',
-    },
-    '& pre': {
-      margin: 0,
-      color: '#6b7280',
-      fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
-      overflowX: 'auto',
-    },
-  },
+});
+
+globalStyle(`${timelineData} strong`, {
+  color: '#374151',
+  display: 'block',
+  marginBottom: '0.5rem',
+});
+
+globalStyle(`${timelineData} pre`, {
+  margin: 0,
+  color: '#6b7280',
+  fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
+  overflowX: 'auto',
 });
 
 export const addEventForm = style({
@@ -464,21 +464,22 @@ export const emptyTimeline = style({
   background: '#fafbfc',
   border: '2px dashed #d1d5db',
   borderRadius: '0.75rem',
-  selectors: {
-    '& p': {
-      margin: '0 0 0.5rem 0',
-    },
-    '& p:first-child': {
-      fontSize: '1.125rem',
-      fontWeight: '500',
-      color: '#4b5563',
-      marginBottom: '1rem',
-    },
-    '& p:last-child': {
-      fontSize: '0.9375rem',
-      lineHeight: '1.5',
-    },
-  },
+});
+
+globalStyle(`${emptyTimeline} p`, {
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${emptyTimeline} p:first-child`, {
+  fontSize: '1.125rem',
+  fontWeight: '500',
+  color: '#4b5563',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${emptyTimeline} p:last-child`, {
+  fontSize: '0.9375rem',
+  lineHeight: '1.5',
 });
 
 export const tabPanel = recipe({
@@ -783,21 +784,22 @@ export const emptyVisits = style({
   background: '#fafbfc',
   border: '2px dashed #d1d5db',
   borderRadius: '0.75rem',
-  selectors: {
-    '& p': {
-      margin: '0 0 0.5rem 0',
-    },
-    '& p:first-child': {
-      fontSize: '1.125rem',
-      fontWeight: '500',
-      color: '#4b5563',
-      marginBottom: '1rem',
-    },
-    '& p:last-child': {
-      fontSize: '0.9375rem',
-      lineHeight: '1.5',
-    },
-  },
+});
+
+globalStyle(`${emptyVisits} p`, {
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${emptyVisits} p:first-child`, {
+  fontSize: '1.125rem',
+  fontWeight: '500',
+  color: '#4b5563',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${emptyVisits} p:last-child`, {
+  fontSize: '0.9375rem',
+  lineHeight: '1.5',
 });
 
 export const visitCard = style({
@@ -866,13 +868,12 @@ export const visitNotes = style({
   borderRadius: '0.375rem',
   padding: '0.75rem',
   margin: '1rem 0',
-  selectors: {
-    '& strong': {
-      display: 'block',
-      marginBottom: '0.5rem',
-      color: '#1f2937',
-    },
-  },
+});
+
+globalStyle(`${visitNotes} strong`, {
+  display: 'block',
+  marginBottom: '0.5rem',
+  color: '#1f2937',
 });
 
 export const visitCompletedInfo = style({
@@ -966,12 +967,11 @@ export const visitDetailsHeader = style({
   alignItems: 'center',
   padding: '1rem',
   borderBottom: '1px solid #e5e7eb',
-  selectors: {
-    '& h4': {
-      margin: 0,
-      fontSize: '1rem',
-      fontWeight: '600',
-      color: '#111827',
-    },
-  },
+});
+
+globalStyle(`${visitDetailsHeader} h4`, {
+  margin: 0,
+  fontSize: '1rem',
+  fontWeight: '600',
+  color: '#111827',
 });

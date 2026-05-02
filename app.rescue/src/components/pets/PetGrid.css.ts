@@ -1,4 +1,4 @@
-import { keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 
 const loading = keyframes({
   '0%': { backgroundPosition: '200% 0' },
@@ -32,15 +32,17 @@ export const emptyState = style({
       fontSize: '3rem',
       marginBottom: '1rem',
     },
-    '& h3': {
-      marginBottom: '0.5rem',
-      color: '#111827',
-    },
-    '& p': {
-      color: '#6b7280',
-      marginBottom: '1.5rem',
-    },
   },
+});
+
+globalStyle(`${emptyState} h3`, {
+  marginBottom: '0.5rem',
+  color: '#111827',
+});
+
+globalStyle(`${emptyState} p`, {
+  color: '#6b7280',
+  marginBottom: '1.5rem',
 });
 
 export const loadingGrid = style({

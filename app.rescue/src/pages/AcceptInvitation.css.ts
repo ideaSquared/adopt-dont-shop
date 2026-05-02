@@ -1,4 +1,4 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 
 const spin = keyframes({
   '0%': { transform: 'rotate(0deg)' },
@@ -28,18 +28,18 @@ export const cardHeader = style({
   color: 'white',
   padding: '2rem',
   textAlign: 'center',
-  selectors: {
-    '& h1': {
-      margin: '0 0 0.5rem 0',
-      fontSize: '1.75rem',
-      fontWeight: 700,
-    },
-    '& p': {
-      margin: 0,
-      opacity: 0.9,
-      fontSize: '0.95rem',
-    },
-  },
+});
+
+globalStyle(`${cardHeader} h1`, {
+  margin: '0 0 0.5rem 0',
+  fontSize: '1.75rem',
+  fontWeight: 700,
+});
+
+globalStyle(`${cardHeader} p`, {
+  margin: 0,
+  opacity: 0.9,
+  fontSize: '0.95rem',
 });
 
 export const cardBody = style({
@@ -52,18 +52,18 @@ export const invitationInfo = style({
   padding: '1rem',
   marginBottom: '1.5rem',
   borderLeft: '4px solid #667eea',
-  selectors: {
-    '& p': {
-      margin: 0,
-      color: '#666',
-      fontSize: '0.9rem',
-    },
-    '& p strong': {
-      color: '#333',
-      display: 'block',
-      marginBottom: '0.25rem',
-    },
-  },
+});
+
+globalStyle(`${invitationInfo} p`, {
+  margin: 0,
+  color: '#666',
+  fontSize: '0.9rem',
+});
+
+globalStyle(`${invitationInfo} p strong`, {
+  color: '#333',
+  display: 'block',
+  marginBottom: '0.25rem',
 });
 
 export const formGroup = style({
@@ -166,33 +166,33 @@ export const errorContainer = style({
   padding: '1rem',
   marginBottom: '1.5rem',
   color: '#856404',
-  selectors: {
-    '& h3': {
-      margin: '0 0 0.5rem 0',
-      fontSize: '1rem',
-      fontWeight: 600,
-    },
-    '& p': {
-      margin: 0,
-      fontSize: '0.9rem',
-    },
-  },
+});
+
+globalStyle(`${errorContainer} h3`, {
+  margin: '0 0 0.5rem 0',
+  fontSize: '1rem',
+  fontWeight: 600,
+});
+
+globalStyle(`${errorContainer} p`, {
+  margin: 0,
+  fontSize: '0.9rem',
 });
 
 export const successContainer = style({
   textAlign: 'center',
   padding: '2rem',
-  selectors: {
-    '& h2': {
-      color: '#28a745',
-      margin: '0 0 1rem 0',
-      fontSize: '1.5rem',
-    },
-    '& p': {
-      color: '#666',
-      margin: '0 0 1.5rem 0',
-    },
-  },
+});
+
+globalStyle(`${successContainer} h2`, {
+  color: '#28a745',
+  margin: '0 0 1rem 0',
+  fontSize: '1.5rem',
+});
+
+globalStyle(`${successContainer} p`, {
+  color: '#666',
+  margin: '0 0 1.5rem 0',
 });
 
 export const successIcon = style({

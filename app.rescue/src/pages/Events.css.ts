@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   maxWidth: '100%',
@@ -24,20 +24,19 @@ export const headerTop = style({
   },
 });
 
-export const headerTitle = style({
-  selectors: {
-    '& h1': {
-      fontSize: '2rem',
-      fontWeight: 700,
-      color: '#111827',
-      margin: '0 0 0.5rem 0',
-    },
-    '& p': {
-      fontSize: '1rem',
-      color: '#6b7280',
-      margin: 0,
-    },
-  },
+export const headerTitle = style({});
+
+globalStyle(`${headerTitle} h1`, {
+  fontSize: '2rem',
+  fontWeight: 700,
+  color: '#111827',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${headerTitle} p`, {
+  fontSize: '1rem',
+  color: '#6b7280',
+  margin: 0,
 });
 
 export const headerActions = style({
@@ -77,9 +76,6 @@ export const primaryButton = style({
       outline: 'none',
       boxShadow: '0 0 0 3px #dbeafe',
     },
-    '& svg': {
-      fontSize: '1.125rem',
-    },
     '&:disabled': {
       background: '#d1d5db',
       cursor: 'not-allowed',
@@ -87,6 +83,10 @@ export const primaryButton = style({
       boxShadow: 'none',
     },
   },
+});
+
+globalStyle(`${primaryButton} svg`, {
+  fontSize: '1.125rem',
 });
 
 export const contentArea = style({
@@ -103,11 +103,10 @@ export const errorState = style({
   border: '1px solid #fecaca',
   borderRadius: '8px',
   marginBottom: '1.5rem',
-  selectors: {
-    '& p': {
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${errorState} p`, {
+  margin: 0,
 });
 
 export const modal = style({
@@ -187,20 +186,21 @@ export const emptyState = style({
   textAlign: 'center',
   padding: '3rem 1rem',
   color: '#6b7280',
-  selectors: {
-    '& svg': {
-      fontSize: '3rem',
-      color: '#d1d5db',
-      marginBottom: '1rem',
-    },
-    '& h3': {
-      fontSize: '1.125rem',
-      fontWeight: 600,
-      color: '#111827',
-      margin: '0 0 0.5rem 0',
-    },
-    '& p': {
-      margin: '0 0 1.5rem 0',
-    },
-  },
+});
+
+globalStyle(`${emptyState} svg`, {
+  fontSize: '3rem',
+  color: '#d1d5db',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${emptyState} h3`, {
+  fontSize: '1.125rem',
+  fontWeight: 600,
+  color: '#111827',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${emptyState} p`, {
+  margin: '0 0 1.5rem 0',
 });

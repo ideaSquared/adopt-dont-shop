@@ -1,4 +1,4 @@
-import { style, keyframes } from '@vanilla-extract/css';
+import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 const spin = keyframes({
@@ -17,19 +17,19 @@ export const header = style({
   padding: '1.5rem',
   borderBottom: '1px solid #e9ecef',
   background: '#f8f9fa',
-  selectors: {
-    '& h3': {
-      margin: '0 0 0.5rem 0',
-      color: '#333',
-      fontWeight: '600',
-      fontSize: '1.1rem',
-    },
-    '& p': {
-      margin: '0',
-      color: '#666',
-      fontSize: '0.9rem',
-    },
-  },
+});
+
+globalStyle(`${header} h3`, {
+  margin: '0 0 0.5rem 0',
+  color: '#333',
+  fontWeight: '600',
+  fontSize: '1.1rem',
+});
+
+globalStyle(`${header} p`, {
+  margin: '0',
+  color: '#666',
+  fontSize: '0.9rem',
 });
 
 export const invitationsList = style({
@@ -112,11 +112,10 @@ export const metaItem = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.25rem',
-  selectors: {
-    '& strong': {
-      color: '#333',
-    },
-  },
+});
+
+globalStyle(`${metaItem} strong`, {
+  color: '#333',
 });
 
 export const statusBadge = recipe({
@@ -211,11 +210,10 @@ export const emptyIcon = style({
 export const emptyText = style({
   fontSize: '1.1rem',
   color: '#666',
-  selectors: {
-    '& p': {
-      margin: '0.5rem 0',
-    },
-  },
+});
+
+globalStyle(`${emptyText} p`, {
+  margin: '0.5rem 0',
 });
 
 export const loadingContainer = style({
