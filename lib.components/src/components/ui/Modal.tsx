@@ -48,7 +48,9 @@ export const Modal: React.FC<ModalProps> = ({
 
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
-      if (closeOnEscape && event.key === 'Escape') onClose();
+      if (closeOnEscape && event.key === 'Escape') {
+        onClose();
+      }
     },
     [closeOnEscape, onClose]
   );
@@ -64,16 +66,22 @@ export const Modal: React.FC<ModalProps> = ({
             const focusable = modalRef.current.querySelectorAll<HTMLElement>(
               'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
             );
-            if (focusable.length > 0) focusable[0].focus();
+            if (focusable.length > 0) {
+              focusable[0].focus();
+            }
           }
         }, 0);
       }
 
-      if (closeOnEscape) document.addEventListener('keydown', handleEscape);
+      if (closeOnEscape) {
+        document.addEventListener('keydown', handleEscape);
+      }
 
       return () => {
         document.body.style.overflow = '';
-        if (closeOnEscape) document.removeEventListener('keydown', handleEscape);
+        if (closeOnEscape) {
+          document.removeEventListener('keydown', handleEscape);
+        }
       };
     } else {
       isInitialOpen.current = false;
@@ -81,7 +89,9 @@ export const Modal: React.FC<ModalProps> = ({
   }, [isOpen, closeOnEscape, handleEscape]);
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (closeOnOverlayClick && event.target === event.currentTarget) onClose();
+    if (closeOnOverlayClick && event.target === event.currentTarget) {
+      onClose();
+    }
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -93,7 +103,9 @@ export const Modal: React.FC<ModalProps> = ({
       const focusable = modalRef.current.querySelectorAll<HTMLElement>(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
-      if (focusable.length === 0) return;
+      if (focusable.length === 0) {
+        return;
+      }
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       const active = document.activeElement;
@@ -107,7 +119,9 @@ export const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   const modalContent = (
     <div

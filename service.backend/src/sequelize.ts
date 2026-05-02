@@ -10,10 +10,18 @@ const buildConnectionString = (database: string): string => {
   const host = process.env.DB_HOST;
   const port = process.env.DB_PORT;
 
-  if (!username) throw new Error('DB_USERNAME environment variable is not set');
-  if (!password) throw new Error('DB_PASSWORD environment variable is not set');
-  if (!host) throw new Error('DB_HOST environment variable is not set');
-  if (!port) throw new Error('DB_PORT environment variable is not set');
+  if (!username) {
+    throw new Error('DB_USERNAME environment variable is not set');
+  }
+  if (!password) {
+    throw new Error('DB_PASSWORD environment variable is not set');
+  }
+  if (!host) {
+    throw new Error('DB_HOST environment variable is not set');
+  }
+  if (!port) {
+    throw new Error('DB_PORT environment variable is not set');
+  }
 
   return `postgresql://${username}:${password}@${host}:${port}/${database}`;
 };
