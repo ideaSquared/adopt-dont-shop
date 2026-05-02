@@ -10,7 +10,6 @@
  * - Staff experiences graceful error handling
  */
 
-import { renderWithProviders, screen, waitFor, userEvent } from '../test-utils';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { mswHandlers } from '../test-utils/msw-handlers';

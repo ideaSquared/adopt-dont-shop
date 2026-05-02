@@ -40,10 +40,10 @@ const getDatabaseUrl = (): string => {
   }
 };
 
-const databaseUrl = getDatabaseUrl();
-
 // Use SQLite in-memory for tests (industry standard approach)
 const isTestEnvironment = process.env.NODE_ENV === 'test';
+
+const databaseUrl = isTestEnvironment ? '' : getDatabaseUrl();
 
 const sequelize = isTestEnvironment
   ? new Sequelize('sqlite::memory:', {
