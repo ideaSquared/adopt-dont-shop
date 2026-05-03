@@ -553,9 +553,9 @@ describe('SupportTicketService', () => {
     });
 
     it('throws for any sort field not in the allowed whitelist', async () => {
-      await expect(
-        supportTicketService.getTickets({}, { sortBy: 'responderId' })
-      ).rejects.toThrow(/Invalid sort field/);
+      await expect(supportTicketService.getTickets({}, { sortBy: 'responderId' })).rejects.toThrow(
+        /Invalid sort field/
+      );
     });
   });
 
