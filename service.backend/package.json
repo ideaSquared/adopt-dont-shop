@@ -45,7 +45,6 @@
     "@types/uuid": "^9.0.0",
     "@types/validator": "^13.7.10",
     "bcrypt": "^5.1.0",
-    "zod": "^3.25.76",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -60,6 +59,7 @@
     "isomorphic-dompurify": "^2.25.0",
     "jsonwebtoken": "^9.0.2",
     "marked": "^15.0.12",
+    "mjml": "^5.1.0",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.3",
@@ -76,7 +76,8 @@
     "swagger-ui-express": "^5.0.1",
     "uuid": "^9.0.0",
     "winston": "^3.17.0",
-    "yamljs": "^0.3.0"
+    "yamljs": "^0.3.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-node": "*",
