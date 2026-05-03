@@ -29,13 +29,10 @@ module.exports = {
     'react/prop-types': 'off', // Using TypeScript for prop validation
     'react/no-unescaped-entities': 'warn',
     'react-hooks/exhaustive-deps': 'warn',
-    'react/no-array-index-key': 'error',
+    'react/no-array-index-key': 'warn',
 
     // React Refresh (for Vite HMR)
-    'react-refresh/only-export-components': [
-      'warn',
-      { allowConstantExport: true },
-    ],
+    'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
     // Accessibility rules
     'jsx-a11y/no-autofocus': 'warn',

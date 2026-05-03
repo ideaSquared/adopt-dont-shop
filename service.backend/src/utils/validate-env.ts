@@ -74,8 +74,8 @@ const productionOnlyEnvVars: EnvVar[] = [
 ];
 
 export function validateEnvironment(): void {
-  const errors: string[] = [];
-  const warnings: string[] = [];
+  const errors: string[] = []; // always hard-fail (security violations + production missing vars)
+  const warnings: string[] = []; // warn-only in non-production
   const isProduction = process.env.NODE_ENV === 'production';
 
   // Check required environment variables
@@ -87,7 +87,13 @@ export function validateEnvironment(): void {
     const value = process.env[envVar.name];
 
     if (envVar.required && !value) {
-      errors.push(`Missing required environment variable: ${envVar.name} - ${envVar.description}`);
+      if (isProduction) {
+        errors.push(
+          `Missing required environment variable: ${envVar.name} - ${envVar.description}`
+        );
+      } else {
+        warnings.push(`Missing environment variable: ${envVar.name} - ${envVar.description}`);
+      }
       continue;
     }
 
@@ -150,8 +156,9 @@ export function validateEnvironment(): void {
     warnings.forEach(warning => logger.warn(`  - ${warning}`));
   }
 
-  // Handle errors — always hard-fail so a dev config can never silently run
-  // in a production-like environment with missing or placeholder secrets.
+  // Hard-fail on any security violation (placeholder/weak secrets) in all
+  // environments, plus missing required vars in production. Non-production
+  // missing vars are warnings only so CI can run validate:env without full secrets.
   if (errors.length > 0) {
     logger.error('Environment validation failed:');
     errors.forEach(error => logger.error(`  - ${error}`));
