@@ -194,7 +194,13 @@ const Users: React.FC = () => {
       await suspendUser.mutateAsync({ userId, reason });
       showToast('User suspended successfully', 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to suspend user', 'error');
+      const errorReason = err instanceof Error ? err.message : undefined;
+      showToast(
+        errorReason
+          ? `Failed to suspend user — ${errorReason}`
+          : 'Failed to suspend user — please try again',
+        'error'
+      );
     }
   };
 
@@ -203,7 +209,13 @@ const Users: React.FC = () => {
       await unsuspendUser.mutateAsync(userId);
       showToast('User unsuspended successfully', 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to unsuspend user', 'error');
+      const errorReason = err instanceof Error ? err.message : undefined;
+      showToast(
+        errorReason
+          ? `Failed to unsuspend user — ${errorReason}`
+          : 'Failed to unsuspend user — please try again',
+        'error'
+      );
     }
   };
 
