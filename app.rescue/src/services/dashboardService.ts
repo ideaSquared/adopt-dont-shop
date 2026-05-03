@@ -3,7 +3,6 @@
  */
 
 import { apiService, notificationsService } from './libraryServices';
-import { isDevelopment, getApiBaseUrl } from '../utils/env';
 import { RescueDashboardData, RecentActivity, DashboardNotification } from '../types/dashboard';
 
 export class DashboardService {

@@ -416,7 +416,6 @@ describe('RescueService', () => {
       const config = rescueService.getConfig();
 
       expect(config).toEqual({
-        apiUrl: 'http://localhost:5000',
         debug: false,
       });
     });
