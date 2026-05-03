@@ -84,11 +84,10 @@ interface ApplicationAttributes {
   deletedAt?: Date | null;
 }
 
-interface ApplicationCreationAttributes
-  extends Optional<
-    ApplicationAttributes,
-    'applicationId' | 'status' | 'priority' | 'stage' | 'createdAt' | 'updatedAt' | 'deletedAt'
-  > {}
+interface ApplicationCreationAttributes extends Optional<
+  ApplicationAttributes,
+  'applicationId' | 'status' | 'priority' | 'stage' | 'createdAt' | 'updatedAt' | 'deletedAt'
+> {}
 
 class Application
   extends Model<ApplicationAttributes, ApplicationCreationAttributes>

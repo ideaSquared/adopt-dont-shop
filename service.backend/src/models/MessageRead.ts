@@ -19,8 +19,10 @@ interface MessageReadAttributes {
   updated_at?: Date;
 }
 
-interface MessageReadCreationAttributes
-  extends Optional<MessageReadAttributes, 'read_id' | 'read_at' | 'created_at' | 'updated_at'> {}
+interface MessageReadCreationAttributes extends Optional<
+  MessageReadAttributes,
+  'read_id' | 'read_at' | 'created_at' | 'updated_at'
+> {}
 
 export class MessageRead
   extends Model<MessageReadAttributes, MessageReadCreationAttributes>

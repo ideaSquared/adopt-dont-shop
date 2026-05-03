@@ -57,8 +57,10 @@ interface UserSanctionAttributes {
   updatedAt: Date;
 }
 
-interface UserSanctionCreationAttributes
-  extends Optional<UserSanctionAttributes, 'sanctionId' | 'createdAt' | 'updatedAt'> {}
+interface UserSanctionCreationAttributes extends Optional<
+  UserSanctionAttributes,
+  'sanctionId' | 'createdAt' | 'updatedAt'
+> {}
 
 class UserSanction
   extends Model<UserSanctionAttributes, UserSanctionCreationAttributes>
