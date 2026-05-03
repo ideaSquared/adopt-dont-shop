@@ -93,6 +93,7 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
+import { Op } from 'sequelize';
 import Application from '../../models/Application';
 import AuditLog from '../../models/AuditLog';
 import Chat from '../../models/Chat';
@@ -169,18 +170,16 @@ describe('AnalyticsService.getAdoptionMetrics', () => {
     await AnalyticsService.getAdoptionMetrics({});
     const after = Date.now();
 
-    // The function should have been called — we verify no date args were passed externally
     expect(mockApplication.count).toHaveBeenCalled();
 
-    // Verify the query was constructed with a date approximately 30 days ago
+    // Verify the query was constructed with a date approximately 30 days ago.
+    // The date filter uses Sequelize Op symbols as keys, so we access them directly.
     const callArgs = mockApplication.count.mock.calls[0][0] as {
-      where: { created_at: { [key: symbol]: Date } };
+      where: { created_at: Record<symbol, Date> };
     };
-    const { where } = callArgs;
-    const createdAtFilter = where.created_at;
-    const filterValues = Object.values(createdAtFilter) as Date[];
-    const startDate = filterValues[0];
-    const endDate = filterValues[1];
+    const createdAtFilter = callArgs.where.created_at;
+    const startDate = createdAtFilter[Op.gte];
+    const endDate = createdAtFilter[Op.lte];
 
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
     expect(endDate.getTime()).toBeGreaterThanOrEqual(before);
@@ -199,12 +198,13 @@ describe('AnalyticsService.getAdoptionMetrics', () => {
 
     await AnalyticsService.getAdoptionMetrics({ startDate, endDate });
 
+    // The date filter uses Sequelize Op symbols as keys, so we access them directly.
     const callArgs = mockApplication.count.mock.calls[0][0] as {
-      where: { created_at: { [key: symbol]: Date } };
+      where: { created_at: Record<symbol, Date> };
     };
-    const filterValues = Object.values(callArgs.where.created_at) as Date[];
-    expect(filterValues[0].getTime()).toBe(startDate.getTime());
-    expect(filterValues[1].getTime()).toBe(endDate.getTime());
+    const createdAtFilter = callArgs.where.created_at;
+    expect(createdAtFilter[Op.gte].getTime()).toBe(startDate.getTime());
+    expect(createdAtFilter[Op.lte].getTime()).toBe(endDate.getTime());
   });
 
   it('returns avgTimeToAdoption: 0 when no adopted applications resolved', async () => {

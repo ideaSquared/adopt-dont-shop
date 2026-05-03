@@ -498,7 +498,7 @@ describe('User Management page', () => {
       await user.click(screen.getByTestId('suspend-user-1'));
 
       await waitFor(() => {
-        expect(screen.getByText('Permission denied')).toBeInTheDocument();
+        expect(screen.getByText('Failed to suspend user — Permission denied')).toBeInTheDocument();
       });
     });
 
@@ -513,7 +513,7 @@ describe('User Management page', () => {
       await user.click(screen.getByTestId('suspend-user-1'));
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to suspend user')).toBeInTheDocument();
+        expect(screen.getByText('Failed to suspend user — please try again')).toBeInTheDocument();
       });
     });
 
@@ -543,7 +543,24 @@ describe('User Management page', () => {
       await user.click(screen.getByTestId('unsuspend-user-3'));
 
       await waitFor(() => {
-        expect(screen.getByText('Server unavailable')).toBeInTheDocument();
+        expect(
+          screen.getByText('Failed to unsuspend user — Server unavailable')
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('shows a generic error message when unsuspension fails without a message', async () => {
+      const user = userEvent.setup();
+      mockUseUnsuspendUser.mockReturnValue({
+        ...mockMutationResult,
+        mutateAsync: vi.fn().mockRejectedValue('unknown error'),
+      });
+      renderWithProviders(<Users />);
+
+      await user.click(screen.getByTestId('unsuspend-user-3'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Failed to unsuspend user — please try again')).toBeInTheDocument();
       });
     });
   });
