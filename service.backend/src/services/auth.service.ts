@@ -133,7 +133,10 @@ export class AuthService {
               expiresAt: verificationExpires.toISOString(),
             },
           });
-          logger.info('Verification email queued for retry', { userId: user.userId, email: user.email });
+          logger.info('Verification email queued for retry', {
+            userId: user.userId,
+            email: user.email,
+          });
         } catch (queueError) {
           logger.error('Failed to queue verification email:', queueError);
         }
@@ -633,7 +636,9 @@ Need help? Contact us at support@adoptdontshop.com
     }
 
     try {
-      const decoded = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET, { algorithms: ['HS256'] }) as { jti?: string };
+      const decoded = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET, {
+        algorithms: ['HS256'],
+      }) as { jti?: string };
       if (decoded.jti) {
         await RefreshToken.update({ is_revoked: true }, { where: { token_id: decoded.jti } });
         logger.info('Refresh token revoked on logout', { jti: decoded.jti });

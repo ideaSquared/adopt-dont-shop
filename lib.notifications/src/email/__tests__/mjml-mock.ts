@@ -8,7 +8,7 @@ const mjml2html = async (mjml: string) => {
   }
 
   const textMatches = mjml.match(/<mj-text[^>]*>([\s\S]*?)<\/mj-text>/g) || [];
-  const texts = textMatches.map(match => {
+  const texts = textMatches.map((match) => {
     const content = match.replace(/<mj-text[^>]*>/, '').replace(/<\/mj-text>/, '');
     return content.trim();
   });

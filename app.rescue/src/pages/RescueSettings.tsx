@@ -39,9 +39,7 @@ const RescueSettings: React.FC = () => {
         throw new Error('No rescue ID found for current user');
       }
 
-      const rescueData = await apiService.get<any>(
-        `/api/v1/rescues/${rescueId}`
-      );
+      const rescueData = await apiService.get<any>(`/api/v1/rescues/${rescueId}`);
 
       // Extract adoption policies from settings if they exist
       const rescueProfile = { ...rescueData.data };

@@ -157,7 +157,10 @@ describe('UserController', () => {
 
   describe('bulkUpdateUsers', () => {
     it('should call UserService.bulkUpdateUsers with provided data', async () => {
-      const validUserIds = ['550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440001'];
+      const validUserIds = [
+        '550e8400-e29b-41d4-a716-446655440000',
+        '550e8400-e29b-41d4-a716-446655440001',
+      ];
       req.body = {
         userIds: validUserIds,
         updateData: { status: 'ACTIVE' },
@@ -196,9 +199,7 @@ describe('UserController', () => {
         updateData: { status: 'ACTIVE' },
       };
 
-      MockedUserService.bulkUpdateUsers = vi
-        .fn()
-        .mockRejectedValue(new Error('Database error'));
+      MockedUserService.bulkUpdateUsers = vi.fn().mockRejectedValue(new Error('Database error'));
 
       await controller.bulkUpdateUsers(req as AuthenticatedRequest, res as Response);
 

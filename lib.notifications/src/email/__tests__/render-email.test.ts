@@ -4,7 +4,8 @@ import { welcomeEmailTemplate } from '../templates/welcome';
 describe('Email Rendering', () => {
   describe('renderEmail', () => {
     it('renders valid MJML to HTML and plain text', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Hello World</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Hello World</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({ mjml });
 
@@ -13,7 +14,8 @@ describe('Email Rendering', () => {
     });
 
     it('returns both HTML and plain text versions', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Test Content</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Test Content</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result: RenderEmailResult = await renderEmail({ mjml });
 
@@ -26,7 +28,8 @@ describe('Email Rendering', () => {
     });
 
     it('replaces template variables with provided data', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Welcome {{firstName}}</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Welcome {{firstName}}</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({
         mjml,
@@ -38,23 +41,25 @@ describe('Email Rendering', () => {
     });
 
     it('handles multiple template variables', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{firstName}} {{lastName}}, welcome to {{appName}}</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{firstName}} {{lastName}}, welcome to {{appName}}</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({
         mjml,
         data: {
           firstName: 'Jane',
           lastName: 'Doe',
-          appName: 'Adopt Don\'t Shop',
+          appName: "Adopt Don't Shop",
         },
       });
 
-      expect(result.html).toContain('Hello Jane Doe, welcome to Adopt Don\'t Shop');
-      expect(result.text).toContain('Hello Jane Doe, welcome to Adopt Don\'t Shop');
+      expect(result.html).toContain("Hello Jane Doe, welcome to Adopt Don't Shop");
+      expect(result.text).toContain("Hello Jane Doe, welcome to Adopt Don't Shop");
     });
 
     it('preserves unmatched template variables when data not provided', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{firstName}}</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Hello {{firstName}}</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({ mjml });
 
@@ -63,7 +68,8 @@ describe('Email Rendering', () => {
     });
 
     it('handles whitespace in template variable names', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Welcome {{ firstName }}</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Welcome {{ firstName }}</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({
         mjml,
@@ -74,7 +80,8 @@ describe('Email Rendering', () => {
     });
 
     it('converts HTML to plain text by stripping tags', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text><b>Bold Text</b></mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text><b>Bold Text</b></mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({ mjml });
 
@@ -83,7 +90,8 @@ describe('Email Rendering', () => {
     });
 
     it('converts line breaks in plain text correctly', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Line 1</mj-text></mj-column></mj-section><mj-section><mj-column><mj-text>Line 2</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Line 1</mj-text></mj-column></mj-section><mj-section><mj-column><mj-text>Line 2</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({ mjml });
 
@@ -100,15 +108,16 @@ describe('Email Rendering', () => {
         },
       });
 
-      expect(result.html).toContain('Welcome to Adopt Don\'t Shop');
+      expect(result.html).toContain("Welcome to Adopt Don't Shop");
       expect(result.html).toContain('Hi Sarah');
       expect(result.html).toContain('2024');
-      expect(result.text).toContain('Welcome to Adopt Don\'t Shop');
+      expect(result.text).toContain("Welcome to Adopt Don't Shop");
       expect(result.text).toContain('Hi Sarah');
     });
 
     it('handles empty data object', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Test</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Test</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({ mjml, data: {} });
 
@@ -117,7 +126,8 @@ describe('Email Rendering', () => {
     });
 
     it('converts numeric data to strings in templates', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Year: {{year}}</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Year: {{year}}</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({
         mjml,
@@ -129,7 +139,8 @@ describe('Email Rendering', () => {
     });
 
     it('handles boolean values in templates', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Active: {{isActive}}</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Active: {{isActive}}</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({
         mjml,
@@ -140,7 +151,8 @@ describe('Email Rendering', () => {
     });
 
     it('ignores undefined values and preserves original template variable', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Value: {{missing}}</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Value: {{missing}}</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({
         mjml,
@@ -151,7 +163,8 @@ describe('Email Rendering', () => {
     });
 
     it('removes HTML entities from plain text output', async () => {
-      const mjml = '<mjml><mj-body><mj-section><mj-column><mj-text>Special chars: &lt; &gt; &amp;</mj-text></mj-column></mj-section></mj-body></mjml>';
+      const mjml =
+        '<mjml><mj-body><mj-section><mj-column><mj-text>Special chars: &lt; &gt; &amp;</mj-text></mj-column></mj-section></mj-body></mjml>';
 
       const result = await renderEmail({ mjml });
 

@@ -49,5 +49,4 @@ describe('password utilities', () => {
       expect(result).toBe(false);
     });
   });
-
 });
