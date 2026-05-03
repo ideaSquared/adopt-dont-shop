@@ -82,11 +82,11 @@
     "prettier": "^3.2.5",
     "rimraf": "^5.0.5",
     "storybook": "^10.0.0",
+    "styled-components": "^6.1.12",
     "ts-jest": "^29.1.0",
     "typescript": "^5.4.5",
     "vite": "^5.3.5",
-    "styled-components": "^6.1.12",
-    "vite-plugin-dts": "^3.8.3"
+    "vite-plugin-dts": "^5.0.0"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
