@@ -69,7 +69,9 @@ type MockInvitationInstance = {
   get: ReturnType<typeof vi.fn>;
 };
 
-const buildInvitation = (overrides: Partial<MockInvitationInstance> = {}): MockInvitationInstance => {
+const buildInvitation = (
+  overrides: Partial<MockInvitationInstance> = {}
+): MockInvitationInstance => {
   const base: MockInvitationInstance = {
     invitation_id: 'inv-001',
     email: 'staff@example.com',
@@ -119,7 +121,9 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   // Default: Invitation.sequelize.transaction returns mock transaction
-  (MockedInvitation as unknown as { sequelize: { transaction: ReturnType<typeof vi.fn> } }).sequelize = {
+  (
+    MockedInvitation as unknown as { sequelize: { transaction: ReturnType<typeof vi.fn> } }
+  ).sequelize = {
     transaction: vi.fn().mockResolvedValue(mockTransaction),
   };
 
@@ -419,9 +423,9 @@ describe('InvitationService', () => {
         MockedUser.findOne = vi.fn().mockResolvedValue(null);
         MockedUser.create = vi.fn().mockRejectedValue(new Error('DB constraint violation'));
 
-        await expect(
-          InvitationService.acceptInvitation('valid-token', userData)
-        ).rejects.toThrow('DB constraint violation');
+        await expect(InvitationService.acceptInvitation('valid-token', userData)).rejects.toThrow(
+          'DB constraint violation'
+        );
 
         expect(mockTransaction.rollback).toHaveBeenCalledOnce();
         expect(mockTransaction.commit).not.toHaveBeenCalled();
@@ -440,9 +444,9 @@ describe('InvitationService', () => {
         MockedRole.findOne = vi.fn().mockResolvedValue({ roleId: 'role-rescue-staff' });
         MockedUserRole.create = vi.fn().mockRejectedValue(new Error('FK violation'));
 
-        await expect(
-          InvitationService.acceptInvitation('valid-token', userData)
-        ).rejects.toThrow('FK violation');
+        await expect(InvitationService.acceptInvitation('valid-token', userData)).rejects.toThrow(
+          'FK violation'
+        );
 
         expect(mockTransaction.rollback).toHaveBeenCalledOnce();
         expect(mockTransaction.commit).not.toHaveBeenCalled();
@@ -453,9 +457,9 @@ describe('InvitationService', () => {
       it('should throw an error', async () => {
         MockedInvitation.findOne = vi.fn().mockResolvedValue(null);
 
-        await expect(
-          InvitationService.acceptInvitation('expired-token', userData)
-        ).rejects.toThrow('Invitation not found or expired');
+        await expect(InvitationService.acceptInvitation('expired-token', userData)).rejects.toThrow(
+          'Invitation not found or expired'
+        );
 
         expect(mockTransaction.rollback).toHaveBeenCalledOnce();
       });
@@ -466,9 +470,9 @@ describe('InvitationService', () => {
         MockedInvitation.findOne = vi.fn().mockResolvedValue(buildInvitation());
         MockedUser.findOne = vi.fn().mockResolvedValue(buildUser());
 
-        await expect(
-          InvitationService.acceptInvitation('valid-token', userData)
-        ).rejects.toThrow('An account with this email already exists');
+        await expect(InvitationService.acceptInvitation('valid-token', userData)).rejects.toThrow(
+          'An account with this email already exists'
+        );
 
         expect(mockTransaction.rollback).toHaveBeenCalledOnce();
         expect(mockTransaction.commit).not.toHaveBeenCalled();
