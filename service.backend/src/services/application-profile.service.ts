@@ -10,6 +10,7 @@ import {
   UpdateApplicationDefaultsRequest,
   UpdateApplicationPreferencesRequest,
 } from '../types';
+import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 
 /**
@@ -81,10 +82,12 @@ export class ApplicationProfileService {
 
       // Update the user record
       await user.update({
-        applicationDefaults: structuredClone(updatedDefaults),
+        // Cast required at Sequelize boundary: JsonObject requires an index
+        // signature that our specific domain interfaces intentionally omit.
+        applicationDefaults: structuredClone(updatedDefaults) as unknown as JsonObject,
         profileCompletionStatus: structuredClone(
           this.calculateProfileCompletion(updatedDefaults, user)
-        ),
+        ) as unknown as JsonObject,
       });
 
       logger.info('Application defaults updated successfully', { userId });
