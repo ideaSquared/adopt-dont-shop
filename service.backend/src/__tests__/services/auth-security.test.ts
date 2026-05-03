@@ -840,7 +840,9 @@ describe('AuthService - Security Business Logic', () => {
       const result = await AuthService.refreshToken('valid-refresh-token');
 
       // Then: Token is verified before issuing new tokens
-      expect(MockedJwt.verify).toHaveBeenCalledWith('valid-refresh-token', mockRefreshSecret);
+      expect(MockedJwt.verify).toHaveBeenCalledWith('valid-refresh-token', mockRefreshSecret, {
+        algorithms: ['HS256'],
+      });
       expect(result).toBeDefined();
       expect(result.token).toBeDefined();
     });

@@ -841,7 +841,8 @@ describe('Authentication Flow Integration Tests', () => {
 
         expect(mockedJwt.verify).toHaveBeenCalledWith(
           validRefreshToken,
-          'test-refresh-secret-min-32-characters-long-12345'
+          'test-refresh-secret-min-32-characters-long-12345',
+          { algorithms: ['HS256'] }
         );
       });
 

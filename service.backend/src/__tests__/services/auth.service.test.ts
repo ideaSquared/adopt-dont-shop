@@ -409,7 +409,8 @@ describe('AuthService', () => {
 
       expect(mockedJwt.verify).toHaveBeenCalledWith(
         refreshToken,
-        'test-refresh-secret-min-32-characters-long-12345'
+        'test-refresh-secret-min-32-characters-long-12345',
+        { algorithms: ['HS256'] }
       );
       expect(MockedRefreshToken.findByPk).toHaveBeenCalledWith(mockPayload.jti);
       expect(MockedUser.findByPk).toHaveBeenCalledWith(mockPayload.userId, expect.any(Object));

@@ -62,7 +62,7 @@ describe('Rate Limiter Middleware', () => {
 
   describe('Rate limiter initialization', () => {
     it('should create multiple rate limiters', () => {
-      expect(rateLimitConfigs.length).toBe(4); // API, Auth, Password Reset, Upload
+      expect(rateLimitConfigs.length).toBe(5); // API, Auth, Password Reset, Upload, Email Resend
     });
 
     it('should configure all limiters with standard headers', () => {
