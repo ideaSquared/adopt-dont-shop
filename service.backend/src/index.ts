@@ -160,8 +160,9 @@ app.get('/api/v1/csrf-token', getCsrfToken);
 
 // Apply CSRF protection to all API routes except token endpoint and health checks
 app.use('/api', (req, res, next) => {
-  // Skip CSRF for health checks and read-only endpoints
-  const skipPaths = ['/api/v1/csrf-token', '/health', '/api/v1/health'];
+  // Within app.use('/api', ...) req.path is relative to the /api mount point,
+  // so paths here start with /v1/... not /api/v1/...
+  const skipPaths = ['/v1/csrf-token', '/v1/health'];
   if (skipPaths.some(path => req.path.startsWith(path)) || req.method === 'GET') {
     return next();
   }

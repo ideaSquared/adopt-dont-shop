@@ -62,7 +62,10 @@ export const csrfProtection = doubleCsrfProtection;
  */
 export const getCsrfToken = (req: Request, res: Response, next: NextFunction): void => {
   try {
-    const token = generateCsrfToken(req, res);
+    // overwrite: true ensures a fresh token+cookie pair is always issued when
+    // this endpoint is called explicitly, preventing stale tokens from being
+    // re-used if a browser cookie has become out of sync with the cached token.
+    const token = generateCsrfToken(req, res, { overwrite: true });
     res.json({
       csrfToken: token,
     });
@@ -81,7 +84,7 @@ export const csrfErrorHandler = (
   res: Response,
   next: NextFunction
 ): void => {
-  if (err.code === 'EBADCSRFTOKEN' || err.message?.includes('CSRF')) {
+  if (err.code === 'EBADCSRFTOKEN' || err.message?.toLowerCase().includes('csrf')) {
     logger.warn('CSRF token validation failed', {
       method: req.method,
       path: req.path,
