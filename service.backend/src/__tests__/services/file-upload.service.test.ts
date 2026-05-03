@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { UserType } from '../../models/User';
 
 // ──── Mocks (hoisted before imports) ──────────────────────────────────────────
 
@@ -460,16 +461,39 @@ describe('FileUploadService', () => {
   });
 
   describe('deleteFile()', () => {
-    it('removes the physical file and the DB record for a known upload', async () => {
+    const owner = { id: 'user-456', type: UserType.ADOPTER };
+    const admin = { id: 'admin-789', type: UserType.ADMIN };
+    const stranger = { id: 'other-user', type: UserType.ADOPTER };
+
+    it('removes the physical file and the DB record for the file owner', async () => {
       const mockRecord = makeMockRecord({ file_path: 'pets/photo_123.jpg' });
       vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
       vi.mocked(fs.existsSync).mockReturnValue(true);
 
-      const result = await FileUploadService.deleteFile('upload-abc-123', 'user-456');
+      const result = await FileUploadService.deleteFile('upload-abc-123', owner);
 
       expect(result.success).toBe(true);
       expect(vi.mocked(fs.promises.unlink)).toHaveBeenCalled();
       expect(mockRecord.destroy).toHaveBeenCalled();
+    });
+
+    it('allows an admin to delete a file they do not own', async () => {
+      const mockRecord = makeMockRecord();
+      vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+
+      const result = await FileUploadService.deleteFile('upload-abc-123', admin);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('throws 403 when a non-owner non-admin attempts deletion', async () => {
+      const mockRecord = makeMockRecord();
+      vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
+
+      await expect(FileUploadService.deleteFile('upload-abc-123', stranger)).rejects.toThrow(
+        'Not allowed to delete this file'
+      );
     });
 
     it('succeeds gracefully when the physical file is already missing from disk', async () => {
@@ -477,7 +501,7 @@ describe('FileUploadService', () => {
       vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
       vi.mocked(fs.existsSync).mockReturnValue(false);
 
-      const result = await FileUploadService.deleteFile('upload-abc-123', 'user-456');
+      const result = await FileUploadService.deleteFile('upload-abc-123', owner);
 
       expect(result.success).toBe(true);
       expect(vi.mocked(fs.promises.unlink)).not.toHaveBeenCalled();
@@ -487,7 +511,7 @@ describe('FileUploadService', () => {
     it('throws when the uploadId is not found in the database', async () => {
       vi.mocked(FileUpload.findByPk).mockResolvedValue(null);
 
-      await expect(FileUploadService.deleteFile('nonexistent-id', 'user-456')).rejects.toThrow(
+      await expect(FileUploadService.deleteFile('nonexistent-id', owner)).rejects.toThrow(
         'File deletion failed'
       );
     });
@@ -497,7 +521,7 @@ describe('FileUploadService', () => {
       vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
       vi.mocked(fs.existsSync).mockReturnValue(true);
 
-      await FileUploadService.deleteFile('upload-abc-123', 'user-456');
+      await FileUploadService.deleteFile('upload-abc-123', owner);
 
       expect(vi.mocked(AuditLogService.log)).toHaveBeenCalledWith(
         expect.objectContaining({

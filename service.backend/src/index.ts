@@ -380,6 +380,16 @@ const startServer = async () => {
     validateEnvironment();
     printEnvironmentInfo();
 
+    // Log cookie security settings so regressions are visible in startup output
+    const isProduction = process.env.NODE_ENV === 'production';
+    logger.info('Cookie security settings', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      refreshMaxAgeDays: 3,
+      accessMaxAgeMinutes: 15,
+    });
+
     // Initialize message broker for scaling
     await initializeMessageBroker();
     logger.info('Message broker initialized');

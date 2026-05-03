@@ -1,5 +1,6 @@
 import { useNotifications } from '@/contexts/NotificationContext';
 import notificationService, { type Notification } from '@/services/notificationService';
+import { openExternal } from '@/utils/openExternal';
 import React, { useEffect, useRef, useState } from 'react';
 import { MdNotifications } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
@@ -101,7 +102,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
       if (notification.data?.action_url) {
         const actionUrl = notification.data.action_url as string;
         if (actionUrl.startsWith('http')) {
-          window.open(actionUrl, '_blank');
+          openExternal(actionUrl);
         } else {
           navigate(actionUrl);
           setIsOpen(false);

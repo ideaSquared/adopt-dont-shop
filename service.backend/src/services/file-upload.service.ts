@@ -8,6 +8,7 @@ import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import FileUpload from '../models/FileUpload';
+import { UserType } from '../models/User';
 import { fromFile as fileTypeFromFile } from 'file-type';
 import DOMPurify from 'isomorphic-dompurify';
 
@@ -265,17 +266,24 @@ export class FileUploadService {
   }
 
   /**
-   * Delete a file and its database record
+   * Delete a file and its database record.
+   * Callers must provide the acting user so ownership is verified before deletion.
    */
   static async deleteFile(
     uploadId: string,
-    deletedBy: string
+    deletedBy: { id: string; type: UserType }
   ): Promise<{ success: boolean; message: string }> {
     try {
       // Get upload record
       const uploadRecord = await this.getUploadRecord(uploadId);
       if (!uploadRecord) {
         throw new Error('Upload record not found');
+      }
+
+      const isOwner = uploadRecord.uploaded_by === deletedBy.id;
+      const isAdmin = deletedBy.type === UserType.ADMIN || deletedBy.type === UserType.SUPER_ADMIN;
+      if (!isOwner && !isAdmin) {
+        throw Object.assign(new Error('Not allowed to delete this file'), { statusCode: 403 });
       }
 
       // Delete physical file
@@ -292,14 +300,14 @@ export class FileUploadService {
         action: 'FILE_DELETE',
         entity: 'FILE',
         entityId: uploadId,
-        userId: deletedBy,
+        userId: deletedBy.id,
         details: {
           filename: uploadRecord.original_filename,
           reason: 'User requested deletion',
         },
       });
 
-      logger.info('File deleted successfully', { uploadId, deletedBy });
+      logger.info('File deleted successfully', { uploadId, deletedBy: deletedBy.id });
 
       return {
         success: true,

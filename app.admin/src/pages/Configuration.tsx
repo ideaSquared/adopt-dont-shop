@@ -5,6 +5,7 @@ import {
   KNOWN_GATES,
   KNOWN_CONFIGS,
 } from '@adopt-dont-shop/lib.feature-flags';
+import { openExternal } from '../utils/openExternal';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import { FiRefreshCw, FiSettings, FiFlag, FiExternalLink, FiInfo } from 'react-icons/fi';
 import {
@@ -170,7 +171,7 @@ const Configuration: React.FC = () => {
           <Button
             variant='primary'
             size='md'
-            onClick={() => window.open('https://console.statsig.com', '_blank')}
+            onClick={() => openExternal('https://console.statsig.com')}
           >
             <FiExternalLink style={{ marginRight: '0.5rem' }} />
             Open Statsig Console

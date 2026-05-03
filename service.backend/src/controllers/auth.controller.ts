@@ -20,7 +20,7 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict' as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
 };
 
 const ACCESS_TOKEN_COOKIE = 'accessToken';
@@ -119,16 +119,8 @@ export class AuthController {
 
       await AuthService.logout(refreshToken, accessToken);
 
-      res.clearCookie(REFRESH_TOKEN_COOKIE, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-      });
-      res.clearCookie(ACCESS_TOKEN_COOKIE, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-      });
+      res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
+      res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
 
       res.json({ message: 'Logged out successfully' });
     } catch (error) {
