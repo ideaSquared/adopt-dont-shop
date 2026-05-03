@@ -3,7 +3,15 @@ import {
   Permission,
   UserWithPermissions,
 } from '@adopt-dont-shop/lib.permissions';
-import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 
 interface PermissionsContextType {
   permissionsService: PermissionsService;
@@ -42,14 +50,13 @@ export const PermissionsProvider = ({ children, userId }: PermissionsProviderPro
     });
   }, []);
 
-  const loadUserPermissions = async () => {
+  const loadUserPermissions = useCallback(async () => {
     if (!userId) {
       setIsLoading(false);
       return;
     }
 
     try {
-      // Get user permissions
       const permissions = await permissionsService.getUserPermissions(userId);
       const userWithPerms = await permissionsService.getUserWithPermissions(userId);
 
@@ -62,11 +69,11 @@ export const PermissionsProvider = ({ children, userId }: PermissionsProviderPro
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId, permissionsService]);
 
   useEffect(() => {
     loadUserPermissions();
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadUserPermissions]);
 
   const hasPermission = (permission: Permission): boolean => {
     return userPermissions.includes(permission);

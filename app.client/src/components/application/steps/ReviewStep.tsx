@@ -212,7 +212,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
                   Current Pets:
                 </span>
                 {data.petExperience.currentPets.map((pet, index) => (
-                  <div className={styles.reviewItem} key={index}>
+                  <div
+                    className={styles.reviewItem}
+                    key={`current-pet-${pet.type}-${pet.breed}-${index}`}
+                  >
                     <span className={styles.reviewLabel}>
                       {pet.type} - {pet.breed}:
                     </span>
@@ -233,7 +236,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
                   Previous Pets:
                 </span>
                 {data.petExperience.previousPets.map((pet, index) => (
-                  <div className={styles.reviewItem} key={index}>
+                  <div
+                    className={styles.reviewItem}
+                    key={`prev-pet-${pet.type}-${pet.breed}-${index}`}
+                  >
                     <span className={styles.reviewLabel}>
                       {pet.type} - {pet.breed}:
                     </span>
@@ -301,7 +307,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
                 </span>
                 {data.references.personal.map((ref, index) => (
                   <div
-                    key={index}
+                    key={`ref-${ref.name}-${ref.relationship}-${index}`}
                     style={{
                       marginBottom: '1rem',
                       paddingBottom: '1rem',

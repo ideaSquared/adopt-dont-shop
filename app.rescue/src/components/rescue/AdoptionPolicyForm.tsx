@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Button,
   Card,
@@ -26,6 +26,9 @@ const DEFAULT_POLICY: AdoptionPolicy = {
   policies: [],
 };
 
+let _idCounter = 0;
+const nextId = () => `list-item-${++_idCounter}`;
+
 const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
   policy,
   onSave,
@@ -36,16 +39,16 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const requirementIds = useRef<string[]>([]);
+  const policyIds = useRef<string[]>([]);
 
   useEffect(() => {
-    console.log('AdoptionPolicyForm received policy:', policy);
-    if (policy) {
-      console.log('Setting form data to:', policy);
-      setFormData(policy);
-    } else {
-      console.log('No policy provided, using default');
-      setFormData(DEFAULT_POLICY);
-    }
+    const source = policy ?? DEFAULT_POLICY;
+    requirementIds.current = source.requirements.map(
+      (_, i) => requirementIds.current[i] ?? nextId()
+    );
+    policyIds.current = source.policies.map((_, i) => policyIds.current[i] ?? nextId());
+    setFormData(source);
   }, [policy]);
 
   const handleChange = (field: keyof AdoptionPolicy, value: unknown) => {
@@ -69,6 +72,8 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
 
   const addListItem = (field: 'requirements' | 'policies') => {
     setHasChanges(true);
+    const ids = field === 'requirements' ? requirementIds : policyIds;
+    ids.current = [...ids.current, nextId()];
     setFormData(prev => ({
       ...prev,
       [field]: [...prev[field], ''],
@@ -85,6 +90,8 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
 
   const removeListItem = (field: 'requirements' | 'policies', index: number) => {
     setHasChanges(true);
+    const ids = field === 'requirements' ? requirementIds : policyIds;
+    ids.current = ids.current.filter((_, i) => i !== index);
     setFormData(prev => ({
       ...prev,
       [field]: prev[field].filter((_, i) => i !== index),
@@ -217,7 +224,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
           <h3 className={styles.sectionTitle}>Adoption Requirements</h3>
           <div className={styles.listInput}>
             {formData.requirements.map((req, index) => (
-              <div key={index} className={styles.listItem}>
+              <div key={requirementIds.current[index]} className={styles.listItem}>
                 <input
                   className={styles.listItemInput}
                   type="text"
@@ -248,7 +255,7 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
           <h3 className={styles.sectionTitle}>Policies</h3>
           <div className={styles.listInput}>
             {formData.policies.map((p, index) => (
-              <div key={index} className={styles.listItem}>
+              <div key={policyIds.current[index]} className={styles.listItem}>
                 <input
                   className={styles.listItemInput}
                   type="text"

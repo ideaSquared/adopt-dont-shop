@@ -432,9 +432,9 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                     </td>
                     <td className={styles.tableCell} onClick={e => e.stopPropagation()}>
                       <div className={styles.actionsContainer}>
-                        {getActionButtons(application).map((action, index) => (
+                        {getActionButtons(application).map(action => (
                           <button
-                            key={index}
+                            key={action.label}
                             className={styles.actionButton({ variant: action.variant })}
                             onClick={e => {
                               e.stopPropagation();

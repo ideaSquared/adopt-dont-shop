@@ -29,6 +29,7 @@ module.exports = {
     'react/prop-types': 'off', // Using TypeScript for prop validation
     'react/no-unescaped-entities': 'warn',
     'react-hooks/exhaustive-deps': 'warn',
+    'react/no-array-index-key': 'error',
 
     // React Refresh (for Vite HMR)
     'react-refresh/only-export-components': [
