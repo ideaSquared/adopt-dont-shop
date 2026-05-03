@@ -1,6 +1,6 @@
 import { api } from '@/services';
 
-export interface NotificationPreferences {
+export type NotificationPreferences = {
   email: boolean;
   push: boolean;
   sms: boolean;
@@ -14,7 +14,7 @@ export interface NotificationPreferences {
   timezone?: string;
 }
 
-export interface Notification {
+export type Notification = {
   notification_id: string;
   title: string;
   message: string;
@@ -27,7 +27,7 @@ export interface Notification {
   related_entity_id?: string;
 }
 
-export interface NotificationResponse {
+export type NotificationResponse = {
   notifications: Notification[];
   pagination: {
     page: number;
@@ -38,7 +38,7 @@ export interface NotificationResponse {
 }
 
 // API response format from backend - flexible to handle different formats
-interface ApiNotificationResponse {
+type ApiNotificationResponse = {
   success?: boolean;
   data?: Notification[];
   notifications?: Notification[]; // Alternative format
@@ -50,7 +50,7 @@ interface ApiNotificationResponse {
   };
 }
 
-export interface NotificationFilters {
+export type NotificationFilters = {
   page?: number;
   limit?: number;
   status?: 'unread' | 'read';

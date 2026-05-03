@@ -37,10 +37,6 @@ export class DashboardService {
    */
   async getRescueDashboardData(): Promise<RescueDashboardData> {
     try {
-      if (isDevelopment()) {
-        console.log('🐋 Docker Environment - API Base URL:', getApiBaseUrl());
-      }
-
       const response = await apiService.get<{
         success: boolean;
         data: any;
@@ -48,17 +44,6 @@ export class DashboardService {
       }>('/api/v1/dashboard/rescue');
 
       const backendData = response.data;
-
-      if (isDevelopment()) {
-        console.log('📊 Dashboard Backend Data:', backendData);
-        console.log('📊 Data fields received:', Object.keys(backendData));
-        console.log('📊 Is this real data?', {
-          totalAnimals: backendData.totalAnimals,
-          hasRealStats: backendData.totalAnimals !== 12, // 12 was the old mock value
-          hasStaffCount: !!backendData.staffCount,
-          hasAverageTime: !!backendData.averageTimeToAdoption,
-        });
-      }
 
       // Transform backend data to match our frontend types
       const totalApplications =

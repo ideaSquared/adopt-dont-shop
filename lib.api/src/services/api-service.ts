@@ -126,7 +126,7 @@ export class ApiService {
       if (process.env.NODE_ENV === 'production') {
         return 'https://api.adoptdontshop.com';
       }
-      return 'http://localhost:5000';
+      return process.env.API_BASE_URL ?? '';
     }
 
     return '';

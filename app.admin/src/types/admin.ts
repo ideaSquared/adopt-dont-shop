@@ -3,7 +3,7 @@
  */
 
 // User Management Types
-export interface AdminUser {
+export type AdminUser = {
   userId: string;
   email: string;
   firstName: string;
@@ -18,7 +18,7 @@ export interface AdminUser {
   rescueName?: string;
 }
 
-export interface UserFilters {
+export type UserFilters = {
   search?: string;
   userType?: string;
   status?: string;
@@ -27,7 +27,7 @@ export interface UserFilters {
   dateTo?: string;
 }
 
-export interface UserUpdatePayload {
+export type UserUpdatePayload = {
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -37,7 +37,7 @@ export interface UserUpdatePayload {
 }
 
 // Rescue Management Types
-export interface AdminRescue {
+export type AdminRescue = {
   rescueId: string;
   name: string;
   email: string;
@@ -58,7 +58,7 @@ export interface AdminRescue {
   rejectionReason?: string;
 }
 
-export interface RescueFilters {
+export type RescueFilters = {
   search?: string;
   verificationStatus?: string;
   state?: string;
@@ -66,14 +66,14 @@ export interface RescueFilters {
   dateTo?: string;
 }
 
-export interface RescueVerificationPayload {
+export type RescueVerificationPayload = {
   status: 'verified' | 'rejected';
   rejectionReason?: string;
   notes?: string;
 }
 
 // Content Moderation Types
-export interface ModerationItem {
+export type ModerationItem = {
   reportId: string;
   contentType: 'listing' | 'message' | 'profile' | 'photo';
   contentId: string;
@@ -91,7 +91,7 @@ export interface ModerationItem {
   targetUserName?: string;
 }
 
-export interface ModerationFilters {
+export type ModerationFilters = {
   status?: string;
   contentType?: string;
   priority?: string;
@@ -100,7 +100,7 @@ export interface ModerationFilters {
   dateTo?: string;
 }
 
-export interface ModerationAction {
+export type ModerationAction = {
   action: 'dismiss' | 'warn' | 'suspend_content' | 'suspend_user' | 'ban_user';
   resolution: string;
   notifyUser: boolean;
@@ -108,7 +108,7 @@ export interface ModerationAction {
 }
 
 // Support Ticket Types
-export interface SupportTicket {
+export type SupportTicket = {
   ticketId: string;
   userId: string;
   userName: string;
@@ -125,7 +125,7 @@ export interface SupportTicket {
   messagesCount: number;
 }
 
-export interface TicketFilters {
+export type TicketFilters = {
   status?: string;
   category?: string;
   priority?: string;
@@ -134,7 +134,7 @@ export interface TicketFilters {
   dateTo?: string;
 }
 
-export interface TicketMessage {
+export type TicketMessage = {
   messageId: string;
   ticketId: string;
   authorId: string;
@@ -146,7 +146,7 @@ export interface TicketMessage {
 }
 
 // Message Thread Types (for Messages page)
-export interface MessageThread {
+export type MessageThread = {
   threadId: string;
   subject: string;
   participants: {
@@ -166,7 +166,7 @@ export interface MessageThread {
   createdAt: string;
 }
 
-export interface TicketUpdatePayload {
+export type TicketUpdatePayload = {
   status?: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   assignedTo?: string;
@@ -174,7 +174,7 @@ export interface TicketUpdatePayload {
 }
 
 // Analytics Types
-export interface DashboardMetrics {
+export type DashboardMetrics = {
   totalUsers: number;
   activeUsers: number;
   newUsersToday: number;
@@ -189,7 +189,7 @@ export interface DashboardMetrics {
   openTickets: number;
 }
 
-export interface AnalyticsData {
+export type AnalyticsData = {
   userRegistrations: TimeSeriesData[];
   adoptions: TimeSeriesData[];
   topRescues: RescueStats[];
@@ -197,13 +197,13 @@ export interface AnalyticsData {
   systemHealth: HealthMetrics;
 }
 
-export interface TimeSeriesData {
+export type TimeSeriesData = {
   date: string;
   value: number;
   label?: string;
 }
 
-export interface RescueStats {
+export type RescueStats = {
   rescueId: string;
   rescueName: string;
   totalListings: number;
@@ -211,14 +211,14 @@ export interface RescueStats {
   averageAdoptionTime: number;
 }
 
-export interface ActivityStats {
+export type ActivityStats = {
   dailyActiveUsers: number;
   weeklyActiveUsers: number;
   monthlyActiveUsers: number;
   averageSessionDuration: number;
 }
 
-export interface HealthMetrics {
+export type HealthMetrics = {
   uptime: number;
   apiResponseTime: number;
   errorRate: number;
@@ -226,7 +226,7 @@ export interface HealthMetrics {
 }
 
 // Audit Log Types
-export interface AuditLog {
+export type AuditLog = {
   logId: string;
   timestamp: string;
   userId: string;
@@ -242,7 +242,7 @@ export interface AuditLog {
   errorMessage?: string;
 }
 
-export interface AuditFilters {
+export type AuditFilters = {
   userId?: string;
   action?: string;
   resource?: string;
@@ -252,7 +252,7 @@ export interface AuditFilters {
 }
 
 // System Configuration Types
-export interface FeatureFlag {
+export type FeatureFlag = {
   flagId: string;
   name: string;
   key: string;
@@ -264,7 +264,7 @@ export interface FeatureFlag {
   updatedAt: string;
 }
 
-export interface SystemSetting {
+export type SystemSetting = {
   settingId: string;
   category: string;
   key: string;
@@ -276,7 +276,7 @@ export interface SystemSetting {
 }
 
 // Pagination and Common Types
-export interface PaginationParams {
+export type PaginationParams = {
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -294,7 +294,7 @@ export interface PaginatedResult<T> {
 }
 
 // Action Response Types
-export interface ActionResponse {
+export type ActionResponse = {
   success: boolean;
   message: string;
   data?: any;

@@ -33,7 +33,6 @@ export class PetsService {
   constructor(apiService?: ApiService, config: PetsServiceConfig = {}) {
     this.apiService = apiService || new ApiService();
     this.config = {
-      apiUrl: 'http://localhost:5000',
       debug: false,
       ...config,
     };
