@@ -42,18 +42,19 @@ interface ApplicationReferenceAttributes {
   updated_at?: Date;
 }
 
-interface ApplicationReferenceCreationAttributes extends Optional<
-  ApplicationReferenceAttributes,
-  | 'reference_id'
-  | 'email'
-  | 'status'
-  | 'contacted_at'
-  | 'contacted_by'
-  | 'notes'
-  | 'order_index'
-  | 'created_at'
-  | 'updated_at'
-> {}
+interface ApplicationReferenceCreationAttributes
+  extends Optional<
+    ApplicationReferenceAttributes,
+    | 'reference_id'
+    | 'email'
+    | 'status'
+    | 'contacted_at'
+    | 'contacted_by'
+    | 'notes'
+    | 'order_index'
+    | 'created_at'
+    | 'updated_at'
+  > {}
 
 export class ApplicationReference
   extends Model<ApplicationReferenceAttributes, ApplicationReferenceCreationAttributes>

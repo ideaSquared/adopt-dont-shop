@@ -8,7 +8,7 @@ export interface FilterOption {
   type: 'select' | 'multiselect' | 'text' | 'date' | 'daterange';
   options?: { value: string; label: string }[];
   placeholder?: string;
-};
+}
 
 interface FilterPanelProps {
   filters: FilterOption[];
@@ -16,7 +16,7 @@ interface FilterPanelProps {
   onChange: (filterId: string, value: unknown) => void;
   onClear: () => void;
   onApply?: () => void;
-};
+}
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
   filters,

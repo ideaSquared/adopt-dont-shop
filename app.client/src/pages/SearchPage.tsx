@@ -366,16 +366,16 @@ export const SearchPage: React.FC = () => {
 
   const hasActiveFilters = Boolean(
     filters.search ||
-    filters.type ||
-    filters.breed ||
-    filters.size ||
-    filters.gender ||
-    filters.ageGroup ||
-    filters.status ||
-    filters.location ||
-    filters.maxDistance ||
-    geolocation.hasLocation ||
-    searchQuery
+      filters.type ||
+      filters.breed ||
+      filters.size ||
+      filters.gender ||
+      filters.ageGroup ||
+      filters.status ||
+      filters.location ||
+      filters.maxDistance ||
+      geolocation.hasLocation ||
+      searchQuery
   );
 
   return (

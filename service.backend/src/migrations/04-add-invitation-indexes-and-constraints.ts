@@ -52,13 +52,17 @@ export default {
   },
 
   down: async (queryInterface: QueryInterface) => {
-    await queryInterface.removeConstraint('invitations', 'invitations_token_unique').catch(() => {});
+    await queryInterface
+      .removeConstraint('invitations', 'invitations_token_unique')
+      .catch(() => {});
     await queryInterface.removeIndex('invitations', 'invitations_rescue_id_idx').catch(() => {});
     await queryInterface.removeIndex('invitations', 'invitations_user_id_idx').catch(() => {});
     await queryInterface.removeIndex('invitations', 'invitations_email_idx').catch(() => {});
 
     // Restore FKs without explicit onDelete (defaults to NO ACTION)
-    await queryInterface.removeConstraint('invitations', 'invitations_rescue_id_fkey').catch(() => {});
+    await queryInterface
+      .removeConstraint('invitations', 'invitations_rescue_id_fkey')
+      .catch(() => {});
     await queryInterface.addConstraint('invitations', {
       fields: ['rescue_id'],
       type: 'foreign key',
@@ -68,7 +72,9 @@ export default {
       onUpdate: 'CASCADE',
     });
 
-    await queryInterface.removeConstraint('invitations', 'invitations_user_id_fkey').catch(() => {});
+    await queryInterface
+      .removeConstraint('invitations', 'invitations_user_id_fkey')
+      .catch(() => {});
     await queryInterface.addConstraint('invitations', {
       fields: ['user_id'],
       type: 'foreign key',

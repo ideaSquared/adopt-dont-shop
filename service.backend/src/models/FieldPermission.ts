@@ -33,10 +33,8 @@ interface FieldPermissionAttributes {
   updated_at?: Date;
 }
 
-interface FieldPermissionCreationAttributes extends Optional<
-  FieldPermissionAttributes,
-  'field_permission_id'
-> {}
+interface FieldPermissionCreationAttributes
+  extends Optional<FieldPermissionAttributes, 'field_permission_id'> {}
 
 class FieldPermission
   extends Model<FieldPermissionAttributes, FieldPermissionCreationAttributes>

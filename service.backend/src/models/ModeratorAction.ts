@@ -49,10 +49,8 @@ interface ModeratorActionAttributes {
   updatedAt: Date;
 }
 
-interface ModeratorActionCreationAttributes extends Optional<
-  ModeratorActionAttributes,
-  'actionId' | 'createdAt' | 'updatedAt'
-> {}
+interface ModeratorActionCreationAttributes
+  extends Optional<ModeratorActionAttributes, 'actionId' | 'createdAt' | 'updatedAt'> {}
 
 class ModeratorAction
   extends Model<ModeratorActionAttributes, ModeratorActionCreationAttributes>

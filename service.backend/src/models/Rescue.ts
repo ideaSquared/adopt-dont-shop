@@ -38,10 +38,11 @@ interface RescueAttributes {
   updatedAt: Date;
 }
 
-export interface RescueCreationAttributes extends Optional<
-  RescueAttributes,
-  'rescueId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'createdAt' | 'updatedAt'
-> {}
+export interface RescueCreationAttributes
+  extends Optional<
+    RescueAttributes,
+    'rescueId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'createdAt' | 'updatedAt'
+  > {}
 
 class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implements RescueAttributes {
   public rescueId!: string;

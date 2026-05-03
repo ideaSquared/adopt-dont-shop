@@ -12,7 +12,7 @@ export interface NotificationPreferences {
   quietHoursStart?: string;
   quietHoursEnd?: string;
   timezone?: string;
-};
+}
 
 export interface Notification {
   notification_id: string;
@@ -25,7 +25,7 @@ export interface Notification {
   data?: Record<string, unknown>;
   related_entity_type?: string;
   related_entity_id?: string;
-};
+}
 
 export interface NotificationResponse {
   notifications: Notification[];
@@ -35,7 +35,7 @@ export interface NotificationResponse {
     total: number;
     pages: number;
   };
-};
+}
 
 // API response format from backend - flexible to handle different formats
 interface ApiNotificationResponse {
@@ -48,7 +48,7 @@ interface ApiNotificationResponse {
     total: number;
     pages: number;
   };
-};
+}
 
 export interface NotificationFilters {
   page?: number;
@@ -57,7 +57,7 @@ export interface NotificationFilters {
   type?: string;
   sortBy?: 'created_at' | 'read_at';
   sortOrder?: 'ASC' | 'DESC';
-};
+}
 
 class NotificationService {
   private static instance: NotificationService;

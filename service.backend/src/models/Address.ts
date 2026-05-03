@@ -50,10 +50,11 @@ interface AddressAttributes {
   updated_at?: Date;
 }
 
-interface AddressCreationAttributes extends Optional<
-  AddressAttributes,
-  'address_id' | 'label' | 'line_2' | 'region' | 'is_primary' | 'created_at' | 'updated_at'
-> {}
+interface AddressCreationAttributes
+  extends Optional<
+    AddressAttributes,
+    'address_id' | 'label' | 'line_2' | 'region' | 'is_primary' | 'created_at' | 'updated_at'
+  > {}
 
 export class Address
   extends Model<AddressAttributes, AddressCreationAttributes>

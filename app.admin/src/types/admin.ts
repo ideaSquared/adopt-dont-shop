@@ -16,7 +16,7 @@ export interface AdminUser {
   phoneNumber?: string;
   rescueId?: string;
   rescueName?: string;
-};
+}
 
 export interface UserFilters {
   search?: string;
@@ -25,7 +25,7 @@ export interface UserFilters {
   rescueId?: string;
   dateFrom?: string;
   dateTo?: string;
-};
+}
 
 export interface UserUpdatePayload {
   firstName?: string;
@@ -34,7 +34,7 @@ export interface UserUpdatePayload {
   phoneNumber?: string;
   userType?: 'admin' | 'moderator' | 'rescue_staff' | 'adopter';
   status?: 'active' | 'suspended' | 'pending';
-};
+}
 
 // Rescue Management Types
 export interface AdminRescue {
@@ -56,7 +56,7 @@ export interface AdminRescue {
   verifiedAt?: string;
   rejectedAt?: string;
   rejectionReason?: string;
-};
+}
 
 export interface RescueFilters {
   search?: string;
@@ -64,13 +64,13 @@ export interface RescueFilters {
   state?: string;
   dateFrom?: string;
   dateTo?: string;
-};
+}
 
 export interface RescueVerificationPayload {
   status: 'verified' | 'rejected';
   rejectionReason?: string;
   notes?: string;
-};
+}
 
 // Content Moderation Types
 export interface ModerationItem {
@@ -89,7 +89,7 @@ export interface ModerationItem {
   resolution?: string;
   targetUserId?: string;
   targetUserName?: string;
-};
+}
 
 export interface ModerationFilters {
   status?: string;
@@ -98,14 +98,14 @@ export interface ModerationFilters {
   assignedTo?: string;
   dateFrom?: string;
   dateTo?: string;
-};
+}
 
 export interface ModerationAction {
   action: 'dismiss' | 'warn' | 'suspend_content' | 'suspend_user' | 'ban_user';
   resolution: string;
   notifyUser: boolean;
   suspensionDays?: number;
-};
+}
 
 // Support Ticket Types
 export interface SupportTicket {
@@ -123,7 +123,7 @@ export interface SupportTicket {
   updatedAt: string;
   resolvedAt?: string;
   messagesCount: number;
-};
+}
 
 export interface TicketFilters {
   status?: string;
@@ -132,7 +132,7 @@ export interface TicketFilters {
   assignedTo?: string;
   dateFrom?: string;
   dateTo?: string;
-};
+}
 
 export interface TicketMessage {
   messageId: string;
@@ -143,7 +143,7 @@ export interface TicketMessage {
   message: string;
   createdAt: string;
   attachments?: string[];
-};
+}
 
 // Message Thread Types (for Messages page)
 export interface MessageThread {
@@ -164,14 +164,14 @@ export interface MessageThread {
   flagReason?: string;
   flagSeverity?: 'low' | 'medium' | 'high';
   createdAt: string;
-};
+}
 
 export interface TicketUpdatePayload {
   status?: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   assignedTo?: string;
   category?: 'technical' | 'account' | 'billing' | 'abuse' | 'other';
-};
+}
 
 // Analytics Types
 export interface DashboardMetrics {
@@ -187,7 +187,7 @@ export interface DashboardMetrics {
   adoptedThisMonth: number;
   pendingReports: number;
   openTickets: number;
-};
+}
 
 export interface AnalyticsData {
   userRegistrations: TimeSeriesData[];
@@ -195,13 +195,13 @@ export interface AnalyticsData {
   topRescues: RescueStats[];
   userActivity: ActivityStats;
   systemHealth: HealthMetrics;
-};
+}
 
 export interface TimeSeriesData {
   date: string;
   value: number;
   label?: string;
-};
+}
 
 export interface RescueStats {
   rescueId: string;
@@ -209,21 +209,21 @@ export interface RescueStats {
   totalListings: number;
   successfulAdoptions: number;
   averageAdoptionTime: number;
-};
+}
 
 export interface ActivityStats {
   dailyActiveUsers: number;
   weeklyActiveUsers: number;
   monthlyActiveUsers: number;
   averageSessionDuration: number;
-};
+}
 
 export interface HealthMetrics {
   uptime: number;
   apiResponseTime: number;
   errorRate: number;
   databaseHealth: 'healthy' | 'degraded' | 'down';
-};
+}
 
 // Audit Log Types
 export interface AuditLog {
@@ -240,7 +240,7 @@ export interface AuditLog {
   userAgent?: string;
   status: 'success' | 'failure';
   errorMessage?: string;
-};
+}
 
 export interface AuditFilters {
   userId?: string;
@@ -249,7 +249,7 @@ export interface AuditFilters {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
-};
+}
 
 // System Configuration Types
 export interface FeatureFlag {
@@ -262,7 +262,7 @@ export interface FeatureFlag {
   targetUserTypes?: string[];
   createdAt: string;
   updatedAt: string;
-};
+}
 
 export interface SystemSetting {
   settingId: string;
@@ -273,7 +273,7 @@ export interface SystemSetting {
   dataType: 'string' | 'number' | 'boolean' | 'json';
   updatedAt: string;
   updatedBy: string;
-};
+}
 
 // Pagination and Common Types
 export interface PaginationParams {
@@ -281,7 +281,7 @@ export interface PaginationParams {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
-};
+}
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -298,4 +298,4 @@ export interface ActionResponse {
   success: boolean;
   message: string;
   data?: any;
-};
+}

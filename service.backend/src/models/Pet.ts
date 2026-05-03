@@ -174,21 +174,22 @@ export interface PetAttributes {
   deletedAt?: Date | null;
 }
 
-export interface PetCreationAttributes extends Optional<
-  PetAttributes,
-  | 'petId'
-  | 'archived'
-  | 'featured'
-  | 'priorityListing'
-  | 'specialNeeds'
-  | 'houseTrained'
-  | 'viewCount'
-  | 'favoriteCount'
-  | 'applicationCount'
-  | 'createdAt'
-  | 'updatedAt'
-  | 'deletedAt'
-> {}
+export interface PetCreationAttributes
+  extends Optional<
+    PetAttributes,
+    | 'petId'
+    | 'archived'
+    | 'featured'
+    | 'priorityListing'
+    | 'specialNeeds'
+    | 'houseTrained'
+    | 'viewCount'
+    | 'favoriteCount'
+    | 'applicationCount'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'deletedAt'
+  > {}
 
 class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttributes {
   public petId!: string;

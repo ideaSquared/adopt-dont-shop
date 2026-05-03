@@ -224,13 +224,14 @@ export class HealthCheckService {
   }
 
   static async getFullHealthCheck(): Promise<HealthCheckResult> {
-    const [databaseResult, emailResult, storageResult, fileSystemResult] =
-      await Promise.allSettled([
+    const [databaseResult, emailResult, storageResult, fileSystemResult] = await Promise.allSettled(
+      [
         this.checkDatabaseHealth(),
         this.checkEmailHealth(),
         this.checkStorageHealth(),
         this.checkFileSystemHealth(),
-      ]);
+      ]
+    );
 
     const toServiceHealth = (
       result: PromiseSettledResult<ServiceHealth>,

@@ -64,10 +64,8 @@ interface EmailPreferenceAttributes {
   updatedAt: Date;
 }
 
-interface EmailPreferenceCreationAttributes extends Optional<
-  EmailPreferenceAttributes,
-  'preferenceId' | 'createdAt' | 'updatedAt'
-> {
+interface EmailPreferenceCreationAttributes
+  extends Optional<EmailPreferenceAttributes, 'preferenceId' | 'createdAt' | 'updatedAt'> {
   filters?: JsonObject;
   metadata?: JsonObject;
 }

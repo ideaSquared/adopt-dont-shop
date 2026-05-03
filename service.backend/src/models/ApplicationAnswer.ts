@@ -33,10 +33,11 @@ interface ApplicationAnswerAttributes {
   updated_at?: Date;
 }
 
-interface ApplicationAnswerCreationAttributes extends Optional<
-  ApplicationAnswerAttributes,
-  'answer_id' | 'answered_at' | 'created_at' | 'updated_at'
-> {}
+interface ApplicationAnswerCreationAttributes
+  extends Optional<
+    ApplicationAnswerAttributes,
+    'answer_id' | 'answered_at' | 'created_at' | 'updated_at'
+  > {}
 
 export class ApplicationAnswer
   extends Model<ApplicationAnswerAttributes, ApplicationAnswerCreationAttributes>

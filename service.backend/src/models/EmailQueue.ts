@@ -94,10 +94,8 @@ interface EmailQueueAttributes {
   updatedAt: Date;
 }
 
-interface EmailQueueCreationAttributes extends Optional<
-  EmailQueueAttributes,
-  'emailId' | 'createdAt' | 'updatedAt'
-> {}
+interface EmailQueueCreationAttributes
+  extends Optional<EmailQueueAttributes, 'emailId' | 'createdAt' | 'updatedAt'> {}
 
 class EmailQueue
   extends Model<EmailQueueAttributes, EmailQueueCreationAttributes>

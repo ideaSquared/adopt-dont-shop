@@ -10,7 +10,7 @@ interface AuthenticatedRequest extends Request {
     role: string;
     rescueId?: string;
   };
-};
+}
 
 export class AdminController {
   /**

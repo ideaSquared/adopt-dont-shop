@@ -44,19 +44,20 @@ interface MessageAttributes {
   Sender?: { firstName?: string; lastName?: string };
 }
 
-interface MessageCreationAttributes extends Optional<
-  MessageAttributes,
-  | 'message_id'
-  | 'created_at'
-  | 'updated_at'
-  | 'search_vector'
-  | 'Chat'
-  | 'is_flagged'
-  | 'flag_reason'
-  | 'flag_severity'
-  | 'moderation_status'
-  | 'flagged_at'
-> {}
+interface MessageCreationAttributes
+  extends Optional<
+    MessageAttributes,
+    | 'message_id'
+    | 'created_at'
+    | 'updated_at'
+    | 'search_vector'
+    | 'Chat'
+    | 'is_flagged'
+    | 'flag_reason'
+    | 'flag_severity'
+    | 'moderation_status'
+    | 'flagged_at'
+  > {}
 
 export class Message
   extends Model<MessageAttributes, MessageCreationAttributes>

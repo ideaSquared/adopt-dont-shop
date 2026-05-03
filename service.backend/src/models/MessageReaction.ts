@@ -20,10 +20,8 @@ interface MessageReactionAttributes {
   updated_at?: Date;
 }
 
-interface MessageReactionCreationAttributes extends Optional<
-  MessageReactionAttributes,
-  'reaction_id' | 'created_at' | 'updated_at'
-> {}
+interface MessageReactionCreationAttributes
+  extends Optional<MessageReactionAttributes, 'reaction_id' | 'created_at' | 'updated_at'> {}
 
 class MessageReaction
   extends Model<MessageReactionAttributes, MessageReactionCreationAttributes>

@@ -26,10 +26,8 @@ interface IdempotencyKeyAttributes {
   updated_at?: Date;
 }
 
-interface IdempotencyKeyCreationAttributes extends Optional<
-  IdempotencyKeyAttributes,
-  'created_at' | 'updated_at'
-> {}
+interface IdempotencyKeyCreationAttributes
+  extends Optional<IdempotencyKeyAttributes, 'created_at' | 'updated_at'> {}
 
 class IdempotencyKey
   extends Model<IdempotencyKeyAttributes, IdempotencyKeyCreationAttributes>
