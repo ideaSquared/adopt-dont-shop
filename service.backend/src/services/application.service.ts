@@ -1457,7 +1457,8 @@ export class ApplicationService {
         ],
         raw: true,
       })) as { avg: string | null; min: string | null; max: string | null; count: string } | null;
-      const averageScore = stats?.avg != null ? parseFloat(stats.avg) : 0;
+      const averageScore =
+        stats?.avg !== null && stats?.avg !== undefined ? parseFloat(stats.avg) : 0;
 
       // Get pending applications
       const pendingApplications = await Application.count({
