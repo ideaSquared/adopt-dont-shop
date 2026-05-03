@@ -67,6 +67,7 @@ export type PermissionResource =
   | 'pets'
   | 'applications'
   | 'rescues'
+  | 'staff'
   | 'chats'
   | 'messages'
   | 'ratings'
