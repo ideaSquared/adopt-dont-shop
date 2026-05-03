@@ -86,7 +86,7 @@ FieldPermission.init(
     tableName: 'field_permissions',
     timestamps: true,
     underscored: true,
-    paranoid: false,
+    paranoid: true,
     indexes: [
       {
         unique: true,
