@@ -23,7 +23,7 @@ const AUTH_ENDPOINTS = {
   CHANGE_PASSWORD: '/api/v1/auth/change-password',
   FORGOT_PASSWORD: '/api/v1/auth/forgot-password',
   RESET_PASSWORD: '/api/v1/auth/reset-password',
-  VERIFY_EMAIL: (token: string) => `/api/v1/auth/verify-email/${token}`,
+  VERIFY_EMAIL: '/api/v1/auth/verify-email',
   RESEND_VERIFICATION: '/api/v1/auth/resend-verification',
   TWO_FACTOR_SETUP: '/api/v1/auth/2fa/setup',
   TWO_FACTOR_ENABLE: '/api/v1/auth/2fa/enable',
@@ -172,7 +172,7 @@ export class AuthService {
    * Verify email with token
    */
   async verifyEmail(token: string): Promise<void> {
-    await apiService.get(AUTH_ENDPOINTS.VERIFY_EMAIL(token));
+    await apiService.post(AUTH_ENDPOINTS.VERIFY_EMAIL, { token });
   }
 
   /**

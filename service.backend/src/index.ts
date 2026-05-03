@@ -101,7 +101,14 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'"], // Required for styled-components runtime style injection; remove when migrating to CSS modules
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'", 'ws:', 'wss:'], // Allow WebSocket connections
+        connectSrc: [
+          "'self'",
+          // Explicit WebSocket origins — avoids the `ws:` / `wss:` wildcards that
+          // allow connections to any host (BREACH mitigation).
+          process.env.API_URL ?? 'http://localhost:5000',
+          (process.env.API_URL ?? 'ws://localhost:5000').replace(/^https?/, 'ws'),
+          (process.env.API_URL ?? 'wss://localhost:5000').replace(/^https?/, 'wss'),
+        ],
         fontSrc: ["'self'", 'https:', 'data:'],
         objectSrc: ["'none'"], // Disallow plugins
         mediaSrc: ["'self'"],

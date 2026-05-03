@@ -239,7 +239,8 @@ export class AuthService {
 
           const isValidTwoFactor = await this.verifyTwoFactorToken(
             user,
-            credentials.twoFactorToken
+            credentials.twoFactorToken,
+            transaction
           );
           if (!isValidTwoFactor) {
             await transaction.rollback();
@@ -826,7 +827,11 @@ Need help? Contact us at support@adoptdontshop.com
     }
   }
 
-  private static async verifyTwoFactorToken(user: User, token: string): Promise<boolean> {
+  private static async verifyTwoFactorToken(
+    user: User,
+    token: string,
+    transaction?: Transaction
+  ): Promise<boolean> {
     if (!user.twoFactorSecret) {
       throw new Error('Two-factor authentication is not set up for this user');
     }
@@ -847,10 +852,14 @@ Need help? Contact us at support@adoptdontshop.com
     }
 
     // Fall back to backup code verification
-    return this.verifyBackupCode(user, token);
+    return this.verifyBackupCode(user, token, transaction);
   }
 
-  private static async verifyBackupCode(user: User, code: string): Promise<boolean> {
+  private static async verifyBackupCode(
+    user: User,
+    code: string,
+    transaction?: Transaction
+  ): Promise<boolean> {
     if (!user.backupCodes || user.backupCodes.length === 0) {
       return false;
     }
@@ -874,7 +883,7 @@ Need help? Contact us at support@adoptdontshop.com
       ...user.backupCodes.slice(matchIndex + 1),
     ];
     user.backupCodes = updatedCodes;
-    await user.save();
+    await user.save({ transaction });
 
     loggerHelpers.logSecurity('Backup code used for 2FA', {
       userId: user.userId,

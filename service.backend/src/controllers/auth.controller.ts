@@ -72,7 +72,10 @@ export class AuthController {
       logger.error('Registration failed:', error);
 
       if (errorMessage.includes('already exists')) {
-        res.status(409).json({ error: errorMessage });
+        // Return the same 201 response to prevent email enumeration
+        res.status(201).json({
+          message: 'Registration successful. Please check your email for verification.',
+        });
         return;
       }
 
@@ -195,7 +198,11 @@ export class AuthController {
    */
   async verifyEmail(req: Request, res: Response): Promise<void> {
     try {
-      const { token } = req.params;
+      const { token } = req.body as { token?: string };
+      if (!token) {
+        res.status(400).json({ error: 'Verification token is required' });
+        return;
+      }
       const authService = new AuthService();
       const result = await authService.verifyEmail(token);
       res.json(result);
