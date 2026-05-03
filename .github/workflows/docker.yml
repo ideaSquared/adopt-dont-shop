@@ -40,6 +40,9 @@ jobs:
     name: Build Backend Image
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - uses: actions/checkout@v4
@@ -50,13 +53,6 @@ jobs:
             image=moby/buildkit:latest
             network=host
 
-      - uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-backend-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-backend-
-
       - name: Build development image
         uses: docker/build-push-action@v5
         with:
@@ -65,26 +61,38 @@ jobs:
           target: development
           push: false
           tags: paragonjenko/adoptdontshop:service-backend-dev-${{ github.sha }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: BUILDKIT_INLINE_CACHE=1
 
       - name: Build production image
+        id: build-prod
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./service.backend/Dockerfile
           target: production
           push: false
+          load: true
           tags: paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: BUILDKIT_INLINE_CACHE=1
 
-      - name: Rotate cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+      - name: Run Trivy vulnerability scanner
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          image-ref: paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security tab
+        if: github.event_name == 'pull_request' && always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
 
   # ============================================================================
   # BUILD FRONTEND APPS — dev + production images for each app
@@ -108,13 +116,6 @@ jobs:
             image=moby/buildkit:latest
             network=host
 
-      - uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache-${{ matrix.app }}
-          key: ${{ runner.os }}-buildx-${{ matrix.app }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-${{ matrix.app }}-
-
       - name: Build development image
         uses: docker/build-push-action@v5
         with:
@@ -126,8 +127,8 @@ jobs:
             BUILDKIT_INLINE_CACHE=1
           push: false
           tags: paragonjenko/adoptdontshop:${{ matrix.app }}-dev-${{ github.sha }}
-          cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.app }}
-          cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.app }}-new,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build production image
         uses: docker/build-push-action@v5
@@ -140,13 +141,8 @@ jobs:
             BUILDKIT_INLINE_CACHE=1
           push: false
           tags: paragonjenko/adoptdontshop:${{ matrix.app }}-prod-${{ github.sha }}
-          cache-from: type=local,src=/tmp/.buildx-cache-${{ matrix.app }}
-          cache-to: type=local,dest=/tmp/.buildx-cache-${{ matrix.app }}-new,mode=max
-
-      - name: Rotate cache
-        run: |
-          rm -rf /tmp/.buildx-cache-${{ matrix.app }}
-          mv /tmp/.buildx-cache-${{ matrix.app }}-new /tmp/.buildx-cache-${{ matrix.app }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ============================================================================
   # INTEGRATION TEST — verify the backend container starts and is healthy.
@@ -226,34 +222,3 @@ ENVEOF
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
 
-  # ============================================================================
-  # SECURITY SCAN — Trivy image scan uploaded to GitHub Security tab (PRs only)
-  # ============================================================================
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: [build-backend]
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build backend image for scanning
-        run: docker build -f service.backend/Dockerfile -t paragonjenko/adoptdontshop:service-backend-scan .
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.31.0
-        with:
-          image-ref: paragonjenko/adoptdontshop:service-backend-scan
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
