@@ -172,7 +172,16 @@ app.use('/api', (req, res, next) => {
 
 // Serve uploaded files in development
 if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
+  const projectRoot = path.resolve(__dirname, '..', '..');
   const uploadDir = path.resolve(config.storage.local.directory);
+
+  // Prevent directory traversal: reject any path that escapes the project root
+  if (!uploadDir.startsWith(projectRoot + path.sep) && uploadDir !== projectRoot) {
+    throw new Error(
+      `Unsafe upload directory: "${uploadDir}" is outside project root "${projectRoot}". ` +
+        `Set STORAGE_LOCAL_DIRECTORY to a path inside the project.`
+    );
+  }
 
   // Configure static file serving with proper CORS headers
   app.use(
@@ -210,7 +219,7 @@ if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
 
       next();
     },
-    express.static(uploadDir)
+    express.static(uploadDir, { dotfiles: 'deny', index: false, redirect: false })
   );
 
   logger.info(`Serving static files from: ${uploadDir} with CORS enabled`);

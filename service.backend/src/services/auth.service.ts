@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { Op } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
 import User, { UserStatus, UserType } from '../models/User';
@@ -166,99 +166,122 @@ export class AuthService {
 
   static async login(credentials: LoginCredentials, ipAddress?: string): Promise<AuthResponse> {
     try {
-      // Find user with password scope
-      const user = await User.scope('withSecrets').findOne({
-        where: { email: credentials.email.toLowerCase() },
-        include: [
-          {
-            association: 'Roles',
-            include: [
-              {
-                association: 'Permissions',
-              },
-            ],
-          },
-        ],
+      // Wrap lock-check + counter increment in a transaction with SELECT FOR UPDATE so
+      // concurrent failed logins cannot both read the row before either writes, which
+      // would let an attacker exceed the lockout threshold in a single burst.
+      const transaction = await User.sequelize!.transaction({
+        isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
       });
 
-      if (!user) {
-        loggerHelpers.logSecurity('Login attempt with non-existent email', {
-          email: credentials.email,
-          ipAddress,
+      let user: InstanceType<typeof User> | null = null;
+      try {
+        user = await User.scope('withSecrets').findOne({
+          where: { email: credentials.email.toLowerCase() },
+          lock: transaction.LOCK.UPDATE,
+          transaction,
+          include: [
+            {
+              association: 'Roles',
+              include: [{ association: 'Permissions' }],
+            },
+          ],
         });
-        throw new Error('Invalid credentials');
-      }
 
-      // Check if account is locked
-      if (user.isAccountLocked()) {
-        loggerHelpers.logSecurity('Login attempt on locked account', {
-          userId: user.userId,
-          ipAddress,
-        });
-        throw new Error('Account is temporarily locked. Please try again later.');
-      }
-
-      // Verify password
-      const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-      if (!isPasswordValid) {
-        // Atomic bump of loginAttempts — otherwise two simultaneous failed
-        // logins can both see N attempts and each write N+1, losing one try.
-        await user.increment('loginAttempts');
-        await user.reload();
-
-        // Lock account after 5 failed attempts
-        if (user.loginAttempts >= 5) {
-          user.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
-          loggerHelpers.logSecurity('Account locked due to failed login attempts', {
-            userId: user.userId,
-            attempts: user.loginAttempts,
+        if (!user) {
+          await transaction.rollback();
+          loggerHelpers.logSecurity('Login attempt with non-existent email', {
+            email: credentials.email,
             ipAddress,
           });
-          await user.save();
+          throw new Error('Invalid credentials');
         }
 
-        throw new Error('Invalid credentials');
-      }
-
-      // Check if email is verified
-      if (!user.emailVerified) {
-        throw new Error('Please verify your email before logging in');
-      }
-
-      // Check 2FA if enabled
-      if (user.twoFactorEnabled) {
-        if (!credentials.twoFactorToken) {
-          throw new Error('Two-factor authentication code required');
-        }
-
-        const isValidTwoFactor = await this.verifyTwoFactorToken(user, credentials.twoFactorToken);
-        if (!isValidTwoFactor) {
-          loggerHelpers.logSecurity('Invalid 2FA token', {
+        if (user.isAccountLocked()) {
+          await transaction.rollback();
+          loggerHelpers.logSecurity('Login attempt on locked account', {
             userId: user.userId,
             ipAddress,
           });
-          throw new Error('Invalid two-factor authentication code');
+          throw new Error('Account is temporarily locked. Please try again later.');
         }
+
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isPasswordValid) {
+          await user.increment('loginAttempts', { transaction });
+          await user.reload({ transaction });
+
+          if (user.loginAttempts >= 5) {
+            user.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+            loggerHelpers.logSecurity('Account locked due to failed login attempts', {
+              userId: user.userId,
+              attempts: user.loginAttempts,
+              ipAddress,
+            });
+            await user.save({ transaction });
+          }
+
+          await transaction.commit();
+          throw new Error('Invalid credentials');
+        }
+
+        // Check if email is verified
+        if (!user.emailVerified) {
+          await transaction.rollback();
+          throw new Error('Please verify your email before logging in');
+        }
+
+        // Check 2FA if enabled
+        if (user.twoFactorEnabled) {
+          if (!credentials.twoFactorToken) {
+            await transaction.rollback();
+            throw new Error('Two-factor authentication code required');
+          }
+
+          const isValidTwoFactor = await this.verifyTwoFactorToken(
+            user,
+            credentials.twoFactorToken
+          );
+          if (!isValidTwoFactor) {
+            await transaction.rollback();
+            loggerHelpers.logSecurity('Invalid 2FA token', {
+              userId: user.userId,
+              ipAddress,
+            });
+            throw new Error('Invalid two-factor authentication code');
+          }
+        }
+
+        // Reset login attempts on successful login
+        user.loginAttempts = 0;
+        user.lockedUntil = null;
+        user.lastLoginAt = new Date();
+        await user.save({ transaction });
+        await transaction.commit();
+      } catch (txError) {
+        // Roll back only if the transaction is still open (not already committed/rolled back)
+        try {
+          await transaction.rollback();
+        } catch {
+          /* already settled */
+        }
+        throw txError;
       }
 
-      // Reset login attempts on successful login
-      user.loginAttempts = 0;
-      user.lockedUntil = null;
-      user.lastLoginAt = new Date();
-      await user.save();
+      // user is guaranteed non-null here: we only reach this line after a successful commit
+      const loggedInUser = user!;
 
       // Log successful login
       await AuditLogService.log({
         action: 'LOGIN',
         entity: 'User',
-        entityId: user.userId,
-        details: { email: user.email },
-        userId: user.userId,
+        entityId: loggedInUser.userId,
+        details: { email: loggedInUser.email },
+        userId: loggedInUser.userId,
       });
 
       loggerHelpers.logAuth('User logged in', {
-        userId: user.userId,
-        email: user.email,
+        userId: loggedInUser.userId,
+        email: loggedInUser.email,
         ipAddress,
       });
 
@@ -266,13 +289,13 @@ export class AuthService {
       const tokenId = crypto.randomUUID();
       const familyId = crypto.randomUUID();
       const tokens = await this.generateTokens(
-        { userId: user.userId, email: user.email, userType: user.userType },
+        { userId: loggedInUser.userId, email: loggedInUser.email, userType: loggedInUser.userType },
         tokenId
       );
-      await this.storeRefreshToken(user.userId, tokenId, familyId);
+      await this.storeRefreshToken(loggedInUser.userId, tokenId, familyId);
 
       return {
-        user: this.sanitizeUser(user),
+        user: this.sanitizeUser(loggedInUser),
         ...tokens,
       };
     } catch (error) {

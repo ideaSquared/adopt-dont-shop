@@ -1,7 +1,7 @@
 import express from 'express';
 import { AdminController } from '../controllers/admin.controller';
 import { authenticateToken } from '../middleware/auth';
-import { requirePermission } from '../middleware/rbac';
+import { requireAdmin, requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
 import { PERMISSIONS } from '../types/rbac';
@@ -9,8 +9,9 @@ import { adminValidation } from '../validation/admin.validation';
 
 const router = express.Router();
 
-// Apply authentication to all admin routes
+// Apply authentication and admin role check to all admin routes
 router.use(authenticateToken);
+router.use(requireAdmin);
 
 // Platform metrics and dashboard
 

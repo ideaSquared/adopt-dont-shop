@@ -314,13 +314,12 @@ export const authenticateOptionalToken = async (
       ],
     });
 
-    if (!user) {
-      // Invalid token, but continue without authentication
+    if (!user || user.status !== 'active') {
+      // Invalid token or inactive/suspended user — treat as anonymous
       next();
       return;
     }
 
-    // Attach user to request if found
     req.user = user;
     setUserId(user.userId);
 
