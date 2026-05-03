@@ -95,7 +95,7 @@ export const PreFilledSectionCard: React.FC<Props> = ({
   };
 
   const summary =
-    visibleQuestions.length === 0 ? (emptyHint ?? '') : buildSummary(visibleQuestions, answers);
+    visibleQuestions.length === 0 ? emptyHint ?? '' : buildSummary(visibleQuestions, answers);
 
   return (
     <section className={styles.card}>
