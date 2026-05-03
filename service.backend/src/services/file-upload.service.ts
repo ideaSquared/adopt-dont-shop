@@ -16,7 +16,7 @@ import DOMPurify from 'isomorphic-dompurify';
 const UPLOAD_CONFIG = {
   maxFileSize: config.storage.local.maxFileSize,
   allowedMimeTypes: {
-    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
     documents: [
       'application/pdf',
       'application/msword',
@@ -547,7 +547,9 @@ export class FileUploadService {
     };
 
     // Process images
-    if (UPLOAD_CONFIG.allowedMimeTypes.images.includes(file.mimetype)) {
+    if (file.mimetype === 'image/svg+xml') {
+      await this.sanitizeSvgFile(file);
+    } else if (UPLOAD_CONFIG.allowedMimeTypes.images.includes(file.mimetype)) {
       // Add image processing logic here (resize, compress, generate thumbnails)
       // This would use a library like sharp or jimp
     }

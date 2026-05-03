@@ -101,6 +101,15 @@ describe('Authentication Flow Integration Tests', () => {
     MockedRefreshToken.create = vi.fn().mockResolvedValue({});
     MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
     MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(null);
+
+    const mockTransaction = {
+      commit: vi.fn().mockResolvedValue(undefined),
+      rollback: vi.fn().mockResolvedValue(undefined),
+      LOCK: { UPDATE: 'UPDATE' },
+    };
+    (MockedUser as unknown as { sequelize: unknown }).sequelize = {
+      transaction: vi.fn().mockResolvedValue(mockTransaction),
+    };
   });
 
   describe('User Registration and Email Verification', () => {
@@ -652,7 +661,7 @@ describe('Authentication Flow Integration Tests', () => {
 
         // Atomic increment path (save only called on lockout)
         expect(mockUser.loginAttempts).toBe(3);
-        expect(mockUser.increment).toHaveBeenCalledWith('loginAttempts');
+        expect(mockUser.increment).toHaveBeenCalledWith('loginAttempts', expect.any(Object));
       });
 
       it('should lock account after 5 failed attempts', async () => {
