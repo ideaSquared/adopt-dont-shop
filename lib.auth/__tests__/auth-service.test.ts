@@ -328,11 +328,11 @@ describe('AuthService', () => {
 
   describe('verifyEmail', () => {
     it('should verify email with token', async () => {
-      (apiService.get as jest.Mock).mockResolvedValue({});
+      (apiService.post as jest.Mock).mockResolvedValue({});
 
       await authService.verifyEmail('verify-token');
 
-      expect(apiService.get).toHaveBeenCalledWith('/api/v1/auth/verify-email/verify-token');
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/verify-email', { token: 'verify-token' });
     });
   });
 
