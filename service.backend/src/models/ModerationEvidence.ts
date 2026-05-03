@@ -38,11 +38,10 @@ interface ModerationEvidenceAttributes {
   updated_at?: Date;
 }
 
-interface ModerationEvidenceCreationAttributes
-  extends Optional<
-    ModerationEvidenceAttributes,
-    'evidence_id' | 'description' | 'uploaded_at' | 'created_at' | 'updated_at'
-  > {}
+interface ModerationEvidenceCreationAttributes extends Optional<
+  ModerationEvidenceAttributes,
+  'evidence_id' | 'description' | 'uploaded_at' | 'created_at' | 'updated_at'
+> {}
 
 class ModerationEvidence
   extends Model<ModerationEvidenceAttributes, ModerationEvidenceCreationAttributes>

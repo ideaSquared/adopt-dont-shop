@@ -30,11 +30,10 @@ interface EmailTemplateVersionAttributes {
   updated_at?: Date;
 }
 
-interface EmailTemplateVersionCreationAttributes
-  extends Optional<
-    EmailTemplateVersionAttributes,
-    'template_version_id' | 'text_content' | 'change_notes' | 'created_at' | 'updated_at'
-  > {}
+interface EmailTemplateVersionCreationAttributes extends Optional<
+  EmailTemplateVersionAttributes,
+  'template_version_id' | 'text_content' | 'change_notes' | 'created_at' | 'updated_at'
+> {}
 
 export class EmailTemplateVersion
   extends Model<EmailTemplateVersionAttributes, EmailTemplateVersionCreationAttributes>

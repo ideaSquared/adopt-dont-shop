@@ -33,11 +33,10 @@ interface ApplicationStatusTransitionAttributes {
   metadata: JsonObject | null;
 }
 
-interface ApplicationStatusTransitionCreationAttributes
-  extends Optional<
-    ApplicationStatusTransitionAttributes,
-    'transitionId' | 'transitionedAt' | 'fromStatus' | 'transitionedBy' | 'reason' | 'metadata'
-  > {}
+interface ApplicationStatusTransitionCreationAttributes extends Optional<
+  ApplicationStatusTransitionAttributes,
+  'transitionId' | 'transitionedAt' | 'fromStatus' | 'transitionedBy' | 'reason' | 'metadata'
+> {}
 
 class ApplicationStatusTransition
   extends Model<

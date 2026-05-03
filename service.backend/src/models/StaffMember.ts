@@ -19,11 +19,10 @@ interface StaffMemberAttributes {
   updatedAt: Date;
 }
 
-interface StaffMemberCreationAttributes
-  extends Optional<
-    StaffMemberAttributes,
-    'staffMemberId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'createdAt' | 'updatedAt'
-  > {}
+interface StaffMemberCreationAttributes extends Optional<
+  StaffMemberAttributes,
+  'staffMemberId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'createdAt' | 'updatedAt'
+> {}
 
 class StaffMember
   extends Model<StaffMemberAttributes, StaffMemberCreationAttributes>

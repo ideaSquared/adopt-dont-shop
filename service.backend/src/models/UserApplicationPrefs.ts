@@ -29,17 +29,16 @@ interface UserApplicationPrefsAttributes {
   updated_at?: Date;
 }
 
-interface UserApplicationPrefsCreationAttributes
-  extends Optional<
-    UserApplicationPrefsAttributes,
-    | 'auto_fill_profile'
-    | 'remember_answers'
-    | 'share_with_rescues'
-    | 'completion_reminders'
-    | 'default_household_size'
-    | 'created_at'
-    | 'updated_at'
-  > {}
+interface UserApplicationPrefsCreationAttributes extends Optional<
+  UserApplicationPrefsAttributes,
+  | 'auto_fill_profile'
+  | 'remember_answers'
+  | 'share_with_rescues'
+  | 'completion_reminders'
+  | 'default_household_size'
+  | 'created_at'
+  | 'updated_at'
+> {}
 
 class UserApplicationPrefs
   extends Model<UserApplicationPrefsAttributes, UserApplicationPrefsCreationAttributes>

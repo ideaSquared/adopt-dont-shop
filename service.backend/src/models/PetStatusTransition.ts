@@ -31,11 +31,10 @@ interface PetStatusTransitionAttributes {
   metadata: JsonObject | null;
 }
 
-interface PetStatusTransitionCreationAttributes
-  extends Optional<
-    PetStatusTransitionAttributes,
-    'transitionId' | 'transitionedAt' | 'fromStatus' | 'transitionedBy' | 'reason' | 'metadata'
-  > {}
+interface PetStatusTransitionCreationAttributes extends Optional<
+  PetStatusTransitionAttributes,
+  'transitionId' | 'transitionedAt' | 'fromStatus' | 'transitionedBy' | 'reason' | 'metadata'
+> {}
 
 class PetStatusTransition
   extends Model<PetStatusTransitionAttributes, PetStatusTransitionCreationAttributes>

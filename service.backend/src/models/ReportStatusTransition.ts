@@ -29,11 +29,10 @@ interface ReportStatusTransitionAttributes {
   metadata: JsonObject | null;
 }
 
-interface ReportStatusTransitionCreationAttributes
-  extends Optional<
-    ReportStatusTransitionAttributes,
-    'transitionId' | 'transitionedAt' | 'fromStatus' | 'transitionedBy' | 'reason' | 'metadata'
-  > {}
+interface ReportStatusTransitionCreationAttributes extends Optional<
+  ReportStatusTransitionAttributes,
+  'transitionId' | 'transitionedAt' | 'fromStatus' | 'transitionedBy' | 'reason' | 'metadata'
+> {}
 
 class ReportStatusTransition
   extends Model<ReportStatusTransitionAttributes, ReportStatusTransitionCreationAttributes>

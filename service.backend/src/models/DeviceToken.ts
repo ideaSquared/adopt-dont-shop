@@ -33,11 +33,10 @@ interface DeviceTokenAttributes {
   deleted_at?: Date | null;
 }
 
-interface DeviceTokenCreationAttributes
-  extends Optional<
-    DeviceTokenAttributes,
-    'token_id' | 'status' | 'created_at' | 'updated_at' | 'deleted_at'
-  > {}
+interface DeviceTokenCreationAttributes extends Optional<
+  DeviceTokenAttributes,
+  'token_id' | 'status' | 'created_at' | 'updated_at' | 'deleted_at'
+> {}
 
 class DeviceToken
   extends Model<DeviceTokenAttributes, DeviceTokenCreationAttributes>

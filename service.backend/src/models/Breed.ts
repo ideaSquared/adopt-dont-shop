@@ -25,8 +25,10 @@ interface BreedAttributes {
   updated_at?: Date;
 }
 
-interface BreedCreationAttributes
-  extends Optional<BreedAttributes, 'breed_id' | 'created_at' | 'updated_at'> {}
+interface BreedCreationAttributes extends Optional<
+  BreedAttributes,
+  'breed_id' | 'created_at' | 'updated_at'
+> {}
 
 export class Breed
   extends Model<BreedAttributes, BreedCreationAttributes>

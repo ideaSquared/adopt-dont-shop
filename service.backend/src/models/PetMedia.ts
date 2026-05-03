@@ -37,18 +37,17 @@ interface PetMediaAttributes {
   updated_at?: Date;
 }
 
-interface PetMediaCreationAttributes
-  extends Optional<
-    PetMediaAttributes,
-    | 'media_id'
-    | 'thumbnail_url'
-    | 'caption'
-    | 'is_primary'
-    | 'duration_seconds'
-    | 'uploaded_at'
-    | 'created_at'
-    | 'updated_at'
-  > {}
+interface PetMediaCreationAttributes extends Optional<
+  PetMediaAttributes,
+  | 'media_id'
+  | 'thumbnail_url'
+  | 'caption'
+  | 'is_primary'
+  | 'duration_seconds'
+  | 'uploaded_at'
+  | 'created_at'
+  | 'updated_at'
+> {}
 
 export class PetMedia
   extends Model<PetMediaAttributes, PetMediaCreationAttributes>
