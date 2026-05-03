@@ -4,7 +4,9 @@ const isBrowser = typeof window !== 'undefined';
 
 function tryLocalStorage(): Storage | null {
   try {
-    if (!isBrowser) return null;
+    if (!isBrowser) {
+      return null;
+    }
     // Test that storage is actually writable (Safari private mode throws on setItem)
     const testKey = '__storage_test__';
     window.localStorage.setItem(testKey, '1');

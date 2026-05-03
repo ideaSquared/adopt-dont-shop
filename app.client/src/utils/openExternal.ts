@@ -10,6 +10,8 @@ export const openExternal = (raw: string): void => {
   } catch {
     return;
   }
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    return;
+  }
   window.open(url.toString(), '_blank', 'noopener,noreferrer');
 };

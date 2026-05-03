@@ -128,7 +128,7 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
           <path className={styles.linePath} d={linePath} />
 
           {/* Data points */}
-          {data.map(point => (
+          {data.map((point, index) => (
             <circle
               key={point.date}
               className={styles.dataPoint({ active: activePoint === index })}
