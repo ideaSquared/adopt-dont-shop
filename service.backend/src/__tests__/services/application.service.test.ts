@@ -139,7 +139,10 @@ describe('ApplicationService - Business Logic', () => {
 
       // Then: Application is created with SUBMITTED status
       expect(MockedUser.findByPk).toHaveBeenCalledWith(mockUserId);
-      expect(MockedPet.findByPk).toHaveBeenCalledWith(mockPetId);
+      expect(MockedPet.findByPk).toHaveBeenCalledWith(
+        mockPetId,
+        expect.objectContaining({ lock: expect.any(String), transaction: expect.anything() })
+      );
       expect(MockedApplication.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -156,7 +159,8 @@ describe('ApplicationService - Business Logic', () => {
           petId: mockPetId,
           rescueId: mockRescueId,
           status: ApplicationStatus.SUBMITTED,
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
       expect(MockedApplicationAnswer.bulkCreate).toHaveBeenCalledWith(
         expect.arrayContaining([
@@ -164,7 +168,8 @@ describe('ApplicationService - Business Logic', () => {
             application_id: mockApplicationId,
             question_key: 'experience',
           }),
-        ])
+        ]),
+        expect.objectContaining({ transaction: expect.anything() })
       );
       expect(result).toBeDefined();
     });
@@ -586,7 +591,8 @@ describe('ApplicationService - Business Logic', () => {
       expect(MockedApplication.create).toHaveBeenCalledWith(
         expect.objectContaining({
           status: ApplicationStatus.SUBMITTED,
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
@@ -689,7 +695,8 @@ describe('ApplicationService - Business Logic', () => {
       expect(MockedApplication.create).toHaveBeenCalledWith(
         expect.objectContaining({
           rescueId: 'rescue-xyz-789',
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
   });

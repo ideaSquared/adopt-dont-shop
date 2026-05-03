@@ -350,7 +350,8 @@ describe('Application Submission Workflow Integration Tests', () => {
             expect.objectContaining({
               status: ApplicationReferenceStatus.PENDING,
             }),
-          ])
+          ]),
+          expect.objectContaining({ transaction: expect.anything() })
         );
         const payload = (MockedApplicationReference.bulkCreate as vi.Mock).mock.calls[0][0];
         expect(payload).toHaveLength(2);
