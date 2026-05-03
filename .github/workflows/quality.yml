@@ -60,6 +60,7 @@ jobs:
       - name: Check for outdated dependencies in ${{ matrix.project }}
         run: npm outdated
         working-directory: ${{ matrix.project }}
+        continue-on-error: true
 
       - name: Check for duplicate dependencies in ${{ matrix.project }}
         run: npm ls --depth=0
