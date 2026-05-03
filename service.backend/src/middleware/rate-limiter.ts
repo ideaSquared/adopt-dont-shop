@@ -152,9 +152,7 @@ export const twoFactorLimiter =
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 5,
         keyGenerator: req =>
-          (req as Record<string, unknown> & { user?: { userId?: string } }).user?.userId ||
-          req.ip ||
-          'unknown',
+          (req as unknown as { user?: { userId?: string } }).user?.userId || req.ip || 'unknown',
         message: {
           error: 'Too many 2FA attempts, please try again later.',
           retryAfter: 900,
@@ -163,7 +161,7 @@ export const twoFactorLimiter =
         legacyHeaders: false,
         handler: (req, res) => {
           logger.warn(
-            `2FA rate limit exceeded for user: ${(req as Record<string, unknown> & { user?: { userId?: string } }).user?.userId || req.ip}`
+            `2FA rate limit exceeded for user: ${(req as unknown as { user?: { userId?: string } }).user?.userId || req.ip}`
           );
           res.status(429).json({
             error: 'Too many 2FA attempts, please try again later.',

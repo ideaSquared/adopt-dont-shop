@@ -280,7 +280,7 @@ export class FileUploadService {
       }
 
       const isOwner = uploadRecord.uploaded_by === deletedBy.id;
-      const isAdmin = deletedBy.type === UserType.ADMIN || deletedBy.type === UserType.SUPER_ADMIN;
+      const isAdmin = deletedBy.type === UserType.ADMIN;
       if (!isOwner && !isAdmin) {
         throw Object.assign(new Error('Not allowed to delete this file'), { statusCode: 403 });
       }

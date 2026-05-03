@@ -272,8 +272,12 @@ export class UserService {
         entity: 'User',
         entityId: userId,
         details: {
-          originalData: redactSensitiveFields(JSON.parse(JSON.stringify(originalData))),
-          updateData: redactSensitiveFields(JSON.parse(JSON.stringify(processedUpdateData))),
+          originalData: redactSensitiveFields(
+            JSON.parse(JSON.stringify(originalData))
+          ) as JsonObject,
+          updateData: redactSensitiveFields(
+            JSON.parse(JSON.stringify(processedUpdateData))
+          ) as JsonObject,
         },
         userId,
       });
