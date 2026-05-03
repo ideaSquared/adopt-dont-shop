@@ -65,4 +65,3 @@ jobs:
       - name: Check for duplicate dependencies in ${{ matrix.project }}
         run: npm ls --depth=0
         working-directory: ${{ matrix.project }}
-        continue-on-error: true
