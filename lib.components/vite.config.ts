@@ -5,13 +5,7 @@ import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
 export default defineConfig(({ mode }) => ({
-  plugins: [
-    react(),
-    vanillaExtractPlugin(),
-    dts({
-      insertTypesEntry: true,
-    }),
-  ],
+  plugins: [react(), vanillaExtractPlugin(), dts()],
 
   // Development server setup for standalone component development
   server: {
