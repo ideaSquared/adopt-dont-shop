@@ -140,7 +140,9 @@ describe('CSRF Middleware', () => {
 
         getCsrfToken(mockRequest as Request, mockResponse as Response, mockNext);
 
-        expect(mockGenerateToken).toHaveBeenCalledWith(mockRequest, mockResponse, { overwrite: true });
+        expect(mockGenerateToken).toHaveBeenCalledWith(mockRequest, mockResponse, {
+          overwrite: true,
+        });
         expect(mockResponse.json).toHaveBeenCalledWith({
           csrfToken: generatedToken,
         });
