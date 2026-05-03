@@ -12,7 +12,7 @@ export type NotificationPreferences = {
   quietHoursStart?: string;
   quietHoursEnd?: string;
   timezone?: string;
-}
+};
 
 export type Notification = {
   notification_id: string;
@@ -25,7 +25,7 @@ export type Notification = {
   data?: Record<string, unknown>;
   related_entity_type?: string;
   related_entity_id?: string;
-}
+};
 
 export type NotificationResponse = {
   notifications: Notification[];
@@ -35,7 +35,7 @@ export type NotificationResponse = {
     total: number;
     pages: number;
   };
-}
+};
 
 // API response format from backend - flexible to handle different formats
 type ApiNotificationResponse = {
@@ -48,7 +48,7 @@ type ApiNotificationResponse = {
     total: number;
     pages: number;
   };
-}
+};
 
 export type NotificationFilters = {
   page?: number;
@@ -57,7 +57,7 @@ export type NotificationFilters = {
   type?: string;
   sortBy?: 'created_at' | 'read_at';
   sortOrder?: 'ASC' | 'DESC';
-}
+};
 
 class NotificationService {
   private static instance: NotificationService;

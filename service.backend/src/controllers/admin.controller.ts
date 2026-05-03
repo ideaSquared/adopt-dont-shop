@@ -10,7 +10,7 @@ type AuthenticatedRequest = Request & {
     role: string;
     rescueId?: string;
   };
-}
+};
 
 export class AdminController {
   /**

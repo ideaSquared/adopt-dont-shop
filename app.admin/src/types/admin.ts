@@ -16,7 +16,7 @@ export type AdminUser = {
   phoneNumber?: string;
   rescueId?: string;
   rescueName?: string;
-}
+};
 
 export type UserFilters = {
   search?: string;
@@ -25,7 +25,7 @@ export type UserFilters = {
   rescueId?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
 export type UserUpdatePayload = {
   firstName?: string;
@@ -34,7 +34,7 @@ export type UserUpdatePayload = {
   phoneNumber?: string;
   userType?: 'admin' | 'moderator' | 'rescue_staff' | 'adopter';
   status?: 'active' | 'suspended' | 'pending';
-}
+};
 
 // Rescue Management Types
 export type AdminRescue = {
@@ -56,7 +56,7 @@ export type AdminRescue = {
   verifiedAt?: string;
   rejectedAt?: string;
   rejectionReason?: string;
-}
+};
 
 export type RescueFilters = {
   search?: string;
@@ -64,13 +64,13 @@ export type RescueFilters = {
   state?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
 export type RescueVerificationPayload = {
   status: 'verified' | 'rejected';
   rejectionReason?: string;
   notes?: string;
-}
+};
 
 // Content Moderation Types
 export type ModerationItem = {
@@ -89,7 +89,7 @@ export type ModerationItem = {
   resolution?: string;
   targetUserId?: string;
   targetUserName?: string;
-}
+};
 
 export type ModerationFilters = {
   status?: string;
@@ -98,14 +98,14 @@ export type ModerationFilters = {
   assignedTo?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
 export type ModerationAction = {
   action: 'dismiss' | 'warn' | 'suspend_content' | 'suspend_user' | 'ban_user';
   resolution: string;
   notifyUser: boolean;
   suspensionDays?: number;
-}
+};
 
 // Support Ticket Types
 export type SupportTicket = {
@@ -123,7 +123,7 @@ export type SupportTicket = {
   updatedAt: string;
   resolvedAt?: string;
   messagesCount: number;
-}
+};
 
 export type TicketFilters = {
   status?: string;
@@ -132,7 +132,7 @@ export type TicketFilters = {
   assignedTo?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
 export type TicketMessage = {
   messageId: string;
@@ -143,7 +143,7 @@ export type TicketMessage = {
   message: string;
   createdAt: string;
   attachments?: string[];
-}
+};
 
 // Message Thread Types (for Messages page)
 export type MessageThread = {
@@ -164,14 +164,14 @@ export type MessageThread = {
   flagReason?: string;
   flagSeverity?: 'low' | 'medium' | 'high';
   createdAt: string;
-}
+};
 
 export type TicketUpdatePayload = {
   status?: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   assignedTo?: string;
   category?: 'technical' | 'account' | 'billing' | 'abuse' | 'other';
-}
+};
 
 // Analytics Types
 export type DashboardMetrics = {
@@ -187,7 +187,7 @@ export type DashboardMetrics = {
   adoptedThisMonth: number;
   pendingReports: number;
   openTickets: number;
-}
+};
 
 export type AnalyticsData = {
   userRegistrations: TimeSeriesData[];
@@ -195,13 +195,13 @@ export type AnalyticsData = {
   topRescues: RescueStats[];
   userActivity: ActivityStats;
   systemHealth: HealthMetrics;
-}
+};
 
 export type TimeSeriesData = {
   date: string;
   value: number;
   label?: string;
-}
+};
 
 export type RescueStats = {
   rescueId: string;
@@ -209,21 +209,21 @@ export type RescueStats = {
   totalListings: number;
   successfulAdoptions: number;
   averageAdoptionTime: number;
-}
+};
 
 export type ActivityStats = {
   dailyActiveUsers: number;
   weeklyActiveUsers: number;
   monthlyActiveUsers: number;
   averageSessionDuration: number;
-}
+};
 
 export type HealthMetrics = {
   uptime: number;
   apiResponseTime: number;
   errorRate: number;
   databaseHealth: 'healthy' | 'degraded' | 'down';
-}
+};
 
 // Audit Log Types
 export type AuditLog = {
@@ -240,7 +240,7 @@ export type AuditLog = {
   userAgent?: string;
   status: 'success' | 'failure';
   errorMessage?: string;
-}
+};
 
 export type AuditFilters = {
   userId?: string;
@@ -249,7 +249,7 @@ export type AuditFilters = {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
 // System Configuration Types
 export type FeatureFlag = {
@@ -262,7 +262,7 @@ export type FeatureFlag = {
   targetUserTypes?: string[];
   createdAt: string;
   updatedAt: string;
-}
+};
 
 export type SystemSetting = {
   settingId: string;
@@ -273,7 +273,7 @@ export type SystemSetting = {
   dataType: 'string' | 'number' | 'boolean' | 'json';
   updatedAt: string;
   updatedBy: string;
-}
+};
 
 // Pagination and Common Types
 export type PaginationParams = {
@@ -281,7 +281,7 @@ export type PaginationParams = {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
-}
+};
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -298,4 +298,4 @@ export type ActionResponse = {
   success: boolean;
   message: string;
   data?: any;
-}
+};
