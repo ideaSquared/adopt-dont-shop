@@ -377,7 +377,7 @@ describe('ChatService', () => {
           participant_id: participantId,
         });
 
-        const result = await ChatService.getChatById(chatId, participantId);
+        const result = await ChatService.getChatById(chatId, participantId, false);
 
         expect(result).toEqual(mockChat);
         expect(MockedChatParticipant.findOne).toHaveBeenCalledWith({
@@ -391,17 +391,17 @@ describe('ChatService', () => {
         (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
         (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
 
-        await expect(ChatService.getChatById(chatId, strangerId)).rejects.toThrow(
+        await expect(ChatService.getChatById(chatId, strangerId, false)).rejects.toThrow(
           /not a participant/i
         );
       });
     });
 
-    describe('when no userId is supplied (admin bypass)', () => {
+    describe('when isAdmin is true (explicit admin bypass)', () => {
       it('returns the chat without checking participation', async () => {
         (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
 
-        const result = await ChatService.getChatById(chatId);
+        const result = await ChatService.getChatById(chatId, 'admin-user-id', true);
 
         expect(result).toEqual(mockChat);
         expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
@@ -412,7 +412,7 @@ describe('ChatService', () => {
       it('returns null', async () => {
         (MockedChat.findByPk as vi.Mock).mockResolvedValue(null);
 
-        const result = await ChatService.getChatById(chatId, participantId);
+        const result = await ChatService.getChatById(chatId, participantId, false);
 
         expect(result).toBeNull();
         // Participant lookup should be skipped when chat is absent.
@@ -442,13 +442,13 @@ describe('ChatService', () => {
         );
       });
 
-      it('skips the check when userId is undefined (admin bypass)', async () => {
+      it('skips the check when isAdmin is true (explicit admin bypass)', async () => {
         (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({
           rows: [],
           count: 0,
         });
         (MockedChatParticipant.findOne as vi.Mock).mockReset();
-        await ChatService.getMessages(chatId);
+        await ChatService.getMessages(chatId, { isAdmin: true });
         expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
       });
 
@@ -470,7 +470,7 @@ describe('ChatService', () => {
           count: 1,
         });
         (MockedChatParticipant.findOne as vi.Mock).mockReset();
-        const result = await ChatService.getMessages(chatId);
+        const result = await ChatService.getMessages(chatId, { isAdmin: true });
         expect(result.messages).toHaveLength(1);
         expect(result.messages[0].created_at).toBeDefined();
         expect(result.messages[0].updated_at).toBeDefined();

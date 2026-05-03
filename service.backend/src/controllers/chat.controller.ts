@@ -225,7 +225,7 @@ export class ChatController {
       const userId = req.user!.userId;
       const isAdmin = req.user!.userType === UserType.ADMIN;
 
-      const chat = await ChatService.getChatById(chatId, isAdmin ? undefined : userId);
+      const chat = await ChatService.getChatById(chatId, userId, isAdmin);
 
       if (!chat) {
         return res.status(404).json({
@@ -331,14 +331,15 @@ export class ChatController {
       // Admin users can see all chats, regular users only see chats they're participants in
       const isAdmin = userType === UserType.ADMIN;
       const searchOptions = {
-        userId: isAdmin ? undefined : userId,
-        rescueId: isAdmin ? undefined : rescueId || undefined,
+        userId,
+        rescueId: rescueId || undefined,
         petId: petId as string,
         type: type as string,
         page: parseInt(page as string),
         limit: parseInt(limit as string),
         sortBy: sortBy as string,
         sortOrder: sortOrder as 'ASC' | 'DESC',
+        isAdmin,
       };
 
       const result = await ChatService.searchChats(searchOptions);
@@ -589,7 +590,8 @@ export class ChatController {
       const result = await ChatService.getMessages(chatId, {
         page: parsedPage,
         limit: parsedLimit,
-        userId: isAdmin ? undefined : userId,
+        userId,
+        isAdmin,
       });
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
@@ -979,7 +981,7 @@ export class ChatController {
       }
 
       // Verify user has access to this conversation by checking if they're a participant
-      const chat = await ChatService.getChatById(conversationId, userId);
+      const chat = await ChatService.getChatById(conversationId, userId, false);
       if (!chat) {
         return res.status(404).json({
           error: 'Conversation not found',
