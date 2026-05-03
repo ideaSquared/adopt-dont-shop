@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { CreateEventInput } from '../../types/events';
+import * as styles from './EventForm.css';
 
 interface EventFormProps {
   initialData?: Partial<CreateEventInput>;
@@ -8,156 +8,6 @@ interface EventFormProps {
   onCancel: () => void;
   isEditing?: boolean;
 }
-
-const FormContainer = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
-`;
-
-const FormTitle = styled.h2`
-  margin: 0 0 1.5rem 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: ${props => props.theme.text?.primary || '#111827'};
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: ${props => props.theme.text?.primary || '#111827'};
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid ${props => props.theme.colors.neutral?.[300] || '#d1d5db'};
-  border-radius: 8px;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary?.[500] || '#3b82f6'};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary?.[100] || '#dbeafe'};
-  }
-`;
-
-const TextArea = styled.textarea`
-  padding: 0.75rem;
-  border: 1px solid ${props => props.theme.colors.neutral?.[300] || '#d1d5db'};
-  border-radius: 8px;
-  font-size: 0.875rem;
-  min-height: 100px;
-  resize: vertical;
-  font-family: inherit;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary?.[500] || '#3b82f6'};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary?.[100] || '#dbeafe'};
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid ${props => props.theme.colors.neutral?.[300] || '#d1d5db'};
-  border-radius: 8px;
-  font-size: 0.875rem;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary?.[500] || '#3b82f6'};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary?.[100] || '#dbeafe'};
-  }
-`;
-
-const CheckboxGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const Checkbox = styled.input`
-  width: 1.25rem;
-  height: 1.25rem;
-  cursor: pointer;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormActions = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid ${props => props.theme.colors.neutral?.[200] || '#e5e7eb'};
-`;
-
-const Button = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  ${props =>
-    props.$variant === 'primary'
-      ? `
-    background: ${props.theme.colors.primary?.[600] || '#2563eb'};
-    color: white;
-
-    &:hover {
-      background: ${props.theme.colors.primary?.[700] || '#1d4ed8'};
-    }
-  `
-      : `
-    background: ${props.theme.colors.neutral?.[100] || '#f3f4f6'};
-    color: ${props.theme.text?.primary || '#111827'};
-
-    &:hover {
-      background: ${props.theme.colors.neutral?.[200] || '#e5e7eb'};
-    }
-  `}
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary?.[100] || '#dbeafe'};
-  }
-`;
-
-const HelperText = styled.span`
-  font-size: 0.75rem;
-  color: ${props => props.theme.text?.secondary || '#6b7280'};
-`;
 
 const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, isEditing }) => {
   const [formData, setFormData] = useState<CreateEventInput>({
@@ -224,14 +74,17 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
   };
 
   return (
-    <FormContainer>
-      <FormTitle>{isEditing ? 'Edit Event' : 'Create New Event'}</FormTitle>
+    <div className={styles.formContainer}>
+      <h2 className={styles.formTitle}>{isEditing ? 'Edit Event' : 'Create New Event'}</h2>
 
       <form onSubmit={handleSubmit}>
-        <FormGrid>
-          <FormGroup>
-            <Label htmlFor="name">Event Name *</Label>
-            <Input
+        <div className={styles.formGrid}>
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor="name">
+              Event Name *
+            </label>
+            <input
+              className={styles.input}
               id="name"
               name="name"
               type="text"
@@ -240,11 +93,14 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
               required
               placeholder="e.g., Spring Adoption Fair"
             />
-          </FormGroup>
+          </div>
 
-          <FormGroup>
-            <Label htmlFor="description">Description *</Label>
-            <TextArea
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor="description">
+              Description *
+            </label>
+            <textarea
+              className={styles.textArea}
               id="description"
               name="description"
               value={formData.description}
@@ -252,22 +108,34 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
               required
               placeholder="Provide details about the event..."
             />
-          </FormGroup>
+          </div>
 
-          <FormRow>
-            <FormGroup>
-              <Label htmlFor="type">Event Type *</Label>
-              <Select id="type" name="type" value={formData.type} onChange={handleChange} required>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="type">
+                Event Type *
+              </label>
+              <select
+                className={styles.select}
+                id="type"
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                required
+              >
                 <option value="adoption">Adoption Event</option>
                 <option value="fundraising">Fundraising</option>
                 <option value="volunteer">Volunteer Event</option>
                 <option value="community">Community Outreach</option>
-              </Select>
-            </FormGroup>
+              </select>
+            </div>
 
-            <FormGroup>
-              <Label htmlFor="capacity">Capacity (optional)</Label>
-              <Input
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="capacity">
+                Capacity (optional)
+              </label>
+              <input
+                className={styles.input}
                 id="capacity"
                 name="capacity"
                 type="number"
@@ -276,13 +144,16 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
                 onChange={handleChange}
                 placeholder="Max attendees"
               />
-            </FormGroup>
-          </FormRow>
+            </div>
+          </div>
 
-          <FormRow>
-            <FormGroup>
-              <Label htmlFor="startDate">Start Date & Time *</Label>
-              <Input
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="startDate">
+                Start Date & Time *
+              </label>
+              <input
+                className={styles.input}
                 id="startDate"
                 name="startDate"
                 type="datetime-local"
@@ -290,11 +161,14 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
                 onChange={handleChange}
                 required
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
-              <Label htmlFor="endDate">End Date & Time *</Label>
-              <Input
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="endDate">
+                End Date & Time *
+              </label>
+              <input
+                className={styles.input}
                 id="endDate"
                 name="endDate"
                 type="datetime-local"
@@ -302,26 +176,32 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
                 onChange={handleChange}
                 required
               />
-            </FormGroup>
-          </FormRow>
+            </div>
+          </div>
 
-          <FormGroup>
-            <Label htmlFor="locationType">Location Type *</Label>
-            <Select
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor="locationType">
+              Location Type *
+            </label>
+            <select
+              className={styles.select}
               id="locationType"
               value={formData.location.type}
               onChange={handleLocationTypeChange}
             >
               <option value="physical">Physical Location</option>
               <option value="virtual">Virtual Event</option>
-            </Select>
-          </FormGroup>
+            </select>
+          </div>
 
           {formData.location.type === 'physical' ? (
             <>
-              <FormGroup>
-                <Label htmlFor="location.venue">Venue Name</Label>
-                <Input
+              <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="location.venue">
+                  Venue Name
+                </label>
+                <input
+                  className={styles.input}
                   id="location.venue"
                   name="location.venue"
                   type="text"
@@ -329,11 +209,14 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
                   onChange={handleChange}
                   placeholder="e.g., City Park"
                 />
-              </FormGroup>
+              </div>
 
-              <FormGroup>
-                <Label htmlFor="location.address">Address</Label>
-                <Input
+              <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="location.address">
+                  Address
+                </label>
+                <input
+                  className={styles.input}
                   id="location.address"
                   name="location.address"
                   type="text"
@@ -341,12 +224,15 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
                   onChange={handleChange}
                   placeholder="Street address"
                 />
-              </FormGroup>
+              </div>
 
-              <FormRow>
-                <FormGroup>
-                  <Label htmlFor="location.city">City</Label>
-                  <Input
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="location.city">
+                    City
+                  </label>
+                  <input
+                    className={styles.input}
                     id="location.city"
                     name="location.city"
                     type="text"
@@ -354,11 +240,14 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
                     onChange={handleChange}
                     placeholder="City"
                   />
-                </FormGroup>
+                </div>
 
-                <FormGroup>
-                  <Label htmlFor="location.postcode">Postcode</Label>
-                  <Input
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="location.postcode">
+                    Postcode
+                  </label>
+                  <input
+                    className={styles.input}
                     id="location.postcode"
                     name="location.postcode"
                     type="text"
@@ -366,13 +255,16 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
                     onChange={handleChange}
                     placeholder="Postcode"
                   />
-                </FormGroup>
-              </FormRow>
+                </div>
+              </div>
             </>
           ) : (
-            <FormGroup>
-              <Label htmlFor="location.virtualLink">Virtual Event Link</Label>
-              <Input
+            <div className={styles.formGroup}>
+              <label className={styles.label} htmlFor="location.virtualLink">
+                Virtual Event Link
+              </label>
+              <input
+                className={styles.input}
                 id="location.virtualLink"
                 name="location.virtualLink"
                 type="url"
@@ -380,15 +272,18 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
                 onChange={handleChange}
                 placeholder="https://zoom.us/j/..."
               />
-              <HelperText>
+              <span className={styles.helperText}>
                 Provide a link to the virtual meeting platform (Zoom, Teams, etc.)
-              </HelperText>
-            </FormGroup>
+              </span>
+            </div>
           )}
 
-          <FormGroup>
-            <Label htmlFor="imageUrl">Event Image URL (optional)</Label>
-            <Input
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor="imageUrl">
+              Event Image URL (optional)
+            </label>
+            <input
+              className={styles.input}
               id="imageUrl"
               name="imageUrl"
               type="url"
@@ -396,47 +291,59 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
               onChange={handleChange}
               placeholder="https://example.com/event-image.jpg"
             />
-          </FormGroup>
+          </div>
 
-          <FormGroup>
-            <CheckboxGroup>
-              <Checkbox
+          <div className={styles.formGroup}>
+            <div className={styles.checkboxGroup}>
+              <input
+                className={styles.checkbox}
                 id="registrationRequired"
                 name="registrationRequired"
                 type="checkbox"
                 checked={formData.registrationRequired}
                 onChange={handleChange}
               />
-              <Label htmlFor="registrationRequired">Registration Required</Label>
-            </CheckboxGroup>
-            <HelperText>Attendees must register in advance</HelperText>
-          </FormGroup>
+              <label className={styles.label} htmlFor="registrationRequired">
+                Registration Required
+              </label>
+            </div>
+            <span className={styles.helperText}>Attendees must register in advance</span>
+          </div>
 
-          <FormGroup>
-            <CheckboxGroup>
-              <Checkbox
+          <div className={styles.formGroup}>
+            <div className={styles.checkboxGroup}>
+              <input
+                className={styles.checkbox}
                 id="isPublic"
                 name="isPublic"
                 type="checkbox"
                 checked={formData.isPublic}
                 onChange={handleChange}
               />
-              <Label htmlFor="isPublic">Public Event</Label>
-            </CheckboxGroup>
-            <HelperText>Event is visible to the public on your rescue page</HelperText>
-          </FormGroup>
-        </FormGrid>
+              <label className={styles.label} htmlFor="isPublic">
+                Public Event
+              </label>
+            </div>
+            <span className={styles.helperText}>
+              Event is visible to the public on your rescue page
+            </span>
+          </div>
+        </div>
 
-        <FormActions>
-          <Button type="button" $variant="secondary" onClick={onCancel}>
+        <div className={styles.formActions}>
+          <button
+            type="button"
+            className={styles.button({ variant: 'secondary' })}
+            onClick={onCancel}
+          >
             Cancel
-          </Button>
-          <Button type="submit" $variant="primary">
+          </button>
+          <button type="submit" className={styles.button({ variant: 'primary' })}>
             {isEditing ? 'Update Event' : 'Create Event'}
-          </Button>
-        </FormActions>
+          </button>
+        </div>
       </form>
-    </FormContainer>
+    </div>
   );
 };
 

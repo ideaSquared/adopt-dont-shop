@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import styled from 'styled-components';
+import clsx from 'clsx';
 import { invitationService } from '../services/libraryServices';
+import * as styles from './AcceptInvitation.css';
 
 interface AcceptInvitationFormData {
   firstName: string;
@@ -10,228 +11,6 @@ interface AcceptInvitationFormData {
   confirmPassword: string;
   title?: string;
 }
-
-const PageContainer = styled.div`
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-`;
-
-const Card = styled.div`
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
-  width: 100%;
-  overflow: hidden;
-`;
-
-const CardHeader = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 2rem;
-  text-align: center;
-
-  h1 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.75rem;
-    font-weight: 700;
-  }
-
-  p {
-    margin: 0;
-    opacity: 0.9;
-    font-size: 0.95rem;
-  }
-`;
-
-const CardBody = styled.div`
-  padding: 2rem;
-`;
-
-const InvitationInfo = styled.div`
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  border-left: 4px solid #667eea;
-
-  p {
-    margin: 0;
-    color: #666;
-    font-size: 0.9rem;
-
-    strong {
-      color: #333;
-      display: block;
-      margin-bottom: 0.25rem;
-    }
-  }
-`;
-
-const Form = styled.form``;
-
-const FormGroup = styled.div`
-  margin-bottom: 1.25rem;
-`;
-
-const FormLabel = styled.label`
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #333;
-  font-size: 0.9rem;
-`;
-
-const RequiredIndicator = styled.span`
-  color: #dc3545;
-`;
-
-const FormInput = styled.input<{ hasError?: boolean }>`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid ${props => (props.hasError ? '#dc3545' : '#e9ecef')};
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => (props.hasError ? '#dc3545' : '#667eea')};
-  }
-
-  &:disabled {
-    background-color: #f8f9fa;
-    color: #6c757d;
-  }
-`;
-
-const FormError = styled.span`
-  display: block;
-  color: #dc3545;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-`;
-
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: 0.875rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 1rem;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-`;
-
-const LoadingSpinner = styled.span`
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid transparent;
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const ErrorContainer = styled.div`
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  color: #856404;
-
-  h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-
-  p {
-    margin: 0;
-    font-size: 0.9rem;
-  }
-`;
-
-const SuccessContainer = styled.div`
-  text-align: center;
-  padding: 2rem;
-
-  h2 {
-    color: #28a745;
-    margin: 0 0 1rem 0;
-    font-size: 1.5rem;
-  }
-
-  p {
-    color: #666;
-    margin: 0 0 1.5rem 0;
-  }
-`;
-
-const SuccessIcon = styled.div`
-  font-size: 4rem;
-  margin-bottom: 1rem;
-`;
-
-const LoginButton = styled.button`
-  padding: 0.875rem 2rem;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #5568d3;
-  }
-`;
-
-const PasswordHint = styled.small`
-  display: block;
-  color: #666;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-`;
-
-const LoadingContainer = styled.div`
-  text-align: center;
-  padding: 3rem 2rem;
-  color: #666;
-`;
 
 const AcceptInvitation: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -364,97 +143,102 @@ const AcceptInvitation: React.FC = () => {
 
   if (loading) {
     return (
-      <PageContainer>
-        <Card>
-          <CardHeader>
+      <div className={styles.pageContainer}>
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
             <h1>Accept Invitation</h1>
             <p>Loading invitation details...</p>
-          </CardHeader>
-          <LoadingContainer>
-            <LoadingSpinner />
-          </LoadingContainer>
-        </Card>
-      </PageContainer>
+          </div>
+          <div className={styles.loadingContainer}>
+            <span className={styles.loadingSpinner} />
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (success) {
     return (
-      <PageContainer>
-        <Card>
-          <CardHeader>
+      <div className={styles.pageContainer}>
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
             <h1>Welcome!</h1>
             <p>Your account has been created successfully</p>
-          </CardHeader>
-          <CardBody>
-            <SuccessContainer>
-              <SuccessIcon>🎉</SuccessIcon>
+          </div>
+          <div className={styles.cardBody}>
+            <div className={styles.successContainer}>
+              <div className={styles.successIcon}>🎉</div>
               <h2>Account Created!</h2>
               <p>
                 Your account has been successfully created. You can now log in to start working with
                 your rescue team.
               </p>
-              <LoginButton onClick={handleGoToLogin}>Go to Login</LoginButton>
-            </SuccessContainer>
-          </CardBody>
-        </Card>
-      </PageContainer>
+              <button className={styles.loginButton} onClick={handleGoToLogin}>
+                Go to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (error && !invitationEmail) {
     return (
-      <PageContainer>
-        <Card>
-          <CardHeader>
+      <div className={styles.pageContainer}>
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
             <h1>Invalid Invitation</h1>
             <p>Unable to process invitation</p>
-          </CardHeader>
-          <CardBody>
-            <ErrorContainer>
+          </div>
+          <div className={styles.cardBody}>
+            <div className={styles.errorContainer}>
               <h3>⚠️ Error</h3>
               <p>{error}</p>
-            </ErrorContainer>
-            <LoginButton onClick={handleGoToLogin} style={{ width: '100%' }}>
+            </div>
+            <button
+              className={clsx(styles.loginButton, styles.loginButtonFull)}
+              onClick={handleGoToLogin}
+            >
               Go to Homepage
-            </LoginButton>
-          </CardBody>
-        </Card>
-      </PageContainer>
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <PageContainer>
-      <Card>
-        <CardHeader>
+    <div className={styles.pageContainer}>
+      <div className={styles.card}>
+        <div className={styles.cardHeader}>
           <h1>Join the Team!</h1>
           <p>Create your account to get started</p>
-        </CardHeader>
-        <CardBody>
-          <InvitationInfo>
+        </div>
+        <div className={styles.cardBody}>
+          <div className={styles.invitationInfo}>
             <p>
               <strong>You've been invited to join a rescue organization</strong>
               You're registering with: {invitationEmail}
             </p>
-          </InvitationInfo>
+          </div>
 
           {error && (
-            <ErrorContainer>
+            <div className={styles.errorContainer}>
               <h3>⚠️ Error</h3>
               <p>{error}</p>
-            </ErrorContainer>
+            </div>
           )}
 
-          <Form onSubmit={handleSubmit}>
-            <FormGroup>
-              <FormLabel htmlFor="firstName">
-                First Name <RequiredIndicator>*</RequiredIndicator>
-              </FormLabel>
-              <FormInput
+          <form onSubmit={handleSubmit}>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel} htmlFor="firstName">
+                First Name <span className={styles.requiredIndicator}>*</span>
+              </label>
+              <input
                 id="firstName"
                 type="text"
-                hasError={!!errors.firstName}
+                className={clsx(styles.formInput, errors.firstName && styles.formInputError)}
                 value={formData.firstName}
                 onChange={e => handleInputChange('firstName', e.target.value)}
                 placeholder="Enter your first name"
@@ -462,90 +246,94 @@ const AcceptInvitation: React.FC = () => {
                 required
                 autoFocus
               />
-              {errors.firstName && <FormError>{errors.firstName}</FormError>}
-            </FormGroup>
+              {errors.firstName && <span className={styles.formError}>{errors.firstName}</span>}
+            </div>
 
-            <FormGroup>
-              <FormLabel htmlFor="lastName">
-                Last Name <RequiredIndicator>*</RequiredIndicator>
-              </FormLabel>
-              <FormInput
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel} htmlFor="lastName">
+                Last Name <span className={styles.requiredIndicator}>*</span>
+              </label>
+              <input
                 id="lastName"
                 type="text"
-                hasError={!!errors.lastName}
+                className={clsx(styles.formInput, errors.lastName && styles.formInputError)}
                 value={formData.lastName}
                 onChange={e => handleInputChange('lastName', e.target.value)}
                 placeholder="Enter your last name"
                 disabled={submitting}
                 required
               />
-              {errors.lastName && <FormError>{errors.lastName}</FormError>}
-            </FormGroup>
+              {errors.lastName && <span className={styles.formError}>{errors.lastName}</span>}
+            </div>
 
-            <FormGroup>
-              <FormLabel htmlFor="password">
-                Password <RequiredIndicator>*</RequiredIndicator>
-              </FormLabel>
-              <FormInput
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel} htmlFor="password">
+                Password <span className={styles.requiredIndicator}>*</span>
+              </label>
+              <input
                 id="password"
                 type="password"
-                hasError={!!errors.password}
+                className={clsx(styles.formInput, errors.password && styles.formInputError)}
                 value={formData.password}
                 onChange={e => handleInputChange('password', e.target.value)}
                 placeholder="Create a secure password"
                 disabled={submitting}
                 required
               />
-              {errors.password && <FormError>{errors.password}</FormError>}
-              <PasswordHint>Must be at least 8 characters</PasswordHint>
-            </FormGroup>
+              {errors.password && <span className={styles.formError}>{errors.password}</span>}
+              <small className={styles.passwordHint}>Must be at least 8 characters</small>
+            </div>
 
-            <FormGroup>
-              <FormLabel htmlFor="confirmPassword">
-                Confirm Password <RequiredIndicator>*</RequiredIndicator>
-              </FormLabel>
-              <FormInput
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel} htmlFor="confirmPassword">
+                Confirm Password <span className={styles.requiredIndicator}>*</span>
+              </label>
+              <input
                 id="confirmPassword"
                 type="password"
-                hasError={!!errors.confirmPassword}
+                className={clsx(styles.formInput, errors.confirmPassword && styles.formInputError)}
                 value={formData.confirmPassword}
                 onChange={e => handleInputChange('confirmPassword', e.target.value)}
                 placeholder="Re-enter your password"
                 disabled={submitting}
                 required
               />
-              {errors.confirmPassword && <FormError>{errors.confirmPassword}</FormError>}
-            </FormGroup>
+              {errors.confirmPassword && (
+                <span className={styles.formError}>{errors.confirmPassword}</span>
+              )}
+            </div>
 
-            <FormGroup>
-              <FormLabel htmlFor="title">Title/Role (Optional)</FormLabel>
-              <FormInput
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel} htmlFor="title">
+                Title/Role (Optional)
+              </label>
+              <input
                 id="title"
                 type="text"
-                hasError={!!errors.title}
+                className={clsx(styles.formInput, errors.title && styles.formInputError)}
                 value={formData.title || ''}
                 onChange={e => handleInputChange('title', e.target.value)}
                 placeholder="e.g., Volunteer, Coordinator"
                 disabled={submitting}
                 maxLength={100}
               />
-              {errors.title && <FormError>{errors.title}</FormError>}
-            </FormGroup>
+              {errors.title && <span className={styles.formError}>{errors.title}</span>}
+            </div>
 
-            <SubmitButton type="submit" disabled={submitting}>
+            <button className={styles.submitButton} type="submit" disabled={submitting}>
               {submitting ? (
                 <>
-                  <LoadingSpinner />
+                  <span className={styles.loadingSpinner} />
                   Creating Account...
                 </>
               ) : (
                 'Create Account'
               )}
-            </SubmitButton>
-          </Form>
-        </CardBody>
-      </Card>
-    </PageContainer>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 };
 

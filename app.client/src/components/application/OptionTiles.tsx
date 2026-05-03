@@ -1,5 +1,6 @@
 import React from 'react';
-import styled from 'styled-components';
+import clsx from 'clsx';
+import * as styles from './OptionTiles.css';
 
 type Props = {
   name: string;
@@ -10,75 +11,6 @@ type Props = {
   hasError?: boolean;
 };
 
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.75rem;
-`;
-
-const Tile = styled.label<{ $selected: boolean; $hasError: boolean }>`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem 0.75rem;
-  border-radius: 0.75rem;
-  border: 2px solid
-    ${({ $selected, $hasError, theme }) => {
-      if ($selected) {
-        return theme.colors.primary[500];
-      }
-      if ($hasError) {
-        return theme.colors.semantic.error[400];
-      }
-      return theme.border.color.primary;
-    }};
-  background: ${({ $selected, theme }) =>
-    $selected ? theme.colors.primary[50] : theme.background.primary};
-  cursor: pointer;
-  text-align: center;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.1s ease;
-  min-height: 92px;
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.primary[50]};
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:focus-within {
-    outline: 2px solid ${({ theme }) => theme.colors.primary[400]};
-    outline-offset: 2px;
-  }
-`;
-
-const HiddenRadio = styled.input`
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  width: 0;
-  height: 0;
-`;
-
-const Emoji = styled.span`
-  font-size: 1.5rem;
-  line-height: 1;
-`;
-
-const Label = styled.span<{ $selected: boolean }>`
-  font-size: 0.8125rem;
-  font-weight: ${props => (props.$selected ? 600 : 500)};
-  color: ${({ $selected, theme }) => ($selected ? theme.colors.primary[700] : theme.text.primary)};
-  line-height: 1.25;
-`;
-
 export const OptionTiles: React.FC<Props> = ({
   name,
   options,
@@ -87,31 +19,48 @@ export const OptionTiles: React.FC<Props> = ({
   iconFor,
   hasError = false,
 }) => (
-  <Grid role='radiogroup'>
+  <div className={styles.grid} role='radiogroup'>
     {options.map(option => {
       const selected = value === option;
       return (
-        <Tile key={option} $selected={selected} $hasError={hasError}>
-          <HiddenRadio
+        <label
+          key={option}
+          className={clsx(
+            styles.tile,
+            selected
+              ? styles.tileVariants.selected
+              : hasError
+                ? styles.tileVariants.error
+                : styles.tileVariants.unselected
+          )}
+        >
+          <input
+            className={styles.hiddenRadio}
             type='radio'
             name={name}
             value={option}
             checked={selected}
             onChange={() => onChange(option)}
           />
-          <Emoji aria-hidden='true'>{iconFor(option)}</Emoji>
-          <Label $selected={selected}>{option}</Label>
-        </Tile>
+          <span className={styles.emoji} aria-hidden='true'>
+            {iconFor(option)}
+          </span>
+          <span
+            className={clsx(
+              styles.label,
+              selected ? styles.labelVariants.selected : styles.labelVariants.unselected
+            )}
+          >
+            {option}
+          </span>
+        </label>
       );
     })}
-  </Grid>
+  </div>
 );
 
 /**
- * Per-question icon dictionaries. Keys map to lowercased option strings (with
- * em-dashes collapsed), values are emoji. Unknown keys should render via the
- * plain <select> fallback in QuestionField — these dictionaries only exist
- * for core keys where the mapping is unambiguous.
+ * Per-question icon dictionaries.
  */
 const normalise = (s: string): string =>
   s

@@ -2,46 +2,13 @@ import { ApplicationData } from '@/services';
 import { Input } from '@adopt-dont-shop/lib.components';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import styled from 'styled-components';
+import * as styles from './BasicInfoStep.css';
 
 interface BasicInfoStepProps {
   data: Partial<ApplicationData['personalInfo']>;
   onComplete: (data: ApplicationData['personalInfo']) => void;
   onChange?: (data: Partial<ApplicationData['personalInfo']>) => void;
 }
-
-const StepContainer = styled.div`
-  padding: 2rem 0;
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-`;
-
-const FullWidthField = styled.div`
-  grid-column: 1 / -1;
-`;
-
-const Title = styled.h3`
-  color: ${props => props.theme.colors.neutral[900]};
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-`;
-
-const Description = styled.p`
-  color: ${props => props.theme.colors.neutral[600]};
-  margin-bottom: 2rem;
-  line-height: 1.6;
-`;
 
 export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete, onChange }) => {
   const {
@@ -65,14 +32,14 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete, 
   };
 
   return (
-    <StepContainer>
-      <Title>Personal Information</Title>
-      <Description>
+    <div className={styles.stepContainer}>
+      <h3 className={styles.title}>Personal Information</h3>
+      <p className={styles.description}>
         Please provide your basic information. This will help us contact you about your application.
-      </Description>
+      </p>
 
       <form id='step-1-form' onSubmit={handleSubmit(onSubmit)}>
-        <FormGrid>
+        <div className={styles.formGrid}>
           <Input
             label='First Name'
             {...register('firstName', {
@@ -122,7 +89,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete, 
             required
           />
 
-          <FullWidthField>
+          <div className={styles.fullWidthField}>
             <Input
               label='Street Address'
               {...register('address', {
@@ -132,7 +99,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete, 
               error={errors.address?.message}
               required
             />
-          </FullWidthField>
+          </div>
 
           <Input
             label='City'
@@ -189,8 +156,8 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete, 
             {...register('occupation')}
             error={errors.occupation?.message}
           />
-        </FormGrid>
+        </div>
       </form>
-    </StepContainer>
+    </div>
   );
 };

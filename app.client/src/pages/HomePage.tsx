@@ -8,120 +8,7 @@ import { petService, Pet } from '@/services';
 import { Button, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import styled from 'styled-components';
-
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
-
-  @media (max-width: 768px) {
-    padding: 0 1rem;
-  }
-`;
-
-const Section = styled.section`
-  padding: 4rem 0;
-
-  h2 {
-    text-align: center;
-    font-size: 2.5rem;
-    margin-bottom: 3rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  @media (max-width: 768px) {
-    padding: 3rem 0;
-
-    h2 {
-      font-size: 2rem;
-      margin-bottom: 2rem;
-    }
-  }
-`;
-
-const PetGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.5rem;
-  }
-`;
-
-const StatsSection = styled.section`
-  background-color: ${props => props.theme.background.secondary};
-  padding: 4rem 0;
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 2rem;
-    text-align: center;
-  }
-
-  .stat-item {
-    h3 {
-      font-size: 3rem;
-      color: ${props => props.theme.colors.primary[500]};
-      margin-bottom: 0.5rem;
-    }
-
-    p {
-      font-size: 1.25rem;
-      color: ${props => props.theme.text.tertiary};
-    }
-  }
-
-  @media (max-width: 768px) {
-    .stat-item h3 {
-      font-size: 2rem;
-    }
-
-    .stat-item p {
-      font-size: 1rem;
-    }
-  }
-`;
-
-const CTASection = styled.section`
-  background-color: ${props => props.theme.colors.primary[500]};
-  color: white;
-  padding: 4rem 0;
-  text-align: center;
-
-  h2 {
-    color: white;
-    margin-bottom: 1rem;
-  }
-
-  p {
-    font-size: 1.25rem;
-    margin-bottom: 2rem;
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-`;
-
-const ErrorMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: ${props => props.theme.colors.semantic.error[500]};
-  background-color: ${props => props.theme.background.error};
-  border-radius: 8px;
-  margin: 2rem 0;
-`;
+import * as styles from './HomePage.css';
 
 export const HomePage: React.FC = () => {
   const [featuredPets, setFeaturedPets] = useState<Pet[]>([]);
@@ -259,14 +146,15 @@ export const HomePage: React.FC = () => {
     <div>
       {/* Hero Section - A/B Test with Feature Flags */}
       {showNewHero ? (
-        <Section
+        <section
+          className={styles.section}
           style={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             color: 'white',
             textAlign: 'center',
           }}
         >
-          <Container>
+          <div className={styles.container}>
             <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>
               Find Your Perfect Companion
             </h1>
@@ -291,32 +179,32 @@ export const HomePage: React.FC = () => {
                 Learn More
               </Button>
             </div>
-          </Container>
-        </Section>
+          </div>
+        </section>
       ) : (
         <SwipeHero />
       )}
 
       {/* Featured Pets Section */}
-      <Section>
-        <Container>
+      <section className={styles.section}>
+        <div className={styles.container}>
           <h2>Featured Pets</h2>
 
           {isLoading && (
-            <LoadingContainer>
+            <div className={styles.loadingContainer}>
               <Spinner />
-            </LoadingContainer>
+            </div>
           )}
 
-          {error && <ErrorMessage>{error}</ErrorMessage>}
+          {error && <div className={styles.errorMessage}>{error}</div>}
 
           {!isLoading && !error && (
             <>
-              <PetGrid>
+              <div className={styles.petGrid}>
                 {featuredPets.map(pet => (
                   <PetCard key={pet.pet_id} pet={pet} />
                 ))}
-              </PetGrid>
+              </div>
 
               <div style={{ textAlign: 'center' }}>
                 <Link to='/search' onClick={handleViewAllPetsClick}>
@@ -325,12 +213,12 @@ export const HomePage: React.FC = () => {
               </div>
             </>
           )}
-        </Container>
-      </Section>
+        </div>
+      </section>
 
       {/* Statistics Section */}
-      <StatsSection>
-        <Container>
+      <section className={styles.statsSection}>
+        <div className={styles.container}>
           <div className='stats-grid'>
             <div className='stat-item'>
               <h3>10,000+</h3>
@@ -349,12 +237,12 @@ export const HomePage: React.FC = () => {
               <p>Support Available</p>
             </div>
           </div>
-        </Container>
-      </StatsSection>
+        </div>
+      </section>
 
       {/* Call to Action Section */}
-      <CTASection>
-        <Container>
+      <section className={styles.ctaSection}>
+        <div className={styles.container}>
           <h2>Ready to Make a Difference?</h2>
           <p>
             {isAuthenticated
@@ -374,8 +262,8 @@ export const HomePage: React.FC = () => {
               </Button>
             </Link>
           )}
-        </Container>
-      </CTASection>
+        </div>
+      </section>
     </div>
   );
 };

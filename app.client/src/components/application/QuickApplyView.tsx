@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import styled from 'styled-components';
 import { Alert, Button } from '@adopt-dont-shop/lib.components';
+import * as styles from './QuickApplyView.css';
 import type { Pet } from '@/services';
 import type { SaveStatus } from '@/hooks/use-auto-save';
 import { PetHeroCard } from './PetHeroCard';
@@ -41,60 +41,6 @@ type Props = {
   isSubmitting: boolean;
   saveStatus: SaveStatus;
 };
-
-const Container = styled.div`
-  max-width: 720px;
-  margin: 0 auto;
-`;
-
-const FinalStep = styled.section`
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: ${props => props.theme.background.primary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 0.75rem;
-`;
-
-const FinalTitle = styled.h3`
-  margin: 0 0 0.5rem 0;
-  font-size: 1.125rem;
-  color: ${props => props.theme.text.primary};
-`;
-
-const FinalDescription = styled.p`
-  margin: 0 0 1.25rem 0;
-  font-size: 0.9375rem;
-  color: ${props => props.theme.text.secondary};
-`;
-
-const Actions = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
-  flex-wrap: wrap;
-
-  @media (max-width: 640px) {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
-`;
-
-const SwitchLink = styled.button`
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.875rem;
-  color: ${props => props.theme.colors.primary[600]};
-  cursor: pointer;
-  text-decoration: underline;
-  text-align: left;
-
-  &:hover {
-    color: ${props => props.theme.colors.primary[700]};
-  }
-`;
 
 const hasAnswer = (value: unknown): boolean => {
   if (value === null || value === undefined || value === '') {
@@ -193,7 +139,7 @@ export const QuickApplyView: React.FC<Props> = ({
   };
 
   return (
-    <Container>
+    <div className={styles.container}>
       <PetHeroCard
         pet={pet}
         heading={`Apply to adopt ${pet.name} 🐾`}
@@ -240,11 +186,11 @@ export const QuickApplyView: React.FC<Props> = ({
         />
       )}
 
-      <FinalStep>
-        <FinalTitle>About {pet.name} ❤️</FinalTitle>
-        <FinalDescription>
+      <section className={styles.finalStep}>
+        <h3 className={styles.finalTitle}>About {pet.name} ❤️</h3>
+        <p className={styles.finalDescription}>
           Last bit! Just a few questions about {pet.name} and we&apos;re done.
-        </FinalDescription>
+        </p>
         {acknowledgmentQuestions
           .filter(q => shouldShowQuestion(q, answers))
           .map(question => {
@@ -260,12 +206,12 @@ export const QuickApplyView: React.FC<Props> = ({
               />
             );
           })}
-      </FinalStep>
+      </section>
 
-      <Actions>
-        <SwitchLink type='button' onClick={onSwitchToGuided}>
+      <div className={styles.actions}>
+        <button className={styles.switchLink} type='button' onClick={onSwitchToGuided}>
           Prefer to go step-by-step? Switch to the guided form →
-        </SwitchLink>
+        </button>
         <Button
           variant='primary'
           onClick={handleSubmit}
@@ -274,7 +220,7 @@ export const QuickApplyView: React.FC<Props> = ({
         >
           Send my application 💌
         </Button>
-      </Actions>
-    </Container>
+      </div>
+    </div>
   );
 };

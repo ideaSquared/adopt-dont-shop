@@ -1,6 +1,6 @@
 import { ApplicationData, Pet } from '@/services';
 import React from 'react';
-import styled from 'styled-components';
+import * as styles from './ReviewStep.css';
 
 interface ReviewStepProps {
   data: Partial<ApplicationData>;
@@ -8,107 +8,6 @@ interface ReviewStepProps {
   onComplete: (data: ApplicationData['additionalInfo']) => void;
   isUpdate: boolean;
 }
-
-const StepContainer = styled.div`
-  max-width: 600px;
-`;
-
-const StepTitle = styled.h2`
-  font-size: 1.5rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 0.5rem;
-`;
-
-const StepDescription = styled.p`
-  color: ${props => props.theme.text.secondary};
-  margin-bottom: 2rem;
-`;
-
-const Form = styled.form`
-  display: grid;
-  gap: 1.5rem;
-`;
-
-const ReviewSection = styled.div`
-  padding: 1.5rem;
-  background: ${props => props.theme.background.secondary};
-  border-radius: 8px;
-  margin-bottom: 1rem;
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 1.1rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 1rem;
-`;
-
-const ReviewItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  @media (min-width: 768px) {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-`;
-
-const Label = styled.span`
-  font-weight: 500;
-  color: ${props => props.theme.text.secondary};
-  flex-shrink: 0;
-
-  @media (min-width: 768px) {
-    min-width: 200px;
-    max-width: 200px;
-  }
-`;
-
-const Value = styled.span`
-  color: ${props => props.theme.text.primary};
-  word-wrap: break-word;
-  word-break: break-word;
-  white-space: pre-wrap;
-  line-height: 1.4;
-
-  @media (min-width: 768px) {
-    flex: 1;
-    text-align: right;
-  }
-`;
-
-const LongTextReviewItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const LongTextValue = styled.div`
-  color: ${props => props.theme.text.primary};
-  word-wrap: break-word;
-  word-break: break-word;
-  white-space: pre-wrap;
-  line-height: 1.5;
-  padding: 0.75rem;
-  background: ${props => props.theme.background.tertiary || props.theme.background.primary};
-  border-radius: 4px;
-  border: 1px solid
-    ${props => props.theme.border.color.secondary || props.theme.border.color.primary};
-`;
 
 export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, isUpdate }) => {
   const handleContinue = () => {
@@ -121,11 +20,14 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
   };
 
   return (
-    <StepContainer>
-      <StepTitle>Review & Submit</StepTitle>
-      <StepDescription>Please review your application details before submitting.</StepDescription>
+    <div className={styles.stepContainer}>
+      <h2 className={styles.stepTitle}>Review & Submit</h2>
+      <p className={styles.stepDescription}>
+        Please review your application details before submitting.
+      </p>
 
-      <Form
+      <form
+        className={styles.form}
         id='step-6-form'
         onSubmit={e => {
           e.preventDefault();
@@ -133,231 +35,261 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
         }}
       >
         {pet && (
-          <ReviewSection>
-            <SectionTitle>Pet Information</SectionTitle>
-            <ReviewItem>
-              <Label>Pet Name:</Label>
-              <Value>{pet.name}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Type:</Label>
-              <Value>{pet.type}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Breed:</Label>
-              <Value>{pet.breed}</Value>
-            </ReviewItem>
-          </ReviewSection>
+          <div className={styles.reviewSection}>
+            <h3 className={styles.sectionTitle}>Pet Information</h3>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Pet Name:</span>
+              <span className={styles.reviewValue}>{pet.name}</span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Type:</span>
+              <span className={styles.reviewValue}>{pet.type}</span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Breed:</span>
+              <span className={styles.reviewValue}>{pet.breed}</span>
+            </div>
+          </div>
         )}
 
         {data.personalInfo && (
-          <ReviewSection>
-            <SectionTitle>Personal Information</SectionTitle>
-            <ReviewItem>
-              <Label>Name:</Label>
-              <Value>
+          <div className={styles.reviewSection}>
+            <h3 className={styles.sectionTitle}>Personal Information</h3>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Name:</span>
+              <span className={styles.reviewValue}>
                 {data.personalInfo.firstName} {data.personalInfo.lastName}
-              </Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Email:</Label>
-              <Value>{data.personalInfo.email}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Phone:</Label>
-              <Value>{data.personalInfo.phone}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Address:</Label>
-              <Value>{data.personalInfo.address}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>City:</Label>
-              <Value>{data.personalInfo.city}</Value>
-            </ReviewItem>
+              </span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Email:</span>
+              <span className={styles.reviewValue}>{data.personalInfo.email}</span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Phone:</span>
+              <span className={styles.reviewValue}>{data.personalInfo.phone}</span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Address:</span>
+              <span className={styles.reviewValue}>{data.personalInfo.address}</span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>City:</span>
+              <span className={styles.reviewValue}>{data.personalInfo.city}</span>
+            </div>
             {data.personalInfo.county && (
-              <ReviewItem>
-                <Label>County:</Label>
-                <Value>{data.personalInfo.county}</Value>
-              </ReviewItem>
+              <div className={styles.reviewItem}>
+                <span className={styles.reviewLabel}>County:</span>
+                <span className={styles.reviewValue}>{data.personalInfo.county}</span>
+              </div>
             )}
-            <ReviewItem>
-              <Label>Postcode:</Label>
-              <Value>{data.personalInfo.postcode}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Country:</Label>
-              <Value>{data.personalInfo.country}</Value>
-            </ReviewItem>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Postcode:</span>
+              <span className={styles.reviewValue}>{data.personalInfo.postcode}</span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Country:</span>
+              <span className={styles.reviewValue}>{data.personalInfo.country}</span>
+            </div>
             {data.personalInfo.dateOfBirth && (
-              <ReviewItem>
-                <Label>Date of Birth:</Label>
-                <Value>{data.personalInfo.dateOfBirth}</Value>
-              </ReviewItem>
+              <div className={styles.reviewItem}>
+                <span className={styles.reviewLabel}>Date of Birth:</span>
+                <span className={styles.reviewValue}>{data.personalInfo.dateOfBirth}</span>
+              </div>
             )}
             {data.personalInfo.occupation && (
-              <ReviewItem>
-                <Label>Occupation:</Label>
-                <Value>{data.personalInfo.occupation}</Value>
-              </ReviewItem>
+              <div className={styles.reviewItem}>
+                <span className={styles.reviewLabel}>Occupation:</span>
+                <span className={styles.reviewValue}>{data.personalInfo.occupation}</span>
+              </div>
             )}
-          </ReviewSection>
+          </div>
         )}
 
         {data.livingsituation && (
-          <ReviewSection>
-            <SectionTitle>Living Situation</SectionTitle>
-            <ReviewItem>
-              <Label>Housing Type:</Label>
-              <Value>{data.livingsituation.housingType}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Owned/Rented:</Label>
-              <Value>{data.livingsituation.isOwned ? 'Owned' : 'Rented'}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Has Yard:</Label>
-              <Value>{data.livingsituation.hasYard ? 'Yes' : 'No'}</Value>
-            </ReviewItem>
+          <div className={styles.reviewSection}>
+            <h3 className={styles.sectionTitle}>Living Situation</h3>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Housing Type:</span>
+              <span className={styles.reviewValue}>{data.livingsituation.housingType}</span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Owned/Rented:</span>
+              <span className={styles.reviewValue}>
+                {data.livingsituation.isOwned ? 'Owned' : 'Rented'}
+              </span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Has Yard:</span>
+              <span className={styles.reviewValue}>
+                {data.livingsituation.hasYard ? 'Yes' : 'No'}
+              </span>
+            </div>
             {data.livingsituation.hasYard && data.livingsituation.yardSize && (
-              <ReviewItem>
-                <Label>Yard Size:</Label>
-                <Value>{data.livingsituation.yardSize}</Value>
-              </ReviewItem>
+              <div className={styles.reviewItem}>
+                <span className={styles.reviewLabel}>Yard Size:</span>
+                <span className={styles.reviewValue}>{data.livingsituation.yardSize}</span>
+              </div>
             )}
             {data.livingsituation.hasYard && (
-              <ReviewItem>
-                <Label>Yard Fenced:</Label>
-                <Value>{data.livingsituation.yardFenced ? 'Yes' : 'No'}</Value>
-              </ReviewItem>
+              <div className={styles.reviewItem}>
+                <span className={styles.reviewLabel}>Yard Fenced:</span>
+                <span className={styles.reviewValue}>
+                  {data.livingsituation.yardFenced ? 'Yes' : 'No'}
+                </span>
+              </div>
             )}
-            <ReviewItem>
-              <Label>Pets Allowed:</Label>
-              <Value>{data.livingsituation.allowsPets ? 'Yes' : 'No'}</Value>
-            </ReviewItem>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Pets Allowed:</span>
+              <span className={styles.reviewValue}>
+                {data.livingsituation.allowsPets ? 'Yes' : 'No'}
+              </span>
+            </div>
             {data.livingsituation.landlordContact && (
-              <ReviewItem>
-                <Label>Landlord Contact:</Label>
-                <Value>{data.livingsituation.landlordContact}</Value>
-              </ReviewItem>
+              <div className={styles.reviewItem}>
+                <span className={styles.reviewLabel}>Landlord Contact:</span>
+                <span className={styles.reviewValue}>{data.livingsituation.landlordContact}</span>
+              </div>
             )}
             {data.livingsituation.householdSize && (
-              <ReviewItem>
-                <Label>Household Size:</Label>
-                <Value>{data.livingsituation.householdSize} people</Value>
-              </ReviewItem>
+              <div className={styles.reviewItem}>
+                <span className={styles.reviewLabel}>Household Size:</span>
+                <span className={styles.reviewValue}>
+                  {data.livingsituation.householdSize} people
+                </span>
+              </div>
             )}
-            <ReviewItem>
-              <Label>Allergies in Household:</Label>
-              <Value>{data.livingsituation.hasAllergies ? 'Yes' : 'No'}</Value>
-            </ReviewItem>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Allergies in Household:</span>
+              <span className={styles.reviewValue}>
+                {data.livingsituation.hasAllergies ? 'Yes' : 'No'}
+              </span>
+            </div>
             {data.livingsituation.hasAllergies && data.livingsituation.allergyDetails && (
-              <LongTextReviewItem>
-                <Label>Allergy Details:</Label>
-                <LongTextValue>{data.livingsituation.allergyDetails}</LongTextValue>
-              </LongTextReviewItem>
+              <div className={styles.longTextReviewItem}>
+                <span className={styles.reviewLabel}>Allergy Details:</span>
+                <div className={styles.longTextValue}>{data.livingsituation.allergyDetails}</div>
+              </div>
             )}
-          </ReviewSection>
+          </div>
         )}
 
         {data.petExperience && (
-          <ReviewSection>
-            <SectionTitle>Pet Experience</SectionTitle>
-            <ReviewItem>
-              <Label>Currently Have Pets:</Label>
-              <Value>{data.petExperience.hasPetsCurrently ? 'Yes' : 'No'}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Experience Level:</Label>
-              <Value>{data.petExperience.experienceLevel}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Willing to Train:</Label>
-              <Value>{data.petExperience.willingToTrain ? 'Yes' : 'No'}</Value>
-            </ReviewItem>
-            <ReviewItem>
-              <Label>Hours Alone Daily:</Label>
-              <Value>{data.petExperience.hoursAloneDaily} hours</Value>
-            </ReviewItem>
+          <div className={styles.reviewSection}>
+            <h3 className={styles.sectionTitle}>Pet Experience</h3>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Currently Have Pets:</span>
+              <span className={styles.reviewValue}>
+                {data.petExperience.hasPetsCurrently ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Experience Level:</span>
+              <span className={styles.reviewValue}>{data.petExperience.experienceLevel}</span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Willing to Train:</span>
+              <span className={styles.reviewValue}>
+                {data.petExperience.willingToTrain ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Hours Alone Daily:</span>
+              <span className={styles.reviewValue}>{data.petExperience.hoursAloneDaily} hours</span>
+            </div>
             {data.petExperience.exercisePlans && (
-              <LongTextReviewItem>
-                <Label>Exercise Plans:</Label>
-                <LongTextValue>{data.petExperience.exercisePlans}</LongTextValue>
-              </LongTextReviewItem>
+              <div className={styles.longTextReviewItem}>
+                <span className={styles.reviewLabel}>Exercise Plans:</span>
+                <div className={styles.longTextValue}>{data.petExperience.exercisePlans}</div>
+              </div>
             )}
             {data.petExperience.currentPets && data.petExperience.currentPets.length > 0 && (
               <>
-                <Label style={{ marginTop: '1rem', marginBottom: '0.5rem', display: 'block' }}>
+                <span
+                  className={styles.reviewLabel}
+                  style={{ marginTop: '1rem', marginBottom: '0.5rem', display: 'block' }}
+                >
                   Current Pets:
-                </Label>
+                </span>
                 {data.petExperience.currentPets.map((pet, index) => (
-                  <ReviewItem key={index}>
-                    <Label>
+                  <div className={styles.reviewItem} key={index}>
+                    <span className={styles.reviewLabel}>
                       {pet.type} - {pet.breed}:
-                    </Label>
-                    <Value>
+                    </span>
+                    <span className={styles.reviewValue}>
                       Age {pet.age},{' '}
                       {pet.spayedNeutered ? 'Spayed/Neutered' : 'Not Spayed/Neutered'}
-                    </Value>
-                  </ReviewItem>
+                    </span>
+                  </div>
                 ))}
               </>
             )}
             {data.petExperience.previousPets && data.petExperience.previousPets.length > 0 && (
               <>
-                <Label style={{ marginTop: '1rem', marginBottom: '0.5rem', display: 'block' }}>
+                <span
+                  className={styles.reviewLabel}
+                  style={{ marginTop: '1rem', marginBottom: '0.5rem', display: 'block' }}
+                >
                   Previous Pets:
-                </Label>
+                </span>
                 {data.petExperience.previousPets.map((pet, index) => (
-                  <ReviewItem key={index}>
-                    <Label>
+                  <div className={styles.reviewItem} key={index}>
+                    <span className={styles.reviewLabel}>
                       {pet.type} - {pet.breed}:
-                    </Label>
-                    <Value>
+                    </span>
+                    <span className={styles.reviewValue}>
                       Owned for {pet.yearsOwned} years - {pet.whatHappened}
-                    </Value>
-                  </ReviewItem>
+                    </span>
+                  </div>
                 ))}
               </>
             )}
-          </ReviewSection>
+          </div>
         )}
 
         {data.references && (
-          <ReviewSection>
-            <SectionTitle>References</SectionTitle>
+          <div className={styles.reviewSection}>
+            <h3 className={styles.sectionTitle}>References</h3>
             {data.references.veterinarian && (
               <>
-                <Label style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 'bold' }}>
+                <span
+                  className={styles.reviewLabel}
+                  style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 'bold' }}
+                >
                   Veterinarian Reference:
-                </Label>
-                <ReviewItem>
-                  <Label>Name:</Label>
-                  <Value>{data.references.veterinarian.name}</Value>
-                </ReviewItem>
-                <ReviewItem>
-                  <Label>Clinic:</Label>
-                  <Value>{data.references.veterinarian.clinicName}</Value>
-                </ReviewItem>
-                <ReviewItem>
-                  <Label>Phone:</Label>
-                  <Value>{data.references.veterinarian.phone}</Value>
-                </ReviewItem>
+                </span>
+                <div className={styles.reviewItem}>
+                  <span className={styles.reviewLabel}>Name:</span>
+                  <span className={styles.reviewValue}>{data.references.veterinarian.name}</span>
+                </div>
+                <div className={styles.reviewItem}>
+                  <span className={styles.reviewLabel}>Clinic:</span>
+                  <span className={styles.reviewValue}>
+                    {data.references.veterinarian.clinicName}
+                  </span>
+                </div>
+                <div className={styles.reviewItem}>
+                  <span className={styles.reviewLabel}>Phone:</span>
+                  <span className={styles.reviewValue}>{data.references.veterinarian.phone}</span>
+                </div>
                 {data.references.veterinarian.email && (
-                  <ReviewItem>
-                    <Label>Email:</Label>
-                    <Value>{data.references.veterinarian.email}</Value>
-                  </ReviewItem>
+                  <div className={styles.reviewItem}>
+                    <span className={styles.reviewLabel}>Email:</span>
+                    <span className={styles.reviewValue}>{data.references.veterinarian.email}</span>
+                  </div>
                 )}
-                <ReviewItem>
-                  <Label>Years Used:</Label>
-                  <Value>{data.references.veterinarian.yearsUsed} years</Value>
-                </ReviewItem>
+                <div className={styles.reviewItem}>
+                  <span className={styles.reviewLabel}>Years Used:</span>
+                  <span className={styles.reviewValue}>
+                    {data.references.veterinarian.yearsUsed} years
+                  </span>
+                </div>
               </>
             )}
             {data.references.personal && data.references.personal.length > 0 && (
               <>
-                <Label
+                <span
+                  className={styles.reviewLabel}
                   style={{
                     marginTop: '1rem',
                     marginBottom: '0.5rem',
@@ -366,7 +298,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
                   }}
                 >
                   Personal References:
-                </Label>
+                </span>
                 {data.references.personal.map((ref, index) => (
                   <div
                     key={index}
@@ -376,28 +308,28 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
                       borderBottom: '1px solid #eee',
                     }}
                   >
-                    <ReviewItem>
-                      <Label>Name:</Label>
-                      <Value>{ref.name}</Value>
-                    </ReviewItem>
-                    <ReviewItem>
-                      <Label>Relationship:</Label>
-                      <Value>{ref.relationship}</Value>
-                    </ReviewItem>
-                    <ReviewItem>
-                      <Label>Phone:</Label>
-                      <Value>{ref.phone}</Value>
-                    </ReviewItem>
+                    <div className={styles.reviewItem}>
+                      <span className={styles.reviewLabel}>Name:</span>
+                      <span className={styles.reviewValue}>{ref.name}</span>
+                    </div>
+                    <div className={styles.reviewItem}>
+                      <span className={styles.reviewLabel}>Relationship:</span>
+                      <span className={styles.reviewValue}>{ref.relationship}</span>
+                    </div>
+                    <div className={styles.reviewItem}>
+                      <span className={styles.reviewLabel}>Phone:</span>
+                      <span className={styles.reviewValue}>{ref.phone}</span>
+                    </div>
                     {ref.email && (
-                      <ReviewItem>
-                        <Label>Email:</Label>
-                        <Value>{ref.email}</Value>
-                      </ReviewItem>
+                      <div className={styles.reviewItem}>
+                        <span className={styles.reviewLabel}>Email:</span>
+                        <span className={styles.reviewValue}>{ref.email}</span>
+                      </div>
                     )}
-                    <ReviewItem>
-                      <Label>Years Known:</Label>
-                      <Value>{ref.yearsKnown} years</Value>
-                    </ReviewItem>
+                    <div className={styles.reviewItem}>
+                      <span className={styles.reviewLabel}>Years Known:</span>
+                      <span className={styles.reviewValue}>{ref.yearsKnown} years</span>
+                    </div>
                   </div>
                 ))}
               </>
@@ -408,44 +340,44 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
                   No references provided. You may be contacted later for references if needed.
                 </p>
               )}
-          </ReviewSection>
+          </div>
         )}
 
         {!data.references && (
-          <ReviewSection>
-            <SectionTitle>References</SectionTitle>
+          <div className={styles.reviewSection}>
+            <h3 className={styles.sectionTitle}>References</h3>
             <p style={{ fontStyle: 'italic', color: '#666' }}>
               No references provided. You may be contacted later for references if needed.
             </p>
-          </ReviewSection>
+          </div>
         )}
 
         {data.additionalInfo && (
-          <ReviewSection>
-            <SectionTitle>Additional Information</SectionTitle>
-            <LongTextReviewItem>
-              <Label>Why do you want to adopt a pet:</Label>
-              <LongTextValue>{data.additionalInfo.whyAdopt}</LongTextValue>
-            </LongTextReviewItem>
-            <LongTextReviewItem>
-              <Label>Pet ownership expectations:</Label>
-              <LongTextValue>{data.additionalInfo.expectations}</LongTextValue>
-            </LongTextReviewItem>
-            <LongTextReviewItem>
-              <Label>Emergency plan:</Label>
-              <LongTextValue>{data.additionalInfo.emergencyPlan}</LongTextValue>
-            </LongTextReviewItem>
-            <ReviewItem>
-              <Label>Agreement:</Label>
-              <Value>
+          <div className={styles.reviewSection}>
+            <h3 className={styles.sectionTitle}>Additional Information</h3>
+            <div className={styles.longTextReviewItem}>
+              <span className={styles.reviewLabel}>Why do you want to adopt a pet:</span>
+              <div className={styles.longTextValue}>{data.additionalInfo.whyAdopt}</div>
+            </div>
+            <div className={styles.longTextReviewItem}>
+              <span className={styles.reviewLabel}>Pet ownership expectations:</span>
+              <div className={styles.longTextValue}>{data.additionalInfo.expectations}</div>
+            </div>
+            <div className={styles.longTextReviewItem}>
+              <span className={styles.reviewLabel}>Emergency plan:</span>
+              <div className={styles.longTextValue}>{data.additionalInfo.emergencyPlan}</div>
+            </div>
+            <div className={styles.reviewItem}>
+              <span className={styles.reviewLabel}>Agreement:</span>
+              <span className={styles.reviewValue}>
                 {data.additionalInfo.agreement ? 'Agreed to terms and conditions' : 'Not agreed'}
-              </Value>
-            </ReviewItem>
-          </ReviewSection>
+              </span>
+            </div>
+          </div>
         )}
 
-        <ReviewSection>
-          <SectionTitle>Application Status</SectionTitle>
+        <div className={styles.reviewSection}>
+          <h3 className={styles.sectionTitle}>Application Status</h3>
           <p>
             {isUpdate
               ? 'You are updating an existing application.'
@@ -456,8 +388,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
             Please review all information above for accuracy. Once submitted, you may not be able to
             edit certain details.
           </p>
-        </ReviewSection>
-      </Form>
-    </StepContainer>
+        </div>
+      </form>
+    </div>
   );
 };

@@ -1,64 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import styled from 'styled-components';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { applicationProfileService } from '@/services/applicationProfileService';
 import type { ApplicationDefaults } from '@/types';
-
-const Wrap = styled.div`
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: ${props => props.theme.background.secondary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 0.75rem;
-`;
-
-const Title = styled.h3`
-  margin: 0 0 0.25rem 0;
-  font-size: 1.125rem;
-  color: ${props => props.theme.text.primary};
-`;
-
-const Subtitle = styled.p`
-  margin: 0 0 1.25rem 0;
-  font-size: 0.9375rem;
-  color: ${props => props.theme.text.secondary};
-`;
-
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const StatusPill = styled.span<{ $known: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.625rem 0.875rem;
-  background: ${props =>
-    props.$known ? props.theme.colors.semantic.success[50] : props.theme.background.primary};
-  border: 1px solid
-    ${props =>
-      props.$known ? props.theme.colors.semantic.success[200] : props.theme.border.color.primary};
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  color: ${props => props.theme.text.primary};
-`;
-
-const Icon = styled.span`
-  font-size: 1.125rem;
-`;
-
-const EmptyHint = styled.p`
-  margin: 0.75rem 0 0 0;
-  font-size: 0.8125rem;
-  color: ${props => props.theme.text.secondary};
-  font-style: italic;
-`;
+import * as styles from './AdopterProfileSummary.css';
 
 const isKnown = (value: unknown): boolean => {
   if (value === null || value === undefined) {
@@ -145,11 +89,11 @@ export const AdopterProfileSummary: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Wrap>
-        <Title>Your adopter profile ✨</Title>
-        <Subtitle>Loading…</Subtitle>
+      <div className={styles.wrap}>
+        <h3 className={styles.title}>Your adopter profile ✨</h3>
+        <p className={styles.subtitle}>Loading…</p>
         <Spinner size='sm' />
-      </Wrap>
+      </div>
     );
   }
 
@@ -157,29 +101,31 @@ export const AdopterProfileSummary: React.FC = () => {
   const knownCount = sections.filter(s => s.known).length;
 
   return (
-    <Wrap>
-      <Title>Your adopter profile ✨</Title>
-      <Subtitle>
+    <div className={styles.wrap}>
+      <h3 className={styles.title}>Your adopter profile ✨</h3>
+      <p className={styles.subtitle}>
         Things we&apos;ll pre-fill the next time you apply. Every application you send updates this
         automatically — no separate setup needed.
-      </Subtitle>
-      <Grid>
+      </p>
+      <div className={styles.grid}>
         {sections.map(section => (
-          <StatusPill key={section.label} $known={section.known}>
-            <Icon aria-hidden='true'>{section.icon}</Icon>
+          <span key={section.label} className={styles.statusPill({ known: section.known })}>
+            <span className={styles.icon} aria-hidden='true'>
+              {section.icon}
+            </span>
             <span>{section.label}</span>
             <span style={{ marginLeft: 'auto' }} aria-hidden='true'>
               {section.known ? '✅' : '—'}
             </span>
-          </StatusPill>
+          </span>
         ))}
-      </Grid>
+      </div>
       {knownCount === 0 && (
-        <EmptyHint>
+        <p className={styles.emptyHint}>
           Nothing stored yet — apply for your first pet and we&apos;ll remember your answers so you
           won&apos;t have to repeat yourself.
-        </EmptyHint>
+        </p>
       )}
-    </Wrap>
+    </div>
   );
 };

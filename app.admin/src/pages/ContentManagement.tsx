@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
+import clsx from 'clsx';
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiArchive, FiSearch, FiMenu } from 'react-icons/fi';
 import {
   cmsService,
@@ -11,383 +11,7 @@ import {
   type UpdateContentInput,
   type CreateMenuInput,
 } from '../services/cmsService';
-
-const PageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const PageHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 1rem;
-`;
-
-const HeaderLeft = styled.div`
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 0.5rem 0;
-  }
-  p {
-    font-size: 1rem;
-    color: #6b7280;
-    margin: 0;
-  }
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const TabBar = styled.div`
-  display: flex;
-  gap: 0;
-  border-bottom: 2px solid #e5e7eb;
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-  padding: 0.75rem 1.5rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid ${p => (p.$active ? '#2563eb' : 'transparent')};
-  margin-bottom: -2px;
-  color: ${p => (p.$active ? '#2563eb' : '#6b7280')};
-  font-weight: ${p => (p.$active ? 600 : 400)};
-  font-size: 0.875rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-`;
-
-const Card = styled.div`
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.5rem;
-`;
-
-const FilterBar = styled.div`
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  align-items: flex-end;
-`;
-
-const FilterGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  min-width: 160px;
-`;
-
-const FilterLabel = styled.label`
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #374151;
-`;
-
-const Select = styled.select`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  background: #fff;
-  color: #111827;
-  cursor: pointer;
-`;
-
-const SearchWrapper = styled.div`
-  position: relative;
-  flex: 2;
-  min-width: 220px;
-  svg {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9ca3af;
-  }
-`;
-
-const SearchInput = styled.input`
-  width: 100%;
-  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  box-sizing: border-box;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-`;
-
-const Th = styled.th`
-  text-align: left;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
-`;
-
-const Td = styled.td`
-  padding: 0.875rem 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #374151;
-  vertical-align: middle;
-`;
-
-const StatusBadge = styled.span<{ $status: string }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: ${p => {
-    if (p.$status === 'published') {
-      return '#d1fae5';
-    }
-    if (p.$status === 'draft') {
-      return '#fef3c7';
-    }
-    if (p.$status === 'scheduled') {
-      return '#dbeafe';
-    }
-    return '#f3f4f6';
-  }};
-  color: ${p => {
-    if (p.$status === 'published') {
-      return '#065f46';
-    }
-    if (p.$status === 'draft') {
-      return '#92400e';
-    }
-    if (p.$status === 'scheduled') {
-      return '#1e40af';
-    }
-    return '#374151';
-  }};
-`;
-
-const ActionGroup = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-`;
-
-const IconButton = styled.button<{ $variant?: 'danger' | 'primary' | 'default' }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.375rem;
-  border-radius: 6px;
-  border: 1px solid
-    ${p => {
-      if (p.$variant === 'danger') {
-        return '#fca5a5';
-      }
-      if (p.$variant === 'primary') {
-        return '#93c5fd';
-      }
-      return '#e5e7eb';
-    }};
-  background: ${p =>
-    p.$variant === 'danger' ? '#fef2f2' : p.$variant === 'primary' ? '#eff6ff' : '#fff'};
-  color: ${p =>
-    p.$variant === 'danger' ? '#dc2626' : p.$variant === 'primary' ? '#2563eb' : '#6b7280'};
-  cursor: pointer;
-  &:hover {
-    opacity: 0.8;
-  }
-`;
-
-const PrimaryButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  &:hover {
-    background: #1d4ed8;
-  }
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const Overlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-`;
-
-const Modal = styled.div`
-  background: #fff;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 760px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    color: #111827;
-  }
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #6b7280;
-  line-height: 1;
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGroup = styled.div<{ $full?: boolean }>`
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  ${p => (p.$full ? 'grid-column: 1 / -1;' : '')}
-`;
-
-const FormLabel = styled.label`
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const FormInput = styled.input`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  &:focus {
-    outline: none;
-    border-color: #2563eb;
-  }
-  &:disabled {
-    background: #f9fafb;
-    color: #9ca3af;
-  }
-`;
-
-const FormTextarea = styled.textarea`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  resize: vertical;
-  min-height: 200px;
-  font-family: monospace;
-  &:focus {
-    outline: none;
-    border-color: #2563eb;
-  }
-`;
-
-const FormSelect = styled.select`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  background: #fff;
-`;
-
-const ModalActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const SecondaryButton = styled.button`
-  padding: 0.625rem 1.25rem;
-  border: 1px solid #d1d5db;
-  background: #fff;
-  color: #374151;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  cursor: pointer;
-`;
-
-const EmptyState = styled.div`
-  padding: 3rem;
-  text-align: center;
-  color: #9ca3af;
-  font-size: 0.95rem;
-`;
-
-const ErrorMessage = styled.p`
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin: 0;
-`;
-
-const SeoSection = styled.div`
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-  background: #f9fafb;
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const SeoTitle = styled.p`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0;
-`;
+import * as styles from './ContentManagement.css';
 
 type ActiveTab = 'content' | 'menus';
 
@@ -434,6 +58,19 @@ type MenuFormState = {
 };
 
 const emptyMenuForm = (): MenuFormState => ({ name: '', location: 'header', isActive: true });
+
+const getStatusBadgeClass = (status: string): string => {
+  if (status === 'published') {
+    return styles.statusBadgePublished;
+  }
+  if (status === 'draft') {
+    return styles.statusBadgeDraft;
+  }
+  if (status === 'scheduled') {
+    return styles.statusBadgeScheduled;
+  }
+  return styles.statusBadgeDefault;
+};
 
 const ContentManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('content');
@@ -675,52 +312,63 @@ const ContentManagement: React.FC = () => {
   };
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
+        <div className={styles.headerLeft}>
           <h1>Content Management</h1>
           <p>Manage pages, articles, and navigation menus</p>
-        </HeaderLeft>
-        <HeaderActions>
+        </div>
+        <div className={styles.headerActions}>
           {activeTab === 'content' && (
-            <PrimaryButton onClick={openCreateContent}>
+            <button className={styles.primaryButton} onClick={openCreateContent}>
               <FiPlus size={16} />
               New Content
-            </PrimaryButton>
+            </button>
           )}
           {activeTab === 'menus' && (
-            <PrimaryButton onClick={openCreateMenu}>
+            <button className={styles.primaryButton} onClick={openCreateMenu}>
               <FiPlus size={16} />
               New Menu
-            </PrimaryButton>
+            </button>
           )}
-        </HeaderActions>
-      </PageHeader>
+        </div>
+      </div>
 
-      <TabBar>
-        <Tab $active={activeTab === 'content'} onClick={() => setActiveTab('content')}>
+      <div className={styles.tabBar}>
+        <button
+          className={clsx(styles.tab, activeTab === 'content' && styles.tabActive)}
+          onClick={() => setActiveTab('content')}
+        >
           Content
-        </Tab>
-        <Tab $active={activeTab === 'menus'} onClick={() => setActiveTab('menus')}>
+        </button>
+        <button
+          className={clsx(styles.tab, activeTab === 'menus' && styles.tabActive)}
+          onClick={() => setActiveTab('menus')}
+        >
           <FiMenu size={14} />
           Navigation Menus
-        </Tab>
-      </TabBar>
+        </button>
+      </div>
 
       {activeTab === 'content' && (
-        <Card>
-          <FilterBar>
-            <SearchWrapper>
+        <div className={styles.card}>
+          <div className={styles.filterBar}>
+            <div className={styles.searchWrapper}>
               <FiSearch size={16} />
-              <SearchInput
+              <input
+                className={styles.searchInput}
                 placeholder='Search by title or slug…'
                 value={contentSearch}
                 onChange={e => setContentSearch(e.target.value)}
               />
-            </SearchWrapper>
-            <FilterGroup>
-              <FilterLabel>Type</FilterLabel>
-              <Select
+            </div>
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='cm-type-filter'>
+                Type
+              </label>
+              <select
+                id='cm-type-filter'
+                className={styles.select}
                 value={contentTypeFilter}
                 onChange={e => setContentTypeFilter(e.target.value as ContentType | '')}
               >
@@ -728,11 +376,15 @@ const ContentManagement: React.FC = () => {
                 <option value='page'>Page</option>
                 <option value='blog_post'>Blog Post</option>
                 <option value='help_article'>Help Article</option>
-              </Select>
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel>Status</FilterLabel>
-              <Select
+              </select>
+            </div>
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='cm-status-filter'>
+                Status
+              </label>
+              <select
+                id='cm-status-filter'
+                className={styles.select}
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value as ContentStatus | '')}
               >
@@ -741,168 +393,200 @@ const ContentManagement: React.FC = () => {
                 <option value='published'>Published</option>
                 <option value='scheduled'>Scheduled</option>
                 <option value='archived'>Archived</option>
-              </Select>
-            </FilterGroup>
-          </FilterBar>
+              </select>
+            </div>
+          </div>
 
-          {contentError && <ErrorMessage>{contentError}</ErrorMessage>}
+          {contentError && <p className={styles.errorMessage}>{contentError}</p>}
 
           {contentLoading ? (
-            <EmptyState>Loading content…</EmptyState>
+            <div className={styles.emptyState}>Loading content…</div>
           ) : contentList.length === 0 ? (
-            <EmptyState>No content found. Create your first page or article.</EmptyState>
+            <div className={styles.emptyState}>
+              No content found. Create your first page or article.
+            </div>
           ) : (
-            <Table>
+            <table className={styles.table}>
               <thead>
                 <tr>
-                  <Th>Title</Th>
-                  <Th>Slug</Th>
-                  <Th>Type</Th>
-                  <Th>Status</Th>
-                  <Th>Version</Th>
-                  <Th>Updated</Th>
-                  <Th>Actions</Th>
+                  <th className={styles.th}>Title</th>
+                  <th className={styles.th}>Slug</th>
+                  <th className={styles.th}>Type</th>
+                  <th className={styles.th}>Status</th>
+                  <th className={styles.th}>Version</th>
+                  <th className={styles.th}>Updated</th>
+                  <th className={styles.th}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {contentList.map(item => (
                   <tr key={item.contentId}>
-                    <Td>
+                    <td className={styles.td}>
                       <strong>{item.title}</strong>
-                    </Td>
-                    <Td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#6b7280' }}>
+                    </td>
+                    <td
+                      className={styles.td}
+                      style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#6b7280' }}
+                    >
                       /{item.slug}
-                    </Td>
-                    <Td>{CONTENT_TYPE_LABELS[item.contentType]}</Td>
-                    <Td>
-                      <StatusBadge $status={item.status}>{item.status}</StatusBadge>
-                    </Td>
-                    <Td>v{item.currentVersion}</Td>
-                    <Td>{new Date(item.updatedAt).toLocaleDateString()}</Td>
-                    <Td>
-                      <ActionGroup>
-                        <IconButton
-                          $variant='primary'
+                    </td>
+                    <td className={styles.td}>{CONTENT_TYPE_LABELS[item.contentType]}</td>
+                    <td className={styles.td}>
+                      <span className={getStatusBadgeClass(item.status)}>{item.status}</span>
+                    </td>
+                    <td className={styles.td}>v{item.currentVersion}</td>
+                    <td className={styles.td}>{new Date(item.updatedAt).toLocaleDateString()}</td>
+                    <td className={styles.td}>
+                      <div className={styles.actionGroup}>
+                        <button
+                          className={styles.iconButtonPrimary}
                           title='Edit'
                           onClick={() => openEditContent(item)}
                         >
                           <FiEdit2 size={14} />
-                        </IconButton>
+                        </button>
                         {item.status !== 'published' && (
-                          <IconButton
-                            $variant='primary'
+                          <button
+                            className={styles.iconButtonPrimary}
                             title='Publish'
                             onClick={() => handlePublish(item)}
                           >
                             <FiEye size={14} />
-                          </IconButton>
+                          </button>
                         )}
                         {item.status === 'published' && (
-                          <IconButton title='Unpublish' onClick={() => handleUnpublish(item)}>
+                          <button
+                            className={styles.iconButton}
+                            title='Unpublish'
+                            onClick={() => handleUnpublish(item)}
+                          >
                             <FiEye size={14} />
-                          </IconButton>
+                          </button>
                         )}
                         {item.status !== 'archived' && (
-                          <IconButton title='Archive' onClick={() => handleArchive(item)}>
+                          <button
+                            className={styles.iconButton}
+                            title='Archive'
+                            onClick={() => handleArchive(item)}
+                          >
                             <FiArchive size={14} />
-                          </IconButton>
+                          </button>
                         )}
-                        <IconButton
-                          $variant='danger'
+                        <button
+                          className={styles.iconButtonDanger}
                           title='Delete'
                           onClick={() => handleDeleteContent(item)}
                         >
                           <FiTrash2 size={14} />
-                        </IconButton>
-                      </ActionGroup>
-                    </Td>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
-            </Table>
+            </table>
           )}
-        </Card>
+        </div>
       )}
 
       {activeTab === 'menus' && (
-        <Card>
+        <div className={styles.card}>
           {menusLoading ? (
-            <EmptyState>Loading menus…</EmptyState>
+            <div className={styles.emptyState}>Loading menus…</div>
           ) : menus.length === 0 ? (
-            <EmptyState>No navigation menus yet.</EmptyState>
+            <div className={styles.emptyState}>No navigation menus yet.</div>
           ) : (
-            <Table>
+            <table className={styles.table}>
               <thead>
                 <tr>
-                  <Th>Name</Th>
-                  <Th>Location</Th>
-                  <Th>Items</Th>
-                  <Th>Active</Th>
-                  <Th>Updated</Th>
-                  <Th>Actions</Th>
+                  <th className={styles.th}>Name</th>
+                  <th className={styles.th}>Location</th>
+                  <th className={styles.th}>Items</th>
+                  <th className={styles.th}>Active</th>
+                  <th className={styles.th}>Updated</th>
+                  <th className={styles.th}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {menus.map(menu => (
                   <tr key={menu.menuId}>
-                    <Td>
+                    <td className={styles.td}>
                       <strong>{menu.name}</strong>
-                    </Td>
-                    <Td style={{ textTransform: 'capitalize' }}>{menu.location}</Td>
-                    <Td>{menu.items.length} items</Td>
-                    <Td>
-                      <StatusBadge $status={menu.isActive ? 'published' : 'archived'}>
+                    </td>
+                    <td className={styles.td} style={{ textTransform: 'capitalize' }}>
+                      {menu.location}
+                    </td>
+                    <td className={styles.td}>{menu.items.length} items</td>
+                    <td className={styles.td}>
+                      <span
+                        className={getStatusBadgeClass(menu.isActive ? 'published' : 'archived')}
+                      >
                         {menu.isActive ? 'Active' : 'Inactive'}
-                      </StatusBadge>
-                    </Td>
-                    <Td>{new Date(menu.updatedAt).toLocaleDateString()}</Td>
-                    <Td>
-                      <ActionGroup>
-                        <IconButton
-                          $variant='primary'
+                      </span>
+                    </td>
+                    <td className={styles.td}>{new Date(menu.updatedAt).toLocaleDateString()}</td>
+                    <td className={styles.td}>
+                      <div className={styles.actionGroup}>
+                        <button
+                          className={styles.iconButtonPrimary}
                           title='Edit'
                           onClick={() => openEditMenu(menu)}
                         >
                           <FiEdit2 size={14} />
-                        </IconButton>
-                        <IconButton
-                          $variant='danger'
+                        </button>
+                        <button
+                          className={styles.iconButtonDanger}
                           title='Delete'
                           onClick={() => handleDeleteMenu(menu)}
                         >
                           <FiTrash2 size={14} />
-                        </IconButton>
-                      </ActionGroup>
-                    </Td>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
-            </Table>
+            </table>
           )}
-        </Card>
+        </div>
       )}
 
       {showContentModal && (
-        <Overlay onClick={e => e.target === e.currentTarget && setShowContentModal(false)}>
-          <Modal>
-            <ModalHeader>
+        <div
+          className={styles.overlay}
+          onClick={e => e.target === e.currentTarget && setShowContentModal(false)}
+          onKeyDown={e => e.key === 'Escape' && setShowContentModal(false)}
+          role='presentation'
+        >
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
               <h2>{editingContent ? 'Edit Content' : 'New Content'}</h2>
-              <CloseButton onClick={() => setShowContentModal(false)}>×</CloseButton>
-            </ModalHeader>
-            <FormGrid>
-              <FormGroup $full>
-                <FormLabel>Title *</FormLabel>
-                <FormInput
+              <button className={styles.closeButton} onClick={() => setShowContentModal(false)}>
+                ×
+              </button>
+            </div>
+            <div className={styles.formGrid}>
+              <div className={styles.formGroupFull}>
+                <label className={styles.formLabel} htmlFor='cm-title'>
+                  Title *
+                </label>
+                <input
+                  id='cm-title'
+                  className={styles.formInput}
                   value={contentForm.title}
                   onChange={e => setContentForm(f => ({ ...f, title: e.target.value }))}
                   onBlur={() => !editingContent && !contentForm.slug && handleSlugGenerate()}
                   placeholder='Enter content title'
                 />
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>Slug</FormLabel>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor='cm-slug'>
+                  Slug
+                </label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <FormInput
+                  <input
+                    id='cm-slug'
+                    className={styles.formInput}
                     style={{ flex: 1 }}
                     value={contentForm.slug}
                     onChange={e => setContentForm(f => ({ ...f, slug: e.target.value }))}
@@ -910,15 +594,23 @@ const ContentManagement: React.FC = () => {
                     disabled={!!editingContent}
                   />
                   {!editingContent && (
-                    <SecondaryButton type='button' onClick={handleSlugGenerate}>
+                    <button
+                      className={styles.secondaryButton}
+                      type='button'
+                      onClick={handleSlugGenerate}
+                    >
                       Generate
-                    </SecondaryButton>
+                    </button>
                   )}
                 </div>
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>Content Type</FormLabel>
-                <FormSelect
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor='cm-content-type'>
+                  Content Type
+                </label>
+                <select
+                  id='cm-content-type'
+                  className={styles.formSelect}
                   value={contentForm.contentType}
                   onChange={e =>
                     setContentForm(f => ({ ...f, contentType: e.target.value as ContentType }))
@@ -928,122 +620,179 @@ const ContentManagement: React.FC = () => {
                   <option value='page'>Page</option>
                   <option value='blog_post'>Blog Post</option>
                   <option value='help_article'>Help Article</option>
-                </FormSelect>
-              </FormGroup>
-              <FormGroup $full>
-                <FormLabel>Content (HTML) *</FormLabel>
-                <FormTextarea
+                </select>
+              </div>
+              <div className={styles.formGroupFull}>
+                <label className={styles.formLabel} htmlFor='cm-content'>
+                  Content (HTML) *
+                </label>
+                <textarea
+                  id='cm-content'
+                  className={styles.formTextarea}
                   value={contentForm.content}
                   onChange={e => setContentForm(f => ({ ...f, content: e.target.value }))}
                   placeholder='Enter HTML content…'
                 />
-              </FormGroup>
-              <FormGroup $full>
-                <FormLabel>Excerpt</FormLabel>
-                <FormTextarea
+              </div>
+              <div className={styles.formGroupFull}>
+                <label className={styles.formLabel} htmlFor='cm-excerpt'>
+                  Excerpt
+                </label>
+                <textarea
+                  id='cm-excerpt'
+                  className={styles.formTextarea}
                   style={{ minHeight: '80px' }}
                   value={contentForm.excerpt}
                   onChange={e => setContentForm(f => ({ ...f, excerpt: e.target.value }))}
                   placeholder='Short summary for listings and SEO'
                 />
-              </FormGroup>
-              <SeoSection>
-                <SeoTitle>SEO Settings</SeoTitle>
-                <FormGroup $full>
-                  <FormLabel>Meta Title</FormLabel>
-                  <FormInput
+              </div>
+              <div className={styles.seoSection}>
+                <p className={styles.seoTitle}>SEO Settings</p>
+                <div className={styles.formGroupFull}>
+                  <label className={styles.formLabel} htmlFor='cm-meta-title'>
+                    Meta Title
+                  </label>
+                  <input
+                    id='cm-meta-title'
+                    className={styles.formInput}
                     value={contentForm.metaTitle}
                     onChange={e => setContentForm(f => ({ ...f, metaTitle: e.target.value }))}
                     placeholder='SEO title (defaults to content title)'
                   />
-                </FormGroup>
-                <FormGroup $full>
-                  <FormLabel>Meta Description</FormLabel>
-                  <FormTextarea
+                </div>
+                <div className={styles.formGroupFull}>
+                  <label className={styles.formLabel} htmlFor='cm-meta-desc'>
+                    Meta Description
+                  </label>
+                  <textarea
+                    id='cm-meta-desc'
+                    className={styles.formTextarea}
                     style={{ minHeight: '70px' }}
                     value={contentForm.metaDescription}
                     onChange={e => setContentForm(f => ({ ...f, metaDescription: e.target.value }))}
                     placeholder='SEO description'
                   />
-                </FormGroup>
-                <FormGroup $full>
-                  <FormLabel>Meta Keywords (comma-separated)</FormLabel>
-                  <FormInput
+                </div>
+                <div className={styles.formGroupFull}>
+                  <label className={styles.formLabel} htmlFor='cm-meta-kw'>
+                    Meta Keywords (comma-separated)
+                  </label>
+                  <input
+                    id='cm-meta-kw'
+                    className={styles.formInput}
                     value={contentForm.metaKeywords}
                     onChange={e => setContentForm(f => ({ ...f, metaKeywords: e.target.value }))}
                     placeholder='keyword1, keyword2, keyword3'
                   />
-                </FormGroup>
-              </SeoSection>
-              <FormGroup>
-                <FormLabel>Featured Image URL</FormLabel>
-                <FormInput
+                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor='cm-featured-image'>
+                  Featured Image URL
+                </label>
+                <input
+                  id='cm-featured-image'
+                  className={styles.formInput}
                   value={contentForm.featuredImageUrl}
                   onChange={e => setContentForm(f => ({ ...f, featuredImageUrl: e.target.value }))}
                   placeholder='https://…'
                 />
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>Schedule Publish At</FormLabel>
-                <FormInput
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor='cm-schedule'>
+                  Schedule Publish At
+                </label>
+                <input
+                  id='cm-schedule'
+                  className={styles.formInput}
                   type='datetime-local'
                   value={contentForm.scheduledPublishAt}
                   onChange={e =>
                     setContentForm(f => ({ ...f, scheduledPublishAt: e.target.value }))
                   }
                 />
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>Schedule Unpublish At</FormLabel>
-                <FormInput
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor='cm-schedule-unpublish'>
+                  Schedule Unpublish At
+                </label>
+                <input
+                  id='cm-schedule-unpublish'
+                  className={styles.formInput}
                   type='datetime-local'
                   value={contentForm.scheduledUnpublishAt}
                   onChange={e =>
                     setContentForm(f => ({ ...f, scheduledUnpublishAt: e.target.value }))
                   }
                 />
-              </FormGroup>
+              </div>
               {editingContent && (
-                <FormGroup>
-                  <FormLabel>Change Note</FormLabel>
-                  <FormInput
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel} htmlFor='cm-change-note'>
+                    Change Note
+                  </label>
+                  <input
+                    id='cm-change-note'
+                    className={styles.formInput}
                     value={contentForm.changeNote}
                     onChange={e => setContentForm(f => ({ ...f, changeNote: e.target.value }))}
                     placeholder='Describe what changed (optional)'
                   />
-                </FormGroup>
+                </div>
               )}
-            </FormGrid>
-            {formError && <ErrorMessage>{formError}</ErrorMessage>}
-            <ModalActions>
-              <SecondaryButton onClick={() => setShowContentModal(false)}>Cancel</SecondaryButton>
-              <PrimaryButton onClick={handleSaveContent} disabled={saving}>
+            </div>
+            {formError && <p className={styles.errorMessage}>{formError}</p>}
+            <div className={styles.modalActions}>
+              <button className={styles.secondaryButton} onClick={() => setShowContentModal(false)}>
+                Cancel
+              </button>
+              <button
+                className={styles.primaryButton}
+                onClick={handleSaveContent}
+                disabled={saving}
+              >
                 {saving ? 'Saving…' : editingContent ? 'Save Changes' : 'Create Content'}
-              </PrimaryButton>
-            </ModalActions>
-          </Modal>
-        </Overlay>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showMenuModal && (
-        <Overlay onClick={e => e.target === e.currentTarget && setShowMenuModal(false)}>
-          <Modal style={{ maxWidth: '480px' }}>
-            <ModalHeader>
+        <div
+          className={styles.overlay}
+          onClick={e => e.target === e.currentTarget && setShowMenuModal(false)}
+          onKeyDown={e => e.key === 'Escape' && setShowMenuModal(false)}
+          role='presentation'
+        >
+          <div className={styles.modal} style={{ maxWidth: '480px' }}>
+            <div className={styles.modalHeader}>
               <h2>{editingMenu ? 'Edit Menu' : 'New Navigation Menu'}</h2>
-              <CloseButton onClick={() => setShowMenuModal(false)}>×</CloseButton>
-            </ModalHeader>
-            <FormGrid>
-              <FormGroup $full>
-                <FormLabel>Menu Name *</FormLabel>
-                <FormInput
+              <button className={styles.closeButton} onClick={() => setShowMenuModal(false)}>
+                ×
+              </button>
+            </div>
+            <div className={styles.formGrid}>
+              <div className={styles.formGroupFull}>
+                <label className={styles.formLabel} htmlFor='cm-menu-name'>
+                  Menu Name *
+                </label>
+                <input
+                  id='cm-menu-name'
+                  className={styles.formInput}
                   value={menuForm.name}
                   onChange={e => setMenuForm(f => ({ ...f, name: e.target.value }))}
                   placeholder='e.g. Main Navigation'
                 />
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>Location</FormLabel>
-                <FormSelect
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor='cm-menu-location'>
+                  Location
+                </label>
+                <select
+                  id='cm-menu-location'
+                  className={styles.formSelect}
                   value={menuForm.location}
                   onChange={e =>
                     setMenuForm(f => ({
@@ -1055,29 +804,35 @@ const ContentManagement: React.FC = () => {
                   <option value='header'>Header</option>
                   <option value='footer'>Footer</option>
                   <option value='sidebar'>Sidebar</option>
-                </FormSelect>
-              </FormGroup>
-              <FormGroup>
-                <FormLabel>Active</FormLabel>
-                <FormSelect
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel} htmlFor='cm-menu-active'>
+                  Active
+                </label>
+                <select
+                  id='cm-menu-active'
+                  className={styles.formSelect}
                   value={menuForm.isActive ? 'true' : 'false'}
                   onChange={e => setMenuForm(f => ({ ...f, isActive: e.target.value === 'true' }))}
                 >
                   <option value='true'>Active</option>
                   <option value='false'>Inactive</option>
-                </FormSelect>
-              </FormGroup>
-            </FormGrid>
-            <ModalActions>
-              <SecondaryButton onClick={() => setShowMenuModal(false)}>Cancel</SecondaryButton>
-              <PrimaryButton onClick={handleSaveMenu} disabled={saving}>
+                </select>
+              </div>
+            </div>
+            <div className={styles.modalActions}>
+              <button className={styles.secondaryButton} onClick={() => setShowMenuModal(false)}>
+                Cancel
+              </button>
+              <button className={styles.primaryButton} onClick={handleSaveMenu} disabled={saving}>
                 {saving ? 'Saving…' : editingMenu ? 'Save Changes' : 'Create Menu'}
-              </PrimaryButton>
-            </ModalActions>
-          </Modal>
-        </Overlay>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
-    </PageContainer>
+    </div>
   );
 };
 

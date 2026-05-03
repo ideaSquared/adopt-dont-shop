@@ -12,242 +12,8 @@ import {
   MdVerified,
 } from 'react-icons/md';
 import { Link, useParams } from 'react-router-dom';
-import styled from 'styled-components';
 import { AdoptionPoliciesDisplay } from '@/components/rescue/AdoptionPoliciesDisplay';
-
-const PageContainer = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-`;
-
-const BackButton = styled(Button)`
-  margin-bottom: 2rem;
-`;
-
-const RescueHeader = styled.div`
-  background: ${props => props.theme.background.secondary};
-  border-radius: 16px;
-  padding: 3rem;
-  margin-bottom: 3rem;
-  text-align: center;
-
-  h1 {
-    font-size: 3rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  .rescue-meta {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.5rem;
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 1.1rem;
-      color: ${props => props.theme.text.secondary};
-
-      .icon {
-        width: 20px;
-        height: 20px;
-        fill: currentColor;
-      }
-    }
-  }
-
-  .verification-badge {
-    margin-bottom: 1rem;
-  }
-
-  .contact-info {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-`;
-
-const RescueInfo = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-  margin-bottom: 3rem;
-
-  @media (min-width: 768px) {
-    grid-template-columns: 2fr 1fr;
-  }
-`;
-
-const DescriptionCard = styled(Card)`
-  padding: 2rem;
-
-  h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    margin: 2rem 0 1rem 0;
-    color: ${props => props.theme.text.primary};
-  }
-
-  p {
-    line-height: 1.6;
-    color: ${props => props.theme.text.secondary};
-    white-space: pre-wrap;
-  }
-`;
-
-const ContactCard = styled(Card)`
-  padding: 2rem;
-
-  h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  .contact-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    background: ${props => props.theme.background.primary};
-    border-radius: 8px;
-
-    .icon {
-      width: 20px;
-      height: 20px;
-      fill: ${props => props.theme.text.secondary};
-      flex-shrink: 0;
-    }
-
-    .details {
-      .label {
-        font-weight: 500;
-        color: ${props => props.theme.text.secondary};
-        font-size: 0.9rem;
-      }
-
-      .value {
-        color: ${props => props.theme.text.primary};
-        font-weight: 600;
-      }
-    }
-  }
-
-  .website-link {
-    color: ${props => props.theme.text.link};
-    text-decoration: none;
-
-    &:hover {
-      color: ${props => props.theme.text.linkHover};
-      text-decoration: underline;
-    }
-  }
-`;
-
-const PetsSection = styled.div`
-  h2 {
-    font-size: 2rem;
-    font-weight: 600;
-    margin-bottom: 2rem;
-    color: ${props => props.theme.text.primary};
-    text-align: center;
-  }
-
-  .pets-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-
-    .pets-count {
-      font-size: 1.1rem;
-      color: ${props => props.theme.text.secondary};
-    }
-
-    .view-toggle {
-      display: flex;
-      gap: 0.5rem;
-    }
-  }
-`;
-
-const PetsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-`;
-
-const LoadMoreButton = styled(Button)`
-  margin: 2rem auto;
-  display: block;
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-  font-size: 1.1rem;
-  color: ${props => props.theme.text.secondary};
-`;
-
-const ErrorContainer = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: ${props => props.theme.text.error};
-
-  h2 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  p {
-    margin-bottom: 2rem;
-  }
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: ${props => props.theme.text.secondary};
-
-  .icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 1rem;
-    fill: currentColor;
-    opacity: 0.5;
-  }
-
-  h3 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  p {
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-  }
-`;
+import * as styles from './RescueDetailsPage.css';
 
 interface RescueDetailsPageProps {}
 
@@ -332,33 +98,33 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
 
   if (loading) {
     return (
-      <PageContainer>
-        <LoadingContainer>Loading rescue details...</LoadingContainer>
-      </PageContainer>
+      <div className={styles.pageContainer}>
+        <div className={styles.loadingContainer}>Loading rescue details...</div>
+      </div>
     );
   }
 
   if (error || !rescue) {
     return (
-      <PageContainer>
-        <ErrorContainer>
+      <div className={styles.pageContainer}>
+        <div className={styles.errorContainer}>
           <h2>Rescue Not Found</h2>
           <p>{error || 'The rescue you are looking for could not be found.'}</p>
           <Link to='/'>
             <Button variant='primary'>Back to Home</Button>
           </Link>
-        </ErrorContainer>
-      </PageContainer>
+        </div>
+      </div>
     );
   }
 
   return (
-    <PageContainer>
-      <BackButton as={Link} to='/' variant='outline' size='sm'>
+    <div className={styles.pageContainer}>
+      <Link to='/' className={styles.backButton}>
         ← Back to Search
-      </BackButton>
+      </Link>
 
-      <RescueHeader>
+      <div className={styles.rescueHeader}>
         <h1>{rescue.name}</h1>
         <div className='rescue-meta'>
           <div className='meta-item'>
@@ -397,10 +163,10 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
             </a>
           )}
         </div>
-      </RescueHeader>
+      </div>
 
-      <RescueInfo>
-        <DescriptionCard>
+      <div className={styles.rescueInfo}>
+        <Card className={styles.descriptionCard}>
           <h2>About {rescue.name}</h2>
           {rescue.description ? (
             <p>{rescue.description}</p>
@@ -417,9 +183,9 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
               <p>{rescue.mission}</p>
             </>
           )}
-        </DescriptionCard>
+        </Card>
 
-        <ContactCard>
+        <Card className={styles.contactCard}>
           <h2>Contact Information</h2>
 
           {rescue.contactPerson && (
@@ -528,15 +294,15 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
               </div>
             </div>
           )}
-        </ContactCard>
-      </RescueInfo>
+        </Card>
+      </div>
 
       <AdoptionPoliciesDisplay
         adoptionPolicies={rescue.adoptionPolicies}
         rescueName={rescue.name}
       />
 
-      <PetsSection>
+      <div className={styles.petsSection}>
         <div className='pets-header'>
           <h2>Pets from {rescue.name}</h2>
           <div className='pets-count'>
@@ -548,25 +314,26 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
 
         {pets.length > 0 ? (
           <>
-            <PetsGrid>
+            <div className={styles.petsGrid}>
               {pets.map(pet => (
                 <PetCard key={pet.pet_id} pet={pet} showFavoriteButton={true} />
               ))}
-            </PetsGrid>
+            </div>
 
             {hasMorePets && (
-              <LoadMoreButton
+              <Button
+                className={styles.loadMoreButton}
                 onClick={loadMorePets}
                 disabled={petsLoading}
                 variant='outline'
                 size='lg'
               >
                 {petsLoading ? 'Loading...' : 'Load More Pets'}
-              </LoadMoreButton>
+              </Button>
             )}
           </>
         ) : (
-          <EmptyState>
+          <div className={styles.emptyState}>
             <MdPets className='icon' />
             <h3>No Pets Available</h3>
             <p>
@@ -578,9 +345,9 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
                 Contact {rescue.name}
               </Button>
             </a>
-          </EmptyState>
+          </div>
         )}
-      </PetsSection>
-    </PageContainer>
+      </div>
+    </div>
   );
 };

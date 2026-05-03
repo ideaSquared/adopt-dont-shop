@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from 'styled-components';
 import { TimelineEvent, TimelineEventType } from './ApplicationTimeline';
 import { formatDateTime } from '@adopt-dont-shop/lib.utils';
+import * as styles from './TimelineWidget.css';
 
 interface TimelineWidgetProps {
   events: TimelineEvent[];
@@ -9,104 +9,6 @@ interface TimelineWidgetProps {
   showViewAll?: boolean;
   onViewAll?: () => void;
 }
-
-const WidgetContainer = styled.div`
-  padding: 0.75rem;
-  background: #f8fafc;
-  border-radius: 0.5rem;
-  border: 1px solid #e2e8f0;
-`;
-
-const WidgetHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-`;
-
-const WidgetTitle = styled.h4`
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const ViewAllButton = styled.button`
-  padding: 0.25rem 0.5rem;
-  background: none;
-  border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  color: #6b7280;
-  cursor: pointer;
-
-  &:hover {
-    background: #f3f4f6;
-    color: #374151;
-  }
-`;
-
-const CompactEventList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const CompactEvent = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem;
-  background: white;
-  border-radius: 0.25rem;
-  border: 1px solid #e5e7eb;
-`;
-
-const EventIcon = styled.div<{ eventType: TimelineEventType }>`
-  flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.625rem;
-  color: white;
-  background: ${props => getEventColor(props.eventType)};
-`;
-
-const EventInfo = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const EventTitle = styled.div`
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #374151;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const EventTime = styled.div`
-  font-size: 0.625rem;
-  color: #6b7280;
-  margin-top: 0.125rem;
-`;
-
-const SystemIndicator = styled.span`
-  flex-shrink: 0;
-  font-size: 0.5rem;
-  color: #9ca3af;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 1rem;
-  color: #6b7280;
-  font-size: 0.75rem;
-`;
 
 function getEventColor(eventType: TimelineEventType): string {
   const colors: Record<TimelineEventType, string> = {
@@ -177,40 +79,49 @@ export const TimelineWidget: React.FC<TimelineWidgetProps> = ({
 
   if (events.length === 0) {
     return (
-      <WidgetContainer>
-        <WidgetHeader>
-          <WidgetTitle>Recent Activity</WidgetTitle>
-        </WidgetHeader>
-        <EmptyState>No activity yet</EmptyState>
-      </WidgetContainer>
+      <div className={styles.widgetContainer}>
+        <div className={styles.widgetHeader}>
+          <h4 className={styles.widgetTitle}>Recent Activity</h4>
+        </div>
+        <div className={styles.emptyState}>No activity yet</div>
+      </div>
     );
   }
 
   return (
-    <WidgetContainer>
-      <WidgetHeader>
-        <WidgetTitle>Recent Activity</WidgetTitle>
+    <div className={styles.widgetContainer}>
+      <div className={styles.widgetHeader}>
+        <h4 className={styles.widgetTitle}>Recent Activity</h4>
         {showViewAll && onViewAll && (hasMoreEvents || events.length > 0) && (
-          <ViewAllButton onClick={onViewAll}>View All ({events.length})</ViewAllButton>
+          <button className={styles.viewAllButton} onClick={onViewAll}>
+            View All ({events.length})
+          </button>
         )}
-      </WidgetHeader>
+      </div>
 
-      <CompactEventList>
+      <div className={styles.compactEventList}>
         {displayEvents.map(event => (
-          <CompactEvent key={event.timeline_id}>
-            <EventIcon eventType={event.event_type}>{getEventIcon(event.event_type)}</EventIcon>
+          <div key={event.timeline_id} className={styles.compactEvent}>
+            <div
+              className={styles.eventIcon}
+              style={{ background: getEventColor(event.event_type) }}
+            >
+              {getEventIcon(event.event_type)}
+            </div>
 
-            <EventInfo>
-              <EventTitle>{event.title}</EventTitle>
-              <EventTime>{formatDateTime(new Date(event.created_at))}</EventTime>
-            </EventInfo>
+            <div className={styles.eventInfo}>
+              <div className={styles.eventTitle}>{event.title}</div>
+              <div className={styles.eventTime}>{formatDateTime(new Date(event.created_at))}</div>
+            </div>
 
             {event.created_by_system && (
-              <SystemIndicator title="Automated event">🤖</SystemIndicator>
+              <span className={styles.systemIndicator} title="Automated event">
+                🤖
+              </span>
             )}
-          </CompactEvent>
+          </div>
         ))}
-      </CompactEventList>
-    </WidgetContainer>
+      </div>
+    </div>
   );
 };

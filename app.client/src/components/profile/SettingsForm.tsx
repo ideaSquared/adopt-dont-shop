@@ -3,161 +3,7 @@ import { User } from '@/types';
 import { Button } from '@adopt-dont-shop/lib.components';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import React, { useEffect, useState } from 'react';
-import styled from 'styled-components';
-
-const Wrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-`;
-
-const Section = styled.div`
-  background: ${props => props.theme.background.secondary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 8px;
-  padding: 1.5rem;
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 1.1rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 1rem;
-`;
-
-const SettingItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-`;
-
-const SettingLabel = styled.div`
-  flex: 1;
-
-  h4 {
-    font-size: 1rem;
-    color: ${props => props.theme.text.primary};
-    margin-bottom: 0.25rem;
-  }
-
-  p {
-    font-size: 0.875rem;
-    color: ${props => props.theme.text.secondary};
-    margin: 0;
-  }
-`;
-
-const SettingControl = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const Switch = styled.label`
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 24px;
-
-  input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  span {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: ${props => props.theme.colors.neutral[300]};
-    transition: 0.3s;
-    border-radius: 24px;
-  }
-
-  span:before {
-    position: absolute;
-    content: '';
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-  }
-
-  input:checked + span {
-    background-color: ${props => props.theme.colors.primary[500]};
-  }
-
-  input:checked + span:before {
-    transform: translateX(26px);
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.5rem;
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 6px;
-  background: ${props => props.theme.background.primary};
-  color: ${props => props.theme.text.primary};
-  font-size: 0.875rem;
-  min-width: 150px;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 1rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const DangerZone = styled.div`
-  border: 1px solid ${props => props.theme.colors.semantic.error[300]};
-  border-radius: 8px;
-  padding: 1.5rem;
-  background: ${props => props.theme.colors.semantic.error[50]};
-
-  h3 {
-    color: ${props => props.theme.colors.semantic.error[700]};
-    margin-bottom: 1rem;
-  }
-
-  p {
-    color: ${props => props.theme.colors.semantic.error[600]};
-    margin-bottom: 1rem;
-    font-size: 0.875rem;
-  }
-`;
+import * as styles from './SettingsForm.css';
 
 interface UserSettings {
   notifications: {
@@ -317,29 +163,29 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
   };
 
   return (
-    <Wrapper>
-      <Section>
-        <SectionTitle>Security</SectionTitle>
-        <SettingItem>
-          <SettingLabel>
+    <div className={styles.wrapper}>
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Security</h3>
+        <div className={styles.settingItem}>
+          <div className={styles.settingLabel}>
             <h4>Two-Factor Authentication</h4>
             <p>Protect your account with an authenticator app</p>
-          </SettingLabel>
-        </SettingItem>
+          </div>
+        </div>
         <TwoFactorSettings />
-      </Section>
+      </div>
 
-      <Form onSubmit={handleSubmit}>
-        <Section>
-          <SectionTitle>Notification Preferences</SectionTitle>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Notification Preferences</h3>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Email Notifications</h4>
               <p>Receive updates about your applications and new pet matches</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='Email Notifications'>
                 <input
                   type='checkbox'
                   checked={settings.notifications.email}
@@ -347,17 +193,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
+              </label>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Push Notifications</h4>
               <p>Get instant updates on your device</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='Push Notifications'>
                 <input
                   type='checkbox'
                   checked={settings.notifications.push}
@@ -365,17 +211,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
+              </label>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>SMS Notifications</h4>
               <p>Receive text messages for urgent updates</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='SMS Notifications'>
                 <input
                   type='checkbox'
                   checked={settings.notifications.sms}
@@ -383,17 +229,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
+              </label>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Application Updates</h4>
               <p>Get notified when your adoption applications change status</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='Application Updates'>
                 <input
                   type='checkbox'
                   checked={settings.notifications.applications}
@@ -401,17 +247,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
+              </label>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Messages</h4>
               <p>Receive notifications for new messages from rescue organizations</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='Messages'>
                 <input
                   type='checkbox'
                   checked={settings.notifications.messages}
@@ -419,17 +265,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
+              </label>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>System Notifications</h4>
               <p>Important system updates and announcements</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='System Notifications'>
                 <input
                   type='checkbox'
                   checked={settings.notifications.system}
@@ -437,17 +283,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
+              </label>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
-              <h4>Marketing & Promotions</h4>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
+              <h4>Marketing &amp; Promotions</h4>
               <p>Receive updates about special events and adoption promotions</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='Marketing &amp; Promotions'>
                 <input
                   type='checkbox'
                   checked={settings.notifications.marketing}
@@ -455,17 +301,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
+              </label>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Reminders</h4>
               <p>Get reminders about incomplete applications and follow-ups</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='Reminders'>
                 <input
                   type='checkbox'
                   checked={settings.notifications.reminders}
@@ -473,38 +319,39 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
-        </Section>
+              </label>
+            </div>
+          </div>
+        </div>
 
-        <Section>
-          <SectionTitle>Privacy Settings</SectionTitle>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Privacy Settings</h3>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Profile Visibility</h4>
               <p>Control who can see your profile information</p>
-            </SettingLabel>
-            <SettingControl>
-              <Select
+            </div>
+            <div className={styles.settingControl}>
+              <select
+                className={styles.select}
                 value={settings.privacy.profileVisibility}
                 onChange={e => handleSelectChange('privacy', 'profileVisibility', e.target.value)}
                 disabled={isLoading}
               >
                 <option value='public'>Public</option>
                 <option value='private'>Private</option>
-              </Select>
-            </SettingControl>
-          </SettingItem>
+              </select>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Show Email Address</h4>
               <p>Allow rescue organizations to see your email</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='Show Email Address'>
                 <input
                   type='checkbox'
                   checked={settings.privacy.showEmail}
@@ -512,17 +359,17 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
+              </label>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Show Phone Number</h4>
               <p>Allow rescue organizations to see your phone number</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='Show Phone Number'>
                 <input
                   type='checkbox'
                   checked={settings.privacy.showPhone}
@@ -530,21 +377,21 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
-        </Section>
+              </label>
+            </div>
+          </div>
+        </div>
 
-        <Section>
-          <SectionTitle>Pet Preferences</SectionTitle>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Pet Preferences</h3>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Newsletter Subscription</h4>
               <p>Receive weekly updates about new pets and adoption stories</p>
-            </SettingLabel>
-            <SettingControl>
-              <Switch>
+            </div>
+            <div className={styles.settingControl}>
+              <label className={styles.switchLabel} aria-label='Newsletter Subscription'>
                 <input
                   type='checkbox'
                   checked={settings.preferences.newsletterOptIn}
@@ -552,17 +399,18 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                   disabled={isLoading}
                 />
                 <span />
-              </Switch>
-            </SettingControl>
-          </SettingItem>
+              </label>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Search Radius</h4>
               <p>Maximum distance to search for pets (miles)</p>
-            </SettingLabel>
-            <SettingControl>
-              <Select
+            </div>
+            <div className={styles.settingControl}>
+              <select
+                className={styles.select}
                 value={settings.preferences.maxDistance.toString()}
                 onChange={e =>
                   handleNumberChange('preferences', 'maxDistance', parseInt(e.target.value))
@@ -575,21 +423,22 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                 <option value='100'>100 miles</option>
                 <option value='250'>250 miles</option>
                 <option value='500'>500+ miles</option>
-              </Select>
-            </SettingControl>
-          </SettingItem>
-        </Section>
+              </select>
+            </div>
+          </div>
+        </div>
 
-        <Section>
-          <SectionTitle>Quiet Hours</SectionTitle>
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Quiet Hours</h3>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Quiet Hours Start</h4>
               <p>Time when non-urgent notifications will be paused</p>
-            </SettingLabel>
-            <SettingControl>
-              <Select
+            </div>
+            <div className={styles.settingControl}>
+              <select
+                className={styles.select}
                 value={settings.notifications.quietHoursStart || '22:00'}
                 onChange={e =>
                   handleSelectChange('notifications', 'quietHoursStart', e.target.value)
@@ -604,17 +453,18 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                     </option>
                   );
                 })}
-              </Select>
-            </SettingControl>
-          </SettingItem>
+              </select>
+            </div>
+          </div>
 
-          <SettingItem>
-            <SettingLabel>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabel}>
               <h4>Quiet Hours End</h4>
               <p>Time when notifications will resume</p>
-            </SettingLabel>
-            <SettingControl>
-              <Select
+            </div>
+            <div className={styles.settingControl}>
+              <select
+                className={styles.select}
                 value={settings.notifications.quietHoursEnd || '08:00'}
                 onChange={e => handleSelectChange('notifications', 'quietHoursEnd', e.target.value)}
                 disabled={isLoading}
@@ -627,13 +477,13 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                     </option>
                   );
                 })}
-              </Select>
-            </SettingControl>
-          </SettingItem>
-        </Section>
+              </select>
+            </div>
+          </div>
+        </div>
 
         {hasChanges && (
-          <ButtonGroup>
+          <div className={styles.buttonGroup}>
             <Button
               type='button'
               variant='secondary'
@@ -672,11 +522,11 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
             <Button type='submit' isLoading={isLoading} disabled={isLoading}>
               Save Settings
             </Button>
-          </ButtonGroup>
+          </div>
         )}
-      </Form>
+      </form>
 
-      <DangerZone>
+      <div className={styles.dangerZone}>
         <h3>Danger Zone</h3>
         <p>
           Once you delete your account, there is no going back. This will permanently delete your
@@ -685,8 +535,8 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
         <Button variant='secondary' onClick={onDeleteAccount} disabled={isLoading}>
           Delete Account
         </Button>
-      </DangerZone>
-    </Wrapper>
+      </div>
+    </div>
   );
 };
 

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
-import { Button, Input, Heading, Text } from '@adopt-dont-shop/lib.components';
-import { FiX, FiCheckCircle, FiXCircle, FiAlertCircle } from 'react-icons/fi';
+import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
+import { FiAlertCircle, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import type { AdminRescue, RescueVerificationPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
+import * as styles from './RescueVerificationModal.css';
 
 type VerificationAction = 'approve' | 'reject';
 
@@ -13,155 +13,6 @@ type RescueVerificationModalProps = {
   onClose: () => void;
   onSuccess: () => void;
 };
-
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  background: #ffffff;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 550px;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-`;
-
-const ModalHeader = styled.div<{ $variant: 'approve' | 'reject' }>`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  background: ${props => (props.$variant === 'approve' ? '#d1fae5' : '#fee2e2')};
-  border-radius: 16px 16px 0 0;
-`;
-
-const IconWrapper = styled.div<{ $variant: 'approve' | 'reject' }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: #ffffff;
-  color: ${props => (props.$variant === 'approve' ? '#10b981' : '#ef4444')};
-
-  svg {
-    font-size: 1.5rem;
-  }
-`;
-
-const HeaderContent = styled.div`
-  flex: 1;
-`;
-
-const ModalBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1.25rem;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const Label = styled.label`
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  min-height: 100px;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.9375rem;
-  font-family: inherit;
-  color: #111827;
-  resize: vertical;
-  transition: all 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
-`;
-
-const InfoBox = styled.div`
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.25rem;
-`;
-
-const InfoLabel = styled.div`
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.375rem;
-`;
-
-const InfoValue = styled.div`
-  font-size: 0.9375rem;
-  color: #111827;
-  font-weight: 500;
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 0.875rem;
-  color: #991b1b;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  svg {
-    flex-shrink: 0;
-  }
-`;
-
-const RequiredIndicator = styled.span`
-  color: #ef4444;
-  margin-left: 0.25rem;
-`;
 
 export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = ({
   rescue,
@@ -219,14 +70,19 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
   };
 
   return (
-    <Overlay onClick={handleOverlayClick}>
-      <ModalContainer>
+    <div
+      className={styles.overlay}
+      onClick={handleOverlayClick}
+      onKeyDown={e => e.key === 'Escape' && onClose()}
+      role='presentation'
+    >
+      <div className={styles.modalContainer}>
         <form onSubmit={handleSubmit}>
-          <ModalHeader $variant={isApproval ? 'approve' : 'reject'}>
-            <IconWrapper $variant={isApproval ? 'approve' : 'reject'}>
+          <div className={isApproval ? styles.modalHeaderApprove : styles.modalHeaderReject}>
+            <div className={isApproval ? styles.iconWrapperApprove : styles.iconWrapperReject}>
               {isApproval ? <FiCheckCircle /> : <FiXCircle />}
-            </IconWrapper>
-            <HeaderContent>
+            </div>
+            <div className={styles.headerContent}>
               <Heading level='h3' style={{ margin: 0 }}>
                 {isApproval ? 'Approve Rescue' : 'Reject Rescue'}
               </Heading>
@@ -235,74 +91,77 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
                   ? 'Verify this rescue organization for the platform'
                   : 'Decline this rescue organization application'}
               </Text>
-            </HeaderContent>
-          </ModalHeader>
+            </div>
+          </div>
 
-          <ModalBody>
+          <div className={styles.modalBody}>
             {error && (
-              <ErrorMessage>
+              <div className={styles.errorMessage}>
                 <FiAlertCircle />
                 {error}
-              </ErrorMessage>
+              </div>
             )}
 
-            <InfoBox>
-              <InfoLabel>Rescue Organization</InfoLabel>
-              <InfoValue>{rescue.name}</InfoValue>
-            </InfoBox>
+            <div className={styles.infoBox}>
+              <div className={styles.infoLabel}>Rescue Organization</div>
+              <div className={styles.infoValue}>{rescue.name}</div>
+            </div>
 
-            <InfoBox>
-              <InfoLabel>Email</InfoLabel>
-              <InfoValue>{rescue.email}</InfoValue>
-            </InfoBox>
+            <div className={styles.infoBox}>
+              <div className={styles.infoLabel}>Email</div>
+              <div className={styles.infoValue}>{rescue.email}</div>
+            </div>
 
-            <InfoBox>
-              <InfoLabel>Location</InfoLabel>
-              <InfoValue>
+            <div className={styles.infoBox}>
+              <div className={styles.infoLabel}>Location</div>
+              <div className={styles.infoValue}>
                 {rescue.city}, {rescue.state}
-              </InfoValue>
-            </InfoBox>
+              </div>
+            </div>
 
             {!isApproval && (
-              <FormGroup>
-                <Label>
+              <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor='rejection-reason'>
                   Rejection Reason
-                  <RequiredIndicator>*</RequiredIndicator>
-                </Label>
-                <TextArea
+                  <span className={styles.requiredIndicator}>*</span>
+                </label>
+                <textarea
+                  id='rejection-reason'
+                  className={styles.textArea}
                   value={rejectionReason}
                   onChange={e => setRejectionReason(e.target.value)}
                   placeholder='Explain why this rescue is being rejected...'
                   required={!isApproval}
                   disabled={loading}
                 />
-              </FormGroup>
+              </div>
             )}
 
-            <FormGroup>
-              <Label>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
                 Internal Notes
                 {!isApproval && ' (Optional)'}
-              </Label>
-              <TextArea
+              </label>
+              <textarea
+                className={styles.textArea}
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder='Add any internal notes about this decision...'
                 disabled={loading}
               />
-            </FormGroup>
-          </ModalBody>
+            </div>
+          </div>
 
-          <ModalFooter>
+          <div className={styles.modalFooter}>
             <Button type='button' variant='outline' onClick={onClose} disabled={loading}>
               Cancel
             </Button>
             <Button type='submit' variant={isApproval ? 'primary' : 'danger'} disabled={loading}>
               {loading ? 'Processing...' : isApproval ? 'Approve Rescue' : 'Reject Rescue'}
             </Button>
-          </ModalFooter>
+          </div>
         </form>
-      </ModalContainer>
-    </Overlay>
+      </div>
+    </div>
   );
 };

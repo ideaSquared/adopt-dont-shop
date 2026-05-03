@@ -1,80 +1,7 @@
 import React from 'react';
-import styled from 'styled-components';
 import { Button } from '@adopt-dont-shop/lib.components';
 import { formatStatusName } from '../../utils/statusUtils';
-
-const FiltersContainer = styled.div`
-  padding: 0.75rem;
-  margin-bottom: 0;
-  background: white;
-  border: 1px solid ${props => props.theme.colors.neutral[200]};
-  border-radius: 8px;
-`;
-
-const FiltersHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-
-  h3 {
-    margin: 0;
-    color: ${props => props.theme.text.primary};
-    font-size: 1.25rem;
-    font-weight: 600;
-  }
-`;
-
-const FiltersGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-`;
-
-const FilterGroup = styled.div`
-  .label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    font-size: 0.875rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  select,
-  input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid ${props => props.theme.colors.neutral[300]};
-    border-radius: 4px;
-    font-size: 0.875rem;
-    font-family: inherit;
-    background: white;
-
-    &:focus {
-      outline: none;
-      border-color: ${props => props.theme.colors.primary[500]};
-      box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-    }
-  }
-`;
-
-const FilterActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid ${props => props.theme.colors.neutral[200]};
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-`;
+import * as styles from './ApplicationFilters.css';
 
 interface ApplicationFiltersProps {
   filters: {
@@ -97,30 +24,32 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
   onClearFilters,
 }) => {
   return (
-    <FiltersContainer>
-      <FiltersHeader>
+    <div className={styles.filtersContainer}>
+      <div className={styles.filtersHeader}>
         <h3>Search & Filter Applications</h3>
-      </FiltersHeader>
+      </div>
 
-      <FiltersGrid>
-        <FilterGroup>
-          <label className="label" htmlFor="search">
+      <div className={styles.filtersGrid}>
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="search">
             Search
           </label>
           <input
+            className={styles.filterInput}
             id="search"
             type="text"
             placeholder="Applicant name or email..."
             value={filters.search}
             onChange={e => onFilterChange('search', e.target.value)}
           />
-        </FilterGroup>
+        </div>
 
-        <FilterGroup>
-          <label className="label" htmlFor="status">
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="status">
             Status
           </label>
           <select
+            className={styles.filterSelect}
             id="status"
             value={filters.status}
             onChange={e => onFilterChange('status', e.target.value)}
@@ -131,13 +60,14 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
             <option value="rejected">{formatStatusName('rejected')}</option>
             <option value="withdrawn">{formatStatusName('withdrawn')}</option>
           </select>
-        </FilterGroup>
+        </div>
 
-        <FilterGroup>
-          <label className="label" htmlFor="priority">
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="priority">
             Priority
           </label>
           <select
+            className={styles.filterSelect}
             id="priority"
             value={filters.priority}
             onChange={e => onFilterChange('priority', e.target.value)}
@@ -147,13 +77,14 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
-        </FilterGroup>
+        </div>
 
-        <FilterGroup>
-          <label className="label" htmlFor="petType">
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="petType">
             Pet Type
           </label>
           <select
+            className={styles.filterSelect}
             id="petType"
             value={filters.petType}
             onChange={e => onFilterChange('petType', e.target.value)}
@@ -165,13 +96,14 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
             <option value="Bird">Birds</option>
             <option value="Other">Other</option>
           </select>
-        </FilterGroup>
+        </div>
 
-        <FilterGroup>
-          <label className="label" htmlFor="referencesStatus">
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="referencesStatus">
             References
           </label>
           <select
+            className={styles.filterSelect}
             id="referencesStatus"
             value={filters.referencesStatus}
             onChange={e => onFilterChange('referencesStatus', e.target.value)}
@@ -182,13 +114,14 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
             <option value="completed">Completed</option>
             <option value="failed">Failed</option>
           </select>
-        </FilterGroup>
+        </div>
 
-        <FilterGroup>
-          <label className="label" htmlFor="homeVisitStatus">
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="homeVisitStatus">
             Home Visit
           </label>
           <select
+            className={styles.filterSelect}
             id="homeVisitStatus"
             value={filters.homeVisitStatus}
             onChange={e => onFilterChange('homeVisitStatus', e.target.value)}
@@ -199,13 +132,14 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
             <option value="completed">Completed</option>
             <option value="failed">Failed</option>
           </select>
-        </FilterGroup>
+        </div>
 
-        <FilterGroup>
-          <label className="label" htmlFor="dateRange">
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="dateRange">
             Date Range
           </label>
           <select
+            className={styles.filterSelect}
             id="dateRange"
             value={filters.dateRange}
             onChange={e => onFilterChange('dateRange', e.target.value)}
@@ -215,28 +149,29 @@ const ApplicationFilters: React.FC<ApplicationFiltersProps> = ({
             <option value="week">Last 7 Days</option>
             <option value="month">Last 30 Days</option>
           </select>
-        </FilterGroup>
+        </div>
 
-        <FilterGroup>
-          <label className="label" htmlFor="petBreed">
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="petBreed">
             Pet Breed
           </label>
           <input
+            className={styles.filterInput}
             id="petBreed"
             type="text"
             placeholder="Search breed (e.g. golden, lab, persian)..."
             value={filters.petBreed}
             onChange={e => onFilterChange('petBreed', e.target.value)}
           />
-        </FilterGroup>
-      </FiltersGrid>
+        </div>
+      </div>
 
-      <FilterActions>
+      <div className={styles.filterActions}>
         <Button variant="outline" onClick={onClearFilters}>
           Clear Filters
         </Button>
-      </FilterActions>
-    </FiltersContainer>
+      </div>
+    </div>
   );
 };
 

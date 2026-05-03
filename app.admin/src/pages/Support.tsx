@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import styled from 'styled-components';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import {
@@ -17,241 +16,41 @@ import {
   formatRelativeTime,
 } from '@adopt-dont-shop/lib.support-tickets';
 import { TicketDetailModal } from '../components/modals/TicketDetailModal';
+import * as styles from './Support.css';
 
-const PageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const PageHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 1rem;
-`;
-
-const HeaderLeft = styled.div`
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 0.5rem 0;
+const getStatusBadgeClass = (status: TicketStatus): string => {
+  switch (status) {
+    case 'open':
+      return styles.badgeDanger;
+    case 'in_progress':
+      return styles.badgeInfo;
+    case 'waiting_for_user':
+      return styles.badgeWarning;
+    case 'resolved':
+      return styles.badgeSuccess;
+    case 'closed':
+      return styles.badgeNeutral;
+    case 'escalated':
+      return styles.badgeDanger;
+    default:
+      return styles.badgeNeutral;
   }
+};
 
-  p {
-    font-size: 1rem;
-    color: #6b7280;
-    margin: 0;
+const getPriorityBadgeClass = (level: string): string => {
+  switch (level) {
+    case 'urgent':
+      return styles.priorityBadgeUrgent;
+    case 'high':
+      return styles.priorityBadgeHigh;
+    case 'medium':
+      return styles.priorityBadgeMedium;
+    case 'low':
+      return styles.priorityBadgeLow;
+    default:
+      return styles.priorityBadgeDefault;
   }
-`;
-
-const StatsBar = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
-`;
-
-const StatCard = styled.div`
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const StatIcon = styled.div<{ $color: string }>`
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${props => props.$color}20;
-  color: ${props => props.$color};
-  font-size: 1.5rem;
-`;
-
-const StatDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
-`;
-
-const StatValue = styled.div`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #111827;
-`;
-
-const FilterBar = styled.div`
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.5rem;
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  align-items: flex-end;
-`;
-
-const FilterGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 180px;
-  flex: 1;
-`;
-
-const FilterLabel = styled.label`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-`;
-
-const SearchInputWrapper = styled.div`
-  position: relative;
-  flex: 2;
-  min-width: 300px;
-
-  svg {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9ca3af;
-    font-size: 1.125rem;
-  }
-
-  input {
-    padding-left: 2.5rem;
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #111827;
-  background: #ffffff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #9ca3af;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: ${props => {
-    switch (props.$variant) {
-      case 'success':
-        return '#d1fae5';
-      case 'warning':
-        return '#fef3c7';
-      case 'danger':
-        return '#fee2e2';
-      case 'info':
-        return '#dbeafe';
-      default:
-        return '#f3f4f6';
-    }
-  }};
-  color: ${props => {
-    switch (props.$variant) {
-      case 'success':
-        return '#065f46';
-      case 'warning':
-        return '#92400e';
-      case 'danger':
-        return '#991b1b';
-      case 'info':
-        return '#1e40af';
-      default:
-        return '#374151';
-    }
-  }};
-`;
-
-const TicketInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const TicketSubject = styled.div`
-  font-weight: 600;
-  color: #111827;
-`;
-
-const TicketMeta = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-`;
-
-const PriorityBadge = styled.span<{ $level: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: ${props => {
-    switch (props.$level) {
-      case 'urgent':
-        return '#fee2e2';
-      case 'high':
-        return '#fed7aa';
-      case 'medium':
-        return '#fef3c7';
-      case 'low':
-        return '#e0e7ff';
-      default:
-        return '#f3f4f6';
-    }
-  }};
-  color: ${props => {
-    switch (props.$level) {
-      case 'urgent':
-        return '#991b1b';
-      case 'high':
-        return '#9a3412';
-      case 'medium':
-        return '#92400e';
-      case 'low':
-        return '#3730a3';
-      default:
-        return '#374151';
-    }
-  }};
-
-  svg {
-    font-size: 0.875rem;
-  }
-`;
+};
 
 const Support: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -301,7 +100,7 @@ const Support: React.FC = () => {
     error: ticketsError,
     refetch,
   } = useTickets(filters);
-  const { data: statsData, isLoading: statsLoading } = useTicketStats();
+  const { data: statsData } = useTicketStats();
   const { addResponse } = useTicketMutations();
 
   const tickets = ticketsData?.data || [];
@@ -313,27 +112,6 @@ const Support: React.FC = () => {
     inProgress: statsData?.inProgress || 0,
     waitingUser: statsData?.waitingForUser || 0,
     resolved: statsData?.resolved || 0,
-  };
-
-  const getStatusBadgeVariant = (
-    status: TicketStatus
-  ): 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
-    switch (status) {
-      case 'open':
-        return 'danger';
-      case 'in_progress':
-        return 'info';
-      case 'waiting_for_user':
-        return 'warning';
-      case 'resolved':
-        return 'success';
-      case 'closed':
-        return 'neutral';
-      case 'escalated':
-        return 'danger';
-      default:
-        return 'neutral';
-    }
   };
 
   const getPriorityLevel = (priority: TicketPriority): string => {
@@ -368,14 +146,14 @@ const Support: React.FC = () => {
       id: 'ticket',
       header: 'Ticket',
       accessor: row => (
-        <TicketInfo>
-          <TicketSubject>
+        <div className={styles.ticketInfo}>
+          <div className={styles.ticketSubject}>
             #{row.ticketId.slice(-6)} - {row.subject}
-          </TicketSubject>
-          <TicketMeta>
+          </div>
+          <div className={styles.ticketMeta}>
             {row.userName || 'Unknown'} ({row.userEmail})
-          </TicketMeta>
-        </TicketInfo>
+          </div>
+        </div>
       ),
       width: '400px',
     },
@@ -395,11 +173,12 @@ const Support: React.FC = () => {
           ) : (
             <FiClock />
           );
+        const level = getPriorityLevel(row.priority);
         return (
-          <PriorityBadge $level={getPriorityLevel(row.priority)}>
+          <span className={getPriorityBadgeClass(level)}>
             {icon}
             {getPriorityLabel(row.priority)}
-          </PriorityBadge>
+          </span>
         );
       },
       width: '120px',
@@ -409,7 +188,7 @@ const Support: React.FC = () => {
       id: 'status',
       header: 'Status',
       accessor: row => (
-        <Badge $variant={getStatusBadgeVariant(row.status)}>{getStatusLabel(row.status)}</Badge>
+        <span className={getStatusBadgeClass(row.status)}>{getStatusLabel(row.status)}</span>
       ),
       width: '140px',
       sortable: true,
@@ -436,58 +215,106 @@ const Support: React.FC = () => {
   ];
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderLeft>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
+        <div className={styles.headerLeft}>
           <Heading level='h1'>Support Tickets</Heading>
           <Text>Manage customer support requests and inquiries</Text>
-        </HeaderLeft>
-      </PageHeader>
+        </div>
+      </div>
 
-      <StatsBar>
-        <StatCard>
-          <StatIcon $color='#ef4444'>
+      <div className={styles.statsBar}>
+        <div className={styles.statCard}>
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#ef444420',
+              color: '#ef4444',
+              fontSize: '1.5rem',
+            }}
+          >
             <FiAlertCircle />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Open Tickets</StatLabel>
-            <StatValue>{stats.open}</StatValue>
-          </StatDetails>
-        </StatCard>
+          </div>
+          <div className={styles.statDetails}>
+            <div className={styles.statLabel}>Open Tickets</div>
+            <div className={styles.statValue}>{stats.open}</div>
+          </div>
+        </div>
 
-        <StatCard>
-          <StatIcon $color='#3b82f6'>
+        <div className={styles.statCard}>
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#3b82f620',
+              color: '#3b82f6',
+              fontSize: '1.5rem',
+            }}
+          >
             <FiClock />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>In Progress</StatLabel>
-            <StatValue>{stats.inProgress}</StatValue>
-          </StatDetails>
-        </StatCard>
+          </div>
+          <div className={styles.statDetails}>
+            <div className={styles.statLabel}>In Progress</div>
+            <div className={styles.statValue}>{stats.inProgress}</div>
+          </div>
+        </div>
 
-        <StatCard>
-          <StatIcon $color='#f59e0b'>
+        <div className={styles.statCard}>
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#f59e0b20',
+              color: '#f59e0b',
+              fontSize: '1.5rem',
+            }}
+          >
             <FiMessageSquare />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Waiting on User</StatLabel>
-            <StatValue>{stats.waitingUser}</StatValue>
-          </StatDetails>
-        </StatCard>
+          </div>
+          <div className={styles.statDetails}>
+            <div className={styles.statLabel}>Waiting on User</div>
+            <div className={styles.statValue}>{stats.waitingUser}</div>
+          </div>
+        </div>
 
-        <StatCard>
-          <StatIcon $color='#10b981'>
+        <div className={styles.statCard}>
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#10b98120',
+              color: '#10b981',
+              fontSize: '1.5rem',
+            }}
+          >
             <FiCheckCircle />
-          </StatIcon>
-          <StatDetails>
-            <StatLabel>Resolved Today</StatLabel>
-            <StatValue>{stats.resolved}</StatValue>
-          </StatDetails>
-        </StatCard>
-      </StatsBar>
+          </div>
+          <div className={styles.statDetails}>
+            <div className={styles.statLabel}>Resolved Today</div>
+            <div className={styles.statValue}>{stats.resolved}</div>
+          </div>
+        </div>
+      </div>
 
-      <FilterBar>
-        <SearchInputWrapper>
+      <div className={styles.filterBar}>
+        <div className={styles.searchInputWrapper}>
           <FiSearch />
           <Input
             type='text'
@@ -495,11 +322,15 @@ const Support: React.FC = () => {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
-        </SearchInputWrapper>
+        </div>
 
-        <FilterGroup>
-          <FilterLabel>Status</FilterLabel>
-          <Select
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor='support-status-filter'>
+            Status
+          </label>
+          <select
+            id='support-status-filter'
+            className={styles.select}
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value as TicketStatus | 'all')}
           >
@@ -510,12 +341,16 @@ const Support: React.FC = () => {
             <option value='resolved'>Resolved</option>
             <option value='closed'>Closed</option>
             <option value='escalated'>Escalated</option>
-          </Select>
-        </FilterGroup>
+          </select>
+        </div>
 
-        <FilterGroup>
-          <FilterLabel>Priority</FilterLabel>
-          <Select
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor='support-priority-filter'>
+            Priority
+          </label>
+          <select
+            id='support-priority-filter'
+            className={styles.select}
             value={priorityFilter}
             onChange={e => setPriorityFilter(e.target.value as TicketPriority | 'all')}
           >
@@ -525,12 +360,16 @@ const Support: React.FC = () => {
             <option value='high'>High</option>
             <option value='normal'>Normal</option>
             <option value='low'>Low</option>
-          </Select>
-        </FilterGroup>
+          </select>
+        </div>
 
-        <FilterGroup>
-          <FilterLabel>Category</FilterLabel>
-          <Select
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor='support-category-filter'>
+            Category
+          </label>
+          <select
+            id='support-category-filter'
+            className={styles.select}
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value as TicketCategory | 'all')}
           >
@@ -545,9 +384,9 @@ const Support: React.FC = () => {
             <option value='compliance_concern'>Compliance Concern</option>
             <option value='data_request'>Data Request</option>
             <option value='other'>Other</option>
-          </Select>
-        </FilterGroup>
-      </FilterBar>
+          </select>
+        </div>
+      </div>
 
       {ticketsError && (
         <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
@@ -570,7 +409,7 @@ const Support: React.FC = () => {
         ticket={selectedTicket}
         onReply={handleReply}
       />
-    </PageContainer>
+    </div>
   );
 };
 

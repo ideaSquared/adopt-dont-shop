@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import { Card, Heading } from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
@@ -9,6 +8,7 @@ import {
   FiBarChart2,
   FiPieChart,
 } from 'react-icons/fi';
+import * as styles from './Analytics.css';
 
 // Analytics Components
 import MetricCard from '../components/analytics/MetricCard';
@@ -29,177 +29,6 @@ import {
   ResponseTimeMetrics,
   StageDistribution,
 } from '../services/analyticsService';
-
-const PageContainer = styled.div`
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-`;
-
-const PageHeader = styled.div`
-  margin-bottom: 2rem;
-`;
-
-const HeaderTop = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-`;
-
-const HeaderTitle = styled.div`
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: ${props => props.theme.text.primary};
-    margin: 0 0 0.5rem 0;
-  }
-
-  p {
-    font-size: 1rem;
-    color: ${props => props.theme.text.secondary};
-    margin: 0;
-  }
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    flex-direction: column;
-
-    > * {
-      width: 100%;
-    }
-  }
-`;
-
-const FilterBar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-`;
-
-const FilterSelect = styled.select`
-  padding: 0.625rem 1rem;
-  background: white;
-  border: 1px solid ${props => props.theme.colors.neutral[300]};
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: ${props => props.theme.text.primary};
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: ${props => props.theme.colors.primary[400]};
-  }
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[400]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const MetricsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-`;
-
-const ChartsGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-`;
-
-const TwoColumnGrid = styled.div`
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 1.5rem;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const CardHeader = styled.div`
-  padding: 1.5rem 1.5rem 1rem 1.5rem;
-  border-bottom: 1px solid ${props => props.theme.colors.neutral[200]};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const CardTitle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  h3 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: ${props => props.theme.text.primary};
-  }
-
-  svg {
-    color: ${props => props.theme.colors.primary[600]};
-    font-size: 1.25rem;
-  }
-`;
-
-const CardBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem 1rem;
-  color: ${props => props.theme.text.secondary};
-
-  svg {
-    font-size: 3rem;
-    color: ${props => props.theme.colors.neutral[300]};
-    margin-bottom: 1rem;
-  }
-
-  h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: ${props => props.theme.text.primary};
-    margin: 0 0 0.5rem 0;
-  }
-
-  p {
-    margin: 0;
-  }
-`;
-
-const ErrorState = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: ${props => props.theme.colors.semantic.error[600]};
-  background: ${props => props.theme.colors.semantic.error[50]};
-  border: 1px solid ${props => props.theme.colors.semantic.error[200]};
-  border-radius: 8px;
-
-  p {
-    margin: 0;
-  }
-`;
 
 const Analytics: React.FC = () => {
   // Date range state
@@ -329,27 +158,27 @@ const Analytics: React.FC = () => {
 
   if (error) {
     return (
-      <PageContainer>
-        <PageHeader>
+      <div className={styles.pageContainer}>
+        <div className={styles.pageHeader}>
           <Heading level="h1">Analytics & Reporting</Heading>
-        </PageHeader>
-        <ErrorState>
+        </div>
+        <div className={styles.errorState}>
           <p>{error}</p>
-        </ErrorState>
-      </PageContainer>
+        </div>
+      </div>
     );
   }
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderTop>
-          <HeaderTitle>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
+        <div className={styles.headerTop}>
+          <div className={styles.headerTitle}>
             <h1>Analytics & Reporting</h1>
             <p>Comprehensive insights into your rescue's performance and operations</p>
-          </HeaderTitle>
+          </div>
 
-          <HeaderActions>
+          <div className={styles.headerActions}>
             <DateRangePicker value={dateRange} onChange={setDateRange} />
             <ExportButton
               onExportCSV={handleExportCSV}
@@ -357,31 +186,39 @@ const Analytics: React.FC = () => {
               onEmailReport={handleEmailReport}
               disabled={loading}
             />
-          </HeaderActions>
-        </HeaderTop>
+          </div>
+        </div>
 
-        <FilterBar>
-          <FilterSelect value={petTypeFilter} onChange={e => setPetTypeFilter(e.target.value)}>
+        <div className={styles.filterBar}>
+          <select
+            className={styles.filterSelect}
+            value={petTypeFilter}
+            onChange={e => setPetTypeFilter(e.target.value)}
+          >
             <option value="all">All Pet Types</option>
             <option value="dog">Dogs</option>
             <option value="cat">Cats</option>
             <option value="rabbit">Rabbits</option>
             <option value="other">Other</option>
-          </FilterSelect>
+          </select>
 
-          <FilterSelect value={staffFilter} onChange={e => setStaffFilter(e.target.value)}>
+          <select
+            className={styles.filterSelect}
+            value={staffFilter}
+            onChange={e => setStaffFilter(e.target.value)}
+          >
             <option value="all">All Staff Members</option>
             {responseTimeMetrics?.staffPerformance.map(staff => (
               <option key={staff.staffId} value={staff.staffId}>
                 {staff.staffName}
               </option>
             ))}
-          </FilterSelect>
-        </FilterBar>
-      </PageHeader>
+          </select>
+        </div>
+      </div>
 
       {/* Key Metrics */}
-      <MetricsGrid>
+      <div className={styles.metricsGrid}>
         <MetricCard
           title="Total Adoptions"
           value={adoptionMetrics?.totalAdoptions || 0}
@@ -432,112 +269,112 @@ const Analytics: React.FC = () => {
           subtitle="In current period"
           loading={loading}
         />
-      </MetricsGrid>
+      </div>
 
       {/* Adoption Trends */}
-      <ChartsGrid>
+      <div className={styles.chartsGrid}>
         <Card>
-          <CardHeader>
-            <CardTitle>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardTitle}>
               <FiBarChart2 />
               <h3>Adoption Trends</h3>
-            </CardTitle>
-          </CardHeader>
-          <CardBody>
+            </div>
+          </div>
+          <div className={styles.cardBody}>
             {adoptionMetrics?.adoptionTrends ? (
               <AdoptionTrendsChart data={adoptionMetrics.adoptionTrends} loading={loading} />
             ) : (
-              <EmptyState>
+              <div className={styles.emptyState}>
                 <FiBarChart2 />
                 <h3>No Data Available</h3>
                 <p>Adoption trends will appear here once data is available.</p>
-              </EmptyState>
+              </div>
             )}
-          </CardBody>
+          </div>
         </Card>
-      </ChartsGrid>
+      </div>
 
       {/* Two Column Layout */}
-      <TwoColumnGrid>
+      <div className={styles.twoColumnGrid}>
         {/* Conversion Funnel */}
         <Card>
-          <CardHeader>
-            <CardTitle>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardTitle}>
               <FiTrendingUp />
               <h3>Application Conversion Funnel</h3>
-            </CardTitle>
-          </CardHeader>
-          <CardBody>
+            </div>
+          </div>
+          <div className={styles.cardBody}>
             {applicationAnalytics?.conversionRateByStage ? (
               <ConversionFunnelChart
                 data={applicationAnalytics.conversionRateByStage}
                 loading={loading}
               />
             ) : (
-              <EmptyState>
+              <div className={styles.emptyState}>
                 <FiTrendingUp />
                 <h3>No Data Available</h3>
                 <p>Conversion data will appear here once available.</p>
-              </EmptyState>
+              </div>
             )}
-          </CardBody>
+          </div>
         </Card>
 
         {/* Stage Distribution */}
         <Card>
-          <CardHeader>
-            <CardTitle>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardTitle}>
               <FiPieChart />
               <h3>Stage Distribution</h3>
-            </CardTitle>
-          </CardHeader>
-          <CardBody>
+            </div>
+          </div>
+          <div className={styles.cardBody}>
             {stageDistribution.length > 0 ? (
               <StageDistributionChart data={stageDistribution} loading={loading} />
             ) : (
-              <EmptyState>
+              <div className={styles.emptyState}>
                 <FiPieChart />
                 <h3>No Data Available</h3>
                 <p>Stage distribution will appear here once available.</p>
-              </EmptyState>
+              </div>
             )}
-          </CardBody>
+          </div>
         </Card>
-      </TwoColumnGrid>
+      </div>
 
       {/* Response Time Metrics */}
-      <ChartsGrid>
+      <div className={styles.chartsGrid}>
         <Card>
-          <CardHeader>
-            <CardTitle>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardTitle}>
               <FiClock />
               <h3>Response Time by Stage</h3>
-            </CardTitle>
-          </CardHeader>
-          <CardBody>
+            </div>
+          </div>
+          <div className={styles.cardBody}>
             {responseTimeMetrics?.responseTimeByStage ? (
               <ResponseTimeChart data={responseTimeMetrics.responseTimeByStage} loading={loading} />
             ) : (
-              <EmptyState>
+              <div className={styles.emptyState}>
                 <FiClock />
                 <h3>No Data Available</h3>
                 <p>Response time metrics will appear here once available.</p>
-              </EmptyState>
+              </div>
             )}
-          </CardBody>
+          </div>
         </Card>
-      </ChartsGrid>
+      </div>
 
       {/* Pet Performance */}
-      <ChartsGrid>
+      <div className={styles.chartsGrid}>
         <Card>
-          <CardHeader>
-            <CardTitle>
+          <div className={styles.cardHeader}>
+            <div className={styles.cardTitle}>
               <FiBarChart2 />
               <h3>Most Popular Breeds</h3>
-            </CardTitle>
-          </CardHeader>
-          <CardBody>
+            </div>
+          </div>
+          <div className={styles.cardBody}>
             {petPerformance?.mostPopularBreeds && petPerformance.mostPopularBreeds.length > 0 ? (
               <div style={{ display: 'grid', gap: '1rem' }}>
                 {petPerformance.mostPopularBreeds.map((breed, index) => (
@@ -573,16 +410,16 @@ const Analytics: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <EmptyState>
+              <div className={styles.emptyState}>
                 <FiBarChart2 />
                 <h3>No Data Available</h3>
                 <p>Pet performance data will appear here once available.</p>
-              </EmptyState>
+              </div>
             )}
-          </CardBody>
+          </div>
         </Card>
-      </ChartsGrid>
-    </PageContainer>
+      </div>
+    </div>
   );
 };
 

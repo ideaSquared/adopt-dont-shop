@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import clsx from 'clsx';
 import { Card } from '@adopt-dont-shop/lib.components';
 import { FiCalendar, FiPlus } from 'react-icons/fi';
+import * as styles from './Events.css';
 
 // Event Components
 import EventList from '../components/events/EventList';
@@ -22,207 +23,6 @@ import {
   CalendarView,
   EventAttendee,
 } from '../types/events';
-
-const PageContainer = styled.div`
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-`;
-
-const PageHeader = styled.div`
-  margin-bottom: 2rem;
-`;
-
-const HeaderTop = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-`;
-
-const HeaderTitle = styled.div`
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: ${props => props.theme.text.primary};
-    margin: 0 0 0.5rem 0;
-  }
-
-  p {
-    font-size: 1rem;
-    color: ${props => props.theme.text.secondary};
-    margin: 0;
-  }
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-
-  @media (max-width: 768px) {
-    width: 100%;
-
-    > button {
-      flex: 1;
-    }
-  }
-`;
-
-const PrimaryButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: ${props => props.theme.colors.primary[600]};
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: ${props => props.theme.colors.primary[700]};
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-
-  svg {
-    font-size: 1.125rem;
-  }
-
-  &:disabled {
-    background: ${props => props.theme.colors.neutral[300]};
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-`;
-
-const ContentArea = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const ErrorState = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: ${props => props.theme.colors.semantic.error[600]};
-  background: ${props => props.theme.colors.semantic.error[50]};
-  border: 1px solid ${props => props.theme.colors.semantic.error[200]};
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-
-  p {
-    margin: 0;
-  }
-`;
-
-const Modal = styled.div<{ $isOpen: boolean }>`
-  display: ${props => (props.$isOpen ? 'flex' : 'none')};
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  overflow-y: auto;
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  border-radius: 12px;
-  max-width: 900px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  position: relative;
-  margin: 2rem auto;
-`;
-
-const ModalHeader = styled.div`
-  position: sticky;
-  top: 0;
-  background: white;
-  padding: 1.5rem;
-  border-bottom: 1px solid ${props => props.theme.colors.neutral[200]};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  z-index: 10;
-  border-radius: 12px 12px 0 0;
-`;
-
-const ModalTitle = styled.h2`
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: ${props => props.theme.text.primary};
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: ${props => props.theme.text.secondary};
-  cursor: pointer;
-  padding: 0.25rem;
-  line-height: 1;
-  transition: all 0.2s ease;
-
-  &:hover {
-    color: ${props => props.theme.text.primary};
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 1.5rem;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem 1rem;
-  color: ${props => props.theme.text.secondary};
-
-  svg {
-    font-size: 3rem;
-    color: ${props => props.theme.colors.neutral[300]};
-    margin-bottom: 1rem;
-  }
-
-  h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: ${props => props.theme.text.primary};
-    margin: 0 0 0.5rem 0;
-  }
-
-  p {
-    margin: 0 0 1.5rem 0;
-  }
-`;
 
 const Events: React.FC = () => {
   // State for events data
@@ -481,35 +281,39 @@ const Events: React.FC = () => {
 
   if (error) {
     return (
-      <PageContainer>
-        <PageHeader>
-          <HeaderTitle>
+      <div className={styles.pageContainer}>
+        <div className={styles.pageHeader}>
+          <div className={styles.headerTitle}>
             <h1>Event Management</h1>
-          </HeaderTitle>
-        </PageHeader>
-        <ErrorState>
+          </div>
+        </div>
+        <div className={styles.errorState}>
           <p>{error}</p>
-        </ErrorState>
-      </PageContainer>
+        </div>
+      </div>
     );
   }
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <HeaderTop>
-          <HeaderTitle>
+    <div className={styles.pageContainer}>
+      <div className={styles.pageHeader}>
+        <div className={styles.headerTop}>
+          <div className={styles.headerTitle}>
             <h1>Event Management</h1>
             <p>Plan and coordinate adoption events, fundraisers, and volunteer activities</p>
-          </HeaderTitle>
+          </div>
 
-          <HeaderActions>
-            <PrimaryButton onClick={() => setShowCreateModal(true)} disabled={loading}>
+          <div className={styles.headerActions}>
+            <button
+              className={styles.primaryButton}
+              onClick={() => setShowCreateModal(true)}
+              disabled={loading}
+            >
               <FiPlus />
               Create Event
-            </PrimaryButton>
-          </HeaderActions>
-        </HeaderTop>
+            </button>
+          </div>
+        </div>
 
         <EventFilters
           filters={filters}
@@ -517,9 +321,9 @@ const Events: React.FC = () => {
           view={view}
           onViewChange={setView}
         />
-      </PageHeader>
+      </div>
 
-      <ContentArea>
+      <div className={styles.contentArea}>
         {loading ? (
           <Card>
             <div style={{ padding: '3rem', textAlign: 'center' }}>
@@ -528,7 +332,7 @@ const Events: React.FC = () => {
           </Card>
         ) : filteredEvents.length === 0 && !loading ? (
           <Card>
-            <EmptyState>
+            <div className={styles.emptyState}>
               <FiCalendar />
               <h3>No Events Found</h3>
               <p>
@@ -537,45 +341,59 @@ const Events: React.FC = () => {
                   : 'No events match your current filters. Try adjusting your search criteria.'}
               </p>
               {events.length === 0 && (
-                <PrimaryButton onClick={() => setShowCreateModal(true)}>
+                <button className={styles.primaryButton} onClick={() => setShowCreateModal(true)}>
                   <FiPlus />
                   Create Your First Event
-                </PrimaryButton>
+                </button>
               )}
-            </EmptyState>
+            </div>
           </Card>
         ) : view === 'list' ? (
           <EventList events={filteredEvents} onEventClick={handleEventClick} loading={loading} />
         ) : (
           <EventCalendar events={filteredEvents} onEventClick={handleEventClick} />
         )}
-      </ContentArea>
+      </div>
 
       {/* Create Event Modal */}
-      <Modal $isOpen={showCreateModal} onClick={() => handleCloseModal('create')}>
-        <ModalContent onClick={e => e.stopPropagation()}>
-          <ModalHeader>
-            <ModalTitle>Create New Event</ModalTitle>
-            <CloseButton onClick={() => handleCloseModal('create')}>&times;</CloseButton>
-          </ModalHeader>
-          <ModalBody>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div
+        className={clsx(styles.modal, showCreateModal ? styles.modalOpen : styles.modalClosed)}
+        onClick={() => handleCloseModal('create')}
+      >
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+          <div className={styles.modalHeader}>
+            <h2 className={styles.modalTitle}>Create New Event</h2>
+            <button className={styles.closeButton} onClick={() => handleCloseModal('create')}>
+              &times;
+            </button>
+          </div>
+          <div className={styles.modalBody}>
             <EventForm
               onSubmit={handleCreateEvent}
               onCancel={() => handleCloseModal('create')}
               isEditing={false}
             />
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+          </div>
+        </div>
+      </div>
 
       {/* Edit Event Modal */}
-      <Modal $isOpen={showEditModal} onClick={() => handleCloseModal('edit')}>
-        <ModalContent onClick={e => e.stopPropagation()}>
-          <ModalHeader>
-            <ModalTitle>Edit Event</ModalTitle>
-            <CloseButton onClick={() => handleCloseModal('edit')}>&times;</CloseButton>
-          </ModalHeader>
-          <ModalBody>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div
+        className={clsx(styles.modal, showEditModal ? styles.modalOpen : styles.modalClosed)}
+        onClick={() => handleCloseModal('edit')}
+      >
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+          <div className={styles.modalHeader}>
+            <h2 className={styles.modalTitle}>Edit Event</h2>
+            <button className={styles.closeButton} onClick={() => handleCloseModal('edit')}>
+              &times;
+            </button>
+          </div>
+          <div className={styles.modalBody}>
             {eventToEdit && (
               <EventForm
                 initialData={{
@@ -597,18 +415,25 @@ const Events: React.FC = () => {
                 isEditing={true}
               />
             )}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+          </div>
+        </div>
+      </div>
 
       {/* Event Details Modal */}
-      <Modal $isOpen={showDetailsModal} onClick={() => handleCloseModal('details')}>
-        <ModalContent onClick={e => e.stopPropagation()}>
-          <ModalHeader>
-            <ModalTitle>Event Details</ModalTitle>
-            <CloseButton onClick={() => handleCloseModal('details')}>&times;</CloseButton>
-          </ModalHeader>
-          <ModalBody>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div
+        className={clsx(styles.modal, showDetailsModal ? styles.modalOpen : styles.modalClosed)}
+        onClick={() => handleCloseModal('details')}
+      >
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+          <div className={styles.modalHeader}>
+            <h2 className={styles.modalTitle}>Event Details</h2>
+            <button className={styles.closeButton} onClick={() => handleCloseModal('details')}>
+              &times;
+            </button>
+          </div>
+          <div className={styles.modalBody}>
             {selectedEvent && (
               <EventDetails
                 event={selectedEvent}
@@ -619,10 +444,10 @@ const Events: React.FC = () => {
                 onCheckInAttendee={handleCheckInAttendee}
               />
             )}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-    </PageContainer>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

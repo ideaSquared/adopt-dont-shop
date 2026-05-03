@@ -15,199 +15,7 @@ import {
 } from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import styled from 'styled-components';
-
-const SearchContainer = styled(Container)`
-  padding: 2rem 0;
-  min-height: calc(100vh - 200px);
-`;
-
-const SearchHeader = styled.div`
-  text-align: center;
-  margin-bottom: 2rem;
-
-  h1 {
-    font-size: 2.5rem;
-    color: ${props => props.theme.text.primary};
-    margin-bottom: 1rem;
-  }
-
-  p {
-    font-size: 1.2rem;
-    color: ${props => props.theme.text.secondary};
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  @media (max-width: 768px) {
-    h1 {
-      font-size: 2rem;
-    }
-
-    p {
-      font-size: 1rem;
-    }
-  }
-`;
-
-const FiltersCard = styled(Card)`
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-`;
-
-const FiltersGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FilterActions = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    justify-content: center;
-  }
-`;
-
-const SearchResults = styled.div`
-  margin-bottom: 2rem;
-`;
-
-const ResultsHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
-
-  h2 {
-    color: ${props => props.theme.text.primary};
-    margin: 0;
-  }
-
-  .sort-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-`;
-
-const PetGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem 1rem;
-  color: ${props => props.theme.text.secondary};
-
-  h3 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  p {
-    font-size: 1rem;
-    margin-bottom: 2rem;
-  }
-`;
-
-const Pagination = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
-  flex-wrap: wrap;
-
-  .page-info {
-    color: ${props => props.theme.text.secondary};
-    font-size: 0.9rem;
-  }
-
-  .page-controls {
-    display: flex;
-    gap: 0.5rem;
-  }
-`;
-
-const LocationFilterRow = styled.div`
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-const LocationInputGroup = styled.div`
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 160px;
-`;
-
-const OrLabel = styled.span`
-  font-size: 0.875rem;
-  color: ${props => props.theme.text.secondary};
-  white-space: nowrap;
-  padding-bottom: 10px;
-
-  @media (max-width: 768px) {
-    padding-bottom: 0;
-    text-align: center;
-  }
-`;
-
-const LocationButton = styled(Button)`
-  white-space: nowrap;
-  min-height: 42px;
-`;
-
-const LocationHint = styled.p`
-  font-size: 0.85rem;
-  color: ${props => props.theme.text.secondary};
-  margin: 0 0 0.75rem 0;
-`;
-
-const LocationStatus = styled.div<{ $variant?: 'success' | 'error' | 'info' }>`
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-  color: ${props =>
-    props.$variant === 'success'
-      ? props.theme.text.primary
-      : props.$variant === 'error'
-        ? '#dc3545'
-        : props.theme.text.secondary};
-`;
+import * as styles from './SearchPage.css';
 
 const DISTANCE_OPTIONS = [
   { value: '', label: 'Any Distance' },
@@ -571,18 +379,18 @@ export const SearchPage: React.FC = () => {
   );
 
   return (
-    <SearchContainer>
-      <SearchHeader>
+    <Container className={styles.searchContainer}>
+      <div className={styles.searchHeader}>
         <h1>Find Your Perfect Pet</h1>
         <p>
           Search through thousands of loving pets waiting for their forever homes. Use the filters
           below to find exactly what you&apos;re looking for.
         </p>
-      </SearchHeader>
+      </div>
 
       {/* Search Filters */}
-      <FiltersCard>
-        <FiltersGrid>
+      <Card className={styles.filtersCard}>
+        <div className={styles.filtersGrid}>
           <TextInput
             label='Search'
             value={searchQuery}
@@ -638,10 +446,11 @@ export const SearchPage: React.FC = () => {
             }}
             options={DISTANCE_OPTIONS}
           />
-        </FiltersGrid>
+        </div>
 
-        <LocationFilterRow>
-          <LocationButton
+        <div className={styles.locationFilterRow}>
+          <Button
+            className={styles.locationButton}
             variant='outline'
             size='sm'
             onClick={geolocation.requestLocation}
@@ -652,9 +461,9 @@ export const SearchPage: React.FC = () => {
               : geolocation.hasLocation
                 ? 'Update My Location'
                 : 'Use My Location'}
-          </LocationButton>
-          <OrLabel>or</OrLabel>
-          <LocationInputGroup>
+          </Button>
+          <span className={styles.orLabel}>or</span>
+          <div className={styles.locationInputGroup}>
             <TextInput
               label='Location'
               value={filters.location || ''}
@@ -668,47 +477,55 @@ export const SearchPage: React.FC = () => {
               placeholder='City or postcode...'
             />
             {filters.location?.trim() && (
-              <LocationButton
+              <Button
+                className={styles.locationButton}
                 variant='outline'
                 size='sm'
                 onClick={handleUseLocationText}
                 disabled={isGeocodingLocation}
               >
                 {isGeocodingLocation ? 'Finding...' : 'Search nearby'}
-              </LocationButton>
+              </Button>
             )}
-          </LocationInputGroup>
+          </div>
           {geolocation.hasLocation && (
-            <LocationButton variant='outline' size='sm' onClick={geolocation.clearLocation}>
+            <Button
+              className={styles.locationButton}
+              variant='outline'
+              size='sm'
+              onClick={geolocation.clearLocation}
+            >
               Clear Location
-            </LocationButton>
+            </Button>
           )}
           {geolocation.hasLocation && (
-            <LocationStatus $variant='success'>
+            <div className={styles.locationStatus({ variant: 'success' })}>
               Location detected - distance search enabled
-            </LocationStatus>
+            </div>
           )}
           {(geolocation.status === 'denied' ||
             geolocation.status === 'error' ||
             geolocation.status === 'unavailable') && (
-            <LocationStatus $variant='error'>{geolocation.error}</LocationStatus>
+            <div className={styles.locationStatus({ variant: 'error' })}>{geolocation.error}</div>
           )}
-          {geocodeError && <LocationStatus $variant='error'>{geocodeError}</LocationStatus>}
-        </LocationFilterRow>
+          {geocodeError && (
+            <div className={styles.locationStatus({ variant: 'error' })}>{geocodeError}</div>
+          )}
+        </div>
 
-        <FilterActions>
+        <div className={styles.filterActions}>
           {hasActiveFilters && (
             <Button variant='outline' onClick={clearFilters}>
               Clear Filters
             </Button>
           )}
           <Button onClick={loadPets}>Search</Button>
-        </FilterActions>
-      </FiltersCard>
+        </div>
+      </Card>
 
       {/* Search Results */}
-      <SearchResults>
-        <ResultsHeader>
+      <div className={styles.searchResults}>
+        <div className={styles.resultsHeader}>
           <h2>
             {pagination
               ? `${pagination.total} ${pagination.total === 1 ? 'Pet' : 'Pets'} Found`
@@ -723,38 +540,40 @@ export const SearchPage: React.FC = () => {
               options={SORT_OPTIONS}
             />
           </div>
-        </ResultsHeader>
+        </div>
 
         {isLoading ? (
-          <LoadingContainer>
+          <div className={styles.loadingContainer}>
             <Spinner size='lg' />
-          </LoadingContainer>
+          </div>
         ) : error ? (
-          <EmptyState>
+          <div className={styles.emptyState}>
             <h3>Oops! Something went wrong</h3>
             <p>{error}</p>
             <Button onClick={loadPets}>Try Again</Button>
-          </EmptyState>
+          </div>
         ) : !pets || pets.length === 0 ? (
-          <EmptyState>
+          <div className={styles.emptyState}>
             <h3>No pets found</h3>
             <p>Try adjusting your search criteria or clearing some filters to see more results.</p>
             {hasActiveFilters && <Button onClick={clearFilters}>Clear All Filters</Button>}
-          </EmptyState>
+          </div>
         ) : (
           <>
             {!geolocation.hasLocation && (
-              <LocationHint>
+              <p className={styles.locationHint}>
                 Enable your location above to see how far away each pet is.
-              </LocationHint>
+              </p>
             )}
-            <PetGrid>{pets && pets.map(pet => <PetCard key={pet.pet_id} pet={pet} />)}</PetGrid>
+            <div className={styles.petGrid}>
+              {pets && pets.map(pet => <PetCard key={pet.pet_id} pet={pet} />)}
+            </div>
           </>
         )}
 
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
-          <Pagination>
+          <div className={styles.pagination}>
             <div className='page-info'>
               Page {pagination.page} of {pagination.totalPages}({pagination.total} total pets)
             </div>
@@ -778,9 +597,9 @@ export const SearchPage: React.FC = () => {
                 Next
               </Button>
             </div>
-          </Pagination>
+          </div>
         )}
-      </SearchResults>
-    </SearchContainer>
+      </div>
+    </Container>
   );
 };

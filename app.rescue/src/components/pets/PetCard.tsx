@@ -1,223 +1,8 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { Card, Button } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
-
-const StyledCard = styled(Card)`
-  padding: 0;
-  overflow: hidden;
-  transition: all 0.2s ease;
-  border: 1px solid ${props => props.theme.colors.neutral[200]};
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const PetImageContainer = styled.div`
-  position: relative;
-  width: 100%;
-  height: 200px;
-  background: ${props => props.theme.colors.neutral[100]};
-  overflow: hidden;
-`;
-
-const PetImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-`;
-
-const PlaceholderImage = styled.div`
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  color: ${props => props.theme.colors.neutral[400]};
-  background: linear-gradient(
-    135deg,
-    ${props => props.theme.colors.neutral[50]},
-    ${props => props.theme.colors.neutral[100]}
-  );
-`;
-
-const StatusBadgeContainer = styled.div`
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-`;
-
-const PetContent = styled.div`
-  padding: 1.25rem;
-`;
-
-const PetHeader = styled.div`
-  margin-bottom: 1rem;
-
-  h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: ${props => props.theme.text.primary};
-    margin: 0 0 0.25rem 0;
-    line-height: 1.2;
-  }
-
-  .pet-info {
-    font-size: 0.875rem;
-    color: ${props => props.theme.text.secondary};
-    margin: 0;
-  }
-`;
-
-const PetDetails = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-
-  .detail-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.25rem 0;
-    border-bottom: 1px solid ${props => props.theme.colors.neutral[100]};
-
-    .label {
-      color: ${props => props.theme.text.secondary};
-      font-weight: 500;
-    }
-
-    .value {
-      color: ${props => props.theme.text.primary};
-    }
-  }
-`;
-
-const PetDescription = styled.div`
-  margin-bottom: 1rem;
-
-  p {
-    font-size: 0.875rem;
-    color: ${props => props.theme.text.secondary};
-    line-height: 1.4;
-    margin: 0;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-`;
-
-const PetActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-
-  button {
-    flex: 1;
-    font-size: 0.875rem;
-  }
-`;
-
-const StatusUpdateModal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
-
-const ModalContent = styled(Card)`
-  width: 100%;
-  max-width: 400px;
-  padding: 1.5rem;
-
-  h3 {
-    margin: 0 0 1rem 0;
-    color: ${props => props.theme.text.primary};
-  }
-
-  .form-group {
-    margin-bottom: 1rem;
-
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: ${props => props.theme.text.primary};
-    }
-
-    select,
-    textarea {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid ${props => props.theme.colors.neutral[300]};
-      border-radius: 4px;
-      font-size: 0.875rem;
-      font-family: inherit;
-
-      &:focus {
-        outline: none;
-        border-color: ${props => props.theme.colors.primary[500]};
-        box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-      }
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
-    margin-top: 1.5rem;
-
-    button {
-      min-width: 80px;
-    }
-  }
-`;
-
-const StatusBadge = styled.span<{ status: string }>`
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border-radius: 4px;
-  text-transform: capitalize;
-  color: white;
-  background-color: ${({ status }) => {
-    switch (status) {
-      case 'available':
-        return '#10b981';
-      case 'pending':
-        return '#f59e0b';
-      case 'adopted':
-        return '#3b82f6';
-      case 'on_hold':
-        return '#f97316';
-      case 'medical_care':
-        return '#ef4444';
-      case 'foster':
-        return '#8b5cf6';
-      default:
-        return '#6b7280';
-    }
-  }};
-`;
+import * as styles from './PetCard.css';
 
 const getStatusLabel = (status: string) => {
   switch (status) {
@@ -236,6 +21,22 @@ const getStatusLabel = (status: string) => {
     default:
       return status;
   }
+};
+
+const getStatusVariant = (
+  status: string
+): 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care' | 'foster' | 'default' => {
+  const validStatuses = [
+    'available',
+    'pending',
+    'adopted',
+    'on_hold',
+    'medical_care',
+    'foster',
+  ] as const;
+  return (validStatuses as readonly string[]).includes(status)
+    ? (status as 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care' | 'foster')
+    : 'default';
 };
 
 const formatAge = (ageYears: number, ageMonths: number) => {
@@ -299,27 +100,29 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
 
   return (
     <>
-      <StyledCard>
-        <PetImageContainer>
+      <Card className={styles.styledCard}>
+        <div className={styles.petImageContainer}>
           {primaryImage ? (
-            <PetImage src={primaryImage.url} alt={pet.name} />
+            <img className={styles.petImage} src={primaryImage.url} alt={pet.name} />
           ) : (
-            <PlaceholderImage>🐾</PlaceholderImage>
+            <div className={styles.placeholderImage}>🐾</div>
           )}
-          <StatusBadgeContainer>
-            <StatusBadge status={pet.status}>{getStatusLabel(pet.status)}</StatusBadge>
-          </StatusBadgeContainer>
-        </PetImageContainer>
+          <div className={styles.statusBadgeContainer}>
+            <span className={styles.statusBadge({ status: getStatusVariant(pet.status) })}>
+              {getStatusLabel(pet.status)}
+            </span>
+          </div>
+        </div>
 
-        <PetContent>
-          <PetHeader>
+        <div className={styles.petContent}>
+          <div className={styles.petHeader}>
             <h3>{pet.name}</h3>
             <p className="pet-info">
               {pet.breed} • {formatAge(pet.age_years, pet.age_months)} • {pet.gender}
             </p>
-          </PetHeader>
+          </div>
 
-          <PetDetails>
+          <div className={styles.petDetails}>
             <div className="detail-item">
               <span className="label">Type:</span>
               <span className="value">{pet.type}</span>
@@ -338,15 +141,15 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
                 {formatRelativeDate(new Date(pet.created_at)).replace(' ago', '')} ago
               </span>
             </div>
-          </PetDetails>
+          </div>
 
           {pet.short_description && (
-            <PetDescription>
+            <div className={styles.petDescription}>
               <p>{pet.short_description}</p>
-            </PetDescription>
+            </div>
           )}
 
-          <PetActions>
+          <div className={styles.petActions}>
             <Button variant="outline" size="sm" onClick={handleEdit}>
               Edit
             </Button>
@@ -362,14 +165,22 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
             >
               {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
-          </PetActions>
-        </PetContent>
-      </StyledCard>
+          </div>
+        </div>
+      </Card>
 
       {/* Status Update Modal */}
       {showStatusModal && (
-        <StatusUpdateModal onClick={() => setShowStatusModal(false)}>
-          <ModalContent onClick={e => e.stopPropagation()}>
+        <div
+          className={styles.statusUpdateModal}
+          onClick={() => setShowStatusModal(false)}
+          onKeyDown={e => e.key === 'Escape' && setShowStatusModal(false)}
+          role="presentation"
+        >
+          <Card
+            className={styles.modalContent}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          >
             <h3>Update Pet Status</h3>
 
             <div className="form-group">
@@ -407,14 +218,22 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
                 Update
               </Button>
             </div>
-          </ModalContent>
-        </StatusUpdateModal>
+          </Card>
+        </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <StatusUpdateModal onClick={cancelDelete}>
-          <ModalContent onClick={e => e.stopPropagation()}>
+        <div
+          className={styles.statusUpdateModal}
+          onClick={cancelDelete}
+          onKeyDown={e => e.key === 'Escape' && cancelDelete()}
+          role="presentation"
+        >
+          <Card
+            className={styles.modalContent}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          >
             <h3>Delete Pet: {pet.name}</h3>
 
             <p style={{ marginBottom: '1rem', color: '#666' }}>
@@ -445,8 +264,8 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
                 {isDeleting ? 'Deleting...' : 'Delete Pet'}
               </Button>
             </div>
-          </ModalContent>
-        </StatusUpdateModal>
+          </Card>
+        </div>
       )}
     </>
   );

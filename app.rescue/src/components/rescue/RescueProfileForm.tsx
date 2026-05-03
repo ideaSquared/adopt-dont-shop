@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import {
   Button,
   Card,
@@ -10,50 +9,7 @@ import {
   type SelectOption,
 } from '@adopt-dont-shop/lib.components';
 import type { RescueProfile, RescueAddress } from '../../types/rescue';
-
-const FormContainer = styled(Card)`
-  padding: 2rem;
-  margin-bottom: 2rem;
-`;
-
-const FormSection = styled.div`
-  margin-bottom: 2rem;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1rem 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e5e7eb;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-`;
+import * as styles from './RescueProfileForm.css';
 
 interface RescueProfileFormProps {
   rescue: RescueProfile | null;
@@ -195,15 +151,15 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
   };
 
   return (
-    <FormContainer>
+    <Card className={styles.formContainer}>
       <form onSubmit={handleSubmit}>
         {successMessage && <Alert variant="success">{successMessage}</Alert>}
         {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
 
-        <FormSection>
-          <SectionTitle>Basic Information</SectionTitle>
-          <FormRow>
-            <FormGroup>
+        <div className={styles.formSection}>
+          <h3 className={styles.sectionTitle}>Basic Information</h3>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
               <TextInput
                 label="Rescue Name *"
                 value={formData.name || ''}
@@ -212,9 +168,9 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 placeholder="Enter rescue organisation name"
                 fullWidth
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup}>
               <SelectInput
                 label="Rescue Type *"
                 value={formData.rescue_type || 'animal_shelter'}
@@ -223,11 +179,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 required
                 fullWidth
               />
-            </FormGroup>
-          </FormRow>
+            </div>
+          </div>
 
-          <FormRow>
-            <FormGroup>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
               <TextInput
                 label="Email Address *"
                 type="email"
@@ -238,9 +194,9 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 helperText="Primary contact email for your rescue"
                 fullWidth
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup}>
               <TextInput
                 label="Phone Number *"
                 type="tel"
@@ -251,11 +207,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 helperText="Main phone number for enquiries"
                 fullWidth
               />
-            </FormGroup>
-          </FormRow>
+            </div>
+          </div>
 
-          <FormRow>
-            <FormGroup>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
               <TextInput
                 label="Website"
                 type="url"
@@ -264,11 +220,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 placeholder="https://www.rescue.org.uk"
                 fullWidth
               />
-            </FormGroup>
-          </FormRow>
+            </div>
+          </div>
 
-          <FormRow>
-            <FormGroup style={{ gridColumn: '1 / -1' }}>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
               <LibTextArea
                 label="Description"
                 value={formData.description || ''}
@@ -278,14 +234,14 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 helperText="This description will be visible to potential adopters"
                 fullWidth
               />
-            </FormGroup>
-          </FormRow>
-        </FormSection>
+            </div>
+          </div>
+        </div>
 
-        <FormSection>
-          <SectionTitle>Location</SectionTitle>
-          <FormRow>
-            <FormGroup style={{ gridColumn: '1 / -1' }}>
+        <div className={styles.formSection}>
+          <h3 className={styles.sectionTitle}>Location</h3>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
               <TextInput
                 label="Street Address *"
                 value={formData.address?.street || ''}
@@ -294,11 +250,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 placeholder="123 High Street"
                 fullWidth
               />
-            </FormGroup>
-          </FormRow>
+            </div>
+          </div>
 
-          <FormRow>
-            <FormGroup>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
               <TextInput
                 label="Town/City *"
                 value={formData.address?.city || ''}
@@ -307,9 +263,9 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 placeholder="London"
                 fullWidth
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup}>
               <TextInput
                 label="County"
                 value={formData.address?.county || ''}
@@ -317,11 +273,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 placeholder="Greater London"
                 fullWidth
               />
-            </FormGroup>
-          </FormRow>
+            </div>
+          </div>
 
-          <FormRow>
-            <FormGroup>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
               <TextInput
                 label="Postcode *"
                 value={formData.address?.postcode || ''}
@@ -330,9 +286,9 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 placeholder="SW1A 1AA"
                 fullWidth
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup}>
               <SelectInput
                 label="Country *"
                 value={formData.address?.country || 'United Kingdom'}
@@ -341,11 +297,11 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
                 required
                 fullWidth
               />
-            </FormGroup>
-          </FormRow>
-        </FormSection>
+            </div>
+          </div>
+        </div>
 
-        <ButtonGroup>
+        <div className={styles.buttonGroup}>
           <Button
             type="button"
             variant="outline"
@@ -357,9 +313,9 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
           <Button type="submit" variant="primary" disabled={!hasChanges || saving || loading}>
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
-        </ButtonGroup>
+        </div>
       </form>
-    </FormContainer>
+    </Card>
   );
 };
 

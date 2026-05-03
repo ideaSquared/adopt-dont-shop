@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { StaffMember } from '../../types/staff';
 import StaffCard from './StaffCard';
+import * as styles from './StaffList.css';
 
 interface StaffListProps {
   staff: StaffMember[];
@@ -13,129 +13,6 @@ interface StaffListProps {
   showSearch?: boolean;
   currentUserId?: string; // Add current user ID to prevent self-editing/removal
 }
-
-const ListContainer = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const ListControls = styled.div`
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e9ecef;
-`;
-
-const SearchFilters = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const SearchInput = styled.input`
-  flex: 1;
-  min-width: 200px;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: #1976d2;
-  }
-`;
-
-const FilterSelect = styled.select`
-  padding: 0.75rem 1rem;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: #1976d2;
-  }
-`;
-
-const StaffCount = styled.div`
-  font-size: 0.875rem;
-  color: #666;
-  font-weight: 500;
-`;
-
-const StaffGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 1.5rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  padding: 2rem;
-  text-align: center;
-`;
-
-const LoadingSpinner = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const Spinner = styled.div`
-  width: 2rem;
-  height: 2rem;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #1976d2;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem 1rem;
-`;
-
-const EmptyContainer = styled.div`
-  max-width: 400px;
-  margin: 0 auto;
-`;
-
-const EmptyIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-`;
-
-const EmptyTitle = styled.h3`
-  margin: 0 0 0.5rem 0;
-  color: #333;
-  font-weight: 600;
-`;
-
-const EmptyText = styled.p`
-  margin: 0;
-  color: #666;
-`;
 
 const StaffList: React.FC<StaffListProps> = ({
   staff,
@@ -167,59 +44,63 @@ const StaffList: React.FC<StaffListProps> = ({
 
   if (loading) {
     return (
-      <LoadingContainer>
-        <LoadingSpinner>
-          <Spinner />
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}>
+          <div className={styles.spinner} />
           <p>Loading staff members...</p>
-        </LoadingSpinner>
-      </LoadingContainer>
+        </div>
+      </div>
     );
   }
 
   return (
-    <ListContainer>
+    <div className={styles.listContainer}>
       {showSearch && (
-        <ListControls>
-          <SearchFilters>
-            <SearchInput
+        <div className={styles.listControls}>
+          <div className={styles.searchFilters}>
+            <input
+              className={styles.searchInput}
               type="text"
               placeholder="Search staff members..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
-            <FilterSelect
+            <select
+              className={styles.filterSelect}
               value={filterBy}
               onChange={e => setFilterBy(e.target.value as 'all' | 'verified' | 'pending')}
             >
               <option value="all">All Staff</option>
               <option value="verified">Verified Only</option>
               <option value="pending">Pending Only</option>
-            </FilterSelect>
-          </SearchFilters>
-          <StaffCount>
+            </select>
+          </div>
+          <div className={styles.staffCount}>
             Showing {filteredStaff.length} of {staff.length} staff members
-          </StaffCount>
-        </ListControls>
+          </div>
+        </div>
       )}
 
       {filteredStaff.length === 0 ? (
-        <EmptyState>
+        <div className={styles.emptyState}>
           {staff.length === 0 ? (
-            <EmptyContainer>
-              <EmptyIcon>👥</EmptyIcon>
-              <EmptyTitle>No Staff Members</EmptyTitle>
-              <EmptyText>Your rescue doesn't have any staff members yet.</EmptyText>
-            </EmptyContainer>
+            <div className={styles.emptyContainer}>
+              <div className={styles.emptyIcon}>👥</div>
+              <h3 className={styles.emptyTitle}>No Staff Members</h3>
+              <p className={styles.emptyText}>Your rescue doesn't have any staff members yet.</p>
+            </div>
           ) : (
-            <EmptyContainer>
-              <EmptyIcon>🔍</EmptyIcon>
-              <EmptyTitle>No Results Found</EmptyTitle>
-              <EmptyText>No staff members match your current search criteria.</EmptyText>
-            </EmptyContainer>
+            <div className={styles.emptyContainer}>
+              <div className={styles.emptyIcon}>🔍</div>
+              <h3 className={styles.emptyTitle}>No Results Found</h3>
+              <p className={styles.emptyText}>
+                No staff members match your current search criteria.
+              </p>
+            </div>
           )}
-        </EmptyState>
+        </div>
       ) : (
-        <StaffGrid>
+        <div className={styles.staffGrid}>
           {filteredStaff.map(staffMember => {
             // Prevent self-editing and self-removal
             const isCurrentUser = staffMember.userId === currentUserId;
@@ -234,9 +115,9 @@ const StaffList: React.FC<StaffListProps> = ({
               />
             );
           })}
-        </StaffGrid>
+        </div>
       )}
-    </ListContainer>
+    </div>
   );
 };
 

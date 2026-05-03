@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'styled-components';
 import {
   useFeatureGate,
   useConfigValue,
@@ -17,143 +16,8 @@ import {
   CardTitle,
   CardContent,
 } from '../components/ui';
+import * as styles from './Configuration.css';
 
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const ConfigGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-  gap: 1.5rem;
-`;
-
-const SectionCard = styled(Card)`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const InfoBanner = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #1e40af;
-  margin-bottom: 1rem;
-
-  svg {
-    flex-shrink: 0;
-    margin-top: 0.125rem;
-  }
-
-  a {
-    color: #2563eb;
-    font-weight: 600;
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-`;
-
-const GateItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #d1d5db;
-    background: #f9fafb;
-  }
-`;
-
-const GateInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  flex: 1;
-`;
-
-const GateName = styled.div`
-  font-weight: 600;
-  color: #111827;
-  font-size: 0.9375rem;
-`;
-
-const GateDescription = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-  line-height: 1.4;
-`;
-
-const GateKey = styled.div`
-  font-family: monospace;
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin-top: 0.25rem;
-`;
-
-const StatusBadge = styled.div<{ $enabled: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 0.375rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: ${props => (props.$enabled ? '#d1fae5' : '#f3f4f6')};
-  color: ${props => (props.$enabled ? '#065f46' : '#6b7280')};
-`;
-
-const SettingItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-`;
-
-const SettingLabel = styled.div`
-  font-weight: 600;
-  color: #111827;
-  font-size: 0.875rem;
-`;
-
-const SettingValue = styled.div`
-  font-family: monospace;
-  font-size: 0.875rem;
-  color: #6b7280;
-  padding: 0.5rem;
-  background: #f9fafb;
-  border-radius: 6px;
-`;
-
-const StatsigLink = styled.a`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  color: #2563eb;
-  text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 600;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-// Gate display metadata
 const GATE_METADATA: Record<string, { name: string; description: string }> = {
   [KNOWN_GATES.ENABLE_REAL_TIME_MESSAGING]: {
     name: 'Real-Time Messaging',
@@ -197,7 +61,6 @@ const GATE_METADATA: Record<string, { name: string; description: string }> = {
   },
 };
 
-// Component for each gate
 const GateDisplay: React.FC<{ gateName: string }> = ({ gateName }) => {
   const { value: isEnabled } = useFeatureGate(gateName);
   const metadata = GATE_METADATA[gateName] || {
@@ -206,19 +69,20 @@ const GateDisplay: React.FC<{ gateName: string }> = ({ gateName }) => {
   };
 
   return (
-    <GateItem>
-      <GateInfo>
-        <GateName>{metadata.name}</GateName>
-        <GateDescription>{metadata.description}</GateDescription>
-        <GateKey>{gateName}</GateKey>
-      </GateInfo>
-      <StatusBadge $enabled={isEnabled}>{isEnabled ? 'Enabled' : 'Disabled'}</StatusBadge>
-    </GateItem>
+    <div className={styles.gateItem}>
+      <div className={styles.gateInfo}>
+        <div className={styles.gateName}>{metadata.name}</div>
+        <div className={styles.gateDescription}>{metadata.description}</div>
+        <div className={styles.gateKey}>{gateName}</div>
+      </div>
+      <div className={isEnabled ? styles.statusBadgeEnabled : styles.statusBadgeDisabled}>
+        {isEnabled ? 'Enabled' : 'Disabled'}
+      </div>
+    </div>
   );
 };
 
 const Configuration: React.FC = () => {
-  // Application Settings
   const maxApplicationsPerUser = useConfigValue(
     KNOWN_CONFIGS.APPLICATION_SETTINGS,
     'max_applications_per_user',
@@ -245,7 +109,6 @@ const Configuration: React.FC = () => {
     true
   );
 
-  // System Settings
   const maxFileUploadSizeMb = useConfigValue(
     KNOWN_CONFIGS.SYSTEM_SETTINGS,
     'max_file_upload_size_mb',
@@ -267,7 +130,6 @@ const Configuration: React.FC = () => {
     100
   );
 
-  // Moderation Settings
   const autoModerateEnabled = useConfigValue(
     KNOWN_CONFIGS.MODERATION_SETTINGS,
     'auto_moderate_enabled',
@@ -300,7 +162,7 @@ const Configuration: React.FC = () => {
           <Heading level='h1'>System Configuration</Heading>
           <Text>View feature gates and settings managed through Statsig</Text>
         </HeaderLeft>
-        <HeaderActions>
+        <div className={styles.headerActions}>
           <Button variant='outline' size='md' onClick={handleRefresh}>
             <FiRefreshCw style={{ marginRight: '0.5rem' }} />
             Reload
@@ -313,25 +175,29 @@ const Configuration: React.FC = () => {
             <FiExternalLink style={{ marginRight: '0.5rem' }} />
             Open Statsig Console
           </Button>
-        </HeaderActions>
+        </div>
       </PageHeader>
 
-      <InfoBanner>
+      <div className={styles.infoBanner}>
         <FiInfo size={20} />
         <div>
           This page displays read-only configuration from Statsig. To modify feature gates or
           settings, use the{' '}
-          <StatsigLink href='https://console.statsig.com' target='_blank' rel='noopener noreferrer'>
+          <a
+            className={styles.statsigLink}
+            href='https://console.statsig.com'
+            target='_blank'
+            rel='noopener noreferrer'
+          >
             Statsig Console
             <FiExternalLink size={14} />
-          </StatsigLink>
+          </a>
           . Changes will be reflected here after refresh.
         </div>
-      </InfoBanner>
+      </div>
 
-      <ConfigGrid>
-        {/* Feature Gates Section */}
-        <SectionCard>
+      <div className={styles.configGrid}>
+        <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
               <FiFlag style={{ display: 'inline', marginRight: '0.5rem' }} />
@@ -343,10 +209,9 @@ const Configuration: React.FC = () => {
               <GateDisplay key={gateName} gateName={gateName} />
             ))}
           </CardContent>
-        </SectionCard>
+        </Card>
 
-        {/* Application Settings Section */}
-        <SectionCard>
+        <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
               <FiSettings style={{ display: 'inline', marginRight: '0.5rem' }} />
@@ -354,31 +219,36 @@ const Configuration: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <SettingItem>
-              <SettingLabel>Max Applications Per User</SettingLabel>
-              <SettingValue>{maxApplicationsPerUser}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>Auto-Approve Verified Rescues</SettingLabel>
-              <SettingValue>{autoApproveVerifiedRescues ? 'true' : 'false'}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>Maintenance Mode</SettingLabel>
-              <SettingValue>{maintenanceMode ? 'true' : 'false'}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>New Registrations Enabled</SettingLabel>
-              <SettingValue>{newRegistrationsEnabled ? 'true' : 'false'}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>Adoption Approval Workflow Enabled</SettingLabel>
-              <SettingValue>{adoptionApprovalWorkflowEnabled ? 'true' : 'false'}</SettingValue>
-            </SettingItem>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Max Applications Per User</div>
+              <div className={styles.settingValue}>{maxApplicationsPerUser}</div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Auto-Approve Verified Rescues</div>
+              <div className={styles.settingValue}>
+                {autoApproveVerifiedRescues ? 'true' : 'false'}
+              </div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Maintenance Mode</div>
+              <div className={styles.settingValue}>{maintenanceMode ? 'true' : 'false'}</div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>New Registrations Enabled</div>
+              <div className={styles.settingValue}>
+                {newRegistrationsEnabled ? 'true' : 'false'}
+              </div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Adoption Approval Workflow Enabled</div>
+              <div className={styles.settingValue}>
+                {adoptionApprovalWorkflowEnabled ? 'true' : 'false'}
+              </div>
+            </div>
           </CardContent>
-        </SectionCard>
+        </Card>
 
-        {/* System Settings Section */}
-        <SectionCard>
+        <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
               <FiSettings style={{ display: 'inline', marginRight: '0.5rem' }} />
@@ -386,27 +256,26 @@ const Configuration: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <SettingItem>
-              <SettingLabel>Max File Upload Size (MB)</SettingLabel>
-              <SettingValue>{maxFileUploadSizeMb}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>Session Timeout (Minutes)</SettingLabel>
-              <SettingValue>{sessionTimeoutMinutes}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>Enable Debug Logging</SettingLabel>
-              <SettingValue>{enableDebugLogging ? 'true' : 'false'}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>API Rate Limit (Per Minute)</SettingLabel>
-              <SettingValue>{apiRateLimitPerMinute}</SettingValue>
-            </SettingItem>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Max File Upload Size (MB)</div>
+              <div className={styles.settingValue}>{maxFileUploadSizeMb}</div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Session Timeout (Minutes)</div>
+              <div className={styles.settingValue}>{sessionTimeoutMinutes}</div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Enable Debug Logging</div>
+              <div className={styles.settingValue}>{enableDebugLogging ? 'true' : 'false'}</div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>API Rate Limit (Per Minute)</div>
+              <div className={styles.settingValue}>{apiRateLimitPerMinute}</div>
+            </div>
           </CardContent>
-        </SectionCard>
+        </Card>
 
-        {/* Moderation Settings Section */}
-        <SectionCard>
+        <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
               <FiSettings style={{ display: 'inline', marginRight: '0.5rem' }} />
@@ -414,25 +283,25 @@ const Configuration: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <SettingItem>
-              <SettingLabel>Auto-Moderate Enabled</SettingLabel>
-              <SettingValue>{autoModerateEnabled ? 'true' : 'false'}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>Profanity Filter Enabled</SettingLabel>
-              <SettingValue>{profanityFilterEnabled ? 'true' : 'false'}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>Manual Review Threshold</SettingLabel>
-              <SettingValue>{requireManualReviewThreshold}</SettingValue>
-            </SettingItem>
-            <SettingItem>
-              <SettingLabel>Max Warnings Before Suspension</SettingLabel>
-              <SettingValue>{maxWarningsBeforeSuspension}</SettingValue>
-            </SettingItem>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Auto-Moderate Enabled</div>
+              <div className={styles.settingValue}>{autoModerateEnabled ? 'true' : 'false'}</div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Profanity Filter Enabled</div>
+              <div className={styles.settingValue}>{profanityFilterEnabled ? 'true' : 'false'}</div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Manual Review Threshold</div>
+              <div className={styles.settingValue}>{requireManualReviewThreshold}</div>
+            </div>
+            <div className={styles.settingItem}>
+              <div className={styles.settingLabel}>Max Warnings Before Suspension</div>
+              <div className={styles.settingValue}>{maxWarningsBeforeSuspension}</div>
+            </div>
           </CardContent>
-        </SectionCard>
-      </ConfigGrid>
+        </Card>
+      </div>
     </PageContainer>
   );
 };

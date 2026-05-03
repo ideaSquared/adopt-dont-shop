@@ -1,126 +1,13 @@
 import { Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, petService, Application, Pet } from '@/services';
+import * as styles from './ApplicationDashboard.css';
 
 interface ApplicationWithPet extends Application {
   pet?: Pet;
 }
-
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-`;
-
-const Header = styled.div`
-  display: flex;
-  justify-content: between;
-  align-items: center;
-  margin-bottom: 2rem;
-`;
-
-const Title = styled.h1`
-  font-size: 2rem;
-  color: ${props => props.theme.text.primary};
-  margin: 0;
-`;
-
-const ApplicationGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-`;
-
-const ApplicationCard = styled(Card)`
-  padding: 1.5rem;
-  cursor: pointer;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const PetInfo = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 1rem;
-`;
-
-const PetDetails = styled.div`
-  h3 {
-    margin: 0 0 0.25rem 0;
-    font-size: 1.25rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  p {
-    margin: 0;
-    color: ${props => props.theme.text.secondary};
-    font-size: 0.875rem;
-  }
-`;
-
-const StatusBadge = styled.span<{ status: string }>`
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: ${props => {
-    switch (props.status) {
-      case 'submitted':
-        return '#3b82f6';
-      case 'under_review':
-        return '#8b5cf6';
-      case 'approved':
-        return '#10b981';
-      case 'rejected':
-        return '#ef4444';
-      default:
-        return '#6b7280';
-    }
-  }};
-  color: white;
-`;
-
-const ApplicationDetails = styled.div`
-  margin-top: 1rem;
-
-  p {
-    margin: 0.5rem 0;
-    font-size: 0.875rem;
-    color: ${props => props.theme.text.secondary};
-  }
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1rem;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 4rem 2rem;
-
-  h2 {
-    color: ${props => props.theme.text.secondary};
-    margin-bottom: 1rem;
-  }
-
-  p {
-    color: ${props => props.theme.text.secondary};
-    margin-bottom: 2rem;
-  }
-`;
 
 export const ApplicationDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -167,79 +54,98 @@ export const ApplicationDashboard: React.FC = () => {
 
   if (!user) {
     return (
-      <Container>
-        <EmptyState>
+      <div className={styles.container}>
+        <div className={styles.emptyState}>
           <h2>Please log in to view your applications</h2>
           <Link to='/login'>
             <Button>Log In</Button>
           </Link>
-        </EmptyState>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <Container>
+      <div className={styles.container}>
         <div style={{ textAlign: 'center', padding: '4rem' }}>
           <div>Loading your applications...</div>
         </div>
-      </Container>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Container>
-        <EmptyState>
+      <div className={styles.container}>
+        <div className={styles.emptyState}>
           <h2>Error loading applications</h2>
           <p>{error}</p>
           <Button onClick={loadApplications}>Try Again</Button>
-        </EmptyState>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   if (applications.length === 0) {
     return (
-      <Container>
-        <Header>
-          <Title>My Applications</Title>
-        </Header>
-        <EmptyState>
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>My Applications</h1>
+        </div>
+        <div className={styles.emptyState}>
           <h2>No applications yet</h2>
           <p>Start your adoption journey by browsing available pets.</p>
           <Link to='/pets'>
             <Button>Browse Pets</Button>
           </Link>
-        </EmptyState>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container>
-      <Header>
-        <Title>My Applications</Title>
-      </Header>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>My Applications</h1>
+      </div>
 
-      <ApplicationGrid>
+      <div className={styles.applicationGrid}>
         {applications.map(application => (
-          <ApplicationCard key={application.id} onClick={() => handleApplicationClick(application)}>
-            <PetInfo>
-              <PetDetails>
-                <h3>{application.pet?.name || 'Pet Name Unavailable'}</h3>
-                <p>
+          <Card
+            key={application.id}
+            className={styles.applicationCard}
+            onClick={() => handleApplicationClick(application)}
+          >
+            <div className={styles.petInfo}>
+              <div>
+                <h3 className={styles.petDetailsH3}>
+                  {application.pet?.name || 'Pet Name Unavailable'}
+                </h3>
+                <p className={styles.petDetailsP}>
                   {application.pet?.breed} • {application.pet?.age_years} years old
                 </p>
-              </PetDetails>
-            </PetInfo>
+              </div>
+            </div>
 
-            <StatusBadge status={application.status}>
+            <span
+              className={styles.statusBadge({
+                status: (['submitted', 'under_review', 'approved', 'rejected'].includes(
+                  application.status
+                )
+                  ? application.status
+                  : 'default') as
+                  | 'submitted'
+                  | 'under_review'
+                  | 'approved'
+                  | 'rejected'
+                  | 'default',
+              })}
+            >
               {application.status.replace('_', ' ')}
-            </StatusBadge>
+            </span>
 
-            <ApplicationDetails>
+            <div className={styles.applicationDetails}>
               {application.submittedAt && (
                 <p>
                   <strong>Submitted:</strong>{' '}
@@ -250,9 +156,9 @@ export const ApplicationDashboard: React.FC = () => {
                 <strong>Last Updated:</strong>{' '}
                 {new Date(application.updatedAt).toLocaleDateString()}
               </p>
-            </ApplicationDetails>
+            </div>
 
-            <ActionButtons>
+            <div className={styles.actionButtons}>
               <Button
                 size='sm'
                 variant='outline'
@@ -263,10 +169,10 @@ export const ApplicationDashboard: React.FC = () => {
               >
                 View Details
               </Button>
-            </ActionButtons>
-          </ApplicationCard>
+            </div>
+          </Card>
         ))}
-      </ApplicationGrid>
-    </Container>
+      </div>
+    </div>
   );
 };

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import { Card, Container, Button, Text, Heading } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus, petManagementService } from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
@@ -8,129 +7,7 @@ import PetGrid from '../components/pets/PetGrid';
 import PetFilters from '../components/pets/PetFilters.tsx';
 import PetFormModal from '../components/pets/PetFormModal.tsx';
 import PetStatusFilter from '../components/pets/PetStatusFilter.tsx';
-
-const PageContainer = styled(Container)`
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-  padding: 1rem;
-
-  @media (min-width: 768px) {
-    padding: 1.5rem;
-  }
-`;
-
-const ContentWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-
-  @media (min-width: 768px) {
-    gap: 1.25rem;
-  }
-`;
-
-const PageHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 1rem;
-  }
-`;
-
-const HeaderContent = styled.div`
-  flex: 1;
-
-  h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: ${props => props.theme.text.primary};
-    margin: 0 0 0.5rem 0;
-  }
-
-  p {
-    font-size: 1.1rem;
-    color: ${props => props.theme.text.secondary};
-    margin: 0;
-  }
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: stretch;
-
-    button {
-      flex: 1;
-    }
-  }
-`;
-
-const FiltersContainer = styled.div`
-  margin: 0;
-`;
-
-const StatusFilterSection = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const AdvancedFiltersSection = styled.div`
-  margin: 0;
-`;
-
-const MainContent = styled.div`
-  margin: 0;
-  padding: 0;
-`;
-
-const StatsContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-`;
-
-const StatCard = styled(Card)`
-  padding: 1.5rem;
-  text-align: center;
-
-  .stat-number {
-    font-size: 2rem;
-    font-weight: 700;
-    color: ${props => props.theme.colors.primary[600]};
-    margin-bottom: 0.5rem;
-  }
-
-  .stat-label {
-    font-size: 0.875rem;
-    color: ${props => props.theme.text.secondary};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 150px;
-  color: ${props => props.theme.text.secondary};
-`;
-
-const ErrorContainer = styled(Card)`
-  padding: 2rem;
-  text-align: center;
-  border: 1px solid #ef4444;
-  background-color: #fef2f2;
-  color: #dc2626;
-`;
+import * as styles from './PetManagement.css';
 
 interface PetStats {
   total: number;
@@ -365,38 +242,38 @@ const PetManagement: React.FC = () => {
 
   if (loading && pets.length === 0) {
     return (
-      <PageContainer>
-        <LoadingContainer>
+      <Container className={styles.pageContainer}>
+        <div className={styles.loadingContainer}>
           <Text>Loading pets...</Text>
-        </LoadingContainer>
-      </PageContainer>
+        </div>
+      </Container>
     );
   }
 
   if (error && pets.length === 0) {
     return (
-      <PageContainer>
-        <ErrorContainer>
+      <Container className={styles.pageContainer}>
+        <div className={styles.errorContainer}>
           <Heading level="h3">Error Loading Pets</Heading>
           <Text>{error}</Text>
           <Button onClick={() => fetchPets()} style={{ marginTop: '1rem' }}>
             Try Again
           </Button>
-        </ErrorContainer>
-      </PageContainer>
+        </div>
+      </Container>
     );
   }
 
   // Show rescue setup only if we get a specific error about not being associated with a rescue
   if (showRescueSetup && error?.includes('not associated with a rescue')) {
     return (
-      <PageContainer>
-        <PageHeader>
-          <HeaderContent>
+      <Container className={styles.pageContainer}>
+        <div className={styles.pageHeader}>
+          <div className={styles.headerContent}>
             <h1>Rescue Setup Required</h1>
             <p>You need to be associated with a rescue organization to manage pets.</p>
-          </HeaderContent>
-        </PageHeader>
+          </div>
+        </div>
 
         <Card
           style={{ padding: '2rem', textAlign: 'center', maxWidth: '600px', margin: '1rem auto' }}
@@ -442,54 +319,54 @@ const PetManagement: React.FC = () => {
             </ol>
           </div>
         </Card>
-      </PageContainer>
+      </Container>
     );
   }
 
   return (
-    <PageContainer>
-      <ContentWrapper>
-        <PageHeader>
-          <HeaderContent>
+    <Container className={styles.pageContainer}>
+      <div className={styles.contentWrapper}>
+        <div className={styles.pageHeader}>
+          <div className={styles.headerContent}>
             <h1>Pet Management</h1>
             <p>Manage your rescue's pet inventory, medical records, and adoption status.</p>
-          </HeaderContent>
-          <HeaderActions>
+          </div>
+          <div className={styles.headerActions}>
             <Button variant="primary" onClick={() => setShowAddModal(true)}>
               Add New Pet
             </Button>
-          </HeaderActions>
-        </PageHeader>
+          </div>
+        </div>
 
         {/* Statistics */}
         {stats && (
-          <StatsContainer>
-            <StatCard>
-              <div className="stat-number">{stats.total}</div>
-              <div className="stat-label">Total Pets</div>
-            </StatCard>
-            <StatCard>
-              <div className="stat-number">{stats.available}</div>
-              <div className="stat-label">Available</div>
-            </StatCard>
-            <StatCard>
-              <div className="stat-number">{stats.pending}</div>
-              <div className="stat-label">Pending</div>
-            </StatCard>
-            <StatCard>
-              <div className="stat-number">{stats.adopted}</div>
-              <div className="stat-label">Adopted</div>
-            </StatCard>
-            <StatCard>
-              <div className="stat-number">{stats.onHold}</div>
-              <div className="stat-label">On Hold</div>
-            </StatCard>
-          </StatsContainer>
+          <div className={styles.statsContainer}>
+            <Card className={styles.statCard}>
+              <div className={styles.statNumber}>{stats.total}</div>
+              <div className={styles.statLabel}>Total Pets</div>
+            </Card>
+            <Card className={styles.statCard}>
+              <div className={styles.statNumber}>{stats.available}</div>
+              <div className={styles.statLabel}>Available</div>
+            </Card>
+            <Card className={styles.statCard}>
+              <div className={styles.statNumber}>{stats.pending}</div>
+              <div className={styles.statLabel}>Pending</div>
+            </Card>
+            <Card className={styles.statCard}>
+              <div className={styles.statNumber}>{stats.adopted}</div>
+              <div className={styles.statLabel}>Adopted</div>
+            </Card>
+            <Card className={styles.statCard}>
+              <div className={styles.statNumber}>{stats.onHold}</div>
+              <div className={styles.statLabel}>On Hold</div>
+            </Card>
+          </div>
         )}
 
         {/* Filters */}
-        <FiltersContainer>
-          <StatusFilterSection>
+        <div className={styles.filtersContainer}>
+          <div className={styles.statusFilterSection}>
             <PetStatusFilter
               activeStatus={statusFilter === 'all' ? '' : statusFilter}
               statusCounts={
@@ -509,8 +386,8 @@ const PetManagement: React.FC = () => {
                 setStatusFilter(status as any);
               }}
             />
-          </StatusFilterSection>
-          <AdvancedFiltersSection>
+          </div>
+          <div className={styles.advancedFiltersSection}>
             <PetFilters
               filters={{
                 search: searchFilter,
@@ -557,12 +434,12 @@ const PetManagement: React.FC = () => {
                 // Filters are applied immediately in this implementation
               }}
             />
-          </AdvancedFiltersSection>
-        </FiltersContainer>
+          </div>
+        </div>
 
         {/* Error Message */}
         {error && (
-          <ErrorContainer>
+          <div className={styles.errorContainer}>
             <Text>{error}</Text>
             <Button
               onClick={() => setError(null)}
@@ -572,11 +449,11 @@ const PetManagement: React.FC = () => {
             >
               Dismiss
             </Button>
-          </ErrorContainer>
+          </div>
         )}
 
         {/* Pet Grid */}
-        <MainContent>
+        <div className={styles.mainContent}>
           <PetGrid
             pets={pets}
             loading={loading}
@@ -591,8 +468,8 @@ const PetManagement: React.FC = () => {
               onPageChange: handlePageChange,
             }}
           />
-        </MainContent>
-      </ContentWrapper>
+        </div>
+      </div>
 
       {/* Add/Edit Pet Modal */}
       {(showAddModal || editingPet) && (
@@ -618,7 +495,7 @@ const PetManagement: React.FC = () => {
           }}
         />
       )}
-    </PageContainer>
+    </Container>
   );
 };
 

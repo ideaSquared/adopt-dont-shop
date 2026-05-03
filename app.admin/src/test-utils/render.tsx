@@ -1,9 +1,8 @@
 import { render, RenderOptions } from '@testing-library/react';
 import { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { lightTheme } from '@adopt-dont-shop/lib.components';
 
 const createTestQueryClient = () =>
   new QueryClient({
@@ -24,7 +23,7 @@ export const renderWithProviders = (ui: ReactElement, options?: RenderWithProvid
   const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialRoute]}>
-        <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </MemoryRouter>
     </QueryClientProvider>
   );

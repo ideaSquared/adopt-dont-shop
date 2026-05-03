@@ -1,6 +1,6 @@
 import React from 'react';
-import styled from 'styled-components';
 import { BooleanTiles } from './BooleanTiles';
+import * as styles from './QuestionField.css';
 import { CurrentPetsField } from './CurrentPetsField';
 import { HouseholdMembersField } from './HouseholdMembersField';
 import { OptionTiles, getIconFor, hasIconMapping } from './OptionTiles';
@@ -40,103 +40,6 @@ type QuestionFieldProps = {
   error?: string;
   isPrefilled?: boolean;
 };
-
-const FieldGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  margin-bottom: 1.25rem;
-`;
-
-const Label = styled.label`
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: ${props => props.theme.text.primary};
-`;
-
-const RequiredMark = styled.span`
-  color: ${props => props.theme.colors.semantic.error[500]};
-  margin-left: 0.125rem;
-`;
-
-const HelpText = styled.p`
-  font-size: 0.8125rem;
-  color: ${props => props.theme.text.secondary};
-  margin: 0;
-`;
-
-const baseInputStyles = `
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.9375rem;
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 0.15s;
-`;
-
-const Input = styled.input<{ $hasError?: boolean }>`
-  ${baseInputStyles}
-  border: 1px solid ${props =>
-    props.$hasError ? props.theme.colors.semantic.error[500] : props.theme.border.color.primary};
-  color: ${props => props.theme.text.primary};
-  background: ${props => props.theme.background.primary};
-
-  &:focus {
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 2px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const Select = styled.select<{ $hasError?: boolean }>`
-  ${baseInputStyles}
-  border: 1px solid ${props =>
-    props.$hasError ? props.theme.colors.semantic.error[500] : props.theme.border.color.primary};
-  color: ${props => props.theme.text.primary};
-  background: ${props => props.theme.background.primary};
-  cursor: pointer;
-
-  &:focus {
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 2px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const TextArea = styled.textarea<{ $hasError?: boolean }>`
-  ${baseInputStyles}
-  border: 1px solid ${props =>
-    props.$hasError ? props.theme.colors.semantic.error[500] : props.theme.border.color.primary};
-  color: ${props => props.theme.text.primary};
-  background: ${props => props.theme.background.primary};
-  resize: vertical;
-  min-height: 80px;
-
-  &:focus {
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 2px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const CheckboxGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const CheckboxLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9375rem;
-  color: ${props => props.theme.text.primary};
-  cursor: pointer;
-`;
-
-const ErrorText = styled.p`
-  font-size: 0.8125rem;
-  color: ${props => props.theme.colors.semantic.error[600]};
-  margin: 0;
-`;
 
 const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
 
@@ -187,8 +90,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
           );
         }
         return (
-          <Select
-            $hasError={!!error}
+          <select
+            className={styles.select({ hasError: !!error })}
             value={asString(value)}
             onChange={e => onChange(e.target.value || undefined)}
           >
@@ -198,15 +101,15 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
                 {opt}
               </option>
             ))}
-          </Select>
+          </select>
         );
 
       case 'multi_select': {
         const selected = asStringArray(value);
         return (
-          <CheckboxGroup>
+          <div className={styles.checkboxGroup}>
             {options?.map(opt => (
-              <CheckboxLabel key={opt}>
+              <label key={opt} className={styles.checkboxLabel}>
                 <input
                   type='checkbox'
                   checked={selected.includes(opt)}
@@ -218,17 +121,17 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
                   }}
                 />
                 {opt}
-              </CheckboxLabel>
+              </label>
             ))}
-          </CheckboxGroup>
+          </div>
         );
       }
 
       case 'number':
         return (
-          <Input
+          <input
             type='number'
-            $hasError={!!error}
+            className={styles.input({ hasError: !!error })}
             value={typeof value === 'number' ? value : ''}
             placeholder={placeholder ?? undefined}
             onChange={e => onChange(e.target.value !== '' ? Number(e.target.value) : undefined)}
@@ -237,9 +140,9 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
 
       case 'date':
         return (
-          <Input
+          <input
             type='date'
-            $hasError={!!error}
+            className={styles.input({ hasError: !!error })}
             value={asString(value)}
             onChange={e => onChange(e.target.value || undefined)}
           />
@@ -247,8 +150,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
 
       case 'address':
         return (
-          <TextArea
-            $hasError={!!error}
+          <textarea
+            className={styles.textArea({ hasError: !!error })}
             value={asString(value)}
             placeholder={placeholder ?? undefined}
             rows={3}
@@ -258,9 +161,9 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
 
       case 'email':
         return (
-          <Input
+          <input
             type='email'
-            $hasError={!!error}
+            className={styles.input({ hasError: !!error })}
             value={asString(value)}
             placeholder={placeholder ?? undefined}
             onChange={e => onChange(e.target.value || undefined)}
@@ -269,9 +172,9 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
 
       case 'phone':
         return (
-          <Input
+          <input
             type='tel'
-            $hasError={!!error}
+            className={styles.input({ hasError: !!error })}
             value={asString(value)}
             placeholder={placeholder ?? undefined}
             onChange={e => onChange(e.target.value || undefined)}
@@ -280,18 +183,18 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
 
       case 'file':
         return (
-          <Input
+          <input
             type='file'
-            $hasError={!!error}
+            className={styles.input({ hasError: !!error })}
             onChange={e => onChange(e.target.files?.[0]?.name ?? undefined)}
           />
         );
 
       default:
         return (
-          <Input
+          <input
             type='text'
-            $hasError={!!error}
+            className={styles.input({ hasError: !!error })}
             value={asString(value)}
             placeholder={placeholder ?? undefined}
             onChange={e => onChange(e.target.value || undefined)}
@@ -301,15 +204,23 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
   };
 
   return (
-    <FieldGroup>
-      <Label>
+    <div className={styles.fieldGroup}>
+      <label className={styles.label}>
         {questionText}
-        {isRequired && <RequiredMark aria-hidden='true'>*</RequiredMark>}
+        {isRequired && (
+          <span className={styles.requiredMark} aria-hidden='true'>
+            *
+          </span>
+        )}
         {isPrefilled && <PreFilledBadge />}
-      </Label>
-      {helpText && <HelpText>{helpText}</HelpText>}
+      </label>
+      {helpText && <p className={styles.helpText}>{helpText}</p>}
       {renderInput()}
-      {error && <ErrorText role='alert'>{error}</ErrorText>}
-    </FieldGroup>
+      {error && (
+        <p className={styles.errorText} role='alert'>
+          {error}
+        </p>
+      )}
+    </div>
   );
 };

@@ -1,97 +1,7 @@
 import { User } from '@/services';
 import { Button, Input, TextArea } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
-import styled from 'styled-components';
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-weight: 500;
-  color: ${props => props.theme.text.primary};
-  font-size: 0.875rem;
-`;
-
-const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 8px;
-  background: ${props => props.theme.background.primary};
-  color: ${props => props.theme.text.primary};
-  font-size: 1rem;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 1rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const FormTitle = styled.h3`
-  font-size: 1.25rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const UnsavedBadge = styled.span`
-  background: ${props => props.theme.colors.semantic?.warning?.[100] || '#fef3c7'};
-  color: ${props => props.theme.colors.semantic?.warning?.[700] || '#92400e'};
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-`;
-
-const KeyboardHint = styled.div`
-  font-size: 0.75rem;
-  color: ${props => props.theme.text.secondary};
-  text-align: center;
-  margin-top: 0.5rem;
-  opacity: 0.7;
-`;
-
-const CharacterCount = styled.div<{ $isNearLimit: boolean }>`
-  font-size: 0.75rem;
-  color: ${props =>
-    props.$isNearLimit
-      ? props.theme.colors.semantic?.warning?.[600] || '#d97706'
-      : props.theme.text.secondary};
-  text-align: right;
-  margin-top: 0.25rem;
-`;
+import * as styles from './ProfileEditForm.css';
 
 interface ProfileEditFormProps {
   user: User;
@@ -308,15 +218,17 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
   ];
 
   return (
-    <Form id='profile-edit-form' onSubmit={handleSubmit}>
-      <FormTitle>
+    <form id='profile-edit-form' className={styles.form} onSubmit={handleSubmit}>
+      <h3 className={styles.formTitle}>
         Edit Profile
-        {hasChanges && <UnsavedBadge>Unsaved changes</UnsavedBadge>}
-      </FormTitle>
+        {hasChanges && <span className={styles.unsavedBadge}>Unsaved changes</span>}
+      </h3>
 
-      <FormRow>
-        <FormGroup>
-          <Label htmlFor='firstName'>First Name *</Label>
+      <div className={styles.formRow}>
+        <div className={styles.formGroup}>
+          <label htmlFor='firstName' className={styles.label}>
+            First Name *
+          </label>
           <Input
             id='firstName'
             type='text'
@@ -325,10 +237,12 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             error={errors.firstName}
             disabled={isLoading}
           />
-        </FormGroup>
+        </div>
 
-        <FormGroup>
-          <Label htmlFor='lastName'>Last Name *</Label>
+        <div className={styles.formGroup}>
+          <label htmlFor='lastName' className={styles.label}>
+            Last Name *
+          </label>
           <Input
             id='lastName'
             type='text'
@@ -337,12 +251,14 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             error={errors.lastName}
             disabled={isLoading}
           />
-        </FormGroup>
-      </FormRow>
+        </div>
+      </div>
 
-      <FormRow>
-        <FormGroup>
-          <Label htmlFor='email'>Email *</Label>
+      <div className={styles.formRow}>
+        <div className={styles.formGroup}>
+          <label htmlFor='email' className={styles.label}>
+            Email *
+          </label>
           <Input
             id='email'
             type='email'
@@ -351,10 +267,12 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             error={errors.email}
             disabled={isLoading}
           />
-        </FormGroup>
+        </div>
 
-        <FormGroup>
-          <Label htmlFor='phone'>Phone Number</Label>
+        <div className={styles.formGroup}>
+          <label htmlFor='phone' className={styles.label}>
+            Phone Number
+          </label>
           <Input
             id='phone'
             type='tel'
@@ -364,13 +282,16 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             disabled={isLoading}
             placeholder='07123 456789'
           />
-        </FormGroup>
-      </FormRow>
+        </div>
+      </div>
 
-      <FormGroup>
-        <Label htmlFor='preferredContactMethod'>Preferred Contact Method</Label>
-        <Select
+      <div className={styles.formGroup}>
+        <label htmlFor='preferredContactMethod' className={styles.label}>
+          Preferred Contact Method
+        </label>
+        <select
           id='preferredContactMethod'
+          className={styles.select}
           value={formData.preferredContactMethod}
           onChange={e => handleInputChange('preferredContactMethod', e.target.value)}
           disabled={isLoading}
@@ -378,11 +299,13 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
           <option value='email'>Email</option>
           <option value='phone'>Phone</option>
           <option value='both'>Both</option>
-        </Select>
-      </FormGroup>
+        </select>
+      </div>
 
-      <FormGroup>
-        <Label htmlFor='bio'>Bio</Label>
+      <div className={styles.formGroup}>
+        <label htmlFor='bio' className={styles.label}>
+          Bio
+        </label>
         <TextArea
           id='bio'
           value={formData.bio}
@@ -393,13 +316,15 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
           rows={4}
           maxLength={500}
         />
-        <CharacterCount $isNearLimit={formData.bio.length > 400}>
+        <div className={styles.characterCount({ isNearLimit: formData.bio.length > 400 })}>
           {formData.bio.length}/500 characters
-        </CharacterCount>
-      </FormGroup>
+        </div>
+      </div>
 
-      <FormGroup>
-        <Label htmlFor='address'>Address</Label>
+      <div className={styles.formGroup}>
+        <label htmlFor='address' className={styles.label}>
+          Address
+        </label>
         <Input
           id='address'
           type='text'
@@ -408,11 +333,13 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
           disabled={isLoading}
           placeholder='123 Main Street'
         />
-      </FormGroup>
+      </div>
 
-      <FormRow>
-        <FormGroup>
-          <Label htmlFor='city'>City</Label>
+      <div className={styles.formRow}>
+        <div className={styles.formGroup}>
+          <label htmlFor='city' className={styles.label}>
+            City
+          </label>
           <Input
             id='city'
             type='text'
@@ -421,12 +348,15 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             disabled={isLoading}
             placeholder='San Francisco'
           />
-        </FormGroup>
+        </div>
 
-        <FormGroup>
-          <Label htmlFor='state'>State</Label>
-          <Select
+        <div className={styles.formGroup}>
+          <label htmlFor='state' className={styles.label}>
+            State
+          </label>
+          <select
             id='state'
+            className={styles.select}
             value={formData.location.state}
             onChange={e => handleInputChange('location.state', e.target.value)}
             disabled={isLoading}
@@ -437,13 +367,15 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                 {state}
               </option>
             ))}
-          </Select>
-        </FormGroup>
-      </FormRow>
+          </select>
+        </div>
+      </div>
 
-      <FormRow>
-        <FormGroup>
-          <Label htmlFor='zipCode'>ZIP Code</Label>
+      <div className={styles.formRow}>
+        <div className={styles.formGroup}>
+          <label htmlFor='zipCode' className={styles.label}>
+            ZIP Code
+          </label>
           <Input
             id='zipCode'
             type='text'
@@ -453,35 +385,40 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
             disabled={isLoading}
             placeholder='12345'
           />
-        </FormGroup>
+        </div>
 
-        <FormGroup>
-          <Label htmlFor='country'>Country</Label>
-          <Select
+        <div className={styles.formGroup}>
+          <label htmlFor='country' className={styles.label}>
+            Country
+          </label>
+          <select
             id='country'
+            className={styles.select}
             value={formData.location.country}
             onChange={e => handleInputChange('location.country', e.target.value)}
             disabled={isLoading}
           >
             <option value='US'>United States</option>
             <option value='CA'>Canada</option>
-          </Select>
-        </FormGroup>
-      </FormRow>
+          </select>
+        </div>
+      </div>
 
       {errors.submit && <div style={{ color: 'red', fontSize: '0.875rem' }}>{errors.submit}</div>}
 
-      <ButtonGroup>
+      <div className={styles.buttonGroup}>
         <Button type='button' variant='secondary' onClick={handleCancel} disabled={isLoading}>
           Cancel
         </Button>
         <Button type='submit' isLoading={isLoading} disabled={isLoading}>
           Save Changes
         </Button>
-      </ButtonGroup>
+      </div>
 
-      <KeyboardHint>💡 Tip: Press Ctrl+S (or ⌘+S on Mac) to save quickly</KeyboardHint>
-    </Form>
+      <div className={styles.keyboardHint}>
+        💡 Tip: Press Ctrl+S (or ⌘+S on Mac) to save quickly
+      </div>
+    </form>
   );
 };
 

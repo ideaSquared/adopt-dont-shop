@@ -1,111 +1,8 @@
 import React from 'react';
-import styled from 'styled-components';
 import { Card, Button, Text } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import PetCard from './PetCard.tsx';
-
-const GridContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  margin-bottom: 0;
-  margin-top: 0;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.25rem;
-  }
-`;
-
-const EmptyState = styled(Card)`
-  padding: 3rem;
-  text-align: center;
-  grid-column: 1 / -1;
-
-  .empty-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-  }
-
-  h3 {
-    margin-bottom: 0.5rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  p {
-    color: ${props => props.theme.text.secondary};
-    margin-bottom: 1.5rem;
-  }
-`;
-
-const LoadingGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-  margin-bottom: 0;
-
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
-  }
-`;
-
-const LoadingCard = styled(Card)`
-  padding: 1rem;
-  min-height: 400px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-
-  @keyframes loading {
-    0% {
-      background-position: 200% 0;
-    }
-    100% {
-      background-position: -200% 0;
-    }
-  }
-`;
-
-const PaginationContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding: 1rem;
-
-  @media (max-width: 768px) {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-`;
-
-const PageButton = styled(Button)<{ active?: boolean }>`
-  min-width: 40px;
-  height: 40px;
-  padding: 0.5rem;
-  ${props =>
-    props.active &&
-    `
-    background-color: ${props.theme.colors.primary[600]};
-    color: white;
-  `}
-`;
-
-const PageInfo = styled(Text)`
-  font-size: 0.875rem;
-  color: ${props => props.theme.text.secondary};
-  white-space: nowrap;
-`;
+import * as styles from './PetGrid.css';
 
 interface PetGridProps {
   pets: Pet[];
@@ -132,26 +29,26 @@ const PetGrid: React.FC<PetGridProps> = ({
 }) => {
   if (loading && pets.length === 0) {
     return (
-      <LoadingGrid>
+      <div className={styles.loadingGrid}>
         {Array.from({ length: 6 }).map((_, index) => (
-          <LoadingCard key={index}>
+          <Card key={index} className={styles.loadingCard}>
             <Text>Loading...</Text>
-          </LoadingCard>
+          </Card>
         ))}
-      </LoadingGrid>
+      </div>
     );
   }
 
   if (pets.length === 0) {
     return (
-      <GridContainer>
-        <EmptyState>
+      <div className={styles.gridContainer}>
+        <Card className={styles.emptyState}>
           <div className="empty-icon">🐕</div>
           <h3>No pets found</h3>
           <p>Start by adding your first pet to the rescue inventory.</p>
           <Button variant="primary">Add Your First Pet</Button>
-        </EmptyState>
-      </GridContainer>
+        </Card>
+      </div>
     );
   }
 
@@ -161,7 +58,7 @@ const PetGrid: React.FC<PetGridProps> = ({
     }
 
     const { currentPage, totalPages, hasNext, hasPrev, onPageChange } = pagination;
-    const pages = [];
+    const pages: (number | string)[] = [];
 
     // Always show first page
     if (currentPage > 3) {
@@ -185,49 +82,56 @@ const PetGrid: React.FC<PetGridProps> = ({
     }
 
     return (
-      <PaginationContainer>
-        <PageButton
+      <div className={styles.paginationContainer}>
+        <Button
           variant="outline"
           disabled={!hasPrev}
           onClick={() => onPageChange(currentPage - 1)}
+          style={{ minWidth: '40px', height: '40px', padding: '0.5rem' }}
         >
           ←
-        </PageButton>
+        </Button>
 
         {pages.map((page, index) => (
           <React.Fragment key={index}>
             {page === '...' ? (
               <Text>...</Text>
             ) : (
-              <PageButton
+              <Button
                 variant="outline"
-                active={page === currentPage}
                 onClick={() => onPageChange(page as number)}
+                style={{
+                  minWidth: '40px',
+                  height: '40px',
+                  padding: '0.5rem',
+                  ...(page === currentPage ? { backgroundColor: '#2563eb', color: 'white' } : {}),
+                }}
               >
                 {page}
-              </PageButton>
+              </Button>
             )}
           </React.Fragment>
         ))}
 
-        <PageButton
+        <Button
           variant="outline"
           disabled={!hasNext}
           onClick={() => onPageChange(currentPage + 1)}
+          style={{ minWidth: '40px', height: '40px', padding: '0.5rem' }}
         >
           →
-        </PageButton>
+        </Button>
 
-        <PageInfo>
+        <Text style={{ fontSize: '0.875rem', color: '#6b7280', whiteSpace: 'nowrap' }}>
           Page {currentPage} of {totalPages}
-        </PageInfo>
-      </PaginationContainer>
+        </Text>
+      </div>
     );
   };
 
   return (
     <>
-      <GridContainer>
+      <div className={styles.gridContainer}>
         {pets.map(pet => (
           <PetCard
             key={pet.pet_id}
@@ -237,7 +141,7 @@ const PetGrid: React.FC<PetGridProps> = ({
             onDelete={onDeletePet}
           />
         ))}
-      </GridContainer>
+      </div>
 
       {renderPagination()}
     </>

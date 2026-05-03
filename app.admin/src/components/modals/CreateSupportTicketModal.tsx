@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { Modal, Button, Input } from '@adopt-dont-shop/lib.components';
 import type { AdminUser } from '@/types';
+import * as styles from './CreateSupportTicketModal.css';
 
 type CreateSupportTicketModalProps = {
   isOpen: boolean;
   onClose: () => void;
   user: AdminUser | null;
-  onCreate: (ticketData: {
+  onCreate: (data: {
     customerId: string;
     customerEmail: string;
     customerName: string;
@@ -17,146 +17,6 @@ type CreateSupportTicketModalProps = {
     priority: string;
   }) => Promise<void>;
 };
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
-`;
-
-const Select = styled.select`
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #111827;
-  background: #ffffff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #9ca3af;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const TextArea = styled.textarea`
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #111827;
-  background: #ffffff;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 150px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #9ca3af;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
-`;
-
-const RecipientInfo = styled.div`
-  padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const RecipientLabel = styled.div`
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #6b7280;
-`;
-
-const RecipientName = styled.div`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-`;
-
-const RecipientEmail = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-`;
-
-const ErrorMessage = styled.div`
-  padding: 0.75rem 1rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  color: #991b1b;
-  font-size: 0.875rem;
-`;
-
-const SuccessMessage = styled.div`
-  padding: 0.75rem 1rem;
-  background: #d1fae5;
-  border: 1px solid #a7f3d0;
-  border-radius: 8px;
-  color: #065f46;
-  font-size: 0.875rem;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const InfoBox = styled.div`
-  padding: 0.75rem 1rem;
-  background: #dbeafe;
-  border: 1px solid #93c5fd;
-  border-radius: 8px;
-  color: #1e40af;
-  font-size: 0.875rem;
-`;
 
 export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> = ({
   isOpen,
@@ -237,25 +97,29 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
       closeOnOverlayClick={!isSubmitting}
       closeOnEscape={!isSubmitting}
     >
-      <Form onSubmit={handleSubmit}>
-        <InfoBox>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <div className={styles.infoBox}>
           This will create a support ticket on behalf of the user. They will receive email
           notifications about ticket updates.
-        </InfoBox>
+        </div>
 
-        <RecipientInfo>
-          <RecipientLabel>For User</RecipientLabel>
-          <RecipientName>
+        <div className={styles.recipientInfo}>
+          <div className={styles.recipientLabel}>For User</div>
+          <div className={styles.recipientName}>
             {user.firstName} {user.lastName}
-          </RecipientName>
-          <RecipientEmail>{user.email}</RecipientEmail>
-        </RecipientInfo>
+          </div>
+          <div className={styles.recipientEmail}>{user.email}</div>
+        </div>
 
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-        {success && <SuccessMessage>Support ticket created successfully!</SuccessMessage>}
+        {error && <div className={styles.errorMessage}>{error}</div>}
+        {success && (
+          <div className={styles.successMessage}>Support ticket created successfully!</div>
+        )}
 
-        <FormGroup>
-          <Label htmlFor='ticket-subject'>Subject</Label>
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor='ticket-subject'>
+            Subject
+          </label>
           <Input
             key='subject-input'
             id='ticket-subject'
@@ -266,11 +130,14 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
             required
             disabled={isSubmitting}
           />
-        </FormGroup>
+        </div>
 
-        <FormGroup>
-          <Label htmlFor='ticket-description'>Description</Label>
-          <TextArea
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor='ticket-description'>
+            Description
+          </label>
+          <textarea
+            className={styles.textArea}
             key='description-textarea'
             id='ticket-description'
             value={description}
@@ -281,12 +148,15 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
             minLength={10}
             maxLength={10000}
           />
-        </FormGroup>
+        </div>
 
-        <FormRow>
-          <FormGroup>
-            <Label htmlFor='category'>Category</Label>
-            <Select
+        <div className={styles.formRow}>
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor='category'>
+              Category
+            </label>
+            <select
+              className={styles.select}
               id='category'
               value={category}
               onChange={e => setCategory(e.target.value)}
@@ -302,12 +172,15 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
               <option value='compliance_concern'>Compliance Concern</option>
               <option value='data_request'>Data Request</option>
               <option value='other'>Other</option>
-            </Select>
-          </FormGroup>
+            </select>
+          </div>
 
-          <FormGroup>
-            <Label htmlFor='priority'>Priority</Label>
-            <Select
+          <div className={styles.formGroup}>
+            <label className={styles.label} htmlFor='priority'>
+              Priority
+            </label>
+            <select
+              className={styles.select}
               id='priority'
               value={priority}
               onChange={e => setPriority(e.target.value)}
@@ -318,11 +191,11 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
               <option value='high'>High</option>
               <option value='urgent'>Urgent</option>
               <option value='critical'>Critical</option>
-            </Select>
-          </FormGroup>
-        </FormRow>
+            </select>
+          </div>
+        </div>
 
-        <ButtonGroup>
+        <div className={styles.buttonGroup}>
           <Button
             type='button'
             variant='outline'
@@ -340,8 +213,8 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
           >
             {isSubmitting ? 'Creating...' : 'Create Ticket'}
           </Button>
-        </ButtonGroup>
-      </Form>
+        </div>
+      </form>
     </Modal>
   );
 };

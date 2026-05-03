@@ -49,8 +49,7 @@
     "clsx": "^2.1.1",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
-    "react-world-flags": "^1.6.0",
-    "styled-components": "^6.1.12"
+    "react-world-flags": "^1.6.0"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-react": "*",
@@ -64,7 +63,6 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.2.19",
     "@types/react-world-flags": "^1.4.5",
-    "@types/styled-components": "^5.1.34",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "@vanilla-extract/css": "^1.20.1",
@@ -87,11 +85,13 @@
     "ts-jest": "^29.1.0",
     "typescript": "^5.4.5",
     "vite": "^5.3.5",
+    "styled-components": "^6.1.12",
     "vite-plugin-dts": "^3.8.3"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
-    "react-router-dom": ">=6.0.0"
+    "react-router-dom": ">=6.0.0",
+    "styled-components": ">=6.0.0"
   }
 }

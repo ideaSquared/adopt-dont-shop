@@ -1,39 +1,11 @@
 import { ApplicationData } from '@/services';
 import React from 'react';
-import styled from 'styled-components';
+import * as styles from './ReferencesStep.css';
 
 interface ReferencesStepProps {
   data: Partial<ApplicationData['references']>;
   onComplete: (data: ApplicationData['references']) => void;
 }
-
-const StepContainer = styled.div`
-  max-width: 600px;
-`;
-
-const StepTitle = styled.h2`
-  font-size: 1.5rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 0.5rem;
-`;
-
-const StepDescription = styled.p`
-  color: ${props => props.theme.text.secondary};
-  margin-bottom: 2rem;
-`;
-
-const Form = styled.form`
-  display: grid;
-  gap: 1.5rem;
-`;
-
-const PlaceholderText = styled.div`
-  padding: 2rem;
-  background: ${props => props.theme.background.secondary};
-  border-radius: 8px;
-  text-align: center;
-  color: ${props => props.theme.text.secondary};
-`;
 
 export const ReferencesStep: React.FC<ReferencesStepProps> = ({ onComplete }) => {
   const handleContinue = () => {
@@ -51,26 +23,27 @@ export const ReferencesStep: React.FC<ReferencesStepProps> = ({ onComplete }) =>
   };
 
   return (
-    <StepContainer>
-      <StepTitle>References</StepTitle>
-      <StepDescription>
+    <div className={styles.stepContainer}>
+      <h2 className={styles.stepTitle}>References</h2>
+      <p className={styles.stepDescription}>
         Please provide contact information for references who can speak to your character and
         ability to care for a pet.
-      </StepDescription>
+      </p>
 
-      <Form
+      <form
+        className={styles.form}
         id='step-4-form'
         onSubmit={e => {
           e.preventDefault();
           handleContinue();
         }}
       >
-        <PlaceholderText>
+        <div className={styles.placeholderText}>
           References form coming soon...
           <br />
           <small>This will include fields for veterinary and personal references.</small>
-        </PlaceholderText>
-      </Form>
-    </StepContainer>
+        </div>
+      </form>
+    </div>
   );
 };

@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
@@ -29,267 +28,7 @@ import {
   Select,
 } from '../components/ui';
 import { usePlatformMetrics, useDashboardAnalytics } from '../hooks';
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`;
-
-const AnalyticsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-  gap: 1.5rem;
-`;
-
-const ChartCard = styled(Card)`
-  min-height: 350px;
-`;
-
-const ChartContainer = styled.div`
-  width: 100%;
-  height: 280px;
-  margin-top: 1rem;
-  position: relative;
-`;
-
-const BarChart = styled.div`
-  display: flex;
-  align-items: flex-end;
-  height: 100%;
-  gap: 0.75rem;
-  padding: 1rem 0;
-`;
-
-const Bar = styled.div<{ $height: number; $color: string }>`
-  flex: 1;
-  height: ${props => props.$height}%;
-  background: ${props => props.$color};
-  border-radius: 6px 6px 0 0;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  transition: all 0.3s ease;
-  cursor: pointer;
-
-  &:hover {
-    opacity: 0.8;
-    transform: translateY(-4px);
-  }
-`;
-
-const BarLabel = styled.div`
-  position: absolute;
-  bottom: -30px;
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 500;
-  white-space: nowrap;
-`;
-
-const BarValue = styled.div`
-  position: absolute;
-  top: -30px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-`;
-
-const LineChart = styled.div`
-  height: 100%;
-  padding: 1rem 0;
-  position: relative;
-`;
-
-const LineChartGrid = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 30px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-`;
-
-const GridLine = styled.div`
-  width: 100%;
-  height: 1px;
-  background: #e5e7eb;
-  position: relative;
-
-  span {
-    position: absolute;
-    left: -40px;
-    top: -8px;
-    font-size: 0.75rem;
-    color: #9ca3af;
-  }
-`;
-
-const LineChartSVG = styled.svg`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 30px;
-  width: 100%;
-  height: calc(100% - 30px);
-`;
-
-const LineChartLabels = styled.div`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 0.5rem;
-
-  span {
-    font-size: 0.75rem;
-    color: #6b7280;
-  }
-`;
-
-const PieChartContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 2rem;
-`;
-
-const PieChart = styled.svg`
-  width: 200px;
-  height: 200px;
-`;
-
-const PieLegend = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const LegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-`;
-
-const LegendColor = styled.div<{ $color: string }>`
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: ${props => props.$color};
-`;
-
-const LegendLabel = styled.div`
-  font-size: 0.875rem;
-  color: #374151;
-  flex: 1;
-`;
-
-const LegendValue = styled.div`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-`;
-
-const MetricChange = styled.div<{ $positive: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.875rem;
-  color: ${props => (props.$positive ? '#059669' : '#dc2626')};
-  font-weight: 600;
-
-  svg {
-    font-size: 1rem;
-  }
-`;
-
-const TopItemsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 1rem;
-`;
-
-const TopItem = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.875rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f9fafb;
-    border-color: #d1d5db;
-  }
-`;
-
-const TopItemRank = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.875rem;
-`;
-
-const TopItemInfo = styled.div`
-  flex: 1;
-  margin-left: 1rem;
-`;
-
-const TopItemName = styled.div`
-  font-weight: 600;
-  color: #111827;
-  font-size: 0.875rem;
-`;
-
-const TopItemMeta = styled.div`
-  font-size: 0.75rem;
-  color: #6b7280;
-  margin-top: 0.125rem;
-`;
-
-const TopItemValue = styled.div`
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #111827;
-`;
-
-const shimmer = keyframes`
-  0% { background-position: -200px 0; }
-  100% { background-position: calc(200px + 100%) 0; }
-`;
-
-const SkeletonBlock = styled.div<{ $width?: string; $height?: string }>`
-  width: ${props => props.$width ?? '100%'};
-  height: ${props => props.$height ?? '1rem'};
-  border-radius: 6px;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200px 100%;
-  animation: ${shimmer} 1.4s infinite linear;
-`;
-
-const ErrorBanner = styled.div`
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 1rem;
-  color: #991b1b;
-  font-size: 0.875rem;
-`;
+import * as styles from './Analytics.css';
 
 const PIE_COLORS = ['#667eea', '#f59e0b', '#ec4899', '#14b8a6', '#8b5cf6'];
 
@@ -381,7 +120,7 @@ const Analytics: React.FC = () => {
           <Heading level='h1'>Platform Analytics</Heading>
           <Text>Comprehensive analytics and data insights</Text>
         </HeaderLeft>
-        <HeaderActions>
+        <div className={styles.headerActions}>
           <FilterBar style={{ padding: '0.5rem 0.75rem', marginBottom: 0 }}>
             <FilterGroup style={{ minWidth: '140px', marginBottom: 0 }}>
               <Select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
@@ -396,11 +135,13 @@ const Analytics: React.FC = () => {
             <FiDownload style={{ marginRight: '0.5rem' }} />
             Export Report
           </Button>
-        </HeaderActions>
+        </div>
       </PageHeader>
 
       {analyticsError && (
-        <ErrorBanner role='alert'>Failed to load analytics data. Please try again.</ErrorBanner>
+        <div className={styles.errorBanner} role='alert'>
+          Failed to load analytics data. Please try again.
+        </div>
       )}
 
       <StatsBar>
@@ -411,16 +152,16 @@ const Analytics: React.FC = () => {
           <StatDetails>
             <StatLabel>Total Users</StatLabel>
             {isLoading ? (
-              <SkeletonBlock $width='80px' $height='1.5rem' />
+              <div className={styles.skeletonBlock} style={{ width: '80px', height: '1.5rem' }} />
             ) : (
               <StatValue>{totalAdopters.toLocaleString()}</StatValue>
             )}
-            <MetricChange $positive={true}>
+            <div className={styles.metricChangePositive}>
               <FiTrendingUp />
               {metricsData
                 ? `${metricsData.users.newThisMonth.toLocaleString()} new this month`
                 : '—'}
-            </MetricChange>
+            </div>
           </StatDetails>
         </StatCard>
 
@@ -431,14 +172,14 @@ const Analytics: React.FC = () => {
           <StatDetails>
             <StatLabel>Active Rescues</StatLabel>
             {isLoading ? (
-              <SkeletonBlock $width='60px' $height='1.5rem' />
+              <div className={styles.skeletonBlock} style={{ width: '60px', height: '1.5rem' }} />
             ) : (
               <StatValue>{activeRescues.toLocaleString()}</StatValue>
             )}
-            <MetricChange $positive={true}>
+            <div className={styles.metricChangePositive}>
               <FiTrendingUp />
               {metricsData ? `${metricsData.rescues.total} total` : '—'}
-            </MetricChange>
+            </div>
           </StatDetails>
         </StatCard>
 
@@ -449,16 +190,20 @@ const Analytics: React.FC = () => {
           <StatDetails>
             <StatLabel>Weekly Adoptions</StatLabel>
             {isLoading ? (
-              <SkeletonBlock $width='60px' $height='1.5rem' />
+              <div className={styles.skeletonBlock} style={{ width: '60px', height: '1.5rem' }} />
             ) : (
               <StatValue>{weeklyAdoptions.toLocaleString()}</StatValue>
             )}
-            <MetricChange $positive={weeklyAdoptions > 0}>
+            <div
+              className={
+                weeklyAdoptions > 0 ? styles.metricChangePositive : styles.metricChangeNegative
+              }
+            >
               {weeklyAdoptions > 0 ? <FiTrendingUp /> : <FiTrendingDown />}
               {analyticsData
                 ? `${(analyticsData.adoptions.adoptionRate ?? 0).toFixed(1)}% adoption rate`
                 : '—'}
-            </MetricChange>
+            </div>
           </StatDetails>
         </StatCard>
 
@@ -469,40 +214,43 @@ const Analytics: React.FC = () => {
           <StatDetails>
             <StatLabel>Active Listings</StatLabel>
             {isLoading ? (
-              <SkeletonBlock $width='80px' $height='1.5rem' />
+              <div className={styles.skeletonBlock} style={{ width: '80px', height: '1.5rem' }} />
             ) : (
               <StatValue>{totalListings.toLocaleString()}</StatValue>
             )}
-            <MetricChange $positive={true}>
+            <div className={styles.metricChangePositive}>
               <FiTrendingUp />
               {metricsData ? `${metricsData.pets.total} total pets` : '—'}
-            </MetricChange>
+            </div>
           </StatDetails>
         </StatCard>
       </StatsBar>
 
-      <AnalyticsGrid>
-        <ChartCard>
+      <div className={styles.analyticsGrid}>
+        <Card className={styles.chartCard}>
           <CardHeader>
             <CardTitle>Adoption Trends</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer>
+            <div className={styles.chartContainer}>
               {isLoading ? (
-                <SkeletonBlock $height='100%' />
+                <div className={styles.skeletonBlock} style={{ height: '100%' }} />
               ) : adoptionTrends.length > 0 ? (
-                <BarChart>
+                <div className={styles.barChart}>
                   {adoptionTrends.map(d => (
-                    <Bar
+                    <div
                       key={d.date}
-                      $height={Math.max((d.value / maxAdoptionValue) * 100, 2)}
-                      $color='#10b981'
+                      className={styles.bar}
+                      style={{
+                        height: `${Math.max((d.value / maxAdoptionValue) * 100, 2)}%`,
+                        background: '#10b981',
+                      }}
                     >
-                      <BarValue>{d.value}</BarValue>
-                      <BarLabel>{formatDate(d.date)}</BarLabel>
-                    </Bar>
+                      <div className={styles.barValue}>{d.value}</div>
+                      <div className={styles.barLabel}>{formatDate(d.date)}</div>
+                    </div>
                   ))}
-                </BarChart>
+                </div>
               ) : (
                 <div
                   style={{
@@ -517,18 +265,18 @@ const Analytics: React.FC = () => {
                   No adoption data for this period
                 </div>
               )}
-            </ChartContainer>
+            </div>
           </CardContent>
-        </ChartCard>
+        </Card>
 
-        <ChartCard>
+        <Card className={styles.chartCard}>
           <CardHeader>
             <CardTitle>Applications by Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer>
+            <div className={styles.chartContainer}>
               {isLoading ? (
-                <SkeletonBlock $height='100%' />
+                <div className={styles.skeletonBlock} style={{ height: '100%' }} />
               ) : analyticsData ? (
                 (() => {
                   const statusData = Object.entries(analyticsData.applications.statusMetrics).map(
@@ -540,18 +288,23 @@ const Analytics: React.FC = () => {
                   );
                   const maxCount = Math.max(...statusData.map(s => s.count), 1);
                   return (
-                    <BarChart>
+                    <div className={styles.barChart}>
                       {statusData.map(s => (
-                        <Bar
+                        <div
                           key={s.status}
-                          $height={Math.max((s.count / maxCount) * 100, 2)}
-                          $color={s.color}
+                          className={styles.bar}
+                          style={{
+                            height: `${Math.max((s.count / maxCount) * 100, 2)}%`,
+                            background: s.color,
+                          }}
                         >
-                          <BarValue>{s.count}</BarValue>
-                          <BarLabel style={{ textTransform: 'capitalize' }}>{s.status}</BarLabel>
-                        </Bar>
+                          <div className={styles.barValue}>{s.count}</div>
+                          <div className={styles.barLabel} style={{ textTransform: 'capitalize' }}>
+                            {s.status}
+                          </div>
+                        </div>
                       ))}
-                    </BarChart>
+                    </div>
                   );
                 })()
               ) : (
@@ -568,21 +321,24 @@ const Analytics: React.FC = () => {
                   No application data available
                 </div>
               )}
-            </ChartContainer>
+            </div>
           </CardContent>
-        </ChartCard>
+        </Card>
 
-        <ChartCard>
+        <Card className={styles.chartCard}>
           <CardHeader>
             <CardTitle>Pet Type Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <PieChartContainer>
+            <div className={styles.pieChartContainer}>
               {isLoading ? (
-                <SkeletonBlock $width='200px' $height='200px' style={{ borderRadius: '50%' }} />
+                <div
+                  className={styles.skeletonBlock}
+                  style={{ width: '200px', height: '200px', borderRadius: '50%' }}
+                />
               ) : petPieSlices.length > 0 ? (
                 <>
-                  <PieChart viewBox='0 0 200 200'>
+                  <svg className={styles.pieChart} viewBox='0 0 200 200'>
                     {petPieSlices.map((slice, i) => (
                       <path
                         key={i}
@@ -592,62 +348,62 @@ const Analytics: React.FC = () => {
                         strokeWidth='2'
                       />
                     ))}
-                  </PieChart>
-                  <PieLegend>
+                  </svg>
+                  <div className={styles.pieLegend}>
                     {petPieSlices.map(slice => (
-                      <LegendItem key={slice.type}>
-                        <LegendColor $color={slice.color} />
-                        <LegendLabel>{slice.type}</LegendLabel>
-                        <LegendValue>{slice.percentage}%</LegendValue>
-                      </LegendItem>
+                      <div key={slice.type} className={styles.legendItem}>
+                        <div className={styles.legendColor} style={{ background: slice.color }} />
+                        <div className={styles.legendLabel}>{slice.type}</div>
+                        <div className={styles.legendValue}>{slice.percentage}%</div>
+                      </div>
                     ))}
-                  </PieLegend>
+                  </div>
                 </>
               ) : (
                 <div style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
                   No pet type data for this period
                 </div>
               )}
-            </PieChartContainer>
+            </div>
           </CardContent>
-        </ChartCard>
+        </Card>
 
-        <ChartCard>
+        <Card className={styles.chartCard}>
           <CardHeader>
             <CardTitle>Top Performing Rescues</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <TopItemsList>
+              <div className={styles.topItemsList}>
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <SkeletonBlock key={i} $height='3rem' />
+                  <div key={i} className={styles.skeletonBlock} style={{ height: '3rem' }} />
                 ))}
-              </TopItemsList>
+              </div>
             ) : topRescues.length > 0 ? (
-              <TopItemsList>
+              <div className={styles.topItemsList}>
                 {topRescues.map((rescue, index) => (
-                  <TopItem key={rescue.rescueId}>
-                    <TopItemRank>{index + 1}</TopItemRank>
-                    <TopItemInfo>
-                      <TopItemName>{rescue.rescueName}</TopItemName>
-                      <TopItemMeta>
+                  <div key={rescue.rescueId} className={styles.topItem}>
+                    <div className={styles.topItemRank}>{index + 1}</div>
+                    <div className={styles.topItemInfo}>
+                      <div className={styles.topItemName}>{rescue.rescueName}</div>
+                      <div className={styles.topItemMeta}>
                         {rescue.averageTimeToAdoption > 0
                           ? `avg ${rescue.averageTimeToAdoption.toFixed(1)} days to adopt`
                           : 'adoption data pending'}
-                      </TopItemMeta>
-                    </TopItemInfo>
-                    <TopItemValue>{rescue.adoptions}</TopItemValue>
-                  </TopItem>
+                      </div>
+                    </div>
+                    <div className={styles.topItemValue}>{rescue.adoptions}</div>
+                  </div>
                 ))}
-              </TopItemsList>
+              </div>
             ) : (
               <div style={{ color: '#9ca3af', fontSize: '0.875rem', padding: '1rem 0' }}>
                 No rescue performance data for this period
               </div>
             )}
           </CardContent>
-        </ChartCard>
-      </AnalyticsGrid>
+        </Card>
+      </div>
     </PageContainer>
   );
 };

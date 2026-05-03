@@ -3,108 +3,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import notificationService from '@/services/notificationService';
 import { Button } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
-import styled from 'styled-components';
-
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-`;
-
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: 3rem;
-
-  h1 {
-    font-size: 2.5rem;
-    color: ${props => props.theme.text.primary};
-    margin-bottom: 1rem;
-  }
-
-  p {
-    font-size: 1.1rem;
-    color: ${props => props.theme.text.secondary};
-    max-width: 600px;
-    margin: 0 auto;
-  }
-`;
-
-const Section = styled.section`
-  background: ${props => props.theme.background.secondary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-
-  h2 {
-    font-size: 1.5rem;
-    color: ${props => props.theme.text.primary};
-    margin-bottom: 1rem;
-  }
-
-  p {
-    color: ${props => props.theme.text.secondary};
-    margin-bottom: 1.5rem;
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const StatusCard = styled.div`
-  background: ${props => props.theme.background.primary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 8px;
-  padding: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  .status-item {
-    text-align: center;
-
-    .label {
-      font-size: 0.875rem;
-      color: ${props => props.theme.text.secondary};
-      margin-bottom: 0.5rem;
-    }
-
-    .value {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: ${props => props.theme.text.primary};
-    }
-  }
-`;
-
-const NotificationModal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
-
-const ModalContent = styled.div`
-  width: 100%;
-  max-width: 800px;
-  max-height: 90vh;
-  overflow: hidden;
-`;
+import * as styles from './NotificationDemoPage.css';
 
 export const NotificationDemoPage: React.FC = () => {
   const {
@@ -178,27 +77,27 @@ export const NotificationDemoPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Container>
-        <Header>
+      <div className={styles.container}>
+        <div className={styles.header}>
           <h1>Loading Notification System...</h1>
-        </Header>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container>
-      <Header>
+    <div className={styles.container}>
+      <div className={styles.header}>
         <h1>🔔 Notification System Demo</h1>
         <p>
           Experience our comprehensive notification system with email, push, and SMS support. Manage
           your preferences and see real-time updates in action.
         </p>
-      </Header>
+      </div>
 
-      <Section>
+      <section className={styles.section}>
         <h2>📊 Current Status</h2>
-        <StatusCard>
+        <div className={styles.statusCard}>
           <div className='status-item'>
             <div className='label'>Unread Notifications</div>
             <div className='value'>{unreadCount}</div>
@@ -215,14 +114,14 @@ export const NotificationDemoPage: React.FC = () => {
             <div className='label'>SMS Notifications</div>
             <div className='value'>{preferences?.sms ? '✅' : '❌'}</div>
           </div>
-        </StatusCard>
-      </Section>
+        </div>
+      </section>
 
-      <Section>
+      <section className={styles.section}>
         <h2>🔧 Quick Actions</h2>
         <p>Test different notification features and see how they work.</p>
 
-        <ButtonGroup>
+        <div className={styles.buttonGroup}>
           <Button onClick={() => setShowNotificationCenter(true)}>Open Notification Center</Button>
           <Button variant='secondary' onClick={handleRequestPermission}>
             Request Push Permission
@@ -236,14 +135,14 @@ export const NotificationDemoPage: React.FC = () => {
           <Button variant={isPolling ? 'danger' : 'secondary'} onClick={handleStartPolling}>
             {isPolling ? 'Stop Polling' : 'Start Polling'}
           </Button>
-        </ButtonGroup>
-      </Section>
+        </div>
+      </section>
 
-      <Section>
+      <section className={styles.section}>
         <h2>⚙️ Preferences</h2>
         <p>Toggle different notification types to see how preferences work.</p>
 
-        <ButtonGroup>
+        <div className={styles.buttonGroup}>
           <Button
             variant={preferences?.email ? 'primary' : 'secondary'}
             onClick={() => handleToggleNotifications('email')}
@@ -268,10 +167,10 @@ export const NotificationDemoPage: React.FC = () => {
           >
             Marketing: {preferences?.marketing ? 'ON' : 'OFF'}
           </Button>
-        </ButtonGroup>
-      </Section>
+        </div>
+      </section>
 
-      <Section>
+      <section className={styles.section}>
         <h2>📋 Implementation Details</h2>
         <p>This notification system includes:</p>
         <ul style={{ color: 'inherit', paddingLeft: '1.5rem' }}>
@@ -284,16 +183,16 @@ export const NotificationDemoPage: React.FC = () => {
           <li>✅ Polling fallback for real-time updates</li>
           <li>✅ React hooks for easy integration</li>
         </ul>
-      </Section>
+      </section>
 
       {showNotificationCenter && (
-        <NotificationModal>
-          <ModalContent>
+        <div className={styles.notificationModal}>
+          <div className={styles.modalContent}>
             <NotificationCenterComponent onClose={() => setShowNotificationCenter(false)} />
-          </ModalContent>
-        </NotificationModal>
+          </div>
+        </div>
       )}
-    </Container>
+    </div>
   );
 };
 

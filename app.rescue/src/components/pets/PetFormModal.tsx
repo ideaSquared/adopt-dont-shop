@@ -1,116 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import { Card, Button } from '@adopt-dont-shop/lib.components';
 import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
-
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
-
-const ModalContent = styled(Card)`
-  width: 100%;
-  max-width: 800px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 2rem;
-
-  h2 {
-    margin: 0 0 1.5rem 0;
-    color: ${props => props.theme.text.primary};
-    font-size: 1.5rem;
-    font-weight: 600;
-  }
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGroup = styled.div<{ fullWidth?: boolean }>`
-  ${props => props.fullWidth && 'grid-column: 1 / -1;'}
-
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    font-size: 0.875rem;
-    color: ${props => props.theme.text.primary};
-  }
-
-  input,
-  select,
-  textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid ${props => props.theme.colors.neutral[300]};
-    border-radius: 4px;
-    font-size: 0.875rem;
-    font-family: inherit;
-
-    &:focus {
-      outline: none;
-      border-color: ${props => props.theme.colors.primary[500]};
-      box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-    }
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 100px;
-  }
-
-  .error {
-    color: #ef4444;
-    font-size: 0.75rem;
-    margin-top: 0.25rem;
-  }
-`;
-
-const CheckboxGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-
-  input[type='checkbox'] {
-    width: auto;
-  }
-
-  label {
-    margin: 0;
-    font-weight: normal;
-  }
-`;
-
-const ModalActions = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid ${props => props.theme.colors.neutral[200]};
-
-  @media (max-width: 768px) {
-    flex-direction: column-reverse;
-  }
-`;
+import * as styles from './PetFormModal.css';
 
 interface PetFormModalProps {
   isOpen: boolean;
@@ -147,7 +38,6 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
 
   useEffect(() => {
     if (pet) {
-      // Populate form with existing pet data for editing
       setFormData({
         name: pet.name,
         type: pet.type,
@@ -179,7 +69,6 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
         behavioralNotes: pet.behavioral_notes,
       });
     } else {
-      // Reset form for new pet
       setFormData({
         name: '',
         type: 'dog',
@@ -267,13 +156,18 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
   }
 
   return (
-    <ModalOverlay onClick={onClose}>
-      <ModalContent onClick={e => e.stopPropagation()}>
+    <div
+      className={styles.modalOverlay}
+      onClick={onClose}
+      onKeyDown={e => e.key === 'Escape' && onClose()}
+      role="presentation"
+    >
+      <Card className={styles.modalContent} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
         <h2>{pet ? 'Edit Pet' : 'Add New Pet'}</h2>
 
         <form onSubmit={handleSubmit}>
-          <FormGrid>
-            <FormGroup>
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup()}>
               <label htmlFor="name">Pet Name *</label>
               <input
                 id="name"
@@ -283,9 +177,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 placeholder="Enter pet's name"
               />
               {errors.name && <div className="error">{errors.name}</div>}
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="type">Pet Type *</label>
               <select
                 id="type"
@@ -298,9 +192,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 <option value="bird">Bird</option>
                 <option value="other">Other</option>
               </select>
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="breed">Primary Breed *</label>
               <input
                 id="breed"
@@ -310,9 +204,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 placeholder="Enter primary breed"
               />
               {errors.breed && <div className="error">{errors.breed}</div>}
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="secondaryBreed">Secondary Breed</label>
               <input
                 id="secondaryBreed"
@@ -321,9 +215,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 onChange={e => handleInputChange('secondaryBreed', e.target.value)}
                 placeholder="Enter secondary breed (if mix)"
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="ageYears">Age (Years)</label>
               <input
                 id="ageYears"
@@ -333,9 +227,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 value={formData.ageYears}
                 onChange={e => handleInputChange('ageYears', parseInt(e.target.value) || 0)}
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="ageMonths">Age (Months)</label>
               <input
                 id="ageMonths"
@@ -346,9 +240,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 onChange={e => handleInputChange('ageMonths', parseInt(e.target.value) || 0)}
               />
               {errors.age && <div className="error">{errors.age}</div>}
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="gender">Gender *</label>
               <select
                 id="gender"
@@ -358,9 +252,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </select>
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="size">Size *</label>
               <select
                 id="size"
@@ -372,9 +266,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 <option value="large">Large</option>
                 <option value="extra_large">Extra Large</option>
               </select>
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="color">Color *</label>
               <input
                 id="color"
@@ -384,9 +278,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 placeholder="Enter primary color"
               />
               {errors.color && <div className="error">{errors.color}</div>}
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="adoptionFee">Adoption Fee</label>
               <input
                 id="adoptionFee"
@@ -395,9 +289,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 onChange={e => handleInputChange('adoptionFee', e.target.value)}
                 placeholder="Enter adoption fee (e.g., 150.00)"
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup fullWidth>
+            <div className={styles.formGroup({ fullWidth: true })}>
               <label htmlFor="shortDescription">Short Description *</label>
               <textarea
                 id="shortDescription"
@@ -407,9 +301,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 rows={2}
               />
               {errors.shortDescription && <div className="error">{errors.shortDescription}</div>}
-            </FormGroup>
+            </div>
 
-            <FormGroup fullWidth>
+            <div className={styles.formGroup({ fullWidth: true })}>
               <label htmlFor="longDescription">Long Description</label>
               <textarea
                 id="longDescription"
@@ -418,9 +312,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 placeholder="Detailed description of the pet's personality, history, and needs"
                 rows={4}
               />
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="energyLevel">Energy Level</label>
               <select
                 id="energyLevel"
@@ -432,10 +326,10 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 <option value="high">High</option>
                 <option value="very_high">Very High</option>
               </select>
-            </FormGroup>
+            </div>
 
-            <FormGroup>
-              <CheckboxGroup>
+            <div className={styles.formGroup()}>
+              <div className={styles.checkboxGroup}>
                 <input
                   type="checkbox"
                   id="specialNeeds"
@@ -443,11 +337,11 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                   onChange={e => handleInputChange('specialNeeds', e.target.checked)}
                 />
                 <label htmlFor="specialNeeds">Special Needs</label>
-              </CheckboxGroup>
-            </FormGroup>
+              </div>
+            </div>
 
-            <FormGroup>
-              <CheckboxGroup>
+            <div className={styles.formGroup()}>
+              <div className={styles.checkboxGroup}>
                 <input
                   type="checkbox"
                   id="houseTrained"
@@ -455,10 +349,10 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                   onChange={e => handleInputChange('houseTrained', e.target.checked)}
                 />
                 <label htmlFor="houseTrained">House Trained</label>
-              </CheckboxGroup>
-            </FormGroup>
+              </div>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="goodWithChildren">Good with Children</label>
               <select
                 id="goodWithChildren"
@@ -478,9 +372,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 <option value="true">Yes</option>
                 <option value="false">No</option>
               </select>
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="goodWithDogs">Good with Dogs</label>
               <select
                 id="goodWithDogs"
@@ -500,9 +394,9 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 <option value="true">Yes</option>
                 <option value="false">No</option>
               </select>
-            </FormGroup>
+            </div>
 
-            <FormGroup>
+            <div className={styles.formGroup()}>
               <label htmlFor="goodWithCats">Good with Cats</label>
               <select
                 id="goodWithCats"
@@ -522,24 +416,24 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 <option value="true">Yes</option>
                 <option value="false">No</option>
               </select>
-            </FormGroup>
-          </FormGrid>
+            </div>
+          </div>
 
           {errors.submit && (
             <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{errors.submit}</div>
           )}
 
-          <ModalActions>
+          <div className={styles.modalActions}>
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting ? 'Saving...' : pet ? 'Update Pet' : 'Add Pet'}
             </Button>
-          </ModalActions>
+          </div>
         </form>
-      </ModalContent>
-    </ModalOverlay>
+      </Card>
+    </div>
   );
 };
 

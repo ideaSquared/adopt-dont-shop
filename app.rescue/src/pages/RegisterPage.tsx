@@ -1,16 +1,6 @@
 import { AuthLayout, RegisterForm } from '@adopt-dont-shop/lib.auth';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
-
-const HelperText = styled.div`
-  font-size: 0.875rem;
-  color: ${props => props.theme?.text?.secondary || '#6b7280'};
-  line-height: 1.4;
-
-  strong {
-    color: ${props => props.theme?.text?.primary || '#374151'};
-  }
-`;
+import * as styles from './RegisterPage.css';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -27,10 +17,10 @@ const RegisterPage = () => {
         termsUrl="/terms"
         privacyUrl="/privacy"
         helperText={
-          <HelperText>
+          <div className={styles.helperText}>
             <strong>Note:</strong> Registration creates a rescue staff account. You will need to be
             invited by your rescue organization administrator.
-          </HelperText>
+          </div>
         }
       />
     </AuthLayout>

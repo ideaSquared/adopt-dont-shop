@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { FileUpload } from '@adopt-dont-shop/lib.components';
+import * as styles from './DocumentUploadStep.css';
 
 const ACCEPTED_FORMATS = '.pdf,.jpg,.jpeg,.png,.doc,.docx';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -25,101 +25,6 @@ type DocumentUploadStepProps = {
   onComplete: (documents: PendingDocument[]) => void;
   initialDocuments?: PendingDocument[];
 };
-
-const StepContainer = styled.div`
-  max-width: 600px;
-`;
-
-const StepTitle = styled.h2`
-  font-size: 1.5rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 0.5rem;
-`;
-
-const StepDescription = styled.p`
-  color: ${props => props.theme.text.secondary};
-  margin-bottom: 2rem;
-`;
-
-const Form = styled.form`
-  display: grid;
-  gap: 1.5rem;
-`;
-
-const SupportedFormats = styled.p`
-  font-size: 0.85rem;
-  color: ${props => props.theme.text.secondary};
-  margin-top: 0.5rem;
-`;
-
-const DocumentList = styled.div`
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-`;
-
-const DocumentCard = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 1rem;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 8px;
-  background: ${props => props.theme.background.secondary};
-`;
-
-const DocumentInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-`;
-
-const DocumentName = styled.span`
-  font-size: 0.9rem;
-  color: ${props => props.theme.text.primary};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const DocumentSize = styled.span`
-  font-size: 0.75rem;
-  color: ${props => props.theme.text.secondary};
-`;
-
-const DocumentTypeSelect = styled.select`
-  padding: 0.375rem 0.5rem;
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 4px;
-  font-size: 0.85rem;
-  background: ${props => props.theme.background.primary};
-  color: ${props => props.theme.text.primary};
-  cursor: pointer;
-`;
-
-const RemoveButton = styled.button`
-  background: none;
-  border: none;
-  color: ${props => props.theme.colors?.semantic?.error?.[500] || '#ef4444'};
-  cursor: pointer;
-  padding: 0.25rem;
-  font-size: 1.2rem;
-  line-height: 1;
-  border-radius: 4px;
-
-  &:hover {
-    background-color: ${props => props.theme.colors?.semantic?.error?.[100] || '#fee2e2'}20;
-  }
-`;
-
-const SkipNote = styled.p`
-  font-size: 0.85rem;
-  color: ${props => props.theme.text.secondary};
-  font-style: italic;
-  margin-top: 0.5rem;
-`;
 
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) {
@@ -170,14 +75,14 @@ export const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
   } ready to upload.`;
 
   return (
-    <StepContainer>
-      <StepTitle>Supporting Documents</StepTitle>
-      <StepDescription>
+    <div className={styles.stepContainer}>
+      <h2 className={styles.stepTitle}>Supporting Documents</h2>
+      <p className={styles.stepDescription}>
         Upload any supporting documents to strengthen your application. This step is optional — you
         can also add documents later.
-      </StepDescription>
+      </p>
 
-      <Form id='step-5-form' onSubmit={handleSubmit}>
+      <form className={styles.form} id='step-5-form' onSubmit={handleSubmit}>
         <div>
           <FileUpload
             accept={ACCEPTED_FORMATS}
@@ -192,21 +97,28 @@ export const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
             placeholder='Drop documents here or click to browse'
             data-testid='document-upload-input'
           />
-          <SupportedFormats>
+          <p className={styles.supportedFormats}>
             Supported formats: PDF, JPG, PNG, DOC, DOCX · Max size: 5MB per file · Up to {MAX_FILES}{' '}
             files
-          </SupportedFormats>
+          </p>
         </div>
 
         {pendingDocuments.length > 0 && (
-          <DocumentList data-testid='document-list'>
+          <div className={styles.documentList} data-testid='document-list'>
             {pendingDocuments.map((doc, index) => (
-              <DocumentCard key={doc.id} data-testid={`document-card-${index}`}>
-                <DocumentInfo>
-                  <DocumentName title={doc.file.name}>{doc.file.name}</DocumentName>
-                  <DocumentSize>{formatFileSize(doc.file.size)}</DocumentSize>
-                </DocumentInfo>
-                <DocumentTypeSelect
+              <div
+                className={styles.documentCard}
+                key={doc.id}
+                data-testid={`document-card-${index}`}
+              >
+                <div className={styles.documentInfo}>
+                  <span className={styles.documentName} title={doc.file.name}>
+                    {doc.file.name}
+                  </span>
+                  <span className={styles.documentSize}>{formatFileSize(doc.file.size)}</span>
+                </div>
+                <select
+                  className={styles.documentTypeSelect}
                   value={doc.documentType}
                   onChange={e => handleTypeChange(index, e.target.value as DocumentTypeValue)}
                   aria-label={`Document type for ${doc.file.name}`}
@@ -217,26 +129,27 @@ export const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
                       {type.label}
                     </option>
                   ))}
-                </DocumentTypeSelect>
-                <RemoveButton
+                </select>
+                <button
+                  className={styles.removeButton}
                   type='button'
                   onClick={() => handleFileRemove(index)}
                   aria-label={`Remove ${doc.file.name}`}
                   data-testid={`remove-document-${index}`}
                 >
                   ×
-                </RemoveButton>
-              </DocumentCard>
+                </button>
+              </div>
             ))}
-          </DocumentList>
+          </div>
         )}
 
-        <SkipNote>
+        <p className={styles.skipNote}>
           {pendingDocuments.length === 0
             ? 'No documents added. You can skip this step or add documents now.'
             : documentCountLabel}
-        </SkipNote>
-      </Form>
-    </StepContainer>
+        </p>
+      </form>
+    </div>
   );
 };

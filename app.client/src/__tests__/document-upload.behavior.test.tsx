@@ -15,17 +15,17 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+
 import { vi } from 'vitest';
-import { lightTheme } from '@adopt-dont-shop/lib.components';
+import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { DocumentUploadStep } from '../components/application/steps/DocumentUploadStep';
 
 const renderStep = (props: Partial<React.ComponentProps<typeof DocumentUploadStep>> = {}) => {
   const onComplete = vi.fn();
   render(
-    <StyledThemeProvider theme={lightTheme}>
+    <ThemeProvider>
       <DocumentUploadStep onComplete={onComplete} {...props} />
-    </StyledThemeProvider>
+    </ThemeProvider>
   );
   return { onComplete };
 };

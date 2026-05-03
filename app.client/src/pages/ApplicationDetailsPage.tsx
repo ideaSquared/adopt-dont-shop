@@ -2,128 +2,8 @@ import { applicationService, Application } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import styled from 'styled-components';
-
 import { WithdrawApplicationModal } from '../components/application';
-
-const Container = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-
-  @media (max-width: 768px) {
-    padding: 1rem;
-  }
-`;
-
-const Header = styled.div`
-  margin-bottom: 2rem;
-
-  h1 {
-    font-size: 2rem;
-    color: ${props => props.theme.text.primary};
-    margin-bottom: 0.5rem;
-  }
-
-  p {
-    color: ${props => props.theme.text.secondary};
-  }
-`;
-
-const Section = styled.div`
-  background: ${props => props.theme.background.primary};
-  border: 1px solid ${props => props.theme.border.color.primary};
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 1.25rem;
-  color: ${props => props.theme.text.primary};
-  margin-bottom: 1rem;
-`;
-
-const InfoGrid = styled.div`
-  display: grid;
-  gap: 1rem;
-`;
-
-const InfoItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid ${props => props.theme.border.color.primary};
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const InfoLabel = styled.span`
-  font-weight: 500;
-  color: ${props => props.theme.text.secondary};
-  min-width: 120px;
-`;
-
-const InfoValue = styled.span`
-  color: ${props => props.theme.text.primary};
-  text-align: right;
-  flex: 1;
-`;
-
-const StatusBadge = styled.span<{ $status: string }>`
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: uppercase;
-
-  ${props => {
-    switch (props.$status) {
-      case 'submitted':
-        return `
-          background: ${props.theme.colors.secondary[100]};
-          color: ${props.theme.colors.secondary[700]};
-        `;
-      case 'approved':
-        return `
-          background: ${props.theme.colors.semantic.success[100]};
-          color: ${props.theme.colors.semantic.success[700]};
-        `;
-      case 'rejected':
-        return `
-          background: ${props.theme.colors.semantic.error[100]};
-          color: ${props.theme.colors.semantic.error[700]};
-        `;
-      case 'withdrawn':
-        return `
-          background: ${props.theme.colors.neutral[200]};
-          color: ${props.theme.colors.neutral[600]};
-          border: 1px solid ${props.theme.colors.neutral[300]};
-        `;
-      default:
-        return `
-          background: ${props.theme.colors.neutral[100]};
-          color: ${props.theme.colors.neutral[700]};
-        `;
-    }
-  }}
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 300px;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
-`;
+import * as styles from './ApplicationDetailsPage.css';
 
 export const ApplicationDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -198,31 +78,31 @@ export const ApplicationDetailsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Container>
-        <LoadingContainer>
+      <div className={styles.container}>
+        <div className={styles.loadingContainer}>
           <Spinner />
-        </LoadingContainer>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   if (error || !application) {
     return (
-      <Container>
+      <div className={styles.container}>
         <Alert variant='error'>{error || 'Application not found'}</Alert>
-        <ButtonGroup>
+        <div className={styles.buttonGroup}>
           <Button onClick={() => navigate('/profile')}>Back to Profile</Button>
-        </ButtonGroup>
-      </Container>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Container>
-      <Header>
+    <div className={styles.container}>
+      <div className={styles.header}>
         <h1>Application Details</h1>
         <p>Application #{application.id.slice(-6)}</p>
-      </Header>
+      </div>
 
       {successMessage && (
         <Alert variant='success' title='Success'>
@@ -238,77 +118,85 @@ export const ApplicationDetailsPage: React.FC = () => {
         </Alert>
       )}
 
-      <Section>
-        <SectionTitle>Application Status</SectionTitle>
-        <InfoGrid>
-          <InfoItem>
-            <InfoLabel>Status</InfoLabel>
-            <InfoValue>
-              <StatusBadge $status={application.status}>
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>Application Status</h2>
+        <div className={styles.infoGrid}>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Status</span>
+            <span className={styles.infoValue}>
+              <span
+                className={styles.statusBadge({
+                  status: (['submitted', 'approved', 'rejected', 'withdrawn'].includes(
+                    application.status
+                  )
+                    ? application.status
+                    : 'default') as 'submitted' | 'approved' | 'rejected' | 'withdrawn' | 'default',
+                })}
+              >
                 {application.status.replace('_', ' ')}
-              </StatusBadge>
-            </InfoValue>
-          </InfoItem>
-          <InfoItem>
-            <InfoLabel>Submitted</InfoLabel>
-            <InfoValue>{formatDate(application.submittedAt)}</InfoValue>
-          </InfoItem>
-          <InfoItem>
-            <InfoLabel>Last Updated</InfoLabel>
-            <InfoValue>{formatDate(application.updatedAt)}</InfoValue>
-          </InfoItem>
+              </span>
+            </span>
+          </div>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Submitted</span>
+            <span className={styles.infoValue}>{formatDate(application.submittedAt)}</span>
+          </div>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Last Updated</span>
+            <span className={styles.infoValue}>{formatDate(application.updatedAt)}</span>
+          </div>
           {application.reviewedAt && (
-            <InfoItem>
-              <InfoLabel>Reviewed</InfoLabel>
-              <InfoValue>{formatDate(application.reviewedAt)}</InfoValue>
-            </InfoItem>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Reviewed</span>
+              <span className={styles.infoValue}>{formatDate(application.reviewedAt)}</span>
+            </div>
           )}
           {application.reviewedBy && (
-            <InfoItem>
-              <InfoLabel>Reviewed By</InfoLabel>
-              <InfoValue>{application.reviewedBy}</InfoValue>
-            </InfoItem>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Reviewed By</span>
+              <span className={styles.infoValue}>{application.reviewedBy}</span>
+            </div>
           )}
           {application.status === 'withdrawn' && application.updatedAt && (
-            <InfoItem>
-              <InfoLabel>Withdrawn On</InfoLabel>
-              <InfoValue>{formatDate(application.updatedAt)}</InfoValue>
-            </InfoItem>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Withdrawn On</span>
+              <span className={styles.infoValue}>{formatDate(application.updatedAt)}</span>
+            </div>
           )}
-        </InfoGrid>
-      </Section>
+        </div>
+      </div>
 
-      <Section>
-        <SectionTitle>Pet Information</SectionTitle>
-        <InfoGrid>
-          <InfoItem>
-            <InfoLabel>Pet ID</InfoLabel>
-            <InfoValue>{application.petId}</InfoValue>
-          </InfoItem>
-        </InfoGrid>
-      </Section>
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>Pet Information</h2>
+        <div className={styles.infoGrid}>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Pet ID</span>
+            <span className={styles.infoValue}>{application.petId}</span>
+          </div>
+        </div>
+      </div>
 
-      <Section>
-        <SectionTitle>Application Information</SectionTitle>
-        <InfoGrid>
-          <InfoItem>
-            <InfoLabel>Application ID</InfoLabel>
-            <InfoValue>{application.id}</InfoValue>
-          </InfoItem>
-          <InfoItem>
-            <InfoLabel>Rescue ID</InfoLabel>
-            <InfoValue>{application.rescueId}</InfoValue>
-          </InfoItem>
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>Application Information</h2>
+        <div className={styles.infoGrid}>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Application ID</span>
+            <span className={styles.infoValue}>{application.id}</span>
+          </div>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Rescue ID</span>
+            <span className={styles.infoValue}>{application.rescueId}</span>
+          </div>
           {application.reviewNotes && (
-            <InfoItem>
-              <InfoLabel>Review Notes</InfoLabel>
-              <InfoValue>{application.reviewNotes}</InfoValue>
-            </InfoItem>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Review Notes</span>
+              <span className={styles.infoValue}>{application.reviewNotes}</span>
+            </div>
           )}
-        </InfoGrid>
-      </Section>
+        </div>
+      </div>
 
-      <ButtonGroup>
+      <div className={styles.buttonGroup}>
         <Button onClick={() => navigate('/profile')}>Back to Profile</Button>
         {application.status === 'submitted' && (
           <Button
@@ -328,7 +216,7 @@ export const ApplicationDetailsPage: React.FC = () => {
             Browse Available Pets
           </Button>
         )}
-      </ButtonGroup>
+      </div>
 
       <WithdrawApplicationModal
         isOpen={isWithdrawModalOpen}
@@ -336,7 +224,7 @@ export const ApplicationDetailsPage: React.FC = () => {
         onConfirm={handleWithdraw}
         isLoading={isWithdrawing}
       />
-    </Container>
+    </div>
   );
 };
 

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
-import { ThemeProvider } from 'styled-components';
-import { lightTheme } from '@adopt-dont-shop/lib.components';
+
+import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { PublicAuthLayout } from './PublicAuthLayout';
 
 const renderAt = (path: string) =>
   render(
-    <ThemeProvider theme={lightTheme}>
+    <ThemeProvider>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route element={<PublicAuthLayout />}>

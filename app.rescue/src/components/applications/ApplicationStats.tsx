@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
 import { RescueApplicationService } from '../../services/applicationService';
 import type { ApplicationListItem } from '../../types/applications';
+import * as styles from './ApplicationStats.css';
 
 // Calculate statistics from application data
 const calculateApplicationStats = (applications: ApplicationListItem[]) => {
@@ -34,171 +34,6 @@ const calculateApplicationStats = (applications: ApplicationListItem[]) => {
     scheduledVisits: applications.filter(app => app.homeVisitStatus === 'scheduled').length,
   };
 };
-
-// Styled Components
-const StatsContainer = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (min-width: 1024px) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-`;
-
-const StatCard = styled.div`
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow:
-    0 1px 3px 0 rgba(0, 0, 0, 0.1),
-    0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-`;
-
-const LoadingCard = styled(StatCard)`
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
-  }
-`;
-
-const CardContent = styled.div`
-  padding: 1.25rem;
-`;
-
-const CardHeader = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const IconContainer = styled.div`
-  flex-shrink: 0;
-`;
-
-const Icon = styled.div<{ $color: string }>`
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.375rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  ${props => {
-    switch (props.$color) {
-      case 'blue':
-        return 'background: #dbeafe; color: #1d4ed8;';
-      case 'yellow':
-        return 'background: #fef3c7; color: #92400e;';
-      case 'green':
-        return 'background: #dcfce7; color: #166534;';
-      case 'red':
-        return 'background: #fecaca; color: #dc2626;';
-      default:
-        return 'background: #f3f4f6; color: #374151;';
-    }
-  }}
-`;
-
-const CardBody = styled.div`
-  margin-left: 1.25rem;
-  width: 0;
-  flex: 1;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-`;
-
-const StatValue = styled.div`
-  margin-top: 0.25rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #111827;
-`;
-
-const StatChange = styled.div<{ $trend: 'up' | 'down' | 'neutral' }>`
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-
-  ${props => {
-    switch (props.$trend) {
-      case 'up':
-        return 'color: #059669;';
-      case 'down':
-        return 'color: #dc2626;';
-      default:
-        return 'color: #6b7280;';
-    }
-  }}
-`;
-
-const LoadingIconPlaceholder = styled.div`
-  width: 2rem;
-  height: 2rem;
-  background: #d1d5db;
-  border-radius: 0.375rem;
-`;
-
-const LoadingTextPlaceholder = styled.div<{ width: string }>`
-  height: 1rem;
-  background: #d1d5db;
-  border-radius: 0.25rem;
-  width: ${props => props.width};
-`;
-
-const LoadingValuePlaceholder = styled.div<{ width: string }>`
-  height: 1.5rem;
-  background: #d1d5db;
-  border-radius: 0.25rem;
-  width: ${props => props.width};
-  margin-top: 0.5rem;
-`;
-
-const ErrorContainer = styled.div`
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 0.375rem;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const ErrorContent = styled.div`
-  display: flex;
-`;
-
-const ErrorText = styled.div`
-  margin-left: 0.75rem;
-`;
-
-const ErrorTitle = styled.h3`
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #991b1b;
-  margin: 0;
-`;
-
-const ErrorMessage = styled.p`
-  font-size: 0.875rem;
-  color: #b91c1c;
-  margin: 0.25rem 0 0 0;
-`;
 
 interface ApplicationStatsProps {
   // No props needed - component handles its own data fetching
@@ -238,36 +73,36 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
 
   if (loading) {
     return (
-      <StatsContainer>
+      <div className={styles.statsContainer}>
         {[...Array(4)].map((_, i) => (
-          <LoadingCard key={i}>
-            <CardContent>
-              <CardHeader>
-                <IconContainer>
-                  <LoadingIconPlaceholder />
-                </IconContainer>
-                <CardBody>
-                  <LoadingTextPlaceholder width="4rem" />
-                  <LoadingValuePlaceholder width="3rem" />
-                </CardBody>
-              </CardHeader>
-            </CardContent>
-          </LoadingCard>
+          <div key={i} className={styles.loadingCard}>
+            <div className={styles.cardContent}>
+              <div className={styles.cardHeader}>
+                <div className={styles.iconContainer}>
+                  <div className={styles.loadingIconPlaceholder} />
+                </div>
+                <div className={styles.cardBody}>
+                  <div className={styles.loadingTextPlaceholder} style={{ width: '4rem' }} />
+                  <div className={styles.loadingValuePlaceholder} style={{ width: '3rem' }} />
+                </div>
+              </div>
+            </div>
+          </div>
         ))}
-      </StatsContainer>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <ErrorContainer>
-        <ErrorContent>
-          <ErrorText>
-            <ErrorTitle>Error loading stats</ErrorTitle>
-            <ErrorMessage>{error}</ErrorMessage>
-          </ErrorText>
-        </ErrorContent>
-      </ErrorContainer>
+      <div className={styles.errorContainer}>
+        <div className={styles.errorContent}>
+          <div className={styles.errorText}>
+            <h3 className={styles.errorTitle}>Error loading stats</h3>
+            <p className={styles.errorMessage}>{error}</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -313,26 +148,28 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
   ];
 
   return (
-    <StatsContainer>
+    <div className={styles.statsContainer}>
       {statCards.map(stat => (
-        <StatCard key={stat.name}>
-          <CardContent>
-            <CardHeader>
-              <IconContainer>
-                <Icon $color={stat.color}>{stat.icon}</Icon>
-              </IconContainer>
-              <CardBody>
-                <StatLabel>{stat.name}</StatLabel>
-                <StatValue>{stat.value}</StatValue>
+        <div key={stat.name} className={styles.statCard}>
+          <div className={styles.cardContent}>
+            <div className={styles.cardHeader}>
+              <div className={styles.iconContainer}>
+                <div className={styles.icon({ color: stat.color })}>{stat.icon}</div>
+              </div>
+              <div className={styles.cardBody}>
+                <div className={styles.statLabel}>{stat.name}</div>
+                <div className={styles.statValue}>{stat.value}</div>
                 {stat.change !== 0 && (
-                  <StatChange $trend={stat.trend}>→ No change from last month</StatChange>
+                  <div className={styles.statChange({ trend: stat.trend })}>
+                    → No change from last month
+                  </div>
                 )}
-              </CardBody>
-            </CardHeader>
-          </CardContent>
-        </StatCard>
+              </div>
+            </div>
+          </div>
+        </div>
       ))}
-    </StatsContainer>
+    </div>
   );
 };
 

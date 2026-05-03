@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import clsx from 'clsx';
 import { Button, Heading, Text, DateTime } from '@adopt-dont-shop/lib.components';
 import { Skeleton, SkeletonText } from '../ui/Skeleton';
 import {
@@ -23,378 +23,13 @@ import type {
   InviteStaffPayload,
 } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
+import * as styles from './RescueDetailModal.css';
 
 type RescueDetailModalProps = {
   rescueId: string;
   onClose: () => void;
   onUpdate?: () => void;
 };
-
-const Overlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-`;
-
-const ModalContainer = styled.div`
-  background: #ffffff;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-`;
-
-const HeaderContent = styled.div`
-  flex: 1;
-`;
-
-const CloseButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 8px;
-  background: #f3f4f6;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #e5e7eb;
-    color: #111827;
-  }
-`;
-
-const ModalBody = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-`;
-
-const TabContainer = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  border-bottom: 2px solid #e5e7eb;
-  margin-bottom: 1.5rem;
-`;
-
-const Tab = styled.button<{ $active: boolean }>`
-  padding: 0.75rem 1.25rem;
-  border: none;
-  background: none;
-  color: ${props => (props.$active ? props.theme.colors.primary[600] : '#6b7280')};
-  font-weight: ${props => (props.$active ? '600' : '500')};
-  font-size: 0.875rem;
-  cursor: pointer;
-  border-bottom: 2px solid
-    ${props => (props.$active ? props.theme.colors.primary[600] : 'transparent')};
-  margin-bottom: -2px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    color: ${props => props.theme.colors.primary[600]};
-  }
-`;
-
-const Section = styled.div`
-  margin-bottom: 2rem;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const SectionTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 1rem 0;
-`;
-
-const InfoGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.25rem;
-`;
-
-const InfoItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-`;
-
-const InfoLabel = styled.div`
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  svg {
-    font-size: 1rem;
-  }
-`;
-
-const InfoValue = styled.div`
-  font-size: 0.9375rem;
-  color: #111827;
-  word-break: break-word;
-`;
-
-const Badge = styled.span<{ $variant: 'success' | 'warning' | 'danger' }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  background: ${props => {
-    switch (props.$variant) {
-      case 'success':
-        return '#d1fae5';
-      case 'warning':
-        return '#fef3c7';
-      case 'danger':
-        return '#fee2e2';
-    }
-  }};
-  color: ${props => {
-    switch (props.$variant) {
-      case 'success':
-        return '#065f46';
-      case 'warning':
-        return '#92400e';
-      case 'danger':
-        return '#991b1b';
-    }
-  }};
-`;
-
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-`;
-
-const StatCard = styled.div`
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-  font-weight: 500;
-`;
-
-const StatValue = styled.div`
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #111827;
-`;
-
-const LoadingSpinner = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  color: #6b7280;
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 1rem;
-  color: #991b1b;
-  margin-bottom: 1rem;
-`;
-
-const StaffList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const StaffCard = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #ffffff;
-
-  &:hover {
-    background: #f9fafb;
-  }
-`;
-
-const StaffInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-`;
-
-const StaffName = styled.div`
-  font-weight: 600;
-  color: #111827;
-  font-size: 0.9375rem;
-`;
-
-const StaffEmail = styled.div`
-  font-size: 0.8125rem;
-  color: #6b7280;
-`;
-
-const StaffMeta = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  color: #9ca3af;
-`;
-
-const StaffActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const IconButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #f9fafb;
-    color: #111827;
-    border-color: #d1d5db;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const InviteForm = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1.25rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #f9fafb;
-  margin-bottom: 1.5rem;
-`;
-
-const FormRow = styled.div`
-  display: flex;
-  gap: 1rem;
-
-  @media (max-width: 640px) {
-    flex-direction: column;
-  }
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  flex: 1;
-`;
-
-const Label = styled.label`
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #374151;
-`;
-
-const Input = styled.input`
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: #111827;
-  background: #ffffff;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.theme.colors.primary[500]};
-    box-shadow: 0 0 0 3px ${props => props.theme.colors.primary[100]};
-  }
-`;
-
-const FormActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-`;
-
-const InvitationsList = styled.div`
-  margin-top: 2rem;
-`;
-
-const InvitationCard = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border: 1px solid #fef3c7;
-  border-radius: 8px;
-  background: #fffbeb;
-  margin-bottom: 0.75rem;
-`;
-
-const InvitationBadge = styled.span<{ $status: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: ${props => (props.$status === 'pending' ? '#fef3c7' : '#e5e7eb')};
-  color: ${props => (props.$status === 'pending' ? '#92400e' : '#374151')};
-`;
 
 export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   rescueId,
@@ -554,11 +189,11 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'verified':
-        return <Badge $variant='success'>Verified</Badge>;
+        return <span className={styles.badgeSuccess}>Verified</span>;
       case 'pending':
-        return <Badge $variant='warning'>Pending</Badge>;
+        return <span className={styles.badgeWarning}>Pending</span>;
       default:
-        return <Badge $variant='danger'>{status}</Badge>;
+        return <span className={styles.badgeDanger}>{status}</span>;
     }
   };
 
@@ -569,41 +204,61 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   };
 
   return (
-    <Overlay onClick={handleOverlayClick}>
-      <ModalContainer>
-        <ModalHeader>
-          <HeaderContent>
+    <div
+      className={styles.overlay}
+      onClick={handleOverlayClick}
+      onKeyDown={e => e.key === 'Escape' && onClose()}
+      role='presentation'
+    >
+      <div className={styles.modalContainer}>
+        <div className={styles.modalHeader}>
+          <div className={styles.headerContent}>
             <Heading level='h2'>{rescue?.name || 'Rescue Details'}</Heading>
             {rescue && (
               <Text style={{ marginTop: '0.5rem' }}>
                 {getStatusBadge(rescue.status)} • Registered {formatDate(rescue.createdAt)}
               </Text>
             )}
-          </HeaderContent>
-          <CloseButton onClick={onClose}>
+          </div>
+          <button className={styles.closeButton} onClick={onClose}>
             <FiX size={20} />
-          </CloseButton>
-        </ModalHeader>
+          </button>
+        </div>
 
-        <TabContainer>
-          <Tab $active={activeTab === 'overview'} onClick={() => setActiveTab('overview')}>
+        <div className={styles.tabContainer}>
+          <button
+            className={clsx(styles.tab, activeTab === 'overview' && styles.tabActive)}
+            onClick={() => setActiveTab('overview')}
+          >
             Overview
-          </Tab>
-          <Tab $active={activeTab === 'contact'} onClick={() => setActiveTab('contact')}>
+          </button>
+          <button
+            className={clsx(styles.tab, activeTab === 'contact' && styles.tabActive)}
+            onClick={() => setActiveTab('contact')}
+          >
             Contact Info
-          </Tab>
-          <Tab $active={activeTab === 'policies'} onClick={() => setActiveTab('policies')}>
+          </button>
+          <button
+            className={clsx(styles.tab, activeTab === 'policies' && styles.tabActive)}
+            onClick={() => setActiveTab('policies')}
+          >
             Policies
-          </Tab>
-          <Tab $active={activeTab === 'staff'} onClick={() => setActiveTab('staff')}>
+          </button>
+          <button
+            className={clsx(styles.tab, activeTab === 'staff' && styles.tabActive)}
+            onClick={() => setActiveTab('staff')}
+          >
             Staff
-          </Tab>
-          <Tab $active={activeTab === 'listings'} onClick={() => setActiveTab('listings')}>
+          </button>
+          <button
+            className={clsx(styles.tab, activeTab === 'listings' && styles.tabActive)}
+            onClick={() => setActiveTab('listings')}
+          >
             Listings
-          </Tab>
-        </TabContainer>
+          </button>
+        </div>
 
-        <ModalBody>
+        <div className={styles.modalBody}>
           {loading && (
             <div
               aria-label='Loading rescue details'
@@ -621,95 +276,95 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
             </div>
           )}
 
-          {error && <ErrorMessage>{error}</ErrorMessage>}
+          {error && <div className={styles.errorMessage}>{error}</div>}
 
           {!loading && rescue && (
             <>
               {activeTab === 'overview' && (
                 <>
-                  <Section>
-                    <SectionTitle>Organization Information</SectionTitle>
-                    <InfoGrid>
-                      <InfoItem>
-                        <InfoLabel>Organization Name</InfoLabel>
-                        <InfoValue>{rescue.name}</InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>Status</InfoLabel>
-                        <InfoValue>{getStatusBadge(rescue.status)}</InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>Registration Number</InfoLabel>
-                        <InfoValue>{rescue.registrationNumber || 'N/A'}</InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>EIN</InfoLabel>
-                        <InfoValue>{rescue.ein || 'N/A'}</InfoValue>
-                      </InfoItem>
-                    </InfoGrid>
-                  </Section>
+                  <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>Organization Information</h3>
+                    <div className={styles.infoGrid}>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>Organization Name</div>
+                        <div className={styles.infoValue}>{rescue.name}</div>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>Status</div>
+                        <div className={styles.infoValue}>{getStatusBadge(rescue.status)}</div>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>Registration Number</div>
+                        <div className={styles.infoValue}>{rescue.registrationNumber || 'N/A'}</div>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>EIN</div>
+                        <div className={styles.infoValue}>{rescue.ein || 'N/A'}</div>
+                      </div>
+                    </div>
+                  </div>
 
-                  <Section>
-                    <SectionTitle>Location</SectionTitle>
-                    <InfoGrid>
-                      <InfoItem>
-                        <InfoLabel>
+                  <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>Location</h3>
+                    <div className={styles.infoGrid}>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>
                           <FiMapPin /> Address
-                        </InfoLabel>
-                        <InfoValue>{rescue.address}</InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>City</InfoLabel>
-                        <InfoValue>{rescue.city}</InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>State/County</InfoLabel>
-                        <InfoValue>{rescue.state}</InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>Postal Code</InfoLabel>
-                        <InfoValue>{rescue.zipCode}</InfoValue>
-                      </InfoItem>
-                    </InfoGrid>
-                  </Section>
+                        </div>
+                        <div className={styles.infoValue}>{rescue.address}</div>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>City</div>
+                        <div className={styles.infoValue}>{rescue.city}</div>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>State/County</div>
+                        <div className={styles.infoValue}>{rescue.state}</div>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>Postal Code</div>
+                        <div className={styles.infoValue}>{rescue.zipCode}</div>
+                      </div>
+                    </div>
+                  </div>
 
                   {rescue.description && (
-                    <Section>
-                      <SectionTitle>Description</SectionTitle>
-                      <InfoValue>{rescue.description}</InfoValue>
-                    </Section>
+                    <div className={styles.section}>
+                      <h3 className={styles.sectionTitle}>Description</h3>
+                      <div className={styles.infoValue}>{rescue.description}</div>
+                    </div>
                   )}
 
                   {rescue.mission && (
-                    <Section>
-                      <SectionTitle>Mission</SectionTitle>
-                      <InfoValue>{rescue.mission}</InfoValue>
-                    </Section>
+                    <div className={styles.section}>
+                      <h3 className={styles.sectionTitle}>Mission</h3>
+                      <div className={styles.infoValue}>{rescue.mission}</div>
+                    </div>
                   )}
                 </>
               )}
 
               {activeTab === 'contact' && (
-                <Section>
-                  <SectionTitle>Contact Details</SectionTitle>
-                  <InfoGrid>
-                    <InfoItem>
-                      <InfoLabel>
+                <div className={styles.section}>
+                  <h3 className={styles.sectionTitle}>Contact Details</h3>
+                  <div className={styles.infoGrid}>
+                    <div className={styles.infoItem}>
+                      <div className={styles.infoLabel}>
                         <FiMail /> Email
-                      </InfoLabel>
-                      <InfoValue>{rescue.email}</InfoValue>
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>
+                      </div>
+                      <div className={styles.infoValue}>{rescue.email}</div>
+                    </div>
+                    <div className={styles.infoItem}>
+                      <div className={styles.infoLabel}>
                         <FiPhone /> Phone
-                      </InfoLabel>
-                      <InfoValue>{rescue.phone || 'N/A'}</InfoValue>
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>
+                      </div>
+                      <div className={styles.infoValue}>{rescue.phone || 'N/A'}</div>
+                    </div>
+                    <div className={styles.infoItem}>
+                      <div className={styles.infoLabel}>
                         <FiGlobe /> Website
-                      </InfoLabel>
-                      <InfoValue>
+                      </div>
+                      <div className={styles.infoValue}>
                         {rescue.website ? (
                           <a href={rescue.website} target='_blank' rel='noopener noreferrer'>
                             {rescue.website}
@@ -717,55 +372,57 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                         ) : (
                           'N/A'
                         )}
-                      </InfoValue>
-                    </InfoItem>
-                    <InfoItem>
-                      <InfoLabel>Contact Person</InfoLabel>
-                      <InfoValue>{rescue.contactPerson || 'N/A'}</InfoValue>
-                    </InfoItem>
-                  </InfoGrid>
-                </Section>
+                      </div>
+                    </div>
+                    <div className={styles.infoItem}>
+                      <div className={styles.infoLabel}>Contact Person</div>
+                      <div className={styles.infoValue}>{rescue.contactPerson || 'N/A'}</div>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {activeTab === 'policies' && (
-                <Section>
-                  <SectionTitle>Adoption Policies</SectionTitle>
+                <div className={styles.section}>
+                  <h3 className={styles.sectionTitle}>Adoption Policies</h3>
                   {rescue.adoptionPolicies ? (
-                    <InfoGrid>
-                      <InfoItem>
-                        <InfoLabel>Home Visit Required</InfoLabel>
-                        <InfoValue>
+                    <div className={styles.infoGrid}>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>Home Visit Required</div>
+                        <div className={styles.infoValue}>
                           {rescue.adoptionPolicies.requireHomeVisit ? 'Yes' : 'No'}
-                        </InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>References Required</InfoLabel>
-                        <InfoValue>
+                        </div>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>References Required</div>
+                        <div className={styles.infoValue}>
                           {rescue.adoptionPolicies.requireReferences ? 'Yes' : 'No'}
-                        </InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>Minimum References</InfoLabel>
-                        <InfoValue>{rescue.adoptionPolicies.minimumReferenceCount}</InfoValue>
-                      </InfoItem>
-                      <InfoItem>
-                        <InfoLabel>Adoption Fee Range</InfoLabel>
-                        <InfoValue>
+                        </div>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>Minimum References</div>
+                        <div className={styles.infoValue}>
+                          {rescue.adoptionPolicies.minimumReferenceCount}
+                        </div>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>Adoption Fee Range</div>
+                        <div className={styles.infoValue}>
                           £{rescue.adoptionPolicies.adoptionFeeRange.min} - £
                           {rescue.adoptionPolicies.adoptionFeeRange.max}
-                        </InfoValue>
-                      </InfoItem>
-                    </InfoGrid>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
-                    <InfoValue>No adoption policies configured</InfoValue>
+                    <div className={styles.infoValue}>No adoption policies configured</div>
                   )}
-                </Section>
+                </div>
               )}
 
               {activeTab === 'staff' && (
                 <>
-                  <Section>
-                    <SectionTitle>
+                  <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>
                       <div
                         style={{
                           display: 'flex',
@@ -783,19 +440,22 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                           Invite Staff
                         </Button>
                       </div>
-                    </SectionTitle>
+                    </h3>
 
-                    {staffError && <ErrorMessage>{staffError}</ErrorMessage>}
+                    {staffError && <div className={styles.errorMessage}>{staffError}</div>}
 
                     {showInviteForm && (
-                      <InviteForm>
+                      <div className={styles.inviteForm}>
                         <h4 style={{ margin: 0, fontSize: '0.9375rem', color: '#111827' }}>
                           Invite New Staff Member
                         </h4>
-                        <FormRow>
-                          <FormGroup>
-                            <Label htmlFor='invite-email'>Email Address *</Label>
-                            <Input
+                        <div className={styles.formRow}>
+                          <div className={styles.formGroup}>
+                            <label className={styles.label} htmlFor='invite-email'>
+                              Email Address *
+                            </label>
+                            <input
+                              className={styles.input}
                               id='invite-email'
                               type='email'
                               placeholder='staffmember@example.com'
@@ -803,10 +463,13 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                               onChange={e => setInviteEmail(e.target.value)}
                               disabled={loadingStaff}
                             />
-                          </FormGroup>
-                          <FormGroup>
-                            <Label htmlFor='invite-title'>Job Title (Optional)</Label>
-                            <Input
+                          </div>
+                          <div className={styles.formGroup}>
+                            <label className={styles.label} htmlFor='invite-title'>
+                              Job Title (Optional)
+                            </label>
+                            <input
+                              className={styles.input}
                               id='invite-title'
                               type='text'
                               placeholder='e.g., Veterinarian, Coordinator'
@@ -814,9 +477,9 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                               onChange={e => setInviteTitle(e.target.value)}
                               disabled={loadingStaff}
                             />
-                          </FormGroup>
-                        </FormRow>
-                        <FormActions>
+                          </div>
+                        </div>
+                        <div className={styles.formActions}>
                           <Button
                             variant='outline'
                             size='sm'
@@ -838,8 +501,8 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                           >
                             Send Invitation
                           </Button>
-                        </FormActions>
-                      </InviteForm>
+                        </div>
+                      </div>
                     )}
 
                     {loadingStaff && (
@@ -874,15 +537,17 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                     {!loadingStaff &&
                       (staff?.length || 0) === 0 &&
                       (invitations?.length || 0) === 0 && (
-                        <InfoValue>No staff members yet. Invite your first team member!</InfoValue>
+                        <div className={styles.infoValue}>
+                          No staff members yet. Invite your first team member!
+                        </div>
                       )}
 
                     {!loadingStaff && (staff?.length || 0) > 0 && (
-                      <StaffList>
+                      <div className={styles.staffList}>
                         {staff?.map(member => (
-                          <StaffCard key={member.staffMemberId}>
-                            <StaffInfo>
-                              <StaffName>
+                          <div className={styles.staffCard} key={member.staffMemberId}>
+                            <div className={styles.staffInfo}>
+                              <div className={styles.staffName}>
                                 {member.firstName} {member.lastName}
                                 {member.isVerified && (
                                   <FiCheck
@@ -894,77 +559,85 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                                     size={16}
                                   />
                                 )}
-                              </StaffName>
-                              <StaffEmail>{member.email}</StaffEmail>
-                              <StaffMeta>
+                              </div>
+                              <div className={styles.staffEmail}>{member.email}</div>
+                              <div className={styles.staffMeta}>
                                 {member.title && <span>{member.title} •</span>}
                                 <span>Added {<DateTime timestamp={member.addedAt} />}</span>
-                              </StaffMeta>
-                            </StaffInfo>
-                            <StaffActions>
-                              <IconButton
+                              </div>
+                            </div>
+                            <div className={styles.staffActions}>
+                              <button
+                                className={styles.iconButton}
                                 title='Remove staff member'
                                 onClick={() => handleRemoveStaff(member.userId)}
                                 disabled={loadingStaff}
                               >
                                 <FiUserMinus color='#ef4444' />
-                              </IconButton>
-                            </StaffActions>
-                          </StaffCard>
+                              </button>
+                            </div>
+                          </div>
                         ))}
-                      </StaffList>
+                      </div>
                     )}
-                  </Section>
+                  </div>
 
                   {(invitations?.length || 0) > 0 && (
-                    <InvitationsList>
-                      <Section>
-                        <SectionTitle>
+                    <div className={styles.invitationsList}>
+                      <div className={styles.section}>
+                        <h3 className={styles.sectionTitle}>
                           Pending Invitations ({invitations?.length || 0})
-                        </SectionTitle>
+                        </h3>
                         {invitations?.map(invitation => (
-                          <InvitationCard key={invitation.invitationId}>
-                            <StaffInfo>
-                              <StaffName>{invitation.email}</StaffName>
-                              <StaffMeta>
+                          <div className={styles.invitationCard} key={invitation.invitationId}>
+                            <div className={styles.staffInfo}>
+                              <div className={styles.staffName}>{invitation.email}</div>
+                              <div className={styles.staffMeta}>
                                 {invitation.title && <span>{invitation.title} •</span>}
                                 <span>Invited {<DateTime timestamp={invitation.createdAt} />}</span>
                                 <span>
                                   • Expires {<DateTime timestamp={invitation.expiresAt} />}
                                 </span>
-                              </StaffMeta>
-                            </StaffInfo>
+                              </div>
+                            </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <InvitationBadge $status={invitation.status}>
+                              <span
+                                className={
+                                  invitation.status === 'pending'
+                                    ? styles.invitationBadgePending
+                                    : styles.invitationBadgeDefault
+                                }
+                              >
                                 <FiClock size={12} />
                                 {invitation.status}
-                              </InvitationBadge>
-                              <IconButton
+                              </span>
+                              <button
+                                className={styles.iconButton}
                                 title='Cancel invitation'
                                 onClick={() => handleCancelInvitation(invitation.invitationId)}
                                 disabled={loadingStaff}
                               >
                                 <FiX color='#ef4444' />
-                              </IconButton>
+                              </button>
                             </div>
-                          </InvitationCard>
+                          </div>
                         ))}
-                      </Section>
-                    </InvitationsList>
+                      </div>
+                    </div>
                   )}
                 </>
               )}
 
               {activeTab === 'listings' && (
-                <Section>
-                  <SectionTitle>Pet Listings</SectionTitle>
-                  <InfoValue>Listings management coming soon...</InfoValue>
-                </Section>
+                <div className={styles.section}>
+                  <h3 className={styles.sectionTitle}>Pet Listings</h3>
+                  <div className={styles.infoValue}>Listings management coming soon...</div>
+                </div>
               )}
             </>
           )}
-        </ModalBody>
-      </ModalContainer>
-    </Overlay>
+        </div>
+      </div>
+    </div>
   );
 };

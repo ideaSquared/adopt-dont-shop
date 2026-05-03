@@ -1,7 +1,7 @@
 import React from 'react';
-import styled from 'styled-components';
 import { StaffMember } from '../../types/staff';
 import StatusBadge from '../common/StatusBadge';
+import * as styles from './StaffCard.css';
 
 interface StaffCardProps {
   staffMember: StaffMember;
@@ -10,140 +10,6 @@ interface StaffCardProps {
   canEdit?: boolean;
   canRemove?: boolean;
 }
-
-const CardContainer = styled.div`
-  background: #f8fafc;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  padding: 1.5rem;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #1976d2;
-    box-shadow: 0 4px 16px rgba(25, 118, 210, 0.1);
-  }
-`;
-
-const CardHeader = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 1rem;
-`;
-
-const StaffAvatar = styled.div`
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1.125rem;
-  flex-shrink: 0;
-`;
-
-const StaffInfo = styled.div`
-  flex: 1;
-`;
-
-const StaffName = styled.h3`
-  margin: 0 0 0.25rem 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #333;
-`;
-
-const StaffTitle = styled.p`
-  margin: 0 0 0.25rem 0;
-  color: #666;
-  font-weight: 500;
-`;
-
-const StaffEmail = styled.p`
-  margin: 0;
-  color: #888;
-  font-size: 0.875rem;
-`;
-
-const StaffStatus = styled.div`
-  flex-shrink: 0;
-`;
-
-const CardBody = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const StaffDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const DetailItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.875rem;
-`;
-
-const DetailLabel = styled.span`
-  color: #666;
-  font-weight: 500;
-`;
-
-const DetailValue = styled.span`
-  color: #333;
-  font-family: monospace;
-`;
-
-const CardActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
-`;
-
-const ActionButton = styled.button<{ variant: 'edit' | 'danger' }>`
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  ${props =>
-    props.variant === 'edit' &&
-    `
-    background: #f8f9fa;
-    color: #495057;
-    border: 1px solid #dee2e6;
-
-    &:hover {
-      background: #e9ecef;
-      color: #212529;
-    }
-  `}
-
-  ${props =>
-    props.variant === 'danger' &&
-    `
-    background: #dc3545;
-    color: white;
-
-    &:hover {
-      background: #c82333;
-    }
-  `}
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
 
 const StaffCard: React.FC<StaffCardProps> = ({
   staffMember,
@@ -169,49 +35,57 @@ const StaffCard: React.FC<StaffCardProps> = ({
   };
 
   return (
-    <CardContainer>
-      <CardHeader>
-        <StaffAvatar>{getInitials(staffMember.firstName, staffMember.lastName)}</StaffAvatar>
-        <StaffInfo>
-          <StaffName>
+    <div className={styles.cardContainer}>
+      <div className={styles.cardHeader}>
+        <div className={styles.staffAvatar}>
+          {getInitials(staffMember.firstName, staffMember.lastName)}
+        </div>
+        <div className={styles.staffInfo}>
+          <h3 className={styles.staffName}>
             {staffMember.firstName} {staffMember.lastName}
-          </StaffName>
-          <StaffTitle>{staffMember.title}</StaffTitle>
-          <StaffEmail>{staffMember.email}</StaffEmail>
-        </StaffInfo>
-        <StaffStatus>
+          </h3>
+          <p className={styles.staffTitle}>{staffMember.title}</p>
+          <p className={styles.staffEmail}>{staffMember.email}</p>
+        </div>
+        <div className={styles.staffStatus}>
           <StatusBadge status={staffMember.isVerified ? 'verified' : 'pending'} />
-        </StaffStatus>
-      </CardHeader>
+        </div>
+      </div>
 
-      <CardBody>
-        <StaffDetails>
-          <DetailItem>
-            <DetailLabel>Added:</DetailLabel>
-            <DetailValue>{formatDate(staffMember.addedAt)}</DetailValue>
-          </DetailItem>
-          <DetailItem>
-            <DetailLabel>User ID:</DetailLabel>
-            <DetailValue>{staffMember.userId}</DetailValue>
-          </DetailItem>
-        </StaffDetails>
-      </CardBody>
+      <div className={styles.cardBody}>
+        <div className={styles.staffDetails}>
+          <div className={styles.detailItem}>
+            <span className={styles.detailLabel}>Added:</span>
+            <span className={styles.detailValue}>{formatDate(staffMember.addedAt)}</span>
+          </div>
+          <div className={styles.detailItem}>
+            <span className={styles.detailLabel}>User ID:</span>
+            <span className={styles.detailValue}>{staffMember.userId}</span>
+          </div>
+        </div>
+      </div>
 
       {(canEdit || canRemove) && (
-        <CardActions>
+        <div className={styles.cardActions}>
           {canEdit && (
-            <ActionButton variant="edit" onClick={() => onEdit?.(staffMember)}>
+            <button
+              className={styles.actionButton({ variant: 'edit' })}
+              onClick={() => onEdit?.(staffMember)}
+            >
               Edit
-            </ActionButton>
+            </button>
           )}
           {canRemove && (
-            <ActionButton variant="danger" onClick={() => onRemove?.(staffMember)}>
+            <button
+              className={styles.actionButton({ variant: 'danger' })}
+              onClick={() => onRemove?.(staffMember)}
+            >
               Remove
-            </ActionButton>
+            </button>
           )}
-        </CardActions>
+        </div>
       )}
-    </CardContainer>
+    </div>
   );
 };
 
