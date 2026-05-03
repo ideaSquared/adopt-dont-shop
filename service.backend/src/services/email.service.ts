@@ -549,7 +549,9 @@ class EmailService {
   private processTemplateString(template: string, data: JsonObject): string {
     return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
       const value = this.getNestedProperty(data, key.trim());
-      if (value === undefined) return match;
+      if (value === undefined) {
+        return match;
+      }
       return String(value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')

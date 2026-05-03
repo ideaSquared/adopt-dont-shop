@@ -48,8 +48,12 @@ export function parsePaginationLimit(
  * Always returns an integer >= 1.
  */
 export function parsePage(pageString: string | undefined, defaultPage = 1): number {
-  if (!pageString) return defaultPage;
+  if (!pageString) {
+    return defaultPage;
+  }
   const parsed = parseInt(pageString, 10);
-  if (isNaN(parsed) || parsed < 1) return 1;
+  if (isNaN(parsed) || parsed < 1) {
+    return 1;
+  }
   return parsed;
 }

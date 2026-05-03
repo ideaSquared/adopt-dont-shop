@@ -25,7 +25,9 @@ function isRateLimited(socketId: string, event: string, limit: number, windowMs:
   const now = Date.now();
   const cutoff = now - windowMs;
   const timestamps = (events.get(event) ?? []).filter(t => t > cutoff);
-  if (timestamps.length >= limit) return true;
+  if (timestamps.length >= limit) {
+    return true;
+  }
   timestamps.push(now);
   events.set(event, timestamps);
   return false;
@@ -519,9 +521,13 @@ export class SocketHandlers {
     // User started typing
     socket.on('typing_start', async (data: unknown) => {
       try {
-        if (isRateLimited(socket.id, 'typing_start', 60, 60_000)) return;
+        if (isRateLimited(socket.id, 'typing_start', 60, 60_000)) {
+          return;
+        }
         const parsed = TypingStartSchema.safeParse(data);
-        if (!parsed.success) return;
+        if (!parsed.success) {
+          return;
+        }
         const { chatId, firstName, lastName } = parsed.data;
 
         await this.requireChatAccess(socket, chatId);
@@ -549,7 +555,9 @@ export class SocketHandlers {
     socket.on('typing_stop', async (data: unknown) => {
       try {
         const parsed = TypingStopSchema.safeParse(data);
-        if (!parsed.success) return;
+        if (!parsed.success) {
+          return;
+        }
         const { chatId } = parsed.data;
 
         // Verify user has access to chat before clearing typing indicator
