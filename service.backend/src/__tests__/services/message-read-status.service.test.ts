@@ -41,7 +41,10 @@ vi.mock('../../utils/logger', () => ({
 // separate sequelize mock is needed.
 import sequelize from '../../sequelize';
 import { Chat, ChatParticipant, Message } from '../../models';
-import { MessageReadStatusService, MessageReadStatus } from '../../services/message-read-status.service';
+import {
+  MessageReadStatusService,
+  MessageReadStatus,
+} from '../../services/message-read-status.service';
 import { AuditLogService } from '../../services/auditLog.service';
 
 // Shorthand typed mocks
@@ -78,9 +81,11 @@ describe('MessageReadStatusService', () => {
       commit: vi.fn().mockResolvedValue(undefined),
       rollback: vi.fn().mockResolvedValue(undefined),
     };
-    transactionSpy = vi.spyOn(sequelize, 'transaction').mockResolvedValue(
-      freshTransaction as unknown as Awaited<ReturnType<typeof sequelize.transaction>>
-    );
+    transactionSpy = vi
+      .spyOn(sequelize, 'transaction')
+      .mockResolvedValue(
+        freshTransaction as unknown as Awaited<ReturnType<typeof sequelize.transaction>>
+      );
   });
 
   // --------------------------------------------------------------------------
@@ -109,9 +114,9 @@ describe('MessageReadStatusService', () => {
         });
         MockedChatParticipant.findOne.mockResolvedValue(null);
 
-        await expect(
-          MessageReadStatusService.markMessageAsRead('msg-1', 'user-1')
-        ).rejects.toThrow('User is not a participant in this chat');
+        await expect(MessageReadStatusService.markMessageAsRead('msg-1', 'user-1')).rejects.toThrow(
+          'User is not a participant in this chat'
+        );
       });
     });
 
@@ -122,10 +127,12 @@ describe('MessageReadStatusService', () => {
         MockedChatParticipant.findOne.mockResolvedValue({ participant_id: 'user-1' });
 
         // MessageReadStatus.findOrCreate → [record, true (created)]
-        const findOrCreateSpy = vi.spyOn(MessageReadStatus, 'findOrCreate').mockResolvedValue([
-          { message_id: 'msg-1', user_id: 'user-1', read_at: new Date() } as MessageReadStatus,
-          true,
-        ]);
+        const findOrCreateSpy = vi
+          .spyOn(MessageReadStatus, 'findOrCreate')
+          .mockResolvedValue([
+            { message_id: 'msg-1', user_id: 'user-1', read_at: new Date() } as MessageReadStatus,
+            true,
+          ]);
 
         // getUnreadCount uses Message.findAll
         MockedMessage.findAll.mockResolvedValue([]);
@@ -145,10 +152,12 @@ describe('MessageReadStatusService', () => {
         MockedMessage.findByPk.mockResolvedValue(mockMessage);
         MockedChatParticipant.findOne.mockResolvedValue({ participant_id: 'user-1' });
 
-        const findOrCreateSpy = vi.spyOn(MessageReadStatus, 'findOrCreate').mockResolvedValue([
-          { message_id: 'msg-1', user_id: 'user-1', read_at: new Date() } as MessageReadStatus,
-          true,
-        ]);
+        const findOrCreateSpy = vi
+          .spyOn(MessageReadStatus, 'findOrCreate')
+          .mockResolvedValue([
+            { message_id: 'msg-1', user_id: 'user-1', read_at: new Date() } as MessageReadStatus,
+            true,
+          ]);
         MockedMessage.findAll.mockResolvedValue([]);
 
         await MessageReadStatusService.markMessageAsRead('msg-1', 'user-1');
@@ -202,9 +211,9 @@ describe('MessageReadStatusService', () => {
       it('rolls back the transaction when an unexpected error occurs', async () => {
         MockedMessage.findByPk.mockRejectedValue(new Error('DB failure'));
 
-        await expect(
-          MessageReadStatusService.markMessageAsRead('msg-1', 'user-1')
-        ).rejects.toThrow('DB failure');
+        await expect(MessageReadStatusService.markMessageAsRead('msg-1', 'user-1')).rejects.toThrow(
+          'DB failure'
+        );
 
         const t = await getMockTransaction();
         expect(t?.rollback).toHaveBeenCalled();
@@ -237,9 +246,7 @@ describe('MessageReadStatusService', () => {
         ];
         MockedMessage.findAll.mockResolvedValue(unreadMessages);
 
-        const bulkCreateSpy = vi
-          .spyOn(MessageReadStatus, 'bulkCreate')
-          .mockResolvedValue([]);
+        const bulkCreateSpy = vi.spyOn(MessageReadStatus, 'bulkCreate').mockResolvedValue([]);
 
         const result = await MessageReadStatusService.markAllMessagesAsRead('chat-1', 'user-1');
 
@@ -256,9 +263,7 @@ describe('MessageReadStatusService', () => {
           { message_id: 'msg-1', sender_id: 'other', read_status: [] },
         ]);
 
-        const bulkCreateSpy = vi
-          .spyOn(MessageReadStatus, 'bulkCreate')
-          .mockResolvedValue([]);
+        const bulkCreateSpy = vi.spyOn(MessageReadStatus, 'bulkCreate').mockResolvedValue([]);
 
         const result = await MessageReadStatusService.markAllMessagesAsRead('chat-1', 'user-1');
 
@@ -278,9 +283,7 @@ describe('MessageReadStatusService', () => {
           },
         ]);
 
-        const bulkCreateSpy = vi
-          .spyOn(MessageReadStatus, 'bulkCreate')
-          .mockResolvedValue([]);
+        const bulkCreateSpy = vi.spyOn(MessageReadStatus, 'bulkCreate').mockResolvedValue([]);
 
         const result = await MessageReadStatusService.markAllMessagesAsRead('chat-1', 'user-1');
 
@@ -296,17 +299,13 @@ describe('MessageReadStatusService', () => {
 
         // First call: one unread message
         MockedMessage.findAll
-          .mockResolvedValueOnce([
-            { message_id: 'msg-1', sender_id: 'other', read_status: [] },
-          ])
+          .mockResolvedValueOnce([{ message_id: 'msg-1', sender_id: 'other', read_status: [] }])
           // Second call: same message now shows as read
           .mockResolvedValueOnce([
             { message_id: 'msg-1', sender_id: 'other', read_status: [{ user_id: 'user-1' }] },
           ]);
 
-        const bulkCreateSpy = vi
-          .spyOn(MessageReadStatus, 'bulkCreate')
-          .mockResolvedValue([]);
+        const bulkCreateSpy = vi.spyOn(MessageReadStatus, 'bulkCreate').mockResolvedValue([]);
 
         const first = await MessageReadStatusService.markAllMessagesAsRead('chat-1', 'user-1');
         const second = await MessageReadStatusService.markAllMessagesAsRead('chat-1', 'user-1');
@@ -364,15 +363,30 @@ describe('MessageReadStatusService', () => {
   // --------------------------------------------------------------------------
   describe('getUnreadMessagesForUser', () => {
     it('returns an entry per chat with the correct unread count', async () => {
-      MockedChat.findAll.mockResolvedValue([
-        { chat_id: 'chat-1' },
-        { chat_id: 'chat-2' },
-      ]);
+      MockedChat.findAll.mockResolvedValue([{ chat_id: 'chat-1' }, { chat_id: 'chat-2' }]);
 
       MockedMessage.findAll.mockResolvedValue([
-        { message_id: 'msg-1', chat_id: 'chat-1', sender_id: 'other', read_status: [], created_at: new Date() },
-        { message_id: 'msg-2', chat_id: 'chat-1', sender_id: 'other', read_status: [], created_at: new Date() },
-        { message_id: 'msg-3', chat_id: 'chat-2', sender_id: 'other', read_status: [], created_at: new Date() },
+        {
+          message_id: 'msg-1',
+          chat_id: 'chat-1',
+          sender_id: 'other',
+          read_status: [],
+          created_at: new Date(),
+        },
+        {
+          message_id: 'msg-2',
+          chat_id: 'chat-1',
+          sender_id: 'other',
+          read_status: [],
+          created_at: new Date(),
+        },
+        {
+          message_id: 'msg-3',
+          chat_id: 'chat-2',
+          sender_id: 'other',
+          read_status: [],
+          created_at: new Date(),
+        },
       ]);
 
       const results = await MessageReadStatusService.getUnreadMessagesForUser('user-1');
@@ -417,13 +431,11 @@ describe('MessageReadStatusService', () => {
   // --------------------------------------------------------------------------
   describe('isMessageRead', () => {
     it('returns true after the message has been marked as read', async () => {
-      const findOneSpy = vi
-        .spyOn(MessageReadStatus, 'findOne')
-        .mockResolvedValue({
-          message_id: 'msg-1',
-          user_id: 'user-1',
-          read_at: new Date(),
-        } as MessageReadStatus);
+      const findOneSpy = vi.spyOn(MessageReadStatus, 'findOne').mockResolvedValue({
+        message_id: 'msg-1',
+        user_id: 'user-1',
+        read_at: new Date(),
+      } as MessageReadStatus);
 
       const result = await MessageReadStatusService.isMessageRead('msg-1', 'user-1');
 
@@ -433,9 +445,7 @@ describe('MessageReadStatusService', () => {
     });
 
     it('returns false when no read record exists for the message', async () => {
-      const findOneSpy = vi
-        .spyOn(MessageReadStatus, 'findOne')
-        .mockResolvedValue(null);
+      const findOneSpy = vi.spyOn(MessageReadStatus, 'findOne').mockResolvedValue(null);
 
       const result = await MessageReadStatusService.isMessageRead('msg-1', 'user-1');
 
@@ -459,9 +469,7 @@ describe('MessageReadStatusService', () => {
 
       const findAllSpy = vi
         .spyOn(MessageReadStatus, 'findAll')
-        .mockResolvedValue([
-          { message_id: 'msg-3', read_at: new Date() } as MessageReadStatus,
-        ]);
+        .mockResolvedValue([{ message_id: 'msg-3', read_at: new Date() } as MessageReadStatus]);
 
       const stats = await MessageReadStatusService.getChatReadStatistics('chat-1', 'user-1');
 
@@ -478,9 +486,7 @@ describe('MessageReadStatusService', () => {
         { message_id: 'msg-2', sender_id: 'other', read_status: [] },
       ]);
 
-      const findAllSpy = vi
-        .spyOn(MessageReadStatus, 'findAll')
-        .mockResolvedValue([]);
+      const findAllSpy = vi.spyOn(MessageReadStatus, 'findAll').mockResolvedValue([]);
 
       const stats = await MessageReadStatusService.getChatReadStatistics('chat-1', 'user-1');
 
@@ -499,9 +505,7 @@ describe('MessageReadStatusService', () => {
       const lastReadDate = new Date();
       const findAllSpy = vi
         .spyOn(MessageReadStatus, 'findAll')
-        .mockResolvedValue([
-          { message_id: 'msg-2', read_at: lastReadDate } as MessageReadStatus,
-        ]);
+        .mockResolvedValue([{ message_id: 'msg-2', read_at: lastReadDate } as MessageReadStatus]);
 
       const stats = await MessageReadStatusService.getChatReadStatistics('chat-1', 'user-1');
 
@@ -515,9 +519,7 @@ describe('MessageReadStatusService', () => {
     it('returns 0% and no last_read_message_id for a chat with no messages', async () => {
       MockedMessage.findAll.mockResolvedValue([]);
 
-      const findAllSpy = vi
-        .spyOn(MessageReadStatus, 'findAll')
-        .mockResolvedValue([]);
+      const findAllSpy = vi.spyOn(MessageReadStatus, 'findAll').mockResolvedValue([]);
 
       const stats = await MessageReadStatusService.getChatReadStatistics('chat-1', 'user-1');
 
@@ -535,9 +537,7 @@ describe('MessageReadStatusService', () => {
   // --------------------------------------------------------------------------
   describe('cleanupOldReadStatus', () => {
     it('deletes read-status records older than the cutoff date', async () => {
-      const destroySpy = vi
-        .spyOn(MessageReadStatus, 'destroy')
-        .mockResolvedValue(5);
+      const destroySpy = vi.spyOn(MessageReadStatus, 'destroy').mockResolvedValue(5);
 
       const deleted = await MessageReadStatusService.cleanupOldReadStatus(90);
 
@@ -548,9 +548,7 @@ describe('MessageReadStatusService', () => {
     });
 
     it('leaves newer records untouched — destroy is called with a cutoff based on olderThanDays', async () => {
-      const destroySpy = vi
-        .spyOn(MessageReadStatus, 'destroy')
-        .mockResolvedValue(0);
+      const destroySpy = vi.spyOn(MessageReadStatus, 'destroy').mockResolvedValue(0);
 
       await MessageReadStatusService.cleanupOldReadStatus(30);
 
@@ -564,9 +562,7 @@ describe('MessageReadStatusService', () => {
 
     it('uses 90 days as the default cutoff when no argument is supplied', async () => {
       const beforeCall = Date.now();
-      const destroySpy = vi
-        .spyOn(MessageReadStatus, 'destroy')
-        .mockResolvedValue(0);
+      const destroySpy = vi.spyOn(MessageReadStatus, 'destroy').mockResolvedValue(0);
 
       await MessageReadStatusService.cleanupOldReadStatus();
 
