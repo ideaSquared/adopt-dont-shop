@@ -4,13 +4,13 @@ import AdminService from '../services/admin.service';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
 
-interface AuthenticatedRequest extends Request {
+type AuthenticatedRequest = Request & {
   user?: {
     userId: string;
     role: string;
     rescueId?: string;
   };
-}
+};
 
 export class AdminController {
   /**

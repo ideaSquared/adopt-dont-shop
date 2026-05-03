@@ -3,7 +3,7 @@
  */
 
 // User Management Types
-export interface AdminUser {
+export type AdminUser = {
   userId: string;
   email: string;
   firstName: string;
@@ -16,28 +16,28 @@ export interface AdminUser {
   phoneNumber?: string;
   rescueId?: string;
   rescueName?: string;
-}
+};
 
-export interface UserFilters {
+export type UserFilters = {
   search?: string;
   userType?: string;
   status?: string;
   rescueId?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
-export interface UserUpdatePayload {
+export type UserUpdatePayload = {
   firstName?: string;
   lastName?: string;
   email?: string;
   phoneNumber?: string;
   userType?: 'admin' | 'moderator' | 'rescue_staff' | 'adopter';
   status?: 'active' | 'suspended' | 'pending';
-}
+};
 
 // Rescue Management Types
-export interface AdminRescue {
+export type AdminRescue = {
   rescueId: string;
   name: string;
   email: string;
@@ -56,24 +56,24 @@ export interface AdminRescue {
   verifiedAt?: string;
   rejectedAt?: string;
   rejectionReason?: string;
-}
+};
 
-export interface RescueFilters {
+export type RescueFilters = {
   search?: string;
   verificationStatus?: string;
   state?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
-export interface RescueVerificationPayload {
+export type RescueVerificationPayload = {
   status: 'verified' | 'rejected';
   rejectionReason?: string;
   notes?: string;
-}
+};
 
 // Content Moderation Types
-export interface ModerationItem {
+export type ModerationItem = {
   reportId: string;
   contentType: 'listing' | 'message' | 'profile' | 'photo';
   contentId: string;
@@ -89,26 +89,26 @@ export interface ModerationItem {
   resolution?: string;
   targetUserId?: string;
   targetUserName?: string;
-}
+};
 
-export interface ModerationFilters {
+export type ModerationFilters = {
   status?: string;
   contentType?: string;
   priority?: string;
   assignedTo?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
-export interface ModerationAction {
+export type ModerationAction = {
   action: 'dismiss' | 'warn' | 'suspend_content' | 'suspend_user' | 'ban_user';
   resolution: string;
   notifyUser: boolean;
   suspensionDays?: number;
-}
+};
 
 // Support Ticket Types
-export interface SupportTicket {
+export type SupportTicket = {
   ticketId: string;
   userId: string;
   userName: string;
@@ -123,18 +123,18 @@ export interface SupportTicket {
   updatedAt: string;
   resolvedAt?: string;
   messagesCount: number;
-}
+};
 
-export interface TicketFilters {
+export type TicketFilters = {
   status?: string;
   category?: string;
   priority?: string;
   assignedTo?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
-export interface TicketMessage {
+export type TicketMessage = {
   messageId: string;
   ticketId: string;
   authorId: string;
@@ -143,10 +143,10 @@ export interface TicketMessage {
   message: string;
   createdAt: string;
   attachments?: string[];
-}
+};
 
 // Message Thread Types (for Messages page)
-export interface MessageThread {
+export type MessageThread = {
   threadId: string;
   subject: string;
   participants: {
@@ -164,17 +164,17 @@ export interface MessageThread {
   flagReason?: string;
   flagSeverity?: 'low' | 'medium' | 'high';
   createdAt: string;
-}
+};
 
-export interface TicketUpdatePayload {
+export type TicketUpdatePayload = {
   status?: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed';
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   assignedTo?: string;
   category?: 'technical' | 'account' | 'billing' | 'abuse' | 'other';
-}
+};
 
 // Analytics Types
-export interface DashboardMetrics {
+export type DashboardMetrics = {
   totalUsers: number;
   activeUsers: number;
   newUsersToday: number;
@@ -187,46 +187,46 @@ export interface DashboardMetrics {
   adoptedThisMonth: number;
   pendingReports: number;
   openTickets: number;
-}
+};
 
-export interface AnalyticsData {
+export type AnalyticsData = {
   userRegistrations: TimeSeriesData[];
   adoptions: TimeSeriesData[];
   topRescues: RescueStats[];
   userActivity: ActivityStats;
   systemHealth: HealthMetrics;
-}
+};
 
-export interface TimeSeriesData {
+export type TimeSeriesData = {
   date: string;
   value: number;
   label?: string;
-}
+};
 
-export interface RescueStats {
+export type RescueStats = {
   rescueId: string;
   rescueName: string;
   totalListings: number;
   successfulAdoptions: number;
   averageAdoptionTime: number;
-}
+};
 
-export interface ActivityStats {
+export type ActivityStats = {
   dailyActiveUsers: number;
   weeklyActiveUsers: number;
   monthlyActiveUsers: number;
   averageSessionDuration: number;
-}
+};
 
-export interface HealthMetrics {
+export type HealthMetrics = {
   uptime: number;
   apiResponseTime: number;
   errorRate: number;
   databaseHealth: 'healthy' | 'degraded' | 'down';
-}
+};
 
 // Audit Log Types
-export interface AuditLog {
+export type AuditLog = {
   logId: string;
   timestamp: string;
   userId: string;
@@ -240,19 +240,19 @@ export interface AuditLog {
   userAgent?: string;
   status: 'success' | 'failure';
   errorMessage?: string;
-}
+};
 
-export interface AuditFilters {
+export type AuditFilters = {
   userId?: string;
   action?: string;
   resource?: string;
   status?: string;
   dateFrom?: string;
   dateTo?: string;
-}
+};
 
 // System Configuration Types
-export interface FeatureFlag {
+export type FeatureFlag = {
   flagId: string;
   name: string;
   key: string;
@@ -262,9 +262,9 @@ export interface FeatureFlag {
   targetUserTypes?: string[];
   createdAt: string;
   updatedAt: string;
-}
+};
 
-export interface SystemSetting {
+export type SystemSetting = {
   settingId: string;
   category: string;
   key: string;
@@ -273,15 +273,15 @@ export interface SystemSetting {
   dataType: 'string' | 'number' | 'boolean' | 'json';
   updatedAt: string;
   updatedBy: string;
-}
+};
 
 // Pagination and Common Types
-export interface PaginationParams {
+export type PaginationParams = {
   page?: number;
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
-}
+};
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -294,8 +294,8 @@ export interface PaginatedResult<T> {
 }
 
 // Action Response Types
-export interface ActionResponse {
+export type ActionResponse = {
   success: boolean;
   message: string;
   data?: any;
-}
+};

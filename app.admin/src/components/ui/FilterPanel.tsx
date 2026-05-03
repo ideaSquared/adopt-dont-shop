@@ -2,21 +2,21 @@ import React from 'react';
 import * as styles from './FilterPanel.css';
 import { FiFilter, FiX } from 'react-icons/fi';
 
-export interface FilterOption {
+export type FilterOption = {
   id: string;
   label: string;
   type: 'select' | 'multiselect' | 'text' | 'date' | 'daterange';
   options?: { value: string; label: string }[];
   placeholder?: string;
-}
+};
 
-interface FilterPanelProps {
+type FilterPanelProps = {
   filters: FilterOption[];
   values: Record<string, unknown>;
   onChange: (filterId: string, value: unknown) => void;
   onClear: () => void;
   onApply?: () => void;
-}
+};
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
   filters,

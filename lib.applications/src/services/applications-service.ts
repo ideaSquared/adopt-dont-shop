@@ -34,7 +34,6 @@ export class ApplicationsService {
   constructor(apiService?: ApiService, config: ApplicationsServiceConfig = {}) {
     this.apiService = apiService || new ApiService();
     this.config = {
-      apiUrl: 'http://localhost:5000',
       debug: false,
       ...config,
     };
@@ -122,11 +121,21 @@ export class ApplicationsService {
           petId: applicationData.petId as string,
           userId: applicationData.userId as string,
           rescueId: applicationData.rescueId as string,
-          personalInfo: (applicationData.personalInfo as any) || {},
-          livingsituation: (applicationData.livingsituation as any) || {},
-          petExperience: (applicationData.petExperience as any) || {},
-          references: (applicationData.references as any) || { personal: [] },
-          additionalInfo: (applicationData.additionalInfo as any) || {},
+          personalInfo:
+            (applicationData.personalInfo as ApplicationData['personalInfo']) ??
+            ({} as ApplicationData['personalInfo']),
+          livingsituation:
+            (applicationData.livingsituation as ApplicationData['livingsituation']) ??
+            ({} as ApplicationData['livingsituation']),
+          petExperience:
+            (applicationData.petExperience as ApplicationData['petExperience']) ??
+            ({} as ApplicationData['petExperience']),
+          references: (applicationData.references as ApplicationData['references']) ?? {
+            personal: [],
+          },
+          additionalInfo:
+            (applicationData.additionalInfo as ApplicationData['additionalInfo']) ??
+            ({} as ApplicationData['additionalInfo']),
         },
         documents:
           (applicationData.documents as Array<{
