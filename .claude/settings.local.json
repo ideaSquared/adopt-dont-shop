@@ -19,7 +19,8 @@
       "Bash(test:*)",
       "Bash(timeout /t 30 npm test -- email.service.test.ts --maxWorkers=1)",
       "mcp__1bf85348-1043-4e09-a7af-8d10413739a7__list_issues",
-      "mcp__1bf85348-1043-4e09-a7af-8d10413739a7__get_issue"
+      "mcp__1bf85348-1043-4e09-a7af-8d10413739a7__get_issue",
+      "mcp__1bf85348-1043-4e09-a7af-8d10413739a7__save_issue"
     ],
     "deny": [],
     "ask": []
