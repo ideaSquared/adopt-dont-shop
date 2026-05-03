@@ -9,7 +9,7 @@
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node16",
+    "moduleResolution": "node10",
     "resolveJsonModule": true,
     "declaration": true,
     "outDir": "./dist",
