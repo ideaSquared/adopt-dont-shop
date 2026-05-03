@@ -25,7 +25,7 @@ import {
   type ActionSelectionData,
 } from '../components/moderation/ActionSelectionModal';
 import { ReportDetailModal } from '../components/moderation/ReportDetailModal';
-import styles from './Moderation.css';
+import * as styles from './Moderation.css';
 
 const getStatusBadgeClass = (status: string): string => {
   switch (status) {
@@ -185,12 +185,7 @@ const Moderation: React.FC = () => {
           <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
             {report.description.substring(0, 80)}...
           </div>
-          {(report as Record<string, unknown>).entityContext && (
-            <div style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '0.25rem' }}>
-              <strong>Reported Entity:</strong> {(report as any).entityContext.displayName}
-              {(report as any).entityContext.email && ` (${(report as any).entityContext.email})`}
-            </div>
-          )}
+
           <div style={{ marginTop: '0.5rem' }}>
             <span className={getContentTypeTagClass(report.reportedEntityType)}>
               {report.reportedEntityType}

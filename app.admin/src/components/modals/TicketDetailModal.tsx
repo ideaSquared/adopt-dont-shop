@@ -20,7 +20,7 @@ import {
   FiSend,
 } from 'react-icons/fi';
 import clsx from 'clsx';
-import styles from './TicketDetailModal.css';
+import * as styles from './TicketDetailModal.css';
 
 type TicketDetailModalProps = {
   isOpen: boolean;

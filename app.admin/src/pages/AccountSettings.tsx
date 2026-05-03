@@ -1,6 +1,6 @@
 import React from 'react';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
-import styles from './AccountSettings.css';
+import * as styles from './AccountSettings.css';
 
 const AccountSettings: React.FC = () => {
   return (

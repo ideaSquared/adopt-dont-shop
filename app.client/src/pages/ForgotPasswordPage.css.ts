@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const container = style({
   minHeight: 'calc(100vh - 200px)',
@@ -18,17 +18,17 @@ export const forgotPasswordCard = style({
 export const header = style({
   textAlign: 'center',
   marginBottom: '2rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2rem',
-      marginBottom: '0.5rem',
-      color: '#111827',
-    },
-    '& p': {
-      color: '#6b7280',
-      lineHeight: '1.6',
-    },
-  },
+});
+
+globalStyle(`${header} h1`, {
+  fontSize: '2rem',
+  marginBottom: '0.5rem',
+  color: '#111827',
+});
+
+globalStyle(`${header} p`, {
+  color: '#6b7280',
+  lineHeight: '1.6',
 });
 
 export const form = style({
@@ -61,22 +61,23 @@ export const styledAlert = style({
 
 export const successContainer = style({
   textAlign: 'center',
-  selectors: {
-    '& h2': {
-      fontSize: '1.5rem',
-      color: '#059669',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      color: '#6b7280',
-      lineHeight: '1.6',
-      marginBottom: '1.5rem',
-    },
-    '& .email-highlight': {
-      color: '#111827',
-      fontWeight: '600',
-    },
-  },
+});
+
+globalStyle(`${successContainer} h2`, {
+  fontSize: '1.5rem',
+  color: '#059669',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${successContainer} p`, {
+  color: '#6b7280',
+  lineHeight: '1.6',
+  marginBottom: '1.5rem',
+});
+
+globalStyle(`${successContainer} .email-highlight`, {
+  color: '#111827',
+  fontWeight: '600',
 });
 
 export const infoBox = style({
@@ -85,15 +86,15 @@ export const infoBox = style({
   borderRadius: '8px',
   padding: '1rem',
   marginTop: '1rem',
-  selectors: {
-    '& p': {
-      fontSize: '0.9rem',
-      color: '#6b7280',
-      margin: '0',
-      lineHeight: '1.5',
-    },
-    '& strong': {
-      color: '#111827',
-    },
-  },
+});
+
+globalStyle(`${infoBox} p`, {
+  fontSize: '0.9rem',
+  color: '#6b7280',
+  margin: '0',
+  lineHeight: '1.5',
+});
+
+globalStyle(`${infoBox} strong`, {
+  color: '#111827',
 });

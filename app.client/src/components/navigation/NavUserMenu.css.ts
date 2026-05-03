@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const triggerButton = style({
@@ -72,12 +72,13 @@ export const item = style({
     '&:focus-visible': {
       background: vars.background.tertiary,
     },
-    '& svg': {
-      width: '18px',
-      height: '18px',
-      flexShrink: 0,
-    },
   },
+});
+
+globalStyle(`${item} svg`, {
+  width: '18px',
+  height: '18px',
+  flexShrink: 0,
 });
 
 export const dangerItem = style({
@@ -99,10 +100,11 @@ export const dangerItem = style({
       background: vars.colors.semantic.error['50'],
       color: vars.colors.semantic.error['700'],
     },
-    '& svg': {
-      width: '18px',
-      height: '18px',
-      flexShrink: 0,
-    },
   },
+});
+
+globalStyle(`${dangerItem} svg`, {
+  width: '18px',
+  height: '18px',
+  flexShrink: 0,
 });

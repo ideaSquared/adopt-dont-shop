@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
@@ -14,25 +14,28 @@ export const container = style({
 
 export const header = style({
   marginBottom: '3rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2.5rem',
-      color: '#111827',
-      marginBottom: '0.5rem',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: '#6b7280',
-    },
-  },
   '@media': {
     '(max-width: 768px)': {
-      selectors: {
-        '& h1': {
-          fontSize: '2rem',
-        },
-      },
       marginBottom: '2rem',
+    },
+  },
+});
+
+globalStyle(`${header} h1`, {
+  fontSize: '2.5rem',
+  color: '#111827',
+  marginBottom: '0.5rem',
+});
+
+globalStyle(`${header} p`, {
+  fontSize: '1.1rem',
+  color: '#6b7280',
+});
+
+globalStyle(`${header} h1`, {
+  '@media': {
+    '(max-width: 768px)': {
+      fontSize: '2rem',
     },
   },
 });
@@ -130,18 +133,17 @@ export const applicationCard = style({
   alignItems: 'center',
 });
 
-export const applicationInfo = style({
-  selectors: {
-    '& h3': {
-      fontSize: '1.1rem',
-      color: '#111827',
-      marginBottom: '0.5rem',
-    },
-    '& p': {
-      color: '#6b7280',
-      fontSize: '0.875rem',
-    },
-  },
+export const applicationInfo = style({});
+
+globalStyle(`${applicationInfo} h3`, {
+  fontSize: '1.1rem',
+  color: '#111827',
+  marginBottom: '0.5rem',
+});
+
+globalStyle(`${applicationInfo} p`, {
+  color: '#6b7280',
+  fontSize: '0.875rem',
 });
 
 export const statusBadge = recipe({

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Heading, Text } from '@adopt-dont-shop/lib.components';
 import { usePlatformMetrics } from '../hooks';
-import styles from './Dashboard.css';
+import * as styles from './Dashboard.css';
 
 const formatNumber = (n: number): string => n.toLocaleString();
 

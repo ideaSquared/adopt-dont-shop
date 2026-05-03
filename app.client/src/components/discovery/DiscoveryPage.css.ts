@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const pageContainer = style({
@@ -127,33 +127,36 @@ export const filterGroup = style({
   display: 'flex',
   flexDirection: 'column',
   gap: '0.5rem',
-  selectors: {
-    '& label': {
-      fontWeight: 500,
-      color: '#333',
-      fontSize: '0.9rem',
-    },
-    '& select': {
-      padding: '0.5rem',
-      border: '1px solid #dee2e6',
-      borderRadius: '4px',
-      fontSize: '0.9rem',
-    },
-    '& input': {
-      padding: '0.5rem',
-      border: '1px solid #dee2e6',
-      borderRadius: '4px',
-      fontSize: '0.9rem',
-    },
-    '& select:focus': {
-      outline: 'none',
-      borderColor: '#4ecdc4',
-    },
-    '& input:focus': {
-      outline: 'none',
-      borderColor: '#4ecdc4',
-    },
-  },
+});
+
+globalStyle(`${filterGroup} label`, {
+  fontWeight: 500,
+  color: '#333',
+  fontSize: '0.9rem',
+});
+
+globalStyle(`${filterGroup} select`, {
+  padding: '0.5rem',
+  border: '1px solid #dee2e6',
+  borderRadius: '4px',
+  fontSize: '0.9rem',
+});
+
+globalStyle(`${filterGroup} input`, {
+  padding: '0.5rem',
+  border: '1px solid #dee2e6',
+  borderRadius: '4px',
+  fontSize: '0.9rem',
+});
+
+globalStyle(`${filterGroup} select:focus`, {
+  outline: 'none',
+  borderColor: '#4ecdc4',
+});
+
+globalStyle(`${filterGroup} input:focus`, {
+  outline: 'none',
+  borderColor: '#4ecdc4',
 });
 
 export const sessionStats = style({

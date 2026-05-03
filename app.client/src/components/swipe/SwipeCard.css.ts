@@ -1,4 +1,4 @@
-import { keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const spinAnimation = keyframes({
@@ -53,13 +53,12 @@ export const imageContainer = style({
   position: 'relative',
   height: '70%',
   overflow: 'hidden',
-  selectors: {
-    '& img': {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
-    },
-  },
+});
+
+globalStyle(`${imageContainer} img`, {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
 });
 
 export const placeholderImage = style({
@@ -72,12 +71,11 @@ export const placeholderImage = style({
   position: 'relative',
   color: 'white',
   textAlign: 'center',
-  selectors: {
-    '& .placeholder-icon': {
-      fontSize: '80px',
-      marginBottom: '20px',
-    },
-  },
+});
+
+globalStyle(`${placeholderImage} .placeholder-icon`, {
+  fontSize: '80px',
+  marginBottom: '20px',
 });
 
 export const placeholderIconSpin = style({

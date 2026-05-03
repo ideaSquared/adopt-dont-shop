@@ -30,7 +30,7 @@ import {
   AuditLogStatus,
   type AuditLog,
 } from '@adopt-dont-shop/lib.audit-logs';
-import styles from './Audit.css';
+import * as styles from './Audit.css';
 
 const getActionIconClass = (action: string): string => {
   switch (action) {

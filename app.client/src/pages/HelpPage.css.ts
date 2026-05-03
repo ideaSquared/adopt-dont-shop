@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   padding: '3rem 0',
@@ -8,20 +8,20 @@ export const pageContainer = style({
 export const pageHeader = style({
   textAlign: 'center',
   marginBottom: '3rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2.5rem',
-      fontWeight: '700',
-      color: '#111827',
-      margin: '0 0 1rem 0',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: '#6b7280',
-      maxWidth: '600px',
-      margin: '0 auto',
-    },
-  },
+});
+
+globalStyle(`${pageHeader} h1`, {
+  fontSize: '2.5rem',
+  fontWeight: '700',
+  color: '#111827',
+  margin: '0 0 1rem 0',
+});
+
+globalStyle(`${pageHeader} p`, {
+  fontSize: '1.1rem',
+  color: '#6b7280',
+  maxWidth: '600px',
+  margin: '0 auto',
 });
 
 export const articleList = style({

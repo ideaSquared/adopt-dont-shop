@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   minHeight: '100vh',
@@ -8,20 +8,20 @@ export const pageContainer = style({
 export const header = style({
   textAlign: 'center',
   marginBottom: '3rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2.5rem',
-      color: '#333',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: '#666',
-      maxWidth: '600px',
-      margin: '0 auto',
-      lineHeight: '1.6',
-    },
-  },
+});
+
+globalStyle(`${header} h1`, {
+  fontSize: '2.5rem',
+  color: '#333',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${header} p`, {
+  fontSize: '1.1rem',
+  color: '#666',
+  maxWidth: '600px',
+  margin: '0 auto',
+  lineHeight: '1.6',
 });
 
 export const loadingContainer = style({
@@ -50,24 +50,25 @@ export const emptyState = style({
   background: '#f9f9f9',
   borderRadius: '12px',
   margin: '2rem 0',
-  selectors: {
-    '& .emoji': {
-      fontSize: '4rem',
-      marginBottom: '1rem',
-      display: 'block',
-    },
-    '& h2': {
-      fontSize: '1.8rem',
-      color: '#333',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: '#666',
-      marginBottom: '2rem',
-      lineHeight: '1.6',
-    },
-  },
+});
+
+globalStyle(`${emptyState} .emoji`, {
+  fontSize: '4rem',
+  marginBottom: '1rem',
+  display: 'block',
+});
+
+globalStyle(`${emptyState} h2`, {
+  fontSize: '1.8rem',
+  color: '#333',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${emptyState} p`, {
+  fontSize: '1.1rem',
+  color: '#666',
+  marginBottom: '2rem',
+  lineHeight: '1.6',
 });
 
 export const ctaButton = style({
@@ -93,19 +94,19 @@ export const loginPrompt = style({
   background: '#f0f4f8',
   borderRadius: '12px',
   margin: '2rem 0',
-  selectors: {
-    '& h2': {
-      fontSize: '1.8rem',
-      color: '#333',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: '#666',
-      marginBottom: '2rem',
-      lineHeight: '1.6',
-    },
-  },
+});
+
+globalStyle(`${loginPrompt} h2`, {
+  fontSize: '1.8rem',
+  color: '#333',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${loginPrompt} p`, {
+  fontSize: '1.1rem',
+  color: '#666',
+  marginBottom: '2rem',
+  lineHeight: '1.6',
 });
 
 export const statsContainer = style({
@@ -128,20 +129,20 @@ export const statCard = style({
   padding: '1.5rem',
   textAlign: 'center',
   minWidth: '120px',
-  selectors: {
-    '& .number': {
-      fontSize: '2rem',
-      fontWeight: 'bold',
-      color: '#667eea',
-      marginBottom: '0.5rem',
-    },
-    '& .label': {
-      fontSize: '0.9rem',
-      color: '#666',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-    },
-  },
+});
+
+globalStyle(`${statCard} .number`, {
+  fontSize: '2rem',
+  fontWeight: 'bold',
+  color: '#667eea',
+  marginBottom: '0.5rem',
+});
+
+globalStyle(`${statCard} .label`, {
+  fontSize: '0.9rem',
+  color: '#666',
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px',
 });
 
 export const errorAlert = style({

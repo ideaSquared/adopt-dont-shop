@@ -1,4 +1,4 @@
-import { keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -200,14 +200,13 @@ export const previewHeader = style({
   marginBottom: '1.25rem',
   paddingBottom: '0.75rem',
   borderBottom: `1px solid ${vars.border.color.primary}`,
-  selectors: {
-    '& h3': {
-      fontSize: '1.1rem',
-      fontWeight: 600,
-      color: vars.text.primary,
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${previewHeader} h3`, {
+  fontSize: '1.1rem',
+  fontWeight: 600,
+  color: vars.text.primary,
+  margin: 0,
 });
 
 export const viewAllButton = style({

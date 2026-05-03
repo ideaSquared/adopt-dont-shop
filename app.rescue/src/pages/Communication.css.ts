@@ -55,32 +55,38 @@ export const mobileView = style({
   },
 });
 
-export const mobileViewShowChat = style({
+export const mobileViewShowChat = style({});
+
+globalStyle(`${mobileViewShowChat} > :first-child`, {
   '@media': {
     'screen and (max-width: 768px)': {
-      selectors: {
-        '& > :first-child': {
-          display: 'none',
-        },
-        '& > :last-child': {
-          display: 'flex',
-        },
-      },
+      display: 'none',
     },
   },
 });
 
-export const mobileViewHideChat = style({
+globalStyle(`${mobileViewShowChat} > :last-child`, {
   '@media': {
     'screen and (max-width: 768px)': {
-      selectors: {
-        '& > :first-child': {
-          display: 'flex',
-        },
-        '& > :last-child': {
-          display: 'none',
-        },
-      },
+      display: 'flex',
+    },
+  },
+});
+
+export const mobileViewHideChat = style({});
+
+globalStyle(`${mobileViewHideChat} > :first-child`, {
+  '@media': {
+    'screen and (max-width: 768px)': {
+      display: 'flex',
+    },
+  },
+});
+
+globalStyle(`${mobileViewHideChat} > :last-child`, {
+  '@media': {
+    'screen and (max-width: 768px)': {
+      display: 'none',
     },
   },
 });

@@ -5,7 +5,7 @@ import { Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder, MdLocationOn } from 'react-icons/md';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { resolveFileUrl } from '../utils/fileUtils';
 import { LoginPromptModal } from './modals/LoginPromptModal';
 import * as styles from './PetCard.css';
@@ -38,7 +38,6 @@ export const PetCard: React.FC<PetCardProps> = ({
   const resolvedImageUrl = resolveFileUrl(primaryPhoto?.url);
 
   const handleCardClick = () => {
-    // Log pet card click
     logEvent('pet_card_clicked', 1, {
       pet_id: pet.pet_id,
       pet_name: pet.name,
@@ -49,6 +48,7 @@ export const PetCard: React.FC<PetCardProps> = ({
       has_image: (!!resolvedImageUrl).toString(),
       is_favorite: isFavorite.toString(),
     });
+    navigate(`/pets/${pet.pet_id}`);
   };
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
@@ -174,10 +174,11 @@ export const PetCard: React.FC<PetCardProps> = ({
   };
   return (
     <Card
-      as={Link}
-      to={`/pets/${pet.pet_id}`}
       onClick={handleCardClick}
       className={styles.styledCard}
+      role='link'
+      tabIndex={0}
+      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
     >
       <div className={styles.imageContainer}>
         {resolvedImageUrl ? (

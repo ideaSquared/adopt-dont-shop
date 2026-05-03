@@ -11,7 +11,7 @@ import {
   type UpdateContentInput,
   type CreateMenuInput,
 } from '../services/cmsService';
-import styles from './ContentManagement.css';
+import * as styles from './ContentManagement.css';
 
 type ActiveTab = 'content' | 'menus';
 

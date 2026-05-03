@@ -34,7 +34,7 @@ import {
   type Conversation,
 } from '@adopt-dont-shop/lib.chat';
 import { ChatDetailModal } from '../components/modals';
-import styles from './Messages.css';
+import * as styles from './Messages.css';
 
 const getStatusDotClass = (status: string): string => {
   switch (status) {

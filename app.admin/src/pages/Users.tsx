@@ -30,7 +30,7 @@ import {
   UserActionsMenu,
   BulkConfirmationModal,
 } from '../components/modals';
-import styles from './Users.css';
+import * as styles from './Users.css';
 
 type BulkActionType = 'activate' | 'deactivate' | 'delete';
 

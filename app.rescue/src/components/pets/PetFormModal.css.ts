@@ -43,15 +43,7 @@ export const formGrid = style({
 });
 
 export const formGroup = recipe({
-  base: {
-    selectors: {
-      '& .error': {
-        color: '#ef4444',
-        fontSize: '0.75rem',
-        marginTop: '0.25rem',
-      },
-    },
-  },
+  base: {},
   variants: {
     fullWidth: {
       true: { gridColumn: '1 / -1' },
@@ -61,6 +53,12 @@ export const formGroup = recipe({
   defaultVariants: {
     fullWidth: false,
   },
+});
+
+globalStyle(`${formGroup.classNames.base} .error`, {
+  color: '#ef4444',
+  fontSize: '0.75rem',
+  marginTop: '0.25rem',
 });
 
 globalStyle(`${formGroup.classNames.base} label`, {

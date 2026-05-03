@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const searchContainer = style({
@@ -9,29 +9,33 @@ export const searchContainer = style({
 export const searchHeader = style({
   textAlign: 'center',
   marginBottom: '2rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2.5rem',
-      color: '#111827',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      fontSize: '1.2rem',
-      color: '#6b7280',
-      maxWidth: '600px',
-      margin: '0 auto',
-    },
-  },
+});
+
+globalStyle(`${searchHeader} h1`, {
+  fontSize: '2.5rem',
+  color: '#111827',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${searchHeader} p`, {
+  fontSize: '1.2rem',
+  color: '#6b7280',
+  maxWidth: '600px',
+  margin: '0 auto',
+});
+
+globalStyle(`${searchHeader} h1`, {
   '@media': {
     '(max-width: 768px)': {
-      selectors: {
-        '& h1': {
-          fontSize: '2rem',
-        },
-        '& p': {
-          fontSize: '1rem',
-        },
-      },
+      fontSize: '2rem',
+    },
+  },
+});
+
+globalStyle(`${searchHeader} p`, {
+  '@media': {
+    '(max-width: 768px)': {
+      fontSize: '1rem',
     },
   },
 });
@@ -76,17 +80,17 @@ export const resultsHeader = style({
   marginBottom: '1.5rem',
   flexWrap: 'wrap',
   gap: '1rem',
-  selectors: {
-    '& h2': {
-      color: '#111827',
-      margin: '0',
-    },
-    '& .sort-controls': {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '1rem',
-    },
-  },
+});
+
+globalStyle(`${resultsHeader} h2`, {
+  color: '#111827',
+  margin: '0',
+});
+
+globalStyle(`${resultsHeader} .sort-controls`, {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '1rem',
 });
 
 export const petGrid = style({
@@ -112,17 +116,17 @@ export const emptyState = style({
   textAlign: 'center',
   padding: '3rem 1rem',
   color: '#6b7280',
-  selectors: {
-    '& h3': {
-      fontSize: '1.5rem',
-      marginBottom: '1rem',
-      color: '#111827',
-    },
-    '& p': {
-      fontSize: '1rem',
-      marginBottom: '2rem',
-    },
-  },
+});
+
+globalStyle(`${emptyState} h3`, {
+  fontSize: '1.5rem',
+  marginBottom: '1rem',
+  color: '#111827',
+});
+
+globalStyle(`${emptyState} p`, {
+  fontSize: '1rem',
+  marginBottom: '2rem',
 });
 
 export const pagination = style({
@@ -132,16 +136,16 @@ export const pagination = style({
   gap: '1rem',
   marginTop: '2rem',
   flexWrap: 'wrap',
-  selectors: {
-    '& .page-info': {
-      color: '#6b7280',
-      fontSize: '0.9rem',
-    },
-    '& .page-controls': {
-      display: 'flex',
-      gap: '0.5rem',
-    },
-  },
+});
+
+globalStyle(`${pagination} .page-info`, {
+  color: '#6b7280',
+  fontSize: '0.9rem',
+});
+
+globalStyle(`${pagination} .page-controls`, {
+  display: 'flex',
+  gap: '0.5rem',
 });
 
 export const locationFilterRow = style({

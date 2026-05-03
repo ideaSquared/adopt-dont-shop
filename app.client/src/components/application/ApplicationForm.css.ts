@@ -1,4 +1,4 @@
-import { style, styleVariants } from '@vanilla-extract/css';
+import { globalStyle, style, styleVariants } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const formContainer = style({
@@ -79,11 +79,14 @@ export const buttonGroup = style({
   '@media': {
     'screen and (max-width: 768px)': {
       width: '100%',
-      selectors: {
-        '& button': {
-          flex: '1',
-        },
-      },
+    },
+  },
+});
+
+globalStyle(`${buttonGroup} button`, {
+  '@media': {
+    'screen and (max-width: 768px)': {
+      flex: '1',
     },
   },
 });

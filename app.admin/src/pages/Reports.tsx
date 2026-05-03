@@ -24,7 +24,7 @@ import {
   Select,
   Badge,
 } from '../components/ui';
-import styles from './Reports.css';
+import * as styles from './Reports.css';
 
 const headerActions = styles.headerActions;
 

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const container = style({
   maxWidth: '1200px',
@@ -9,19 +9,19 @@ export const container = style({
 export const header = style({
   textAlign: 'center',
   marginBottom: '3rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2.5rem',
-      color: '#111827',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: '#6b7280',
-      maxWidth: '600px',
-      margin: '0 auto',
-    },
-  },
+});
+
+globalStyle(`${header} h1`, {
+  fontSize: '2.5rem',
+  color: '#111827',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${header} p`, {
+  fontSize: '1.1rem',
+  color: '#6b7280',
+  maxWidth: '600px',
+  margin: '0 auto',
 });
 
 export const section = style({
@@ -30,17 +30,17 @@ export const section = style({
   borderRadius: '12px',
   padding: '2rem',
   marginBottom: '2rem',
-  selectors: {
-    '& h2': {
-      fontSize: '1.5rem',
-      color: '#111827',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      color: '#6b7280',
-      marginBottom: '1.5rem',
-    },
-  },
+});
+
+globalStyle(`${section} h2`, {
+  fontSize: '1.5rem',
+  color: '#111827',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${section} p`, {
+  color: '#6b7280',
+  marginBottom: '1.5rem',
 });
 
 export const buttonGroup = style({
@@ -63,21 +63,22 @@ export const statusCard = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  selectors: {
-    '& .status-item': {
-      textAlign: 'center',
-    },
-    '& .status-item .label': {
-      fontSize: '0.875rem',
-      color: '#6b7280',
-      marginBottom: '0.5rem',
-    },
-    '& .status-item .value': {
-      fontSize: '1.25rem',
-      fontWeight: '600',
-      color: '#111827',
-    },
-  },
+});
+
+globalStyle(`${statusCard} .status-item`, {
+  textAlign: 'center',
+});
+
+globalStyle(`${statusCard} .status-item .label`, {
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  marginBottom: '0.5rem',
+});
+
+globalStyle(`${statusCard} .status-item .value`, {
+  fontSize: '1.25rem',
+  fontWeight: '600',
+  color: '#111827',
 });
 
 export const notificationModal = style({

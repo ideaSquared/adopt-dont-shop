@@ -172,8 +172,10 @@ export const buttonSecondary = style({
   border: '1px solid #d1d5db',
   background: '#ffffff',
   color: '#374151',
-  ':hover:not(:disabled)': {
-    background: '#f9fafb',
+  selectors: {
+    '&:hover:not(:disabled)': {
+      background: '#f9fafb',
+    },
   },
   ':disabled': {
     opacity: 0.5,
@@ -191,8 +193,10 @@ export const buttonPrimary = style({
   border: 'none',
   background: '#667eea',
   color: '#ffffff',
-  ':hover:not(:disabled)': {
-    background: '#5a67d8',
+  selectors: {
+    '&:hover:not(:disabled)': {
+      background: '#5a67d8',
+    },
   },
   ':disabled': {
     opacity: 0.5,

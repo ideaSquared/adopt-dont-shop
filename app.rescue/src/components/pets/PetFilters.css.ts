@@ -34,16 +34,14 @@ export const filtersGrid = style({
   },
 });
 
-export const filterGroup = style({
-  selectors: {
-    '& .label': {
-      display: 'block',
-      marginBottom: '0.5rem',
-      fontWeight: '500',
-      fontSize: '0.875rem',
-      color: '#111827',
-    },
-  },
+export const filterGroup = style({});
+
+globalStyle(`${filterGroup} .label`, {
+  display: 'block',
+  marginBottom: '0.5rem',
+  fontWeight: '500',
+  fontSize: '0.875rem',
+  color: '#111827',
 });
 
 globalStyle(`${filterGroup} select, ${filterGroup} input`, {

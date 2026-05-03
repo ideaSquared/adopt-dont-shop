@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const styledCard = style({
@@ -20,17 +20,17 @@ export const imageContainer = style({
   height: '200px',
   overflow: 'hidden',
   borderRadius: '8px 8px 0 0',
-  selectors: {
-    '& img': {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
-      transition: 'transform 0.3s ease',
-    },
-    '&:hover img': {
-      transform: 'scale(1.05)',
-    },
-  },
+});
+
+globalStyle(`${imageContainer} img`, {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  transition: 'transform 0.3s ease',
+});
+
+globalStyle(`${imageContainer}:hover img`, {
+  transform: 'scale(1.05)',
 });
 
 export const placeholderImage = style({
@@ -85,12 +85,11 @@ export const favoriteButton = style({
     background: 'white',
     transform: 'scale(1.1)',
   },
-  selectors: {
-    '& svg': {
-      width: '20px',
-      height: '20px',
-    },
-  },
+});
+
+globalStyle(`${favoriteButton} svg`, {
+  width: '20px',
+  height: '20px',
 });
 
 export const statusBadge = style({
@@ -176,10 +175,9 @@ export const distanceBadge = style({
   padding: '0.25rem 0.6rem 0.25rem 0.45rem',
   letterSpacing: '0.01em',
   pointerEvents: 'none',
-  selectors: {
-    '& svg': {
-      flexShrink: 0,
-      color: '#6ee7b7',
-    },
-  },
+});
+
+globalStyle(`${distanceBadge} svg`, {
+  flexShrink: 0,
+  color: '#6ee7b7',
 });

@@ -49,13 +49,12 @@ export const petContent = style({
 
 export const petHeader = style({
   marginBottom: '1rem',
-  selectors: {
-    '& .pet-info': {
-      fontSize: '0.875rem',
-      color: '#6b7280',
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${petHeader} .pet-info`, {
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  margin: 0,
 });
 
 globalStyle(`${petHeader} h3`, {
@@ -72,21 +71,22 @@ export const petDetails = style({
   gap: '0.5rem',
   marginBottom: '1rem',
   fontSize: '0.875rem',
-  selectors: {
-    '& .detail-item': {
-      display: 'flex',
-      justifyContent: 'space-between',
-      padding: '0.25rem 0',
-      borderBottom: '1px solid #f3f4f6',
-    },
-    '& .detail-item .label': {
-      color: '#6b7280',
-      fontWeight: '500',
-    },
-    '& .detail-item .value': {
-      color: '#111827',
-    },
-  },
+});
+
+globalStyle(`${petDetails} .detail-item`, {
+  display: 'flex',
+  justifyContent: 'space-between',
+  padding: '0.25rem 0',
+  borderBottom: '1px solid #f3f4f6',
+});
+
+globalStyle(`${petDetails} .detail-item .label`, {
+  color: '#6b7280',
+  fontWeight: '500',
+});
+
+globalStyle(`${petDetails} .detail-item .value`, {
+  color: '#111827',
 });
 
 export const petDescription = style({

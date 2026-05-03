@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const container = style({
   minHeight: 'calc(100vh - 200px)',
@@ -18,18 +18,18 @@ export const verifyEmailCard = style({
 export const header = style({
   textAlign: 'center',
   marginBottom: '2rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2rem',
-      marginBottom: '0.5rem',
-      color: '#111827',
-    },
-    '& p': {
-      color: '#6b7280',
-      lineHeight: '1.6',
-      fontSize: '1rem',
-    },
-  },
+});
+
+globalStyle(`${header} h1`, {
+  fontSize: '2rem',
+  marginBottom: '0.5rem',
+  color: '#111827',
+});
+
+globalStyle(`${header} p`, {
+  color: '#6b7280',
+  lineHeight: '1.6',
+  fontSize: '1rem',
 });
 
 export const iconContainer = style({
@@ -69,11 +69,10 @@ export const resendSection = style({
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
   borderTop: '1px solid #e5e7eb',
-  selectors: {
-    '& p': {
-      color: '#6b7280',
-      marginBottom: '1rem',
-      fontSize: '0.95rem',
-    },
-  },
+});
+
+globalStyle(`${resendSection} p`, {
+  color: '#6b7280',
+  marginBottom: '1rem',
+  fontSize: '0.95rem',
 });

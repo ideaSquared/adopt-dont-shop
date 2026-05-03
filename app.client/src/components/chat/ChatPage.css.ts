@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const chatContainer = style({
@@ -97,26 +97,26 @@ export const header = style({
   padding: '1.5rem 2rem 1rem 2rem',
   background: vars.background.primary,
   borderBottom: `1px solid ${vars.border.color.secondary}`,
-  selectors: {
-    '& h1': {
-      margin: '0 0 0.25rem 0',
-      fontSize: '1.75rem',
-      fontWeight: 800,
-      color: vars.text.primary,
-      letterSpacing: '-0.025em',
-    },
-    '& p': {
-      margin: 0,
-      fontSize: '1rem',
-      color: vars.text.secondary,
-      lineHeight: 1.4,
-    },
-  },
   '@media': {
     '(max-width: 768px)': {
       padding: '1.25rem 1rem 0.875rem 1rem',
     },
   },
+});
+
+globalStyle(`${header} h1`, {
+  margin: '0 0 0.25rem 0',
+  fontSize: '1.75rem',
+  fontWeight: 800,
+  color: vars.text.primary,
+  letterSpacing: '-0.025em',
+});
+
+globalStyle(`${header} p`, {
+  margin: 0,
+  fontSize: '1rem',
+  color: vars.text.secondary,
+  lineHeight: 1.4,
 });
 
 export const loadingContainer = style({
@@ -145,19 +145,19 @@ export const loginPrompt = style({
   background: vars.background.secondary,
   borderRadius: '12px',
   margin: '2rem 0',
-  selectors: {
-    '& h2': {
-      fontSize: '1.8rem',
-      color: vars.text.primary,
-      marginBottom: '1rem',
-    },
-    '& p': {
-      fontSize: '1.1rem',
-      color: vars.text.secondary,
-      marginBottom: '2rem',
-      lineHeight: 1.6,
-    },
-  },
+});
+
+globalStyle(`${loginPrompt} h2`, {
+  fontSize: '1.8rem',
+  color: vars.text.primary,
+  marginBottom: '1rem',
+});
+
+globalStyle(`${loginPrompt} p`, {
+  fontSize: '1.1rem',
+  color: vars.text.secondary,
+  marginBottom: '2rem',
+  lineHeight: 1.6,
 });
 
 export const ctaButton = style({

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -17,13 +17,12 @@ export const header = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  selectors: {
-    '& h2': {
-      fontSize: '1.25rem',
-      color: vars.text.primary,
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${header} h2`, {
+  fontSize: '1.25rem',
+  color: vars.text.primary,
+  margin: 0,
 });
 
 export const filterBar = style({
@@ -178,17 +177,17 @@ export const emptyState = style({
   padding: '3rem 1.5rem',
   textAlign: 'center',
   color: vars.text.secondary,
-  selectors: {
-    '& h3': {
-      fontSize: '1.1rem',
-      marginBottom: '0.5rem',
-      color: vars.text.primary,
-    },
-    '& p': {
-      fontSize: '0.875rem',
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${emptyState} h3`, {
+  fontSize: '1.1rem',
+  marginBottom: '0.5rem',
+  color: vars.text.primary,
+});
+
+globalStyle(`${emptyState} p`, {
+  fontSize: '0.875rem',
+  margin: 0,
 });
 
 export const loadingState = style({
@@ -203,12 +202,11 @@ export const pagination = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  selectors: {
-    '& span': {
-      fontSize: '0.875rem',
-      color: vars.text.secondary,
-    },
-  },
+});
+
+globalStyle(`${pagination} span`, {
+  fontSize: '0.875rem',
+  color: vars.text.secondary,
 });
 
 export const paginationButtons = style({

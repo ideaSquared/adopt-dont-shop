@@ -14,7 +14,7 @@ import {
   getStatusLabel,
   formatRelativeTime,
 } from '@adopt-dont-shop/lib.moderation';
-import styles from './ReportDetailModal.css';
+import * as styles from './ReportDetailModal.css';
 
 export interface ReportDetailModalProps {
   isOpen: boolean;

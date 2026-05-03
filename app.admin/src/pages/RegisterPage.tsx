@@ -1,6 +1,6 @@
 import { AuthLayout, RegisterForm } from '@adopt-dont-shop/lib.auth';
 import { Link, useNavigate } from 'react-router-dom';
-import styles from './RegisterPage.css';
+import * as styles from './RegisterPage.css';
 
 export const RegisterPage = () => {
   const navigate = useNavigate();

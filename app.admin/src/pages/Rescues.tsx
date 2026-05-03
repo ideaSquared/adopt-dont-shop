@@ -22,7 +22,7 @@ import {
 } from '@/components/modals';
 import { ExportButton, BulkActionToolbar } from '@/components/ui';
 import { useBulkUpdateRescues } from '@/hooks';
-import styles from './Rescues.css';
+import * as styles from './Rescues.css';
 
 const getStatusBadge = (status: string) => {
   switch (status) {

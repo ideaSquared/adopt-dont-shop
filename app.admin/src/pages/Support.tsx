@@ -16,7 +16,7 @@ import {
   formatRelativeTime,
 } from '@adopt-dont-shop/lib.support-tickets';
 import { TicketDetailModal } from '../components/modals/TicketDetailModal';
-import styles from './Support.css';
+import * as styles from './Support.css';
 
 const getStatusBadgeClass = (status: TicketStatus): string => {
   switch (status) {

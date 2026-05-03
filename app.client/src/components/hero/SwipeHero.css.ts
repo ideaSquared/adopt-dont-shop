@@ -1,4 +1,4 @@
-import { keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 
 const float = keyframes({
   '0%, 100%': { transform: 'translateY(0px)' },
@@ -220,23 +220,24 @@ export const featureCard = style({
     transform: 'translateY(-5px)',
     boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
   },
-  selectors: {
-    '& .icon': {
-      fontSize: '3rem',
-      marginBottom: '1rem',
-      color: '#ff4081',
-      display: 'block',
-    },
-    '& h3': {
-      fontSize: '1.25rem',
-      fontWeight: 600,
-      marginBottom: '0.75rem',
-    },
-    '& p': {
-      opacity: 0.8,
-      lineHeight: 1.5,
-    },
-  },
+});
+
+globalStyle(`${featureCard} .icon`, {
+  fontSize: '3rem',
+  marginBottom: '1rem',
+  color: '#ff4081',
+  display: 'block',
+});
+
+globalStyle(`${featureCard} h3`, {
+  fontSize: '1.25rem',
+  fontWeight: 600,
+  marginBottom: '0.75rem',
+});
+
+globalStyle(`${featureCard} p`, {
+  opacity: 0.8,
+  lineHeight: 1.5,
 });
 
 export const swipeBadge = style({

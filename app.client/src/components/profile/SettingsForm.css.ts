@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const wrapper = style({
@@ -48,18 +48,18 @@ export const settingItem = style({
 
 export const settingLabel = style({
   flex: 1,
-  selectors: {
-    '& h4': {
-      fontSize: '1rem',
-      color: vars.text.primary,
-      marginBottom: '0.25rem',
-    },
-    '& p': {
-      fontSize: '0.875rem',
-      color: vars.text.secondary,
-      margin: 0,
-    },
-  },
+});
+
+globalStyle(`${settingLabel} h4`, {
+  fontSize: '1rem',
+  color: vars.text.primary,
+  marginBottom: '0.25rem',
+});
+
+globalStyle(`${settingLabel} p`, {
+  fontSize: '0.875rem',
+  color: vars.text.secondary,
+  margin: 0,
 });
 
 export const settingControl = style({
@@ -73,41 +73,44 @@ export const switchLabel = style({
   display: 'inline-block',
   width: '50px',
   height: '24px',
-  selectors: {
-    '& input': {
-      opacity: 0,
-      width: 0,
-      height: 0,
-    },
-    '& span': {
-      position: 'absolute',
-      cursor: 'pointer',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: vars.colors.neutral['300'],
-      transition: '0.3s',
-      borderRadius: '24px',
-    },
-    '& span:before': {
-      position: 'absolute',
-      content: '""',
-      height: '18px',
-      width: '18px',
-      left: '3px',
-      bottom: '3px',
-      backgroundColor: 'white',
-      transition: '0.3s',
-      borderRadius: '50%',
-    },
-    '& input:checked + span': {
-      backgroundColor: vars.colors.primary['500'],
-    },
-    '& input:checked + span:before': {
-      transform: 'translateX(26px)',
-    },
-  },
+});
+
+globalStyle(`${switchLabel} input`, {
+  opacity: 0,
+  width: 0,
+  height: 0,
+});
+
+globalStyle(`${switchLabel} span`, {
+  position: 'absolute',
+  cursor: 'pointer',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: vars.colors.neutral['300'],
+  transition: '0.3s',
+  borderRadius: '24px',
+});
+
+globalStyle(`${switchLabel} span:before`, {
+  position: 'absolute',
+  content: '""',
+  height: '18px',
+  width: '18px',
+  left: '3px',
+  bottom: '3px',
+  backgroundColor: 'white',
+  transition: '0.3s',
+  borderRadius: '50%',
+});
+
+globalStyle(`${switchLabel} input:checked + span`, {
+  backgroundColor: vars.colors.primary['500'],
+});
+
+globalStyle(`${switchLabel} input:checked + span:before`, {
+  transform: 'translateX(26px)',
 });
 
 export const select = style({
@@ -141,15 +144,15 @@ export const dangerZone = style({
   borderRadius: '8px',
   padding: '1.5rem',
   background: vars.colors.semantic.error['50'],
-  selectors: {
-    '& h3': {
-      color: vars.colors.semantic.error['700'],
-      marginBottom: '1rem',
-    },
-    '& p': {
-      color: vars.colors.semantic.error['600'],
-      marginBottom: '1rem',
-      fontSize: '0.875rem',
-    },
-  },
+});
+
+globalStyle(`${dangerZone} h3`, {
+  color: vars.colors.semantic.error['700'],
+  marginBottom: '1rem',
+});
+
+globalStyle(`${dangerZone} p`, {
+  color: vars.colors.semantic.error['600'],
+  marginBottom: '1rem',
+  fontSize: '0.875rem',
 });

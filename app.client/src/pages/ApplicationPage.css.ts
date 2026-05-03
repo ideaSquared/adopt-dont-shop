@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const container = style({
   maxWidth: '800px',
@@ -9,16 +9,16 @@ export const container = style({
 export const header = style({
   textAlign: 'center',
   marginBottom: '2rem',
-  selectors: {
-    '& h1': {
-      color: '#111827',
-      marginBottom: '0.5rem',
-    },
-    '& p': {
-      color: '#4b5563',
-      fontSize: '1.1rem',
-    },
-  },
+});
+
+globalStyle(`${header} h1`, {
+  color: '#111827',
+  marginBottom: '0.5rem',
+});
+
+globalStyle(`${header} p`, {
+  color: '#4b5563',
+  fontSize: '1.1rem',
 });
 
 export const loadingContainer = style({

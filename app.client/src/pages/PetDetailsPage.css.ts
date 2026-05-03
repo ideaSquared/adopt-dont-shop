@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
   maxWidth: '1200px',
@@ -91,23 +91,22 @@ export const petHeader = style({
   },
 });
 
-export const petTitle = style({
-  selectors: {
-    '& h1': {
-      fontSize: '2.5rem',
-      fontWeight: '700',
-      marginBottom: '0.5rem',
-      color: '#111827',
-    },
-    '& .subtitle': {
-      fontSize: '1.2rem',
-      color: '#6b7280',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      flexWrap: 'wrap',
-    },
-  },
+export const petTitle = style({});
+
+globalStyle(`${petTitle} h1`, {
+  fontSize: '2.5rem',
+  fontWeight: '700',
+  marginBottom: '0.5rem',
+  color: '#111827',
+});
+
+globalStyle(`${petTitle} .subtitle`, {
+  fontSize: '1.2rem',
+  color: '#6b7280',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  flexWrap: 'wrap',
 });
 
 export const statusSection = style({
@@ -128,49 +127,53 @@ export const mainContent = style({
   },
 });
 
-export const imageSection = style({
-  selectors: {
-    '& .primary-image': {
-      width: '100%',
-      height: '400px',
-      borderRadius: '12px',
-      overflow: 'hidden',
-      marginBottom: '1rem',
-      position: 'relative',
-    },
-    '& .primary-image img': {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
-    },
-    '& .thumbnail-grid': {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-      gap: '0.5rem',
-      maxHeight: '200px',
-      overflowY: 'auto',
-    },
-    '& .thumbnail': {
-      width: '80px',
-      height: '80px',
-      borderRadius: '8px',
-      overflow: 'hidden',
-      cursor: 'pointer',
-      border: '2px solid transparent',
-      transition: 'border-color 0.2s ease',
-    },
-    '& .thumbnail.active': {
-      borderColor: '#6366f1',
-    },
-    '& .thumbnail:hover': {
-      borderColor: '#e5e7eb',
-    },
-    '& .thumbnail img': {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
-    },
-  },
+export const imageSection = style({});
+
+globalStyle(`${imageSection} .primary-image`, {
+  width: '100%',
+  height: '400px',
+  borderRadius: '12px',
+  overflow: 'hidden',
+  marginBottom: '1rem',
+  position: 'relative',
+});
+
+globalStyle(`${imageSection} .primary-image img`, {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+});
+
+globalStyle(`${imageSection} .thumbnail-grid`, {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+  gap: '0.5rem',
+  maxHeight: '200px',
+  overflowY: 'auto',
+});
+
+globalStyle(`${imageSection} .thumbnail`, {
+  width: '80px',
+  height: '80px',
+  borderRadius: '8px',
+  overflow: 'hidden',
+  cursor: 'pointer',
+  border: '2px solid transparent',
+  transition: 'border-color 0.2s ease',
+});
+
+globalStyle(`${imageSection} .thumbnail.active`, {
+  borderColor: '#6366f1',
+});
+
+globalStyle(`${imageSection} .thumbnail:hover`, {
+  borderColor: '#e5e7eb',
+});
+
+globalStyle(`${imageSection} .thumbnail img`, {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
 });
 
 export const placeholderImage = style({
@@ -236,87 +239,94 @@ export const sidebar = style({
 
 export const infoCard = style({
   padding: '2rem',
-  selectors: {
-    '& h2': {
-      fontSize: '1.5rem',
-      fontWeight: '600',
-      marginBottom: '1.5rem',
-      color: '#111827',
-    },
-    '& .info-grid': {
-      display: 'grid',
-      gap: '1rem',
-    },
-    '& .info-item': {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '0.75rem 0',
-      borderBottom: '1px solid #e5e7eb',
-    },
-    '& .info-item:last-child': {
-      borderBottom: 'none',
-    },
-    '& .info-item .label': {
-      fontWeight: '500',
-      color: '#6b7280',
-    },
-    '& .info-item .value': {
-      fontWeight: '600',
-      color: '#111827',
-    },
-  },
+});
+
+globalStyle(`${infoCard} h2`, {
+  fontSize: '1.5rem',
+  fontWeight: '600',
+  marginBottom: '1.5rem',
+  color: '#111827',
+});
+
+globalStyle(`${infoCard} .info-grid`, {
+  display: 'grid',
+  gap: '1rem',
+});
+
+globalStyle(`${infoCard} .info-item`, {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '0.75rem 0',
+  borderBottom: '1px solid #e5e7eb',
+});
+
+globalStyle(`${infoCard} .info-item:last-child`, {
+  borderBottom: 'none',
+});
+
+globalStyle(`${infoCard} .info-item .label`, {
+  fontWeight: '500',
+  color: '#6b7280',
+});
+
+globalStyle(`${infoCard} .info-item .value`, {
+  fontWeight: '600',
+  color: '#111827',
 });
 
 export const actionCard = style({
   padding: '2rem',
   textAlign: 'center',
-  selectors: {
-    '& h3': {
-      fontSize: '1.25rem',
-      fontWeight: '600',
-      marginBottom: '1rem',
-      color: '#111827',
-    },
-    '& .rescue-info': {
-      background: '#f9fafb',
-      borderRadius: '8px',
-      padding: '1rem',
-      marginBottom: '1.5rem',
-    },
-    '& .rescue-info .rescue-name': {
-      fontWeight: '600',
-      color: '#111827',
-      marginBottom: '0.25rem',
-    },
-    '& .rescue-info .rescue-location': {
-      fontSize: '0.9rem',
-      color: '#6b7280',
-    },
-    '& .actions': {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1rem',
-    },
-  },
+});
+
+globalStyle(`${actionCard} h3`, {
+  fontSize: '1.25rem',
+  fontWeight: '600',
+  marginBottom: '1rem',
+  color: '#111827',
+});
+
+globalStyle(`${actionCard} .rescue-info`, {
+  background: '#f9fafb',
+  borderRadius: '8px',
+  padding: '1rem',
+  marginBottom: '1.5rem',
+});
+
+globalStyle(`${actionCard} .rescue-info .rescue-name`, {
+  fontWeight: '600',
+  color: '#111827',
+  marginBottom: '0.25rem',
+});
+
+globalStyle(`${actionCard} .rescue-info .rescue-location`, {
+  fontSize: '0.9rem',
+  color: '#6b7280',
+});
+
+globalStyle(`${actionCard} .actions`, {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '1rem',
 });
 
 export const descriptionCard = style({
   padding: '2rem',
   gridColumn: '1 / -1',
-  selectors: {
-    '& h2': {
-      fontSize: '1.5rem',
-      fontWeight: '600',
-      marginBottom: '1rem',
-      color: '#111827',
-    },
-    '& p': {
-      lineHeight: '1.6',
-      color: '#6b7280',
-      whiteSpace: 'pre-wrap',
-    },
-  },
+});
+
+globalStyle(`${descriptionCard} h2`, {
+  fontSize: '1.5rem',
+  fontWeight: '600',
+  marginBottom: '1rem',
+  color: '#111827',
+});
+
+globalStyle(`${descriptionCard} p`, {
+  lineHeight: '1.6',
+  color: '#6b7280',
+  whiteSpace: 'pre-wrap',
 });
 
 export const loadingContainer = style({
@@ -332,15 +342,15 @@ export const errorContainer = style({
   textAlign: 'center',
   padding: '3rem',
   color: '#ef4444',
-  selectors: {
-    '& h2': {
-      fontSize: '1.5rem',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      marginBottom: '2rem',
-    },
-  },
+});
+
+globalStyle(`${errorContainer} h2`, {
+  fontSize: '1.5rem',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${errorContainer} p`, {
+  marginBottom: '2rem',
 });
 
 export const contactButton = style({

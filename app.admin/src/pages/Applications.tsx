@@ -6,7 +6,7 @@ import { useApplications, useBulkUpdateApplications } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
 import { BulkConfirmationModal } from '../components/modals';
 import type { AdminApplication, ApplicationStatus } from '../services/applicationService';
-import styles from './Applications.css';
+import * as styles from './Applications.css';
 
 type BulkApplicationActionType = 'approve' | 'reject';
 

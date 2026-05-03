@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
 import { Modal, Button, Input } from '@adopt-dont-shop/lib.components';
 import type { AdminUser } from '@/types';
-import styles from './CreateSupportTicketModal.css';
+import * as styles from './CreateSupportTicketModal.css';
+
+type CreateSupportTicketModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  user: AdminUser | null;
+  onCreate: (data: {
+    customerId: string;
+    customerEmail: string;
+    customerName: string;
+    subject: string;
+    description: string;
+    category: string;
+    priority: string;
+  }) => Promise<void>;
+};
 
 export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> = ({
   isOpen,

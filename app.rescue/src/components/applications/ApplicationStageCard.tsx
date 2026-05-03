@@ -86,7 +86,9 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
     <div
       className={styles.cardContainer}
       onClick={handleCardClick}
-      onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
+      onKeyDown={e =>
+        (e.key === 'Enter' || e.key === ' ') && e.currentTarget === e.target && onClick()
+      }
       role="button"
       tabIndex={0}
     >

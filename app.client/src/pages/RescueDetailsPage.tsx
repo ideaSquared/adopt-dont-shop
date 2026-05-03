@@ -120,9 +120,9 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
 
   return (
     <div className={styles.pageContainer}>
-      <Button className={styles.backButton} as={Link} to='/' variant='outline' size='sm'>
+      <Link to='/' className={styles.backButton}>
         ← Back to Search
-      </Button>
+      </Link>
 
       <div className={styles.rescueHeader}>
         <h1>{rescue.name}</h1>

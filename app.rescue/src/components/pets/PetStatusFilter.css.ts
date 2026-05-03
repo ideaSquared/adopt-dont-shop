@@ -20,9 +20,6 @@ export const statusButton = recipe({
       outline: '2px solid #60a5fa',
       outlineOffset: '2px',
     },
-    ':focus:not(:focus-visible)': {
-      outline: 'none',
-    },
   },
   variants: {
     active: {

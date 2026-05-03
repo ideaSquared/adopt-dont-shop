@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const container = style({
   minHeight: 'calc(100vh - 200px)',
@@ -18,17 +18,17 @@ export const resetPasswordCard = style({
 export const header = style({
   textAlign: 'center',
   marginBottom: '2rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2rem',
-      marginBottom: '0.5rem',
-      color: '#111827',
-    },
-    '& p': {
-      color: '#6b7280',
-      lineHeight: '1.6',
-    },
-  },
+});
+
+globalStyle(`${header} h1`, {
+  fontSize: '2rem',
+  marginBottom: '0.5rem',
+  color: '#111827',
+});
+
+globalStyle(`${header} p`, {
+  color: '#6b7280',
+  lineHeight: '1.6',
 });
 
 export const form = style({
@@ -49,23 +49,24 @@ export const passwordRequirements = style({
   borderRadius: '8px',
   padding: '1rem',
   marginTop: '0.5rem',
-  selectors: {
-    '& h4': {
-      fontSize: '0.9rem',
-      color: '#111827',
-      margin: '0 0 0.5rem 0',
-    },
-    '& ul': {
-      margin: '0',
-      paddingLeft: '1.5rem',
-      listStyle: 'disc',
-    },
-    '& li': {
-      fontSize: '0.85rem',
-      color: '#6b7280',
-      lineHeight: '1.5',
-    },
-  },
+});
+
+globalStyle(`${passwordRequirements} h4`, {
+  fontSize: '0.9rem',
+  color: '#111827',
+  margin: '0 0 0.5rem 0',
+});
+
+globalStyle(`${passwordRequirements} ul`, {
+  margin: '0',
+  paddingLeft: '1.5rem',
+  listStyle: 'disc',
+});
+
+globalStyle(`${passwordRequirements} li`, {
+  fontSize: '0.85rem',
+  color: '#6b7280',
+  lineHeight: '1.5',
 });
 
 export const backToLoginLink = style({
@@ -86,21 +87,22 @@ export const styledAlert = style({
 
 export const successContainer = style({
   textAlign: 'center',
-  selectors: {
-    '& h2': {
-      fontSize: '1.5rem',
-      color: '#059669',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      color: '#6b7280',
-      lineHeight: '1.6',
-      marginBottom: '1.5rem',
-    },
-    '& .redirect-message': {
-      fontSize: '0.9rem',
-      color: '#9ca3af',
-      fontStyle: 'italic',
-    },
-  },
+});
+
+globalStyle(`${successContainer} h2`, {
+  fontSize: '1.5rem',
+  color: '#059669',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${successContainer} p`, {
+  color: '#6b7280',
+  lineHeight: '1.6',
+  marginBottom: '1.5rem',
+});
+
+globalStyle(`${successContainer} .redirect-message`, {
+  fontSize: '0.9rem',
+  color: '#9ca3af',
+  fontStyle: 'italic',
 });

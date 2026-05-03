@@ -27,12 +27,11 @@ export const emptyState = style({
   padding: '3rem',
   textAlign: 'center',
   gridColumn: '1 / -1',
-  selectors: {
-    '& .empty-icon': {
-      fontSize: '3rem',
-      marginBottom: '1rem',
-    },
-  },
+});
+
+globalStyle(`${emptyState} .empty-icon`, {
+  fontSize: '3rem',
+  marginBottom: '1rem',
 });
 
 globalStyle(`${emptyState} h3`, {

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
@@ -77,13 +77,12 @@ export const statusBadge = recipe({
 
 export const applicationDetails = style({
   marginTop: '1rem',
-  selectors: {
-    '& p': {
-      margin: '0.5rem 0',
-      fontSize: '0.875rem',
-      color: '#6b7280',
-    },
-  },
+});
+
+globalStyle(`${applicationDetails} p`, {
+  margin: '0.5rem 0',
+  fontSize: '0.875rem',
+  color: '#6b7280',
 });
 
 export const actionButtons = style({
@@ -95,14 +94,14 @@ export const actionButtons = style({
 export const emptyState = style({
   textAlign: 'center',
   padding: '4rem 2rem',
-  selectors: {
-    '& h2': {
-      color: '#6b7280',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      color: '#6b7280',
-      marginBottom: '2rem',
-    },
-  },
+});
+
+globalStyle(`${emptyState} h2`, {
+  color: '#6b7280',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${emptyState} p`, {
+  color: '#6b7280',
+  marginBottom: '2rem',
 });

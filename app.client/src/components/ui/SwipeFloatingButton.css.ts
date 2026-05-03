@@ -1,4 +1,4 @@
-import { keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const bounce = keyframes({
@@ -50,51 +50,53 @@ export const floatingContainer = recipe({
   defaultVariants: { show: false },
 });
 
-export const calloutBubble = recipe({
-  base: {
-    background: 'white',
-    padding: '1rem 1.5rem',
-    borderRadius: '20px',
-    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
-    position: 'relative',
-    maxWidth: '200px',
-    animationName: slideUp,
-    animationDuration: '0.3s',
-    animationTimingFunction: 'ease-out',
-    animationDelay: '0.2s',
-    animationFillMode: 'both',
-    '::after': {
-      content: '""',
-      position: 'absolute',
-      bottom: '-8px',
-      right: '2rem',
-      width: 0,
-      height: 0,
-      borderLeft: '8px solid transparent',
-      borderRight: '8px solid transparent',
-      borderTop: '8px solid white',
-    },
-    selectors: {
-      '& h4': {
-        fontSize: '0.875rem',
-        fontWeight: 600,
-        margin: '0 0 0.5rem 0',
-        color: '#333',
-      },
-      '& p': {
-        fontSize: '0.75rem',
-        margin: 0,
-        color: '#666',
-        lineHeight: 1.4,
-      },
-    },
-    '@media': {
-      '(max-width: 768px)': {
-        maxWidth: '160px',
-        padding: '0.875rem 1.25rem',
-      },
+export const calloutBubbleBase = style({
+  background: 'white',
+  padding: '1rem 1.5rem',
+  borderRadius: '20px',
+  boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+  position: 'relative',
+  maxWidth: '200px',
+  animationName: slideUp,
+  animationDuration: '0.3s',
+  animationTimingFunction: 'ease-out',
+  animationDelay: '0.2s',
+  animationFillMode: 'both',
+  '::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: '-8px',
+    right: '2rem',
+    width: 0,
+    height: 0,
+    borderLeft: '8px solid transparent',
+    borderRight: '8px solid transparent',
+    borderTop: '8px solid white',
+  },
+  '@media': {
+    '(max-width: 768px)': {
+      maxWidth: '160px',
+      padding: '0.875rem 1.25rem',
     },
   },
+});
+
+globalStyle(`${calloutBubbleBase} h4`, {
+  fontSize: '0.875rem',
+  fontWeight: 600,
+  margin: '0 0 0.5rem 0',
+  color: '#333',
+});
+
+globalStyle(`${calloutBubbleBase} p`, {
+  fontSize: '0.75rem',
+  margin: 0,
+  color: '#666',
+  lineHeight: 1.4,
+});
+
+export const calloutBubble = recipe({
+  base: [calloutBubbleBase],
   variants: {
     show: {
       true: {
@@ -149,20 +151,22 @@ export const floatingButton = style({
     transform: 'scale(1.1)',
     boxShadow: '0 12px 35px rgba(255, 64, 129, 0.4)',
   },
-  selectors: {
-    '& .icon': {
-      fontSize: '1.5rem',
-    },
-  },
   '@media': {
     '(max-width: 768px)': {
       width: '56px',
       height: '56px',
-      selectors: {
-        '& .icon': {
-          fontSize: '1.375rem',
-        },
-      },
+    },
+  },
+});
+
+globalStyle(`${floatingButton} .icon`, {
+  fontSize: '1.5rem',
+});
+
+globalStyle(`${floatingButton} .icon`, {
+  '@media': {
+    '(max-width: 768px)': {
+      fontSize: '1.375rem',
     },
   },
 });

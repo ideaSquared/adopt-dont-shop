@@ -3,7 +3,7 @@ import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { FiAlertCircle, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import type { AdminRescue, RescueVerificationPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
-import styles from './RescueVerificationModal.css';
+import * as styles from './RescueVerificationModal.css';
 
 type VerificationAction = 'approve' | 'reject';
 

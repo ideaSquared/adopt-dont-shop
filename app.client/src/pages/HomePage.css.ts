@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const container = style({
   maxWidth: '1200px',
@@ -13,19 +13,18 @@ export const container = style({
 
 export const section = style({
   padding: '4rem 0',
-  selectors: {
-    '& h2': {
-      textAlign: 'center',
-      fontSize: '2.5rem',
-      marginBottom: '3rem',
-      color: '#111827',
-    },
-  },
   '@media': {
     '(max-width: 768px)': {
       padding: '3rem 0',
     },
   },
+});
+
+globalStyle(`${section} h2`, {
+  textAlign: 'center',
+  fontSize: '2.5rem',
+  marginBottom: '3rem',
+  color: '#111827',
 });
 
 export const petGrid = style({
@@ -44,33 +43,38 @@ export const petGrid = style({
 export const statsSection = style({
   backgroundColor: '#f9fafb',
   padding: '4rem 0',
-  selectors: {
-    '& .stats-grid': {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '2rem',
-      textAlign: 'center',
-    },
-    '& .stat-item h3': {
-      fontSize: '3rem',
-      color: '#6366f1',
-      marginBottom: '0.5rem',
-    },
-    '& .stat-item p': {
-      fontSize: '1.25rem',
-      color: '#6b7280',
-    },
-  },
+});
+
+globalStyle(`${statsSection} .stats-grid`, {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+  gap: '2rem',
+  textAlign: 'center',
+});
+
+globalStyle(`${statsSection} .stat-item h3`, {
+  fontSize: '3rem',
+  color: '#6366f1',
+  marginBottom: '0.5rem',
+});
+
+globalStyle(`${statsSection} .stat-item p`, {
+  fontSize: '1.25rem',
+  color: '#6b7280',
+});
+
+globalStyle(`${statsSection} .stat-item h3`, {
   '@media': {
     '(max-width: 768px)': {
-      selectors: {
-        '& .stat-item h3': {
-          fontSize: '2rem',
-        },
-        '& .stat-item p': {
-          fontSize: '1rem',
-        },
-      },
+      fontSize: '2rem',
+    },
+  },
+});
+
+globalStyle(`${statsSection} .stat-item p`, {
+  '@media': {
+    '(max-width: 768px)': {
+      fontSize: '1rem',
     },
   },
 });
@@ -80,19 +84,19 @@ export const ctaSection = style({
   color: 'white',
   padding: '4rem 0',
   textAlign: 'center',
-  selectors: {
-    '& h2': {
-      color: 'white',
-      marginBottom: '1rem',
-    },
-    '& p': {
-      fontSize: '1.25rem',
-      marginBottom: '2rem',
-      maxWidth: '500px',
-      marginLeft: 'auto',
-      marginRight: 'auto',
-    },
-  },
+});
+
+globalStyle(`${ctaSection} h2`, {
+  color: 'white',
+  marginBottom: '1rem',
+});
+
+globalStyle(`${ctaSection} p`, {
+  fontSize: '1.25rem',
+  marginBottom: '2rem',
+  maxWidth: '500px',
+  marginLeft: 'auto',
+  marginRight: 'auto',
 });
 
 export const loadingContainer = style({

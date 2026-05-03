@@ -4,7 +4,7 @@ import { FiMail, FiAlertCircle, FiFileText } from 'react-icons/fi';
 import clsx from 'clsx';
 import type { AdminRescue, RescueEmailPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
-import styles from './SendEmailModal.css';
+import * as styles from './SendEmailModal.css';
 
 type SendEmailModalProps = {
   isOpen: boolean;

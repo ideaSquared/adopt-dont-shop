@@ -28,7 +28,7 @@ import {
   Select,
 } from '../components/ui';
 import { usePlatformMetrics, useDashboardAnalytics } from '../hooks';
-import styles from './Analytics.css';
+import * as styles from './Analytics.css';
 
 const PIE_COLORS = ['#667eea', '#f59e0b', '#ec4899', '#14b8a6', '#8b5cf6'];
 

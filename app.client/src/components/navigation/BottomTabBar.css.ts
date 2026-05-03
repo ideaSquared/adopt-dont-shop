@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -34,29 +34,30 @@ export const tabItem = style({
   display: 'flex',
 });
 
-export const tabLink = recipe({
-  base: {
-    flex: 1,
-    display: 'inline-flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: vars.spacing['0.5'],
-    padding: `${vars.spacing['2']} ${vars.spacing['1']}`,
-    fontSize: vars.typography.size.xs,
-    textDecoration: 'none',
-    position: 'relative',
-    minHeight: '56px',
-    ':focus-visible': {
-      outline: `2px solid ${vars.border.color.focus}`,
-      outlineOffset: '-2px',
-    },
-    selectors: {
-      '& svg': {
-        fontSize: '1.5rem',
-      },
-    },
+export const tabLinkBase = style({
+  flex: 1,
+  display: 'inline-flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: vars.spacing['0.5'],
+  padding: `${vars.spacing['2']} ${vars.spacing['1']}`,
+  fontSize: vars.typography.size.xs,
+  textDecoration: 'none',
+  position: 'relative',
+  minHeight: '56px',
+  ':focus-visible': {
+    outline: `2px solid ${vars.border.color.focus}`,
+    outlineOffset: '-2px',
   },
+});
+
+globalStyle(`${tabLinkBase} svg`, {
+  fontSize: '1.5rem',
+});
+
+export const tabLink = recipe({
+  base: [tabLinkBase],
   variants: {
     active: {
       true: {

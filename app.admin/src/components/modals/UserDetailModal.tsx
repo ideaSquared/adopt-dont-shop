@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal } from '@adopt-dont-shop/lib.components';
 import type { AdminUser } from '@/types';
 import { FiMail, FiPhone, FiCalendar, FiClock, FiUser, FiShield } from 'react-icons/fi';
-import styles from './UserDetailModal.css';
+import * as styles from './UserDetailModal.css';
 
 type UserDetailModalProps = {
   isOpen: boolean;

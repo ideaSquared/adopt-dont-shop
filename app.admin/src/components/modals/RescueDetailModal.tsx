@@ -23,7 +23,7 @@ import type {
   InviteStaffPayload,
 } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
-import styles from './RescueDetailModal.css';
+import * as styles from './RescueDetailModal.css';
 
 type RescueDetailModalProps = {
   rescueId: string;

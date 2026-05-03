@@ -1,4 +1,4 @@
-import { keyframes, style } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const fadeIn = keyframes({
@@ -84,12 +84,11 @@ export const closeButton = style({
     background: '#f5f5f5',
     color: '#666',
   },
-  selectors: {
-    '& svg': {
-      width: '24px',
-      height: '24px',
-    },
-  },
+});
+
+globalStyle(`${closeButton} svg`, {
+  width: '24px',
+  height: '24px',
 });
 
 export const iconContainer = style({
@@ -146,28 +145,30 @@ export const feature = style({
   padding: '0.75rem',
   background: '#f8f9fa',
   borderRadius: '12px',
-  selectors: {
-    '& .icon': {
-      fontSize: '1.5rem',
-      color: '#ff4081',
-      flexShrink: 0,
-    },
-    '& .content': {
-      flex: 1,
-    },
-    '& .title': {
-      fontWeight: 600,
-      color: '#333',
-      margin: '0 0 0.25rem 0',
-      fontSize: '0.9rem',
-    },
-    '& .desc': {
-      color: '#666',
-      margin: 0,
-      fontSize: '0.8rem',
-      lineHeight: 1.3,
-    },
-  },
+});
+
+globalStyle(`${feature} .icon`, {
+  fontSize: '1.5rem',
+  color: '#ff4081',
+  flexShrink: 0,
+});
+
+globalStyle(`${feature} .content`, {
+  flex: 1,
+});
+
+globalStyle(`${feature} .title`, {
+  fontWeight: 600,
+  color: '#333',
+  margin: '0 0 0.25rem 0',
+  fontSize: '0.9rem',
+});
+
+globalStyle(`${feature} .desc`, {
+  color: '#666',
+  margin: 0,
+  fontSize: '0.8rem',
+  lineHeight: 1.3,
 });
 
 export const buttonContainer = style({

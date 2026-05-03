@@ -43,7 +43,7 @@ export interface DataTableProps<T> {
 
 const SKELETON_ROW_COUNT = 5;
 
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   columns,
   data,
   loading = false,
@@ -58,7 +58,7 @@ export function DataTable<T extends Record<string, unknown>>({
   selectable = false,
   selectedRows = new Set(),
   onSelectionChange,
-  getRowId = row => (row.id as string) || String(Math.random()),
+  getRowId = (_row: T) => String(Math.random()),
 }: DataTableProps<T>) {
   const [localSort, setLocalSort] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(
     null

@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
@@ -14,16 +14,16 @@ export const container = style({
 
 export const header = style({
   marginBottom: '2rem',
-  selectors: {
-    '& h1': {
-      fontSize: '2rem',
-      color: '#111827',
-      marginBottom: '0.5rem',
-    },
-    '& p': {
-      color: '#6b7280',
-    },
-  },
+});
+
+globalStyle(`${header} h1`, {
+  fontSize: '2rem',
+  color: '#111827',
+  marginBottom: '0.5rem',
+});
+
+globalStyle(`${header} p`, {
+  color: '#6b7280',
 });
 
 export const section = style({

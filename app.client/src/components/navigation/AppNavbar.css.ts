@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
@@ -66,31 +66,32 @@ export const rightSlot = style({
   marginLeft: 'auto',
 });
 
-export const iconLinkAnchor = recipe({
-  base: {
-    position: 'relative',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '40px',
-    height: '40px',
-    borderRadius: vars.border.radius.md,
-    color: '#fff',
-    textDecoration: 'none',
-    transition: `background ${vars.transitions.fast}`,
-    ':hover': {
-      background: 'rgba(255, 255, 255, 0.12)',
-    },
-    ':focus-visible': {
-      outline: '2px solid rgba(255, 255, 255, 0.8)',
-      outlineOffset: '2px',
-    },
-    selectors: {
-      '& svg': {
-        fontSize: '1.375rem',
-      },
-    },
+export const iconLinkAnchorBase = style({
+  position: 'relative',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '40px',
+  height: '40px',
+  borderRadius: vars.border.radius.md,
+  color: '#fff',
+  textDecoration: 'none',
+  transition: `background ${vars.transitions.fast}`,
+  ':hover': {
+    background: 'rgba(255, 255, 255, 0.12)',
   },
+  ':focus-visible': {
+    outline: '2px solid rgba(255, 255, 255, 0.8)',
+    outlineOffset: '2px',
+  },
+});
+
+globalStyle(`${iconLinkAnchorBase} svg`, {
+  fontSize: '1.375rem',
+});
+
+export const iconLinkAnchor = recipe({
+  base: [iconLinkAnchorBase],
   variants: {
     active: {
       true: {
@@ -109,19 +110,18 @@ export const badgeOverlay = style({
   top: '-2px',
   right: '-2px',
   pointerEvents: 'none',
-  selectors: {
-    "& span[role='status']": {
-      minWidth: '18px',
-      minHeight: '18px',
-      padding: '0 5px',
-      fontSize: '11px',
-      fontWeight: 800,
-      lineHeight: 1,
-      letterSpacing: '0.02em',
-      background: vars.colors.semantic.error['600'],
-      color: vars.text.inverse,
-      border: `2px solid ${vars.colors.primary['700']}`,
-      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.25)',
-    },
-  },
+});
+
+globalStyle(`${badgeOverlay} span[role='status']`, {
+  minWidth: '18px',
+  minHeight: '18px',
+  padding: '0 5px',
+  fontSize: '11px',
+  fontWeight: 800,
+  lineHeight: 1,
+  letterSpacing: '0.02em',
+  background: vars.colors.semantic.error['600'],
+  color: vars.text.inverse,
+  border: `2px solid ${vars.colors.primary['700']}`,
+  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.25)',
 });

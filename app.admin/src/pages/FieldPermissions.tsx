@@ -21,7 +21,7 @@ import {
   CardContent,
 } from '../components/ui';
 import { Skeleton } from '../components/ui/Skeleton';
-import styles from './FieldPermissions.css';
+import * as styles from './FieldPermissions.css';
 
 const RESOURCES: ReadonlyArray<FieldPermissionResource> = [
   'users',

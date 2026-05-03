@@ -6,7 +6,7 @@ import { usePets, useBulkUpdatePets } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
 import { BulkConfirmationModal } from '../components/modals';
 import type { AdminPet, PetStatus } from '../services/petService';
-import styles from './Pets.css';
+import * as styles from './Pets.css';
 
 type BulkPetActionType = 'publish' | 'unpublish' | 'archive';
 

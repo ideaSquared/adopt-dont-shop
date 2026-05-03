@@ -16,7 +16,7 @@ import {
   CardTitle,
   CardContent,
 } from '../components/ui';
-import styles from './Configuration.css';
+import * as styles from './Configuration.css';
 
 const GATE_METADATA: Record<string, { name: string; description: string }> = {
   [KNOWN_GATES.ENABLE_REAL_TIME_MESSAGING]: {

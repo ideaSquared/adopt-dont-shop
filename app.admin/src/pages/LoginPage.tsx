@@ -1,6 +1,6 @@
 import { AuthLayout, LoginForm } from '@adopt-dont-shop/lib.auth';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import styles from './LoginPage.css';
+import * as styles from './LoginPage.css';
 
 export const LoginPage = () => {
   const navigate = useNavigate();

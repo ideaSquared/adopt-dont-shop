@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FiX } from 'react-icons/fi';
 import clsx from 'clsx';
-import styles from './ActionSelectionModal.css';
+import * as styles from './ActionSelectionModal.css';
 
 export type ActionType =
   | 'no_action'
