@@ -113,9 +113,7 @@ export class InvitationService {
           expirationDays: 7,
         });
 
-        logger.info(
-          `Staff invitation email sent for ${email} for rescue ${rescueId}. URL: ${invitationUrl}`
-        );
+        logger.info('Staff invitation email sent', { email, rescueId });
       } catch (emailError) {
         logger.error('Failed to send invitation email:', emailError);
         // Continue with the process - invitation is created even if email fails

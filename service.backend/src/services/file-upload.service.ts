@@ -16,7 +16,7 @@ import DOMPurify from 'isomorphic-dompurify';
 const UPLOAD_CONFIG = {
   maxFileSize: config.storage.local.maxFileSize,
   allowedMimeTypes: {
-    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
     documents: [
       'application/pdf',
       'application/msword',
@@ -67,7 +67,6 @@ const createFileFilter = (allowedTypes: string[] = []) => {
         '.png',
         '.gif',
         '.webp',
-        '.svg',
         '.pdf',
         '.doc',
         '.docx',
@@ -359,8 +358,17 @@ export class FileUploadService {
    * Validate file before upload
    */
   private static async validateFile(file: Express.Multer.File): Promise<void> {
+    const deleteFile = async () => {
+      try {
+        await fs.promises.unlink(file.path);
+      } catch {
+        /* best-effort cleanup */
+      }
+    };
+
     // Check file size
     if (file.size > UPLOAD_CONFIG.maxFileSize) {
+      await deleteFile();
       throw new Error(
         `File size ${file.size} exceeds maximum allowed size ${UPLOAD_CONFIG.maxFileSize}`
       );
@@ -375,22 +383,23 @@ export class FileUploadService {
     ];
 
     if (!allAllowedTypes.includes(file.mimetype)) {
+      await deleteFile();
       throw new Error(`File type ${file.mimetype} is not allowed`);
     }
 
-    // Validate file content matches MIME type (magic byte checking)
-    await this.validateFileContent(file);
-
-    // Sanitize SVG files to prevent XSS
-    if (file.mimetype === 'image/svg+xml') {
-      await this.sanitizeSvgFile(file);
+    // Validate file content matches declared MIME type (magic-byte check).
+    // On mismatch the file is deleted to prevent polyglot payloads lingering on disk.
+    try {
+      await this.validateFileContent(file);
+    } catch (error) {
+      await deleteFile();
+      throw error;
     }
 
     // Scan for malware
     const isSafe = await this.scanForMalware(file.path);
     if (!isSafe) {
-      // Delete the potentially malicious file
-      await fs.promises.unlink(file.path);
+      await deleteFile();
       throw new Error('File failed malware scan and has been removed');
     }
   }
