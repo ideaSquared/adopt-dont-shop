@@ -162,7 +162,7 @@ export class SocketHandlers {
    */
   private async requireChatAccess(socket: AuthenticatedSocket, chatId: string): Promise<void> {
     try {
-      await ChatService.getChatById(chatId, socket.userId!);
+      await ChatService.getChatById(chatId, socket.userId!, false);
     } catch (error) {
       logger.warn(`Access denied to chat ${chatId} for user ${socket.userId}`);
       throw new Error('Access denied to chat');

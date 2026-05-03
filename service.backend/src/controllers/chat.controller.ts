@@ -981,7 +981,7 @@ export class ChatController {
       }
 
       // Verify user has access to this conversation by checking if they're a participant
-      const chat = await ChatService.getChatById(conversationId, userId);
+      const chat = await ChatService.getChatById(conversationId, userId, false);
       if (!chat) {
         return res.status(404).json({
           error: 'Conversation not found',
