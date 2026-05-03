@@ -1,4 +1,4 @@
-import { Includeable, Op, Order, WhereOptions } from 'sequelize';
+import { col, fn, Includeable, Op, Order, WhereOptions } from 'sequelize';
 import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import ApplicationAnswer from '../models/ApplicationAnswer';
@@ -19,6 +19,7 @@ import ApplicationStatusTransition from '../models/ApplicationStatusTransition';
 import Breed from '../models/Breed';
 import Pet from '../models/Pet';
 import User, { UserType } from '../models/User';
+import sequelize from '../sequelize';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import ApplicationTimelineService from './applicationTimeline.service';
@@ -76,159 +77,173 @@ export class ApplicationService {
     const startTime = Date.now();
 
     try {
-      // Validate user exists
+      // Validate user exists (outside transaction — read-only, no race risk)
       const user = await User.findByPk(userId);
       if (!user) {
         throw new Error('User not found');
       }
 
-      // Validate pet exists and is available
-      const pet = await Pet.findByPk(applicationData.petId);
-      if (!pet) {
-        throw new Error('Pet not found');
-      }
+      return await sequelize.transaction(async t => {
+        // Lock the pet row to prevent concurrent applications racing on status
+        const pet = await Pet.findByPk(applicationData.petId, {
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+        });
+        if (!pet) {
+          throw new Error('Pet not found');
+        }
 
-      if (pet.status !== 'available') {
-        throw new Error('Pet is not available for adoption');
-      }
+        if (pet.status !== 'available') {
+          throw new Error('Pet is not available for adoption');
+        }
 
-      // Check for existing active application for this pet by this user
-      const existingApplication = await Application.findOne({
-        where: {
-          userId: userId,
-          petId: applicationData.petId,
-          status: {
-            [Op.notIn]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
+        // Check for existing active application for this pet by this user
+        const existingApplication = await Application.findOne({
+          where: {
+            userId: userId,
+            petId: applicationData.petId,
+            status: {
+              [Op.notIn]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
+            },
           },
-        },
-      });
+          transaction: t,
+        });
 
-      if (existingApplication) {
-        throw new Error('You already have an active application for this pet');
-      }
+        if (existingApplication) {
+          throw new Error('You already have an active application for this pet');
+        }
 
-      // Validate answers against required questions
-      const validationResult = await this.validateApplicationAnswers(
-        applicationData.answers,
-        pet.rescueId
-      );
-
-      if (!validationResult.is_valid) {
-        throw new Error(
-          `Application validation failed: ${validationResult.errors.map(e => e.message).join(', ')}`
+        // Validate answers against required questions
+        const validationResult = await this.validateApplicationAnswers(
+          applicationData.answers,
+          pet.rescueId
         );
-      }
 
-      // Create application — answers and references are persisted to
-      // their typed tables after creation (plan 2.1).
-      const application = await Application.create({
-        userId: userId,
-        petId: applicationData.petId,
-        rescueId: pet.rescueId,
-        status: ApplicationStatus.SUBMITTED,
-        priority: applicationData.priority || ApplicationPriority.NORMAL,
-        documents: [],
-        notes: applicationData.notes,
-        tags: applicationData.tags || [],
-      });
+        if (!validationResult.is_valid) {
+          throw new Error(
+            `Application validation failed: ${validationResult.errors.map(e => e.message).join(', ')}`
+          );
+        }
 
-      // Persist answers to the application_answers typed table — one
-      // row per (application, question_key). The legacy JSONB shape
-      // becomes a row-per-key projection.
-      const incomingAnswers = applicationData.answers ?? {};
-      const answerEntries = Object.entries(incomingAnswers);
-      if (answerEntries.length > 0) {
-        await ApplicationAnswer.bulkCreate(
-          answerEntries.map(([question_key, answer_value]) => ({
-            application_id: application.applicationId,
-            question_key,
-            answer_value: answer_value as JsonValue,
-          }))
+        // Create application — answers and references are persisted to
+        // their typed tables after creation (plan 2.1).
+        const application = await Application.create(
+          {
+            userId: userId,
+            petId: applicationData.petId,
+            rescueId: pet.rescueId,
+            status: ApplicationStatus.SUBMITTED,
+            priority: applicationData.priority || ApplicationPriority.NORMAL,
+            documents: [],
+            notes: applicationData.notes,
+            tags: applicationData.tags || [],
+          },
+          { transaction: t }
         );
-      }
 
-      const incomingReferences = applicationData.references ?? [];
-      if (incomingReferences.length > 0) {
-        await ApplicationReferenceModel.bulkCreate(
-          incomingReferences.map((ref, index) => ({
-            application_id: application.applicationId,
-            // Preserve the caller-supplied id (legacy "ref-N" or any
-            // other shape) for backwards compatibility with the
-            // ID-based update path below.
-            legacy_id: ref.id || `ref-${index}`,
-            name: ref.name,
-            relationship: ref.relationship,
-            phone: ref.phone,
-            email: ref.email ?? null,
-            status: ApplicationReferenceStatus.PENDING,
-            contacted_at: null,
-            contacted_by: null,
-            notes: null,
-            order_index: index,
-          }))
+        // Persist answers to the application_answers typed table — one
+        // row per (application, question_key). The legacy JSONB shape
+        // becomes a row-per-key projection.
+        const incomingAnswers = applicationData.answers ?? {};
+        const answerEntries = Object.entries(incomingAnswers);
+        if (answerEntries.length > 0) {
+          await ApplicationAnswer.bulkCreate(
+            answerEntries.map(([question_key, answer_value]) => ({
+              application_id: application.applicationId,
+              question_key,
+              answer_value: answer_value as JsonValue,
+            })),
+            { transaction: t }
+          );
+        }
+
+        const incomingReferences = applicationData.references ?? [];
+        if (incomingReferences.length > 0) {
+          await ApplicationReferenceModel.bulkCreate(
+            incomingReferences.map((ref, index) => ({
+              application_id: application.applicationId,
+              // Preserve the caller-supplied id (legacy "ref-N" or any
+              // other shape) for backwards compatibility with the
+              // ID-based update path below.
+              legacy_id: ref.id || `ref-${index}`,
+              name: ref.name,
+              relationship: ref.relationship,
+              phone: ref.phone,
+              email: ref.email ?? null,
+              status: ApplicationReferenceStatus.PENDING,
+              contacted_at: null,
+              contacted_by: null,
+              notes: null,
+              order_index: index,
+            })),
+            { transaction: t }
+          );
+        }
+
+        // Record the initial transition (from_status = null encodes
+        // "initial state assigned at creation"). The trigger / hook will
+        // re-set applications.status to SUBMITTED — already SUBMITTED, so
+        // a no-op in effect, but the row keeps the canonical history.
+        await ApplicationStatusTransition.create(
+          {
+            applicationId: application.applicationId,
+            fromStatus: null,
+            toStatus: ApplicationStatus.SUBMITTED,
+            transitionedBy: userId,
+            reason: 'Initial submission',
+          },
+          { transaction: t }
         );
-      }
 
-      // Record the initial transition (from_status = null encodes
-      // "initial state assigned at creation"). The trigger / hook will
-      // re-set applications.status to SUBMITTED — already SUBMITTED, so
-      // a no-op in effect, but the row keeps the canonical history.
-      await ApplicationStatusTransition.create({
-        applicationId: application.applicationId,
-        fromStatus: null,
-        toStatus: ApplicationStatus.SUBMITTED,
-        transitionedBy: userId,
-        reason: 'Initial submission',
+        // Create initial timeline event
+        await ApplicationTimelineService.createEvent({
+          application_id: application.applicationId,
+          event_type: TimelineEventType.STATUS_UPDATE,
+          title: 'Application Submitted',
+          description: 'Application was submitted for review',
+          created_by: userId,
+          created_by_system: false,
+          new_status: ApplicationStatus.SUBMITTED,
+          metadata: {
+            pet_id: applicationData.petId,
+            rescue_id: pet.rescueId,
+            priority: application.priority,
+            submission_date: new Date(),
+          },
+        });
+
+        // Log creation
+        await AuditLogService.log({
+          action: 'CREATE',
+          entity: 'Application',
+          entityId: application.applicationId,
+          details: {
+            pet_id: applicationData.petId,
+            rescue_id: pet.rescueId,
+            priority: application.priority,
+          },
+          userId,
+        });
+
+        loggerHelpers.logBusiness(
+          'Application Created',
+          {
+            applicationId: application.applicationId,
+            petId: application.petId,
+            userId: application.userId,
+            createdBy: userId,
+            duration: Date.now() - startTime,
+          },
+          userId
+        );
+
+        // Project the typed answer rows back onto the wire shape so
+        // callers continue to see `answers` as a JsonObject (plan 2.1).
+        return {
+          ...(application.toJSON() as ApplicationData),
+          answers: incomingAnswers,
+        };
       });
-
-      // Create initial timeline event
-      await ApplicationTimelineService.createEvent({
-        application_id: application.applicationId,
-        event_type: TimelineEventType.STATUS_UPDATE,
-        title: 'Application Submitted',
-        description: 'Application was submitted for review',
-        created_by: userId,
-        created_by_system: false,
-        new_status: ApplicationStatus.SUBMITTED,
-        metadata: {
-          pet_id: applicationData.petId,
-          rescue_id: pet.rescueId,
-          priority: application.priority,
-          submission_date: new Date(),
-        },
-      });
-
-      // Log creation
-      await AuditLogService.log({
-        action: 'CREATE',
-        entity: 'Application',
-        entityId: application.applicationId,
-        details: {
-          pet_id: applicationData.petId,
-          rescue_id: pet.rescueId,
-          priority: application.priority,
-        },
-        userId,
-      });
-
-      loggerHelpers.logBusiness(
-        'Application Created',
-        {
-          applicationId: application.applicationId,
-          petId: application.petId,
-          userId: application.userId,
-          createdBy: userId,
-          duration: Date.now() - startTime,
-        },
-        userId
-      );
-
-      // Project the typed answer rows back onto the wire shape so
-      // callers continue to see `answers` as a JsonObject (plan 2.1).
-      return {
-        ...(application.toJSON() as ApplicationData),
-        answers: incomingAnswers,
-      };
     } catch (error) {
       logger.error('Failed to create application:', {
         error: error instanceof Error ? error.message : String(error),
@@ -1432,15 +1447,18 @@ export class ApplicationService {
           ? ((applicationsThisMonth - applicationsLastMonth) / applicationsLastMonth) * 100
           : 0;
 
-      // Get average score
-      const applications = await Application.findAll({
+      // Get average score using a single aggregate query
+      const stats = (await Application.findOne({
         where: { ...whereConditions, score: { [Op.not]: null } },
-        attributes: ['score'],
-      });
-      const averageScore =
-        applications.length > 0
-          ? applications.reduce((sum, app) => sum + (app.score || 0), 0) / applications.length
-          : 0;
+        attributes: [
+          [fn('AVG', col('score')), 'avg'],
+          [fn('MIN', col('score')), 'min'],
+          [fn('MAX', col('score')), 'max'],
+          [fn('COUNT', col('score')), 'count'],
+        ],
+        raw: true,
+      })) as { avg: string | null; min: string | null; max: string | null; count: string } | null;
+      const averageScore = stats?.avg != null ? parseFloat(stats.avg) : 0;
 
       // Get pending applications
       const pendingApplications = await Application.count({

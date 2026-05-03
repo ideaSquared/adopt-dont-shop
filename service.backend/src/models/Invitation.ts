@@ -57,6 +57,7 @@ Invitation.init(
     token: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
     },
     rescue_id: {
       type: getUuidType(),
@@ -120,12 +121,21 @@ Invitation.init(
     underscored: true,
     indexes: [
       {
+        unique: true,
+        fields: ['token'],
+        name: 'invitations_token_unique',
+      },
+      {
         fields: ['rescue_id'],
         name: 'invitations_rescue_id_idx',
       },
       {
         fields: ['user_id'],
         name: 'invitations_user_id_idx',
+      },
+      {
+        fields: ['email'],
+        name: 'invitations_email_idx',
       },
       {
         fields: ['invited_by'],

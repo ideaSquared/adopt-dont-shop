@@ -63,12 +63,23 @@ export class AdminController {
         sortOrder = 'DESC',
       } = req.query;
 
+      const allowedSortBy = ['email', 'firstName', 'lastName', 'createdAt', 'status'];
+      const safeSortBy = allowedSortBy.includes(sortBy as string)
+        ? (sortBy as string)
+        : 'createdAt';
+      const safeSortOrder =
+        (sortOrder as string)?.toUpperCase() === 'ASC' ? ('ASC' as const) : ('DESC' as const);
+
+      const parsedLimit = parseInt(limit as string);
+
       const result = await AdminService.getUsers({
         search: search as string,
         status: status as UserStatus,
         userType: role as UserType,
         page: parseInt(page as string),
-        limit: parseInt(limit as string),
+        limit: parsedLimit,
+        sortBy: safeSortBy,
+        sortOrder: safeSortOrder,
       });
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
@@ -78,7 +89,7 @@ export class AdminController {
         data: result.users,
         pagination: {
           page: result.page,
-          limit: 20,
+          limit: parsedLimit,
           total: result.total,
           pages: result.totalPages,
         },
@@ -862,16 +873,27 @@ export class AdminController {
         _verificationStatus, // Prefix with underscore to indicate intentionally unused
         page = 1,
         limit = 20,
-        _sortBy = 'createdAt', // Prefix with underscore to indicate intentionally unused
-        _sortOrder = 'DESC', // Prefix with underscore to indicate intentionally unused
+        sortBy = 'createdAt',
+        sortOrder = 'DESC',
       } = req.query;
+
+      const allowedSortBy = ['email', 'firstName', 'lastName', 'createdAt', 'status'];
+      const safeSortBy = allowedSortBy.includes(sortBy as string)
+        ? (sortBy as string)
+        : 'createdAt';
+      const safeSortOrder =
+        (sortOrder as string)?.toUpperCase() === 'ASC' ? ('ASC' as const) : ('DESC' as const);
+
+      const parsedLimit = parseInt(limit as string);
 
       const result = await AdminService.getUsers({
         search: search as string,
         status: status as UserStatus,
         userType: role as UserType,
         page: parseInt(page as string),
-        limit: parseInt(limit as string),
+        limit: parsedLimit,
+        sortBy: safeSortBy,
+        sortOrder: safeSortOrder,
       });
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
@@ -881,7 +903,7 @@ export class AdminController {
         data: result.users,
         pagination: {
           page: result.page,
-          limit: 20,
+          limit: parsedLimit,
           total: result.total,
           pages: result.totalPages,
         },

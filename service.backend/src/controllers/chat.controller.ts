@@ -144,18 +144,18 @@ export class ChatController {
       // If there's a rescue involved, add the rescue staff users as participants
       if (rescueId && rescueId !== createdBy) {
         try {
-          // Find users who belong to this rescue
+          // Find users who belong to this rescue (limit to 50 to avoid unbounded queries)
           const rescueUsers = await User.findAll({
             where: { rescueId: rescueId },
             attributes: ['userId'],
+            limit: 50,
           });
 
-          // Add rescue staff user IDs to participants (avoid duplicates)
-          rescueUsers.forEach(user => {
-            if (!participantIds.includes(user.userId)) {
-              participantIds.push(user.userId);
-            }
-          });
+          // Add rescue staff user IDs to participants (use Set for O(1) dedup)
+          const participantSet = new Set(participantIds);
+          rescueUsers.forEach(user => participantSet.add(user.userId));
+          participantIds.length = 0;
+          participantIds.push(...Array.from(participantSet));
         } catch (error) {
           logger.error('Error finding rescue users:', error);
           // Continue with chat creation even if we can't find rescue users

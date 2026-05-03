@@ -224,14 +224,35 @@ export class HealthCheckService {
   }
 
   static async getFullHealthCheck(): Promise<HealthCheckResult> {
-    const [database, email, storage, fileSystem] = await Promise.all([
-      this.checkDatabaseHealth(),
-      this.checkEmailHealth(),
-      this.checkStorageHealth(),
-      this.checkFileSystemHealth(),
-    ]);
+    const [databaseResult, emailResult, storageResult, fileSystemResult] =
+      await Promise.allSettled([
+        this.checkDatabaseHealth(),
+        this.checkEmailHealth(),
+        this.checkStorageHealth(),
+        this.checkFileSystemHealth(),
+      ]);
 
-    const services = { database, email, storage, fileSystem };
+    const toServiceHealth = (
+      result: PromiseSettledResult<ServiceHealth>,
+      name: string
+    ): ServiceHealth => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+      logger.error(`${name} health check threw unexpectedly:`, result.reason);
+      return {
+        status: 'unhealthy',
+        details: result.reason instanceof Error ? result.reason.message : 'Probe failed',
+        lastChecked: new Date(),
+      };
+    };
+
+    const services = {
+      database: toServiceHealth(databaseResult, 'database'),
+      email: toServiceHealth(emailResult, 'email'),
+      storage: toServiceHealth(storageResult, 'storage'),
+      fileSystem: toServiceHealth(fileSystemResult, 'fileSystem'),
+    };
 
     // Determine overall status
     const hasUnhealthy = Object.values(services).some(service => service.status === 'unhealthy');

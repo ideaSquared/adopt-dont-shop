@@ -181,43 +181,23 @@ export class AnalyticsService {
         where: { createdAt: dateFilter as unknown as Date },
       });
 
-      // Active users (users with recent activity - messages, applications, logins)
-      const activeUsersFromMessages = await User.count({
-        distinct: true,
-        include: [
-          {
-            model: Message,
-            as: 'SentMessages',
-            where: { created_at: dateFilter as unknown as Date },
-            required: true,
-          },
-        ],
-      });
+      // Active users: distinct union of user IDs across messages, applications, and logins
+      const activeUsersResult = (await sequelize.query(
+        `SELECT COUNT(DISTINCT user_id) AS count
+         FROM (
+           SELECT sender_id AS user_id FROM messages WHERE created_at BETWEEN :startDate AND :endDate
+           UNION
+           SELECT user_id FROM applications WHERE created_at BETWEEN :startDate AND :endDate
+           UNION
+           SELECT user_id FROM users WHERE last_login_at BETWEEN :startDate AND :endDate
+         ) active_users`,
+        {
+          replacements: { startDate: defaultStartDate, endDate: defaultEndDate },
+          type: QueryTypes.SELECT,
+        }
+      )) as Array<{ count: string }>;
 
-      const activeUsersFromApplications = await User.count({
-        distinct: true,
-        include: [
-          {
-            model: Application,
-            as: 'UserApplications',
-            where: { created_at: dateFilter as unknown as Date },
-            required: true,
-          },
-        ],
-      });
-
-      const activeUsersFromLogins = await User.count({
-        where: {
-          lastLoginAt: dateFilter as unknown as Date,
-        },
-      });
-
-      // Combine active users (use highest count to avoid underestimation)
-      const activeUsers = Math.max(
-        activeUsersFromMessages,
-        activeUsersFromApplications,
-        activeUsersFromLogins
-      );
+      const activeUsers = Number(activeUsersResult[0]?.count || 0);
 
       // Calculate growth rate (compare with previous period)
       const previousPeriodStart = new Date(
@@ -539,9 +519,6 @@ export class AnalyticsService {
 
       const errorRate = apiRequestCount > 0 ? (errorCount / apiRequestCount) * 100 : 0;
 
-      // Calculate system uptime (assume 99.9% base, adjust for errors)
-      const systemUptime = Math.max(99.0, 100 - errorRate * 10);
-
       // Get database performance metrics
       const dbStats = (await sequelize.query(
         `
@@ -680,14 +657,12 @@ export class AnalyticsService {
         apiRequestCount,
         avgResponseTime,
         errorRate,
-        systemUptime,
       });
 
       return {
         apiRequestCount,
         avgResponseTime: Math.round(avgResponseTime * 100) / 100,
         errorRate: Math.round(errorRate * 100) / 100,
-        systemUptime: Math.round(systemUptime * 100) / 100,
         databasePerformance: {
           avgQueryTime: Math.round((avgResponseTime / 4) * 100) / 100, // Estimate DB portion of response time
           slowQueries: Number(slowQueries[0]?.count || 0),

@@ -1718,17 +1718,50 @@ export class ChatService {
   }
 
   private static async calculateMessageGrowthRate(): Promise<number> {
-    // Implementation of calculateMessageGrowthRate method
-    // This method should return a number representing the message growth rate
-    // For now, we'll return a placeholder value
-    return 0;
+    try {
+      const now = new Date();
+      const periodMs = 30 * 24 * 60 * 60 * 1000;
+      const currentStart = new Date(now.getTime() - periodMs);
+      const previousStart = new Date(now.getTime() - 2 * periodMs);
+
+      const [current, previous] = await Promise.all([
+        Message.count({
+          where: { created_at: { [Op.between]: [currentStart, now] } },
+        }),
+        Message.count({
+          where: { created_at: { [Op.between]: [previousStart, currentStart] } },
+        }),
+      ]);
+
+      return ((current - previous) / Math.max(previous, 1)) * 100;
+    } catch (error) {
+      logger.error('Error calculating message growth rate:', error);
+      return 0;
+    }
   }
 
   private static async calculateUserEngagement(): Promise<number> {
-    // Implementation of calculateUserEngagement method
-    // This method should return a number representing the user engagement
-    // For now, we'll return a placeholder value
-    return 0;
+    try {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      const [activeMessagers, totalUsers] = await Promise.all([
+        Message.count({
+          distinct: true,
+          col: 'sender_id',
+          where: { created_at: { [Op.gte]: thirtyDaysAgo } },
+        }),
+        User.count(),
+      ]);
+
+      if (totalUsers === 0) {
+        return 0;
+      }
+      return Math.min((activeMessagers / totalUsers) * 100, 100);
+    } catch (error) {
+      logger.error('Error calculating user engagement:', error);
+      return 0;
+    }
   }
 
   /**
