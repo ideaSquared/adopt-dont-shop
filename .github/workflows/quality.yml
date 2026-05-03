@@ -22,6 +22,10 @@ on:
       - 'package.json'
       - 'package-lock.json'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   dependency-check:
     name: Dependency Check

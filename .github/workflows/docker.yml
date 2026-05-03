@@ -172,18 +172,28 @@ jobs:
             image=moby/buildkit:latest
             network=host
 
+      - name: Generate secrets
+        id: secrets
+        run: |
+          echo "JWT_SECRET=$(openssl rand -base64 32)" >> $GITHUB_OUTPUT
+          echo "JWT_REFRESH_SECRET=$(openssl rand -base64 32)" >> $GITHUB_OUTPUT
+          echo "SESSION_SECRET=$(openssl rand -base64 32)" >> $GITHUB_OUTPUT
+          echo "CSRF_SECRET=$(openssl rand -base64 32)" >> $GITHUB_OUTPUT
+          echo "ENCRYPTION_KEY=$(openssl rand -hex 32)" >> $GITHUB_OUTPUT
+          echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)" >> $GITHUB_OUTPUT
+
       - name: Create environment file
         run: |
           cat > .env << 'ENVEOF'
 NODE_ENV=development
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=password
+POSTGRES_PASSWORD=${{ steps.secrets.outputs.POSTGRES_PASSWORD }}
 POSTGRES_DB=adopt_dont_shop_dev
-JWT_SECRET=test-jwt-secret-key-for-ci-32chars-min
-JWT_REFRESH_SECRET=test-jwt-refresh-secret-key-ci-32chars
-SESSION_SECRET=test-session-secret-key-for-ci-32chars
-CSRF_SECRET=test-csrf-secret-key-for-ci-32chars-min
-ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000001
+JWT_SECRET=${{ steps.secrets.outputs.JWT_SECRET }}
+JWT_REFRESH_SECRET=${{ steps.secrets.outputs.JWT_REFRESH_SECRET }}
+SESSION_SECRET=${{ steps.secrets.outputs.SESSION_SECRET }}
+CSRF_SECRET=${{ steps.secrets.outputs.CSRF_SECRET }}
+ENCRYPTION_KEY=${{ steps.secrets.outputs.ENCRYPTION_KEY }}
 CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
 ENVEOF
 
@@ -235,7 +245,7 @@ ENVEOF
         run: docker build -f service.backend/Dockerfile -t paragonjenko/adoptdontshop:service-backend-scan .
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.31.0
         with:
           image-ref: paragonjenko/adoptdontshop:service-backend-scan
           format: 'sarif'

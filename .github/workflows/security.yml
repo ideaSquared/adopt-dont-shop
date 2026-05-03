@@ -24,6 +24,10 @@ on:
   schedule:
     - cron: '0 6 * * 1'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
+
 jobs:
   dependency-audit:
     name: Dependency Audit
@@ -57,7 +61,11 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Run npm audit for ${{ matrix.project }}
+      - name: Audit for critical vulnerabilities in ${{ matrix.project }}
+        run: npm audit --audit-level=critical
+        working-directory: ${{ matrix.project }}
+
+      - name: Audit for moderate+ vulnerabilities in ${{ matrix.project }} (informational)
         run: npm audit --audit-level=moderate
         working-directory: ${{ matrix.project }}
         continue-on-error: true
