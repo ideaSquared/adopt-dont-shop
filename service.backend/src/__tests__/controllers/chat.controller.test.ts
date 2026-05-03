@@ -316,7 +316,7 @@ describe('ChatController', () => {
     });
 
     describe('when the caller is an admin', () => {
-      it('should pass undefined userId to the service (bypass participant check)', async () => {
+      it('should pass isAdmin=true to the service (explicit admin bypass)', async () => {
         mockRequest.params = { chatId: 'chat-001' };
         mockRequest.user = { ...mockUser, userType: UserType.ADMIN } as User;
 
@@ -338,7 +338,7 @@ describe('ChatController', () => {
           mockResponse as Response
         );
 
-        expect(ChatService.getChatById).toHaveBeenCalledWith('chat-001', undefined);
+        expect(ChatService.getChatById).toHaveBeenCalledWith('chat-001', mockUser.userId, true);
         expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
       });
     });
@@ -590,7 +590,7 @@ describe('ChatController', () => {
     });
 
     describe('when the caller is an admin', () => {
-      it('should pass undefined userId to the service (bypass participant check)', async () => {
+      it('should pass isAdmin=true to the service (explicit admin bypass)', async () => {
         mockRequest.params = { chatId: 'chat-001' };
         mockRequest.query = { page: '1', limit: '50' };
         mockRequest.user = { ...mockUser, userType: UserType.ADMIN } as User;
@@ -609,7 +609,7 @@ describe('ChatController', () => {
 
         expect(ChatService.getMessages).toHaveBeenCalledWith(
           'chat-001',
-          expect.objectContaining({ userId: undefined })
+          expect.objectContaining({ userId: mockUser.userId, isAdmin: true })
         );
         expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
       });

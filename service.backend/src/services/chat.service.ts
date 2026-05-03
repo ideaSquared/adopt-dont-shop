@@ -69,6 +69,7 @@ interface ChatSearchOptions {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'ASC' | 'DESC';
+  isAdmin?: boolean;
 }
 
 interface ConversationSearchOptions {
@@ -169,14 +170,15 @@ export class ChatService {
    * Shared authz check: confirms the given user is a participant of the
    * given chat. Throws "User is not a participant in this chat" on
    * failure; the controller layer maps that to a 403. Skipped when
-   * userId is undefined, which is the admin / server-to-server bypass
-   * (those paths are gated by route-level RBAC).
+   * isAdmin is true, which must be explicitly set by callers after
+   * verifying the user's role — never inferred from a missing userId.
    */
   private static async requireChatParticipant(
     chatId: string,
-    userId: string | undefined
+    userId: string,
+    isAdmin: boolean
   ): Promise<void> {
-    if (!userId) {
+    if (isAdmin) {
       return;
     }
     const participant = await ChatParticipant.findOne({
@@ -190,12 +192,11 @@ export class ChatService {
   /**
    * Get chat by ID with messages.
    *
-   * When `userId` is supplied, the caller is required to be a participant
-   * of the chat; otherwise an error is thrown. Passing no `userId` is the
-   * admin bypass used by server-to-server and admin-only code paths, which
-   * rely on route-level RBAC for authorization.
+   * When isAdmin is false the caller must be a participant of the chat;
+   * otherwise an error is thrown. Set isAdmin to true only after verifying
+   * the caller holds the admin role via route-level or controller-level checks.
    */
-  static async getChatById(chatId: string, userId?: string): Promise<Chat | null> {
+  static async getChatById(chatId: string, userId: string, isAdmin: boolean): Promise<Chat | null> {
     const startTime = Date.now();
 
     try {
@@ -228,7 +229,7 @@ export class ChatService {
       });
 
       if (chat) {
-        await this.requireChatParticipant(chatId, userId);
+        await this.requireChatParticipant(chatId, userId, isAdmin);
       }
 
       loggerHelpers.logDatabase('READ', {
@@ -337,6 +338,7 @@ export class ChatService {
         limit = 20,
         sortBy = 'created_at',
         sortOrder = 'DESC',
+        isAdmin = false,
       } = options;
 
       const offset = (page - 1) * limit;
@@ -386,13 +388,12 @@ export class ChatService {
         },
       ];
 
-      // If userId provided, filter by participation; otherwise, include all participants
-      if (userId) {
+      // Admins see all chats; regular users are filtered to chats they participate in
+      if (isAdmin) {
         includes.push({
           model: ChatParticipant,
           as: 'Participants',
-          where: { participant_id: userId },
-          required: true,
+          required: false,
           include: [
             {
               model: User,
@@ -402,11 +403,11 @@ export class ChatService {
           ],
         });
       } else {
-        // For admin users, include all participants without filtering
         includes.push({
           model: ChatParticipant,
           as: 'Participants',
-          required: false,
+          where: { participant_id: userId },
+          required: true,
           include: [
             {
               model: User,
@@ -801,12 +802,13 @@ export class ChatService {
       before?: Date;
       after?: Date;
       userId?: string;
+      isAdmin?: boolean;
     } = {}
   ): Promise<MessageListResponse> {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 50, before, after, userId } = options;
+      const { page = 1, limit = 50, before, after, userId, isAdmin = false } = options;
 
       // Validate inputs
       if (page < 1) {
@@ -816,10 +818,9 @@ export class ChatService {
         throw new Error('Limit must be between 1 and 100');
       }
 
-      // Only participants can read a chat's messages. Calls without userId
-      // skip the check (admin / server-to-server); route-level RBAC gates
-      // those paths.
-      await this.requireChatParticipant(chatId, userId);
+      // Only participants can read a chat's messages; admins bypass the check
+      // via the explicit isAdmin flag, never via an absent userId.
+      await this.requireChatParticipant(chatId, userId ?? '', isAdmin);
 
       const whereConditions: WhereOptions = { chat_id: chatId }; // Fix: use snake_case
 
@@ -898,7 +899,7 @@ export class ChatService {
    */
   static async markMessagesAsRead(chatId: string, userId: string) {
     try {
-      await this.requireChatParticipant(chatId, userId);
+      await this.requireChatParticipant(chatId, userId, false);
 
       // Read receipts moved to the message_reads table (plan 2.1) —
       // bulk-insert one row per (message, user). The unique
@@ -939,7 +940,7 @@ export class ChatService {
    */
   static async getUnreadMessageCount(chatId: string, userId: string) {
     try {
-      await this.requireChatParticipant(chatId, userId);
+      await this.requireChatParticipant(chatId, userId, false);
 
       // "Unread for user" = chat messages not authored by user that
       // have no matching MessageRead row (plan 2.1). The eager-load
@@ -1180,7 +1181,7 @@ export class ChatService {
         throw new Error('Message not found');
       }
 
-      await this.requireChatParticipant(message.chat_id, userId);
+      await this.requireChatParticipant(message.chat_id, userId, false);
 
       await MessageReaction.findOrCreate({
         where: { message_id: messageId, user_id: userId, emoji },
@@ -1207,7 +1208,7 @@ export class ChatService {
       // Previously this check was missing — anyone with a JWT and a
       // messageId could mutate their own reaction on any chat's message.
       // Now gated on participation.
-      await this.requireChatParticipant(message.chat_id, userId);
+      await this.requireChatParticipant(message.chat_id, userId, false);
 
       await MessageReaction.destroy({
         where: { message_id: messageId, user_id: userId, emoji },
