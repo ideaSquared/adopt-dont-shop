@@ -72,7 +72,6 @@ export interface PlatformMetrics {
   apiRequestCount: number;
   avgResponseTime: number;
   errorRate: number;
-  systemUptime: number;
   databasePerformance: DatabasePerformance;
   storageUsage: StorageUsage;
   memoryUsage?: {

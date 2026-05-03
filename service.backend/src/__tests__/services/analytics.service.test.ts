@@ -233,19 +233,18 @@ describe('AnalyticsService.getUserBehaviorMetrics', () => {
   });
 
   it('uses the maximum of messages/applications/logins as the active users count', async () => {
-    // totalUsers call, newUsers call, messages call, applications call, logins call, previousPeriod call
+    // Active users now computed via a single SQL UNION query instead of 3 User.count calls
     mockUser.count
       .mockResolvedValueOnce(100) // totalUsers
       .mockResolvedValueOnce(10) // newUsers
-      .mockResolvedValueOnce(5) // activeUsersFromMessages
-      .mockResolvedValueOnce(20) // activeUsersFromApplications (highest)
-      .mockResolvedValueOnce(8) // activeUsersFromLogins
       .mockResolvedValueOnce(9); // previousPeriodUsers
-    mockSequelize.query.mockResolvedValue([]);
+    mockSequelize.query
+      .mockResolvedValueOnce([{ count: '20' }]) // activeUsers UNION query
+      .mockResolvedValue([]); // sessionData, topActivities
 
     const result = await AnalyticsService.getUserBehaviorMetrics({});
 
-    // retentionRate = (max(5, 20, 8) / 100) * 100 = 20
+    // retentionRate = (20 / 100) * 100 = 20
     expect(result.activeUsers).toBe(20);
     expect(result.retentionRate).toBe(20);
   });
@@ -267,19 +266,18 @@ describe('AnalyticsService.getUserBehaviorMetrics', () => {
   });
 
   it('computes average session duration from audit log data', async () => {
+    // Active users now computed via a single SQL UNION query instead of 3 User.count calls
     mockUser.count
       .mockResolvedValueOnce(10) // totalUsers
       .mockResolvedValueOnce(2) // newUsers
-      .mockResolvedValueOnce(3) // activeFromMessages
-      .mockResolvedValueOnce(3) // activeFromApplications
-      .mockResolvedValueOnce(3) // activeFromLogins
       .mockResolvedValueOnce(2); // previousPeriod
 
     const baseTime = new Date('2025-01-15T10:00:00Z');
     const endTime = new Date('2025-01-15T10:30:00Z'); // 30 min session
 
-    // First query = sessionData, second query = topActivities
+    // First query = activeUsers UNION, second = sessionData, third = topActivities
     mockSequelize.query
+      .mockResolvedValueOnce([{ count: '3' }]) // activeUsers UNION query
       .mockResolvedValueOnce([
         {
           user_id: 'u1',

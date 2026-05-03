@@ -65,12 +65,22 @@ class AdminService {
       search?: string;
       page?: number;
       limit?: number;
+      sortBy?: string;
+      sortOrder?: 'ASC' | 'DESC';
     } = {}
   ): Promise<UserListResponse> {
     const startTime = Date.now();
 
     try {
-      const { status, userType, search, page = 1, limit = 20 } = filters;
+      const {
+        status,
+        userType,
+        search,
+        page = 1,
+        limit = 20,
+        sortBy = 'createdAt',
+        sortOrder = 'DESC',
+      } = filters;
 
       const whereConditions: WhereOptions = {};
 
@@ -103,7 +113,7 @@ class AdminService {
             ],
           },
         ],
-        order: [['createdAt', 'DESC']],
+        order: [[sortBy, sortOrder]],
         limit,
         offset: (page - 1) * limit,
       });
