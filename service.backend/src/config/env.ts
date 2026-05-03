@@ -135,6 +135,55 @@ const validateEnv = (): ValidatedEnv => {
     throw new Error(errors.join('. ') + '. Please check your .env file.');
   }
 
+  // Verify all secrets are distinct to prevent compromise blast radius
+  if (jwtSecret && jwtRefreshSecret && jwtSecret === jwtRefreshSecret) {
+    throw new Error(
+      'JWT_SECRET and JWT_REFRESH_SECRET must be distinct. ' +
+        'Reusing secrets increases compromise blast radius. ' +
+        'Generate new secrets with: npm run secrets:generate'
+    );
+  }
+
+  if (jwtSecret && sessionSecret && jwtSecret === sessionSecret) {
+    throw new Error(
+      'JWT_SECRET and SESSION_SECRET must be distinct. ' +
+        'Reusing secrets increases compromise blast radius. ' +
+        'Generate new secrets with: npm run secrets:generate'
+    );
+  }
+
+  if (jwtSecret && csrfSecret && jwtSecret === csrfSecret) {
+    throw new Error(
+      'JWT_SECRET and CSRF_SECRET must be distinct. ' +
+        'Reusing secrets increases compromise blast radius. ' +
+        'Generate new secrets with: npm run secrets:generate'
+    );
+  }
+
+  if (jwtRefreshSecret && sessionSecret && jwtRefreshSecret === sessionSecret) {
+    throw new Error(
+      'JWT_REFRESH_SECRET and SESSION_SECRET must be distinct. ' +
+        'Reusing secrets increases compromise blast radius. ' +
+        'Generate new secrets with: npm run secrets:generate'
+    );
+  }
+
+  if (jwtRefreshSecret && csrfSecret && jwtRefreshSecret === csrfSecret) {
+    throw new Error(
+      'JWT_REFRESH_SECRET and CSRF_SECRET must be distinct. ' +
+        'Reusing secrets increases compromise blast radius. ' +
+        'Generate new secrets with: npm run secrets:generate'
+    );
+  }
+
+  if (sessionSecret && csrfSecret && sessionSecret === csrfSecret) {
+    throw new Error(
+      'SESSION_SECRET and CSRF_SECRET must be distinct. ' +
+        'Reusing secrets increases compromise blast radius. ' +
+        'Generate new secrets with: npm run secrets:generate'
+    );
+  }
+
   // After validation, we know all secrets are defined and valid
   // Type assertion is safe here because we've validated above
   const validated: ValidatedEnv = {
