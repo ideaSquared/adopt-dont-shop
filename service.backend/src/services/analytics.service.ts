@@ -1,4 +1,4 @@
-import { Op, QueryTypes, WhereOptions } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import Application from '../models/Application';
 import AuditLog from '../models/AuditLog';
 import Chat from '../models/Chat';
@@ -178,7 +178,7 @@ export class AnalyticsService {
       // Get user counts
       const totalUsers = await User.count();
       const newUsers = await User.count({
-        where: { createdAt: dateFilter as WhereOptions },
+        where: { createdAt: dateFilter as unknown as Date },
       });
 
       // Active users (users with recent activity - messages, applications, logins)
@@ -188,7 +188,7 @@ export class AnalyticsService {
           {
             model: Message,
             as: 'SentMessages',
-            where: { created_at: dateFilter as WhereOptions },
+            where: { created_at: dateFilter as unknown as Date },
             required: true,
           },
         ],
@@ -200,7 +200,7 @@ export class AnalyticsService {
           {
             model: Application,
             as: 'UserApplications',
-            where: { created_at: dateFilter as WhereOptions },
+            where: { created_at: dateFilter as unknown as Date },
             required: true,
           },
         ],
@@ -208,7 +208,7 @@ export class AnalyticsService {
 
       const activeUsersFromLogins = await User.count({
         where: {
-          lastLoginAt: dateFilter as WhereOptions,
+          lastLoginAt: dateFilter as unknown as Date,
         },
       });
 
@@ -362,7 +362,7 @@ export class AnalyticsService {
         where: {
           ...whereConditions,
           status: 'approved',
-          updatedAt: { [Op.not]: null } as WhereOptions,
+          updatedAt: { [Op.not]: null } as unknown as Date,
         },
         attributes: ['createdAt', 'updatedAt'],
       });
@@ -635,7 +635,7 @@ export class AnalyticsService {
         where: {
           createdAt: {
             [Op.between]: [previousPeriodStart, defaultStartDate],
-          } as WhereOptions,
+          } as unknown as Date,
         },
         include: [
           {
@@ -653,7 +653,7 @@ export class AnalyticsService {
         where: {
           createdAt: {
             [Op.between]: [defaultStartDate, defaultEndDate],
-          } as WhereOptions,
+          } as unknown as Date,
         },
         include: [
           {
@@ -776,7 +776,7 @@ export class AnalyticsService {
         where: {
           ...whereConditions,
           status: { [Op.in]: ['approved', 'rejected'] },
-          updatedAt: { [Op.not]: null } as WhereOptions,
+          updatedAt: { [Op.not]: null } as unknown as Date,
         },
         attributes: ['createdAt', 'updatedAt'],
       });
@@ -864,7 +864,7 @@ export class AnalyticsService {
       // Get message metrics
       const totalMessages = await Message.count({
         where: {
-          created_at: dateFilter as WhereOptions,
+          created_at: dateFilter as unknown as Date,
         },
         include: [
           {
@@ -919,7 +919,7 @@ export class AnalyticsService {
       // Get message trends
       const messageTrends = (await Message.findAll({
         where: {
-          created_at: dateFilter as WhereOptions,
+          created_at: dateFilter as unknown as Date,
         },
         include: rescueId
           ? [
@@ -1331,7 +1331,7 @@ export class AnalyticsService {
         where: {
           ...whereConditions,
           status: { [Op.in]: ['approved', 'rejected'] },
-          updatedAt: { [Op.not]: null } as WhereOptions,
+          updatedAt: { [Op.not]: null } as unknown as Date,
         },
         attributes: ['createdAt', 'updatedAt'],
       });
