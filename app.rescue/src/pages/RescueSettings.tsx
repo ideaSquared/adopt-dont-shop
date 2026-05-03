@@ -32,35 +32,26 @@ const RescueSettings: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const staffData = await apiService.get<any>('http://localhost:5000/api/v1/staff/me');
+      const staffData = await apiService.get<any>('/api/v1/staff/me');
       const rescueId = staffData.data.rescueId;
 
       if (!rescueId) {
         throw new Error('No rescue ID found for current user');
       }
 
-      const rescueData = await apiService.get<any>(
-        `http://localhost:5000/api/v1/rescues/${rescueId}`
-      );
+      const rescueData = await apiService.get<any>(`/api/v1/rescues/${rescueId}`);
 
       // Extract adoption policies from settings if they exist
       const rescueProfile = { ...rescueData.data };
 
-      // Debug: Log the raw data
-      console.log('Raw rescue data:', rescueProfile);
-      console.log('Settings:', rescueProfile.settings);
-
       if (rescueProfile.settings?.adoptionPolicies) {
         rescueProfile.adoptionPolicies = rescueProfile.settings.adoptionPolicies;
-        console.log('Extracted adoption policies:', rescueProfile.adoptionPolicies);
       } else {
-        console.log('No adoption policies found in settings');
         rescueProfile.adoptionPolicies = null;
       }
 
       setRescue(rescueProfile);
     } catch (err) {
-      console.error('Error loading rescue data:', err);
       setError(
         err instanceof Error ? err.message : 'Failed to load rescue settings. Please try again.'
       );
@@ -74,7 +65,7 @@ const RescueSettings: React.FC = () => {
       return;
     }
 
-    await apiService.put(`http://localhost:5000/api/v1/rescues/${rescue.rescueId}`, profileData);
+    await apiService.put(`/api/v1/rescues/${rescue.rescueId}`, profileData);
 
     await loadRescueData();
   };

@@ -197,7 +197,9 @@ export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({
               role='button'
               tabIndex={0}
               onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') handleNotificationClick(notification);
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleNotificationClick(notification);
+                }
               }}
             >
               <div className={styles.notificationHeader}>

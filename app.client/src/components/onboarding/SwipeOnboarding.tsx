@@ -46,7 +46,9 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
       role='button'
       tabIndex={0}
       onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') handleClose();
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+          handleClose();
+        }
       }}
     >
       <div className={styles.modalContent} onClick={e => e.stopPropagation()} role='presentation'>

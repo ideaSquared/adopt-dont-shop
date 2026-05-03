@@ -7,72 +7,72 @@ import type { Permission } from './index';
 /**
  * Pet Management Permissions
  */
-export const PETS_VIEW = 'pets.read' as Permission;
-export const PETS_CREATE = 'pets.create' as Permission;
-export const PETS_UPDATE = 'pets.update' as Permission;
-export const PETS_DELETE = 'pets.delete' as Permission;
-export const PETS_LIST = 'pets.list' as Permission;
-export const PETS_ARCHIVE = 'pets.archive' as Permission;
+export const PETS_VIEW = 'pets.read' satisfies Permission;
+export const PETS_CREATE = 'pets.create' satisfies Permission;
+export const PETS_UPDATE = 'pets.update' satisfies Permission;
+export const PETS_DELETE = 'pets.delete' satisfies Permission;
+export const PETS_LIST = 'pets.list' satisfies Permission;
+export const PETS_ARCHIVE = 'pets.archive' satisfies Permission;
 
 /**
  * Application Management Permissions
  */
-export const APPLICATIONS_VIEW = 'applications.read' as Permission;
-export const APPLICATIONS_CREATE = 'applications.create' as Permission;
-export const APPLICATIONS_UPDATE = 'applications.update' as Permission;
-export const APPLICATIONS_PROCESS = 'applications.review' as Permission;
-export const APPLICATIONS_APPROVE = 'applications.approve' as Permission;
-export const APPLICATIONS_REJECT = 'applications.reject' as Permission;
-export const APPLICATIONS_LIST = 'applications.list' as Permission;
+export const APPLICATIONS_VIEW = 'applications.read' satisfies Permission;
+export const APPLICATIONS_CREATE = 'applications.create' satisfies Permission;
+export const APPLICATIONS_UPDATE = 'applications.update' satisfies Permission;
+export const APPLICATIONS_PROCESS = 'applications.review' satisfies Permission;
+export const APPLICATIONS_APPROVE = 'applications.approve' satisfies Permission;
+export const APPLICATIONS_REJECT = 'applications.reject' satisfies Permission;
+export const APPLICATIONS_LIST = 'applications.list' satisfies Permission;
 
 /**
  * Staff Management Permissions
  */
-export const STAFF_VIEW = 'staff.read' as Permission;
-export const STAFF_CREATE = 'staff.create' as Permission;
-export const STAFF_UPDATE = 'staff.update' as Permission;
-export const STAFF_DELETE = 'staff.delete' as Permission;
-export const STAFF_LIST = 'staff.list' as Permission;
-export const STAFF_SUSPEND = 'staff.suspend' as Permission;
+export const STAFF_VIEW = 'staff.read' satisfies Permission;
+export const STAFF_CREATE = 'staff.create' satisfies Permission;
+export const STAFF_UPDATE = 'staff.update' satisfies Permission;
+export const STAFF_DELETE = 'staff.delete' satisfies Permission;
+export const STAFF_LIST = 'staff.list' satisfies Permission;
+export const STAFF_SUSPEND = 'staff.suspend' satisfies Permission;
 
 /**
  * Rescue Management Permissions
  */
-export const RESCUE_SETTINGS_VIEW = 'rescues.read' as Permission;
-export const RESCUE_SETTINGS_UPDATE = 'rescues.update' as Permission;
-export const RESCUE_BILLING_VIEW = 'admin.dashboard' as Permission;
-export const RESCUE_BILLING_MANAGE = 'admin.system_settings' as Permission;
+export const RESCUE_SETTINGS_VIEW = 'rescues.read' satisfies Permission;
+export const RESCUE_SETTINGS_UPDATE = 'rescues.update' satisfies Permission;
+export const RESCUE_BILLING_VIEW = 'admin.dashboard' satisfies Permission;
+export const RESCUE_BILLING_MANAGE = 'admin.system_settings' satisfies Permission;
 
 /**
  * Analytics & Reporting Permissions
  */
-export const ANALYTICS_VIEW = 'admin.reports' as Permission;
-export const ANALYTICS_EXPORT = 'admin.reports' as Permission;
-export const REPORTS_GENERATE = 'admin.reports' as Permission;
+export const ANALYTICS_VIEW = 'admin.reports' satisfies Permission;
+export const ANALYTICS_EXPORT = 'admin.reports' satisfies Permission;
+export const REPORTS_GENERATE = 'admin.reports' satisfies Permission;
 
 /**
  * Communication Permissions
  */
-export const CHAT_VIEW = 'chats.read' as Permission;
-export const CHAT_CREATE = 'chats.create' as Permission;
-export const CHAT_UPDATE = 'chats.update' as Permission;
-export const MESSAGES_VIEW = 'messages.read' as Permission;
-export const MESSAGES_SEND = 'messages.create' as Permission;
+export const CHAT_VIEW = 'chats.read' satisfies Permission;
+export const CHAT_CREATE = 'chats.create' satisfies Permission;
+export const CHAT_UPDATE = 'chats.update' satisfies Permission;
+export const MESSAGES_VIEW = 'messages.read' satisfies Permission;
+export const MESSAGES_SEND = 'messages.create' satisfies Permission;
 
 /**
  * Notification Permissions
  */
-export const NOTIFICATIONS_VIEW = 'notifications.read' as Permission;
-export const NOTIFICATIONS_CREATE = 'notifications.create' as Permission;
-export const NOTIFICATIONS_UPDATE = 'notifications.update' as Permission;
+export const NOTIFICATIONS_VIEW = 'notifications.read' satisfies Permission;
+export const NOTIFICATIONS_CREATE = 'notifications.create' satisfies Permission;
+export const NOTIFICATIONS_UPDATE = 'notifications.update' satisfies Permission;
 
 /**
  * Admin Permissions
  */
-export const ADMIN_DASHBOARD = 'admin.dashboard' as Permission;
-export const ADMIN_AUDIT_LOGS = 'admin.audit_logs' as Permission;
-export const ADMIN_FEATURE_FLAGS = 'admin.feature_flags' as Permission;
-export const ADMIN_SYSTEM_SETTINGS = 'admin.system_settings' as Permission;
+export const ADMIN_DASHBOARD = 'admin.dashboard' satisfies Permission;
+export const ADMIN_AUDIT_LOGS = 'admin.audit_logs' satisfies Permission;
+export const ADMIN_FEATURE_FLAGS = 'admin.feature_flags' satisfies Permission;
+export const ADMIN_SYSTEM_SETTINGS = 'admin.system_settings' satisfies Permission;
 
 /**
  * Grouped permissions for common use cases

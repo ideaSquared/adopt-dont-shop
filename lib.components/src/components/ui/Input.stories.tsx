@@ -142,6 +142,6 @@ export const WithHelpText: Story = {
     type: 'email',
     variant: 'default',
     size: 'md',
-    helpText: 'We will never share your email.',
+    helperText: 'We will never share your email.',
   },
 };

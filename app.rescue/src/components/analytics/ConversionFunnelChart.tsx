@@ -22,8 +22,12 @@ const BAR_COLORS = [
 ];
 
 const getConversionRateColor = (rate: number): string => {
-  if (rate >= 80) return '#059669';
-  if (rate >= 60) return '#D97706';
+  if (rate >= 80) {
+    return '#059669';
+  }
+  if (rate >= 60) {
+    return '#D97706';
+  }
   return '#DC2626';
 };
 

@@ -359,13 +359,17 @@ export class UserService {
 
       // Apply search last to avoid structure conflicts
       // Use Op.like for SQLite compatibility (iLike is PostgreSQL-specific)
+      // Escape LIKE wildcards to prevent enumeration attacks (%  = any chars, _ = one char)
       if (search) {
+        // Escape wildcard characters by replacing them with literal values
+        const safeTerm = `%${search.replace(/[%_\\]/g, c => `\\${c}`)}%`;
+
         whereConditions = {
           ...whereConditions,
           [Op.or]: [
-            { firstName: { [Op.like]: `%${search}%` } },
-            { lastName: { [Op.like]: `%${search}%` } },
-            { email: { [Op.like]: `%${search}%` } },
+            { firstName: { [Op.like]: safeTerm } },
+            { lastName: { [Op.like]: safeTerm } },
+            { email: { [Op.like]: safeTerm } },
           ],
         };
       }

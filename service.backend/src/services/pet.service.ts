@@ -248,15 +248,15 @@ export class PetService {
 
       if (breedIdsForFilter !== null) {
         if (breedIdsForFilter.length === 0) {
-          whereConditions.breedId = '__never_matches__';
-        } else {
-          andClauses.push({
-            [Op.or]: [
-              { breedId: { [Op.in]: breedIdsForFilter } },
-              { secondaryBreedId: { [Op.in]: breedIdsForFilter } },
-            ],
-          });
+          // Short-circuit: if breed name didn't resolve to any IDs, return empty result
+          return { pets: [], total: 0, page, totalPages: 0 };
         }
+        andClauses.push({
+          [Op.or]: [
+            { breedId: { [Op.in]: breedIdsForFilter } },
+            { secondaryBreedId: { [Op.in]: breedIdsForFilter } },
+          ],
+        });
       }
 
       // Text search (applied last as it changes the structure).
@@ -1469,13 +1469,13 @@ export class PetService {
       if (breed) {
         const breedIds = await resolveBreedIdsByName(breed);
         if (breedIds.length === 0) {
-          whereClause.breedId = '__never_matches__';
-        } else {
-          (whereClause as Record<symbol, unknown>)[Op.or] = [
-            { breedId: { [Op.in]: breedIds } },
-            { secondaryBreedId: { [Op.in]: breedIds } },
-          ];
+          // Short-circuit: if breed name didn't resolve to any IDs, return empty result
+          return { pets: [], total: 0, page, limit, totalPages: 0 };
         }
+        (whereClause as Record<symbol, unknown>)[Op.or] = [
+          { breedId: { [Op.in]: breedIds } },
+          { secondaryBreedId: { [Op.in]: breedIds } },
+        ];
       }
       if (size) {
         whereClause.size = size;

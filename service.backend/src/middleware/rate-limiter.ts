@@ -143,3 +143,34 @@ export const uploadLimiter =
           });
         },
       });
+
+// Email verification resend limiter — stricter than auth limiter to prevent abuse
+// Keyed on both IP and target email to prevent using endpoint as email relay
+export const emailResendLimiter =
+  config.nodeEnv === 'development'
+    ? createDevLimiter(60 * 60 * 1000, 3, 'EMAIL_RESEND')
+    : rateLimit({
+        windowMs: 60 * 60 * 1000, // 1 hour
+        max: 3, // Limit each IP+email combination to 3 resend requests per hour
+        keyGenerator: req => {
+          const email = (
+            (req.body as Record<string, string> | undefined)?.email ?? ''
+          ).toLowerCase();
+          return `${req.ip}:${email}`;
+        },
+        message: {
+          error: 'Too many verification email requests. Please try again later.',
+          retryAfter: 3600, // 1 hour
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: (req, res) => {
+          logger.warn(
+            `Email resend rate limit exceeded for IP: ${req.ip}, email: ${(req.body as Record<string, string> | undefined)?.email}`
+          );
+          res.status(429).json({
+            error: 'Too many verification email requests. Please try again later.',
+            retryAfter: 3600,
+          });
+        },
+      });

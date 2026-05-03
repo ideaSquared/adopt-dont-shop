@@ -43,7 +43,7 @@ export const authenticateToken = async (
       return;
     }
 
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
 
     // Check if access token has been revoked (e.g. post-logout blacklist)
     if (decoded.jti) {
@@ -177,7 +177,7 @@ export const optionalAuth = async (
       return;
     }
 
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
     const user = await User.findByPk(decoded.userId, {
       include: [
         {
@@ -296,7 +296,7 @@ export const authenticateOptionalToken = async (
       return;
     }
 
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
 
     // Fetch user from database to ensure they still exist and are active
     const user = await User.findByPk(decoded.userId, {

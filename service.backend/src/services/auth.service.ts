@@ -7,6 +7,7 @@ import qrcode from 'qrcode';
 import User, { UserStatus, UserType } from '../models/User';
 import RefreshToken from '../models/RefreshToken';
 import RevokedToken from '../models/RevokedToken';
+import EmailQueue, { EmailStatus, EmailType, EmailPriority } from '../models/EmailQueue';
 import { logger, loggerHelpers } from '../utils/logger';
 import { decryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
 import { AuditLogService } from './auditLog.service';
@@ -107,8 +108,38 @@ export class AuthService {
 
         logger.info('Verification email sent', { userId: user.userId, email: user.email });
       } catch (emailError) {
-        logger.error('Failed to send verification email:', emailError);
-        // Don't throw error - user is still created, they can request resend
+        logger.error('Failed to send verification email, queuing for retry:', emailError);
+        // Queue email for retry instead of silently failing
+        try {
+          await EmailQueue.create({
+            fromEmail: process.env.EMAIL_FROM_ADDRESS || 'noreply@adoptdontshop.com',
+            toEmail: user.email,
+            subject: 'Verify Your Email',
+            htmlContent: `<p>Hello ${user.firstName},</p><p>Please verify your email by clicking <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}">here</a></p>`,
+            type: EmailType.TRANSACTIONAL,
+            priority: EmailPriority.HIGH,
+            status: EmailStatus.QUEUED,
+            maxRetries: 3,
+            currentRetries: 0,
+            userId: user.userId,
+            metadata: {
+              verificationToken,
+              verificationExpires: verificationExpires.toISOString(),
+            },
+            templateData: {
+              firstName: user.firstName,
+              verificationToken,
+              verificationUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`,
+              expiresAt: verificationExpires.toISOString(),
+            },
+          });
+          logger.info('Verification email queued for retry', {
+            userId: user.userId,
+            email: user.email,
+          });
+        } catch (queueError) {
+          logger.error('Failed to queue verification email:', queueError);
+        }
       }
 
       // Generate tokens with rotation support
@@ -258,7 +289,7 @@ export class AuthService {
     let decoded: { userId: string; jti: string } | null = null;
 
     try {
-      decoded = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET) as {
+      decoded = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET, { algorithms: ['HS256'] }) as {
         userId: string;
         jti: string;
       };
@@ -605,7 +636,9 @@ Need help? Contact us at support@adoptdontshop.com
     }
 
     try {
-      const decoded = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET) as { jti?: string };
+      const decoded = jwt.verify(refreshToken, this.JWT_REFRESH_SECRET, {
+        algorithms: ['HS256'],
+      }) as { jti?: string };
       if (decoded.jti) {
         await RefreshToken.update({ is_revoked: true }, { where: { token_id: decoded.jti } });
         logger.info('Refresh token revoked on logout', { jti: decoded.jti });

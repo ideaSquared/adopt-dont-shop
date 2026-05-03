@@ -360,6 +360,24 @@ User.init(
       type: getArrayType(DataTypes.STRING),
       allowNull: true,
       field: 'backup_codes',
+      validate: {
+        backupCodesLength(value: unknown) {
+          if (!Array.isArray(value)) {
+            return;
+          }
+          if (value.length > 10) {
+            throw new Error('backup_codes: array must contain no more than 10 codes');
+          }
+          for (let i = 0; i < value.length; i++) {
+            const code = value[i];
+            if (typeof code !== 'string' || code.length < 8 || code.length > 16) {
+              throw new Error(
+                `backup_codes[${i}]: each code must be a string between 8 and 16 characters`
+              );
+            }
+          }
+        },
+      },
     },
     timezone: {
       type: DataTypes.STRING(50),

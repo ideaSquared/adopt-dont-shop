@@ -59,7 +59,12 @@ export class AuditLogsService {
     const queryString = this.buildQueryString(filters);
     const url = `/api/v1/admin/audit-logs?${queryString}`;
 
-    const response = await api.get<PaginatedAuditLogsResponse>(url);
-    return response;
+    try {
+      const response = await api.get<PaginatedAuditLogsResponse>(url);
+      return response;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to fetch audit logs: ${message}`);
+    }
   }
 }

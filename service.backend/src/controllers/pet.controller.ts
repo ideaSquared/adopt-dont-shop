@@ -17,6 +17,7 @@ import type { BulkPetOperation } from '../types/pet';
 import { AuthenticatedRequest } from '../types';
 import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { logger } from '../utils/logger';
+import { parsePaginationLimit } from '../utils/pagination';
 
 /** Reusable :petId param schema. */
 const PetIdParamSchema = z.object({
@@ -605,7 +606,10 @@ export class PetController {
   // Get featured pets
   getFeaturedPets = async (req: Request, res: Response) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+        default: 10,
+        max: 100,
+      });
       const pets = await this.petService.getFeaturedPets(limit);
 
       res.status(200).json({

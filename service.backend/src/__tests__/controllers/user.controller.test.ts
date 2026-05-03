@@ -154,4 +154,59 @@ describe('UserController', () => {
       );
     });
   });
+
+  describe('bulkUpdateUsers', () => {
+    it('should call UserService.bulkUpdateUsers with provided data', async () => {
+      const validUserIds = [
+        '550e8400-e29b-41d4-a716-446655440000',
+        '550e8400-e29b-41d4-a716-446655440001',
+      ];
+      req.body = {
+        userIds: validUserIds,
+        updateData: { status: 'ACTIVE' },
+      };
+
+      MockedUserService.bulkUpdateUsers = vi.fn().mockResolvedValue(2);
+
+      await controller.bulkUpdateUsers(req as AuthenticatedRequest, res as Response);
+
+      expect(MockedUserService.bulkUpdateUsers).toHaveBeenCalledWith(
+        [{ userIds: validUserIds, updates: { status: 'ACTIVE' } }],
+        'user-123'
+      );
+      expect(res.json).toHaveBeenCalledWith(2);
+    });
+
+    it('should reject bulk update with non-array userIds', async () => {
+      req.body = {
+        userIds: 'not-an-array',
+        updateData: { status: 'ACTIVE' },
+      };
+
+      MockedUserService.bulkUpdateUsers = vi.fn().mockResolvedValue(0);
+
+      await controller.bulkUpdateUsers(req as AuthenticatedRequest, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'userIds must be a non-empty array',
+      });
+    });
+
+    it('should handle service errors', async () => {
+      req.body = {
+        userIds: ['550e8400-e29b-41d4-a716-446655440000'],
+        updateData: { status: 'ACTIVE' },
+      };
+
+      MockedUserService.bulkUpdateUsers = vi.fn().mockRejectedValue(new Error('Database error'));
+
+      await controller.bulkUpdateUsers(req as AuthenticatedRequest, res as Response);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Failed to bulk update users',
+      });
+    });
+  });
 });

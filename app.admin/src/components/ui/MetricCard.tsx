@@ -45,7 +45,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       onKeyDown={
         onClick
           ? e => {
-              if (e.key === 'Enter' || e.key === ' ') onClick();
+              if (e.key === 'Enter' || e.key === ' ') {
+                onClick();
+              }
             }
           : undefined
       }

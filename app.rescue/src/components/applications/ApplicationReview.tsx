@@ -264,8 +264,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     const traverse = (start: unknown): unknown => {
       let current = start;
       for (const key of keys) {
-        if (current === null || current === undefined || typeof current !== 'object')
+        if (current === null || current === undefined || typeof current !== 'object') {
           return undefined;
+        }
         current = (current as Record<string, unknown>)[key];
       }
       return current;

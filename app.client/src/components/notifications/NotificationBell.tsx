@@ -170,7 +170,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
                   role='button'
                   tabIndex={0}
                   onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') handleNotificationClick(notification);
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleNotificationClick(notification);
+                    }
                   }}
                 >
                   <div
@@ -196,7 +198,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
         role='button'
         tabIndex={0}
         onKeyDown={e => {
-          if (e.key === 'Escape') setIsOpen(false);
+          if (e.key === 'Escape') {
+            setIsOpen(false);
+          }
         }}
         aria-label='Close notifications'
       />
@@ -210,7 +214,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
             role='button'
             tabIndex={0}
             onKeyDown={e => {
-              if (e.key === 'Escape') closeFullCenter();
+              if (e.key === 'Escape') {
+                closeFullCenter();
+              }
             }}
             aria-label='Close notification center'
           />

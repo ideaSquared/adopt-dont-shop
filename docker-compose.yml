@@ -83,12 +83,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       # Security - JWT tokens (REQUIRED)
       JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-${JWT_SECRET}}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       # Security - Session & CSRF
-      SESSION_SECRET: ${SESSION_SECRET:-${JWT_SECRET}}
-      CSRF_SECRET: ${CSRF_SECRET:-${JWT_SECRET}}
+      SESSION_SECRET: ${SESSION_SECRET:?Error: SESSION_SECRET required}
+      CSRF_SECRET: ${CSRF_SECRET:?Error: CSRF_SECRET required}
       # Security - Encryption key for at-rest secrets (TOTP).
       # 64 hex chars = 32 bytes for AES-256. Required by env validation.
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}

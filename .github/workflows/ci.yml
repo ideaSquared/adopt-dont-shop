@@ -70,13 +70,14 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+      TEST_DB_PASSWORD: ${{ secrets.TEST_DB_PASSWORD || format('{0}{1}{2}', github.run_id, github.run_number, github.run_attempt) }}
 
     services:
       postgres:
         image: postgres:15
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: ${{ env.TEST_DB_PASSWORD }}
           POSTGRES_DB: test_db
         options: >-
           --health-cmd pg_isready
@@ -97,6 +98,9 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci
 
+      - name: Validate environment configuration
+        run: npm run validate:env
+
       - name: Build shared libraries
         run: npm run build:libs
 
@@ -109,11 +113,18 @@ jobs:
         working-directory: service.backend
         env:
           NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          DATABASE_URL: postgresql://postgres:${{ env.TEST_DB_PASSWORD }}@localhost:5432/test_db
 
       - name: Build (type-checks via tsc)
         run: npm run build
         working-directory: service.backend
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-backend
+          path: '**/test-results/junit.xml'
+          retention-days: 7
 
   # ============================================================================
   # FRONTEND APPS — one runner per app, fail-fast disabled so all three report
@@ -155,11 +166,21 @@ jobs:
         run: npm test
         working-directory: ${{ matrix.app }}
 
+      - name: Type check
+        run: npx turbo run type-check --filter='@adopt-dont-shop/${{ matrix.app }}'
+
       - name: Build
         run: npm run build
         working-directory: ${{ matrix.app }}
         env:
           CI: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.app }}
+          path: '**/test-results/junit.xml'
+          retention-days: 7
 
   # ============================================================================
   # SHARED LIBRARIES — all 21 lib.* packages tested via Turbo
@@ -186,5 +207,12 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci
 
-      - name: Build, lint and test all libraries
-        run: npx turbo run build lint test --filter='@adopt-dont-shop/lib.*'
+      - name: Build, lint, test and type-check all libraries
+        run: npx turbo run build lint test type-check --filter='@adopt-dont-shop/lib.*'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-libs
+          path: '**/test-results/junit.xml'
+          retention-days: 7

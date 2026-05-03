@@ -48,6 +48,9 @@ import moderationRoutes from './routes/moderation.routes';
 import userRoutes from './routes/user.routes';
 import fieldPermissionsRoutes from './routes/field-permissions.routes';
 import cmsRoutes from './routes/cms.routes';
+import { authenticateToken } from './middleware/auth';
+import { requireRole } from './middleware/rbac';
+import { UserType } from './models/User';
 
 // Import additional routes for PRD compliance
 import path from 'path';
@@ -79,7 +82,7 @@ const io = new SocketIOServer(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  transports: ['websocket', 'polling'],
+  transports: config.nodeEnv === 'production' ? ['websocket'] : ['websocket', 'polling'],
 });
 
 // Apply middleware
@@ -121,8 +124,6 @@ app.use(
     },
     // X-Content-Type-Options - prevent MIME sniffing
     noSniff: true,
-    // X-XSS-Protection - legacy XSS protection (deprecated but still useful for old browsers)
-    xssFilter: true,
     // Referrer-Policy - control referrer information
     referrerPolicy: {
       policy: 'strict-origin-when-cross-origin',
@@ -278,19 +279,24 @@ app.get('/api/v1/health/services', async (req, res) => {
   }
 });
 
-app.get('/api/v1/health/metrics', async (req, res) => {
-  try {
-    const health = await HealthCheckService.getFullHealthCheck();
-    res.json({
-      uptime: health.uptime,
-      metrics: health.metrics,
-      timestamp: health.timestamp,
-      environment: health.environment,
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get metrics' });
+app.get(
+  '/api/v1/health/metrics',
+  authenticateToken,
+  requireRole(UserType.ADMIN),
+  async (req, res) => {
+    try {
+      const health = await HealthCheckService.getFullHealthCheck();
+      res.json({
+        uptime: health.uptime,
+        metrics: health.metrics,
+        timestamp: health.timestamp,
+        environment: health.environment,
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get metrics' });
+    }
   }
-});
+);
 
 // Email provider info (development only)
 if (config.nodeEnv === 'development') {

@@ -58,7 +58,6 @@ describe('Security Headers', () => {
           action: 'deny',
         },
         noSniff: true,
-        xssFilter: true,
         referrerPolicy: {
           policy: 'strict-origin-when-cross-origin',
         },
@@ -95,10 +94,13 @@ describe('Security Headers', () => {
       expect(response.headers['x-frame-options']).toBe('DENY');
     });
 
-    it('should set X-XSS-Protection header', async () => {
+    it('should not set X-XSS-Protection header to deprecated value', async () => {
       const response = await request(app).get('/test');
 
-      expect(response.headers['x-xss-protection']).toBeDefined();
+      const xssProtectionHeader = response.headers['x-xss-protection'];
+      if (xssProtectionHeader !== undefined) {
+        expect(xssProtectionHeader).toBe('0');
+      }
     });
 
     it('should set Strict-Transport-Security header with correct directives', async () => {
