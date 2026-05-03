@@ -37,23 +37,22 @@ interface UserNotificationPrefsAttributes {
   updated_at?: Date;
 }
 
-interface UserNotificationPrefsCreationAttributes
-  extends Optional<
-    UserNotificationPrefsAttributes,
-    | 'email_enabled'
-    | 'push_enabled'
-    | 'sms_enabled'
-    | 'digest_frequency'
-    | 'application_updates'
-    | 'pet_matches'
-    | 'rescue_updates'
-    | 'chat_messages'
-    | 'quiet_hours_start'
-    | 'quiet_hours_end'
-    | 'timezone'
-    | 'created_at'
-    | 'updated_at'
-  > {}
+interface UserNotificationPrefsCreationAttributes extends Optional<
+  UserNotificationPrefsAttributes,
+  | 'email_enabled'
+  | 'push_enabled'
+  | 'sms_enabled'
+  | 'digest_frequency'
+  | 'application_updates'
+  | 'pet_matches'
+  | 'rescue_updates'
+  | 'chat_messages'
+  | 'quiet_hours_start'
+  | 'quiet_hours_end'
+  | 'timezone'
+  | 'created_at'
+  | 'updated_at'
+> {}
 
 class UserNotificationPrefs
   extends Model<UserNotificationPrefsAttributes, UserNotificationPrefsCreationAttributes>

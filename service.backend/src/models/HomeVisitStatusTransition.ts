@@ -29,11 +29,10 @@ interface HomeVisitStatusTransitionAttributes {
   metadata: JsonObject | null;
 }
 
-interface HomeVisitStatusTransitionCreationAttributes
-  extends Optional<
-    HomeVisitStatusTransitionAttributes,
-    'transitionId' | 'transitionedAt' | 'fromStatus' | 'transitionedBy' | 'reason' | 'metadata'
-  > {}
+interface HomeVisitStatusTransitionCreationAttributes extends Optional<
+  HomeVisitStatusTransitionAttributes,
+  'transitionId' | 'transitionedAt' | 'fromStatus' | 'transitionedBy' | 'reason' | 'metadata'
+> {}
 
 class HomeVisitStatusTransition
   extends Model<HomeVisitStatusTransitionAttributes, HomeVisitStatusTransitionCreationAttributes>

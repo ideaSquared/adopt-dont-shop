@@ -55,8 +55,10 @@ export interface ApplicationTimelineAttributes {
   new_status?: string | null;
 }
 
-interface ApplicationTimelineCreationAttributes
-  extends Optional<ApplicationTimelineAttributes, 'timeline_id' | 'created_at' | 'updated_at'> {}
+interface ApplicationTimelineCreationAttributes extends Optional<
+  ApplicationTimelineAttributes,
+  'timeline_id' | 'created_at' | 'updated_at'
+> {}
 
 class ApplicationTimeline
   extends Model<ApplicationTimelineAttributes, ApplicationTimelineCreationAttributes>

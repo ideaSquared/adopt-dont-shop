@@ -26,17 +26,16 @@ interface UserPrivacyPrefsAttributes {
   updated_at?: Date;
 }
 
-interface UserPrivacyPrefsCreationAttributes
-  extends Optional<
-    UserPrivacyPrefsAttributes,
-    | 'profile_visibility'
-    | 'show_last_seen'
-    | 'show_location'
-    | 'allow_search_indexing'
-    | 'allow_data_export'
-    | 'created_at'
-    | 'updated_at'
-  > {}
+interface UserPrivacyPrefsCreationAttributes extends Optional<
+  UserPrivacyPrefsAttributes,
+  | 'profile_visibility'
+  | 'show_last_seen'
+  | 'show_location'
+  | 'allow_search_indexing'
+  | 'allow_data_export'
+  | 'created_at'
+  | 'updated_at'
+> {}
 
 class UserPrivacyPrefs
   extends Model<UserPrivacyPrefsAttributes, UserPrivacyPrefsCreationAttributes>

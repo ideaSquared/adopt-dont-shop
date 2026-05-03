@@ -33,8 +33,10 @@ interface HomeVisitAttributes {
   updated_at?: Date;
 }
 
-interface HomeVisitCreationAttributes
-  extends Optional<HomeVisitAttributes, 'visit_id' | 'created_at' | 'updated_at'> {}
+interface HomeVisitCreationAttributes extends Optional<
+  HomeVisitAttributes,
+  'visit_id' | 'created_at' | 'updated_at'
+> {}
 
 class HomeVisit
   extends Model<HomeVisitAttributes, HomeVisitCreationAttributes>

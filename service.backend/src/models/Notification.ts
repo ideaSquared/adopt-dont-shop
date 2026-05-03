@@ -79,18 +79,17 @@ interface NotificationAttributes {
   deleted_at?: Date | null;
 }
 
-interface NotificationCreationAttributes
-  extends Optional<
-    NotificationAttributes,
-    | 'notification_id'
-    | 'status'
-    | 'priority'
-    | 'retry_count'
-    | 'max_retries'
-    | 'created_at'
-    | 'updated_at'
-    | 'deleted_at'
-  > {}
+interface NotificationCreationAttributes extends Optional<
+  NotificationAttributes,
+  | 'notification_id'
+  | 'status'
+  | 'priority'
+  | 'retry_count'
+  | 'max_retries'
+  | 'created_at'
+  | 'updated_at'
+  | 'deleted_at'
+> {}
 
 class Notification
   extends Model<NotificationAttributes, NotificationCreationAttributes>

@@ -26,18 +26,17 @@ interface RescueSettingsAttributes {
   updated_at?: Date;
 }
 
-interface RescueSettingsCreationAttributes
-  extends Optional<
-    RescueSettingsAttributes,
-    | 'auto_approve_applications'
-    | 'require_home_visit'
-    | 'require_references'
-    | 'min_adopter_age'
-    | 'allow_out_of_area_adoptions'
-    | 'application_expiry_days'
-    | 'created_at'
-    | 'updated_at'
-  > {}
+interface RescueSettingsCreationAttributes extends Optional<
+  RescueSettingsAttributes,
+  | 'auto_approve_applications'
+  | 'require_home_visit'
+  | 'require_references'
+  | 'min_adopter_age'
+  | 'allow_out_of_area_adoptions'
+  | 'application_expiry_days'
+  | 'created_at'
+  | 'updated_at'
+> {}
 
 class RescueSettings
   extends Model<RescueSettingsAttributes, RescueSettingsCreationAttributes>
