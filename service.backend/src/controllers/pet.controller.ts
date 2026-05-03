@@ -17,7 +17,7 @@ import type { BulkPetOperation } from '../types/pet';
 import { AuthenticatedRequest } from '../types';
 import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { logger } from '../utils/logger';
-import { parsePaginationLimit } from '../utils/pagination';
+import { parsePage, parsePaginationLimit } from '../utils/pagination';
 
 /** Reusable :petId param schema. */
 const PetIdParamSchema = z.object({
@@ -140,8 +140,11 @@ export class PetController {
       }
 
       const options = {
-        page: req.query.page ? parseInt(req.query.page as string) : 1,
-        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+        page: parsePage(req.query.page as string | undefined),
+        limit: parsePaginationLimit(req.query.limit as string | undefined, {
+          default: 20,
+          max: 100,
+        }),
         sortBy: ((req.query.sortBy as string) || 'createdAt')
           .replace('created_at', 'createdAt')
           .replace('adoption_fee', 'adoptionFeeMinor'),
@@ -453,8 +456,11 @@ export class PetController {
   // Get pets by rescue
   getPetsByRescue = async (req: Request, res: Response) => {
     try {
-      const page = req.query.page ? parseInt(req.query.page as string) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const page = parsePage(req.query.page as string | undefined);
+      const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+        default: 20,
+        max: 100,
+      });
 
       const result = await this.petService.getPetsByRescue(req.params.rescueId, page, limit);
 
@@ -509,8 +515,11 @@ export class PetController {
         });
       }
 
-      const page = req.query.page ? parseInt(req.query.page as string) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const page = parsePage(req.query.page as string | undefined);
+      const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+        default: 20,
+        max: 100,
+      });
       const status = req.query.status as string;
       const search = req.query.search as string;
       const type = req.query.type as string;
@@ -736,8 +745,11 @@ export class PetController {
   getUserFavorites = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.user!.userId;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
+      const page = parsePage(req.query.page as string | undefined);
+      const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+        default: 20,
+        max: 100,
+      });
 
       const favorites = await this.petService.getUserFavorites(userId, { page, limit });
 
@@ -779,7 +791,10 @@ export class PetController {
    */
   getRecentPets = async (req: Request, res: Response) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 12;
+      const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+        default: 12,
+        max: 100,
+      });
 
       if (limit < 1 || limit > 50) {
         return res.status(400).json({
@@ -873,7 +888,10 @@ export class PetController {
       }
 
       const { petId } = req.params;
-      const limit = parseInt(req.query.limit as string) || 6;
+      const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+        default: 6,
+        max: 100,
+      });
 
       if (limit < 1 || limit > 20) {
         return res.status(400).json({

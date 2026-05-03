@@ -111,8 +111,8 @@ const Dashboard: React.FC = () => {
                 />
               </div>
             ))
-          : metrics.map((metric, index) => (
-              <div key={index} className={styles.metricCard}>
+          : metrics.map(metric => (
+              <div key={metric.label} className={styles.metricCard}>
                 <div className={styles.metricHeader}>
                   <span>{metric.icon}</span>
                   <div className={styles.metricLabel}>{metric.label}</div>

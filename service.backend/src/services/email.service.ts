@@ -549,7 +549,15 @@ class EmailService {
   private processTemplateString(template: string, data: JsonObject): string {
     return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
       const value = this.getNestedProperty(data, key.trim());
-      return value !== undefined ? String(value) : match;
+      if (value === undefined) {
+        return match;
+      }
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
     });
   }
 

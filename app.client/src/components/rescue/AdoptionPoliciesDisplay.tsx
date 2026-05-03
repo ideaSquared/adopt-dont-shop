@@ -103,8 +103,8 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
         <div className={styles.listSection}>
           <h3>Requirements</h3>
           <ul>
-            {adoptionPolicies.requirements.map((requirement, index) => (
-              <li key={index}>
+            {adoptionPolicies.requirements.map(requirement => (
+              <li key={requirement}>
                 <div className='bullet' />
                 <span className='text'>{requirement}</span>
               </li>
@@ -118,8 +118,8 @@ export const AdoptionPoliciesDisplay: React.FC<AdoptionPoliciesDisplayProps> = (
         <div className={styles.listSection}>
           <h3>Policies</h3>
           <ul>
-            {adoptionPolicies.policies.map((policy, index) => (
-              <li key={index}>
+            {adoptionPolicies.policies.map(policy => (
+              <li key={policy}>
                 <div className='bullet' />
                 <span className='text'>{policy}</span>
               </li>

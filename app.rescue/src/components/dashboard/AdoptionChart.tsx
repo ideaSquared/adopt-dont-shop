@@ -15,8 +15,8 @@ const AdoptionChart: React.FC<AdoptionChartProps> = ({ data }) => {
   return (
     <div className="adoption-chart">
       <div className="chart-container">
-        {data.map((item, index) => (
-          <div key={index} className="chart-bar">
+        {data.map(item => (
+          <div key={item.month} className="chart-bar">
             <div
               className="bar"
               style={{

@@ -23,6 +23,7 @@ import {
 import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { redactSensitiveFields } from '../utils/redact';
 
 const USER_SORT_FIELDS = [
   'createdAt',
@@ -271,8 +272,12 @@ export class UserService {
         entity: 'User',
         entityId: userId,
         details: {
-          originalData: JSON.parse(JSON.stringify(originalData)),
-          updateData: JSON.parse(JSON.stringify(processedUpdateData)),
+          originalData: redactSensitiveFields(
+            JSON.parse(JSON.stringify(originalData))
+          ) as JsonObject,
+          updateData: redactSensitiveFields(
+            JSON.parse(JSON.stringify(processedUpdateData))
+          ) as JsonObject,
         },
         userId,
       });

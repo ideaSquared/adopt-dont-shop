@@ -31,7 +31,7 @@ const PetGrid: React.FC<PetGridProps> = ({
     return (
       <div className={styles.loadingGrid}>
         {Array.from({ length: 6 }).map((_, index) => (
-          <Card key={index} className={styles.loadingCard}>
+          <Card key={`skeleton-${index}`} className={styles.loadingCard}>
             <Text>Loading...</Text>
           </Card>
         ))}
@@ -93,7 +93,7 @@ const PetGrid: React.FC<PetGridProps> = ({
         </Button>
 
         {pages.map((page, index) => (
-          <React.Fragment key={index}>
+          <React.Fragment key={`page-${index}`}>
             {page === '...' ? (
               <Text>...</Text>
             ) : (

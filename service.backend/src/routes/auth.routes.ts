@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import AuthController, { authValidation } from '../controllers/auth.controller';
 import { authenticateToken } from '../middleware/auth';
-import { authLimiter, passwordResetLimiter } from '../middleware/rate-limiter';
+import {
+  authLimiter,
+  loginEmailLimiter,
+  passwordResetLimiter,
+  twoFactorLimiter,
+} from '../middleware/rate-limiter';
 
 const router = Router();
 
@@ -153,7 +158,7 @@ router.post('/register', authLimiter, authValidation.register, AuthController.re
  *       429:
  *         description: Rate limit exceeded
  */
-router.post('/login', authLimiter, authValidation.login, AuthController.login);
+router.post('/login', authLimiter, loginEmailLimiter, authValidation.login, AuthController.login);
 
 /**
  * @swagger
@@ -370,7 +375,7 @@ router.post(
  *       409:
  *         description: Email already verified
  */
-router.get('/verify-email/:token', AuthController.verifyEmail);
+router.post('/verify-email', AuthController.verifyEmail);
 
 /**
  * @swagger
@@ -538,19 +543,26 @@ router.get('/me', authenticateToken, AuthController.getCurrentUser);
 router.put('/me', authenticateToken, authValidation.updateProfile, AuthController.updateProfile);
 
 // Two-Factor Authentication routes
-router.post('/2fa/setup', authenticateToken, AuthController.twoFactorSetup);
+router.post('/2fa/setup', authenticateToken, twoFactorLimiter, AuthController.twoFactorSetup);
 router.post(
   '/2fa/enable',
   authenticateToken,
+  twoFactorLimiter,
   authValidation.twoFactorEnable,
   AuthController.twoFactorEnable
 );
 router.post(
   '/2fa/disable',
   authenticateToken,
+  twoFactorLimiter,
   authValidation.twoFactorDisable,
   AuthController.twoFactorDisable
 );
-router.post('/2fa/backup-codes', authenticateToken, AuthController.twoFactorRegenerateBackupCodes);
+router.post(
+  '/2fa/backup-codes',
+  authenticateToken,
+  twoFactorLimiter,
+  AuthController.twoFactorRegenerateBackupCodes
+);
 
 export default router;

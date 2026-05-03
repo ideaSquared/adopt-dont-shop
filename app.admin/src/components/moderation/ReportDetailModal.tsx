@@ -7,6 +7,7 @@ import {
   FiFileText,
   FiExternalLink,
 } from 'react-icons/fi';
+import { openExternal } from '../../utils/openExternal';
 import clsx from 'clsx';
 import {
   Report,
@@ -129,7 +130,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
   const handleViewContent = () => {
     if (viewUrl) {
-      window.open(viewUrl, '_blank');
+      openExternal(viewUrl);
     }
   };
 
@@ -302,7 +303,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             </div>
             <button
               className={styles.viewContentButton}
-              onClick={() => window.open(`/users/${report.reporterId}`, '_blank')}
+              onClick={() => openExternal(`${window.location.origin}/users/${report.reporterId}`)}
               style={{ marginTop: '1rem' }}
             >
               <FiExternalLink size={16} />

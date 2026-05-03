@@ -80,6 +80,15 @@ describe('AuthService', () => {
     });
     vi.spyOn(AuthService as unknown, 'storeRefreshToken').mockResolvedValue(undefined);
 
+    const mockTransaction = {
+      commit: vi.fn().mockResolvedValue(undefined),
+      rollback: vi.fn().mockResolvedValue(undefined),
+      LOCK: { UPDATE: 'UPDATE' },
+    };
+    (MockedUser as unknown as { sequelize: unknown }).sequelize = {
+      transaction: vi.fn().mockResolvedValue(mockTransaction),
+    };
+
     // Default RefreshToken mock – individual tests override as needed
     MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(null);
     MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);

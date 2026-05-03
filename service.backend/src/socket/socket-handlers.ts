@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import { config } from '../config';
 import { toFrontendMessage } from '../controllers/chat.controller';
@@ -11,6 +12,65 @@ import { logger } from '../utils/logger';
 
 // Track active connections for health monitoring
 let activeConnections = 0;
+
+// Per-socket sliding-window rate limiter. Tracks event timestamps in memory;
+// cleaned up on disconnect so memory doesn't grow unbounded.
+const socketEventTimestamps = new Map<string, Map<string, number[]>>();
+
+function isRateLimited(socketId: string, event: string, limit: number, windowMs: number): boolean {
+  if (!socketEventTimestamps.has(socketId)) {
+    socketEventTimestamps.set(socketId, new Map());
+  }
+  const events = socketEventTimestamps.get(socketId)!;
+  const now = Date.now();
+  const cutoff = now - windowMs;
+  const timestamps = (events.get(event) ?? []).filter(t => t > cutoff);
+  if (timestamps.length >= limit) {
+    return true;
+  }
+  timestamps.push(now);
+  events.set(event, timestamps);
+  return false;
+}
+
+// Zod schemas for socket event payloads
+const JoinChatSchema = z.object({ chatId: z.string().uuid() });
+const LeaveChatSchema = z.object({ chatId: z.string().uuid() });
+const SendMessageSchema = z.object({
+  chatId: z.string().uuid(),
+  content: z.string().min(1).max(10_000),
+  messageType: z.enum(['text', 'file', 'image']).optional(),
+  attachments: z
+    .array(
+      z.object({
+        type: z.string().max(50),
+        // Attachment URLs must be relative paths (no external SSRF vector)
+        url: z
+          .string()
+          .max(500)
+          .refine(u => !u.startsWith('http'), {
+            message: 'Attachment URL must be a relative path',
+          }),
+        name: z.string().max(255),
+        size: z.number().int().nonnegative().optional(),
+      })
+    )
+    .max(10)
+    .optional(),
+  replyToId: z.string().uuid().optional(),
+});
+const MarkAsReadSchema = z.object({ chatId: z.string().uuid() });
+const ReactionSchema = z.object({
+  messageId: z.string().uuid(),
+  emoji: z.string().min(1).max(8),
+  chatId: z.string().uuid(),
+});
+const TypingStartSchema = z.object({
+  chatId: z.string().uuid(),
+  firstName: z.string().max(50),
+  lastName: z.string().max(50),
+});
+const TypingStopSchema = z.object({ chatId: z.string().uuid() });
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -174,9 +234,18 @@ export class SocketHandlers {
    */
   private setupChatHandlers(socket: AuthenticatedSocket) {
     // Join chat room
-    socket.on('join_chat', async (data: { chatId: string }) => {
+    socket.on('join_chat', async (data: unknown) => {
       try {
-        const { chatId } = data;
+        if (isRateLimited(socket.id, 'join_chat', 20, 60_000)) {
+          socket.emit('error', { event: 'join_chat', message: 'Rate limit exceeded' });
+          return;
+        }
+        const parsed = JoinChatSchema.safeParse(data);
+        if (!parsed.success) {
+          socket.emit('error', { event: 'join_chat', message: 'Invalid payload' });
+          return;
+        }
+        const { chatId } = parsed.data;
 
         // Verify user has access to chat before joining
         await this.requireChatAccess(socket, chatId);
@@ -201,9 +270,14 @@ export class SocketHandlers {
     });
 
     // Leave chat room
-    socket.on('leave_chat', async (data: { chatId: string }) => {
+    socket.on('leave_chat', async (data: unknown) => {
       try {
-        const { chatId } = data;
+        const parsed = LeaveChatSchema.safeParse(data);
+        if (!parsed.success) {
+          socket.emit('error', { event: 'leave_chat', message: 'Invalid payload' });
+          return;
+        }
+        const { chatId } = parsed.data;
 
         // Verify user has access to chat before leaving
         await this.requireChatAccess(socket, chatId);
@@ -262,75 +336,81 @@ export class SocketHandlers {
     );
 
     // Send message (DEPRECATED - API should be used instead)
-    socket.on(
-      'send_message',
-      async (data: {
-        chatId: string;
-        content: string;
-        messageType?: 'text' | 'file' | 'image';
-        attachments?: Array<{ type: string; url: string; name: string; size?: number }>;
-        replyToId?: string;
-      }) => {
-        try {
-          // Log deprecation warning
-          logger.warn(
-            `DEPRECATED: send_message socket event used by user ${socket.userId}. Use API endpoint instead.`
-          );
-
-          const { chatId, content, messageType = 'text', attachments, replyToId } = data;
-
-          // Verify user has access to chat before processing
-          await this.requireChatAccess(socket, chatId);
-
-          // Send message through service
-          const message = await ChatService.sendMessage({
-            chatId,
-            senderId: socket.userId!,
-            content,
-            messageType: messageType as 'text' | 'file' | 'image',
-            attachments: attachments
-              ? attachments.map(att => ({
-                  attachment_id: `att_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                  filename: att.name,
-                  originalName: att.name,
-                  mimeType: att.type,
-                  size: att.size || 0, // Use actual size from attachment data
-                  url: att.url,
-                }))
-              : undefined,
-            replyToId,
-          });
-
-          // Broadcast the canonical frontend message shape — same helper
-          // used by the REST send/get paths — so clients see camelCase keys
-          // and a populated senderName instead of a raw Sequelize instance
-          // with a nested Sender association.
-          this.io.to(`chat:${chatId}`).emit('new_message', {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            message: toFrontendMessage(message as any),
-            chatId,
-            timestamp: new Date(),
-          });
-
-          // Clear typing indicator for sender
-          this.clearTypingIndicator(chatId, socket.userId!);
-
-          logger.info(`Message sent in chat ${chatId} by user ${socket.userId}`);
-        } catch (error) {
-          logger.error('Error sending message:', error);
-          socket.emit('error', {
-            event: 'send_message',
-            message: 'Failed to send message',
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+    socket.on('send_message', async (data: unknown) => {
+      try {
+        if (isRateLimited(socket.id, 'send_message', 10, 10_000)) {
+          socket.emit('error', { event: 'send_message', message: 'Rate limit exceeded' });
+          return;
         }
+        const parsed = SendMessageSchema.safeParse(data);
+        if (!parsed.success) {
+          socket.emit('error', { event: 'send_message', message: 'Invalid payload' });
+          return;
+        }
+
+        // Log deprecation warning
+        logger.warn(
+          `DEPRECATED: send_message socket event used by user ${socket.userId}. Use API endpoint instead.`
+        );
+
+        const { chatId, content, messageType = 'text', attachments, replyToId } = parsed.data;
+
+        // Verify user has access to chat before processing
+        await this.requireChatAccess(socket, chatId);
+
+        // Send message through service
+        const message = await ChatService.sendMessage({
+          chatId,
+          senderId: socket.userId!,
+          content,
+          messageType: messageType as 'text' | 'file' | 'image',
+          attachments: attachments
+            ? attachments.map(att => ({
+                attachment_id: `att_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                filename: att.name,
+                originalName: att.name,
+                mimeType: att.type,
+                size: att.size || 0, // Use actual size from attachment data
+                url: att.url,
+              }))
+            : undefined,
+          replyToId,
+        });
+
+        // Broadcast the canonical frontend message shape — same helper
+        // used by the REST send/get paths — so clients see camelCase keys
+        // and a populated senderName instead of a raw Sequelize instance
+        // with a nested Sender association.
+        this.io.to(`chat:${chatId}`).emit('new_message', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          message: toFrontendMessage(message as any),
+          chatId,
+          timestamp: new Date(),
+        });
+
+        // Clear typing indicator for sender
+        this.clearTypingIndicator(chatId, socket.userId!);
+
+        logger.info(`Message sent in chat ${chatId} by user ${socket.userId}`);
+      } catch (error) {
+        logger.error('Error sending message:', error);
+        socket.emit('error', {
+          event: 'send_message',
+          message: 'Failed to send message',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
-    );
+    });
 
     // Mark messages as read
-    socket.on('mark_as_read', async (data: { chatId: string }) => {
+    socket.on('mark_as_read', async (data: unknown) => {
       try {
-        const { chatId } = data;
+        const parsed = MarkAsReadSchema.safeParse(data);
+        if (!parsed.success) {
+          socket.emit('error', { event: 'mark_as_read', message: 'Invalid payload' });
+          return;
+        }
+        const { chatId } = parsed.data;
 
         // Verify user has access to chat before marking as read
         await this.requireChatAccess(socket, chatId);
@@ -354,76 +434,84 @@ export class SocketHandlers {
     });
 
     // Add reaction to message
-    socket.on(
-      'add_reaction',
-      async (data: { messageId: string; emoji: string; chatId: string }) => {
-        try {
-          const { messageId, emoji, chatId } = data;
-
-          await ChatService.addMessageReaction(messageId, socket.userId!, emoji);
-          // Reactions live in message_reactions (plan 2.1) — refetch the
-          // current list so the broadcast carries an authoritative snapshot.
-          const reactions = await MessageReaction.findAll({
-            where: { message_id: messageId },
-            attributes: ['user_id', 'emoji', 'created_at'],
-          });
-
-          this.io.to(`chat:${chatId}`).emit('reaction_added', {
-            messageId,
-            emoji,
-            userId: socket.userId,
-            reactions: reactions.map(r => ({
-              user_id: r.user_id,
-              emoji: r.emoji,
-              created_at: r.created_at,
-            })),
-            timestamp: new Date(),
-          });
-        } catch (error) {
-          logger.error('Error adding reaction:', error);
-          socket.emit('error', {
-            event: 'add_reaction',
-            message: 'Failed to add reaction',
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+    socket.on('add_reaction', async (data: unknown) => {
+      try {
+        if (isRateLimited(socket.id, 'add_reaction', 30, 60_000)) {
+          socket.emit('error', { event: 'add_reaction', message: 'Rate limit exceeded' });
+          return;
         }
+        const parsed = ReactionSchema.safeParse(data);
+        if (!parsed.success) {
+          socket.emit('error', { event: 'add_reaction', message: 'Invalid payload' });
+          return;
+        }
+        const { messageId, emoji, chatId } = parsed.data;
+
+        await ChatService.addMessageReaction(messageId, socket.userId!, emoji);
+        // Reactions live in message_reactions (plan 2.1) — refetch the
+        // current list so the broadcast carries an authoritative snapshot.
+        const reactions = await MessageReaction.findAll({
+          where: { message_id: messageId },
+          attributes: ['user_id', 'emoji', 'created_at'],
+        });
+
+        this.io.to(`chat:${chatId}`).emit('reaction_added', {
+          messageId,
+          emoji,
+          userId: socket.userId,
+          reactions: reactions.map(r => ({
+            user_id: r.user_id,
+            emoji: r.emoji,
+            created_at: r.created_at,
+          })),
+          timestamp: new Date(),
+        });
+      } catch (error) {
+        logger.error('Error adding reaction:', error);
+        socket.emit('error', {
+          event: 'add_reaction',
+          message: 'Failed to add reaction',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
-    );
+    });
 
     // Remove reaction from message
-    socket.on(
-      'remove_reaction',
-      async (data: { messageId: string; emoji: string; chatId: string }) => {
-        try {
-          const { messageId, emoji, chatId } = data;
-
-          await ChatService.removeMessageReaction(messageId, socket.userId!, emoji);
-          const reactions = await MessageReaction.findAll({
-            where: { message_id: messageId },
-            attributes: ['user_id', 'emoji', 'created_at'],
-          });
-
-          this.io.to(`chat:${chatId}`).emit('reaction_removed', {
-            messageId,
-            emoji,
-            userId: socket.userId,
-            reactions: reactions.map(r => ({
-              user_id: r.user_id,
-              emoji: r.emoji,
-              created_at: r.created_at,
-            })),
-            timestamp: new Date(),
-          });
-        } catch (error) {
-          logger.error('Error removing reaction:', error);
-          socket.emit('error', {
-            event: 'remove_reaction',
-            message: 'Failed to remove reaction',
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+    socket.on('remove_reaction', async (data: unknown) => {
+      try {
+        const parsed = ReactionSchema.safeParse(data);
+        if (!parsed.success) {
+          socket.emit('error', { event: 'remove_reaction', message: 'Invalid payload' });
+          return;
         }
+        const { messageId, emoji, chatId } = parsed.data;
+
+        await ChatService.removeMessageReaction(messageId, socket.userId!, emoji);
+        const reactions = await MessageReaction.findAll({
+          where: { message_id: messageId },
+          attributes: ['user_id', 'emoji', 'created_at'],
+        });
+
+        this.io.to(`chat:${chatId}`).emit('reaction_removed', {
+          messageId,
+          emoji,
+          userId: socket.userId,
+          reactions: reactions.map(r => ({
+            user_id: r.user_id,
+            emoji: r.emoji,
+            created_at: r.created_at,
+          })),
+          timestamp: new Date(),
+        });
+      } catch (error) {
+        logger.error('Error removing reaction:', error);
+        socket.emit('error', {
+          event: 'remove_reaction',
+          message: 'Failed to remove reaction',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
-    );
+    });
   }
 
   /**
@@ -431,40 +519,46 @@ export class SocketHandlers {
    */
   private setupTypingHandlers(socket: AuthenticatedSocket) {
     // User started typing
-    socket.on(
-      'typing_start',
-      async (data: { chatId: string; firstName: string; lastName: string }) => {
-        try {
-          const { chatId, firstName, lastName } = data;
-
-          // Verify user has access to chat before setting typing indicator
-          await this.requireChatAccess(socket, chatId);
-
-          this.setTypingIndicator(chatId, {
-            userId: socket.userId!,
-            firstName,
-            lastName,
-            timestamp: new Date(),
-          });
-
-          // Notify other participants
-          socket.to(`chat:${chatId}`).emit('user_typing', {
-            userId: socket.userId,
-            firstName,
-            lastName,
-            chatId,
-            timestamp: new Date(),
-          });
-        } catch (error) {
-          logger.error('Error handling typing start:', error);
+    socket.on('typing_start', async (data: unknown) => {
+      try {
+        if (isRateLimited(socket.id, 'typing_start', 60, 60_000)) {
+          return;
         }
+        const parsed = TypingStartSchema.safeParse(data);
+        if (!parsed.success) {
+          return;
+        }
+        const { chatId, firstName, lastName } = parsed.data;
+
+        await this.requireChatAccess(socket, chatId);
+
+        this.setTypingIndicator(chatId, {
+          userId: socket.userId!,
+          firstName,
+          lastName,
+          timestamp: new Date(),
+        });
+
+        socket.to(`chat:${chatId}`).emit('user_typing', {
+          userId: socket.userId,
+          firstName,
+          lastName,
+          chatId,
+          timestamp: new Date(),
+        });
+      } catch (error) {
+        logger.error('Error handling typing start:', error);
       }
-    );
+    });
 
     // User stopped typing
-    socket.on('typing_stop', async (data: { chatId: string }) => {
+    socket.on('typing_stop', async (data: unknown) => {
       try {
-        const { chatId } = data;
+        const parsed = TypingStopSchema.safeParse(data);
+        if (!parsed.success) {
+          return;
+        }
+        const { chatId } = parsed.data;
 
         // Verify user has access to chat before clearing typing indicator
         await this.requireChatAccess(socket, chatId);
@@ -538,6 +632,9 @@ export class SocketHandlers {
 
       // Clear all typing indicators for this user
       this.clearAllTypingIndicators(socket.userId!);
+
+      // Release per-socket rate-limit state
+      socketEventTimestamps.delete(socket.id);
     });
   }
 

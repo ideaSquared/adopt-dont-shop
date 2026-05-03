@@ -61,8 +61,8 @@ export const ProfileCompletionPrompt: React.FC<ProfileCompletionPromptProps> = (
           <div className={styles.missingFields}>
             <h4 className={styles.missingFieldsTitle}>Missing Information:</h4>
             <div className={styles.fieldList}>
-              {displayFields.map((field, index) => (
-                <span key={index} className={styles.fieldTag}>
+              {displayFields.map(field => (
+                <span key={field} className={styles.fieldTag}>
                   {formatFieldName(field)}
                 </span>
               ))}

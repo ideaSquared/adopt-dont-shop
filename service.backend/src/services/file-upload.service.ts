@@ -8,6 +8,7 @@ import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import FileUpload from '../models/FileUpload';
+import { UserType } from '../models/User';
 import { fromFile as fileTypeFromFile } from 'file-type';
 import DOMPurify from 'isomorphic-dompurify';
 
@@ -66,7 +67,6 @@ const createFileFilter = (allowedTypes: string[] = []) => {
         '.png',
         '.gif',
         '.webp',
-        '.svg',
         '.pdf',
         '.doc',
         '.docx',
@@ -265,17 +265,24 @@ export class FileUploadService {
   }
 
   /**
-   * Delete a file and its database record
+   * Delete a file and its database record.
+   * Callers must provide the acting user so ownership is verified before deletion.
    */
   static async deleteFile(
     uploadId: string,
-    deletedBy: string
+    deletedBy: { id: string; type: UserType }
   ): Promise<{ success: boolean; message: string }> {
     try {
       // Get upload record
       const uploadRecord = await this.getUploadRecord(uploadId);
       if (!uploadRecord) {
         throw new Error('Upload record not found');
+      }
+
+      const isOwner = uploadRecord.uploaded_by === deletedBy.id;
+      const isAdmin = deletedBy.type === UserType.ADMIN;
+      if (!isOwner && !isAdmin) {
+        throw Object.assign(new Error('Not allowed to delete this file'), { statusCode: 403 });
       }
 
       // Delete physical file
@@ -292,14 +299,14 @@ export class FileUploadService {
         action: 'FILE_DELETE',
         entity: 'FILE',
         entityId: uploadId,
-        userId: deletedBy,
+        userId: deletedBy.id,
         details: {
           filename: uploadRecord.original_filename,
           reason: 'User requested deletion',
         },
       });
 
-      logger.info('File deleted successfully', { uploadId, deletedBy });
+      logger.info('File deleted successfully', { uploadId, deletedBy: deletedBy.id });
 
       return {
         success: true,
@@ -351,8 +358,17 @@ export class FileUploadService {
    * Validate file before upload
    */
   private static async validateFile(file: Express.Multer.File): Promise<void> {
+    const deleteFile = async () => {
+      try {
+        await fs.promises.unlink(file.path);
+      } catch {
+        /* best-effort cleanup */
+      }
+    };
+
     // Check file size
     if (file.size > UPLOAD_CONFIG.maxFileSize) {
+      await deleteFile();
       throw new Error(
         `File size ${file.size} exceeds maximum allowed size ${UPLOAD_CONFIG.maxFileSize}`
       );
@@ -367,22 +383,23 @@ export class FileUploadService {
     ];
 
     if (!allAllowedTypes.includes(file.mimetype)) {
+      await deleteFile();
       throw new Error(`File type ${file.mimetype} is not allowed`);
     }
 
-    // Validate file content matches MIME type (magic byte checking)
-    await this.validateFileContent(file);
-
-    // Sanitize SVG files to prevent XSS
-    if (file.mimetype === 'image/svg+xml') {
-      await this.sanitizeSvgFile(file);
+    // Validate file content matches declared MIME type (magic-byte check).
+    // On mismatch the file is deleted to prevent polyglot payloads lingering on disk.
+    try {
+      await this.validateFileContent(file);
+    } catch (error) {
+      await deleteFile();
+      throw error;
     }
 
     // Scan for malware
     const isSafe = await this.scanForMalware(file.path);
     if (!isSafe) {
-      // Delete the potentially malicious file
-      await fs.promises.unlink(file.path);
+      await deleteFile();
       throw new Error('File failed malware scan and has been removed');
     }
   }
@@ -530,7 +547,9 @@ export class FileUploadService {
     };
 
     // Process images
-    if (UPLOAD_CONFIG.allowedMimeTypes.images.includes(file.mimetype)) {
+    if (file.mimetype === 'image/svg+xml') {
+      await this.sanitizeSvgFile(file);
+    } else if (UPLOAD_CONFIG.allowedMimeTypes.images.includes(file.mimetype)) {
       // Add image processing logic here (resize, compress, generate thumbnails)
       // This would use a library like sharp or jimp
     }

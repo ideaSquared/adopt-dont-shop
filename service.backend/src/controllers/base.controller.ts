@@ -88,7 +88,7 @@ export class BaseController {
     }
 
     // Add error details in development mode
-    if (error && process.env.NODE_ENV === 'development') {
+    if (error && process.env.DEBUG_ERRORS === 'true') {
       response.error = error;
     }
 

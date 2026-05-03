@@ -185,7 +185,7 @@ describe('AuthService - Security Business Logic', () => {
       // Then: Login attempts are incremented via atomic Model.increment
       // (save is now only called on lockout, not on every failed attempt).
       expect(mockUser.loginAttempts).toBe(1);
-      expect(mockUser.increment).toHaveBeenCalledWith('loginAttempts');
+      expect(mockUser.increment).toHaveBeenCalledWith('loginAttempts', expect.any(Object));
     });
 
     it('should lock account after 5 failed login attempts', async () => {

@@ -1007,7 +1007,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                       what_happened?: string;
                     }>
                   ).map((pet, index) => (
-                    <div key={index} className={styles.card}>
+                    <div key={`prev-pet-${index}`} className={styles.card}>
                       <h4 className={styles.cardTitle}>Previous Pet #{index + 1}</h4>
                       <div className={styles.field}>
                         <span className={styles.fieldLabel}>Type</span>

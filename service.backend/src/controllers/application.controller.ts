@@ -16,6 +16,7 @@ import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
 import { FileUploadService } from '../services/file-upload.service';
 import { AuthenticatedRequest } from '../types';
+import { parsePage, parsePaginationLimit } from '../utils/pagination';
 import {
   ApplicationDocument,
   ApplicationSearchFilters,
@@ -238,8 +239,11 @@ export class ApplicationController extends BaseController {
       };
 
       const options: ApplicationSearchOptions = {
-        page: req.query.page ? parseInt(req.query.page as string) : 1,
-        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+        page: parsePage(req.query.page as string | undefined),
+        limit: parsePaginationLimit(req.query.limit as string | undefined, {
+          default: 20,
+          max: 100,
+        }),
         sortBy: (req.query.sortBy as string) || 'createdAt',
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
         include_user: true,
@@ -341,7 +345,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to create application',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -395,7 +399,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve application',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -461,7 +465,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to update application',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -517,7 +521,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to submit application',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -581,7 +585,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to update application status',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -637,7 +641,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to withdraw application',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -721,7 +725,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to add document',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -758,7 +762,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to remove document',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -808,7 +812,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to update reference',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -829,7 +833,7 @@ export class ApplicationController extends BaseController {
         success: false,
         message: 'Failed to get application form structure',
         error:
-          process.env.NODE_ENV === 'development'
+          process.env.DEBUG_ERRORS === 'true'
             ? error instanceof Error
               ? error.message
               : 'Unknown error'
@@ -868,7 +872,7 @@ export class ApplicationController extends BaseController {
         success: false,
         message: 'Failed to retrieve application statistics',
         error:
-          process.env.NODE_ENV === 'development'
+          process.env.DEBUG_ERRORS === 'true'
             ? error instanceof Error
               ? error.message
               : 'Unknown error'
@@ -902,7 +906,7 @@ export class ApplicationController extends BaseController {
         success: false,
         message: 'Failed to perform bulk update',
         error:
-          process.env.NODE_ENV === 'development'
+          process.env.DEBUG_ERRORS === 'true'
             ? error instanceof Error
               ? error.message
               : 'Unknown error'
@@ -951,7 +955,7 @@ export class ApplicationController extends BaseController {
       res.status(500).json({
         success: false,
         message: 'Failed to delete application',
-        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
       });
     }
   };
@@ -981,7 +985,7 @@ export class ApplicationController extends BaseController {
         success: false,
         message: 'Failed to validate application answers',
         error:
-          process.env.NODE_ENV === 'development'
+          process.env.DEBUG_ERRORS === 'true'
             ? error instanceof Error
               ? error.message
               : 'Unknown error'

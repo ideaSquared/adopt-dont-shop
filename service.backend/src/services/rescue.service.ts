@@ -1,4 +1,5 @@
 import { Op, Order, WhereOptions } from 'sequelize';
+import { z } from 'zod';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
@@ -66,6 +67,32 @@ export interface UpdateRescueRequest {
   contactPhone?: string;
   settings?: object;
 }
+
+// Allowlist of fields a rescue may self-update. Using .strip() drops unknown
+// keys so any injected privilege-escalation fields (status, isVerified, etc.)
+// are silently removed before reaching Sequelize.
+const RescueUpdateSchema = z
+  .object({
+    name: z.string().min(1).max(255).optional(),
+    email: z.string().email().optional(),
+    phone: z.string().max(50).optional(),
+    address: z.string().max(500).optional(),
+    city: z.string().max(255).optional(),
+    state: z.string().max(255).optional(),
+    zipCode: z.string().max(20).optional(),
+    country: z.string().max(255).optional(),
+    website: z.string().url().optional().or(z.literal('')),
+    description: z.string().max(5000).optional(),
+    mission: z.string().max(5000).optional(),
+    ein: z.string().max(20).optional(),
+    registrationNumber: z.string().max(100).optional(),
+    contactPerson: z.string().max(255).optional(),
+    contactTitle: z.string().max(255).optional(),
+    contactEmail: z.string().email().optional(),
+    contactPhone: z.string().max(50).optional(),
+    settings: z.record(z.unknown()).optional(),
+  })
+  .strip();
 
 export interface RescueStatsResponse {
   totalPets: number;
@@ -368,7 +395,8 @@ export class RescueService {
       }
 
       const oldData = rescue.toJSON();
-      await rescue.update(updateData, { transaction });
+      const cleanedData = RescueUpdateSchema.parse(updateData);
+      await rescue.update(cleanedData, { transaction });
 
       // Log the action
       await AuditLogService.log({

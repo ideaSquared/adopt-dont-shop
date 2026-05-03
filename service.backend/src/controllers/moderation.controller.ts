@@ -8,6 +8,7 @@ import ModerationService, {
 import { ReportStatus, ReportCategory, ReportSeverity } from '../models/Report';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
+import { parsePage, parsePaginationLimit } from '../utils/pagination';
 
 export class ModerationController {
   // Report Management
@@ -70,8 +71,11 @@ export class ModerationController {
       }
 
       const options: ReportSearchOptions = {
-        page: parseInt(req.query.page as string) || 1,
-        limit: parseInt(req.query.limit as string) || 20,
+        page: parsePage(req.query.page as string | undefined),
+        limit: parsePaginationLimit(req.query.limit as string | undefined, {
+          default: 20,
+          max: 100,
+        }),
         sortBy: (req.query.sortBy as string) || 'createdAt',
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
       };
@@ -316,8 +320,11 @@ export class ModerationController {
 
   async getFlaggedMessages(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const page = req.query.page ? parseInt(String(req.query.page), 10) : 1;
-      const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 20;
+      const page = parsePage(req.query.page as string | undefined);
+      const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+        default: 20,
+        max: 100,
+      });
       const severity = req.query.severity ? String(req.query.severity) : undefined;
       const moderationStatus = req.query.moderationStatus
         ? String(req.query.moderationStatus)

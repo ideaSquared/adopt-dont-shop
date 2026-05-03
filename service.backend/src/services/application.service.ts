@@ -380,26 +380,25 @@ export class ApplicationService {
 
       // Auto-filter by rescue for rescue staff (unless rescueId explicitly provided)
       if (userId && userType === UserType.RESCUE_STAFF && !filters.rescueId) {
-        try {
-          const StaffMember = (await import('../models/StaffMember')).default;
-          const staffMember = await StaffMember.findOne({
-            where: {
-              userId: userId,
-              isVerified: true,
-            },
-          });
+        const StaffMember = (await import('../models/StaffMember')).default;
+        const staffMember = await StaffMember.findOne({
+          where: {
+            userId: userId,
+            isVerified: true,
+          },
+        });
 
-          if (staffMember) {
-            whereConditions.rescueId = staffMember.rescueId;
-            logger.info('Auto-filtering applications by user rescue:', {
-              userId: userId,
-              rescueId: staffMember.rescueId,
-            });
-          }
-        } catch (error) {
-          // If there's an error getting staff member, just continue without filtering
-          logger.warn('Could not determine user rescue for auto-filtering applications:', error);
+        if (!staffMember?.rescueId) {
+          throw Object.assign(new Error('Unable to determine rescue for staff user'), {
+            statusCode: 403,
+          });
         }
+
+        whereConditions.rescueId = staffMember.rescueId;
+        logger.info('Auto-filtering applications by user rescue:', {
+          userId: userId,
+          rescueId: staffMember.rescueId,
+        });
       }
 
       // Status filtering
@@ -1458,7 +1457,8 @@ export class ApplicationService {
         ],
         raw: true,
       })) as { avg: string | null; min: string | null; max: string | null; count: string } | null;
-      const averageScore = stats?.avg != null ? parseFloat(stats.avg) : 0;
+      const averageScore =
+        stats?.avg !== null && stats?.avg !== undefined ? parseFloat(stats.avg) : 0;
 
       // Get pending applications
       const pendingApplications = await Application.count({

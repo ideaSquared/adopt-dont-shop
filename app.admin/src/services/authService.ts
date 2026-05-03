@@ -7,11 +7,12 @@ import {
   ADMIN_USER_TYPES,
 } from '@/types';
 import { apiService } from './libraryServices';
+import { safeStorage } from './safeStorage';
 
 class AuthService {
   private clearUserData(): void {
-    localStorage.removeItem('user');
-    localStorage.removeItem('impersonating');
+    safeStorage.removeItem('user');
+    safeStorage.removeItem('impersonating');
   }
 
   // Login admin user
@@ -22,7 +23,7 @@ class AuthService {
     const response = await apiService.post<AuthResponse>('/api/v1/auth/admin/login', credentials);
 
     // Store only non-sensitive user data; tokens are in HttpOnly cookies
-    localStorage.setItem('user', JSON.stringify(response.user));
+    safeStorage.setItem('user', JSON.stringify(response.user));
 
     return response;
   }
@@ -32,7 +33,7 @@ class AuthService {
     const response = await apiService.post<AuthResponse>('/api/v1/auth/admin/register', userData);
 
     // Store only non-sensitive user data; tokens are in HttpOnly cookies
-    localStorage.setItem('user', JSON.stringify(response.user));
+    safeStorage.setItem('user', JSON.stringify(response.user));
 
     return response;
   }
@@ -51,7 +52,7 @@ class AuthService {
 
   // Get current admin user from localStorage
   getCurrentUser(): User | null {
-    const userStr = localStorage.getItem('user');
+    const userStr = safeStorage.getItem('user');
     if (!userStr) {
       return null;
     }
@@ -96,7 +97,7 @@ class AuthService {
     const response = await apiService.patch<User>('/api/v1/admin/profile', userData);
 
     // Update stored user data
-    localStorage.setItem('user', JSON.stringify(response));
+    safeStorage.setItem('user', JSON.stringify(response));
 
     return response;
   }
@@ -142,24 +143,24 @@ class AuthService {
     });
 
     // Track impersonation state; token is managed via HttpOnly cookie by the server
-    localStorage.setItem('impersonating', 'true');
-    localStorage.setItem('user', JSON.stringify(response.user));
+    safeStorage.setItem('impersonating', 'true');
+    safeStorage.setItem('user', JSON.stringify(response.user));
   }
 
   // Stop impersonation
   async stopImpersonation(): Promise<void> {
     await apiService.post('/api/v1/admin/impersonate/stop', {});
 
-    localStorage.removeItem('impersonating');
+    safeStorage.removeItem('impersonating');
 
     // Refresh user data from server
     const response = await apiService.get<User>('/api/v1/admin/profile');
-    localStorage.setItem('user', JSON.stringify(response));
+    safeStorage.setItem('user', JSON.stringify(response));
   }
 
   // Check if currently impersonating
   isImpersonating(): boolean {
-    return !!localStorage.getItem('impersonating');
+    return !!safeStorage.getItem('impersonating');
   }
 }
 

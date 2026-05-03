@@ -101,7 +101,14 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'"], // Required for styled-components runtime style injection; remove when migrating to CSS modules
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'", 'ws:', 'wss:'], // Allow WebSocket connections
+        connectSrc: [
+          "'self'",
+          // Explicit WebSocket origins — avoids the `ws:` / `wss:` wildcards that
+          // allow connections to any host (BREACH mitigation).
+          process.env.API_URL ?? 'http://localhost:5000',
+          (process.env.API_URL ?? 'ws://localhost:5000').replace(/^https?/, 'ws'),
+          (process.env.API_URL ?? 'wss://localhost:5000').replace(/^https?/, 'wss'),
+        ],
         fontSrc: ["'self'", 'https:', 'data:'],
         objectSrc: ["'none'"], // Disallow plugins
         mediaSrc: ["'self'"],
@@ -172,7 +179,16 @@ app.use('/api', (req, res, next) => {
 
 // Serve uploaded files in development
 if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
+  const projectRoot = path.resolve(__dirname, '..', '..');
   const uploadDir = path.resolve(config.storage.local.directory);
+
+  // Prevent directory traversal: reject any path that escapes the project root
+  if (!uploadDir.startsWith(projectRoot + path.sep) && uploadDir !== projectRoot) {
+    throw new Error(
+      `Unsafe upload directory: "${uploadDir}" is outside project root "${projectRoot}". ` +
+        `Set STORAGE_LOCAL_DIRECTORY to a path inside the project.`
+    );
+  }
 
   // Configure static file serving with proper CORS headers
   app.use(
@@ -210,7 +226,7 @@ if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
 
       next();
     },
-    express.static(uploadDir)
+    express.static(uploadDir, { dotfiles: 'deny', index: false, redirect: false })
   );
 
   logger.info(`Serving static files from: ${uploadDir} with CORS enabled`);
@@ -379,6 +395,16 @@ const startServer = async () => {
     // Validate environment variables first
     validateEnvironment();
     printEnvironmentInfo();
+
+    // Log cookie security settings so regressions are visible in startup output
+    const isProduction = process.env.NODE_ENV === 'production';
+    logger.info('Cookie security settings', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      refreshMaxAgeDays: 3,
+      accessMaxAgeMinutes: 15,
+    });
 
     // Initialize message broker for scaling
     await initializeMessageBroker();

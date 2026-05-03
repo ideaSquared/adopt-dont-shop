@@ -237,9 +237,9 @@ const Dashboard: React.FC = () => {
                 marginBottom: '1rem',
               }}
             >
-              {monthlyAdoptions.map((item, index) => (
+              {monthlyAdoptions.map(item => (
                 <div
-                  key={index}
+                  key={item.month}
                   style={{
                     flex: 1,
                     display: 'flex',
@@ -303,9 +303,9 @@ const Dashboard: React.FC = () => {
           </div>
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {petStatusDistribution.map((status, index) => (
+              {petStatusDistribution.map(status => (
                 <div
-                  key={index}
+                  key={status.name}
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center' }}>

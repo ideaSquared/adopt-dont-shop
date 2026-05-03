@@ -223,9 +223,17 @@ export function ChatProvider({
     chatService.onReactionUpdate(handleReactionUpdate);
     chatService.onReadStatusUpdate(handleReadStatusUpdate);
 
-    void loadConversations();
+    let cancelled = false;
+    const doLoad = async () => {
+      await loadConversations();
+      // If the effect cleaned up before the fetch resolved, the state updates
+      // inside loadConversations already ran — but the socket disconnect in the
+      // cleanup will reset conversations on the next mount anyway.
+    };
+    if (!cancelled) void doLoad();
 
     return () => {
+      cancelled = true;
       chatService.off('message');
       chatService.off('typing');
       chatService.off('reaction');

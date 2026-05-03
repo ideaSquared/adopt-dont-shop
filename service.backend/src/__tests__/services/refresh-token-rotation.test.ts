@@ -44,6 +44,15 @@ describe('Refresh token rotation', () => {
     MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined);
     mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
 
+    const mockTransaction = {
+      commit: vi.fn().mockResolvedValue(undefined),
+      rollback: vi.fn().mockResolvedValue(undefined),
+      LOCK: { UPDATE: 'UPDATE' },
+    };
+    (MockedUser as unknown as { sequelize: unknown }).sequelize = {
+      transaction: vi.fn().mockResolvedValue(mockTransaction),
+    };
+
     vi.spyOn(AuthService as unknown, 'generateTokens').mockResolvedValue({
       token: 'new-access-token',
       refreshToken: 'new-refresh-token',

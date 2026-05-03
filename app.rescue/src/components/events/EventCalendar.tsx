@@ -124,9 +124,9 @@ const EventCalendar: React.FC<EventCalendarProps> = ({ events, onEventClick, onD
           </div>
         ))}
 
-        {calendarDays.map((day, index) => (
+        {calendarDays.map(day => (
           <div
-            key={index}
+            key={day.date.toISOString()}
             className={styles.dayCell({ isToday: day.isToday, isCurrentMonth: day.isCurrentMonth })}
             onClick={() => onDateClick && onDateClick(day.date)}
             onKeyDown={e =>

@@ -38,6 +38,8 @@ import {
   authLimiter,
   passwordResetLimiter,
   uploadLimiter,
+  twoFactorLimiter,
+  loginEmailLimiter,
 } from '../../middleware/rate-limiter';
 
 describe('Rate Limiter Middleware', () => {
@@ -62,7 +64,7 @@ describe('Rate Limiter Middleware', () => {
 
   describe('Rate limiter initialization', () => {
     it('should create multiple rate limiters', () => {
-      expect(rateLimitConfigs.length).toBe(5); // API, Auth, Password Reset, Upload, Email Resend
+      expect(rateLimitConfigs.length).toBe(7); // API, Auth, Password Reset, Upload, 2FA, Login Email, Email Resend
     });
 
     it('should configure all limiters with standard headers', () => {
@@ -260,6 +262,71 @@ describe('Rate Limiter Middleware', () => {
       const uploadConfig = rateLimitConfigs[3];
       expect(uploadConfig.message).toEqual({
         error: 'Too many file uploads, please try again later.',
+        retryAfter: 900,
+      });
+    });
+  });
+
+  describe('Two-factor authentication limiter (twoFactorLimiter)', () => {
+    it('should be defined and exported', () => {
+      expect(twoFactorLimiter).toBeDefined();
+    });
+
+    it('should configure with strict limits (5 per 15 minutes)', () => {
+      const twoFaConfig = rateLimitConfigs[4];
+      expect(twoFaConfig.windowMs).toBe(15 * 60 * 1000);
+      expect(twoFaConfig.max).toBe(5);
+    });
+
+    it('should have a custom keyGenerator', () => {
+      const twoFaConfig = rateLimitConfigs[4];
+      expect(typeof twoFaConfig.keyGenerator).toBe('function');
+    });
+
+    it('should return 429 with 2FA-specific message', () => {
+      const twoFaConfig = rateLimitConfigs[4];
+      const handler = twoFaConfig.handler as (req: Request, res: Response) => void;
+
+      handler(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(429);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Too many 2FA attempts, please try again later.',
+        retryAfter: 900,
+      });
+    });
+  });
+
+  describe('Per-email login limiter (loginEmailLimiter)', () => {
+    it('should be defined and exported', () => {
+      expect(loginEmailLimiter).toBeDefined();
+    });
+
+    it('should configure with limits (10 per 15 minutes)', () => {
+      const loginEmailConfig = rateLimitConfigs[5];
+      expect(loginEmailConfig.windowMs).toBe(15 * 60 * 1000);
+      expect(loginEmailConfig.max).toBe(10);
+    });
+
+    it('should skip successful requests', () => {
+      const loginEmailConfig = rateLimitConfigs[5];
+      expect(loginEmailConfig.skipSuccessfulRequests).toBe(true);
+    });
+
+    it('should have a custom keyGenerator', () => {
+      const loginEmailConfig = rateLimitConfigs[5];
+      expect(typeof loginEmailConfig.keyGenerator).toBe('function');
+    });
+
+    it('should return 429 with login-specific message', () => {
+      const loginEmailConfig = rateLimitConfigs[5];
+      const handler = loginEmailConfig.handler as (req: Request, res: Response) => void;
+
+      handler(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(429);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        error: 'Too many login attempts for this account, please try again later.',
         retryAfter: 900,
       });
     });

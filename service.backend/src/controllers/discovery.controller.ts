@@ -3,6 +3,7 @@ import { body, param, query, validationResult } from 'express-validator';
 import { DiscoveryService, DiscoveryFilters } from '../services/discovery.service';
 import { SwipeService } from '../services/swipe.service';
 import { logger } from '../utils/logger';
+import { parsePaginationLimit } from '../utils/pagination';
 
 export class DiscoveryController {
   private discoveryService: DiscoveryService;
@@ -80,7 +81,10 @@ export class DiscoveryController {
       maxDistance: req.query.maxDistance ? parseFloat(req.query.maxDistance as string) : undefined,
     };
 
-    const limit = parseInt(req.query.limit as string) || 20;
+    const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+      default: 20,
+      max: 100,
+    });
     const userId = req.query.userId as string;
 
     try {

@@ -91,6 +91,13 @@ RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
     cp /app/lib.validation/package.json node_modules/@adopt-dont-shop/lib.validation/ && \
     cp -r /app/lib.validation/dist node_modules/@adopt-dont-shop/lib.validation/
 
+# Create non-root user and transfer ownership of writable paths
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S appuser -u 1001 -G nodejs && \
+    chown -R appuser:nodejs /app/service.backend/node_modules /app/lib.types /app/lib.validation
+
+USER appuser
+
 # Expose application port
 EXPOSE 5000
 

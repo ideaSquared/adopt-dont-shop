@@ -144,6 +144,63 @@ export const uploadLimiter =
         },
       });
 
+// Per-user 2FA rate limiter — prevents TOTP/backup-code brute force after session theft
+export const twoFactorLimiter =
+  config.nodeEnv === 'development'
+    ? createDevLimiter(15 * 60 * 1000, 5, 'TWO_FACTOR')
+    : rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 5,
+        keyGenerator: req =>
+          (req as unknown as { user?: { userId?: string } }).user?.userId || req.ip || 'unknown',
+        message: {
+          error: 'Too many 2FA attempts, please try again later.',
+          retryAfter: 900,
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: (req, res) => {
+          logger.warn(
+            `2FA rate limit exceeded for user: ${(req as unknown as { user?: { userId?: string } }).user?.userId || req.ip}`
+          );
+          res.status(429).json({
+            error: 'Too many 2FA attempts, please try again later.',
+            retryAfter: 900,
+          });
+        },
+      });
+
+// Per-email login limiter — complements the IP limiter to prevent distributed credential stuffing
+export const loginEmailLimiter =
+  config.nodeEnv === 'development'
+    ? createDevLimiter(15 * 60 * 1000, 10, 'LOGIN_EMAIL')
+    : rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 10,
+        skipSuccessfulRequests: true,
+        keyGenerator: req => {
+          const email = (
+            (req.body as Record<string, string> | undefined)?.email ?? ''
+          ).toLowerCase();
+          return `email:${email}`;
+        },
+        message: {
+          error: 'Too many login attempts for this account, please try again later.',
+          retryAfter: 900,
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: (req, res) => {
+          logger.warn(
+            `Login email rate limit exceeded for: ${(req.body as Record<string, string> | undefined)?.email}`
+          );
+          res.status(429).json({
+            error: 'Too many login attempts for this account, please try again later.',
+            retryAfter: 900,
+          });
+        },
+      });
+
 // Email verification resend limiter — stricter than auth limiter to prevent abuse
 // Keyed on both IP and target email to prevent using endpoint as email relay
 export const emailResendLimiter =

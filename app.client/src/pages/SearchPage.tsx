@@ -13,7 +13,7 @@ import {
   Spinner,
   TextInput,
 } from '@adopt-dont-shop/lib.components';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import * as styles from './SearchPage.css';
 
@@ -110,8 +110,17 @@ export const SearchPage: React.FC = () => {
   const [isGeocodingLocation, setIsGeocodingLocation] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
-  // Log page view
+  // Capture initial filter/query state at mount for the page-view analytics event below.
+  // These refs are intentionally not deps — we want a single fire on mount (and when the
+  // feature flag flips), not on every user keystroke.
+  const initialSearchQueryRef = useRef(searchQuery);
+  const initialFiltersRef = useRef(filters);
+
+  // Log page view once on mount (and when the feature flag variant changes)
   useEffect(() => {
+    const initialQuery = initialSearchQueryRef.current;
+    const initialFilters = initialFiltersRef.current;
+
     // Track feature flag usage
     trackEvent({
       category: 'feature_flags',
@@ -133,20 +142,19 @@ export const SearchPage: React.FC = () => {
       sessionId: 'search-session',
       timestamp: new Date(),
       properties: {
-        has_initial_query: !!searchQuery,
-        initial_type_filter: filters.type || 'none',
-        page_number: filters.page || 1,
+        has_initial_query: !!initialQuery,
+        initial_type_filter: initialFilters.type || 'none',
+        page_number: initialFilters.page || 1,
       },
     });
 
     // Existing Statsig tracking
     logEvent('search_page_viewed', 1, {
-      has_initial_query: (!!searchQuery).toString(),
-      initial_type_filter: filters.type || 'none',
-      page_number: (filters.page || 1).toString(),
+      has_initial_query: (!!initialQuery).toString(),
+      initial_type_filter: initialFilters.type || 'none',
+      page_number: (initialFilters.page || 1).toString(),
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackPageView, trackEvent, advancedFiltersEnabled]);
+  }, [trackPageView, trackEvent, logEvent, advancedFiltersEnabled]);
 
   // Load pets based on current filters
   const loadPets = useCallback(async () => {
