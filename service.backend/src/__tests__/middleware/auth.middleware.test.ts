@@ -832,8 +832,64 @@ describe('Authentication Middleware', () => {
       });
     });
 
+    describe('when user is inactive or suspended', () => {
+      it('should treat a suspended user as unauthenticated', async () => {
+        const payload: JWTPayload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+        };
+        const mockUser = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          status: 'suspended',
+          Roles: [],
+        };
+
+        mockRequest.headers = { authorization: 'Bearer valid-token' };
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+        await authenticateOptionalToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockRequest.user).toBeUndefined();
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockResponse.status).not.toHaveBeenCalled();
+      });
+
+      it('should treat an inactive user as unauthenticated', async () => {
+        const payload: JWTPayload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+        };
+        const mockUser = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          status: 'inactive',
+          Roles: [],
+        };
+
+        mockRequest.headers = { authorization: 'Bearer valid-token' };
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+        await authenticateOptionalToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockRequest.user).toBeUndefined();
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockResponse.status).not.toHaveBeenCalled();
+      });
+    });
+
     describe('when authentication succeeds', () => {
-      it('should attach user to request regardless of status', async () => {
+      it('should attach active user to request and call next', async () => {
         const payload: JWTPayload = {
           userId: 'user-123',
           email: 'test@example.com',

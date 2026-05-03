@@ -18,6 +18,26 @@ export interface JWTPayload {
   exp?: number;
 }
 
+const userInclude = [
+  {
+    model: Role,
+    as: 'Roles',
+    include: [{ model: Permission, as: 'Permissions' }],
+  },
+];
+
+/**
+ * Fetches a user by decoded JWT payload and returns null if the user does not
+ * exist or their account is not active (suspended, inactive, etc.).
+ */
+const resolveActiveUser = async (decoded: JWTPayload): Promise<User | null> => {
+  const user = await User.findByPk(decoded.userId, { include: userInclude });
+  if (!user || user.status !== 'active') {
+    return null;
+  }
+  return user;
+};
+
 export const authenticateToken = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -65,20 +85,7 @@ export const authenticateToken = async (
     }
 
     // Fetch user from database to ensure they still exist and are active
-    const user = await User.findByPk(decoded.userId, {
-      include: [
-        {
-          model: Role,
-          as: 'Roles',
-          include: [
-            {
-              model: Permission,
-              as: 'Permissions',
-            },
-          ],
-        },
-      ],
-    });
+    const user = await User.findByPk(decoded.userId, { include: userInclude });
 
     if (!user) {
       loggerHelpers.logSecurity(
@@ -178,22 +185,9 @@ export const optionalAuth = async (
     }
 
     const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
-    const user = await User.findByPk(decoded.userId, {
-      include: [
-        {
-          model: Role,
-          as: 'Roles',
-          include: [
-            {
-              model: Permission,
-              as: 'Permissions',
-            },
-          ],
-        },
-      ],
-    });
+    const user = await resolveActiveUser(decoded);
 
-    if (user && user.status === 'active') {
+    if (user) {
       req.user = user;
       setUserId(user.userId);
       logger.debug('Optional authentication successful', {
@@ -297,25 +291,10 @@ export const authenticateOptionalToken = async (
     }
 
     const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
+    const user = await resolveActiveUser(decoded);
 
-    // Fetch user from database to ensure they still exist and are active
-    const user = await User.findByPk(decoded.userId, {
-      include: [
-        {
-          model: Role,
-          as: 'Roles',
-          include: [
-            {
-              model: Permission,
-              as: 'Permissions',
-            },
-          ],
-        },
-      ],
-    });
-
-    if (!user || user.status !== 'active') {
-      // Invalid token or inactive/suspended user — treat as anonymous
+    if (!user) {
+      // User not found or not active — treat as anonymous
       next();
       return;
     }
