@@ -3,10 +3,10 @@ import { QueryInterface } from 'sequelize';
 /**
  * Add composite indexes for hot queries across the application:
  *
- * - applications(rescue_id, status, created_at) for rescue dashboard queries
+ * - applications(rescue_id, status, created_at DESC) for rescue dashboard queries
  * - messages(chat_id, created_at DESC) for chat timeline pagination
  * - cms_content(last_modified_by) for audit trails
- * - cms_navigation_menus(created_by) and (last_modified_by) for audit queries
+ * - cms_navigation_menus(created_by, updated_by) for audit queries
  *
  * These indexes reduce query planning overhead and enable single-pass scans.
  * Resolves ADS-226, ADS-227, ADS-259.
@@ -36,21 +36,22 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
   });
 
   // ADS-259: Navigation menu audit queries filter by created_by and
-  // last_modified_by (which map to the audit columns created_by/updated_by
-  // via the NavigationMenu model). These prevent sequential scans during
-  // user deletion cascades or audit lookups.
+  // updated_by (the audit columns). These prevent sequential scans during
+  // user deletion cascades or audit lookups. Note: auditIndexes helper
+  // provides these automatically, but we add them explicitly here for
+  // clarity and schema versioning.
   await queryInterface.addIndex('cms_navigation_menus', ['created_by'], {
     name: 'cms_nav_created_by_idx',
   });
 
-  await queryInterface.addIndex('cms_navigation_menus', ['last_modified_by'], {
-    name: 'cms_nav_last_modified_by_idx',
+  await queryInterface.addIndex('cms_navigation_menus', ['updated_by'], {
+    name: 'cms_nav_updated_by_idx',
   });
 }
 
 export async function down(queryInterface: QueryInterface): Promise<void> {
   // Drop in reverse order
-  await queryInterface.removeIndex('cms_navigation_menus', 'cms_nav_last_modified_by_idx');
+  await queryInterface.removeIndex('cms_navigation_menus', 'cms_nav_updated_by_idx');
   await queryInterface.removeIndex('cms_navigation_menus', 'cms_nav_created_by_idx');
   await queryInterface.removeIndex('cms_content', 'cms_content_last_modified_by_idx');
   await queryInterface.removeIndex('messages', 'messages_chat_created_idx');
