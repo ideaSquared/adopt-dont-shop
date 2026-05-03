@@ -43,10 +43,11 @@ class PerformanceMonitor {
   private engagementMetrics: UserEngagementMetric[] = [];
   private readonly maxMetrics = 1000; // Limit stored metrics
   private analyticsCallback?: (metric: PerformanceMetric) => void;
+  private cleanupInterval?: ReturnType<typeof setInterval>;
 
   constructor() {
     // Clean up old metrics every 5 minutes
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
 
   // Set analytics callback for external integration
@@ -335,6 +336,15 @@ class PerformanceMonitor {
     this.messageMetrics.clear();
     this.engagementMetrics = [];
   }
+
+  // Destroy the monitor and clean up resources
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = undefined;
+    }
+    this.clear();
+  }
 }
 
 // Create singleton instance
@@ -381,4 +391,9 @@ export const trackCacheOperation = (operation: 'hit' | 'miss', cacheType: string
 // Hook for external analytics integration
 export const setAnalyticsCallback = (callback: (metric: PerformanceMetric) => void) => {
   performanceMonitor.setAnalyticsCallback(callback);
+};
+
+// Destroy the performance monitor (clears interval and metrics)
+export const destroyPerformanceMonitor = () => {
+  performanceMonitor.destroy();
 };

@@ -81,9 +81,9 @@ export class ApplicationProfileService {
 
       // Update the user record
       await user.update({
-        applicationDefaults: JSON.parse(JSON.stringify(updatedDefaults)),
-        profileCompletionStatus: JSON.parse(
-          JSON.stringify(this.calculateProfileCompletion(updatedDefaults, user))
+        applicationDefaults: structuredClone(updatedDefaults),
+        profileCompletionStatus: structuredClone(
+          this.calculateProfileCompletion(updatedDefaults, user)
         ),
       });
 

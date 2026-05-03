@@ -69,7 +69,9 @@ export const userValidation = {
   ],
 
   bulkUpdate: [
-    body('userIds').isArray({ min: 1 }).withMessage('User IDs must be a non-empty array'),
+    body('userIds')
+      .isArray({ min: 1, max: 100 })
+      .withMessage('User IDs must be an array with 1-100 items'),
     body('userIds.*').isUUID().withMessage('Each user ID must be a valid UUID'),
     body('updateData').isObject().withMessage('Update data must be an object'),
     body('updateData.status')
