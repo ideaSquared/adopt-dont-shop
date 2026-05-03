@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { DataTypes, Model, Op, Optional, Transaction } from 'sequelize';
 import { Chat, ChatParticipant, Message } from '../models';
 import sequelize from '../sequelize';
@@ -539,7 +540,7 @@ MessageReadStatus.init(
     read_status_id: {
       type: DataTypes.STRING,
       primaryKey: true,
-      defaultValue: sequelize.literal(`'read_' || left(md5(random()::text), 12)`),
+      defaultValue: () => `read_${randomUUID().replace(/-/g, '').slice(0, 12)}`,
     },
     message_id: {
       type: DataTypes.STRING,
