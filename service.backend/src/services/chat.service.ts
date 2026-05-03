@@ -107,6 +107,20 @@ export class ChatService {
     // Determine message type based on attachments
     const messageType = this.inferMessageType(message.attachments);
 
+    if (!message.created_at) {
+      logger.warn('Message missing created_at timestamp', {
+        messageId: message.message_id,
+        chatId: message.chat_id,
+      });
+    }
+
+    if (!message.updated_at) {
+      logger.warn('Message missing updated_at timestamp', {
+        messageId: message.message_id,
+        chatId: message.chat_id,
+      });
+    }
+
     return {
       message_id: message.message_id,
       chat_id: message.chat_id,
@@ -122,8 +136,8 @@ export class ChatService {
           mimeType: att.mimeType,
           size: att.size,
         })) || [],
-      created_at: (message.created_at ?? new Date()).toISOString(),
-      updated_at: (message.updated_at ?? new Date()).toISOString(),
+      created_at: message.created_at?.toISOString() ?? null,
+      updated_at: message.updated_at?.toISOString() ?? null,
     };
   }
 

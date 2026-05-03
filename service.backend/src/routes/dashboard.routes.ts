@@ -3,6 +3,7 @@ import { authenticateToken } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types/auth';
 import StaffMember from '../models/StaffMember';
 import { logger } from '../utils/logger';
+import { parsePaginationLimit } from '../utils/pagination';
 
 const router = Router();
 
@@ -134,7 +135,10 @@ router.get('/activity', async (req: AuthenticatedRequest, res) => {
     // TODO: Use rescueId to fetch real activity data from database
     // const rescueId = staffMember.rescueId;
 
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+      default: 10,
+      max: 100,
+    });
 
     // Return mock activity data
     const activities = [

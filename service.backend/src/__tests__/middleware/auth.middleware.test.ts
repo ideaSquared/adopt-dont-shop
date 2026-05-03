@@ -547,7 +547,37 @@ describe('Authentication Middleware', () => {
           mockNext
         );
 
-        expect(jwt.verify).toHaveBeenCalledWith('valid-token', env.JWT_SECRET);
+        expect(jwt.verify).toHaveBeenCalledWith('valid-token', env.JWT_SECRET, {
+          algorithms: ['HS256'],
+        });
+      });
+
+      it('should pin JWT algorithm to HS256 for security', async () => {
+        const payload: JWTPayload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+        };
+        const mockUser = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          status: 'active',
+          Roles: [],
+        };
+
+        mockRequest.headers = { authorization: 'Bearer valid-token' };
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+        await authenticateToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        // Verify algorithms option is passed to prevent algorithm confusion attacks
+        expect(jwt.verify).toHaveBeenCalledWith('valid-token', env.JWT_SECRET, {
+          algorithms: ['HS256'],
+        });
       });
 
       it('should log user data structure with roles count', async () => {

@@ -7,6 +7,7 @@ import qrcode from 'qrcode';
 import User, { UserStatus, UserType } from '../models/User';
 import RefreshToken from '../models/RefreshToken';
 import RevokedToken from '../models/RevokedToken';
+import EmailQueue, { EmailStatus, EmailType, EmailPriority } from '../models/EmailQueue';
 import { logger, loggerHelpers } from '../utils/logger';
 import { decryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
 import { AuditLogService } from './auditLog.service';
