@@ -121,11 +121,21 @@ export class ApplicationsService {
           petId: applicationData.petId as string,
           userId: applicationData.userId as string,
           rescueId: applicationData.rescueId as string,
-          personalInfo: (applicationData.personalInfo as ApplicationData['personalInfo']) ?? ({} as ApplicationData['personalInfo']),
-          livingsituation: (applicationData.livingsituation as ApplicationData['livingsituation']) ?? ({} as ApplicationData['livingsituation']),
-          petExperience: (applicationData.petExperience as ApplicationData['petExperience']) ?? ({} as ApplicationData['petExperience']),
-          references: (applicationData.references as ApplicationData['references']) ?? { personal: [] },
-          additionalInfo: (applicationData.additionalInfo as ApplicationData['additionalInfo']) ?? ({} as ApplicationData['additionalInfo']),
+          personalInfo:
+            (applicationData.personalInfo as ApplicationData['personalInfo']) ??
+            ({} as ApplicationData['personalInfo']),
+          livingsituation:
+            (applicationData.livingsituation as ApplicationData['livingsituation']) ??
+            ({} as ApplicationData['livingsituation']),
+          petExperience:
+            (applicationData.petExperience as ApplicationData['petExperience']) ??
+            ({} as ApplicationData['petExperience']),
+          references: (applicationData.references as ApplicationData['references']) ?? {
+            personal: [],
+          },
+          additionalInfo:
+            (applicationData.additionalInfo as ApplicationData['additionalInfo']) ??
+            ({} as ApplicationData['additionalInfo']),
         },
         documents:
           (applicationData.documents as Array<{
