@@ -54,7 +54,7 @@ jobs:
             network=host
 
       - name: Build development image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./service.backend/Dockerfile
@@ -67,7 +67,7 @@ jobs:
 
       - name: Build production image
         id: build-prod
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./service.backend/Dockerfile
@@ -117,7 +117,7 @@ jobs:
             network=host
 
       - name: Build development image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile.app.optimized
@@ -131,7 +131,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build production image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile.app.optimized
