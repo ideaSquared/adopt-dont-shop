@@ -30,9 +30,9 @@
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
-    "@types/jest": "^29.5.12",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.11.19",
-    "jest": "^29.7.0",
+    "jest": "^30.3.0",
     "ts-jest": "^29.1.2",
     "typescript": "^5.4.5"
   }
