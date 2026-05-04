@@ -185,15 +185,16 @@ export async function createAvailablePet(
 }
 
 /**
- * Pick the first application owned by the seeded adopter.  The seeders
- * guarantee at least 3 applications for John Smith, so this always
- * returns a row.
+ * Pick the first NON-TERMINAL application owned by the seeded adopter
+ * (i.e. one that can still legally transition to approved/rejected).
+ * The seeders guarantee at least one application in 'submitted' state
+ * for John Smith.
  */
 export async function getFirstAdopterApplication(adopterApi: ApiClient): Promise<{
   applicationId: string;
   status: string;
 }> {
-  const res = await adopterApi.context.get('/api/v1/applications', { params: { limit: '5' } });
+  const res = await adopterApi.context.get('/api/v1/applications', { params: { limit: '20' } });
   if (!res.ok()) {
     throw new Error(
       `applications list failed: ${res.status()} ${(await res.text()).slice(0, 200)}`
@@ -204,17 +205,23 @@ export async function getFirstAdopterApplication(adopterApi: ApiClient): Promise
     applications?: Array<{ applicationId?: string; id?: string; status?: string }>;
   };
   const list = body.data ?? body.applications ?? [];
-  const first = list[0];
-  if (!first) {
+  if (list.length === 0) {
     throw new Error(
       `expected at least one seeded application for the adopter; got 0 — check 09-applications.ts`
     );
   }
-  const applicationId = first.applicationId ?? first.id;
+  // Prefer one in a non-terminal state — terminal statuses
+  // (approved/rejected/withdrawn) can't transition further, which most
+  // call sites need.
+  const nonTerminal = list.find(
+    a => a.status !== 'approved' && a.status !== 'rejected' && a.status !== 'withdrawn'
+  );
+  const chosen = nonTerminal ?? list[0]!;
+  const applicationId = chosen.applicationId ?? chosen.id;
   if (!applicationId) {
-    throw new Error(`first application has no id: ${JSON.stringify(first)}`);
+    throw new Error(`first application has no id: ${JSON.stringify(chosen)}`);
   }
-  return { applicationId, status: first.status ?? 'submitted' };
+  return { applicationId, status: chosen.status ?? 'submitted' };
 }
 
 /**

@@ -8,17 +8,26 @@
  * that relies on it.  See e2e/README.md for the contract.
  */
 import { generateUuidV7 } from '../utils/uuid';
+import ChatParticipant from '../models/ChatParticipant';
 import Pet, { PetStatus } from '../models/Pet';
 import UserFavorite from '../models/UserFavorite';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
+import { ParticipantRole } from '../types/chat';
 
 // Anchor IDs — kept stable so the e2e specs can address them directly
 // when the test only needs to read one specific fixture.
 const JOHN_SMITH_ID = '98915d9e-69ed-46b2-a897-57d8469ff360';
+const RESCUE_MANAGER_ID = '3d7065c5-82a3-4bba-a84e-78229365badd';
 const PAWS_RESCUE_ID = '550e8400-e29b-41d4-a716-446655440001';
 
 const E2E_ADOPTED_PET_ID = 'e2e0a000-0000-4000-8000-000000000001';
 const E2E_ON_HOLD_PET_ID = 'e2e0a000-0000-4000-8000-000000000002';
+
+// Chat seeded by 10-chats.ts and tied to John's first application.  The
+// chat row is created there but with no chat_participants — without the
+// participant rows the API rejects messages with "User is not a
+// participant in this chat".
+const SEEDED_CHAT_ID = '7dfe4c51-930a-443b-aac5-3e42750a2f1a';
 
 export async function seedE2EFixtures() {
   // 1. A pet in 'adopted' status so cannot-apply-to-unavailable-pet has
@@ -90,6 +99,29 @@ export async function seedE2EFixtures() {
     } as never,
   });
 
+  // 5. Chat participants for the seeded chat (John Smith + the rescue
+  //    manager).  The 10-chats.ts seeder creates the chat row but no
+  //    participants; without these the chat-message API rejects with
+  //    403 "User is not a participant in this chat".
+  await ChatParticipant.findOrCreate({
+    paranoid: false,
+    where: { chat_id: SEEDED_CHAT_ID, participant_id: JOHN_SMITH_ID },
+    defaults: {
+      chat_id: SEEDED_CHAT_ID,
+      participant_id: JOHN_SMITH_ID,
+      role: ParticipantRole.USER,
+    } as never,
+  });
+  await ChatParticipant.findOrCreate({
+    paranoid: false,
+    where: { chat_id: SEEDED_CHAT_ID, participant_id: RESCUE_MANAGER_ID },
+    defaults: {
+      chat_id: SEEDED_CHAT_ID,
+      participant_id: RESCUE_MANAGER_ID,
+      role: ParticipantRole.RESCUE,
+    } as never,
+  });
+
   // eslint-disable-next-line no-console
-  console.log('✅ E2E fixtures seeded (adopted pet, on-hold pet, favourite, notification prefs)');
+  console.log('✅ E2E fixtures seeded (pets, favourite, prefs, chat participants)');
 }
