@@ -38,9 +38,37 @@ async function loginAndPersist(roleKey: RoleKey): Promise<void> {
   const browser = await chromium.launch();
   let page: Awaited<ReturnType<Awaited<ReturnType<typeof browser.newContext>>['newPage']>> | null =
     null;
+  // Collect diagnostic signals during the run so we can surface them on failure.
+  const consoleEvents: string[] = [];
+  const networkEvents: string[] = [];
   try {
     const context = await browser.newContext({ baseURL: role.appUrl });
     page = await context.newPage();
+
+    page.on('console', msg => {
+      if (msg.type() === 'error' || msg.type() === 'warning') {
+        consoleEvents.push(`[${msg.type()}] ${msg.text()}`);
+      }
+    });
+    page.on('pageerror', err => {
+      consoleEvents.push(`[pageerror] ${err.message}`);
+    });
+    page.on('requestfailed', req => {
+      networkEvents.push(`[failed] ${req.method()} ${req.url()} — ${req.failure()?.errorText}`);
+    });
+    page.on('response', async res => {
+      const url = res.url();
+      if (/\/api\/v1\/(auth|csrf)/i.test(url)) {
+        let body = '';
+        try {
+          body = (await res.text()).slice(0, 500);
+        } catch {
+          body = '<unreadable>';
+        }
+        networkEvents.push(`[${res.status()}] ${res.request().method()} ${url} ${body}`);
+      }
+    });
+
     // First request to a Vite dev server is slow because the bundle is
     // compiled on demand — be generous with the navigation budget.
     await page.goto('/login', { timeout: 60_000, waitUntil: 'domcontentloaded' });
@@ -74,8 +102,18 @@ async function loginAndPersist(roleKey: RoleKey): Promise<void> {
         .catch(() => undefined);
       const html = await page.content().catch(() => '');
       writeFileSync(resolve(dumpDir, `${roleKey}-failure.html`), html);
+      writeFileSync(
+        resolve(dumpDir, `${roleKey}-console.log`),
+        consoleEvents.join('\n') || '<no console events>'
+      );
+      writeFileSync(
+        resolve(dumpDir, `${roleKey}-network.log`),
+        networkEvents.join('\n') || '<no network events>'
+      );
       const url = page.url();
       console.error(`global-setup: ${roleKey} login failed at ${url}`);
+      console.error(`  console events:\n${consoleEvents.slice(-20).join('\n')}`);
+      console.error(`  network events:\n${networkEvents.slice(-20).join('\n')}`);
     }
     throw error;
   } finally {
