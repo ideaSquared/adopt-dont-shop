@@ -216,3 +216,149 @@ jobs:
           name: test-results-libs
           path: '**/test-results/junit.xml'
           retention-days: 7
+
+  # ============================================================================
+  # E2E — Playwright journeys against the full docker-compose stack
+  # Behaviour-focused tests across app.client, app.rescue and app.admin.
+  # Runs only after the unit/integration jobs succeed to gate the more
+  # expensive browser job behind cheaper signals.
+  # ============================================================================
+  test-e2e:
+    name: E2E Tests (Playwright)
+    needs: [changes, test-backend, test-frontend]
+    # Non-blocking: this job exists to surface integration regressions
+    # against the full docker-compose stack, but is allowed to fail until
+    # the suite has been smoke-tested against a real running stack and
+    # any environment-specific selector adjustments have been made.
+    continue-on-error: true
+    if: |
+      always() &&
+      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true') &&
+      (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') &&
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      CI: true
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+      E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Resolve Playwright version
+        id: pw
+        run: |
+          version=$(node -p "require('./e2e/package.json').devDependencies['@playwright/test']")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright browsers
+        run: npm run test:e2e:install
+
+      - name: Generate secrets and write .env
+        run: |
+          {
+            echo "NODE_ENV=development"
+            echo "POSTGRES_USER=postgres"
+            echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)"
+            echo "POSTGRES_DB=adopt_dont_shop_dev"
+            echo "JWT_SECRET=$(openssl rand -base64 32)"
+            echo "JWT_REFRESH_SECRET=$(openssl rand -base64 32)"
+            echo "SESSION_SECRET=$(openssl rand -base64 32)"
+            echo "CSRF_SECRET=$(openssl rand -base64 32)"
+            echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
+            echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
+          } > .env
+
+      - name: Start database and cache
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database redis
+          timeout 90 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -U postgres; do sleep 2; done'
+
+      - name: Build and start the full stack
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build service-backend app-client app-admin app-rescue
+
+      - name: Wait for services
+        run: |
+          set -euo pipefail
+          for url in http://localhost:5000/health http://localhost:3000 http://localhost:3001 http://localhost:3002; do
+            echo "Waiting for $url"
+            for i in $(seq 1 90); do
+              if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
+                echo "  ready: $url"
+                break
+              fi
+              if [ "$i" = "90" ]; then
+                echo "  timeout: $url"
+                docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
+                docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --tail=200
+                exit 1
+              fi
+              sleep 2
+            done
+          done
+
+      - name: Warm up Vite bundles
+        # Vite dev servers compile on first request. Hit /login on each app
+        # so the JS is built before Playwright tries to interact with it.
+        run: |
+          for url in \
+            http://localhost:3000/login \
+            http://localhost:3001/login \
+            http://localhost:3002/login; do
+            echo "Warming $url"
+            curl -fsS --max-time 60 "$url" >/dev/null || true
+          done
+
+      - name: Run Playwright suite
+        # The backend bootstraps the database (sync + runAllSeeders) on
+        # startup in development mode, so by the time /health responds in
+        # the previous step the seeded data is already available.
+        run: npm run test:e2e
+
+      - name: Capture docker-compose logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color > docker-compose.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+            docker-compose.log
+          retention-days: 7
+
+      - name: Tear down stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v

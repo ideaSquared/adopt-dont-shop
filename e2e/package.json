@@ -1,0 +1,22 @@
+{
+  "name": "@adopt-dont-shop/e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end tests for adopt-dont-shop. Behaviour-focused journeys across app.client, app.rescue and app.admin driven by Playwright.",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "PWDEBUG=1 playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install --with-deps chromium",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^20.11.0",
+    "otplib": "^12.0.1",
+    "typescript": "^5.4.5"
+  }
+}

@@ -68,3 +68,10 @@ docker-compose.override.yml
 
 ## Storybook static
 lib.components/storybook-static/
+
+### E2E (Playwright)
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+e2e/.auth/
+e2e/playwright/.cache/

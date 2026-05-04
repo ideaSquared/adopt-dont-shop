@@ -32,7 +32,8 @@
     "lib.types",
     "lib.utils",
     "lib.validation",
-    "service.backend"
+    "service.backend",
+    "e2e"
   ],
   "scripts": {
     "setup": "node scripts/bootstrap.mjs",
@@ -54,6 +55,12 @@
     "build:libs": "turbo run build --filter='@adopt-dont-shop/lib.*'",
     "build:apps": "turbo run build --filter='@adopt-dont-shop/app.*'",
     "test": "turbo run test",
+    "test:e2e": "npm run -w @adopt-dont-shop/e2e test",
+    "test:e2e:ui": "npm run -w @adopt-dont-shop/e2e test:ui",
+    "test:e2e:debug": "npm run -w @adopt-dont-shop/e2e test:debug",
+    "test:e2e:headed": "npm run -w @adopt-dont-shop/e2e test:headed",
+    "test:e2e:report": "npm run -w @adopt-dont-shop/e2e report",
+    "test:e2e:install": "npm run -w @adopt-dont-shop/e2e install:browsers",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint -- --fix",
     "type-check": "turbo run type-check",
