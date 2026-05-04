@@ -33,6 +33,29 @@ async function waitForUrl(url: string, label: string): Promise<void> {
   );
 }
 
+async function probeApiLogin(roleKey: RoleKey): Promise<void> {
+  // Hit the backend's login endpoint directly (bypassing the React app and
+  // the Vite proxy) so we can isolate "is the backend usable?" from any
+  // frontend-specific failure.  Same pattern as fixtures/api.ts but inlined
+  // here to keep the diagnostic self-contained.
+  const role = ROLES[roleKey];
+  const ctx = await request.newContext({ baseURL: URLS.api });
+  try {
+    const response = await ctx.post('/api/v1/auth/login', {
+      data: { email: role.email, password: role.password },
+      timeout: 15_000,
+    });
+    const body = await response.text();
+    if (!response.ok()) {
+      throw new Error(
+        `API probe login failed for ${roleKey} (${role.email}): ${response.status()} ${body.slice(0, 500)}`
+      );
+    }
+  } finally {
+    await ctx.dispose();
+  }
+}
+
 async function loginAndPersist(roleKey: RoleKey): Promise<void> {
   const role = ROLES[roleKey];
   const browser = await chromium.launch();
@@ -111,9 +134,20 @@ async function loginAndPersist(roleKey: RoleKey): Promise<void> {
         networkEvents.join('\n') || '<no network events>'
       );
       const url = page.url();
-      console.error(`global-setup: ${roleKey} login failed at ${url}`);
-      console.error(`  console events:\n${consoleEvents.slice(-20).join('\n')}`);
-      console.error(`  network events:\n${networkEvents.slice(-20).join('\n')}`);
+      // Re-throw with the diagnostic events folded into the error message so
+      // the Playwright reporter prints them inline (the file dumps are easy
+      // to miss in the artifact, but the error message ends up in stderr and
+      // in the HTML report).
+      const summary = [
+        `global-setup: ${roleKey} login failed at ${url}`,
+        `console events (${consoleEvents.length}):`,
+        consoleEvents.slice(-20).join('\n') || '  <none>',
+        `network events (${networkEvents.length}):`,
+        networkEvents.slice(-20).join('\n') || '  <none>',
+      ].join('\n');
+      const err = error instanceof Error ? error : new Error(String(error));
+      err.message = `${err.message}\n${summary}`;
+      throw err;
     }
     throw error;
   } finally {
@@ -137,6 +171,12 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   }
 
   const roles: RoleKey[] = ['adopter', 'rescue', 'admin'];
+  // Probe the backend with each role's credentials before touching the UI.
+  // If the API rejects the seeded credentials we want a sharp error that
+  // points at the backend rather than a 30-second waitForURL timeout.
+  for (const role of roles) {
+    await probeApiLogin(role);
+  }
   for (const role of roles) {
     await loginAndPersist(role);
   }
