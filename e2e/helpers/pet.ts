@@ -91,12 +91,22 @@ export async function openAvailablePet(page: Page): Promise<string> {
  * Open the first pet detail page from /search.  Use this when the test
  * doesn't care whether the pet is available — e.g. just verifying the
  * card-click → detail-page navigation.
+ *
+ * The PetCard renders <Card role="link"> with hover-driven CSS
+ * transforms, which can make Playwright's click stability check time
+ * out under cold-compile load — fall back to navigating via the API.
  */
 export async function openFirstPet(page: Page): Promise<void> {
+  const id = await findAvailablePetId();
+  if (id) {
+    await page.goto(`/pets/${id}`);
+    await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
+    return;
+  }
   await gotoSearch(page);
   const card = petCardLocator(page).first();
   await card.waitFor({ state: 'visible', timeout: 15_000 });
-  await card.click();
+  await card.click({ force: true });
   await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 }
 

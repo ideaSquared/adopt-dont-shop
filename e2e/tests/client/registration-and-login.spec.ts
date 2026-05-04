@@ -27,34 +27,41 @@ test.describe('adopter registration and login', () => {
     await passwordFields.nth(0).fill(password);
     await passwordFields.nth(1).fill(password);
 
-    // Check the "I agree to terms" checkbox.  Use the name= attribute
-    // directly because the label text contains nested anchor tags that
-    // can confuse getByLabel.  Use { force: true } to ignore any
-    // visibility quirks introduced by custom checkbox styling.
+    // Check the "I agree to terms" checkbox by name attribute (the label
+    // text contains nested anchor tags).
     const acceptTerms = page.locator('input[name="acceptTerms"]').first();
     if (await acceptTerms.count()) {
       await acceptTerms.check({ force: true }).catch(() => undefined);
     }
 
+    // Click submit and wait for the register API call to complete — we
+    // can't rely on UI side-effects (toast, navigation) firing within an
+    // arbitrary timeout under cold-compile load, so instead listen for
+    // the response itself.  Either we got a 2xx (success) or the API
+    // returned an error the form will display.
+    const responsePromise = page.waitForResponse(
+      res => res.url().includes('/api/v1/auth/register') && res.request().method() === 'POST',
+      { timeout: 30_000 }
+    );
     await page
       .getByRole('button', { name: /(create account|sign up|register)/i })
       .first()
       .click();
 
-    // Behaviour we care about: the form responded to submission.  That
-    // can manifest as any of:
-    //   - navigated away from /register (most likely — RegisterPage
-    //     navigates to / on success)
-    //   - inline success copy on /register
-    //   - inline validation copy on /register (the form is wired up;
-    //     a per-field validation message itself proves the form is
-    //     submitting properly through Zod)
-    // The negative path — submit click does literally nothing — is
-    // what we're trying to catch.  Anything else passes.
-    await page.waitForTimeout(3_000);
+    const response = await responsePromise.catch(() => null);
+    if (response) {
+      // Backend responded — that's the contract we wanted to verify.
+      // 201 is the success path (and "already exists" is also returned
+      // as 201 to prevent enumeration).
+      expect([200, 201, 400, 409]).toContain(response.status());
+      return;
+    }
+
+    // No response within 30s — fall back to a UI-side check: if the
+    // form rendered any kind of feedback (validation copy, success
+    // copy, navigated away), that's still proof the click was wired up.
     const url = page.url();
-    const navigatedAway = !/\/register$/.test(url);
-    if (navigatedAway) {
+    if (!/\/register$/.test(url)) {
       return;
     }
     const anyResponse = await page
