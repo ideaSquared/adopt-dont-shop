@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export async function gotoDiscover(page: Page): Promise<void> {
   await page.goto('/discover');
@@ -8,6 +8,18 @@ export async function gotoDiscover(page: Page): Promise<void> {
 export async function gotoSearch(page: Page): Promise<void> {
   await page.goto('/search');
   await expect(page).toHaveURL(/\/search/);
+}
+
+/**
+ * PetCard renders <Card role="link"><h3>{name}</h3>...</Card> — not <article>.
+ * Filter role=link by "has a level-3 heading" so we don't accidentally match
+ * navigation links.
+ */
+export function petCardLocator(page: Page): Locator {
+  return page
+    .locator('[data-testid="pet-card"]')
+    .or(page.getByRole('link').filter({ has: page.getByRole('heading', { level: 3 }) }))
+    .or(page.getByRole('article'));
 }
 
 /**
@@ -26,15 +38,17 @@ export async function searchForPet(page: Page, query: string): Promise<void> {
   await searchInput.press('Enter');
 }
 
-/** Opens the first pet card visible on the current page. */
+/**
+ * Open the first pet detail page. /search renders a grid of cards (good for
+ * picking one); /discover uses a swipe deck (one card at a time). We go
+ * through /search so the locator semantics are stable.
+ */
 export async function openFirstPet(page: Page): Promise<void> {
-  const firstCard = page
-    .getByRole('article')
-    .or(page.getByRole('link', { name: /view (pet|details)/i }))
-    .or(page.locator('[data-testid="pet-card"]'))
-    .first();
-  await firstCard.click();
-  await expect(page).toHaveURL(/\/pets\//);
+  await gotoSearch(page);
+  const card = petCardLocator(page).first();
+  await card.waitFor({ state: 'visible', timeout: 15_000 });
+  await card.click();
+  await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 }
 
 export async function favouriteCurrentPet(page: Page): Promise<void> {

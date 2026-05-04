@@ -1,11 +1,11 @@
 import { test, expect } from '../../fixtures';
-import { gotoSearch } from '../../helpers/pet';
+import { gotoSearch, petCardLocator } from '../../helpers/pet';
 
 test.describe('search filters', () => {
   test('applying a distance/location filter changes the result set', async ({ page }) => {
     await gotoSearch(page);
 
-    const initialCards = page.getByRole('article').or(page.locator('[data-testid="pet-card"]'));
+    const initialCards = petCardLocator(page);
     const before = await initialCards.count();
 
     const distanceFilter = page

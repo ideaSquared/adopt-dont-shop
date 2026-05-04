@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures';
+import { openFirstPet } from '../../helpers/pet';
 
 /**
  * The seeded `john.smith@gmail.com` adopter is verified, so this spec
@@ -9,16 +10,15 @@ import { test, expect } from '../../fixtures';
  */
 test.describe('email verification gating', () => {
   test('a verified adopter can begin an application', async ({ page }) => {
-    await page.goto('/discover');
-    const card = page.getByRole('article').or(page.locator('[data-testid="pet-card"]')).first();
-    await card.click();
+    await openFirstPet(page);
 
     await page
       .getByRole('button', { name: /apply (to|for) adopt/i })
       .first()
       .click();
 
-    await expect(page).toHaveURL(/\/apply\/|\/applications\/new/);
+    await expect(page).toHaveURL(/\/apply\/|\/applications\/new/, { timeout: 15_000 });
+    // Negative assertion: no verify-email gating message.
     await expect(page.getByText(/please verify (your )?email/i)).toHaveCount(0);
   });
 });

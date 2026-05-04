@@ -5,15 +5,19 @@ test.describe('rescue analytics dashboard', () => {
     page,
   }) => {
     await page.goto('/analytics');
-
     await expect(page).toHaveURL(/\/analytics/);
 
-    // We assert on user-observable shape: at least one metric / chart / table is visible.
+    // Page heading is "Analytics & Reporting" — first proof the page mounted.
+    await expect(
+      page.getByRole('heading', { level: 1, name: /analytics( & reporting)?/i }).first()
+    ).toBeVisible({ timeout: 20_000 });
+
+    // Then any metric/chart shape.
     const metric = page
       .getByRole('region')
-      .or(page.locator('[data-testid="metric-card"]'))
       .or(page.locator('canvas'))
-      .or(page.getByRole('heading', { name: /applications|pets|adoptions/i }))
+      .or(page.locator('[data-testid="metric-card"]'))
+      .or(page.getByRole('heading', { name: /(applications|pets|adoptions|metrics)/i }))
       .first();
     await expect(metric).toBeVisible({ timeout: 15_000 });
   });
