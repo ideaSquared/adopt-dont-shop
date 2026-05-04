@@ -36,13 +36,27 @@ async function waitForUrl(url: string, label: string): Promise<void> {
 async function probeApiLogin(roleKey: RoleKey): Promise<void> {
   // Hit the backend's login endpoint directly (bypassing the React app and
   // the Vite proxy) so we can isolate "is the backend usable?" from any
-  // frontend-specific failure.  Same pattern as fixtures/api.ts but inlined
-  // here to keep the diagnostic self-contained.
+  // frontend-specific failure.  The backend's CSRF middleware requires us
+  // to fetch a token first — it sets a cookie that is paired with the token
+  // value sent in the x-csrf-token header.
   const role = ROLES[roleKey];
   const ctx = await request.newContext({ baseURL: URLS.api });
   try {
+    const csrfRes = await ctx.get('/api/v1/csrf-token', { timeout: 15_000 });
+    if (!csrfRes.ok()) {
+      throw new Error(
+        `CSRF token fetch failed for ${roleKey}: ${csrfRes.status()} ${(await csrfRes.text()).slice(0, 300)}`
+      );
+    }
+    const csrfBody = (await csrfRes.json()) as { csrfToken?: string };
+    const csrfToken = csrfBody.csrfToken;
+    if (!csrfToken) {
+      throw new Error(`CSRF token endpoint returned no token: ${JSON.stringify(csrfBody)}`);
+    }
+
     const response = await ctx.post('/api/v1/auth/login', {
       data: { email: role.email, password: role.password },
+      headers: { 'x-csrf-token': csrfToken },
       timeout: 15_000,
     });
     const body = await response.text();
