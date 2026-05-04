@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
 import { uniqueText } from '../../helpers/factories';
-import { getFirstAdopterChat, postWithCsrf } from '../../helpers/seeds';
+import { expectOk, getFirstAdopterChat, postWithCsrf } from '../../helpers/seeds';
 
 test.describe('chat between adopter and rescue', () => {
   test('a message sent by the adopter shows up in the rescue staff inbox', async ({
@@ -21,7 +21,7 @@ test.describe('chat between adopter and rescue', () => {
       content: message,
       messageType: 'text',
     });
-    expect(sendRes.ok()).toBe(true);
+    await expectOk(sendRes, `POST /api/v1/chats/${chatId}/messages`);
 
     await expect(rescuePage.getByText(message).first()).toBeVisible({ timeout: 30_000 });
   });

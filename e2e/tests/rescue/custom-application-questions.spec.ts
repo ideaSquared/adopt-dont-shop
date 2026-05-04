@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
-import { getMyRescueId, postWithCsrf, deleteWithCsrf } from '../../helpers/seeds';
 import { uniqueText } from '../../helpers/factories';
+import { deleteWithCsrf, expectOk, getMyRescueId, postWithCsrf } from '../../helpers/seeds';
 
 /**
  * The application questions builder UI isn't part of every build, but
@@ -18,9 +18,8 @@ test.describe('custom application questions', () => {
     const rescueId = await getMyRescueId(rescueApi);
     expect(rescueId).toBeTruthy();
 
-    // 1. Read seeded questions.
     const listRes = await rescueApi.context.get(`/api/v1/rescues/${rescueId}/questions`);
-    expect(listRes.ok()).toBe(true);
+    await expectOk(listRes, `GET /rescues/${rescueId}/questions`);
     const seededBody = (await listRes.json()) as {
       data?: unknown[];
       questions?: unknown[];
@@ -28,7 +27,6 @@ test.describe('custom application questions', () => {
     const seeded = seededBody.data ?? seededBody.questions ?? [];
     expect(Array.isArray(seeded)).toBe(true);
 
-    // 2. Create a new question.
     const text = uniqueText('q-text');
     const createRes = await postWithCsrf(
       rescueApi.context,
@@ -42,7 +40,7 @@ test.describe('custom application questions', () => {
         sortOrder: 999,
       }
     );
-    expect(createRes.ok()).toBe(true);
+    await expectOk(createRes, `POST /rescues/${rescueId}/questions`);
     const created = (await createRes.json()) as {
       questionId?: string;
       id?: string;
@@ -52,11 +50,10 @@ test.describe('custom application questions', () => {
       created.questionId ?? created.id ?? created.data?.questionId ?? created.data?.id;
     expect(questionId).toBeTruthy();
 
-    // 3. Delete it so the spec is idempotent.
     const deleteRes = await deleteWithCsrf(
       rescueApi.context,
       `/api/v1/rescues/${rescueId}/questions/${questionId}`
     );
-    expect(deleteRes.ok()).toBe(true);
+    await expectOk(deleteRes, `DELETE /rescues/${rescueId}/questions/${questionId}`);
   });
 });

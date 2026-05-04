@@ -1,10 +1,10 @@
 import { test, expect } from '../../fixtures';
-import { createAvailablePet, setPetStatus } from '../../helpers/seeds';
+import { createAvailablePet, expectOk, setPetStatus } from '../../helpers/seeds';
 
 /**
  * Archiving means moving a pet from 'available' to 'adopted'.  Drive
  * via the rescue API (which the rescue UI uses internally), then verify
- * the change shows up in the rescue's pet list.
+ * the change shows up on a re-read.
  */
 test.describe('archiving an adopted pet', () => {
   test('a rescue can archive a pet by setting status to adopted', async ({ apiAs }) => {
@@ -13,9 +13,8 @@ test.describe('archiving an adopted pet', () => {
 
     await setPetStatus(rescueApi, pet.petId, 'adopted');
 
-    // Verify by re-reading the pet detail.
     const res = await rescueApi.context.get(`/api/v1/pets/${pet.petId}`);
-    expect(res.ok()).toBe(true);
+    await expectOk(res, `GET /pets/${pet.petId}`);
     const body = (await res.json()) as {
       status?: string;
       data?: { status?: string };

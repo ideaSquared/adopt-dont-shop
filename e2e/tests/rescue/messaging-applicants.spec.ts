@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
 import { uniqueText } from '../../helpers/factories';
-import { getFirstAdopterChat, postWithCsrf } from '../../helpers/seeds';
+import { expectOk, getFirstAdopterChat, postWithCsrf } from '../../helpers/seeds';
 
 test.describe('rescue messaging', () => {
   test('a rescue staffer can send a message via API to a seeded chat', async ({ apiAs }) => {
@@ -13,13 +13,12 @@ test.describe('rescue messaging', () => {
       content: message,
       messageType: 'text',
     });
-    expect(sendRes.ok()).toBe(true);
+    await expectOk(sendRes, `POST /api/v1/chats/${chatId}/messages (as rescue)`);
 
-    // Verify via API that the message persisted on the thread.
     const listRes = await adopterApi.context.get(`/api/v1/chats/${chatId}/messages`, {
       params: { limit: '20' },
     });
-    expect(listRes.ok()).toBe(true);
+    await expectOk(listRes, `GET /api/v1/chats/${chatId}/messages`);
     const body = (await listRes.json()) as {
       data?: Array<{ content?: string }>;
       messages?: Array<{ content?: string }>;

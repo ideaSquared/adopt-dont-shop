@@ -4,6 +4,23 @@ import type { ApiClient } from '../fixtures/api';
 import { uniquePetName } from './factories';
 
 /**
+ * Throw with the response status + body when an API call doesn't return
+ * a 2xx.  Lets a single failed test point at the specific HTTP error
+ * instead of an opaque `expect(true).toBe(false)` from a CI annotation.
+ */
+export async function expectOk(res: APIResponse, label: string): Promise<void> {
+  if (!res.ok()) {
+    let body: string;
+    try {
+      body = (await res.text()).slice(0, 500);
+    } catch {
+      body = '<unreadable>';
+    }
+    throw new Error(`${label} failed: ${res.status()} ${body}`);
+  }
+}
+
+/**
  * Tiny convenience: every state-changing request needs a CSRF token,
  * and the response context tracks the cookie automatically.  This helper
  * does the GET /csrf-token + POST/PATCH/DELETE in one call.

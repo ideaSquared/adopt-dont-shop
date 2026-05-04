@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
 import { uniqueText } from '../../helpers/factories';
-import { getFirstAdopterChat, postWithCsrf } from '../../helpers/seeds';
+import { expectOk, getFirstAdopterChat, postWithCsrf } from '../../helpers/seeds';
 
 /**
  * End-to-end of the live messaging path: an adopter posts a message
@@ -13,8 +13,6 @@ test.describe('real-time messaging', () => {
     const adopterApi = await apiAs('adopter');
     const { chatId } = await getFirstAdopterChat(adopterApi);
 
-    // Open the rescue's communication page BEFORE posting the message
-    // so the socket is subscribed when the server pushes it.
     const rescuePage = await asRole('rescue');
     await rescuePage.goto('/communication', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await expect(rescuePage.getByRole('heading').first()).toBeVisible({ timeout: 30_000 });
@@ -24,7 +22,7 @@ test.describe('real-time messaging', () => {
       content: message,
       messageType: 'text',
     });
-    expect(sendRes.ok()).toBe(true);
+    await expectOk(sendRes, `POST /api/v1/chats/${chatId}/messages`);
 
     await expect(rescuePage.getByText(message).first()).toBeVisible({ timeout: 30_000 });
   });
