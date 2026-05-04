@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildConnectionString } from '../../sequelize';
 
+const ENV_KEYS = ['DB_HOST', 'DB_PORT', 'DB_USERNAME', 'DB_PASSWORD'] as const;
+
 describe('buildConnectionString', () => {
-  const originalEnv = {
-    DB_HOST: process.env.DB_HOST,
-    DB_PORT: process.env.DB_PORT,
-    DB_USERNAME: process.env.DB_USERNAME,
-    DB_PASSWORD: process.env.DB_PASSWORD,
-  };
+  const originalEnv: Record<string, string | undefined> = {};
 
   beforeEach(() => {
+    for (const k of ENV_KEYS) {
+      originalEnv[k] = process.env[k];
+    }
     process.env.DB_HOST = 'database';
     process.env.DB_PORT = '5432';
     process.env.DB_USERNAME = 'postgres';
@@ -17,7 +17,8 @@ describe('buildConnectionString', () => {
   });
 
   afterEach(() => {
-    for (const [k, v] of Object.entries(originalEnv)) {
+    for (const k of ENV_KEYS) {
+      const v = originalEnv[k];
       if (v === undefined) {
         delete process.env[k];
       } else {
@@ -54,11 +55,23 @@ describe('buildConnectionString', () => {
     expect(decodeURIComponent(url.pathname.slice(1))).toBe('db/with/slashes');
   });
 
-  it.each(['DB_USERNAME', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT'])(
-    'throws if %s is not set',
-    (key) => {
-      delete process.env[key];
-      expect(() => buildConnectionString('any')).toThrow(key);
-    }
-  );
+  it('throws when DB_USERNAME is not set', () => {
+    process.env.DB_USERNAME = '';
+    expect(() => buildConnectionString('any')).toThrow('DB_USERNAME');
+  });
+
+  it('throws when DB_PASSWORD is not set', () => {
+    process.env.DB_PASSWORD = '';
+    expect(() => buildConnectionString('any')).toThrow('DB_PASSWORD');
+  });
+
+  it('throws when DB_HOST is not set', () => {
+    process.env.DB_HOST = '';
+    expect(() => buildConnectionString('any')).toThrow('DB_HOST');
+  });
+
+  it('throws when DB_PORT is not set', () => {
+    process.env.DB_PORT = '';
+    expect(() => buildConnectionString('any')).toThrow('DB_PORT');
+  });
 });
