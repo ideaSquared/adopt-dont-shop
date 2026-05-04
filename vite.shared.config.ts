@@ -21,6 +21,7 @@ export function getLibraryAliases(appDir: string, mode: string) {
     '@adopt-dont-shop/lib.feature-flags': resolve(appDir, '../lib.feature-flags/src'),
     '@adopt-dont-shop/lib.notifications': resolve(appDir, '../lib.notifications/src'),
     '@adopt-dont-shop/lib.permissions': resolve(appDir, '../lib.permissions/src'),
+    '@adopt-dont-shop/lib.types': resolve(appDir, '../lib.types/src'),
     '@adopt-dont-shop/lib.pets': resolve(appDir, '../lib.pets/src'),
     '@adopt-dont-shop/lib.rescue': resolve(appDir, '../lib.rescue/src'),
     '@adopt-dont-shop/lib.search': resolve(appDir, '../lib.search/src'),

@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
           '@adopt-dont-shop/lib.feature-flags': resolve(__dirname, '../lib.feature-flags/src'),
           '@adopt-dont-shop/lib.notifications': resolve(__dirname, '../lib.notifications/src'),
           '@adopt-dont-shop/lib.permissions': resolve(__dirname, '../lib.permissions/src'),
+          '@adopt-dont-shop/lib.types': resolve(__dirname, '../lib.types/src'),
           '@adopt-dont-shop/lib.pets': resolve(__dirname, '../lib.pets/src'),
           '@adopt-dont-shop/lib.rescue': resolve(__dirname, '../lib.rescue/src'),
           '@adopt-dont-shop/lib.search': resolve(__dirname, '../lib.search/src'),
