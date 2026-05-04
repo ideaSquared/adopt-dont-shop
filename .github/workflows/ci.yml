@@ -119,7 +119,7 @@ jobs:
         run: npm run build
         working-directory: service.backend
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-backend
@@ -175,7 +175,7 @@ jobs:
         env:
           CI: true
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-${{ matrix.app }}
@@ -210,7 +210,7 @@ jobs:
       - name: Build, lint, test and type-check all libraries
         run: npx turbo run build lint test type-check --filter='@adopt-dont-shop/lib.*'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-libs
@@ -349,7 +349,7 @@ jobs:
         if: failure()
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color > docker-compose.log
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-playwright-report
