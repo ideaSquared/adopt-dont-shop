@@ -4,7 +4,7 @@
 # ============================================================================
 # BASE STAGE - Shared foundation for all stages
 # ============================================================================
-FROM node:20-alpine AS base
+FROM node:25-alpine AS base
 
 # Install security updates and necessary packages
 # hadolint ignore=DL3018
@@ -170,7 +170,7 @@ RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
 # ============================================================================
 # PRODUCTION STAGE - Minimal image with only runtime dependencies
 # ============================================================================
-FROM node:20-alpine AS production
+FROM node:25-alpine AS production
 
 # Install only runtime essentials + security updates
 # hadolint ignore=DL3018
