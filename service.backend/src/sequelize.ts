@@ -23,8 +23,17 @@ const buildConnectionString = (database: string): string => {
     throw new Error('DB_PORT environment variable is not set');
   }
 
-  return `postgresql://${username}:${password}@${host}:${port}/${database}`;
+  // URL-encode userinfo and database name. Random passwords (e.g. base64) can
+  // contain '/', '+', '=', and other characters that are reserved in URI
+  // userinfo; without encoding, the URL parser misreads the authority and
+  // ends up resolving the username as the host.
+  const u = encodeURIComponent(username);
+  const p = encodeURIComponent(password);
+  const db = encodeURIComponent(database);
+  return `postgresql://${u}:${p}@${host}:${port}/${db}`;
 };
+
+export { buildConnectionString };
 
 /**
  * Get the appropriate database connection string based on NODE_ENV
