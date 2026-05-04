@@ -4,7 +4,7 @@
 # ============================================================================
 # BASE STAGE - Shared foundation for all stages
 # ============================================================================
-FROM node:25-alpine AS base
+FROM node:22-alpine AS base
 
 # Install security updates and necessary packages
 # hadolint ignore=DL3018
@@ -91,10 +91,15 @@ RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
     cp /app/lib.validation/package.json node_modules/@adopt-dont-shop/lib.validation/ && \
     cp -r /app/lib.validation/dist node_modules/@adopt-dont-shop/lib.validation/
 
-# Create non-root user and transfer ownership of writable paths
+# Create non-root user and transfer ownership of writable paths.
+# uploads/ is created at runtime by file-upload.service.ts, so its parent
+# (/app/service.backend) must be writable by appuser. In dev compose a host
+# bind mount masks /app/service.backend/uploads, but in CI (volumes: []) the
+# image's own perms apply.
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S appuser -u 1001 -G nodejs && \
-    chown -R appuser:nodejs /app/service.backend/node_modules /app/lib.types /app/lib.validation
+    mkdir -p /app/service.backend/uploads && \
+    chown -R appuser:nodejs /app/service.backend /app/lib.types /app/lib.validation
 
 USER appuser
 
@@ -170,7 +175,7 @@ RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
 # ============================================================================
 # PRODUCTION STAGE - Minimal image with only runtime dependencies
 # ============================================================================
-FROM node:25-alpine AS production
+FROM node:22-alpine AS production
 
 # Install only runtime essentials + security updates
 # hadolint ignore=DL3018

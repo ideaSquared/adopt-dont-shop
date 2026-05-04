@@ -43,6 +43,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      packages: read
 
     steps:
       - uses: actions/checkout@v6
@@ -52,6 +53,14 @@ jobs:
           driver-opts: |
             image=moby/buildkit:latest
             network=host
+
+      - name: Log in to GHCR (for Trivy DB pulls)
+        if: github.event_name == 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build development image
         uses: docker/build-push-action@v7
@@ -81,12 +90,18 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         if: github.event_name == 'pull_request'
-        uses: aquasecurity/trivy-action@0.31.0
-        with:
-          image-ref: paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/workspace" -w /workspace \
+            -e TRIVY_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-db:2 \
+            -e TRIVY_JAVA_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-java-db:1 \
+            aquasec/trivy:0.63.0 image \
+              --format sarif \
+              --output trivy-results.sarif \
+              --severity CRITICAL,HIGH \
+              --exit-code 0 \
+              paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
 
       - name: Upload Trivy results to GitHub Security tab
         if: github.event_name == 'pull_request' && always()

@@ -3,7 +3,12 @@
 
 services:
   service-backend:
-    volumes: []
+    # !reset actually replaces the base volumes list. Plain `volumes: []`
+    # is *appended* under Compose's multi-file merge rules and leaves the
+    # dev bind mounts (notably ./uploads:/app/service.backend/uploads,
+    # which masks the image's appuser-owned uploads dir and triggers
+    # EACCES on mkdirSync).
+    volumes: !reset []
     # Restore Dockerfile ENTRYPOINT (dumb-init) — the docker-compose.yml
     # entrypoint uses a relative path (./service.backend/…) that resolves
     # correctly only when bind mounts are active.  In CI (volumes: [])
