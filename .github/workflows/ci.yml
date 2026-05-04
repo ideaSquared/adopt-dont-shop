@@ -322,12 +322,10 @@ jobs:
             done
           done
 
-      - name: Run database migrations and seeds
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T service-backend npm run migrate
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T service-backend npm run seed
-
       - name: Run Playwright suite
+        # The backend bootstraps the database (sync + runAllSeeders) on
+        # startup in development mode, so by the time /health responds in
+        # the previous step the seeded data is already available.
         run: npm run test:e2e
 
       - name: Capture docker-compose logs on failure
