@@ -236,6 +236,8 @@ jobs:
 
     env:
       CI: true
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
       E2E_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -243,10 +245,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
+
       - uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
+
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
 
       - name: Install workspace dependencies
         run: npm ci
@@ -266,40 +278,61 @@ jobs:
       - name: Install Playwright browsers
         run: npm run test:e2e:install
 
-      - name: Boot docker-compose stack
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build
+      - name: Generate secrets and write .env
+        run: |
+          {
+            echo "NODE_ENV=development"
+            echo "POSTGRES_USER=postgres"
+            echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)"
+            echo "POSTGRES_DB=adopt_dont_shop_dev"
+            echo "JWT_SECRET=$(openssl rand -base64 32)"
+            echo "JWT_REFRESH_SECRET=$(openssl rand -base64 32)"
+            echo "SESSION_SECRET=$(openssl rand -base64 32)"
+            echo "CSRF_SECRET=$(openssl rand -base64 32)"
+            echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
+            echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
+          } > .env
+
+      - name: Start database and cache
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database redis
+          timeout 90 bash -c 'until docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -U postgres; do sleep 2; done'
+
+      - name: Build and start the full stack
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build service-backend app-client app-admin app-rescue
 
       - name: Wait for services
         run: |
           set -euo pipefail
           for url in http://localhost:5000/health http://localhost:3000 http://localhost:3001 http://localhost:3002; do
             echo "Waiting for $url"
-            for i in $(seq 1 60); do
+            for i in $(seq 1 90); do
               if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
-                echo "  ✓ $url ready"
+                echo "  ready: $url"
                 break
               fi
-              if [ "$i" = "60" ]; then
-                echo "  ✗ $url failed to come up in 90s"
-                docker compose ps
-                docker compose logs --tail=200
+              if [ "$i" = "90" ]; then
+                echo "  timeout: $url"
+                docker compose -f docker-compose.yml -f docker-compose.ci.yml ps
+                docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --tail=200
                 exit 1
               fi
-              sleep 1.5
+              sleep 2
             done
           done
 
       - name: Run database migrations and seeds
         run: |
-          docker compose exec -T service-backend npm run migrate
-          docker compose exec -T service-backend npm run seed
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T service-backend npm run migrate
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T service-backend npm run seed
 
       - name: Run Playwright suite
         run: npm run test:e2e
 
       - name: Capture docker-compose logs on failure
         if: failure()
-        run: docker compose logs --no-color > docker-compose.log
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color > docker-compose.log
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -313,4 +346,4 @@ jobs:
 
       - name: Tear down stack
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
