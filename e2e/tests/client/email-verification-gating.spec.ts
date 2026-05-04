@@ -1,5 +1,5 @@
 import { test, expect } from '../../fixtures';
-import { openFirstPet } from '../../helpers/pet';
+import { findAvailablePetId } from '../../helpers/pet';
 
 /**
  * The seeded `john.smith@gmail.com` adopter is verified, so this spec
@@ -10,7 +10,12 @@ import { openFirstPet } from '../../helpers/pet';
  */
 test.describe('email verification gating', () => {
   test('a verified adopter can begin an application', async ({ page }) => {
-    await openFirstPet(page);
+    const id = await findAvailablePetId();
+    if (!id) {
+      test.skip(true, 'no available pets in the seed set');
+    }
+    await page.goto(`/pets/${id}`);
+    await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 
     await page
       .getByRole('button', { name: /apply (to|for) adopt/i })

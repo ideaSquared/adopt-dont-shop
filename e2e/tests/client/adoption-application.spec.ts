@@ -1,5 +1,5 @@
 import { test, expect } from '../../fixtures';
-import { openFirstPet } from '../../helpers/pet';
+import { findAvailablePetId } from '../../helpers/pet';
 
 /**
  * High-level happy path: from a pet detail page, the apply CTA leads to
@@ -12,7 +12,12 @@ test.describe('adoption application submission', () => {
   test('the apply CTA on a pet detail page lands the adopter on the application form', async ({
     page,
   }) => {
-    await openFirstPet(page);
+    const id = await findAvailablePetId();
+    if (!id) {
+      test.skip(true, 'no available pets in the seed set');
+    }
+    await page.goto(`/pets/${id}`);
+    await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 
     const apply = page
       .getByRole('button', { name: /apply (to|for) adopt/i })

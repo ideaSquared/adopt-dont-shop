@@ -1,4 +1,5 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, request as playwrightRequest, type Locator, type Page } from '@playwright/test';
+import { URLS } from '../playwright.config';
 
 export async function gotoDiscover(page: Page): Promise<void> {
   await page.goto('/discover');
@@ -39,9 +40,57 @@ export async function searchForPet(page: Page, query: string): Promise<void> {
 }
 
 /**
- * Open the first pet detail page. /search renders a grid of cards (good for
- * picking one); /discover uses a swipe deck (one card at a time). We go
- * through /search so the locator semantics are stable.
+ * Find the ID of an available pet via the public API.  Returns null if the
+ * catalogue has no available pets — in which case the calling test should
+ * skip rather than fail.
+ */
+export async function findAvailablePetId(): Promise<string | null> {
+  const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
+  try {
+    const response = await ctx.get('/api/v1/pets', {
+      params: { status: 'available', limit: '5' },
+    });
+    if (!response.ok()) {
+      return null;
+    }
+    const body = (await response.json()) as { data?: unknown[]; pets?: unknown[] };
+    const list = (body.data ?? body.pets ?? []) as Array<{
+      petId?: string;
+      id?: string;
+      pet_id?: string;
+    }>;
+    for (const pet of list) {
+      const id = pet.petId ?? pet.id ?? pet.pet_id;
+      if (id) {
+        return id;
+      }
+    }
+    return null;
+  } finally {
+    await ctx.dispose();
+  }
+}
+
+/**
+ * Open a *known available* pet's detail page.  We deliberately don't go
+ * through /search and click the first card, because the first card may be
+ * any status — and tests that need to drive the apply flow require an
+ * available pet specifically.
+ */
+export async function openAvailablePet(page: Page): Promise<string> {
+  const id = await findAvailablePetId();
+  if (!id) {
+    throw new Error('no available pets in the seed set');
+  }
+  await page.goto(`/pets/${id}`);
+  await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
+  return id;
+}
+
+/**
+ * Open the first pet detail page from /search.  Use this when the test
+ * doesn't care whether the pet is available — e.g. just verifying the
+ * card-click → detail-page navigation.
  */
 export async function openFirstPet(page: Page): Promise<void> {
   await gotoSearch(page);

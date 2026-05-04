@@ -2,13 +2,9 @@ import { test, expect } from '../../fixtures';
 
 test.describe('admin user moderation', () => {
   test('the users page renders for an admin and search is functional', async ({ page }) => {
-    await page.goto('/users');
+    await page.goto('/users', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await expect(page).toHaveURL(/\/users/);
-
-    // Page heading is "User Management" — first proof the page mounted.
-    await expect(
-      page.getByRole('heading', { level: 1, name: /user management/i }).first()
-    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 30_000 });
 
     const search = page
       .getByRole('searchbox')

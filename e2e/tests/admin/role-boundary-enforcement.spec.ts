@@ -19,24 +19,15 @@ test.describe('role boundary enforcement', () => {
         .first()
         .click();
 
-      // Three acceptable outcomes — any one proves the boundary holds:
-      //   (a) login is rejected outright (rare; the backend accepts the
-      //       adopter's credentials, then the admin SPA decides).
-      //   (b) the ProtectedRoute blocks with "Access Denied" / similar.
-      //   (c) the user is forced back to /login.
-      const forbidden = page
-        .getByText(/(access denied|forbidden|not authori[sz]ed|permission denied|insufficient)/i)
-        .first();
-      const rejected = page.getByText(/(invalid|incorrect).*(credentials|email|password)/i).first();
-      await Promise.race([
-        forbidden.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => undefined),
-        rejected.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => undefined),
-        page.waitForURL(/\/login/, { timeout: 15_000 }).catch(() => undefined),
-      ]);
+      // Give the SPA time to settle: it'll either redirect to /login (auth
+      // failure or post-Access-Denied bounce), or render an "Access Denied"
+      // page in place.  Both prove the boundary holds.
+      await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
 
-      // Final invariant: the adopter is NOT on a privileged admin page.
-      // We don't check for an exact text — different builds render slightly
-      // different shells.  We just assert "user has no admin h1".
+      // The terminal invariant we care about: the adopter never sees an
+      // admin-only page heading.  We don't insist on the specific copy
+      // because the SPA may render any of: Access Denied, login error
+      // banner, or simply a redirect back to /login.
       const adminHeading = page
         .getByRole('heading', {
           level: 1,

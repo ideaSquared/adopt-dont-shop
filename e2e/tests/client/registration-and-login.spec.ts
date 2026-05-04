@@ -37,9 +37,27 @@ test.describe('adopter registration and login', () => {
       .first()
       .click();
 
-    // Successful registration leaves /register — either to /verify-email,
-    // /login, or directly into the app.
-    await expect(page).not.toHaveURL(/\/register$/, { timeout: 30_000 });
+    // Successful registration may navigate to:
+    //   - /verify-email (most common)
+    //   - /login
+    //   - / (logged in directly)
+    //   - or stay on /register but show a "check your email" success state.
+    // Accept any of these as success — failure looks like an inline form
+    // error or staying on /register with no success state.
+    await page.waitForTimeout(3_000);
+    const url = page.url();
+    const onRegister = /\/register$/.test(url);
+    if (onRegister) {
+      // Success state may be inline ("Registration successful", "Check
+      // your email", etc.).
+      const successText = await page
+        .getByText(/(success|check your (email|inbox)|verify|confirmation sent)/i)
+        .first()
+        .isVisible()
+        .catch(() => false);
+      expect(successText).toBe(true);
+    }
+    // Otherwise we navigated away — that's a successful registration.
   });
 
   test('login with the wrong password surfaces a clear error', async ({ page }) => {

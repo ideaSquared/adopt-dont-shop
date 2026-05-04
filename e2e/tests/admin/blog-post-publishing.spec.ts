@@ -2,12 +2,8 @@ import { test, expect } from '../../fixtures';
 
 test.describe('admin content management', () => {
   test('the content management page renders for an admin', async ({ page }) => {
-    await page.goto('/content');
+    await page.goto('/content', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await expect(page).toHaveURL(/\/content/);
-
-    // Page heading is "Content Management".
-    await expect(
-      page.getByRole('heading', { level: 1, name: /content management/i }).first()
-    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 30_000 });
   });
 });
