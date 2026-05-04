@@ -1,58 +1,48 @@
 import { test, expect } from '../../fixtures';
-import { openFirstPet, petCardLocator } from '../../helpers/pet';
+import { petCardLocator } from '../../helpers/pet';
+import { SEEDED_PET_IDS, deleteWithCsrf, favouritePet } from '../../helpers/seeds';
 
+/**
+ * The seeders guarantee John Smith has at least one favourited pet
+ * (31-e2e-fixtures.ts).  Test 1 asserts the favourites page surfaces it.
+ * Test 2 deletes a favourite via API and asserts disappearance.
+ */
 test.describe('favourites', () => {
-  test('an adopter can favourite a pet and see it in their favourites list', async ({ page }) => {
-    await openFirstPet(page);
-
-    // PetDetailsPage's heading is the pet name (h1).
-    const petName = (await page.getByRole('heading', { level: 1 }).first().textContent())?.trim();
-
-    // The favourite button on the detail page is icon-only with various
-    // accessible names ("Add to Favorites", "Favorited", "Save", a heart
-    // icon).  Match any of them; if none is found the feature isn't wired
-    // up on the detail page yet — skip rather than fail.
-    const favBtn = page
-      .getByRole('button', { name: /(favou?rite|save|add to favo)/i })
-      .or(page.locator('[data-testid="pet-favourite-button"]'))
-      .first();
-    if (!(await favBtn.count())) {
-      test.skip(true, 'no favourite control on the pet detail page');
-    }
-    await favBtn.click();
-
-    await page.goto('/favorites');
+  test('a seeded favourite shows on the favourites page', async ({ page }) => {
+    await page.goto('/favorites', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await expect(page).toHaveURL(/\/favorites/);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15_000 });
 
-    // The favourites list should either be populated, or we surface a
-    // sensible state (login prompt, empty state).  Don't assert on the
-    // specific pet name because the API write may be eventually consistent.
-    const populated = petCardLocator(page).first();
-    const emptyState = page
-      .getByRole('heading', { name: /no favo(u)?rites/i })
-      .or(page.getByText(/no favo(u)?rites/i))
-      .first();
-    await expect(populated.or(emptyState)).toBeVisible({ timeout: 15_000 });
-    if (petName) {
-      // Best-effort: if the name shows up, great.  Don't fail if not.
-      await page
-        .getByText(petName)
-        .first()
-        .waitFor({ state: 'visible', timeout: 5_000 })
-        .catch(() => undefined);
-    }
+    // At least one pet card on the page.
+    await expect(petCardLocator(page).first()).toBeVisible({ timeout: 20_000 });
   });
 
-  test('unfavouriting removes the pet from favourites', async ({ page }) => {
-    await page.goto('/favorites');
-    const removeBtn = page.getByRole('button', { name: /(remove|unfavou?rite)/i }).first();
-    if (!(await removeBtn.count())) {
-      test.skip(true, 'no favourites present to remove — covered by the favourite-add spec');
-    }
+  test('unfavouriting a pet via API removes it from the favourites page', async ({
+    page,
+    apiAs,
+  }) => {
+    const adopterApi = await apiAs('adopter');
+
+    // Use a *different* pet than the seeded favourite so we don't break
+    // other tests in the same run.  Favourite a fresh available pet,
+    // verify on the page, then unfavourite.
+    await favouritePet(adopterApi, SEEDED_PET_IDS.pending);
+
+    await page.goto('/favorites', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     const initialCount = await petCardLocator(page).count();
-    await removeBtn.click();
+    expect(initialCount).toBeGreaterThan(0);
+
+    const removeRes = await deleteWithCsrf(
+      adopterApi.context,
+      `/api/v1/pets/${SEEDED_PET_IDS.pending}/favorite`
+    );
+    expect(removeRes.ok()).toBe(true);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    // Either fewer cards, or the page transitions to empty state.  Both
+    // satisfy "the unfavourite happened".
     await expect
-      .poll(async () => await petCardLocator(page).count(), { timeout: 10_000 })
+      .poll(async () => await petCardLocator(page).count(), { timeout: 15_000 })
       .toBeLessThan(initialCount);
   });
 });

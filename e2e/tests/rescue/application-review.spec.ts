@@ -1,68 +1,68 @@
 import { test, expect } from '../../fixtures';
-import { uniqueText } from '../../helpers/factories';
+import { getFirstAdopterApplication, patchWithCsrf } from '../../helpers/seeds';
 
+/**
+ * The rescue's application review page lives at /applications.  We use
+ * the seeded John Smith application and verify the rescue user can see
+ * it, plus that an admin status patch is reflected on the rescue list.
+ */
 test.describe('rescue application review', () => {
-  test('a reviewer can open an application and add an internal note', async ({ page }) => {
-    await page.goto('/applications');
-    const firstApp = page
-      .getByRole('row')
-      .or(page.locator('[data-testid="application-row"]'))
-      .nth(1);
-    if (!(await firstApp.count())) {
-      test.skip(true, 'no applications visible to this rescue user');
-    }
-    await firstApp.click();
+  test('the application list includes the seeded application', async ({ page, apiAs }) => {
+    const adopterApi = await apiAs('adopter');
+    const { applicationId } = await getFirstAdopterApplication(adopterApi);
 
-    const noteField = page
-      .getByLabel(/(internal )?notes?/i)
-      .or(page.getByPlaceholder(/note/i))
-      .first();
-    if (!(await noteField.count())) {
-      test.skip(true, 'application notes field not exposed');
-    }
+    // Sanity: the rescue user can see it via API.
+    const rescueApi = await apiAs('rescue');
+    const res = await rescueApi.context.get('/api/v1/applications', { params: { limit: '50' } });
+    expect(res.ok()).toBe(true);
+    const body = (await res.json()) as {
+      data?: Array<{ applicationId?: string; id?: string }>;
+      applications?: Array<{ applicationId?: string; id?: string }>;
+    };
+    const list = body.data ?? body.applications ?? [];
+    expect(list.some(a => (a.applicationId ?? a.id) === applicationId)).toBe(true);
 
-    const note = uniqueText('reviewer-note');
-    await noteField.fill(note);
-    await page
-      .getByRole('button', { name: /(save|add) note/i })
-      .first()
-      .click();
-    await expect(page.getByText(note).first()).toBeVisible({ timeout: 10_000 });
+    // Page mounts under the rescue role.
+    await page.goto('/applications', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await expect(page).toHaveURL(/\/applications/);
+    await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 30_000 });
   });
 
-  test('advancing an application status surfaces the new state', async ({ page }) => {
-    await page.goto('/applications');
-    const firstApp = page
-      .getByRole('row')
-      .or(page.locator('[data-testid="application-row"]'))
-      .nth(1);
-    if (!(await firstApp.count())) {
-      test.skip(true, 'no applications');
-    }
-    await firstApp.click();
+  test('an application status change made via API is reflected in the rescue list', async ({
+    apiAs,
+  }) => {
+    const adopterApi = await apiAs('adopter');
+    const adminApi = await apiAs('admin');
+    const rescueApi = await apiAs('rescue');
+    const { applicationId, status: currentStatus } = await getFirstAdopterApplication(adopterApi);
 
-    const statusControl = page.getByLabel(/status/i).first();
-    if (!(await statusControl.count())) {
-      test.skip(true, 'no status control in this build');
-    }
-    const before = (await statusControl.inputValue().catch(() => '')) || '';
-
-    await statusControl.click();
-    const underReview = page
-      .getByRole('option', { name: /under review|reviewing|in progress/i })
-      .first();
-    if (!(await underReview.count())) {
-      test.skip(true, 'no advanceable status options for this application');
-    }
-    await underReview.click();
-
-    const saveButton = page.getByRole('button', { name: /(save|update)/i }).first();
-    if (await saveButton.count()) {
-      await saveButton.click();
-    }
+    const targetStatus = currentStatus === 'approved' ? 'rejected' : 'approved';
+    const patchRes = await patchWithCsrf(
+      adminApi.context,
+      `/api/v1/applications/${applicationId}/status`,
+      { status: targetStatus }
+    );
+    expect(patchRes.ok()).toBe(true);
 
     await expect
-      .poll(async () => (await statusControl.inputValue().catch(() => ''))?.toLowerCase())
-      .not.toBe(before.toLowerCase());
+      .poll(
+        async () => {
+          const res = await rescueApi.context.get('/api/v1/applications', {
+            params: { limit: '50' },
+          });
+          if (!res.ok()) {
+            return null;
+          }
+          const body = (await res.json()) as {
+            data?: Array<{ applicationId?: string; id?: string; status?: string }>;
+            applications?: Array<{ applicationId?: string; id?: string; status?: string }>;
+          };
+          const list = body.data ?? body.applications ?? [];
+          const found = list.find(a => (a.applicationId ?? a.id) === applicationId);
+          return found?.status ?? null;
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(targetStatus);
   });
 });

@@ -1,38 +1,42 @@
 import { authenticator } from 'otplib';
 
 import { test, expect } from '../../fixtures';
+import { postWithCsrf } from '../../helpers/seeds';
 
 /**
- * Surface-level check that 2FA controls are reachable for the admin user.
- * The full programmatic enrol/disable round-trip can be added once the API
- * exposes the secret returned from /2fa/setup; that contract isn't fixed
- * here so we keep the spec to a behavioural smoke that protects the UI route.
+ * Drive the 2FA enrollment flow end-to-end through the API:
+ *   1. POST /2fa/setup  → backend returns a TOTP secret.
+ *   2. Generate a code from the secret with otplib.
+ *   3. POST /2fa/enable with the code → 2FA is now active.
+ *   4. POST /2fa/disable with a fresh code → 2FA is off (so subsequent
+ *      runs can re-enroll the same admin without state leak).
  */
-test.describe('admin 2FA controls', () => {
-  test('an admin can navigate to account security settings', async ({ page }) => {
-    await page.goto('/account');
+test.describe('admin 2FA enrollment', () => {
+  test('an admin can enroll and disable TOTP-based 2FA', async ({ apiAs }) => {
+    const adminApi = await apiAs('admin');
 
-    await expect(page).toHaveURL(/\/account/);
+    const setupRes = await postWithCsrf(adminApi.context, '/api/v1/auth/2fa/setup');
+    expect(setupRes.ok()).toBe(true);
+    const setupBody = (await setupRes.json()) as {
+      secret?: string;
+      data?: { secret?: string };
+    };
+    const secret = setupBody.secret ?? setupBody.data?.secret;
+    expect(secret).toBeTruthy();
 
-    const securityTab = page
-      .getByRole('tab', { name: /security|2fa|two[- ]factor/i })
-      .or(page.getByRole('link', { name: /security|2fa|two[- ]factor/i }))
-      .first();
-    if (await securityTab.count()) {
-      await securityTab.click();
-    }
+    const enableCode = authenticator.generate(secret!);
+    const enableRes = await postWithCsrf(adminApi.context, '/api/v1/auth/2fa/enable', {
+      secret,
+      token: enableCode,
+    });
+    expect(enableRes.ok()).toBe(true);
 
-    const setupTrigger = page
-      .getByRole('button', { name: /(enable|set ?up).*(2fa|two[- ]factor)/i })
-      .or(page.getByText(/two[- ]factor authentication/i))
-      .first();
-
-    if (!(await setupTrigger.count())) {
-      test.skip(true, '2FA controls not exposed for this user');
-    }
-
-    // Sanity check: otplib generates a valid 6-digit code from a sample secret.
-    const sampleCode = authenticator.generate('JBSWY3DPEHPK3PXP');
-    expect(sampleCode).toMatch(/^\d{6}$/);
+    // Disable so the suite is repeatable — the disable endpoint takes
+    // a fresh TOTP code (the previous code may have rolled).
+    const disableCode = authenticator.generate(secret!);
+    const disableRes = await postWithCsrf(adminApi.context, '/api/v1/auth/2fa/disable', {
+      token: disableCode,
+    });
+    expect(disableRes.ok()).toBe(true);
   });
 });
