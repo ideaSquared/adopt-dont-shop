@@ -56,7 +56,7 @@
     "file-type": "^16.5.4",
     "fs-extra": "^11.3.0",
     "helmet": "^7.0.0",
-    "isomorphic-dompurify": "^2.25.0",
+    "isomorphic-dompurify": "^3.12.0",
     "jsonwebtoken": "^9.0.2",
     "marked": "^15.0.12",
     "mjml": "^5.1.0",
