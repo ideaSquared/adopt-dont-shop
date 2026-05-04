@@ -480,5 +480,5 @@ FROM nginx:alpine AS production
 - **Implementation Plan**: [implementation-plan.md](./implementation-plan.md)
 - **App Rescue PRD**: [app-rescue-prd.md](./app-rescue-prd.md)
 - **API Documentation**: [../backend/api-endpoints.md](../backend/api-endpoints.md)
-- **Component Library**: [../libraries/components.md](../libraries/components.md)
+- **Component Library**: [../../lib.components/README.md](../../lib.components/README.md)
 - **Testing Guide**: [../backend/testing.md](../backend/testing.md)

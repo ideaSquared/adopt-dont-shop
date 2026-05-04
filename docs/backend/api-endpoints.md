@@ -101,20 +101,30 @@ The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, 
 | GET    | `/api/v1/rescues/:rescueId/pets`          | Get rescue's pets               |
 | GET    | `/api/v1/rescues/:rescueId/analytics`     | Get rescue metrics (staff only) |
 
-### Conversations & Messaging
+### Chat & Messaging
 
-| Method | Endpoint                                                    | Description               |
-| ------ | ----------------------------------------------------------- | ------------------------- |
-| GET    | `/api/v1/conversations`                                     | List user's conversations |
-| POST   | `/api/v1/conversations`                                     | Create new conversation   |
-| GET    | `/api/v1/conversations/:conversationId`                     | Get conversation details  |
-| GET    | `/api/v1/conversations/:conversationId/messages`            | Get messages (paginated)  |
-| POST   | `/api/v1/conversations/:conversationId/messages`            | Send message              |
-| PUT    | `/api/v1/conversations/:conversationId/messages/:messageId` | Edit message              |
-| DELETE | `/api/v1/conversations/:conversationId/messages/:messageId` | Delete message            |
-| POST   | `/api/v1/conversations/:conversationId/read`                | Mark messages as read     |
-| POST   | `/api/v1/conversations/:conversationId/participants`        | Add participant           |
-| GET    | `/api/v1/conversations/:conversationId/search`              | Search messages           |
+Chat routes are mounted at `/api/v1/chats` (canonical). `/api/v1/conversations` is registered as an alias for backwards compatibility — prefer `chats` in new code. The schema field is `chat_id`.
+
+| Method | Endpoint                                            | Description                            |
+| ------ | --------------------------------------------------- | -------------------------------------- |
+| GET    | `/api/v1/chats`                                     | List user's chats                      |
+| POST   | `/api/v1/chats`                                     | Create new chat                        |
+| GET    | `/api/v1/chats/search`                              | Search chats                           |
+| GET    | `/api/v1/chats/analytics`                           | Chat analytics (rescue staff / admin)  |
+| GET    | `/api/v1/chats/:chatId`                             | Get chat details                       |
+| PUT    | `/api/v1/chats/:chatId`                             | Update chat metadata                   |
+| PATCH  | `/api/v1/chats/:chatId`                             | Lock/unlock or change status           |
+| DELETE | `/api/v1/chats/:chatId`                             | Archive/delete chat                    |
+| GET    | `/api/v1/chats/:chatId/messages`                    | Get messages (paginated)               |
+| POST   | `/api/v1/chats/:chatId/messages`                    | Send message                           |
+| DELETE | `/api/v1/chats/:chatId/messages/:messageId`         | Delete message                         |
+| POST   | `/api/v1/chats/:chatId/read`                        | Mark messages as read                  |
+| GET    | `/api/v1/chats/:chatId/unread-count`                | Get unread message count               |
+| POST   | `/api/v1/chats/:chatId/participants`                | Add participant                        |
+| DELETE | `/api/v1/chats/:chatId/participants/:userId`        | Remove participant                     |
+| POST   | `/api/v1/chats/messages/:messageId/reactions`       | Add reaction to a message              |
+| DELETE | `/api/v1/chats/messages/:messageId/reactions`       | Remove reaction                        |
+| POST   | `/api/v1/chats/:chatId/attachments/upload`          | Upload chat attachment                 |
 
 ### Notifications
 
@@ -198,14 +208,12 @@ Common HTTP status codes:
 
 ## Interactive API Documentation
 
-**Swagger UI**: Available at `/api-docs` in development mode
+**Swagger UI**: Available at `/api/docs` (e.g. http://localhost:5000/api/docs in dev).
 
 - Full endpoint documentation with request/response schemas
 - Interactive testing interface
 - Authentication token management
-- Real-time API exploration
-
-**Postman Collection**: Import from `/api/postman-collection.json`
+- Generated OpenAPI specs are also committed at `docs/backend/generated-openapi.json` / `.yaml`
 
 ## Rate Limiting
 
@@ -236,8 +244,7 @@ Connect to `/socket.io` with JWT authentication.
 
 ## Additional Resources
 
-- **Backend Architecture**: [architecture.md](./architecture.md)
+- **Implementation Guide**: [implementation-guide.md](./implementation-guide.md)
 - **Database Schema**: [database-schema.md](./database-schema.md)
-- **Authentication Guide**: [authentication.md](./authentication.md)
 - **Deployment Guide**: [deployment.md](./deployment.md)
 - **Troubleshooting**: [troubleshooting.md](./troubleshooting.md)
