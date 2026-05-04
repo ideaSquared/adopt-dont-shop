@@ -308,6 +308,5 @@ The Backend Service is the core API and data management layer that powers all ap
 - **API Reference**: [api-endpoints.md](./api-endpoints.md)
 - **Implementation Guide**: [implementation-guide.md](./implementation-guide.md)
 - **Database Schema**: [database-schema.md](./database-schema.md)
-- **Architecture Details**: [architecture.md](./architecture.md)
 - **Deployment Guide**: [deployment.md](./deployment.md)
 - **Testing Strategy**: [testing.md](./testing.md)

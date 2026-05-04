@@ -36,10 +36,10 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 
 **✅ Shared Libraries**
 
-- 16 libraries with consistent ESM architecture
+- 21 libraries with consistent ESM architecture
 - TypeScript-first with full type safety
-- Published as workspace dependencies
-- Versioned and tested independently
+- Linked as npm workspace dependencies (`"*"` version)
+- Tested independently
 
 **✅ Single Database**
 
@@ -61,11 +61,11 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 
 All libraries follow these standards:
 
-- **Module System**: ES Modules only (no CommonJS)
-- **Build Tool**: TypeScript Compiler (tsc)
-- **Testing**: Jest with 8/8 tests per library
+- **Module System**: ES Modules first; a few libraries (`lib.api`, `lib.permissions`, `lib.types`, `lib.validation`) also emit a CJS bundle for backend consumers
+- **Build Tool**: TypeScript Compiler (`tsc`) for most libs; `lib.components` uses Vite to bundle assets and styles
+- **Testing**: Jest for Node libs, Vitest for libs co-located with apps and `service.backend`
 - **Code Quality**: ESLint + Prettier
-- **Documentation**: Comprehensive README with examples
+- **Documentation**: Each library has its own README next to the source
 
 ### Library Structure
 
@@ -87,30 +87,34 @@ lib.{name}/
 
 ### Library Categories
 
-**Core Services (3)**
+The canonical index with links is in [`docs/libraries/README.md`](../libraries/README.md). Categorised here for orientation:
 
-- lib.api - HTTP client wrapper
-- lib.auth - Authentication
-- lib.validation - Schema validation
+**Transport & data (3)**
 
-**Feature Libraries (11)**
+- `lib.api` — HTTP client, interceptors, auth-token plumbing
+- `lib.types` — shared types/constants (zero-dependency)
+- `lib.validation` — Zod schemas
 
-- lib.applications - Application management
-- lib.chat - Real-time messaging
-- lib.discovery - Pet discovery
-- lib.email - Email system
-- lib.invitations - Staff invitations
-- lib.notifications - Multi-channel notifications
-- lib.pets - Pet management
-- lib.rescues - Rescue organizations
-- lib.search - Advanced search
-- lib.storage - File storage
-- lib.users - User management
+**Auth & access (3)**
+
+- `lib.auth` — sessions, two-factor, `AuthProvider` / `useAuth`
+- `lib.permissions` — RBAC + field-level permissions
+- `lib.invitations` — staff/user invitations
+
+**Domain services (10)**
+
+- `lib.applications`, `lib.chat`, `lib.discovery`, `lib.notifications`, `lib.pets`, `lib.rescue`, `lib.search`, `lib.moderation`, `lib.support-tickets`, `lib.audit-logs`
+
+**UI & analytics (3)**
+
+- `lib.components` — shared React components
+- `lib.analytics` — event tracking
+- `lib.feature-flags` — Statsig types
 
 **Utilities (2)**
 
-- lib.analytics - Analytics tracking
-- lib.common - Shared utilities
+- `lib.utils` — formatters, locale, env helpers
+- `lib.dev-tools` — dev-only tooling
 
 ## Database Strategy
 

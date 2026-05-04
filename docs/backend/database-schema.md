@@ -24,8 +24,8 @@ erDiagram
     Application ||--o{ Timeline : tracks
     Application ||--o{ Message : generates
 
-    Conversation ||--o{ Message : contains
-    Conversation ||--o{ Participant : includes
+    Chat ||--o{ Message : contains
+    Chat ||--o{ ChatParticipant : includes
 ```
 
 ## Core Tables
@@ -132,33 +132,48 @@ erDiagram
 
 ## Communication Tables
 
-### Conversations
+### Chats
 
-**Purpose**: Message thread management
+**Purpose**: Chat thread management between adopters and rescues. Defined in `service.backend/src/models/Chat.ts`.
 
-| Field           | Type      | Description                    |
-| --------------- | --------- | ------------------------------ |
-| conversation_id | UUID (PK) | Primary identifier             |
-| application_id  | UUID (FK) | Related application (optional) |
-| title           | VARCHAR   | Conversation title             |
-| type            | ENUM      | DIRECT, GROUP, APPLICATION     |
-| created_at      | TIMESTAMP | Creation date                  |
+| Field          | Type      | Description                                |
+| -------------- | --------- | ------------------------------------------ |
+| chat_id        | UUID (PK) | Primary identifier                         |
+| rescue_id      | UUID (FK) | Owning rescue                              |
+| pet_id         | UUID (FK) | Pet that initiated the chat (optional)     |
+| application_id | UUID (FK) | Related application (optional)             |
+| status         | ENUM      | active, locked, archived                   |
+| created_at     | TIMESTAMP | Creation date                              |
+| updated_at     | TIMESTAMP | Last update                                |
+
+**Indexes**: rescue_id, pet_id, application_id, status
+
+### Chat Participants
+
+**Purpose**: Junction table linking users to chats. Defined in `ChatParticipant.ts`.
+
+| Field    | Type      | Description           |
+| -------- | --------- | --------------------- |
+| chat_id  | UUID (FK) | Parent chat           |
+| user_id  | UUID (FK) | Participant user      |
+| role     | ENUM      | Participant role      |
 
 ### Messages
 
-**Purpose**: Individual messages
+**Purpose**: Individual messages within a chat.
 
-| Field           | Type      | Description         |
-| --------------- | --------- | ------------------- |
-| message_id      | UUID (PK) | Primary identifier  |
-| conversation_id | UUID (FK) | Parent conversation |
-| sender_id       | UUID (FK) | Message sender      |
-| content         | TEXT      | Message content     |
-| attachments     | JSONB     | File attachments    |
-| read_by         | JSONB     | Read receipts       |
-| created_at      | TIMESTAMP | Send time           |
+| Field       | Type      | Description        |
+| ----------- | --------- | ------------------ |
+| message_id  | UUID (PK) | Primary identifier |
+| chat_id     | UUID (FK) | Parent chat        |
+| sender_id   | UUID (FK) | Message sender     |
+| content     | TEXT      | Message content    |
+| attachments | JSONB     | File attachments   |
+| created_at  | TIMESTAMP | Send time          |
 
-**Indexes**: conversation_id, sender_id, created_at
+Read receipts are tracked in a separate `MessageRead` table; reactions in `MessageReaction`.
+
+**Indexes**: chat_id, sender_id, created_at
 
 ### Notifications
 
