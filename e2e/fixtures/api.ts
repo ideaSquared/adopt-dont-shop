@@ -5,36 +5,28 @@ import { ROLES, type RoleKey } from './roles';
 
 export type ApiClient = {
   context: APIRequestContext;
-  token: string;
   userId: string;
   dispose: () => Promise<void>;
 };
 
 type LoginResponse = {
-  data?: {
-    accessToken?: string;
-    token?: string;
-    user?: { userId?: string; id?: string };
-  };
-  accessToken?: string;
-  token?: string;
   user?: { userId?: string; id?: string };
+  data?: { user?: { userId?: string; id?: string } };
 };
 
-function readToken(body: LoginResponse): string {
-  return body.data?.accessToken ?? body.accessToken ?? body.data?.token ?? body.token ?? '';
-}
-
 function readUserId(body: LoginResponse): string {
-  return body.data?.user?.userId ?? body.data?.user?.id ?? body.user?.userId ?? body.user?.id ?? '';
+  return body.user?.userId ?? body.user?.id ?? body.data?.user?.userId ?? body.data?.user?.id ?? '';
 }
 
 export async function loginViaApi(roleKey: RoleKey): Promise<ApiClient> {
   const role = ROLES[roleKey];
+  // The backend's login endpoint sets the access + refresh tokens as
+  // httpOnly cookies and only returns { user, expiresIn } in the body —
+  // there is no Bearer token to extract.  Keep the same APIRequestContext
+  // for subsequent calls so the cookies travel with each request, and
+  // drive CSRF the same way the React app does (token endpoint seeds the
+  // cookie, value goes into the x-csrf-token header).
   const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
-  // Backend requires a paired token+cookie for any state-changing request.
-  // Fetch the token first so the cookie is seeded on this context, then
-  // include the value in x-csrf-token on the login POST.
   const csrfRes = await ctx.get('/api/v1/csrf-token');
   if (!csrfRes.ok()) {
     const status = csrfRes.status();
@@ -52,33 +44,18 @@ export async function loginViaApi(roleKey: RoleKey): Promise<ApiClient> {
     headers: { 'x-csrf-token': csrfToken },
   });
   if (!response.ok()) {
-    // Read the body BEFORE disposing the context — disposing invalidates
-    // every response tied to it and turns the error into "Response has
-    // been disposed", masking the real status code and message.
     const status = response.status();
     const text = await response.text();
     await ctx.dispose();
     throw new Error(`API login failed for ${role.email}: ${status} ${text.slice(0, 500)}`);
   }
   const body = (await response.json()) as LoginResponse;
-  const token = readToken(body);
   const userId = readUserId(body);
-  if (!token) {
-    await ctx.dispose();
-    throw new Error(`Login response did not contain a token: ${JSON.stringify(body)}`);
-  }
-
-  const authed = await playwrightRequest.newContext({
-    baseURL: URLS.api,
-    extraHTTPHeaders: { Authorization: `Bearer ${token}` },
-  });
-  await ctx.dispose();
 
   return {
-    context: authed,
-    token,
+    context: ctx,
     userId,
-    dispose: () => authed.dispose(),
+    dispose: () => ctx.dispose(),
   };
 }
 
