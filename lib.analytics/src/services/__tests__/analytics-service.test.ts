@@ -28,12 +28,10 @@ jest.mock('@adopt-dont-shop/lib.api', () => ({
 }));
 
 // Mock DOM globals
-Object.defineProperty(window, 'location', {
-  value: {
-    href: 'https://example.com/test',
-  },
-  writable: true,
-});
+// jsdom 27 (bundled with jest-environment-jsdom 30) makes window.location
+// non-configurable; assigning to its href property is the supported way to
+// stub it now.
+window.location.href = 'https://example.com/test';
 
 Object.defineProperty(document, 'title', {
   value: 'Test Page',
