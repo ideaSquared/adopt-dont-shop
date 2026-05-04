@@ -180,18 +180,18 @@ jobs:
 
       - name: Create environment file
         run: |
-          cat > .env << 'ENVEOF'
-NODE_ENV=development
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=${{ steps.secrets.outputs.POSTGRES_PASSWORD }}
-POSTGRES_DB=adopt_dont_shop_dev
-JWT_SECRET=${{ steps.secrets.outputs.JWT_SECRET }}
-JWT_REFRESH_SECRET=${{ steps.secrets.outputs.JWT_REFRESH_SECRET }}
-SESSION_SECRET=${{ steps.secrets.outputs.SESSION_SECRET }}
-CSRF_SECRET=${{ steps.secrets.outputs.CSRF_SECRET }}
-ENCRYPTION_KEY=${{ steps.secrets.outputs.ENCRYPTION_KEY }}
-CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
-ENVEOF
+          {
+            echo "NODE_ENV=development"
+            echo "POSTGRES_USER=postgres"
+            echo "POSTGRES_PASSWORD=${{ steps.secrets.outputs.POSTGRES_PASSWORD }}"
+            echo "POSTGRES_DB=adopt_dont_shop_dev"
+            echo "JWT_SECRET=${{ steps.secrets.outputs.JWT_SECRET }}"
+            echo "JWT_REFRESH_SECRET=${{ steps.secrets.outputs.JWT_REFRESH_SECRET }}"
+            echo "SESSION_SECRET=${{ steps.secrets.outputs.SESSION_SECRET }}"
+            echo "CSRF_SECRET=${{ steps.secrets.outputs.CSRF_SECRET }}"
+            echo "ENCRYPTION_KEY=${{ steps.secrets.outputs.ENCRYPTION_KEY }}"
+            echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
+          } > .env
 
       - name: Start database and cache
         run: |
