@@ -88,20 +88,25 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: BUILDKIT_INLINE_CACHE=1
 
+      - name: Install Trivy
+        if: github.event_name == 'pull_request'
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin v0.63.0
+          trivy --version
+
       - name: Run Trivy vulnerability scanner
         if: github.event_name == 'pull_request'
-        uses: aquasecurity/trivy-action@v0.31.0
         env:
-          # Authenticated release download avoids anonymous GitHub API
-          # rate limits in setup-trivy.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db:1
-        with:
-          image-ref: paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+        run: |
+          trivy image \
+            --format sarif \
+            --output trivy-results.sarif \
+            --severity CRITICAL,HIGH \
+            --exit-code 0 \
+            paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
 
       - name: Upload Trivy results to GitHub Security tab
         if: github.event_name == 'pull_request' && always()
