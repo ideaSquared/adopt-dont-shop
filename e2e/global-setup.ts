@@ -39,16 +39,22 @@ async function loginAndPersist(roleKey: RoleKey): Promise<void> {
   try {
     const context = await browser.newContext({ baseURL: role.appUrl });
     const page = await context.newPage();
-    await page.goto('/login');
+    // First request to a Vite dev server is slow because the bundle is
+    // compiled on demand — be generous with the navigation budget.
+    await page.goto('/login', { timeout: 60_000, waitUntil: 'domcontentloaded' });
 
+    // Wait for the form to mount before typing into it.
     const emailField = page.getByLabel(/email/i).first();
+    await emailField.waitFor({ state: 'visible', timeout: 60_000 });
     const passwordField = page.getByLabel(/password/i).first();
+    await passwordField.waitFor({ state: 'visible', timeout: 30_000 });
+
     await emailField.fill(role.email);
     await passwordField.fill(role.password);
 
     const submit = page.getByRole('button', { name: /^(sign in|log ?in)$/i }).first();
     await Promise.all([
-      page.waitForURL(url => !url.pathname.startsWith('/login'), { timeout: 20_000 }),
+      page.waitForURL(url => !url.pathname.startsWith('/login'), { timeout: 30_000 }),
       submit.click(),
     ]);
 

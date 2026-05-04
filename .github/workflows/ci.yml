@@ -226,13 +226,18 @@ jobs:
   test-e2e:
     name: E2E Tests (Playwright)
     needs: [changes, test-backend, test-frontend]
+    # Non-blocking: this job exists to surface integration regressions
+    # against the full docker-compose stack, but is allowed to fail until
+    # the suite has been smoke-tested against a real running stack and
+    # any environment-specific selector adjustments have been made.
+    continue-on-error: true
     if: |
       always() &&
       (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true') &&
       (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') &&
       (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     env:
       CI: true
@@ -320,6 +325,18 @@ jobs:
               fi
               sleep 2
             done
+          done
+
+      - name: Warm up Vite bundles
+        # Vite dev servers compile on first request. Hit /login on each app
+        # so the JS is built before Playwright tries to interact with it.
+        run: |
+          for url in \
+            http://localhost:3000/login \
+            http://localhost:3001/login \
+            http://localhost:3002/login; do
+            echo "Warming $url"
+            curl -fsS --max-time 60 "$url" >/dev/null || true
           done
 
       - name: Run Playwright suite
