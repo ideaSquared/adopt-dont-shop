@@ -92,6 +92,9 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: aquasecurity/trivy-action@v0.31.0
         env:
+          # Authenticated release download avoids anonymous GitHub API
+          # rate limits in setup-trivy.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db:1
         with:
