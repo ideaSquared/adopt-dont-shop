@@ -100,7 +100,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: paragonjenko/adoptdontshop
           flavor: prefix=service-backend-
@@ -149,7 +149,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: paragonjenko/adoptdontshop
           flavor: prefix=${{ matrix.app }}-
