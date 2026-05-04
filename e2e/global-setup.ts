@@ -1,5 +1,5 @@
 import { chromium, request, type FullConfig } from '@playwright/test';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 import { AUTH_FILES, URLS } from './playwright.config';
@@ -36,9 +36,11 @@ async function waitForUrl(url: string, label: string): Promise<void> {
 async function loginAndPersist(roleKey: RoleKey): Promise<void> {
   const role = ROLES[roleKey];
   const browser = await chromium.launch();
+  let page: Awaited<ReturnType<Awaited<ReturnType<typeof browser.newContext>>['newPage']>> | null =
+    null;
   try {
     const context = await browser.newContext({ baseURL: role.appUrl });
-    const page = await context.newPage();
+    page = await context.newPage();
     // First request to a Vite dev server is slow because the bundle is
     // compiled on demand — be generous with the navigation budget.
     await page.goto('/login', { timeout: 60_000, waitUntil: 'domcontentloaded' });
@@ -61,6 +63,21 @@ async function loginAndPersist(roleKey: RoleKey): Promise<void> {
     const filePath = resolve(import.meta.dirname, AUTH_FILES[roleKey]);
     mkdirSync(dirname(filePath), { recursive: true });
     await context.storageState({ path: filePath });
+  } catch (error) {
+    // Drop diagnostic artefacts so future runs leave evidence even when the
+    // failure is environmental rather than test-logic.
+    if (page) {
+      const dumpDir = resolve(import.meta.dirname, 'test-results', 'global-setup');
+      mkdirSync(dumpDir, { recursive: true });
+      await page
+        .screenshot({ path: resolve(dumpDir, `${roleKey}-failure.png`), fullPage: true })
+        .catch(() => undefined);
+      const html = await page.content().catch(() => '');
+      writeFileSync(resolve(dumpDir, `${roleKey}-failure.html`), html);
+      const url = page.url();
+      console.error(`global-setup: ${roleKey} login failed at ${url}`);
+    }
+    throw error;
   } finally {
     await browser.close();
   }
