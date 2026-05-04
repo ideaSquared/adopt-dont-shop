@@ -373,6 +373,6 @@ Implementation roadmap for the Rescue App (app.rescue) - a comprehensive managem
 
 - **Technical Architecture**: [technical-architecture.md](./technical-architecture.md)
 - **App Rescue PRD**: [app-rescue-prd.md](./app-rescue-prd.md)
-- **Component Library**: [../libraries/components.md](../libraries/components.md)
+- **Component Library**: [../../lib.components/README.md](../../lib.components/README.md)
 - **API Documentation**: [../backend/api-endpoints.md](../backend/api-endpoints.md)
 - **Testing Guide**: [../backend/testing.md](../backend/testing.md)

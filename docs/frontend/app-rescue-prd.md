@@ -292,4 +292,3 @@ interface ApplicationAttributes {
 - **Implementation Plan**: [implementation-plan.md](./implementation-plan.md)
 - **Technical Architecture**: [technical-architecture.md](./technical-architecture.md)
 - **API Documentation**: [../backend/api-endpoints.md](../backend/api-endpoints.md)
-- **Staff Implementation**: [staff-workstream-implementation.md](./staff-workstream-implementation.md)
