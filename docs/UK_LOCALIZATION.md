@@ -531,10 +531,10 @@ postcode: {
 
 ## 11. Related Documentation
 
-- [Shared Libraries Documentation](../docs/SHARED_LIBRARIES.md)
-- [lib.utils Documentation](../lib.utils/README.md)
-- Backend API Documentation
-- Frontend Component Library
+- [Shared libraries index](./libraries/README.md)
+- [lib.utils README](../lib.utils/README.md)
+- [Backend API endpoints](./backend/api-endpoints.md)
+- [lib.components README](../lib.components/README.md)
 
 ---
 

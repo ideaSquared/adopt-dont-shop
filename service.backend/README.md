@@ -242,10 +242,10 @@ RATE_LIMIT_MAX_REQUESTS=100
 
 ### Docker Deployment
 
-The production image is built by `service.backend/Dockerfile` against `node:20-alpine`. A minimal illustrative alternative:
+The production image is built by `service.backend/Dockerfile` against `node:22-alpine`. A minimal illustrative alternative:
 
 ```dockerfile
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Create app directory
 WORKDIR /usr/src/app

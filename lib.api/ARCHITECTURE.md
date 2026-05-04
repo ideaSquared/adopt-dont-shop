@@ -17,7 +17,7 @@
 
 ```typescript
 // lib.pets/src/pet-service.ts
-import { apiService, ApiError } from '@adopt-dont-shop/lib-api';
+import { apiService, ApiError } from '@adopt-dont-shop/lib.api';
 import type { Pet, PetSearchFilters, PaginatedResponse } from './types';
 
 export class PetService {
@@ -55,7 +55,7 @@ export const petService = new PetService();
 
 ```typescript
 // lib.auth/src/auth-service.ts
-import { apiService, AuthenticationError } from '@adopt-dont-shop/lib-api';
+import { apiService, AuthenticationError } from '@adopt-dont-shop/lib.api';
 import type { LoginRequest, AuthResponse, User } from './types';
 
 export class AuthService {
@@ -103,7 +103,7 @@ export const authService = new AuthService();
 
 ```typescript
 // App-specific setup
-import { apiService } from '@adopt-dont-shop/lib-api';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Add token refresh interceptor
 apiService.interceptors.addErrorInterceptor(async (error) => {
@@ -137,13 +137,13 @@ if (import.meta.env.DEV) {
 
 ```typescript
 // app.client/src/services/index.ts
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { petService } from '@adopt-dont-shop/lib-pets';
-import { authService } from '@adopt-dont-shop/lib-auth';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { petService } from '@adopt-dont-shop/lib.pets';
+import { authService } from '@adopt-dont-shop/lib.auth';
 
 // Configure API for client app
 apiService.updateConfig({
-  apiUrl: import.meta.env.VITE_API_URL,
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
   debug: import.meta.env.DEV,
 });
 
@@ -154,14 +154,14 @@ export { petService, authService };
 
 ```typescript
 // app.rescue/src/services/index.ts
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { petService } from '@adopt-dont-shop/lib-pets';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { rescueService } from '@adopt-dont-shop/lib-rescue';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { petService } from '@adopt-dont-shop/lib.pets';
+import { authService } from '@adopt-dont-shop/lib.auth';
+import { rescueService } from '@adopt-dont-shop/lib.rescue';
 
 // Configure API for rescue app
 apiService.updateConfig({
-  apiUrl: import.meta.env.VITE_API_URL,
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
   headers: { 'X-App': 'rescue' },
 });
 
@@ -172,18 +172,17 @@ export { petService, authService, rescueService };
 
 ```typescript
 // app.admin/src/services/index.ts
-import { apiService } from '@adopt-dont-shop/lib-api';
-import { authService } from '@adopt-dont-shop/lib-auth';
-import { adminService } from '@adopt-dont-shop/lib-admin';
+import { apiService } from '@adopt-dont-shop/lib.api';
+import { authService } from '@adopt-dont-shop/lib.auth';
 
 // Configure API for admin app with longer timeouts
 apiService.updateConfig({
-  apiUrl: import.meta.env.VITE_API_URL,
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
   timeout: 30000,
   headers: { 'X-App': 'admin' },
 });
 
-export { authService, adminService };
+export { authService };
 ```
 
 ## Benefits
