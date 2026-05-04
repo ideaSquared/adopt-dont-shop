@@ -177,7 +177,11 @@ export class AuthService {
       try {
         user = await User.scope('withSecrets').findOne({
           where: { email: credentials.email.toLowerCase() },
-          lock: transaction.LOCK.UPDATE,
+          // Scope the row lock to the Users table only — Postgres rejects
+          // SELECT ... FOR UPDATE that would lock rows on the nullable side
+          // of the LEFT JOIN to Roles/Permissions ("FOR UPDATE cannot be
+          // applied to the nullable side of an outer join").
+          lock: { level: transaction.LOCK.UPDATE, of: User },
           transaction,
           include: [
             {
