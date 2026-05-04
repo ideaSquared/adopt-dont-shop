@@ -125,6 +125,22 @@ async function loginAndPersist(roleKey: RoleKey): Promise<void> {
       submit.click(),
     ]);
 
+    // Playwright's storageState preserves cookies + localStorage, but NOT
+    // sessionStorage — and lib.auth's auth-service stores the access token
+    // in sessionStorage.  Without it, AuthContext.isAuthenticated() flips
+    // to false on test load and ProtectedRoute redirects every admin /
+    // rescue route to /login.  AuthContext has a "dev_user" localStorage
+    // shortcut for exactly this case (development mode bypass).  Copy the
+    // `user` blob into `dev_user` so the next session resumes cleanly.
+    // The httpOnly accessToken cookie is still the source of truth for
+    // API auth — the dev shortcut only restores the React-side identity.
+    await page.evaluate(() => {
+      const user = window.localStorage.getItem('user');
+      if (user) {
+        window.localStorage.setItem('dev_user', user);
+      }
+    });
+
     const filePath = resolve(import.meta.dirname, AUTH_FILES[roleKey]);
     mkdirSync(dirname(filePath), { recursive: true });
     await context.storageState({ path: filePath });
