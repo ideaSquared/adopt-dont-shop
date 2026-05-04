@@ -19,9 +19,10 @@ test.describe('adoption application submission', () => {
     await page.goto(`/pets/${id}`);
     await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 
+    // PetDetailsPage renders the apply CTA as <Link>, not <button>.
     const apply = page
-      .getByRole('button', { name: /apply (to|for) adopt/i })
-      .or(page.getByRole('link', { name: /apply (to|for) adopt/i }))
+      .getByRole('link', { name: /apply (to|for) adopt/i })
+      .or(page.getByRole('button', { name: /apply (to|for) adopt/i }))
       .first();
     await expect(apply).toBeVisible({ timeout: 15_000 });
     await apply.click();

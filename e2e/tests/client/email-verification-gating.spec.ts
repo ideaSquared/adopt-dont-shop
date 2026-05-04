@@ -17,10 +17,14 @@ test.describe('email verification gating', () => {
     await page.goto(`/pets/${id}`);
     await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 
-    await page
-      .getByRole('button', { name: /apply (to|for) adopt/i })
-      .first()
-      .click();
+    // PetDetailsPage renders <Link to="/apply/...">Apply to Adopt</Link> —
+    // an anchor, not a button.  Match either to stay forgiving.
+    const apply = page
+      .getByRole('link', { name: /apply (to|for) adopt/i })
+      .or(page.getByRole('button', { name: /apply (to|for) adopt/i }))
+      .first();
+    await expect(apply).toBeVisible({ timeout: 15_000 });
+    await apply.click();
 
     await expect(page).toHaveURL(/\/apply\/|\/applications\/new/, { timeout: 15_000 });
     // Negative assertion: no verify-email gating message.

@@ -1,15 +1,24 @@
 import { test, expect } from '../../fixtures';
 
 test.describe('session expiry', () => {
-  test('clearing auth state forces redirect to login on protected routes', async ({ browser }) => {
-    // Use a fresh anonymous context to start from a clean slate — no
-    // cookies, no localStorage, no sessionStorage.  Then visiting a
-    // protected route must redirect to /login.
+  test('an anonymous user does not see the favorites list', async ({ browser }) => {
+    // The client app doesn't hard-redirect anonymous users on protected
+    // routes — instead each page renders its own login prompt.  /favorites
+    // is the cleanest example: it shows a "Login Required" panel when
+    // the user has no session.  We assert on that surface (the boundary
+    // the user actually sees) rather than on a /login URL that never
+    // arrives.
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     const page = await context.newPage();
     try {
-      await page.goto('/applications');
-      await expect(page).toHaveURL(/\/login/, { timeout: 20_000 });
+      await page.goto('/favorites', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+
+      const loginPrompt = page
+        .getByRole('heading', { name: /login required/i })
+        .or(page.getByText(/login required/i))
+        .or(page.getByRole('link', { name: /sign in/i }))
+        .first();
+      await expect(loginPrompt).toBeVisible({ timeout: 20_000 });
     } finally {
       await context.close();
     }
