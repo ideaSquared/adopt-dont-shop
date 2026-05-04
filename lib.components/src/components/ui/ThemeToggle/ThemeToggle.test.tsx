@@ -83,7 +83,7 @@ describe('ThemeToggle', () => {
 describe('ThemeToggle - Dark Mode Integration', () => {
   it('should toggle from light to dark mode', () => {
     // Import ThemeProvider at the top for proper ES import usage
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const ThemeProviderModule = require('../../../styles/ThemeProvider');
 
     const TestWrapper = () => {
