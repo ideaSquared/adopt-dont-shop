@@ -85,7 +85,10 @@ SESSION_SECRET=...
 CSRF_SECRET=...
 
 # Frontend → backend
-VITE_API_BASE_URL=http://localhost:5000
+# Leave VITE_API_BASE_URL empty in Docker dev; the Vite dev server proxies
+# /api requests to the backend via docker-compose networking. Set an
+# absolute URL only when running the apps outside Docker.
+VITE_API_BASE_URL=
 VITE_WS_BASE_URL=ws://localhost:5000
 
 # CORS (comma-separated list of allowed origins)

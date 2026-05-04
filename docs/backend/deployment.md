@@ -161,7 +161,7 @@ ENABLE_REQUEST_LOGGING=true
 
 The service includes a production-ready Dockerfile:
 
-The repository ships a multi-stage Dockerfile at `service.backend/Dockerfile` built against `node:20-alpine` with a non-root `backend` user. Build the production image via:
+The repository ships a multi-stage Dockerfile at `service.backend/Dockerfile` built against `node:22-alpine` with a non-root `backend` user. Build the production image via:
 
 ```bash
 docker build \
