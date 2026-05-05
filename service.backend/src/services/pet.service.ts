@@ -31,6 +31,8 @@ import {
 } from '../types/pet';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import User, { UserType } from '../models/User';
+import StaffMember from '../models/StaffMember';
 
 const PET_SEARCH_SORT_FIELDS = [
   'createdAt',
@@ -79,6 +81,46 @@ const resolveBreedIdsByName = async (name: string): Promise<string[]> => {
 };
 
 export class PetService {
+  /**
+   * Verifies that the calling user owns the pet's rescue, then returns the
+   * loaded Pet. Admins and moderators bypass the check. Throws 403 for any
+   * cross-rescue attempt, or 404 when the pet doesn't exist.
+   */
+  private static async assertCallerOwnsPet(petId: string, callerUserId: string): Promise<Pet> {
+    const pet = await Pet.findByPk(petId);
+    if (!pet) {
+      throw Object.assign(new Error('Pet not found'), { statusCode: 404 });
+    }
+
+    const caller = await User.findByPk(callerUserId);
+    if (caller && (caller.userType === UserType.ADMIN || caller.userType === UserType.MODERATOR)) {
+      return pet;
+    }
+
+    const staff = await StaffMember.findOne({
+      where: { userId: callerUserId, isVerified: true },
+    });
+
+    if (!staff || staff.rescueId !== pet.rescueId) {
+      await AuditLogService.log({
+        action: 'UNAUTHORIZED_ACCESS_ATTEMPT',
+        entity: 'Pet',
+        entityId: petId,
+        details: {
+          callerUserId,
+          callerRescueId: staff?.rescueId ?? null,
+          petRescueId: pet.rescueId,
+        },
+        userId: callerUserId,
+      });
+      throw Object.assign(new Error('Access denied: pet belongs to another rescue'), {
+        statusCode: 403,
+      });
+    }
+
+    return pet;
+  }
+
   /**
    * Search pets with advanced filtering and sorting
    */
@@ -538,10 +580,7 @@ export class PetService {
     const startTime = Date.now();
 
     try {
-      const pet = await Pet.findByPk(petId);
-      if (!pet) {
-        throw new Error('Pet not found');
-      }
+      const pet = await PetService.assertCallerOwnsPet(petId, updatedBy);
 
       // Store original data for audit
       const originalData = pet.toJSON();
@@ -763,10 +802,7 @@ export class PetService {
     const startTime = Date.now();
 
     try {
-      const pet = await Pet.findByPk(petId);
-      if (!pet) {
-        throw new Error('Pet not found');
-      }
+      const pet = await PetService.assertCallerOwnsPet(petId, updatedBy);
 
       const originalStatus = pet.status;
 
@@ -847,10 +883,7 @@ export class PetService {
     const startTime = Date.now();
 
     try {
-      const pet = await Pet.findByPk(petId);
-      if (!pet) {
-        throw new Error('Pet not found');
-      }
+      const pet = await PetService.assertCallerOwnsPet(petId, deletedBy);
 
       // Soft delete the pet
       await pet.destroy();
@@ -953,10 +986,7 @@ export class PetService {
     updatedBy: string
   ): Promise<Pet> {
     try {
-      const pet = await Pet.findByPk(petId);
-      if (!pet) {
-        throw new Error('Pet not found');
-      }
+      const pet = await PetService.assertCallerOwnsPet(petId, updatedBy);
 
       // Replace all images: delete-then-insert inside a transaction so a
       // failed bulkCreate doesn't leave the pet with no media.
@@ -1011,10 +1041,7 @@ export class PetService {
    */
   static async removePetImage(petId: string, imageId: string, removedBy: string): Promise<Pet> {
     try {
-      const pet = await Pet.findByPk(petId);
-      if (!pet) {
-        throw new Error('Pet not found');
-      }
+      const pet = await PetService.assertCallerOwnsPet(petId, removedBy);
 
       const deleted = await PetMedia.destroy({
         where: { media_id: imageId, pet_id: petId, type: PetMediaType.IMAGE },
@@ -1209,6 +1236,48 @@ export class PetService {
   ): Promise<BulkPetOperationResult> {
     try {
       const { petIds, operation: operationType, data, reason } = operation;
+
+      // Pre-flight ownership check — all-or-nothing to prevent partial mutations
+      // across rescue boundaries. Admins/moderators bypass this.
+      const caller = await User.findByPk(updatedBy);
+      const isPrivileged =
+        caller && (caller.userType === UserType.ADMIN || caller.userType === UserType.MODERATOR);
+
+      if (!isPrivileged) {
+        const staff = await StaffMember.findOne({
+          where: { userId: updatedBy, isVerified: true },
+        });
+        if (!staff) {
+          throw Object.assign(new Error('Access denied: caller is not rescue staff'), {
+            statusCode: 403,
+          });
+        }
+        const pets = await Pet.findAll({
+          where: { petId: { [Op.in]: petIds } },
+          attributes: ['petId', 'rescueId'],
+        });
+        const crossRescuePet = pets.find(p => p.rescueId !== staff.rescueId);
+        if (crossRescuePet) {
+          await AuditLogService.log({
+            action: 'UNAUTHORIZED_ACCESS_ATTEMPT',
+            entity: 'Pet',
+            entityId: 'bulk',
+            details: {
+              callerUserId: updatedBy,
+              callerRescueId: staff.rescueId,
+              petIds,
+              firstCrossRescuePetId: crossRescuePet.petId,
+              firstCrossRescuePetRescueId: crossRescuePet.rescueId,
+            },
+            userId: updatedBy,
+          });
+          throw Object.assign(
+            new Error('Access denied: one or more pets belong to another rescue'),
+            { statusCode: 403 }
+          );
+        }
+      }
+
       const results: BulkPetOperationResult = {
         successCount: 0,
         failedCount: 0,
