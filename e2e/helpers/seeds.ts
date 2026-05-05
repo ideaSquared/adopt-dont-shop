@@ -148,15 +148,16 @@ export async function getMyRescueId(rescueApi: ApiClient): Promise<string | null
  * Used by tests that legitimately need uniqueness (rescue publishes a
  * pet → adopter sees it in search).  Read-side tests should use
  * SEEDED_PET_IDS.available instead.
+ *
+ * Note: we deliberately do NOT pass rescueId in the body — the
+ * backend's fieldWriteGuard rejects it with 403 ("Field access
+ * denied").  The rescueId is inferred from the authenticated staff
+ * member's rescue association.
  */
 export async function createAvailablePet(
   rescueApi: ApiClient,
   namePrefix = 'Seed'
 ): Promise<{ petId: string; name: string }> {
-  const rescueId = await getMyRescueId(rescueApi);
-  if (!rescueId) {
-    throw new Error('rescue API user has no rescueId — seed misconfigured');
-  }
   const name = uniquePetName(namePrefix);
   const createRes = await postWithCsrf(rescueApi.context, '/api/v1/pets', {
     name,
@@ -164,7 +165,6 @@ export async function createAvailablePet(
     gender: 'female',
     size: 'medium',
     ageGroup: 'adult',
-    rescueId,
     status: 'available',
     shortDescription: 'e2e seed',
   });
@@ -225,6 +225,44 @@ export async function getFirstAdopterApplication(adopterApi: ApiClient): Promise
     throw new Error(`first application has no id: ${JSON.stringify(chosen)}`);
   }
   return { applicationId, status: chosen.status ?? 'submitted' };
+}
+
+/**
+ * Create a fresh application owned by the adopter on a fresh pet.
+ * Useful when a test wants to mutate application state without touching
+ * the seeded fixtures (which other tests may also be reading).
+ */
+export async function createAdopterApplication(
+  adopterApi: ApiClient,
+  rescueApi: ApiClient
+): Promise<{ applicationId: string; petId: string }> {
+  const pet = await createAvailablePet(rescueApi, 'AppFlow');
+  const createRes = await postWithCsrf(adopterApi.context, '/api/v1/applications', {
+    petId: pet.petId,
+    answers: { reason: 'e2e application' },
+  });
+  if (!createRes.ok()) {
+    throw new Error(
+      `application creation failed: ${createRes.status()} ${(await createRes.text()).slice(0, 300)}`
+    );
+  }
+  const body = (await createRes.json()) as {
+    applicationId?: string;
+    id?: string;
+    application_id?: string;
+    data?: { applicationId?: string; id?: string; application_id?: string };
+  };
+  const applicationId =
+    body.applicationId ??
+    body.id ??
+    body.application_id ??
+    body.data?.applicationId ??
+    body.data?.id ??
+    body.data?.application_id;
+  if (!applicationId) {
+    throw new Error(`application creation returned no id`);
+  }
+  return { applicationId, petId: pet.petId };
 }
 
 /**
