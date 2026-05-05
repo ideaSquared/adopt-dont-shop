@@ -149,10 +149,16 @@ export async function getMyRescueId(rescueApi: ApiClient): Promise<string | null
  * pet → adopter sees it in search).  Read-side tests should use
  * SEEDED_PET_IDS.available instead.
  *
- * Note: we deliberately do NOT pass rescueId in the body — the
- * backend's fieldWriteGuard rejects it with 403 ("Field access
- * denied").  The rescueId is inferred from the authenticated staff
- * member's rescue association.
+ * Notes on the body shape:
+ *   - We deliberately do NOT pass rescueId — the backend's
+ *     fieldWriteGuard rejects it with 403 ("Field access denied").
+ *     The rescueId is inferred from the authenticated staff member's
+ *     rescue association.
+ *   - We deliberately do NOT pass status — explicit values trip a
+ *     Postgres ENUM type-mismatch ("column status is of type
+ *     enum_pets_status but expression is of type
+ *     enum_pet_status_transitions_to_status").  The Pet model defaults
+ *     status to AVAILABLE, which is what we want anyway.
  */
 export async function createAvailablePet(
   rescueApi: ApiClient,
@@ -165,12 +171,11 @@ export async function createAvailablePet(
     gender: 'female',
     size: 'medium',
     ageGroup: 'adult',
-    status: 'available',
     shortDescription: 'e2e seed',
   });
   if (!createRes.ok()) {
     throw new Error(
-      `pet creation failed: ${createRes.status()} ${(await createRes.text()).slice(0, 200)}`
+      `pet creation failed: ${createRes.status()} ${(await createRes.text()).slice(0, 300)}`
     );
   }
   const body = (await createRes.json()) as {
@@ -185,6 +190,38 @@ export async function createAvailablePet(
     throw new Error(`pet creation returned no id: ${JSON.stringify(body).slice(0, 200)}`);
   }
   return { petId, name };
+}
+
+/**
+ * Read messages from a chat in a shape-tolerant way.  The canonical
+ * envelope is { success, data: { messages: [...], pagination: ... } }
+ * but older code paths may return the array directly under data or
+ * messages.
+ */
+export async function listChatMessages(
+  ctx: APIRequestContext,
+  chatId: string
+): Promise<Array<{ content?: string; message_id?: string; id?: string }>> {
+  const res = await ctx.get(`/api/v1/chats/${chatId}/messages`, { params: { limit: '20' } });
+  if (!res.ok()) {
+    return [];
+  }
+  const body = (await res.json()) as {
+    data?:
+      | Array<{ content?: string; message_id?: string; id?: string }>
+      | { messages?: Array<{ content?: string; message_id?: string; id?: string }> };
+    messages?: Array<{ content?: string; message_id?: string; id?: string }>;
+  };
+  if (Array.isArray(body.data)) {
+    return body.data;
+  }
+  if (body.data && Array.isArray(body.data.messages)) {
+    return body.data.messages;
+  }
+  if (Array.isArray(body.messages)) {
+    return body.messages;
+  }
+  return [];
 }
 
 /**

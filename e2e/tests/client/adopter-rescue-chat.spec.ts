@@ -1,6 +1,6 @@
 import { test, expect } from '../../fixtures';
 import { uniqueText } from '../../helpers/factories';
-import { expectOk, getFirstAdopterChat, postWithCsrf } from '../../helpers/seeds';
+import { expectOk, getFirstAdopterChat, listChatMessages, postWithCsrf } from '../../helpers/seeds';
 
 /**
  * Adopter posts a message via API; the rescue side can read it back.
@@ -24,23 +24,10 @@ test.describe('chat between adopter and rescue', () => {
     });
     await expectOk(sendRes, `POST /api/v1/chats/${chatId}/messages`);
 
-    // Read the message list as the rescue user — the message must be
-    // present.  This validates participant scoping (rescue is in the
-    // chat) and message persistence end-to-end.
     await expect
       .poll(
         async () => {
-          const res = await rescueApi.context.get(`/api/v1/chats/${chatId}/messages`, {
-            params: { limit: '20' },
-          });
-          if (!res.ok()) {
-            return null;
-          }
-          const body = (await res.json()) as {
-            data?: Array<{ content?: string }>;
-            messages?: Array<{ content?: string }>;
-          };
-          const messages = body.data ?? body.messages ?? [];
+          const messages = await listChatMessages(rescueApi.context, chatId);
           return messages.some(m => m.content === message);
         },
         { timeout: 15_000 }
