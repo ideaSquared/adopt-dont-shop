@@ -10,6 +10,7 @@ import EmailService from '../services/email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { UserType } from '../models/User';
 import StaffMember from '../models/StaffMember';
+import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
 
 export class RescueController {
   /**
@@ -179,7 +180,9 @@ export class RescueController {
         req.body.description = RichTextProcessingService.sanitize(req.body.description);
       }
 
-      const rescue = await RescueService.updateRescue(rescueId, req.body, req.user!.userId);
+      // Strip privilege-sensitive fields (status, verifiedAt, etc.) before passing to service
+      const safeBody = RescueUpdateRequestSchema.parse(req.body);
+      const rescue = await RescueService.updateRescue(rescueId, safeBody, req.user!.userId);
 
       res.status(200).json({
         success: true,

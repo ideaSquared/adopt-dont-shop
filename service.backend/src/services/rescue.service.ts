@@ -1,5 +1,4 @@
 import { Op, Order, WhereOptions } from 'sequelize';
-import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
 import EmailService from './email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
@@ -418,8 +417,7 @@ export class RescueService {
       }
 
       const oldData = rescue.toJSON();
-      const cleanedData = RescueUpdateRequestSchema.parse(updateData);
-      await rescue.update(cleanedData, { transaction });
+      await rescue.update(updateData, { transaction });
 
       // Log the action
       await AuditLogService.log({
