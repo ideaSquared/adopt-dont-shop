@@ -1,5 +1,6 @@
 # Staging Docker Compose — pulls pre-built images from GHCR
 # Runs on same server as production, isolated network + volumes
+# Nginx/SSL handled by gateway stack (docker-compose.gateway.yml)
 
 services:
   database:
@@ -127,35 +128,10 @@ services:
       retries: 3
       start_period: 30s
 
-  nginx:
-    image: nginx:alpine
-    container_name: ads_staging_nginx
-    restart: always
-    ports:
-      - "8080:80"
-      - "8443:443"
-    volumes:
-      - ./nginx/nginx.staging.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/snippets/ssl-params.conf:/etc/nginx/snippets/ssl-params.conf:ro
-      - certbot_webroot:/var/www/certbot:ro
-      - letsencrypt:/etc/letsencrypt:ro
-    depends_on:
-      - service-backend
-      - app-client
-      - app-admin
-      - app-rescue
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-
 volumes:
   postgres_data:
   redis_data:
   uploads:
-  letsencrypt:
-  certbot_webroot:
 
 networks:
   default:

@@ -23,7 +23,7 @@ export const resolveFileUrl = (url: string | undefined): string | undefined => {
   }
 
   // Get the backend base URL from environment variables
-  const backendBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://api.localhost';
+  const backendBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '';
 
   // If it's a relative path starting with '/', prepend the base URL
   if (url.startsWith('/')) {

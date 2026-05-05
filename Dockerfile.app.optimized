@@ -108,6 +108,8 @@ CMD ["npm", "run", "dev"]
 # Build stage for production
 FROM base AS build
 ARG APP_NAME
+ARG VITE_API_BASE_URL=""
+ARG VITE_WS_BASE_URL=""
 
 # Copy entire workspace
 COPY . .
@@ -120,7 +122,10 @@ RUN --mount=type=cache,target=/root/.npm \
 # Use cache mount for Turbo cache
 # The '...' prefix builds all dependencies first, then the target app
 # Set NODE_ENV=production to use "import" exports instead of "development" (src/*.ts)
+# VITE_* args are picked up by Vite at build time (empty = same-origin, proxied by nginx)
 RUN --mount=type=cache,target=/app/.turbo \
+    VITE_API_BASE_URL="$VITE_API_BASE_URL" \
+    VITE_WS_BASE_URL="$VITE_WS_BASE_URL" \
     NODE_ENV=production npx turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
 
 # ============================================================================

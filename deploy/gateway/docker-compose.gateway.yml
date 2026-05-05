@@ -1,0 +1,45 @@
+# Gateway — single nginx that routes all domains to correct stack
+# Lives at /opt/ads/gateway/ on the server
+# Joins both prod and staging Docker networks
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: ads_gateway
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./snippets/ssl-params.conf:/etc/nginx/snippets/ssl-params.conf:ro
+      - certbot_webroot:/var/www/certbot:ro
+      - letsencrypt:/etc/letsencrypt:ro
+    networks:
+      - ads-prod-network
+      - ads-staging-network
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  certbot:
+    image: certbot/certbot
+    container_name: ads_certbot
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'"
+    depends_on:
+      - nginx
+
+volumes:
+  certbot_webroot:
+  letsencrypt:
+
+networks:
+  ads-prod-network:
+    external: true
+  ads-staging-network:
+    external: true

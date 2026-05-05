@@ -144,7 +144,7 @@ jobs:
             done
 
             # Run migrations
-            docker compose -f $COMPOSE_FILE exec -T service-backend npm run db:migrate
+            docker compose -f $COMPOSE_FILE exec -T service-backend npm run migrate
 
             # Record deployed SHA
             echo "$SHA" > .last_sha
