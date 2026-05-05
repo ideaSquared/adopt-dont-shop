@@ -1,5 +1,5 @@
 import { Op, Order, WhereOptions } from 'sequelize';
-import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation/src/schemas/rescue';
+import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
 import EmailService from './email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
