@@ -7,7 +7,7 @@ export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleSuccess = () => {
-    navigate('/', { replace: true });
+    navigate('/check-your-email', { replace: true });
   };
 
   return (
