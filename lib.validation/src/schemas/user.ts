@@ -181,3 +181,28 @@ export const UserModelShapeSchema = UserProfileSchema.partial().extend({
   password: z.string().min(1).optional(),
 });
 export type UserModelShape = z.infer<typeof UserModelShapeSchema>;
+
+/**
+ * POST /api/v1/users/bulk-update — admin bulk operation.
+ *
+ * `updateData` is intentionally a strict allowlist: only `status` may be
+ * changed in bulk. Privilege-sensitive fields (userType, emailVerified,
+ * twoFactorEnabled, twoFactorSecret, password, loginAttempts, lockedUntil,
+ * roles) are excluded to prevent mass privilege-escalation. .strict() causes
+ * Zod to reject any key not listed here with a clear validation error.
+ */
+export const BulkUserUpdateDataSchema = z
+  .object({
+    status: UserStatusSchema.optional(),
+  })
+  .strict();
+export type BulkUserUpdateData = z.infer<typeof BulkUserUpdateDataSchema>;
+
+export const BulkUserUpdateRequestSchema = z.object({
+  userIds: z
+    .array(z.string().uuid('Each user ID must be a valid UUID'))
+    .min(1, 'At least one user ID is required')
+    .max(100, 'Cannot update more than 100 users at a time'),
+  updateData: BulkUserUpdateDataSchema,
+});
+export type BulkUserUpdateRequest = z.infer<typeof BulkUserUpdateRequestSchema>;
