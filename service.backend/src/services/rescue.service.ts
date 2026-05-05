@@ -72,7 +72,6 @@ export interface UpdateRescueRequest {
   settings?: object;
 }
 
-
 export interface RescueStatsResponse {
   totalPets: number;
   availablePets: number;
@@ -665,7 +664,12 @@ export class RescueService {
 
       loggerHelpers.logBusiness(
         'Rescue Suspended',
-        { rescueId, suspendedBy, reason: reason ?? 'No reason provided', duration: Date.now() - startTime },
+        {
+          rescueId,
+          suspendedBy,
+          reason: reason ?? 'No reason provided',
+          duration: Date.now() - startTime,
+        },
         suspendedBy
       );
 
@@ -693,13 +697,15 @@ export class RescueService {
     rescueId: string,
     companiesHouseNumber?: string,
     charityRegistrationNumber?: string
-  ): Promise<Partial<{
-    status: 'verified' | 'pending';
-    verifiedAt: Date;
-    verificationSource: 'companies_house' | 'charity_commission';
-    verificationFailureReason: string;
-    manualVerificationRequestedAt: Date;
-  }>> {
+  ): Promise<
+    Partial<{
+      status: 'verified' | 'pending';
+      verifiedAt: Date;
+      verificationSource: 'companies_house' | 'charity_commission';
+      verificationFailureReason: string;
+      manualVerificationRequestedAt: Date;
+    }>
+  > {
     if (companiesHouseNumber) {
       const result = await verifyCompaniesHouseNumber(companiesHouseNumber);
       if (result.verified) {

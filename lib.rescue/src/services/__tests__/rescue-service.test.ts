@@ -4,7 +4,6 @@ import {
   Rescue,
   RescueAPIResponse,
   RescueSearchFilters,
-  PaginatedResponse,
   Pet,
   RescueStatus,
   RescueType,

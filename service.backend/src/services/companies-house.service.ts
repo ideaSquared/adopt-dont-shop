@@ -22,10 +22,29 @@ const ANIMAL_RELATED_SIC_CODES = new Set([
 
 // Keywords to match against company name when SIC codes are inconclusive.
 const ANIMAL_KEYWORDS = [
-  'animal', 'rescue', 'rehome', 'rehoming', 'sanctuary', 'welfare',
-  'veterinary', 'vet', 'paws', 'feline', 'canine', 'dogs trust',
-  'cats protection', 'rspca', 'rspb', 'pdsa', 'wildlife', 'bird',
-  'rabbit', 'horse', 'equine', 'farm animal', 'shelter',
+  'animal',
+  'rescue',
+  'rehome',
+  'rehoming',
+  'sanctuary',
+  'welfare',
+  'veterinary',
+  'vet',
+  'paws',
+  'feline',
+  'canine',
+  'dogs trust',
+  'cats protection',
+  'rspca',
+  'rspb',
+  'pdsa',
+  'wildlife',
+  'bird',
+  'rabbit',
+  'horse',
+  'equine',
+  'farm animal',
+  'shelter',
 ];
 
 type CompanyStatus =
@@ -74,9 +93,7 @@ const fetchWithRetry = async (url: string, apiKey: string, attempt = 0): Promise
   return res;
 };
 
-export const verifyCompaniesHouseNumber = async (
-  number: string
-): Promise<CompaniesHouseResult> => {
+export const verifyCompaniesHouseNumber = async (number: string): Promise<CompaniesHouseResult> => {
   const apiKey = process.env.COMPANIES_HOUSE_API_KEY;
   if (!apiKey) {
     logger.warn('COMPANIES_HOUSE_API_KEY not set — skipping Companies House verification');
@@ -84,10 +101,7 @@ export const verifyCompaniesHouseNumber = async (
   }
 
   try {
-    const res = await fetchWithRetry(
-      `${BASE_URL}/company/${encodeURIComponent(number)}`,
-      apiKey
-    );
+    const res = await fetchWithRetry(`${BASE_URL}/company/${encodeURIComponent(number)}`, apiKey);
 
     if (res.status === 404) {
       return { verified: false, reason: `No company found with number ${number}` };
@@ -110,7 +124,8 @@ export const verifyCompaniesHouseNumber = async (
     if (!isAnimalRelated(company)) {
       return {
         verified: false,
-        reason: 'Company does not appear to be animal or rescue related based on SIC codes and name',
+        reason:
+          'Company does not appear to be animal or rescue related based on SIC codes and name',
       };
     }
 

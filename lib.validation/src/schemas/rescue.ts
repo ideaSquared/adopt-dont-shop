@@ -14,7 +14,13 @@ import type { RescueId } from '@adopt-dont-shop/lib.types';
 
 // ----- Enums --------------------------------------------------------------
 
-export const RescueStatusSchema = z.enum(['pending', 'verified', 'suspended', 'inactive', 'rejected']);
+export const RescueStatusSchema = z.enum([
+  'pending',
+  'verified',
+  'suspended',
+  'inactive',
+  'rejected',
+]);
 export type RescueStatusValue = z.infer<typeof RescueStatusSchema>;
 
 // ----- Primitives ---------------------------------------------------------

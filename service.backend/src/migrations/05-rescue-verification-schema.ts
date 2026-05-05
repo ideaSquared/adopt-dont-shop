@@ -68,9 +68,7 @@ export default {
     await queryInterface.removeColumn('rescues', 'manual_verification_requested_at');
     await queryInterface.removeColumn('rescues', 'verification_failure_reason');
     await queryInterface.removeColumn('rescues', 'verification_source');
-    await queryInterface.sequelize.query(
-      `DROP TYPE IF EXISTS "enum_rescues_verification_source"`
-    );
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS "enum_rescues_verification_source"`);
 
     await queryInterface.removeConstraint('rescues', 'rescues_companies_house_number_unique');
     await queryInterface.removeConstraint('rescues', 'rescues_charity_registration_number_unique');

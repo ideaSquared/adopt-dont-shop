@@ -295,11 +295,15 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                       </div>
                       <div className={styles.infoItem}>
                         <div className={styles.infoLabel}>Companies House Number</div>
-                        <div className={styles.infoValue}>{rescue.companiesHouseNumber || 'N/A'}</div>
+                        <div className={styles.infoValue}>
+                          {rescue.companiesHouseNumber || 'N/A'}
+                        </div>
                       </div>
                       <div className={styles.infoItem}>
                         <div className={styles.infoLabel}>Charity Registration Number</div>
-                        <div className={styles.infoValue}>{rescue.charityRegistrationNumber || 'N/A'}</div>
+                        <div className={styles.infoValue}>
+                          {rescue.charityRegistrationNumber || 'N/A'}
+                        </div>
                       </div>
                       {rescue.verificationSource && (
                         <div className={styles.infoItem}>

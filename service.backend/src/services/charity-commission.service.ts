@@ -5,10 +5,28 @@ const BASE_URL = 'https://api.charitycommission.gov.uk/register/api';
 // Keywords to check against charity objects/activities text.
 // Erring on the side of inclusion — ambiguous cases fall through to manual review.
 const ANIMAL_KEYWORDS = [
-  'animal', 'rescue', 'rehom', 'sanctuary', 'welfare', 'wildlife',
-  'veterinary', 'vet ', 'paws', 'feline', 'canine', 'dog', 'cat',
-  'rabbit', 'horse', 'equine', 'bird', 'farm animal', 'pet',
-  'shelter', 'pound', 'stray',
+  'animal',
+  'rescue',
+  'rehom',
+  'sanctuary',
+  'welfare',
+  'wildlife',
+  'veterinary',
+  'vet ',
+  'paws',
+  'feline',
+  'canine',
+  'dog',
+  'cat',
+  'rabbit',
+  'horse',
+  'equine',
+  'bird',
+  'farm animal',
+  'pet',
+  'shelter',
+  'pound',
+  'stray',
 ];
 
 type CharityRegistrationStatus = 'registered' | 'removed' | 'revoked';
