@@ -1,0 +1,151 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/ideasquared/adopt-dont-shop
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      sha: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend
+        run: |
+          docker build \
+            -f service.backend/Dockerfile \
+            --target production \
+            -t $IMAGE_PREFIX/backend:${{ github.sha }} \
+            -t $IMAGE_PREFIX/backend:latest \
+            .
+          docker push $IMAGE_PREFIX/backend --all-tags
+
+      - name: Build and push app.client
+        run: |
+          docker build \
+            -f Dockerfile.app.optimized \
+            --target production \
+            --build-arg APP_NAME=app.client \
+            -t $IMAGE_PREFIX/app-client:${{ github.sha }} \
+            -t $IMAGE_PREFIX/app-client:latest \
+            .
+          docker push $IMAGE_PREFIX/app-client --all-tags
+
+      - name: Build and push app.admin
+        run: |
+          docker build \
+            -f Dockerfile.app.optimized \
+            --target production \
+            --build-arg APP_NAME=app.admin \
+            -t $IMAGE_PREFIX/app-admin:${{ github.sha }} \
+            -t $IMAGE_PREFIX/app-admin:latest \
+            .
+          docker push $IMAGE_PREFIX/app-admin --all-tags
+
+      - name: Build and push app.rescue
+        run: |
+          docker build \
+            -f Dockerfile.app.optimized \
+            --target production \
+            --build-arg APP_NAME=app.rescue \
+            -t $IMAGE_PREFIX/app-rescue:${{ github.sha }} \
+            -t $IMAGE_PREFIX/app-rescue:latest \
+            .
+          docker push $IMAGE_PREFIX/app-rescue --all-tags
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: deploy
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            ENV="${{ github.event.inputs.environment }}"
+            SHA="${{ github.sha }}"
+            IMAGE_PREFIX="ghcr.io/ideasquared/adopt-dont-shop"
+
+            cd /opt/ads/$ENV
+
+            # Login to GHCR (uses a PAT stored on the server, not the job-scoped GITHUB_TOKEN)
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ideasquared --password-stdin
+
+            # Pull new images
+            docker pull $IMAGE_PREFIX/backend:$SHA
+            docker pull $IMAGE_PREFIX/app-client:$SHA
+            docker pull $IMAGE_PREFIX/app-admin:$SHA
+            docker pull $IMAGE_PREFIX/app-rescue:$SHA
+
+            # Persist SHA in .env so restarts use correct version
+            sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$SHA/" .env || echo "DEPLOY_SHA=$SHA" >> .env
+
+            # Determine compose file
+            if [ "$ENV" = "production" ]; then
+              COMPOSE_FILE="docker-compose.prod.yml"
+            else
+              COMPOSE_FILE="docker-compose.staging.yml"
+            fi
+
+            # Bring up new containers
+            docker compose -f $COMPOSE_FILE --env-file .env up -d
+
+            # Wait for backend health
+            echo "Waiting for backend health check..."
+            for i in $(seq 1 30); do
+              if docker compose -f $COMPOSE_FILE exec -T service-backend curl -sf http://localhost:5000/health > /dev/null 2>&1; then
+                echo "Backend healthy."
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "ERROR: Backend failed health check after 60s"
+                exit 1
+              fi
+              sleep 2
+            done
+
+            # Run migrations
+            docker compose -f $COMPOSE_FILE exec -T service-backend npm run db:migrate
+
+            # Record deployed SHA
+            echo "$SHA" > .last_sha
+            echo "Deployed $SHA to $ENV successfully."

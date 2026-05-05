@@ -1,0 +1,69 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      sha:
+        description: 'Git SHA to roll back to (must already exist in GHCR)'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Rollback on server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: deploy
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            ENV="${{ github.event.inputs.environment }}"
+            SHA="${{ github.event.inputs.sha }}"
+            IMAGE_PREFIX="ghcr.io/ideasquared/adopt-dont-shop"
+
+            cd /opt/ads/$ENV
+
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ideasquared --password-stdin
+
+            docker pull $IMAGE_PREFIX/backend:$SHA
+            docker pull $IMAGE_PREFIX/app-client:$SHA
+            docker pull $IMAGE_PREFIX/app-admin:$SHA
+            docker pull $IMAGE_PREFIX/app-rescue:$SHA
+
+            # Update SHA in .env
+            sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$SHA/" .env || echo "DEPLOY_SHA=$SHA" >> .env
+
+            if [ "$ENV" = "production" ]; then
+              COMPOSE_FILE="docker-compose.prod.yml"
+            else
+              COMPOSE_FILE="docker-compose.staging.yml"
+            fi
+
+            docker compose -f $COMPOSE_FILE --env-file .env up -d
+
+            # Wait for backend health
+            for i in $(seq 1 30); do
+              if docker compose -f $COMPOSE_FILE exec -T service-backend curl -sf http://localhost:5000/health > /dev/null 2>&1; then
+                echo "Backend healthy after rollback."
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "WARNING: Backend not healthy after rollback"
+                exit 1
+              fi
+              sleep 2
+            done
+
+            echo "$SHA" > .last_sha
+            echo "Rolled back $ENV to $SHA."

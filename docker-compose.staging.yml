@@ -1,16 +1,16 @@
-# Production Docker Compose — pulls pre-built images from GHCR
-# Deploy via: .github/workflows/deploy.yml (sets DEPLOY_SHA)
+# Staging Docker Compose — pulls pre-built images from GHCR
+# Runs on same server as production, isolated network + volumes
 
 services:
   database:
     image: postgis/postgis:16-3.4
-    container_name: ads_prod_db
+    container_name: ads_staging_db
     restart: always
     ports: []
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:?Error: POSTGRES_USER required in production}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required in production}
-      POSTGRES_DB: ${POSTGRES_DB:?Error: POSTGRES_DB required in production}
+      POSTGRES_USER: ${POSTGRES_USER:?Error: POSTGRES_USER required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${POSTGRES_DB:?Error: POSTGRES_DB required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -26,12 +26,12 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: ads_prod_redis
+    container_name: ads_staging_redis
     restart: always
     ports: []
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required in production}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}
     logging:
       driver: json-file
       options:
@@ -40,7 +40,7 @@ services:
 
   service-backend:
     image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
-    container_name: ads_prod_backend
+    container_name: ads_staging_backend
     restart: always
     environment:
       NODE_ENV: production
@@ -50,8 +50,8 @@ services:
       DB_USERNAME: ${POSTGRES_USER:?Error: POSTGRES_USER required}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}
       PROD_DB_NAME: ${POSTGRES_DB:?Error: POSTGRES_DB required}
-      DB_POOL_MAX: ${DB_POOL_MAX:-20}
-      DB_POOL_MIN: ${DB_POOL_MIN:-5}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      DB_POOL_MIN: ${DB_POOL_MIN:-2}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}
@@ -63,8 +63,8 @@ services:
       API_URL: ${API_URL:?Error: API_URL required}
       FRONTEND_URL: ${FRONTEND_URL:?Error: FRONTEND_URL required}
       CORS_ORIGIN: ${CORS_ORIGIN:?Error: CORS_ORIGIN required}
-      EMAIL_PROVIDER: ${EMAIL_PROVIDER:?Error: EMAIL_PROVIDER required}
-      EMAIL_FROM: ${EMAIL_FROM:?Error: EMAIL_FROM required}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
+      EMAIL_FROM: ${EMAIL_FROM:-staging@adoptdontshop.com}
       FORCE_SEED: "false"
       DB_LOGGING: "false"
     volumes:
@@ -90,7 +90,7 @@ services:
 
   app-client:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${DEPLOY_SHA:-latest}
-    container_name: ads_prod_client
+    container_name: ads_staging_client
     restart: always
     expose:
       - "80"
@@ -103,7 +103,7 @@ services:
 
   app-admin:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${DEPLOY_SHA:-latest}
-    container_name: ads_prod_admin
+    container_name: ads_staging_admin
     restart: always
     expose:
       - "80"
@@ -116,7 +116,7 @@ services:
 
   app-rescue:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${DEPLOY_SHA:-latest}
-    container_name: ads_prod_rescue
+    container_name: ads_staging_rescue
     restart: always
     expose:
       - "80"
@@ -129,13 +129,13 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: ads_prod_nginx
+    container_name: ads_staging_nginx
     restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+      - "8443:443"
     volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.staging.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/snippets/ssl-params.conf:/etc/nginx/snippets/ssl-params.conf:ro
       - certbot_webroot:/var/www/certbot:ro
       - letsencrypt:/etc/letsencrypt:ro
@@ -159,4 +159,4 @@ volumes:
 
 networks:
   default:
-    name: ads-prod-network
+    name: ads-staging-network
