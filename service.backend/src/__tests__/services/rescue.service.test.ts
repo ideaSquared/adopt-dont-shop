@@ -11,6 +11,17 @@ vi.mock('../../services/auditLog.service', () => ({
     log: vi.fn().mockResolvedValue(undefined),
   },
 }));
+vi.mock('../../services/companies-house.service', () => ({
+  verifyCompaniesHouseNumber: vi.fn().mockResolvedValue({ verified: false, reason: 'No API key' }),
+}));
+vi.mock('../../services/charity-commission.service', () => ({
+  verifyCharityRegistrationNumber: vi
+    .fn()
+    .mockResolvedValue({ verified: false, reason: 'No API key' }),
+}));
+vi.mock('../../services/email.service', () => ({
+  default: { sendEmail: vi.fn().mockResolvedValue('email-id') },
+}));
 
 vi.mock('../../utils/logger', () => ({
   __esModule: true,

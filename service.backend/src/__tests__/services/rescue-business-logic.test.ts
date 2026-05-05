@@ -23,6 +23,17 @@ import { AuditLogService } from '../../services/auditLog.service';
 vi.mock('../../models');
 vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
+vi.mock('../../services/companies-house.service', () => ({
+  verifyCompaniesHouseNumber: vi.fn().mockResolvedValue({ verified: false, reason: 'No API key' }),
+}));
+vi.mock('../../services/charity-commission.service', () => ({
+  verifyCharityRegistrationNumber: vi
+    .fn()
+    .mockResolvedValue({ verified: false, reason: 'No API key' }),
+}));
+vi.mock('../../services/email.service', () => ({
+  default: { sendEmail: vi.fn().mockResolvedValue('email-id') },
+}));
 
 const MockedRescue = Rescue as Mock<typeof Rescue>;
 const MockedStaffMember = StaffMember as Mock<typeof StaffMember>;

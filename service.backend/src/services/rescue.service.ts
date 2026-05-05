@@ -682,7 +682,9 @@ export class RescueService {
         rescueId,
         suspendedBy,
       });
-      if (error instanceof Error) throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
       throw new Error('Failed to suspend rescue');
     }
   }
@@ -749,8 +751,7 @@ export class RescueService {
     rescueName: string,
     rescueEmail: string
   ): Promise<void> {
-    const emailService = new EmailService();
-    await emailService.sendEmail({
+    await EmailService.sendEmail({
       toEmail: rescueEmail,
       toName: rescueName,
       subject: 'Your rescue registration — next steps for verification',
