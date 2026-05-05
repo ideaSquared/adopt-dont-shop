@@ -42,12 +42,21 @@ test.describe('custom application questions', () => {
     );
     await expectOk(createRes, `POST /rescues/${rescueId}/questions`);
     const created = (await createRes.json()) as {
+      success?: boolean;
+      question?: { question_id?: string; questionId?: string; id?: string };
       questionId?: string;
       id?: string;
-      data?: { questionId?: string; id?: string };
+      data?: { questionId?: string; id?: string; question_id?: string };
     };
     const questionId =
-      created.questionId ?? created.id ?? created.data?.questionId ?? created.data?.id;
+      created.question?.question_id ??
+      created.question?.questionId ??
+      created.question?.id ??
+      created.questionId ??
+      created.id ??
+      created.data?.questionId ??
+      created.data?.id ??
+      created.data?.question_id;
     expect(questionId).toBeTruthy();
 
     const deleteRes = await deleteWithCsrf(
