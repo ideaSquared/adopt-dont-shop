@@ -34,12 +34,14 @@ vi.mock('../../services/auditLog.service', () => ({
 // Import Report model for real database operations
 import Report from '../../models/Report';
 import User, { UserStatus, UserType } from '../../models/User';
+import StaffMember from '../../models/StaffMember';
 
 import { AuditLogService } from '../../services/auditLog.service';
 const mockAuditLog = AuditLogService.log as vi.MockedFunction<typeof AuditLogService.log>;
 
 describe('PetService', () => {
   let testRescue: Rescue;
+  let testCallerId: string;
   let testCounter = 0;
 
   // Helper to generate unique IDs
@@ -85,6 +87,28 @@ describe('PetService', () => {
       contactPerson: 'Test Contact',
       status: 'verified',
       country: 'GB',
+    });
+
+    // Create a verified rescue-staff user and associate them with the test rescue.
+    // Mutating PetService methods enforce rescue ownership, so callers that
+    // are not admins must have a verified StaffMember row.
+    testCallerId = `caller-${timestamp}-${testCounter++}`;
+    await User.create({
+      userId: testCallerId,
+      email: `caller-${timestamp}@test.com`,
+      firstName: 'Test',
+      lastName: 'Caller',
+      password: 'hashed-password',
+      userType: UserType.RESCUE_STAFF,
+      emailVerified: true,
+      status: UserStatus.ACTIVE,
+    });
+    await StaffMember.create({
+      rescueId: testRescue.rescueId,
+      userId: testCallerId,
+      isVerified: true,
+      addedBy: testCallerId,
+      addedAt: new Date(),
     });
   });
 
@@ -392,7 +416,7 @@ describe('PetService', () => {
     };
 
     it('should update pet successfully', async () => {
-      const result = await PetService.updatePet(petId, updateData, 'user1');
+      const result = await PetService.updatePet(petId, updateData, testCallerId);
 
       expect(result.name).toBe('Updated Name');
       expect(result.shortDescription).toBe('Updated description');
@@ -402,7 +426,7 @@ describe('PetService', () => {
           action: 'UPDATE',
           entity: 'Pet',
           entityId: petId,
-          userId: 'user1',
+          userId: testCallerId,
         })
       );
     });
@@ -416,7 +440,7 @@ describe('PetService', () => {
     it('should allow updates to adopted pets (service permits it)', async () => {
       await testPet.update({ status: PetStatus.ADOPTED });
 
-      const result = await PetService.updatePet(petId, updateData, 'user1');
+      const result = await PetService.updatePet(petId, updateData, testCallerId);
       expect(result).toBeDefined();
       expect(result.name).toBe('Updated Name');
     });
@@ -452,7 +476,7 @@ describe('PetService', () => {
     };
 
     it('should update pet status successfully', async () => {
-      const result = await PetService.updatePetStatus(petId, statusUpdate, 'user1');
+      const result = await PetService.updatePetStatus(petId, statusUpdate, testCallerId);
 
       expect(result.status).toBe(PetStatus.ADOPTED);
       expect(result.adoptedDate).toBeDefined();
@@ -466,9 +490,9 @@ describe('PetService', () => {
             originalStatus: PetStatus.AVAILABLE,
             newStatus: PetStatus.ADOPTED,
             reason: statusUpdate.reason,
-            updatedBy: 'user1',
+            updatedBy: testCallerId,
           }),
-          userId: 'user1',
+          userId: testCallerId,
         })
       );
     });
@@ -504,7 +528,7 @@ describe('PetService', () => {
     });
 
     it('should soft delete pet successfully', async () => {
-      const result = await PetService.deletePet(petId, 'user1', 'No longer available');
+      const result = await PetService.deletePet(petId, testCallerId, 'No longer available');
 
       expect(result.message).toBe('Pet deleted successfully');
 
@@ -519,9 +543,9 @@ describe('PetService', () => {
           entityId: petId,
           details: expect.objectContaining({
             reason: 'No longer available',
-            deletedBy: 'user1',
+            deletedBy: testCallerId,
           }),
-          userId: 'user1',
+          userId: testCallerId,
         })
       );
     });
@@ -533,7 +557,7 @@ describe('PetService', () => {
     it('should delete adopted pets (service allows it)', async () => {
       await testPet.update({ status: PetStatus.ADOPTED });
 
-      const result = await PetService.deletePet(petId, 'user1');
+      const result = await PetService.deletePet(petId, testCallerId);
       expect(result.message).toBe('Pet deleted successfully');
     });
   });
@@ -813,7 +837,7 @@ describe('PetService', () => {
         reason: 'Bulk adoption',
       };
 
-      const result = await PetService.bulkUpdatePets(operation, 'user1');
+      const result = await PetService.bulkUpdatePets(operation, testCallerId);
 
       expect(result.successCount).toBe(2);
       expect(result.failedCount).toBe(0);
@@ -833,7 +857,7 @@ describe('PetService', () => {
         reason: 'Bulk archive',
       };
 
-      const result = await PetService.bulkUpdatePets(operation, 'user1');
+      const result = await PetService.bulkUpdatePets(operation, testCallerId);
 
       // Service archives both successfully (nonexistent just doesn't do anything)
       expect(result.successCount).toBe(2);
@@ -846,7 +870,7 @@ describe('PetService', () => {
         operation: 'invalid_operation' as 'archive',
       };
 
-      const result = await PetService.bulkUpdatePets(operation, 'user1');
+      const result = await PetService.bulkUpdatePets(operation, testCallerId);
 
       expect(result.successCount).toBe(0);
       expect(result.failedCount).toBe(1);
@@ -1239,6 +1263,198 @@ describe('PetService', () => {
 
       // Restore
       Report.create = originalCreate;
+    });
+  });
+
+  // ADS-348: Cross-rescue IDOR — staff of rescue A must not mutate pets
+  // belonging to rescue B. Every mutating PetService method must enforce this.
+  describe('cross-rescue ownership enforcement', () => {
+    let rescueA: Rescue;
+    let rescueB: Rescue;
+    let staffAUserId: string;
+    let petOfRescueB: Pet;
+    let petIdB: string;
+
+    beforeEach(async () => {
+      // testRescue is already created by the outer beforeEach; use it as rescue A
+      rescueA = testRescue;
+      staffAUserId = testCallerId; // verified staff of rescue A
+
+      const ts = Date.now();
+      const counter = testCounter++;
+
+      // Create a second rescue (rescue B)
+      rescueB = await Rescue.create({
+        rescueId: `rescue-b-${ts}-${counter}`,
+        name: `Rescue B ${ts}`,
+        email: `rescue-b-${ts}@test.com`,
+        address: '456 Other Street',
+        city: 'Other City',
+        postcode: 'OTH456',
+        contactPerson: 'Other Contact',
+        status: 'verified',
+        country: 'GB',
+      });
+
+      const goldenId = await breedIdFor(PetType.DOG, 'Golden Retriever');
+
+      // Create a pet that belongs to rescue B
+      petIdB = `pet-b-${ts}-${counter}`;
+      petOfRescueB = await Pet.create({
+        petId: petIdB,
+        name: 'Rescue B Pet',
+        type: PetType.DOG,
+        status: PetStatus.AVAILABLE,
+        breedId: goldenId,
+        size: Size.LARGE,
+        ageGroup: AgeGroup.ADULT,
+        gender: Gender.MALE,
+        energyLevel: EnergyLevel.MEDIUM,
+        vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+        spayNeuterStatus: SpayNeuterStatus.NEUTERED,
+        rescueId: rescueB.rescueId,
+        archived: false,
+      });
+    });
+
+    it('updatePet: rescue A staff cannot update a rescue B pet', async () => {
+      await expect(
+        PetService.updatePet(petIdB, { name: 'Hacked Name' }, staffAUserId)
+      ).rejects.toMatchObject({ statusCode: 403 });
+
+      // The pet must be unchanged
+      await petOfRescueB.reload();
+      expect(petOfRescueB.name).toBe('Rescue B Pet');
+    });
+
+    it('updatePetStatus: rescue A staff cannot change status of a rescue B pet', async () => {
+      await expect(
+        PetService.updatePetStatus(
+          petIdB,
+          { status: PetStatus.ADOPTED, reason: 'IDOR attempt' },
+          staffAUserId
+        )
+      ).rejects.toMatchObject({ statusCode: 403 });
+
+      await petOfRescueB.reload();
+      expect(petOfRescueB.status).toBe(PetStatus.AVAILABLE);
+    });
+
+    it('deletePet: rescue A staff cannot delete a rescue B pet', async () => {
+      await expect(PetService.deletePet(petIdB, staffAUserId)).rejects.toMatchObject({
+        statusCode: 403,
+      });
+
+      // The pet must still exist (soft-delete was not applied)
+      const stillThere = await Pet.findByPk(petIdB);
+      expect(stillThere).not.toBeNull();
+    });
+
+    it('updatePetImages: rescue A staff cannot replace images of a rescue B pet', async () => {
+      await expect(
+        PetService.updatePetImages(
+          petIdB,
+          [{ url: 'https://evil.com/img.jpg', isPrimary: true }],
+          staffAUserId
+        )
+      ).rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    it('removePetImage: rescue A staff cannot remove an image from a rescue B pet', async () => {
+      await expect(
+        PetService.removePetImage(petIdB, 'some-image-id', staffAUserId)
+      ).rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    it('bulkUpdatePets: mixed-rescue payload is rejected with no mutations applied', async () => {
+      // pet of rescue A (belongs to staffA's rescue) + pet of rescue B
+      const petIdA = uniqueId('pet-a-bulk');
+      await Pet.create({
+        petId: petIdA,
+        name: 'Rescue A Pet',
+        type: PetType.DOG,
+        status: PetStatus.AVAILABLE,
+        breedId: await breedIdFor(PetType.DOG, 'Golden Retriever'),
+        size: Size.LARGE,
+        ageGroup: AgeGroup.ADULT,
+        gender: Gender.MALE,
+        energyLevel: EnergyLevel.MEDIUM,
+        vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+        spayNeuterStatus: SpayNeuterStatus.NEUTERED,
+        rescueId: rescueA.rescueId,
+        archived: false,
+      });
+
+      await expect(
+        PetService.bulkUpdatePets({ petIds: [petIdA, petIdB], operation: 'archive' }, staffAUserId)
+      ).rejects.toMatchObject({ statusCode: 403 });
+
+      // Neither pet should have been archived
+      const petA = await Pet.findByPk(petIdA);
+      const petB = await Pet.findByPk(petIdB);
+      expect(petA?.archived).toBe(false);
+      expect(petB?.archived).toBe(false);
+    });
+
+    it('admin user bypasses cross-rescue check and can mutate any pet', async () => {
+      const ts = Date.now();
+      const adminId = `admin-${ts}-${testCounter++}`;
+      await User.create({
+        userId: adminId,
+        email: `admin-${ts}@test.com`,
+        firstName: 'Admin',
+        lastName: 'User',
+        password: 'hashed-password',
+        userType: UserType.ADMIN,
+        emailVerified: true,
+      });
+
+      const result = await PetService.updatePet(petIdB, { name: 'Admin Updated' }, adminId);
+      expect(result.name).toBe('Admin Updated');
+    });
+
+    it('unverified staff cannot mutate even their own rescue pets', async () => {
+      const ts = Date.now();
+      const unverifiedId = `unverified-${ts}-${testCounter++}`;
+      await User.create({
+        userId: unverifiedId,
+        email: `unverified-${ts}@test.com`,
+        firstName: 'Unverified',
+        lastName: 'Staff',
+        password: 'hashed-password',
+        userType: UserType.RESCUE_STAFF,
+        emailVerified: true,
+      });
+      // Staff member row for rescue A but isVerified = false
+      await StaffMember.create({
+        rescueId: rescueA.rescueId,
+        userId: unverifiedId,
+        isVerified: false,
+        addedBy: testCallerId,
+        addedAt: new Date(),
+      });
+
+      // Create a pet belonging to rescue A (the unverified user's own rescue)
+      const ownRescuePetId = uniqueId('own-rescue-pet');
+      await Pet.create({
+        petId: ownRescuePetId,
+        name: 'Own Rescue Pet',
+        type: PetType.DOG,
+        status: PetStatus.AVAILABLE,
+        breedId: await breedIdFor(PetType.DOG, 'Golden Retriever'),
+        size: Size.LARGE,
+        ageGroup: AgeGroup.ADULT,
+        gender: Gender.MALE,
+        energyLevel: EnergyLevel.MEDIUM,
+        vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+        spayNeuterStatus: SpayNeuterStatus.NEUTERED,
+        rescueId: rescueA.rescueId,
+        archived: false,
+      });
+
+      await expect(
+        PetService.updatePet(ownRescuePetId, { name: 'Hacked' }, unverifiedId)
+      ).rejects.toMatchObject({ statusCode: 403 });
     });
   });
 });

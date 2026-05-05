@@ -25,6 +25,8 @@ import PetStatusTransition from '../../models/PetStatusTransition';
 import Application, { ApplicationStatus } from '../../models/Application';
 import { PetService } from '../../services/pet.service';
 import { PetCreateData, PetStatusUpdate, PetUpdateData } from '../../types/pet';
+import User, { UserType } from '../../models/User';
+import StaffMember from '../../models/StaffMember';
 
 // Mocked dependencies
 const MockedPet = Pet as vi.MockedObject<Pet>;
@@ -33,6 +35,8 @@ const MockedPetStatusTransition = PetStatusTransition as vi.MockedObject<
   typeof PetStatusTransition
 >;
 const MockedPetMedia = PetMedia as vi.MockedObject<typeof PetMedia>;
+const MockedUser = User as vi.MockedObject<typeof User>;
+const MockedStaffMember = StaffMember as vi.MockedObject<typeof StaffMember>;
 
 // Test constants
 const mockRescueId = 'rescue-123';
@@ -105,6 +109,12 @@ describe('PetService - Business Logic', () => {
     MockedPetMedia.bulkCreate = vi.fn().mockResolvedValue([] as never);
     MockedPetMedia.destroy = vi.fn().mockResolvedValue(0 as never);
     MockedPetMedia.count = vi.fn().mockResolvedValue(0 as never);
+    // Ownership checks in PetService mutation methods call User.findByPk and
+    // StaffMember.findOne. Return an admin user so the check is bypassed in
+    // these business-logic tests (the ownership enforcement is covered
+    // separately in pet.service.test.ts).
+    MockedUser.findByPk = vi.fn().mockResolvedValue({ userType: UserType.ADMIN } as never);
+    MockedStaffMember.findOne = vi.fn().mockResolvedValue(null as never);
   });
 
   // ==========================================================================
