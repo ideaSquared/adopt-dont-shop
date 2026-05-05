@@ -124,11 +124,14 @@ export async function getMyRescueId(rescueApi: ApiClient): Promise<string | null
   const staffRes = await rescueApi.context.get('/api/v1/staff/me');
   if (staffRes.ok()) {
     const body = (await staffRes.json()) as {
+      data?: { rescueId?: string; rescue_id?: string };
       rescueId?: string;
       rescue_id?: string;
       rescue?: { rescueId?: string; rescue_id?: string; id?: string };
     };
     return (
+      body.data?.rescueId ??
+      body.data?.rescue_id ??
       body.rescueId ??
       body.rescue_id ??
       body.rescue?.rescueId ??
