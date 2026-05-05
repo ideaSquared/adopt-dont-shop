@@ -16,12 +16,15 @@ test.describe('adoption application submission', () => {
     await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 
     // PetDetailsPage renders the apply CTA as <Link>, not <button>.
+    // The page also overlays a SwipeOnboarding hint on first visit
+    // that intercepts pointer events; force: true skips the
+    // pointer-event check.
     const apply = page
       .getByRole('link', { name: /apply (to|for) adopt/i })
       .or(page.getByRole('button', { name: /apply (to|for) adopt/i }))
       .first();
     await expect(apply).toBeVisible({ timeout: 15_000 });
-    await apply.click();
+    await apply.click({ force: true });
 
     await expect(page).toHaveURL(/\/apply\//, { timeout: 15_000 });
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15_000 });

@@ -35,7 +35,7 @@ test.describe('custom application questions', () => {
         questionKey: `e2e_${Date.now().toString(36)}`,
         questionText: text,
         category: 'personal_information',
-        questionType: 'TEXT',
+        questionType: 'text',
         isRequired: false,
         sortOrder: 999,
       }

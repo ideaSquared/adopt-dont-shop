@@ -28,6 +28,10 @@ test.describe('favourites', () => {
     const adopterApi = await apiAs('adopter');
 
     await page.goto('/favorites', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    // Wait for at least one card to render before reading the count —
+    // the page hydrates the favourites list async, and grabbing the
+    // count too eagerly returns 0.
+    await expect(petCardLocator(page).first()).toBeVisible({ timeout: 20_000 });
     const initialCount = await petCardLocator(page).count();
     expect(initialCount).toBeGreaterThan(0);
 
