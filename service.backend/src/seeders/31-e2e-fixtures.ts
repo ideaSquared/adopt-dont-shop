@@ -69,9 +69,9 @@ export async function seedE2EFixtures() {
     } as never,
   });
 
-  // 3. Favourite an existing seeded available pet for John Smith so the
-  //    favourites page has at least one entry.  Pet 9ff5...4b78 is the
-  //    first available pet in 08-pets.ts.
+  // 3. Favourites for John Smith — TWO entries so the unfavourite test
+  //    can delete one without leaving the favourites page empty for
+  //    the read test.
   await UserFavorite.findOrCreate({
     paranoid: false,
     where: { userId: JOHN_SMITH_ID, petId: '9ff53898-c5c6-4422-a245-54e52d4c4b78' },
@@ -79,6 +79,15 @@ export async function seedE2EFixtures() {
       id: generateUuidV7(),
       userId: JOHN_SMITH_ID,
       petId: '9ff53898-c5c6-4422-a245-54e52d4c4b78',
+    } as never,
+  });
+  await UserFavorite.findOrCreate({
+    paranoid: false,
+    where: { userId: JOHN_SMITH_ID, petId: '756ac9c5-ac22-49eb-a21d-8385d525e6de' },
+    defaults: {
+      id: generateUuidV7(),
+      userId: JOHN_SMITH_ID,
+      petId: '756ac9c5-ac22-49eb-a21d-8385d525e6de',
     } as never,
   });
 
