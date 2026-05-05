@@ -496,8 +496,8 @@ export class RescueService {
           verifiedAt: new Date(),
           verifiedBy,
           verificationSource,
-          verificationFailureReason: undefined,
-          manualVerificationRequestedAt: undefined,
+          verificationFailureReason: null,
+          manualVerificationRequestedAt: null,
         },
         { transaction }
       );

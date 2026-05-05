@@ -315,10 +315,10 @@ describe('RescueService - Business Logic Tests', () => {
       // When: Rejecting the rescue
       await RescueService.rejectRescue(mockRescueId, mockUserId, 'Incomplete documentation');
 
-      // Then: Status is updated to inactive
+      // Then: Status is updated to rejected (distinct from inactive/suspended)
       expect(mockRescue.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'inactive',
+          status: 'rejected',
         }),
         { transaction: mockTransaction }
       );
@@ -346,9 +346,9 @@ describe('RescueService - Business Logic Tests', () => {
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
 
-    it('should prevent rejection of already inactive rescue', async () => {
-      // Given: An inactive rescue
-      const mockRescue = createMockRescue({ status: 'inactive' });
+    it('should prevent rejection of already rejected rescue', async () => {
+      // Given: A rescue that was already rejected
+      const mockRescue = createMockRescue({ status: 'rejected' });
 
       const mockTransaction = {
         commit: vi.fn().mockResolvedValue(undefined),
@@ -360,7 +360,7 @@ describe('RescueService - Business Logic Tests', () => {
         transaction: vi.fn().mockResolvedValue(mockTransaction),
       };
 
-      // When & Then: Rejection of inactive rescue is rejected
+      // When & Then: Re-rejection is blocked
       await expect(RescueService.rejectRescue(mockRescueId, mockUserId)).rejects.toThrow(
         'Rescue is already rejected'
       );

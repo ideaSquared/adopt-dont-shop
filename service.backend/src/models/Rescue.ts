@@ -32,8 +32,8 @@ interface RescueAttributes {
   verifiedAt?: Date;
   verifiedBy?: string;
   verificationSource?: 'companies_house' | 'charity_commission' | 'manual';
-  verificationFailureReason?: string;
-  manualVerificationRequestedAt?: Date;
+  verificationFailureReason?: string | null;
+  manualVerificationRequestedAt?: Date | null;
   settings?: object;
   /** Managed by Sequelize paranoid; null when the row is live. */
   deletedAt?: Date | null;
@@ -69,8 +69,8 @@ class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implement
   public verifiedAt?: Date;
   public verifiedBy?: string;
   public verificationSource?: 'companies_house' | 'charity_commission' | 'manual';
-  public verificationFailureReason?: string;
-  public manualVerificationRequestedAt?: Date;
+  public verificationFailureReason?: string | null;
+  public manualVerificationRequestedAt?: Date | null;
   public settings?: object;
   public deletedAt?: Date | null;
   public createdAt!: Date;
