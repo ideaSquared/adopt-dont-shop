@@ -7,6 +7,12 @@ import { SEEDED_PET_IDS } from '../../helpers/seeds';
  */
 test.describe('email verification gating', () => {
   test('a verified adopter can begin an application', async ({ page }) => {
+    // Skip the swipe-onboarding overlay (it intercepts pointer events
+    // on the apply CTA on first visit).
+    await page.addInitScript(() => {
+      window.localStorage.setItem('hasSeenSwipeOnboarding', 'true');
+    });
+
     await page.goto(`/pets/${SEEDED_PET_IDS.available}`);
     await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 

@@ -12,19 +12,22 @@ test.describe('adoption application submission', () => {
   test('the apply CTA on a pet detail page lands the adopter on the application form', async ({
     page,
   }) => {
+    // Mark the swipe-onboarding overlay as seen before navigation —
+    // otherwise it intercepts pointer events on the apply CTA.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('hasSeenSwipeOnboarding', 'true');
+    });
+
     await page.goto(`/pets/${SEEDED_PET_IDS.available}`);
     await expect(page).toHaveURL(/\/pets\//, { timeout: 15_000 });
 
     // PetDetailsPage renders the apply CTA as <Link>, not <button>.
-    // The page also overlays a SwipeOnboarding hint on first visit
-    // that intercepts pointer events; force: true skips the
-    // pointer-event check.
     const apply = page
       .getByRole('link', { name: /apply (to|for) adopt/i })
       .or(page.getByRole('button', { name: /apply (to|for) adopt/i }))
       .first();
     await expect(apply).toBeVisible({ timeout: 15_000 });
-    await apply.click({ force: true });
+    await apply.click();
 
     await expect(page).toHaveURL(/\/apply\//, { timeout: 15_000 });
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15_000 });
