@@ -15,8 +15,7 @@ const rescueOrganizations = [
     description:
       'Dedicated to rescuing, rehabilitating, and rehoming abandoned and abused animals in the Austin area.',
     mission: 'To provide safe haven for animals in need while finding them loving forever homes.',
-    ein: '12-3456789',
-    registrationNumber: 'TX-RESCUE-001',
+    companiesHouseNumber: '12345678',
     contactPerson: 'Rescue Manager',
     contactTitle: 'Executive Director',
     contactEmail: 'rescue.manager@pawsrescue.dev',
@@ -72,8 +71,7 @@ const rescueOrganizations = [
       'Specializing in senior dog rescue and care, ensuring older dogs find loving homes for their golden years.',
     mission:
       'To give senior dogs a second chance at happiness and help them live out their golden years with dignity and love.',
-    ein: '98-7654321',
-    registrationNumber: 'FL-RESCUE-002',
+    charityRegistrationNumber: '1234567',
     contactPerson: 'Maria Garcia',
     contactTitle: 'Founder & Director',
     contactEmail: 'maria@happytailsrescue.dev',
@@ -124,8 +122,7 @@ const rescueOrganizations = [
       'Multi-species rescue focusing on cats, dogs, and small mammals in the Portland metropolitan area.',
     mission:
       'To rescue, rehabilitate, and rehome companion animals while promoting responsible pet ownership.',
-    ein: '55-1234567',
-    registrationNumber: 'OR-RESCUE-003',
+    companiesHouseNumber: '87654321',
     contactPerson: 'Portland Rescue Team',
     contactTitle: 'Rescue Coordinator',
     contactEmail: 'coordinator@furryfriendspdx.dev',

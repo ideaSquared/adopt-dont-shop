@@ -199,7 +199,7 @@ describe('Rescue Verification - Behavioral Tests', () => {
       expect(rescue.email).toBeTruthy();
       expect(rescue.phone).toBeTruthy();
       expect(rescue.status).toBeTruthy();
-      expect(rescue.ein).toBeTruthy();
+      expect(rescue.companiesHouseNumber || rescue.charityRegistrationNumber).toBeTruthy();
     });
   });
 
@@ -241,7 +241,7 @@ describe('Rescue Verification - Behavioral Tests', () => {
       expect(data.success).toBe(true);
       expect(data.data.rescueId).toBe('rescue-1');
       expect(data.data.name).toBe('Happy Paws Rescue');
-      expect(data.data.ein).toBeTruthy();
+      expect(data.data.companiesHouseNumber || data.data.charityRegistrationNumber).toBeTruthy();
       expect(Array.isArray(data.data.documents)).toBe(true);
     });
 

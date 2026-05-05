@@ -294,13 +294,31 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                         <div className={styles.infoValue}>{getStatusBadge(rescue.status)}</div>
                       </div>
                       <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Registration Number</div>
-                        <div className={styles.infoValue}>{rescue.registrationNumber || 'N/A'}</div>
+                        <div className={styles.infoLabel}>Companies House Number</div>
+                        <div className={styles.infoValue}>{rescue.companiesHouseNumber || 'N/A'}</div>
                       </div>
                       <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>EIN</div>
-                        <div className={styles.infoValue}>{rescue.ein || 'N/A'}</div>
+                        <div className={styles.infoLabel}>Charity Registration Number</div>
+                        <div className={styles.infoValue}>{rescue.charityRegistrationNumber || 'N/A'}</div>
                       </div>
+                      {rescue.verificationSource && (
+                        <div className={styles.infoItem}>
+                          <div className={styles.infoLabel}>Verified Via</div>
+                          <div className={styles.infoValue}>
+                            {rescue.verificationSource === 'companies_house'
+                              ? 'Companies House'
+                              : rescue.verificationSource === 'charity_commission'
+                                ? 'Charity Commission'
+                                : 'Manual Review'}
+                          </div>
+                        </div>
+                      )}
+                      {rescue.verificationFailureReason && (
+                        <div className={styles.infoItem}>
+                          <div className={styles.infoLabel}>Verification Note</div>
+                          <div className={styles.infoValue}>{rescue.verificationFailureReason}</div>
+                        </div>
+                      )}
                     </div>
                   </div>
 

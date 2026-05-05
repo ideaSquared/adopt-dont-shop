@@ -32,8 +32,9 @@ const transformRescueFromAPI = (rescue: RescueAPIResponse): Rescue => {
     website: rescue.website,
     description: rescue.description,
     mission: rescue.mission,
-    ein: rescue.ein,
-    registrationNumber: rescue.registration_number || rescue.registrationNumber,
+    companiesHouseNumber: rescue.companies_house_number || rescue.companiesHouseNumber,
+    charityRegistrationNumber:
+      rescue.charity_registration_number || rescue.charityRegistrationNumber,
     contactPerson: rescue.contact_person || rescue.contactPerson || rescue.name,
     contactTitle: rescue.contact_title || rescue.contactTitle,
     contactEmail: rescue.contact_email || rescue.contactEmail,
@@ -41,6 +42,11 @@ const transformRescueFromAPI = (rescue: RescueAPIResponse): Rescue => {
     status: rescue.status,
     verifiedAt: rescue.verified_at || rescue.verifiedAt,
     verifiedBy: rescue.verified_by || rescue.verifiedBy,
+    verificationSource: rescue.verification_source || rescue.verificationSource,
+    verificationFailureReason:
+      rescue.verification_failure_reason || rescue.verificationFailureReason,
+    manualVerificationRequestedAt:
+      rescue.manual_verification_requested_at || rescue.manualVerificationRequestedAt,
     settings: rescue.settings,
     adoptionPolicies: rescue.settings?.adoptionPolicies as AdoptionPolicy | undefined,
     isDeleted: rescue.is_deleted || rescue.isDeleted || false,
@@ -58,8 +64,14 @@ const transformRescueFromAPI = (rescue: RescueAPIResponse): Rescue => {
       zipCode: rescue.zip_code || rescue.zipCode || '',
       country: rescue.country,
     } as RescueLocation,
-    // Determine type based on available data - this logic may need adjustment
-    type: rescue.type || (rescue.ein ? 'organization' : 'individual'),
+    type:
+      rescue.type ||
+      (rescue.companies_house_number ||
+      rescue.companiesHouseNumber ||
+      rescue.charity_registration_number ||
+      rescue.charityRegistrationNumber
+        ? 'organization'
+        : 'individual'),
   };
 };
 

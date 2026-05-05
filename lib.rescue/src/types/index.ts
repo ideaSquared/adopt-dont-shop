@@ -2,31 +2,21 @@
  * Types for @adopt-dont-shop/lib.rescue
  */
 
-/**
- * Rescue organization status
- */
-export type RescueStatus = 'pending' | 'verified' | 'suspended' | 'inactive';
+export type RescueStatus = 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
 
-/**
- * Rescue organization type
- */
 export type RescueType = 'individual' | 'organization';
 
-/**
- * Location information for a rescue
- */
-export interface RescueLocation {
+export type VerificationSource = 'companies_house' | 'charity_commission' | 'manual';
+
+export type RescueLocation = {
   address: string;
   city: string;
   state: string;
   zipCode: string;
   country: string;
-}
+};
 
-/**
- * Adoption policy configuration for a rescue
- */
-export interface AdoptionPolicy {
+export type AdoptionPolicy = {
   requireHomeVisit: boolean;
   requireReferences: boolean;
   minimumReferenceCount: number;
@@ -40,12 +30,9 @@ export interface AdoptionPolicy {
   returnPolicy?: string;
   spayNeuterPolicy?: string;
   followUpPolicy?: string;
-}
+};
 
-/**
- * Main rescue organization interface
- */
-export interface Rescue {
+export type Rescue = {
   rescueId: string;
   name: string;
   email: string;
@@ -58,8 +45,8 @@ export interface Rescue {
   website?: string;
   description?: string;
   mission?: string;
-  ein?: string;
-  registrationNumber?: string;
+  companiesHouseNumber?: string;
+  charityRegistrationNumber?: string;
   contactPerson?: string;
   contactTitle?: string;
   contactEmail?: string;
@@ -67,6 +54,9 @@ export interface Rescue {
   status: RescueStatus;
   verifiedAt?: string;
   verifiedBy?: string;
+  verificationSource?: VerificationSource;
+  verificationFailureReason?: string;
+  manualVerificationRequestedAt?: string;
   settings?: Record<string, unknown>;
   adoptionPolicies?: AdoptionPolicy;
   isDeleted: boolean;
@@ -77,12 +67,9 @@ export interface Rescue {
   verified: boolean;
   location: RescueLocation;
   type: RescueType;
-}
+};
 
-/**
- * API response format from backend
- */
-export interface RescueAPIResponse {
+export type RescueAPIResponse = {
   rescue_id?: string;
   rescueId?: string;
   name: string;
@@ -97,9 +84,10 @@ export interface RescueAPIResponse {
   website?: string;
   description?: string;
   mission?: string;
-  ein?: string;
-  registration_number?: string;
-  registrationNumber?: string;
+  companies_house_number?: string;
+  companiesHouseNumber?: string;
+  charity_registration_number?: string;
+  charityRegistrationNumber?: string;
   contact_person?: string;
   contactPerson?: string;
   contact_title?: string;
@@ -113,6 +101,12 @@ export interface RescueAPIResponse {
   verifiedAt?: string;
   verified_by?: string;
   verifiedBy?: string;
+  verification_source?: VerificationSource;
+  verificationSource?: VerificationSource;
+  verification_failure_reason?: string;
+  verificationFailureReason?: string;
+  manual_verification_requested_at?: string;
+  manualVerificationRequestedAt?: string;
   settings?: Record<string, unknown>;
   is_deleted?: boolean;
   isDeleted?: boolean;
@@ -125,44 +119,32 @@ export interface RescueAPIResponse {
   updated_at?: string;
   updatedAt?: string;
   type?: RescueType;
-}
+};
 
-/**
- * Search filters for rescue lookup
- */
-export interface RescueSearchFilters {
+export type RescueSearchFilters = {
   search?: string;
   type?: RescueType;
   location?: string;
   verified?: boolean;
   page?: number;
   limit?: number;
-}
+};
 
-/**
- * Pagination response structure
- */
-export interface Pagination {
+export type Pagination = {
   page: number;
   limit: number;
   total: number;
   totalPages: number;
   hasNext: boolean;
   hasPrev: boolean;
-}
+};
 
-/**
- * Paginated response wrapper
- */
-export interface PaginatedResponse<T> {
+export type PaginatedResponse<T> = {
   data: T[];
   pagination: Pagination;
-}
+};
 
-/**
- * Pet interface (simplified for rescue service use)
- */
-export interface Pet {
+export type Pet = {
   id: string;
   name: string;
   type: string;
@@ -171,45 +153,16 @@ export interface Pet {
   size?: string;
   rescueId: string;
   status?: string;
-  // Additional pet fields can be added as needed
-}
+};
 
-/**
- * Configuration options for RescueService
- */
-export interface RescueServiceConfig {
-  /**
-   * API base URL
-   */
+export type RescueServiceConfig = {
   apiUrl?: string;
-
-  /**
-   * Enable debug logging
-   */
   debug?: boolean;
-
-  /**
-   * Custom headers to include with requests
-   */
   headers?: Record<string, string>;
-}
+};
 
-/**
- * Options for RescueService operations
- */
-export interface RescueServiceOptions {
-  /**
-   * Request timeout in milliseconds
-   */
+export type RescueServiceOptions = {
   timeout?: number;
-
-  /**
-   * Custom headers for the request
-   */
   headers?: Record<string, string>;
-
-  /**
-   * Whether to retry failed requests
-   */
   retry?: boolean;
-}
+};

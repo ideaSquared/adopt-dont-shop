@@ -310,7 +310,7 @@ export class DiscoveryService {
       const petWithIncludes = pet as Pet & {
         Rescue?: {
           name: string;
-          status: 'pending' | 'verified' | 'suspended' | 'inactive';
+          status: 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
         };
         Breed?: { name: string } | null;
       };
