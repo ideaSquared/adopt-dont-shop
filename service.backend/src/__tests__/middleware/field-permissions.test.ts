@@ -748,4 +748,45 @@ describe('Field Permissions Middleware - fieldWriteGuard (Express integration)',
     expect(mockNext).toHaveBeenCalled();
     expect(statusCode).toBeUndefined();
   });
+
+  it('should allow rescue_staff to POST pet fields sent as snake_case', async () => {
+    mockRequest.user = {
+      userId: 'staff-1',
+      userType: UserType.RESCUE_STAFF,
+    } as AuthenticatedRequest['user'];
+    // Frontend sends snake_case; defaults map uses camelCase — these must resolve
+    mockRequest.body = {
+      short_description: 'A friendly dog',
+      long_description: 'Very friendly',
+      adoption_fee: 50,
+      house_trained: true,
+      special_needs: false,
+      age_years: 2,
+      age_months: 0,
+      energy_level: 'medium',
+    };
+
+    const middleware = fieldWriteGuard('pets');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    expect(mockNext).toHaveBeenCalled();
+    expect(statusCode).toBeUndefined();
+  });
+
+  it('should still block a restricted snake_case field', async () => {
+    mockRequest.user = {
+      userId: 'adopter-1',
+      userType: UserType.ADOPTER,
+    } as AuthenticatedRequest['user'];
+    // Adopters cannot write any pet fields
+    mockRequest.body = {
+      short_description: 'Trying to write',
+    };
+
+    const middleware = fieldWriteGuard('pets');
+    await middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+    expect(statusCode).toBe(403);
+    expect(mockNext).not.toHaveBeenCalled();
+  });
 });

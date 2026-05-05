@@ -398,7 +398,8 @@ export const fieldWriteGuard = (
       const accessMap = await getEffectiveAccessMap(resource, role);
       const requestedFields = Object.keys(body);
       const blockedFields = requestedFields.filter(field => {
-        const level = accessMap[field];
+        const camelField = field.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+        const level = accessMap[camelField] ?? accessMap[field];
         return level !== 'write';
       });
 
