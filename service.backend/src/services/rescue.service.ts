@@ -216,7 +216,7 @@ export class RescueService {
   static async getRescueById(
     rescueId: string,
     includeStats = false
-  ): Promise<ReturnType<typeof Rescue.prototype.toJSON> & { statistics?: RescueStatsResponse }> {
+  ): Promise<Rescue & { statistics?: RescueStatsResponse }> {
     const startTime = Date.now();
 
     try {
@@ -247,14 +247,12 @@ export class RescueService {
         throw new Error('Rescue not found');
       }
 
-      const plain = rescue.toJSON();
-
       if (includeStats) {
         const statistics = await this.getRescueStatistics(rescueId);
-        return { ...plain, statistics };
+        return Object.assign(rescue, { statistics });
       }
 
-      return plain;
+      return rescue;
     } catch (error) {
       logger.error('Error getting rescue by ID:', {
         error: error instanceof Error ? error.message : String(error),
