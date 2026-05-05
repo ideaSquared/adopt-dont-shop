@@ -1,6 +1,11 @@
 import { test, expect } from '../../fixtures';
 import { uniqueText } from '../../helpers/factories';
 
+/**
+ * The bio field is rendered by ProfileEditForm once the user clicks
+ * "Edit Profile".  We assert it exists (no skip) — if it doesn't, that
+ * itself is a regression worth surfacing.
+ */
 test.describe('adopter profile updates', () => {
   test('a profile bio update persists across navigation', async ({ page }) => {
     const newBio = uniqueText('bio');
@@ -10,21 +15,14 @@ test.describe('adopter profile updates', () => {
       timeout: 15_000,
     });
 
-    // ProfilePage shows a summary; bio editing only opens after clicking
-    // "Edit Profile".
-    const editBtn = page.getByRole('button', { name: /edit profile/i }).first();
-    if (await editBtn.count()) {
-      await editBtn.click();
-    }
+    // Open the edit form.
+    await page
+      .getByRole('button', { name: /edit profile/i })
+      .first()
+      .click();
 
-    const bioField = page
-      .getByLabel(/^bio$/i)
-      .or(page.getByPlaceholder(/tell us .*about/i))
-      .or(page.locator('textarea#bio'))
-      .first();
-    if (!(await bioField.count())) {
-      test.skip(true, 'no bio textarea on the profile edit form');
-    }
+    const bioField = page.locator('textarea#bio').first();
+    await expect(bioField).toBeVisible({ timeout: 15_000 });
     await bioField.fill(newBio);
 
     await page
@@ -32,9 +30,7 @@ test.describe('adopter profile updates', () => {
       .first()
       .click();
 
-    // Settle for any of: success toast, bio text visible somewhere,
-    // edit-form closed (returning to summary view).  The exact UX
-    // copy isn't the contract — persistence is.
+    // Settle for any of: success toast, edit-form closed, bio in summary.
     await page.waitForTimeout(3_000);
 
     // Round-trip: navigate away and back; the bio should still be
@@ -43,17 +39,15 @@ test.describe('adopter profile updates', () => {
     await page.goto('/profile');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15_000 });
 
-    // Re-open edit form if needed and check the bio textarea has the value.
+    // Re-open edit form to read the value back.
     const editBtnAfter = page.getByRole('button', { name: /edit profile/i }).first();
     if (await editBtnAfter.count()) {
       await editBtnAfter.click();
-    }
-    const bioAfter = page.getByLabel(/^bio$/i).or(page.locator('textarea#bio')).first();
-    if (await bioAfter.count()) {
-      await expect(bioAfter).toHaveValue(newBio, { timeout: 10_000 });
+      const bioAfter = page.locator('textarea#bio').first();
+      await expect(bioAfter).toHaveValue(newBio, { timeout: 15_000 });
     } else {
-      // Fall back to scanning the page for the bio text.
-      await expect(page.getByText(newBio).first()).toBeVisible({ timeout: 10_000 });
+      // Fall back to scanning the page for the bio text in the summary.
+      await expect(page.getByText(newBio).first()).toBeVisible({ timeout: 15_000 });
     }
   });
 });

@@ -31,6 +31,7 @@ import { seedModeratorActions } from './27-moderator-actions';
 import { seedUserSanctions } from './28-user-sanctions';
 import { up as seedAuditLogs } from './29-audit-logs';
 import { seedApplicationQuestions } from './30-application-questions';
+import { seedE2EFixtures } from './31-e2e-fixtures';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
@@ -65,6 +66,7 @@ const seeders = [
   { name: 'Swipe Actions', seeder: () => seedSwipeActions(sequelize.getQueryInterface()) },
   { name: 'Audit Logs', seeder: seedAuditLogs },
   { name: 'Application Questions', seeder: seedApplicationQuestions },
+  { name: 'E2E Fixtures', seeder: seedE2EFixtures },
 ];
 
 export async function runAllSeeders() {
