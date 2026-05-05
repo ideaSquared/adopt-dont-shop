@@ -25,6 +25,9 @@ export const VerifyEmailPage: React.FC = () => {
       }
 
       try {
+        // Strip the token from browser history before the response arrives
+        // so it doesn't linger in address bar, history, or referer headers.
+        window.history.replaceState(null, '', window.location.pathname);
         await authService.verifyEmail(token);
         setStatus('success');
 

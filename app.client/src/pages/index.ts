@@ -1,5 +1,6 @@
 export { ApplicationDetailsPage } from './ApplicationDetailsPage';
 export { ApplicationPage } from './ApplicationPage';
+export { CheckYourEmailPage } from './CheckYourEmailPage';
 export { BlogPage } from './BlogPage';
 export { BlogPostPage } from './BlogPostPage';
 export { FavoritesPage } from './FavoritesPage';
