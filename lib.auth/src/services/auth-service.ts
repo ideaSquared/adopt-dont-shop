@@ -262,7 +262,8 @@ export class AuthService {
   /**
    * Set access token in storage
    */
-  setToken(token: string): void {
+  setToken(token: string | null | undefined): void {
+    if (!token) return;
     sessionStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
     sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token); // For backward compatibility
   }

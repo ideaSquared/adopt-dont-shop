@@ -37,7 +37,7 @@ export const useSeededUsers = (options: UseSeededUsersOptions = {}): UseSeededUs
       setError(null);
 
       // Try to fetch from API first
-      const response = await fetch('/api/dev/seeded-users', {
+      const response = await fetch('/monitoring/api/dev/seeded-users', {
         headers: {
           'Content-Type': 'application/json',
         },
