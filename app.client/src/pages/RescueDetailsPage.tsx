@@ -83,7 +83,9 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
     if (rescue.type) {
       return rescue.type === 'individual' ? 'Individual Rescue' : 'Organization';
     }
-    return rescue.ein ? 'Organization' : 'Individual Rescue';
+    return rescue.companiesHouseNumber || rescue.charityRegistrationNumber
+      ? 'Organization'
+      : 'Individual Rescue';
   };
 
   const formatRescueStatus = (status: string) => {
@@ -273,24 +275,24 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
             </div>
           )}
 
-          {rescue.ein && (
+          {rescue.companiesHouseNumber && (
             <div className='contact-item'>
               <MdInfo className='icon' />
               <div className='details'>
-                <div className='label'>EIN</div>
-                <div className='value'>{rescue.ein}</div>
+                <div className='label'>Companies House Number</div>
+                <div className='value'>{rescue.companiesHouseNumber}</div>
               </div>
             </div>
           )}
 
-          {rescue.registrationNumber && (
+          {rescue.charityRegistrationNumber && (
             <div className='contact-item'>
               <svg className='icon' viewBox='0 0 24 24'>
                 <path d='M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h8c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z' />
               </svg>
               <div className='details'>
-                <div className='label'>Registration Number</div>
-                <div className='value'>{rescue.registrationNumber}</div>
+                <div className='label'>Charity Registration Number</div>
+                <div className='value'>{rescue.charityRegistrationNumber}</div>
               </div>
             </div>
           )}

@@ -22,15 +22,18 @@ interface RescueAttributes {
   website?: string;
   description?: string;
   mission?: string;
-  ein?: string;
-  registrationNumber?: string;
+  companiesHouseNumber?: string;
+  charityRegistrationNumber?: string;
   contactPerson: string;
   contactTitle?: string;
   contactEmail?: string;
   contactPhone?: string;
-  status: 'pending' | 'verified' | 'suspended' | 'inactive';
+  status: 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
   verifiedAt?: Date;
   verifiedBy?: string;
+  verificationSource?: 'companies_house' | 'charity_commission' | 'manual';
+  verificationFailureReason?: string | null;
+  manualVerificationRequestedAt?: Date | null;
   settings?: object;
   /** Managed by Sequelize paranoid; null when the row is live. */
   deletedAt?: Date | null;
@@ -56,15 +59,18 @@ class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implement
   public website?: string;
   public description?: string;
   public mission?: string;
-  public ein?: string;
-  public registrationNumber?: string;
+  public companiesHouseNumber?: string;
+  public charityRegistrationNumber?: string;
   public contactPerson!: string;
   public contactTitle?: string;
   public contactEmail?: string;
   public contactPhone?: string;
-  public status!: 'pending' | 'verified' | 'suspended' | 'inactive';
+  public status!: 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
   public verifiedAt?: Date;
   public verifiedBy?: string;
+  public verificationSource?: 'companies_house' | 'charity_commission' | 'manual';
+  public verificationFailureReason?: string | null;
+  public manualVerificationRequestedAt?: Date | null;
   public settings?: object;
   public deletedAt?: Date | null;
   public createdAt!: Date;
@@ -151,15 +157,17 @@ Rescue.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    ein: {
-      type: DataTypes.STRING,
+    companiesHouseNumber: {
+      type: DataTypes.STRING(8),
       allowNull: true,
-      comment: 'Employer Identification Number',
+      unique: true,
+      field: 'companies_house_number',
     },
-    registrationNumber: {
-      type: DataTypes.STRING,
+    charityRegistrationNumber: {
+      type: DataTypes.STRING(12),
       allowNull: true,
-      field: 'registration_number',
+      unique: true,
+      field: 'charity_registration_number',
     },
     contactPerson: {
       type: DataTypes.STRING,
@@ -185,7 +193,7 @@ Rescue.init(
       field: 'contact_phone',
     },
     status: {
-      type: DataTypes.ENUM('pending', 'verified', 'suspended', 'inactive'),
+      type: DataTypes.ENUM('pending', 'verified', 'suspended', 'inactive', 'rejected'),
       allowNull: false,
       defaultValue: 'pending',
     },
@@ -203,6 +211,21 @@ Rescue.init(
         key: 'user_id',
       },
       onDelete: 'SET NULL',
+    },
+    verificationSource: {
+      type: DataTypes.ENUM('companies_house', 'charity_commission', 'manual'),
+      allowNull: true,
+      field: 'verification_source',
+    },
+    verificationFailureReason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'verification_failure_reason',
+    },
+    manualVerificationRequestedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'manual_verification_requested_at',
     },
     settings: {
       type: getJsonType(),

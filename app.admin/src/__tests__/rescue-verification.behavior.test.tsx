@@ -19,32 +19,32 @@ const mockRescues = [
     rescueId: 'rescue-1',
     name: 'Happy Paws Rescue',
     email: 'contact@happypaws.org',
-    phone: '555-0100',
+    phone: '07700900100',
     address: '123 Rescue Lane',
-    city: 'San Francisco',
-    state: 'CA',
-    zipCode: '94102',
+    city: 'London',
+    postcode: 'SW1A 1AA',
+    country: 'GB',
     status: 'pending',
-    ein: '12-3456789',
+    companiesHouseNumber: '12345678',
     foundedYear: 2015,
     description: 'Dedicated to rescuing abandoned pets',
-    documents: ['ein-cert.pdf', 'nonprofit-status.pdf'],
+    documents: ['ch-filing.pdf', 'nonprofit-status.pdf'],
     submittedAt: '2024-01-01T00:00:00Z',
   },
   {
     rescueId: 'rescue-2',
     name: 'Cat Haven',
     email: 'info@cathaven.org',
-    phone: '555-0200',
+    phone: '07700900200',
     address: '456 Feline St',
-    city: 'Los Angeles',
-    state: 'CA',
-    zipCode: '90001',
+    city: 'Manchester',
+    postcode: 'M1 1AE',
+    country: 'GB',
     status: 'verified',
-    ein: '98-7654321',
+    charityRegistrationNumber: '1234567',
     foundedYear: 2010,
     description: 'Specializing in cat rescue and adoption',
-    documents: ['ein-cert.pdf', 'nonprofit-status.pdf', 'facility-license.pdf'],
+    documents: ['charity-cert.pdf', 'nonprofit-status.pdf', 'facility-license.pdf'],
     verifiedAt: '2024-01-15T00:00:00Z',
     verifiedBy: 'admin-123',
   },
@@ -199,7 +199,7 @@ describe('Rescue Verification - Behavioral Tests', () => {
       expect(rescue.email).toBeTruthy();
       expect(rescue.phone).toBeTruthy();
       expect(rescue.status).toBeTruthy();
-      expect(rescue.ein).toBeTruthy();
+      expect(rescue.companiesHouseNumber || rescue.charityRegistrationNumber).toBeTruthy();
     });
   });
 
@@ -241,7 +241,7 @@ describe('Rescue Verification - Behavioral Tests', () => {
       expect(data.success).toBe(true);
       expect(data.data.rescueId).toBe('rescue-1');
       expect(data.data.name).toBe('Happy Paws Rescue');
-      expect(data.data.ein).toBeTruthy();
+      expect(data.data.companiesHouseNumber || data.data.charityRegistrationNumber).toBeTruthy();
       expect(Array.isArray(data.data.documents)).toBe(true);
     });
 
@@ -353,16 +353,16 @@ describe('Rescue Verification - Behavioral Tests', () => {
   });
 
   describe('Validation', () => {
-    it('should validate rescue EIN format', () => {
-      const validEIN = '12-3456789';
-      expect(validEIN).toMatch(/^\d{2}-\d{7}$/);
+    it('should validate Companies House number format', () => {
+      const validCHNumber = '12345678';
+      expect(validCHNumber).toMatch(/^[A-Z0-9]{8}$/i);
 
-      const invalidEIN = '123456789';
-      expect(invalidEIN).not.toMatch(/^\d{2}-\d{7}$/);
+      const invalidCHNumber = '1234';
+      expect(invalidCHNumber).not.toMatch(/^[A-Z0-9]{8}$/i);
     });
 
     it('should validate required documents', () => {
-      const requiredDocuments = ['ein-cert.pdf', 'nonprofit-status.pdf'];
+      const requiredDocuments = ['ch-filing.pdf', 'nonprofit-status.pdf'];
       const rescue = mockRescues[0];
 
       requiredDocuments.forEach(doc => {

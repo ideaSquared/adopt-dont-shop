@@ -14,7 +14,13 @@ import type { RescueId } from '@adopt-dont-shop/lib.types';
 
 // ----- Enums --------------------------------------------------------------
 
-export const RescueStatusSchema = z.enum(['pending', 'verified', 'suspended', 'inactive']);
+export const RescueStatusSchema = z.enum([
+  'pending',
+  'verified',
+  'suspended',
+  'inactive',
+  'rejected',
+]);
 export type RescueStatusValue = z.infer<typeof RescueStatusSchema>;
 
 // ----- Primitives ---------------------------------------------------------
@@ -82,16 +88,33 @@ const WebsiteSchema = z.string().url('Please enter a valid website URL');
 const DescriptionSchema = z.string().trim().max(1000);
 const MissionSchema = z.string().trim().max(500);
 
-const EinSchema = z
+/**
+ * UK Companies House registration number: always 8 alphanumeric characters,
+ * zero-padded (e.g. 00123456, SC123456, OC123456).
+ */
+const CompaniesHouseNumberSchema = z
   .string()
   .trim()
-  .min(9, 'EIN must be 9–10 characters')
-  .max(10, 'EIN must be 9–10 characters');
+  .toUpperCase()
+  .regex(/^[A-Z0-9]{8}$/, 'Companies House number must be exactly 8 alphanumeric characters');
 
-const RegistrationNumberSchema = z.string().trim().max(50);
+/**
+ * Charity Commission registration number: 7 digits, optionally followed by
+ * a hyphen and 1–2 digit suffix for sub-charities (e.g. 1234567, 1234567-1).
+ */
+const CharityRegistrationNumberSchema = z
+  .string()
+  .trim()
+  .regex(
+    /^\d{7}(-\d{1,2})?$/,
+    'Charity registration number must be 7 digits, optionally followed by -N or -NN for sub-charities'
+  );
 const ContactTitleSchema = z.string().trim().max(100);
 const NotesSchema = z.string().trim().max(500);
 const ReasonSchema = z.string().trim().max(500);
+
+export const VerificationSourceSchema = z.enum(['companies_house', 'charity_commission', 'manual']);
+export type VerificationSourceValue = z.infer<typeof VerificationSourceSchema>;
 
 // ----- Adoption policy ---------------------------------------------------
 
@@ -143,8 +166,8 @@ export const RescueCreateRequestSchema = z.object({
   website: WebsiteSchema.optional(),
   description: DescriptionSchema.optional(),
   mission: MissionSchema.optional(),
-  ein: EinSchema.optional(),
-  registrationNumber: RegistrationNumberSchema.optional(),
+  companiesHouseNumber: CompaniesHouseNumberSchema.optional(),
+  charityRegistrationNumber: CharityRegistrationNumberSchema.optional(),
   contactPerson: ContactNameSchema,
   contactTitle: ContactTitleSchema.optional(),
   contactEmail: EmailSchema.optional(),
@@ -154,10 +177,34 @@ export type RescueCreateRequest = z.infer<typeof RescueCreateRequestSchema>;
 
 /**
  * PUT/PATCH /api/v1/rescues/:rescueId — same fields, all optional.
- * Status moves through verifyRescue / rejectRescue / suspend flows
- * rather than this generic update.
+ * Status and verification fields are privilege-sensitive and must never be
+ * updated via this schema. .strip() silently drops any unknown keys so that
+ * injected fields (status, verifiedAt, verificationSource, etc.) cannot reach
+ * Sequelize. This is the single authoritative update schema — do not use a
+ * partial of RescueCreateRequestSchema directly.
  */
-export const RescueUpdateRequestSchema = RescueCreateRequestSchema.partial();
+export const RescueUpdateRequestSchema = z
+  .object({
+    name: NameSchema.optional(),
+    email: EmailSchema.optional(),
+    phone: UkPhoneNumberSchema.optional(),
+    address: AddressSchema.optional(),
+    city: CitySchema.optional(),
+    county: CountySchema.optional(),
+    postcode: UkPostcodeSchema.optional(),
+    country: CountryCodeSchema.optional(),
+    website: WebsiteSchema.optional().or(z.literal('')),
+    description: DescriptionSchema.optional(),
+    mission: MissionSchema.optional(),
+    companiesHouseNumber: CompaniesHouseNumberSchema.optional(),
+    charityRegistrationNumber: CharityRegistrationNumberSchema.optional(),
+    contactPerson: ContactNameSchema.optional(),
+    contactTitle: ContactTitleSchema.optional(),
+    contactEmail: EmailSchema.optional(),
+    contactPhone: UkPhoneNumberSchema.optional(),
+    settings: z.record(z.unknown()).optional(),
+  })
+  .strip();
 export type RescueUpdateRequest = z.infer<typeof RescueUpdateRequestSchema>;
 
 /**
@@ -242,13 +289,16 @@ export const RescueProfileSchema = z.object({
   website: WebsiteSchema.nullable().optional(),
   description: DescriptionSchema.nullable().optional(),
   mission: MissionSchema.nullable().optional(),
-  ein: EinSchema.nullable().optional(),
-  registrationNumber: RegistrationNumberSchema.nullable().optional(),
+  companiesHouseNumber: CompaniesHouseNumberSchema.nullable().optional(),
+  charityRegistrationNumber: CharityRegistrationNumberSchema.nullable().optional(),
   contactPerson: ContactNameSchema,
   contactTitle: ContactTitleSchema.nullable().optional(),
   contactEmail: EmailSchema.nullable().optional(),
   contactPhone: UkPhoneNumberSchema.nullable().optional(),
   status: RescueStatusSchema,
+  verificationSource: VerificationSourceSchema.nullable().optional(),
+  verificationFailureReason: z.string().nullable().optional(),
+  manualVerificationRequestedAt: z.coerce.date().nullable().optional(),
   settings: z.record(z.string(), z.unknown()).optional(),
   verifiedAt: z.coerce.date().nullable().optional(),
   createdAt: z.coerce.date().optional(),

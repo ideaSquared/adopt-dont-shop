@@ -96,10 +96,28 @@ describe('Rescue schemas', () => {
       expect(() => RescueCreateRequestSchema.parse({ ...valid, postcode: '12345' })).toThrow();
     });
 
-    it('rejects an EIN outside 9–10 chars', () => {
-      expect(() => RescueCreateRequestSchema.parse({ ...valid, ein: '12345678' })).toThrow();
-      expect(() => RescueCreateRequestSchema.parse({ ...valid, ein: '12345678901' })).toThrow();
-      expect(() => RescueCreateRequestSchema.parse({ ...valid, ein: '123456789' })).not.toThrow();
+    it('rejects an invalid Companies House number', () => {
+      expect(() =>
+        RescueCreateRequestSchema.parse({ ...valid, companiesHouseNumber: '1234567' })
+      ).toThrow(); // 7 chars — too short
+      expect(() =>
+        RescueCreateRequestSchema.parse({ ...valid, companiesHouseNumber: '123456789' })
+      ).toThrow(); // 9 chars — too long
+      expect(() =>
+        RescueCreateRequestSchema.parse({ ...valid, companiesHouseNumber: '12345678' })
+      ).not.toThrow(); // exactly 8
+    });
+
+    it('rejects an invalid charity registration number', () => {
+      expect(() =>
+        RescueCreateRequestSchema.parse({ ...valid, charityRegistrationNumber: '123456' })
+      ).toThrow(); // 6 digits — too short
+      expect(() =>
+        RescueCreateRequestSchema.parse({ ...valid, charityRegistrationNumber: '12345678' })
+      ).toThrow(); // 8 digits — too long
+      expect(() =>
+        RescueCreateRequestSchema.parse({ ...valid, charityRegistrationNumber: '1234567' })
+      ).not.toThrow(); // exactly 7
     });
 
     it('rejects descriptions over 1000 chars', () => {

@@ -1,9 +1,12 @@
 import { Op, Order, WhereOptions } from 'sequelize';
-import { z } from 'zod';
+import EmailService from './email.service';
+import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { validateSortField } from '../utils/sort-validation';
+import { verifyCompaniesHouseNumber } from './companies-house.service';
+import { verifyCharityRegistrationNumber } from './charity-commission.service';
 
 const RESCUE_PET_SORT_FIELDS = ['createdAt', 'updatedAt', 'name'] as const;
 import sequelize from '../sequelize';
@@ -21,7 +24,7 @@ export interface RescueSearchOptions {
   page?: number;
   limit?: number;
   search?: string;
-  status?: 'pending' | 'verified' | 'suspended' | 'inactive';
+  status?: 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
   location?: string;
   sortBy?: 'name' | 'createdAt' | 'verifiedAt';
   sortOrder?: 'ASC' | 'DESC';
@@ -39,8 +42,8 @@ export interface CreateRescueRequest {
   website?: string;
   description?: string;
   mission?: string;
-  ein?: string;
-  registrationNumber?: string;
+  companiesHouseNumber?: string;
+  charityRegistrationNumber?: string;
   contactPerson: string;
   contactTitle?: string;
   contactEmail?: string;
@@ -53,46 +56,20 @@ export interface UpdateRescueRequest {
   phone?: string;
   address?: string;
   city?: string;
-  state?: string;
-  zipCode?: string;
+  county?: string;
+  postcode?: string;
   country?: string;
   website?: string;
   description?: string;
   mission?: string;
-  ein?: string;
-  registrationNumber?: string;
+  companiesHouseNumber?: string;
+  charityRegistrationNumber?: string;
   contactPerson?: string;
   contactTitle?: string;
   contactEmail?: string;
   contactPhone?: string;
   settings?: object;
 }
-
-// Allowlist of fields a rescue may self-update. Using .strip() drops unknown
-// keys so any injected privilege-escalation fields (status, isVerified, etc.)
-// are silently removed before reaching Sequelize.
-const RescueUpdateSchema = z
-  .object({
-    name: z.string().min(1).max(255).optional(),
-    email: z.string().email().optional(),
-    phone: z.string().max(50).optional(),
-    address: z.string().max(500).optional(),
-    city: z.string().max(255).optional(),
-    state: z.string().max(255).optional(),
-    zipCode: z.string().max(20).optional(),
-    country: z.string().max(255).optional(),
-    website: z.string().url().optional().or(z.literal('')),
-    description: z.string().max(5000).optional(),
-    mission: z.string().max(5000).optional(),
-    ein: z.string().max(20).optional(),
-    registrationNumber: z.string().max(100).optional(),
-    contactPerson: z.string().max(255).optional(),
-    contactTitle: z.string().max(255).optional(),
-    contactEmail: z.string().email().optional(),
-    contactPhone: z.string().max(50).optional(),
-    settings: z.record(z.unknown()).optional(),
-  })
-  .strip();
 
 export interface RescueStatsResponse {
   totalPets: number;
@@ -236,7 +213,10 @@ export class RescueService {
   /**
    * Get rescue by ID with full details
    */
-  static async getRescueById(rescueId: string, includeStats = false): Promise<Rescue | null> {
+  static async getRescueById(
+    rescueId: string,
+    includeStats = false
+  ): Promise<Rescue & { statistics?: RescueStatsResponse }> {
     const startTime = Date.now();
 
     try {
@@ -267,12 +247,9 @@ export class RescueService {
         throw new Error('Rescue not found');
       }
 
-      // Include statistics if requested
       if (includeStats) {
-        const stats = await this.getRescueStatistics(rescueId);
-        // Attach statistics to the model instance
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (rescue as any).statistics = stats;
+        const statistics = await this.getRescueStatistics(rescueId);
+        return Object.assign(rescue, { statistics });
       }
 
       return rescue;
@@ -298,17 +275,36 @@ export class RescueService {
     const transaction = await Rescue.sequelize!.transaction();
 
     try {
-      // Check if rescue with same email already exists
-      const existingRescue = await Rescue.findOne({
+      // Check for duplicate email
+      const existingByEmail = await Rescue.findOne({
         where: { email: rescueData.email },
         transaction,
       });
-
-      if (existingRescue) {
+      if (existingByEmail) {
         throw new Error('A rescue organization with this email already exists');
       }
 
-      // Create the rescue
+      // Check for duplicate registration numbers
+      if (rescueData.companiesHouseNumber) {
+        const existingByCH = await Rescue.findOne({
+          where: { companiesHouseNumber: rescueData.companiesHouseNumber },
+          transaction,
+        });
+        if (existingByCH) {
+          throw new Error('A rescue is already registered with this Companies House number');
+        }
+      }
+      if (rescueData.charityRegistrationNumber) {
+        const existingByCharity = await Rescue.findOne({
+          where: { charityRegistrationNumber: rescueData.charityRegistrationNumber },
+          transaction,
+        });
+        if (existingByCharity) {
+          throw new Error('A rescue is already registered with this charity registration number');
+        }
+      }
+
+      // Create the rescue in pending state — verification runs after
       const rescue = await Rescue.create(
         {
           ...rescueData,
@@ -316,6 +312,17 @@ export class RescueService {
         },
         { transaction }
       );
+
+      // Attempt automated external verification
+      const verificationUpdate = await RescueService.attemptExternalVerification(
+        rescue.rescueId,
+        rescueData.companiesHouseNumber,
+        rescueData.charityRegistrationNumber
+      );
+
+      if (Object.keys(verificationUpdate).length > 0) {
+        await rescue.update(verificationUpdate, { transaction });
+      }
 
       // Log the action
       await AuditLogService.log({
@@ -327,6 +334,7 @@ export class RescueService {
           rescueId: rescue.rescueId,
           name: rescue.name,
           email: rescue.email,
+          verificationStatus: verificationUpdate.status ?? 'pending',
         },
       });
 
@@ -336,12 +344,24 @@ export class RescueService {
           rescueId: rescue.rescueId,
           name: rescue.name,
           createdBy,
+          verificationStatus: verificationUpdate.status ?? 'pending',
           duration: Date.now() - startTime,
         },
         createdBy
       );
 
       await transaction.commit();
+
+      // Send manual verification email outside the transaction so a send failure
+      // does not roll back the rescue creation.
+      if (verificationUpdate.manualVerificationRequestedAt) {
+        await RescueService.sendManualVerificationEmail(rescue.name, rescue.email).catch(err =>
+          logger.error('Failed to send manual verification email', {
+            err,
+            rescueId: rescue.rescueId,
+          })
+        );
+      }
 
       logger.info(`Created new rescue: ${rescue.rescueId}`);
       return rescue;
@@ -395,8 +415,7 @@ export class RescueService {
       }
 
       const oldData = rescue.toJSON();
-      const cleanedData = RescueUpdateSchema.parse(updateData);
-      await rescue.update(cleanedData, { transaction });
+      await rescue.update(updateData, { transaction });
 
       // Log the action
       await AuditLogService.log({
@@ -448,7 +467,12 @@ export class RescueService {
   /**
    * Verify a rescue organization
    */
-  static async verifyRescue(rescueId: string, verifiedBy: string, notes?: string): Promise<Rescue> {
+  static async verifyRescue(
+    rescueId: string,
+    verifiedBy: string,
+    notes?: string,
+    verificationSource: 'companies_house' | 'charity_commission' | 'manual' = 'manual'
+  ): Promise<Rescue> {
     const startTime = Date.now();
 
     const transaction = await Rescue.sequelize!.transaction();
@@ -469,6 +493,9 @@ export class RescueService {
           status: 'verified',
           verifiedAt: new Date(),
           verifiedBy,
+          verificationSource,
+          verificationFailureReason: null,
+          manualVerificationRequestedAt: null,
         },
         { transaction }
       );
@@ -539,13 +566,14 @@ export class RescueService {
         throw new Error('Cannot reject an already verified rescue');
       }
 
-      if (rescue.status === 'inactive') {
+      if (rescue.status === 'rejected') {
         throw new Error('Rescue is already rejected');
       }
 
       await rescue.update(
         {
-          status: 'inactive',
+          status: 'rejected',
+          verificationFailureReason: reason ?? null,
         },
         { transaction }
       );
@@ -592,6 +620,163 @@ export class RescueService {
       }
       throw new Error('Failed to reject rescue');
     }
+  }
+
+  /**
+   * Suspend a rescue organisation
+   */
+  static async suspendRescue(
+    rescueId: string,
+    suspendedBy: string,
+    reason?: string
+  ): Promise<Rescue> {
+    const startTime = Date.now();
+    const transaction = await Rescue.sequelize!.transaction();
+
+    try {
+      const rescue = await Rescue.findByPk(rescueId, { transaction });
+
+      if (!rescue) {
+        throw new Error('Rescue not found');
+      }
+
+      if (rescue.status === 'suspended') {
+        throw new Error('Rescue is already suspended');
+      }
+
+      await rescue.update({ status: 'suspended' }, { transaction });
+
+      await AuditLogService.log({
+        userId: suspendedBy,
+        action: 'suspend',
+        entity: 'rescue',
+        entityId: rescueId,
+        details: {
+          rescueId,
+          name: rescue.name,
+          reason: reason ?? null,
+        },
+      });
+
+      loggerHelpers.logBusiness(
+        'Rescue Suspended',
+        {
+          rescueId,
+          suspendedBy,
+          reason: reason ?? 'No reason provided',
+          duration: Date.now() - startTime,
+        },
+        suspendedBy
+      );
+
+      await transaction.commit();
+
+      logger.info(`Suspended rescue: ${rescueId}`);
+      return rescue;
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error suspending rescue:', {
+        error: error instanceof Error ? error.message : String(error),
+        rescueId,
+        suspendedBy,
+      });
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to suspend rescue');
+    }
+  }
+
+  /**
+   * Attempt external verification via Companies House or Charity Commission.
+   * Returns a partial Rescue update object — empty if no registration numbers supplied.
+   */
+  private static async attemptExternalVerification(
+    rescueId: string,
+    companiesHouseNumber?: string,
+    charityRegistrationNumber?: string
+  ): Promise<
+    Partial<{
+      status: 'verified' | 'pending';
+      verifiedAt: Date;
+      verificationSource: 'companies_house' | 'charity_commission';
+      verificationFailureReason: string;
+      manualVerificationRequestedAt: Date;
+    }>
+  > {
+    if (companiesHouseNumber) {
+      const result = await verifyCompaniesHouseNumber(companiesHouseNumber);
+      if (result.verified) {
+        logger.info('Rescue auto-verified via Companies House', { rescueId });
+        return {
+          status: 'verified',
+          verifiedAt: new Date(),
+          verificationSource: 'companies_house',
+        };
+      }
+      logger.info('Companies House verification failed', { rescueId, reason: result.reason });
+      return {
+        verificationFailureReason: result.reason,
+        manualVerificationRequestedAt: new Date(),
+      };
+    }
+
+    if (charityRegistrationNumber) {
+      const result = await verifyCharityRegistrationNumber(charityRegistrationNumber);
+      if (result.verified) {
+        logger.info('Rescue auto-verified via Charity Commission', { rescueId });
+        return {
+          status: 'verified',
+          verifiedAt: new Date(),
+          verificationSource: 'charity_commission',
+        };
+      }
+      logger.info('Charity Commission verification failed', { rescueId, reason: result.reason });
+      return {
+        verificationFailureReason: result.reason,
+        manualVerificationRequestedAt: new Date(),
+      };
+    }
+
+    // No registration number provided — route straight to manual review
+    return { manualVerificationRequestedAt: new Date() };
+  }
+
+  /**
+   * Send the manual verification fallback email to a rescue.
+   */
+  private static async sendManualVerificationEmail(
+    rescueName: string,
+    rescueEmail: string
+  ): Promise<void> {
+    await EmailService.sendEmail({
+      toEmail: rescueEmail,
+      toName: rescueName,
+      subject: 'Your rescue registration — next steps for verification',
+      htmlContent: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #4C6EF5; color: white; padding: 20px; text-align: center;">
+            <h1>Verification Required</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p>Hello ${rescueName},</p>
+            <p>Thank you for registering with Adopt Don't Shop. We were unable to automatically verify
+            your organisation using the registration number provided.</p>
+            <p>To complete verification and receive your <strong>Verified Rescue</strong> badge, please
+            email us at <a href="mailto:verify@adoptdontshop.app">verify@adoptdontshop.app</a> with:</p>
+            <ul>
+              <li>Your organisation name and registration number</li>
+              <li>A brief description of your rescue activities</li>
+              <li>Any supporting documents (charity certificate, Companies House filing, etc.)</li>
+            </ul>
+            <p>We aim to review manual verifications within 3–5 working days.</p>
+            <p>The Adopt Don't Shop Team</p>
+          </div>
+        </div>
+      `,
+      type: EmailType.TRANSACTIONAL,
+      priority: EmailPriority.NORMAL,
+    });
   }
 
   /**
@@ -1254,14 +1439,7 @@ export class RescueService {
         if (action === 'approve' || action === 'verify') {
           await RescueService.verifyRescue(rescueId, performedBy, reason);
         } else if (action === 'suspend') {
-          await Rescue.update({ status: 'suspended' }, { where: { rescueId } });
-          await AuditLogService.log({
-            userId: performedBy,
-            action: 'suspend',
-            entity: 'rescue',
-            entityId: rescueId,
-            details: { reason: reason || null },
-          });
+          await RescueService.suspendRescue(rescueId, performedBy, reason);
         }
         result.successCount++;
       } catch (error) {

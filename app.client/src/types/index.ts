@@ -356,13 +356,13 @@ export interface Rescue {
   website?: string;
   description?: string;
   mission?: string;
-  ein?: string;
-  registrationNumber?: string;
+  companiesHouseNumber?: string;
+  charityRegistrationNumber?: string;
   contactPerson: string;
   contactTitle?: string;
   contactEmail?: string;
   contactPhone?: string;
-  status: 'pending' | 'verified' | 'suspended' | 'inactive';
+  status: 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
   verifiedAt?: string;
   verifiedBy?: string;
   settings?: {

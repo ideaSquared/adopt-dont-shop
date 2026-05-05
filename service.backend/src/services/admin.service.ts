@@ -513,7 +513,8 @@ class AdminService {
       }
 
       await rescue.update({
-        status: 'pending',
+        status: 'rejected',
+        verificationFailureReason: reason ?? null,
       });
 
       // Log the action

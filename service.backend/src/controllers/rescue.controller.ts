@@ -10,6 +10,7 @@ import EmailService from '../services/email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { UserType } from '../models/User';
 import StaffMember from '../models/StaffMember';
+import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
 
 export class RescueController {
   /**
@@ -40,7 +41,7 @@ export class RescueController {
         page: parseInt(page as string),
         limit: Math.min(parseInt(limit as string), 100), // Max 100 per page
         search: search as string,
-        status: status as 'pending' | 'verified' | 'suspended' | 'inactive',
+        status: status as 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected',
         location: location as string,
         sortBy: sortBy as 'name' | 'createdAt' | 'verifiedAt',
         sortOrder: sortOrder as 'ASC' | 'DESC',
@@ -126,8 +127,8 @@ export class RescueController {
             ? RichTextProcessingService.sanitize(req.body.description)
             : req.body.description,
         mission: req.body.mission,
-        ein: req.body.ein,
-        registrationNumber: req.body.registrationNumber,
+        companiesHouseNumber: req.body.companiesHouseNumber,
+        charityRegistrationNumber: req.body.charityRegistrationNumber,
         contactPerson: req.body.contactPerson,
         contactTitle: req.body.contactTitle,
         contactEmail: req.body.contactEmail,
@@ -179,7 +180,9 @@ export class RescueController {
         req.body.description = RichTextProcessingService.sanitize(req.body.description);
       }
 
-      const rescue = await RescueService.updateRescue(rescueId, req.body, req.user!.userId);
+      // Strip privilege-sensitive fields (status, verifiedAt, etc.) before passing to service
+      const safeBody = RescueUpdateRequestSchema.parse(req.body);
+      const rescue = await RescueService.updateRescue(rescueId, safeBody, req.user!.userId);
 
       res.status(200).json({
         success: true,
