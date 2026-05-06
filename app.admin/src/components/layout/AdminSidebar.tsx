@@ -190,6 +190,15 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
             <span className={styles.navLinkSpan({ collapsed })}>Audit Logs</span>
           </NavLink>
           <NavLink
+            to='/security'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiShield />
+            <span className={styles.navLinkSpan({ collapsed })}>Security Center</span>
+          </NavLink>
+          <NavLink
             to='/reports'
             className={({ isActive }) =>
               styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')

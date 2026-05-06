@@ -119,6 +119,8 @@ const permissions = [
   'admin.rescues.manage',
   'admin.audit.read',
   'admin.data.export',
+  'admin.security.read',
+  'admin.security.manage',
 
   // Moderation (expanded)
   'moderation.reports.read',

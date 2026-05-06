@@ -108,6 +108,8 @@ export const PERMISSIONS = {
   ADMIN_RESCUE_MANAGEMENT: 'admin.rescues.manage',
   ADMIN_AUDIT_LOGS_READ: 'admin.audit.read',
   ADMIN_DATA_EXPORT: 'admin.data.export',
+  ADMIN_SECURITY_READ: 'admin.security.read',
+  ADMIN_SECURITY_MANAGE: 'admin.security.manage',
 
   // Moderation
   MODERATION_REPORTS_READ: 'moderation.reports.read',
