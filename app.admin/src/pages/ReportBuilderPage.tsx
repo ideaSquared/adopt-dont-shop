@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Heading, Text } from '@adopt-dont-shop/lib.components';
-import { ReportBuilder, type ReportBuilderConfig } from '@adopt-dont-shop/lib.components';
+import {
+  Heading,
+  ReportBuilder,
+  Text,
+  type ReportBuilderConfig,
+} from '@adopt-dont-shop/lib.components';
 import {
   useExecuteReportPreview,
   useReport,

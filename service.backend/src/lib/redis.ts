@@ -70,7 +70,7 @@ export const ensureRedisReady = async (): Promise<boolean> => {
   }
   await connecting;
   connecting = null;
-  return c.status === 'ready';
+  return (c.status as string) === 'ready';
 };
 
 export const isRedisReady = (): boolean => {

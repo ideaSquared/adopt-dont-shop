@@ -1,7 +1,7 @@
 import PDFDocument from 'pdfkit';
 import Papa from 'papaparse';
 import type { ExecutedReport } from './reports.service';
-import type { SavedReport } from '../models';
+import type SavedReport from '../models/SavedReport';
 
 /**
  * ADS-105: Renderers for scheduled-report delivery.

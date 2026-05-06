@@ -120,6 +120,7 @@ ReportShare.init(
     paranoid: true,
     indexes: [
       { fields: ['saved_report_id'], name: 'report_shares_saved_report_idx' },
+      { fields: ['shared_with_user_id'], name: 'report_shares_shared_with_user_idx' },
       { fields: ['token_hash'], name: 'report_shares_token_hash_idx' },
       ...auditIndexes('report_shares'),
     ],

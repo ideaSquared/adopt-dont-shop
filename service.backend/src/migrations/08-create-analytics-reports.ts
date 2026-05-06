@@ -359,6 +359,12 @@ export default {
     await queryInterface.addIndex('report_shares', ['saved_report_id'], {
       name: 'report_shares_saved_report_idx',
     });
+    // Plain FK index — matches the standards test enforcement that every
+    // FK column has an index. The unique index below is partial (only on
+    // user-typed shares), so it doesn't satisfy the FK index requirement.
+    await queryInterface.addIndex('report_shares', ['shared_with_user_id'], {
+      name: 'report_shares_shared_with_user_idx',
+    });
     // Partial unique on user shares only — token shares share the same row
     // with shared_with_user_id NULL, so we cannot put a plain unique on
     // (saved_report_id, shared_with_user_id).

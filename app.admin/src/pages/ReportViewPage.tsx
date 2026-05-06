@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button, Heading, Text } from '@adopt-dont-shop/lib.components';
-import { ReportRenderer } from '@adopt-dont-shop/lib.components';
+import { Button, Heading, ReportRenderer, Text } from '@adopt-dont-shop/lib.components';
 import {
   useDeleteReport,
   useExecuteSavedReport,
