@@ -11,18 +11,20 @@
  */
 
 import sequelize from '../sequelize';
+import { createInitialAdmin } from './bootstrap/create-initial-admin';
 import { clearAllData } from './index';
 import { runReferenceSeeders } from './reference';
 import { runDemoSeeders } from './demo';
 import { runFixtureSeeders } from './fixtures';
 
-type Action = 'reference' | 'demo' | 'fixtures' | 'reset';
+type Action = 'reference' | 'demo' | 'fixtures' | 'reset' | 'bootstrap';
 
 const ACTION_FLAGS: Record<string, Action> = {
   '--reference': 'reference',
   '--demo': 'demo',
   '--fixtures': 'fixtures',
   '--reset': 'reset',
+  '--bootstrap': 'bootstrap',
 };
 
 const usage = (): string =>
@@ -33,6 +35,7 @@ const usage = (): string =>
     '  --demo        Faker-generated demo data (requires ALLOW_DEMO_SEED=true)',
     '  --fixtures    Deterministic test fixtures',
     '  --reset       Truncate demo + fixture tables (requires ALLOW_DEMO_SEED=true)',
+    '  --bootstrap   Create the initial admin (prod first-run; requires ALLOW_BOOTSTRAP=true)',
     '',
     'Examples:',
     '  npm run db:seed:reference',
@@ -65,6 +68,9 @@ const dispatch = async (action: Action): Promise<void> => {
       return;
     case 'reset':
       await clearAllData();
+      return;
+    case 'bootstrap':
+      await createInitialAdmin();
       return;
   }
 };
