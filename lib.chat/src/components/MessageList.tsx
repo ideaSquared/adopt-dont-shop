@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '../context/use-chat';
 import type { Message } from '../types';
 import * as styles from './MessageList.css';
@@ -7,7 +7,18 @@ import { MessageItemComponent } from './MessageItemComponent';
 type MessageListProps = {
   messages: Message[];
   onToggleReaction?: (messageId: string, emoji: string) => void;
+  /**
+   * Cap on the number of messages rendered to the DOM at once. The most
+   * recent `pageSize` messages are shown by default; older messages are
+   * revealed via the "Load earlier messages" button. Set to `Infinity` to
+   * disable paging entirely (existing behaviour). Default 50 — chosen so
+   * a year of weekly back-and-forth doesn't drop hundreds of nodes into
+   * the DOM at once. See ADS-255.
+   */
+  pageSize?: number;
 };
+
+const DEFAULT_PAGE_SIZE = 50;
 
 /** Consecutive messages from the same sender within this window get grouped. */
 const GROUP_WINDOW_MS = 2 * 60 * 1000;
@@ -129,15 +140,54 @@ const computeRenderInfo = (
   });
 };
 
-export function MessageList({ messages, onToggleReaction }: MessageListProps) {
+export function MessageList({
+  messages,
+  onToggleReaction,
+  pageSize = DEFAULT_PAGE_SIZE,
+}: MessageListProps) {
   const { currentUser } = useChat();
 
   const safeMessages = Array.isArray(messages) ? messages : [];
 
-  const items = useMemo(
-    () => computeRenderInfo(safeMessages, currentUser?.userId, currentUser?.rescueId),
-    [safeMessages, currentUser?.userId, currentUser?.rescueId]
+  // Number of recent messages currently shown. Starts at min(pageSize, total).
+  // "Load earlier" expands the window; new incoming messages auto-grow the
+  // window so the user always sees the latest message after a send.
+  const [visibleCount, setVisibleCount] = useState<number>(() =>
+    Math.min(safeMessages.length, pageSize)
   );
+
+  // When new messages arrive, grow the visible window by the delta. We track
+  // the previously-seen length in a ref so this only runs on actual length
+  // increases — not on mount or unrelated re-renders, which would otherwise
+  // expose every message and defeat the pagination.
+  const prevLengthRef = useRef(safeMessages.length);
+  useEffect(() => {
+    const delta = safeMessages.length - prevLengthRef.current;
+    prevLengthRef.current = safeMessages.length;
+    if (delta > 0) {
+      setVisibleCount((prev) => Math.min(safeMessages.length, prev + delta));
+    }
+  }, [safeMessages.length]);
+
+  // Take the most recent `visibleCount` messages and run grouping over only
+  // that slice. Day separators recompute naturally for the truncated set.
+  const visibleMessages = useMemo(
+    () =>
+      visibleCount >= safeMessages.length
+        ? safeMessages
+        : safeMessages.slice(safeMessages.length - visibleCount),
+    [safeMessages, visibleCount]
+  );
+
+  const items = useMemo(
+    () => computeRenderInfo(visibleMessages, currentUser?.userId, currentUser?.rescueId),
+    [visibleMessages, currentUser?.userId, currentUser?.rescueId]
+  );
+
+  const hiddenCount = Math.max(0, safeMessages.length - visibleCount);
+  const handleLoadEarlier = () => {
+    setVisibleCount((prev) => Math.min(safeMessages.length, prev + pageSize));
+  };
 
   if (safeMessages.length === 0) {
     return (
@@ -153,6 +203,17 @@ export function MessageList({ messages, onToggleReaction }: MessageListProps) {
 
   return (
     <div className={styles.messageListWrapper}>
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={handleLoadEarlier}
+          aria-label={`Load ${Math.min(hiddenCount, pageSize)} earlier messages`}
+          data-testid="load-earlier-messages"
+          className={styles.loadEarlierButton}
+        >
+          {`Load ${Math.min(hiddenCount, pageSize)} earlier messages (${hiddenCount} older)`}
+        </button>
+      )}
       {items.map((item) => (
         <div key={item.message.id}>
           {item.showDaySeparator && (
