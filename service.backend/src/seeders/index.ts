@@ -28,6 +28,7 @@ import { seedReports } from './26-reports';
 import { seedModeratorActions } from './27-moderator-actions';
 import { seedUserSanctions } from './28-user-sanctions';
 import { up as seedAuditLogs } from './29-audit-logs';
+import { seedDemoUsers } from './demo';
 import {
   seedE2EFixtures,
   seedEmilyAttachmentTest,
@@ -43,6 +44,7 @@ const seeders = [
   { name: 'Roles', seeder: seedRoles },
   { name: 'Role Permissions', seeder: seedRolePermissions },
   { name: 'Users', seeder: seedUsers },
+  { name: 'Demo Users (Faker)', seeder: seedDemoUsers },
   { name: 'User Roles', seeder: seedUserRoles },
   { name: 'Rescues', seeder: seedRescues },
   { name: 'Staff Members', seeder: seedStaffMembers },
