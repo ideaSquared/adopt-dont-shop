@@ -224,10 +224,7 @@ export class RescueService {
    */
   static async getRescueById(rescueId: string): Promise<Rescue>;
   static async getRescueById(rescueId: string, includeStats: false): Promise<Rescue>;
-  static async getRescueById(
-    rescueId: string,
-    includeStats: true
-  ): Promise<RescueWithStatistics>;
+  static async getRescueById(rescueId: string, includeStats: true): Promise<RescueWithStatistics>;
   static async getRescueById(
     rescueId: string,
     includeStats?: boolean
