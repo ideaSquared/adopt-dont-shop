@@ -32,8 +32,19 @@ export class Chat extends Model<ChatAttributes, ChatCreationAttributes> implemen
   public rescue_id!: string; // Add rescue_id to class
   public pet_id?: string; // Add pet_id to class
   public status!: ChatStatus;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  // Sequelize, with `underscored: true`, maps timestamp COLUMNS to
+  // snake_case (created_at) but keeps timestamp ATTRIBUTES camelCase.
+  // Always read createdAt / updatedAt; the snake_case getters below
+  // exist only so legacy code referencing chat.created_at sees the same
+  // value rather than undefined.
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+  public get created_at(): Date {
+    return this.createdAt;
+  }
+  public get updated_at(): Date {
+    return this.updatedAt;
+  }
   public Messages?: Message[];
   public Participants?: ChatParticipant[];
   public rescue?: Rescue | null;
