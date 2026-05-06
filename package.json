@@ -75,6 +75,7 @@
     "prod:down": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down",
     "secrets:generate": "node scripts/generate-secrets.mjs",
     "validate:env": "node scripts/validate-env.mjs",
+    "check:lib-tests": "node scripts/check-lib-tests.mjs",
     "new-app": "node scripts/create-new-app.js",
     "new-lib": "node scripts/create-new-lib.js",
     "generate:attachments": "node scripts/generate-test-attachments.js"

@@ -1,0 +1,31 @@
+name: Lib Test Guard
+
+# Fail when any lib.* package has zero test files. This is the safety net
+# behind ADS-186 / ADS-328 — `--passWithNoTests` was previously hiding whole
+# packages with no behaviour tests. The script lives at scripts/check-lib-tests.mjs
+# and maintains an explicit allowlist for packages that are still being
+# back-filled.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-lib-tests:
+    name: Verify every lib.* package has tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Run lib-tests guard
+        run: node scripts/check-lib-tests.mjs
