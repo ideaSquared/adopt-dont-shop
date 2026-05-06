@@ -81,9 +81,14 @@ export const useRealtimeAnalytics = <K extends keyof EventMap>(
     if (!s) {
       return;
     }
-    s.on(event, handler as (payload: EventMap[K]) => void);
+    // Socket.IO v4's typed `on`/`off` reject anything that isn't on the
+    // server's typed event map. We trust the EventMap contract here and
+    // address the bus through the untyped surface.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const untyped = s as unknown as { on: (e: string, cb: any) => void; off: (e: string, cb: any) => void };
+    untyped.on(event, handler);
     return () => {
-      s.off(event, handler as (payload: EventMap[K]) => void);
+      untyped.off(event, handler);
     };
   }, [event, handler]);
 };
@@ -106,9 +111,11 @@ export const useAnalyticsInvalidator = (): void => {
       }
       qc.invalidateQueries('reports');
     };
-    s.on('analytics:invalidate', handler);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const untyped = s as unknown as { on: (e: string, cb: any) => void; off: (e: string, cb: any) => void };
+    untyped.on('analytics:invalidate', handler);
     return () => {
-      s.off('analytics:invalidate', handler);
+      untyped.off('analytics:invalidate', handler);
     };
   }, [qc]);
 };
