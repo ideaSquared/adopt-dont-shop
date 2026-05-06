@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Spinner } from '@adopt-dont-shop/lib.components';
+import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
 import DevLoginPanel from './components/dev/DevLoginPanel';
@@ -22,6 +23,8 @@ const Configuration = lazy(() => import('./pages/Configuration'));
 const Audit = lazy(() => import('./pages/Audit'));
 const Messages = lazy(() => import('./pages/Messages'));
 const Reports = lazy(() => import('./pages/Reports'));
+const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
+const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
 const AccountSettings = lazy(() => import('./pages/AccountSettings'));
 const SecurityCenter = lazy(() => import('./pages/SecurityCenter'));
 const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
@@ -42,6 +45,11 @@ const PageLoader = () => (
 
 const AdminApp: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  // ADS-105: subscribe to backend analytics:invalidate events. The hook
+  // is a no-op until setRealtimeAnalyticsToken is called by the auth
+  // provider (which we'll wire up in a follow-up — for now this is
+  // safe to mount unconditionally).
+  useAnalyticsInvalidator();
 
   if (isLoading) {
     return <PageLoader />;
@@ -106,6 +114,9 @@ const AdminApp: React.FC = () => {
               {/* Analytics & Reporting */}
               <Route path='/analytics' element={<Analytics />} />
               <Route path='/reports' element={<Reports />} />
+              <Route path='/reports/new' element={<ReportBuilderPage />} />
+              <Route path='/reports/:id' element={<ReportViewPage />} />
+              <Route path='/reports/:id/edit' element={<ReportBuilderPage />} />
 
               {/* System Configuration */}
               <Route path='/configuration' element={<Configuration />} />

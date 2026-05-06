@@ -37,7 +37,18 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^20.0.0",
-    "@adopt-dont-shop/lib.api": "file:../lib.api"
+    "@adopt-dont-shop/lib.api": "file:../lib.api",
+    "socket.io-client": "^4.7.5",
+    "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-query": "^3.39.0",
+    "typescript": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true },
+    "react-query": { "optional": true }
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
@@ -52,9 +63,6 @@
     "prettier": "^3.2.5",
     "ts-jest": "^29.4.6",
     "typescript": "^5.4.5"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
   },
   "repository": {
     "type": "git",

@@ -1,0 +1,168 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Heading, Text } from '@adopt-dont-shop/lib.components';
+import { ReportBuilder, type ReportBuilderConfig } from '@adopt-dont-shop/lib.components';
+import {
+  useExecuteReportPreview,
+  useReport,
+  useReportTemplates,
+  useSaveReport,
+  useUpdateReport,
+  type ReportConfig,
+} from '@adopt-dont-shop/lib.analytics';
+
+/**
+ * ADS-105: Custom report builder for rescue staff.
+ *
+ * Same shape as the admin builder; backend forces the report's
+ * rescueId to the staff member's rescue when none is supplied.
+ */
+
+const emptyConfig: ReportBuilderConfig = {
+  filters: { groupBy: 'day' },
+  layout: { columns: 2 },
+  widgets: [],
+};
+
+const containerStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '16px',
+  padding: '24px',
+};
+
+const ReportBuilderPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const templateId = searchParams.get('template');
+
+  const reportQuery = useReport(id ?? null);
+  const templatesQuery = useReportTemplates();
+  const previewMutation = useExecuteReportPreview();
+  const saveMutation = useSaveReport();
+  const updateMutation = useUpdateReport(id ?? '');
+
+  const [name, setName] = useState('Untitled report');
+  const [description, setDescription] = useState('');
+  const [config, setConfig] = useState<ReportBuilderConfig>(emptyConfig);
+  const [previewData, setPreviewData] = useState<Record<string, unknown>>({});
+
+  useEffect(() => {
+    if (reportQuery.data) {
+      setName(reportQuery.data.name);
+      setDescription(reportQuery.data.description ?? '');
+      setConfig(reportQuery.data.config as unknown as ReportBuilderConfig);
+    }
+  }, [reportQuery.data]);
+
+  useEffect(() => {
+    if (!id && templateId && templatesQuery.data) {
+      const template = templatesQuery.data.find(t => t.template_id === templateId);
+      if (template) {
+        setName(`${template.name} (copy)`);
+        setDescription(template.description ?? '');
+        setConfig(template.config as unknown as ReportBuilderConfig);
+      }
+    }
+  }, [id, templateId, templatesQuery.data]);
+
+  const runPreview = async (): Promise<void> => {
+    const data = await previewMutation.mutateAsync(config as unknown as ReportConfig);
+    const map: Record<string, unknown> = {};
+    for (const w of data.widgets) {
+      map[w.id] = w.data;
+    }
+    setPreviewData(map);
+  };
+
+  const handleSave = async (): Promise<void> => {
+    if (id) {
+      await updateMutation.mutateAsync({
+        name,
+        description: description || null,
+        config: config as unknown as ReportConfig,
+      });
+      navigate(`/reports/${id}`);
+    } else {
+      const created = await saveMutation.mutateAsync({
+        name,
+        description: description || undefined,
+        config: config as unknown as ReportConfig,
+      });
+      navigate(`/reports/${created.saved_report_id}`);
+    }
+  };
+
+  const isSaving = saveMutation.isLoading || updateMutation.isLoading;
+  const previewError = useMemo(
+    () => (previewMutation.error instanceof Error ? previewMutation.error : null),
+    [previewMutation.error]
+  );
+
+  return (
+    <div style={containerStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <Heading level='h1'>{id ? 'Edit report' : 'New report'}</Heading>
+          <Text>Build a custom report. Click Preview to run it.</Text>
+        </div>
+        <button type='button' onClick={runPreview} disabled={config.widgets.length === 0}>
+          {previewMutation.isLoading ? 'Running…' : 'Preview'}
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '16px',
+          padding: '12px',
+          background: '#f9fafb',
+          borderRadius: '8px',
+        }}
+      >
+        <label>
+          <span style={{ fontSize: '12px', color: '#6b7280' }}>Name</span>
+          <input
+            type='text'
+            value={name}
+            onChange={e => setName(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+            }}
+          />
+        </label>
+        <label>
+          <span style={{ fontSize: '12px', color: '#6b7280' }}>Description</span>
+          <input
+            type='text'
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px',
+            }}
+          />
+        </label>
+      </div>
+
+      <ReportBuilder
+        config={config}
+        onChange={setConfig}
+        previewData={previewData}
+        isPreviewing={previewMutation.isLoading}
+        previewError={previewError}
+        onSave={handleSave}
+        isSaving={isSaving}
+      />
+    </div>
+  );
+};
+
+export default ReportBuilderPage;
