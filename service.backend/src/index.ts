@@ -73,6 +73,12 @@ configRoutes.get('/', async (req, res) => {
 
 // Initialize express app
 const app = express();
+
+// Trust the first proxy hop (nginx in our deploy). Without this, req.ip resolves
+// to the proxy container, so per-IP rate limits collapse to a global bucket and
+// security logs / audit IP fields lose forensic value.
+app.set('trust proxy', 1);
+
 const server = createServer(app);
 
 // Initialize Socket.IO
