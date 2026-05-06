@@ -16,64 +16,17 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import * as styles from './SearchPage.css';
-
-const DISTANCE_OPTIONS = [
-  { value: '', label: 'Any Distance' },
-  { value: '10', label: 'Within 10 miles' },
-  { value: '25', label: 'Within 25 miles' },
-  { value: '50', label: 'Within 50 miles' },
-  { value: '100', label: 'Within 100 miles' },
-  { value: '250', label: 'Within 250 miles' },
-];
-
-const PET_TYPES = [
-  { value: '', label: 'All Types' },
-  { value: 'dog', label: 'Dogs' },
-  { value: 'cat', label: 'Cats' },
-  { value: 'rabbit', label: 'Rabbits' },
-  { value: 'bird', label: 'Birds' },
-  { value: 'other', label: 'Other' },
-];
-
-const PET_SIZES = [
-  { value: '', label: 'All Sizes' },
-  { value: 'small', label: 'Small' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'large', label: 'Large' },
-  { value: 'extra_large', label: 'Extra Large' },
-];
-
-const PET_GENDERS = [
-  { value: '', label: 'All Genders' },
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-];
-
-const AGE_GROUPS = [
-  { value: '', label: 'All Ages' },
-  { value: 'young', label: 'Young' },
-  { value: 'adult', label: 'Adult' },
-  { value: 'senior', label: 'Senior' },
-];
-
-const PET_STATUS = [
-  { value: '', label: 'All Status' },
-  { value: 'available', label: 'Available' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'adopted', label: 'Adopted' },
-];
-
-const SORT_OPTIONS = [
-  { value: 'createdAt:desc', label: 'Newest First' },
-  { value: 'createdAt:asc', label: 'Oldest First' },
-  { value: 'distance:asc', label: 'Distance: Nearest First' },
-  { value: 'name:asc', label: 'Name A-Z' },
-  { value: 'name:desc', label: 'Name Z-A' },
-  { value: 'ageYears:asc', label: 'Youngest First' },
-  { value: 'ageYears:desc', label: 'Oldest First' },
-  { value: 'adoptionFee:asc', label: 'Price Low to High' },
-  { value: 'adoptionFee:desc', label: 'Price High to Low' },
-];
+import {
+  AGE_GROUPS,
+  DISTANCE_OPTIONS,
+  isKnownSortBy,
+  isKnownSortOrder,
+  PET_GENDERS,
+  PET_SIZES,
+  PET_STATUS,
+  PET_TYPES,
+  SORT_OPTIONS,
+} from './searchOptions';
 
 export const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -98,12 +51,12 @@ export const SearchPage: React.FC = () => {
     status: searchParams.get('status') || '',
     page: parseInt(searchParams.get('page') || '1'),
     limit: 12,
-    sortBy: SORT_OPTIONS.some(o => o.value.startsWith(`${searchParams.get('sortBy')}:`))
+    sortBy: isKnownSortBy(searchParams.get('sortBy'))
       ? (searchParams.get('sortBy') as string)
       : 'createdAt',
-    sortOrder: (['asc', 'desc'].includes(searchParams.get('sortOrder') ?? '')
+    sortOrder: isKnownSortOrder(searchParams.get('sortOrder'))
       ? searchParams.get('sortOrder')
-      : 'desc') as 'asc' | 'desc',
+      : 'desc',
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');

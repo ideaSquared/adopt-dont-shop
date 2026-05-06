@@ -54,6 +54,30 @@ globalStyle(`${emptyMessages} p`, {
   fontSize: '0.9rem',
 });
 
+export const loadEarlierButton = style({
+  alignSelf: 'center',
+  margin: '0.5rem 0 0.75rem 0',
+  padding: '0.5rem 0.875rem',
+  background: vars.background.primary,
+  color: vars.text.secondary,
+  border: `1px solid ${vars.border.color.tertiary}`,
+  borderRadius: '999px',
+  fontSize: '0.8rem',
+  fontWeight: '500',
+  cursor: 'pointer',
+  transition: 'background 0.15s ease, color 0.15s ease',
+  selectors: {
+    '&:hover': {
+      background: vars.colors.neutral['100'],
+      color: vars.text.primary,
+    },
+    '&:focus-visible': {
+      outline: `2px solid ${vars.colors.primary['500']}`,
+      outlineOffset: '2px',
+    },
+  },
+});
+
 export const daySeparator = style({
   display: 'flex',
   alignItems: 'center',

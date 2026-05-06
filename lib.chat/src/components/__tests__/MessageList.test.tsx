@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { MessageList } from '../MessageList';
 import { buildChatContextValue, buildTestMessage, renderWithChatContext } from '../../test-utils';
 
@@ -69,6 +69,78 @@ describe('MessageList', () => {
     expect(screen.getByText('hello')).toBeInTheDocument();
     // The outgoing bubble should be labeled as Your message for a11y.
     expect(screen.getByLabelText('Your message')).toBeInTheDocument();
+  });
+
+  it('only renders the most recent pageSize messages by default', () => {
+    const currentUser = { userId: 'me', firstName: 'Me' };
+    const messages = Array.from({ length: 120 }, (_, i) =>
+      buildTestMessage({
+        id: `m-${i}`,
+        senderId: 'other',
+        senderName: 'Sarah',
+        timestamp: `2026-01-01T10:${String(i).padStart(2, '0')}:00Z`,
+        content: `message ${i}`,
+      })
+    );
+
+    renderWithChatContext(<MessageList messages={messages} pageSize={10} />, {
+      value: buildChatContextValue({ currentUser }),
+    });
+
+    // Last 10 (110-119) visible, first 10 (0-9) not.
+    expect(screen.getByText('message 119')).toBeInTheDocument();
+    expect(screen.getByText('message 110')).toBeInTheDocument();
+    expect(screen.queryByText('message 0')).toBeNull();
+    expect(screen.queryByText('message 99')).toBeNull();
+  });
+
+  it('reveals older messages when "Load earlier" is clicked', () => {
+    const currentUser = { userId: 'me', firstName: 'Me' };
+    const messages = Array.from({ length: 30 }, (_, i) =>
+      buildTestMessage({
+        id: `m-${i}`,
+        senderId: 'other',
+        senderName: 'Sarah',
+        timestamp: `2026-01-01T10:${String(i).padStart(2, '0')}:00Z`,
+        content: `message ${i}`,
+      })
+    );
+
+    renderWithChatContext(<MessageList messages={messages} pageSize={10} />, {
+      value: buildChatContextValue({ currentUser }),
+    });
+
+    expect(screen.queryByText('message 0')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('load-earlier-messages'));
+
+    // After one click, 20 should be visible (10 + 10) — that includes 10..29.
+    expect(screen.getByText('message 10')).toBeInTheDocument();
+    expect(screen.queryByText('message 0')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('load-earlier-messages'));
+    // After two clicks all 30 are loaded; the load-earlier button is gone.
+    expect(screen.getByText('message 0')).toBeInTheDocument();
+    expect(screen.queryByTestId('load-earlier-messages')).toBeNull();
+  });
+
+  it('does not show the load-earlier button when total <= pageSize', () => {
+    const currentUser = { userId: 'me', firstName: 'Me' };
+    const messages = Array.from({ length: 5 }, (_, i) =>
+      buildTestMessage({
+        id: `m-${i}`,
+        senderId: 'other',
+        senderName: 'Sarah',
+        timestamp: `2026-01-01T10:${String(i).padStart(2, '0')}:00Z`,
+        content: `message ${i}`,
+      })
+    );
+
+    renderWithChatContext(<MessageList messages={messages} pageSize={50} />, {
+      value: buildChatContextValue({ currentUser }),
+    });
+
+    expect(screen.queryByTestId('load-earlier-messages')).toBeNull();
   });
 
   it('groups consecutive messages from the same sender within the window', () => {
