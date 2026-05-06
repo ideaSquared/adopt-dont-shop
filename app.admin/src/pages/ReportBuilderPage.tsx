@@ -103,7 +103,7 @@ const ReportBuilderPage: React.FC = () => {
   const isSaving = saveMutation.isLoading || updateMutation.isLoading;
 
   const previewError = useMemo(
-    () => (previewMutation.error instanceof Error ? previewMutation.error : null),
+    () => (previewMutation.error as Error | null) ?? null,
     [previewMutation.error]
   );
 

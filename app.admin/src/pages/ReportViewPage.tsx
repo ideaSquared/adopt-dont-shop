@@ -166,7 +166,7 @@ const ReportViewPage: React.FC = () => {
           config={reportQuery.data.config as never}
           data={dataMap}
           isLoading={executeQuery.isLoading}
-          error={executeQuery.error instanceof Error ? executeQuery.error : null}
+          error={(executeQuery.error as Error | null) ?? null}
         />
       )}
     </PageContainer>

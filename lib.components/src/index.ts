@@ -112,13 +112,13 @@ export type {
   ReportRendererWidget,
 } from './components/reports/ReportRenderer';
 export { ReportBuilder } from './components/reports/ReportBuilder';
-export type {
-  ReportBuilderProps,
-  ReportBuilderConfig,
-} from './components/reports/ReportBuilder';
+export type { ReportBuilderProps, ReportBuilderConfig } from './components/reports/ReportBuilder';
 export { FilterPanel } from './components/reports/FilterPanel';
 export type { FilterPanelProps, FilterPanelValue } from './components/reports/FilterPanel';
-export { WidgetPicker, DEFAULT_PRESETS as DEFAULT_WIDGET_PRESETS } from './components/reports/WidgetPicker';
+export {
+  WidgetPicker,
+  DEFAULT_PRESETS as DEFAULT_WIDGET_PRESETS,
+} from './components/reports/WidgetPicker';
 export type { WidgetPickerProps, WidgetPreset } from './components/reports/WidgetPicker';
 export { DrillDownModal } from './components/reports/DrillDownModal';
 export type { DrillDownModalProps } from './components/reports/DrillDownModal';

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 /**
  * ADS-105: Modal/picker for adding a widget.
@@ -140,43 +140,60 @@ export const WidgetPicker: React.FC<WidgetPickerProps> = ({
   presets = DEFAULT_PRESETS,
   onAdd,
   onClose,
-}) => (
-  <div style={overlayStyle} onClick={onClose} role='presentation'>
-    <div style={panelStyle} onClick={e => e.stopPropagation()} role='dialog' aria-modal='true'>
-      <h3 style={{ marginTop: 0 }}>Add a widget</h3>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-          gap: '8px',
-        }}
-      >
-        {presets.map(preset => (
-          <button
-            key={preset.id}
-            type='button'
-            style={presetStyle}
-            onClick={() => onAdd(preset)}
-            data-testid={`widget-preset-${preset.id}`}
-          >
-            <strong style={{ fontSize: '13px' }}>{preset.label}</strong>
-            <span
-              style={{
-                fontSize: '12px',
-                color: 'var(--color-text-muted, #6b7280)',
-                marginTop: '4px',
-              }}
+}) => {
+  // Close on Escape (overlay click-to-close removed for jsx-a11y; users
+  // close via the explicit Close button or Escape).
+  useEffect(() => {
+    if (!onClose) {
+      return;
+    }
+    const handler = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <div style={overlayStyle} role='presentation'>
+      <div style={panelStyle} role='dialog' aria-modal='true'>
+        <h3 style={{ marginTop: 0 }}>Add a widget</h3>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+            gap: '8px',
+          }}
+        >
+          {presets.map(preset => (
+            <button
+              key={preset.id}
+              type='button'
+              style={presetStyle}
+              onClick={() => onAdd(preset)}
+              data-testid={`widget-preset-${preset.id}`}
             >
-              {preset.description}
-            </span>
+              <strong style={{ fontSize: '13px' }}>{preset.label}</strong>
+              <span
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--color-text-muted, #6b7280)',
+                  marginTop: '4px',
+                }}
+              >
+                {preset.description}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+          <button type='button' onClick={onClose}>
+            Close
           </button>
-        ))}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
-        <button type='button' onClick={onClose}>
-          Close
-        </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
