@@ -16,13 +16,7 @@ import { seedRatings } from './13-ratings';
 import { seedEmailTemplates } from './14-email-templates';
 import { up as seedSwipeSessions } from './15-swipe-sessions';
 import { up as seedSwipeActions } from './16-swipe-actions';
-import { seedEmilyConversation } from './17-emily-conversation';
-import { seedEmilyConversation2 } from './19-emily-conversation-2';
-import { seedEmilyAttachmentTest } from './20-emily-attachment-test';
-import { seedEmilyConversation3 } from './20-emily-conversation-3';
 import { seedFileUploads } from './20250111-file-uploads-seeder';
-import { seedEmilyConversation4 } from './21-emily-conversation-4';
-import { seedEmilyTestNotifications } from './22-emily-test-notifications';
 import { seedHomeVisits } from './22-home-visits';
 import { seedApplicationTimeline } from './23-application-timeline';
 import { seedInvitations } from './24-invitations';
@@ -32,7 +26,15 @@ import { seedModeratorActions } from './27-moderator-actions';
 import { seedUserSanctions } from './28-user-sanctions';
 import { up as seedAuditLogs } from './29-audit-logs';
 import { seedApplicationQuestions } from './30-application-questions';
-import { seedE2EFixtures } from './31-e2e-fixtures';
+import {
+  seedE2EFixtures,
+  seedEmilyAttachmentTest,
+  seedEmilyConversation,
+  seedEmilyConversation2,
+  seedEmilyConversation3,
+  seedEmilyConversation4,
+  seedEmilyTestNotifications,
+} from './fixtures';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
