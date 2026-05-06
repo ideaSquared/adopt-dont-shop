@@ -1,5 +1,6 @@
 import express from 'express';
 import { AdminController } from '../controllers/admin.controller';
+import { SecurityController } from '../controllers/security.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requireAdmin, requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
@@ -1468,6 +1469,79 @@ router.get(
   adminValidation.exportData,
   handleValidationErrors,
   AdminController.exportData
+);
+
+// ADS-108: Advanced Security UI — sessions, IP rules, account
+// recovery, login history, and suspicious activity. Read endpoints use
+// the read permission; mutations require manage.
+router.get(
+  '/security/sessions',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_READ),
+  generalLimiter,
+  SecurityController.listSessions
+);
+
+router.delete(
+  '/security/sessions/:sessionId',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_MANAGE),
+  authLimiter,
+  SecurityController.revokeSession
+);
+
+router.delete(
+  '/security/users/:userId/sessions',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_MANAGE),
+  authLimiter,
+  SecurityController.revokeAllUserSessions
+);
+
+router.get(
+  '/security/ip-rules',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_READ),
+  generalLimiter,
+  SecurityController.listIpRules
+);
+
+router.post(
+  '/security/ip-rules',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_MANAGE),
+  authLimiter,
+  SecurityController.createIpRule
+);
+
+router.delete(
+  '/security/ip-rules/:ipRuleId',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_MANAGE),
+  authLimiter,
+  SecurityController.deleteIpRule
+);
+
+router.post(
+  '/security/users/:userId/unlock',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_MANAGE),
+  authLimiter,
+  SecurityController.unlockAccount
+);
+
+router.post(
+  '/security/users/:userId/lock',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_MANAGE),
+  authLimiter,
+  SecurityController.forceLockAccount
+);
+
+router.get(
+  '/security/login-history',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_READ),
+  generalLimiter,
+  SecurityController.getLoginHistory
+);
+
+router.get(
+  '/security/suspicious-activity',
+  requirePermission(PERMISSIONS.ADMIN_SECURITY_READ),
+  generalLimiter,
+  SecurityController.getSuspiciousActivity
 );
 
 export default router;

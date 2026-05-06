@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import AuthController, { authValidation } from '../controllers/auth.controller';
 import { authenticateToken } from '../middleware/auth';
+import { enforceIpRules } from '../middleware/ip-rules';
 import {
   authLimiter,
   loginEmailLimiter,
@@ -158,7 +159,14 @@ router.post('/register', authLimiter, authValidation.register, AuthController.re
  *       429:
  *         description: Rate limit exceeded
  */
-router.post('/login', authLimiter, loginEmailLimiter, authValidation.login, AuthController.login);
+router.post(
+  '/login',
+  enforceIpRules,
+  authLimiter,
+  loginEmailLimiter,
+  authValidation.login,
+  AuthController.login
+);
 
 /**
  * @swagger

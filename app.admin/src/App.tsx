@@ -23,6 +23,7 @@ const Audit = lazy(() => import('./pages/Audit'));
 const Messages = lazy(() => import('./pages/Messages'));
 const Reports = lazy(() => import('./pages/Reports'));
 const AccountSettings = lazy(() => import('./pages/AccountSettings'));
+const SecurityCenter = lazy(() => import('./pages/SecurityCenter'));
 const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
 const ContentManagement = lazy(() => import('./pages/ContentManagement'));
 
@@ -123,6 +124,10 @@ const AdminApp: React.FC = () => {
 
               {/* Account Settings */}
               <Route path='/account' element={<AccountSettings />} />
+
+              {/* Security Center (ADS-108) */}
+              <Route path='/security' element={<SecurityCenter />} />
+              <Route path='/security/:tab' element={<SecurityCenter />} />
 
               {/* Catch-all redirect */}
               <Route path='*' element={<Navigate to='/' replace />} />

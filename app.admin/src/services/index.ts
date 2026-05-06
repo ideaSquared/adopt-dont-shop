@@ -5,6 +5,7 @@ export { userManagementService } from './userManagementService';
 export { rescueService } from './rescueService';
 export { petService } from './petService';
 export { applicationService } from './applicationService';
+export { securityService } from './securityService';
 
 // Export types
 export type {

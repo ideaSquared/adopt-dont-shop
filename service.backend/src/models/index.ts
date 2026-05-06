@@ -29,6 +29,7 @@ import DeviceToken from './DeviceToken';
 import Notification from './Notification';
 
 // Auth & Permissions Models
+import IpRule from './IpRule';
 import Permission from './Permission';
 import RefreshToken from './RefreshToken';
 import RevokedToken from './RevokedToken';
@@ -102,6 +103,7 @@ const models = {
   MessageRead,
   Notification,
   DeviceToken,
+  IpRule,
   RefreshToken,
   RevokedToken,
   Role,
@@ -630,6 +632,7 @@ export {
   Chat,
   ChatParticipant,
   IdempotencyKey,
+  IpRule,
   DeviceToken,
   RefreshToken,
   RevokedToken,
