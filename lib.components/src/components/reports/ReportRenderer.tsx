@@ -94,12 +94,13 @@ export const ReportRenderer: React.FC<ReportRendererProps> = ({
   );
 
   return (
-    <div style={gridStyle} data-testid="report-renderer">
+    <div style={gridStyle} data-testid='report-renderer'>
       {config.widgets.map(widget => {
         const widgetData = data[widget.id];
-        const onClick = widget.drilldown?.enabled && onDrilldown
-          ? () => onDrilldown(widget, widget.drilldown!.dimension)
-          : undefined;
+        const onClick =
+          widget.drilldown?.enabled && onDrilldown
+            ? () => onDrilldown(widget, widget.drilldown!.dimension)
+            : undefined;
         const span = Math.min(widget.position.w, config.layout.columns);
         const cellStyle: React.CSSProperties = {
           gridColumn: `span ${span}`,
@@ -122,7 +123,11 @@ const renderWidget = (
 ): React.ReactNode => {
   switch (widget.chartType) {
     case 'line': {
-      const opts = widget.options as { xKey: string; series: Array<{ key: string; label: string; color?: string }>; showLegend?: boolean };
+      const opts = widget.options as {
+        xKey: string;
+        series: Array<{ key: string; label: string; color?: string }>;
+        showLegend?: boolean;
+      };
       const rows = coerceArray(widgetData, 'adoptionTrends', 'trends', 'data');
       return (
         <LineChart
@@ -138,7 +143,11 @@ const renderWidget = (
       );
     }
     case 'bar': {
-      const opts = widget.options as { xKey: string; series: Array<{ key: string; label: string; color?: string }>; stacked?: boolean };
+      const opts = widget.options as {
+        xKey: string;
+        series: Array<{ key: string; label: string; color?: string }>;
+        stacked?: boolean;
+      };
       const rows = coerceArray(widgetData, 'trends', 'data', 'breakdown');
       return (
         <BarChart
@@ -154,7 +163,11 @@ const renderWidget = (
       );
     }
     case 'area': {
-      const opts = widget.options as { xKey: string; series: Array<{ key: string; label: string; color?: string }>; stacked?: boolean };
+      const opts = widget.options as {
+        xKey: string;
+        series: Array<{ key: string; label: string; color?: string }>;
+        stacked?: boolean;
+      };
       const rows = coerceArray(widgetData, 'trends', 'data');
       return (
         <AreaChart
@@ -186,7 +199,10 @@ const renderWidget = (
       );
     }
     case 'table': {
-      const opts = widget.options as { columns: Array<{ key: string; label: string }>; pageSize?: number };
+      const opts = widget.options as {
+        columns: Array<{ key: string; label: string }>;
+        pageSize?: number;
+      };
       const rows = coerceArray(widgetData, 'rescuePerformance', 'data', 'rows');
       return (
         <DataTable

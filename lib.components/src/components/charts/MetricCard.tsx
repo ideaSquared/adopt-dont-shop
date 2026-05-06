@@ -88,7 +88,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   format,
   helperText,
 }) => (
-  <div style={cardStyle} data-testid="metric-card">
+  <div style={cardStyle} data-testid='metric-card'>
     <h4 style={labelStyle}>{label}</h4>
     <div style={valueStyle}>{formatValue(value, format)}</div>
     {typeof delta === 'number' ? (

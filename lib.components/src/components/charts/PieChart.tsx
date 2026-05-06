@@ -25,14 +25,14 @@ export const PieChart: React.FC<PieChartProps> = ({
   ...frame
 }) => (
   <ChartFrame {...frame} isEmpty={data.length === 0}>
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width='100%' height='100%'>
       <RechartsPieChart>
         <Pie
           data={data}
           dataKey={valueKey}
           nameKey={labelKey}
           innerRadius={donut ? '40%' : 0}
-          outerRadius="80%"
+          outerRadius='80%'
           paddingAngle={1}
         >
           {data.map((_, i) => (

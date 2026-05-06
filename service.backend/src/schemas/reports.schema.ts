@@ -20,14 +20,7 @@ export const reportMetricSchema = z.enum([
 ]);
 export type ReportMetric = z.infer<typeof reportMetricSchema>;
 
-export const reportChartTypeSchema = z.enum([
-  'line',
-  'bar',
-  'pie',
-  'area',
-  'table',
-  'metric-card',
-]);
+export const reportChartTypeSchema = z.enum(['line', 'bar', 'pie', 'area', 'table', 'metric-card']);
 export type ReportChartType = z.infer<typeof reportChartTypeSchema>;
 
 export const reportGroupBySchema = z.enum(['day', 'week', 'month']);
@@ -73,7 +66,13 @@ export const reportWidgetSchema = z.discriminatedUnion('chartType', [
     options: z.object({
       xKey: z.string().min(1),
       series: z
-        .array(z.object({ key: z.string().min(1), label: z.string().min(1), color: z.string().optional() }))
+        .array(
+          z.object({
+            key: z.string().min(1),
+            label: z.string().min(1),
+            color: z.string().optional(),
+          })
+        )
         .min(1)
         .max(8),
       showLegend: z.boolean().optional(),
@@ -84,7 +83,13 @@ export const reportWidgetSchema = z.discriminatedUnion('chartType', [
     options: z.object({
       xKey: z.string().min(1),
       series: z
-        .array(z.object({ key: z.string().min(1), label: z.string().min(1), color: z.string().optional() }))
+        .array(
+          z.object({
+            key: z.string().min(1),
+            label: z.string().min(1),
+            color: z.string().optional(),
+          })
+        )
         .min(1)
         .max(8),
       stacked: z.boolean().optional(),
@@ -103,7 +108,13 @@ export const reportWidgetSchema = z.discriminatedUnion('chartType', [
     options: z.object({
       xKey: z.string().min(1),
       series: z
-        .array(z.object({ key: z.string().min(1), label: z.string().min(1), color: z.string().optional() }))
+        .array(
+          z.object({
+            key: z.string().min(1),
+            label: z.string().min(1),
+            color: z.string().optional(),
+          })
+        )
         .min(1)
         .max(6),
       stacked: z.boolean().optional(),

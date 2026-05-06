@@ -47,28 +47,29 @@ const dateInputStyle: React.CSSProperties = {
   fontSize: '13px',
 };
 
-const formatDateForInput = (d: Date | undefined): string =>
-  d ? d.toISOString().slice(0, 10) : '';
+const formatDateForInput = (d: Date | undefined): string => (d ? d.toISOString().slice(0, 10) : '');
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({ value, onChange, extraFields }) => {
   const update = (patch: Partial<FilterPanelValue>): void => {
     onChange({ ...value, ...patch });
   };
   return (
-    <div style={rowStyle} data-testid="filter-panel">
+    <div style={rowStyle} data-testid='filter-panel'>
       <label>
         <span style={labelStyle}>From</span>
         <input
-          type="date"
+          type='date'
           style={dateInputStyle}
           value={formatDateForInput(value.startDate)}
-          onChange={e => update({ startDate: e.target.value ? new Date(e.target.value) : undefined })}
+          onChange={e =>
+            update({ startDate: e.target.value ? new Date(e.target.value) : undefined })
+          }
         />
       </label>
       <label>
         <span style={labelStyle}>To</span>
         <input
-          type="date"
+          type='date'
           style={dateInputStyle}
           value={formatDateForInput(value.endDate)}
           onChange={e => update({ endDate: e.target.value ? new Date(e.target.value) : undefined })}
@@ -85,10 +86,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({ value, onChange, extra
             })
           }
         >
-          <option value="">—</option>
-          <option value="day">Day</option>
-          <option value="week">Week</option>
-          <option value="month">Month</option>
+          <option value=''>—</option>
+          <option value='day'>Day</option>
+          <option value='week'>Week</option>
+          <option value='month'>Month</option>
         </select>
       </label>
       {extraFields}

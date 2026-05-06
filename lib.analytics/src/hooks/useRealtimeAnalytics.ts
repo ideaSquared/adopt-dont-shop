@@ -85,7 +85,10 @@ export const useRealtimeAnalytics = <K extends keyof EventMap>(
     // server's typed event map. We trust the EventMap contract here and
     // address the bus through the untyped surface.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const untyped = s as unknown as { on: (e: string, cb: any) => void; off: (e: string, cb: any) => void };
+    const untyped = s as unknown as {
+      on: (e: string, cb: any) => void;
+      off: (e: string, cb: any) => void;
+    };
     untyped.on(event, handler);
     return () => {
       untyped.off(event, handler);
@@ -112,7 +115,10 @@ export const useAnalyticsInvalidator = (): void => {
       qc.invalidateQueries('reports');
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const untyped = s as unknown as { on: (e: string, cb: any) => void; off: (e: string, cb: any) => void };
+    const untyped = s as unknown as {
+      on: (e: string, cb: any) => void;
+      off: (e: string, cb: any) => void;
+    };
     untyped.on('analytics:invalidate', handler);
     return () => {
       untyped.off('analytics:invalidate', handler);

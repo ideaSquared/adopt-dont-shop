@@ -28,21 +28,20 @@ interface ReportShareAttributes {
   deleted_at?: Date | null;
 }
 
-interface ReportShareCreationAttributes
-  extends Optional<
-    ReportShareAttributes,
-    | 'share_id'
-    | 'shared_with_user_id'
-    | 'token_hash'
-    | 'permission'
-    | 'expires_at'
-    | 'revoked_at'
-    | 'created_by'
-    | 'updated_by'
-    | 'created_at'
-    | 'updated_at'
-    | 'deleted_at'
-  > {}
+interface ReportShareCreationAttributes extends Optional<
+  ReportShareAttributes,
+  | 'share_id'
+  | 'shared_with_user_id'
+  | 'token_hash'
+  | 'permission'
+  | 'expires_at'
+  | 'revoked_at'
+  | 'created_by'
+  | 'updated_by'
+  | 'created_at'
+  | 'updated_at'
+  | 'deleted_at'
+> {}
 
 class ReportShare
   extends Model<ReportShareAttributes, ReportShareCreationAttributes>

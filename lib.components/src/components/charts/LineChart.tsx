@@ -27,17 +27,17 @@ export const LineChart: React.FC<LineChartProps> = ({
   ...frame
 }) => (
   <ChartFrame {...frame} isEmpty={data.length === 0}>
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width='100%' height='100%'>
       <RechartsLineChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey={xKey} stroke="#6b7280" fontSize={12} />
-        <YAxis stroke="#6b7280" fontSize={12} />
+        <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
+        <XAxis dataKey={xKey} stroke='#6b7280' fontSize={12} />
+        <YAxis stroke='#6b7280' fontSize={12} />
         <Tooltip />
         {showLegend ? <Legend /> : null}
         {series.map((s, i) => (
           <Line
             key={s.key}
-            type="monotone"
+            type='monotone'
             dataKey={s.key}
             name={s.label}
             stroke={s.color ?? PALETTE[i % PALETTE.length]}

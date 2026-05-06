@@ -22,14 +22,7 @@ export const reportMetricSchema = z.enum([
 ]);
 export type ReportMetric = z.infer<typeof reportMetricSchema>;
 
-export const reportChartTypeSchema = z.enum([
-  'line',
-  'bar',
-  'pie',
-  'area',
-  'table',
-  'metric-card',
-]);
+export const reportChartTypeSchema = z.enum(['line', 'bar', 'pie', 'area', 'table', 'metric-card']);
 export type ReportChartType = z.infer<typeof reportChartTypeSchema>;
 
 export const reportGroupBySchema = z.enum(['day', 'week', 'month']);
@@ -175,7 +168,9 @@ export const scheduledReportSchema = z.object({
   saved_report_id: z.string().uuid(),
   cron: z.string(),
   timezone: z.string(),
-  recipients: z.array(z.object({ email: z.string().email(), userId: z.string().uuid().optional() })),
+  recipients: z.array(
+    z.object({ email: z.string().email(), userId: z.string().uuid().optional() })
+  ),
   format: z.enum(['pdf', 'csv', 'inline-html']),
   is_enabled: z.boolean(),
   last_run_at: z.string().nullable().or(z.coerce.date().nullable()),

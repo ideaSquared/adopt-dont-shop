@@ -39,25 +39,24 @@ interface ScheduledReportAttributes {
   deleted_at?: Date | null;
 }
 
-interface ScheduledReportCreationAttributes
-  extends Optional<
-    ScheduledReportAttributes,
-    | 'schedule_id'
-    | 'timezone'
-    | 'recipients'
-    | 'format'
-    | 'is_enabled'
-    | 'last_run_at'
-    | 'next_run_at'
-    | 'last_status'
-    | 'last_error'
-    | 'repeat_job_key'
-    | 'created_by'
-    | 'updated_by'
-    | 'created_at'
-    | 'updated_at'
-    | 'deleted_at'
-  > {}
+interface ScheduledReportCreationAttributes extends Optional<
+  ScheduledReportAttributes,
+  | 'schedule_id'
+  | 'timezone'
+  | 'recipients'
+  | 'format'
+  | 'is_enabled'
+  | 'last_run_at'
+  | 'next_run_at'
+  | 'last_status'
+  | 'last_error'
+  | 'repeat_job_key'
+  | 'created_by'
+  | 'updated_by'
+  | 'created_at'
+  | 'updated_at'
+  | 'deleted_at'
+> {}
 
 class ScheduledReport
   extends Model<ScheduledReportAttributes, ScheduledReportCreationAttributes>

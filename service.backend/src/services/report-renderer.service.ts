@@ -22,7 +22,9 @@ import type { SavedReport } from '../models';
 type WidgetTitle = { id: string; title: string; chartType: string };
 
 const titlesFromReport = (report: SavedReport): WidgetTitle[] => {
-  const config = report.config as { widgets?: Array<{ id: string; title: string; chartType: string }> };
+  const config = report.config as {
+    widgets?: Array<{ id: string; title: string; chartType: string }>;
+  };
   return (config.widgets ?? []).map(w => ({ id: w.id, title: w.title, chartType: w.chartType }));
 };
 
@@ -85,7 +87,10 @@ export const ReportRenderer = {
             doc.text(headers.map(h => String(row[h] ?? '')).join(' | '));
           }
           if (rows.length > 50) {
-            doc.fillColor('#888').text(`...and ${rows.length - 50} more rows`).fillColor('#000');
+            doc
+              .fillColor('#888')
+              .text(`...and ${rows.length - 50} more rows`)
+              .fillColor('#000');
           }
         } else if (data && typeof data === 'object') {
           for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
@@ -114,13 +119,18 @@ export const ReportRenderer = {
           const rows = data as Record<string, unknown>[];
           const headers = Object.keys(rows[0]);
           body = `<table style="border-collapse:collapse;width:100%"><thead><tr>${headers
-            .map(h => `<th style="text-align:left;border-bottom:1px solid #ccc;padding:4px">${h}</th>`)
+            .map(
+              h => `<th style="text-align:left;border-bottom:1px solid #ccc;padding:4px">${h}</th>`
+            )
             .join('')}</tr></thead><tbody>${rows
             .slice(0, 50)
             .map(
               row =>
                 `<tr>${headers
-                  .map(h => `<td style="padding:4px;border-bottom:1px solid #eee">${String(row[h] ?? '')}</td>`)
+                  .map(
+                    h =>
+                      `<td style="padding:4px;border-bottom:1px solid #eee">${String(row[h] ?? '')}</td>`
+                  )
                   .join('')}</tr>`
             )
             .join('')}</tbody></table>`;

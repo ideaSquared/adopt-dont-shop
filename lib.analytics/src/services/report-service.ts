@@ -61,7 +61,12 @@ export class ReportService {
 
   async update(
     id: string,
-    patch: { name?: string; description?: string | null; config?: ReportConfig; isArchived?: boolean }
+    patch: {
+      name?: string;
+      description?: string | null;
+      config?: ReportConfig;
+      isArchived?: boolean;
+    }
   ): Promise<SavedReport> {
     const res = await this.api.put<ApiEnvelope<unknown>>(`${this.base}/${id}`, patch);
     return savedReportSchema.parse(unwrap(res));
@@ -122,13 +127,14 @@ export class ReportService {
     reportId: string,
     args: { expiresAt: Date }
   ): Promise<{ share: { share_id: string }; token: string }> {
-    const res = await this.api.post<
-      ApiEnvelope<{ share: { share_id: string }; token: string }>
-    >(`${this.base}/${reportId}/share`, {
-      shareType: 'token',
-      permission: 'view',
-      expiresAt: args.expiresAt.toISOString(),
-    });
+    const res = await this.api.post<ApiEnvelope<{ share: { share_id: string }; token: string }>>(
+      `${this.base}/${reportId}/share`,
+      {
+        shareType: 'token',
+        permission: 'view',
+        expiresAt: args.expiresAt.toISOString(),
+      }
+    );
     return unwrap(res);
   }
 

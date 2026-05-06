@@ -9,10 +9,7 @@ import ScheduledReport, {
   ScheduledReportStatus,
   type ScheduledReportRecipient,
 } from '../models/ScheduledReport';
-import ReportShare, {
-  ReportSharePermission,
-  ReportShareType,
-} from '../models/ReportShare';
+import ReportShare, { ReportSharePermission, ReportShareType } from '../models/ReportShare';
 import { AnalyticsService } from './analytics.service';
 import { ReportCache } from './report-cache.service';
 import {
@@ -196,12 +193,15 @@ export const ReportsService = {
    * Authorization helper. Returns true when the caller may view the
    * report. Edit access is checked separately via `canEdit`.
    */
-  async canView(report: SavedReport, args: {
-    userId: string;
-    rescueId?: string | null;
-    canReadPlatform: boolean;
-    canReadRescue: boolean;
-  }): Promise<boolean> {
+  async canView(
+    report: SavedReport,
+    args: {
+      userId: string;
+      rescueId?: string | null;
+      canReadPlatform: boolean;
+      canReadRescue: boolean;
+    }
+  ): Promise<boolean> {
     if (report.user_id === args.userId) {
       return true;
     }
@@ -258,7 +258,12 @@ export const ReportsService = {
 
   async updateReport(
     reportId: string,
-    patch: { name?: string; description?: string | null; config?: ReportConfig; isArchived?: boolean }
+    patch: {
+      name?: string;
+      description?: string | null;
+      config?: ReportConfig;
+      isArchived?: boolean;
+    }
   ): Promise<SavedReport> {
     const report = await this.getReport(reportId);
     if (patch.name !== undefined) {
@@ -287,10 +292,7 @@ export const ReportsService = {
   async listTemplates(rescueId?: string | null): Promise<ReportTemplate[]> {
     return ReportTemplate.findAll({
       where: {
-        [Op.or]: [
-          { is_system: true },
-          { rescue_id: rescueId ?? null },
-        ],
+        [Op.or]: [{ is_system: true }, { rescue_id: rescueId ?? null }],
       } as never,
       order: [
         ['is_system', 'DESC'],

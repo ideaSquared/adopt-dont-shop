@@ -120,9 +120,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               >
                 {columns.map(col => (
                   <td key={col.key} style={tdStyle}>
-                    {col.render
-                      ? col.render(row[col.key], row)
-                      : String(row[col.key] ?? '')}
+                    {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '')}
                   </td>
                 ))}
               </tr>
@@ -132,7 +130,7 @@ export const DataTable: React.FC<DataTableProps> = ({
         {totalPages > 1 ? (
           <div style={paginationStyle}>
             <button
-              type="button"
+              type='button'
               disabled={safePage === 0}
               onClick={() => setPage(p => Math.max(0, p - 1))}
             >
@@ -142,7 +140,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               Page {safePage + 1} of {totalPages}
             </span>
             <button
-              type="button"
+              type='button'
               disabled={safePage >= totalPages - 1}
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             >

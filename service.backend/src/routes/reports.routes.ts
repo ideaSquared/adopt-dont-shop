@@ -19,11 +19,7 @@ import { PERMISSIONS } from '../types/rbac';
 const router = express.Router();
 
 // Token share is session-less and must NOT pass through authenticateToken.
-router.get(
-  '/shared/:token',
-  generalLimiter,
-  ReportsController.viewSharedByToken
-);
+router.get('/shared/:token', generalLimiter, ReportsController.viewSharedByToken);
 
 // Everything else requires auth.
 router.use(authenticateToken);
@@ -31,7 +27,11 @@ router.use(authenticateToken);
 router.get('/', requirePermission(PERMISSIONS.REPORTS_READ_OWN), ReportsController.list);
 router.post('/', requirePermission(PERMISSIONS.REPORTS_CREATE), ReportsController.create);
 
-router.get('/templates', requirePermission(PERMISSIONS.REPORTS_READ_OWN), ReportsController.listTemplates);
+router.get(
+  '/templates',
+  requirePermission(PERMISSIONS.REPORTS_READ_OWN),
+  ReportsController.listTemplates
+);
 
 // Preview endpoint — un-saved config; cheaper than persisting then executing.
 router.post(

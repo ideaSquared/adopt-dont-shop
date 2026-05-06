@@ -87,7 +87,7 @@ export const ChartFrame: React.FC<ChartFrameProps> = ({
     onClick={onClick}
     role={onClick ? 'button' : undefined}
     tabIndex={onClick ? 0 : undefined}
-    data-testid="chart-frame"
+    data-testid='chart-frame'
   >
     <div style={headerStyle}>
       <div>
@@ -98,15 +98,18 @@ export const ChartFrame: React.FC<ChartFrameProps> = ({
     </div>
     <div style={bodyStyle}>
       {isLoading ? (
-        <div style={stateStyle} data-testid="chart-loading">
+        <div style={stateStyle} data-testid='chart-loading'>
           Loading…
         </div>
       ) : error ? (
-        <div style={{ ...stateStyle, color: 'var(--color-danger, #dc2626)' }} data-testid="chart-error">
+        <div
+          style={{ ...stateStyle, color: 'var(--color-danger, #dc2626)' }}
+          data-testid='chart-error'
+        >
           {error.message}
         </div>
       ) : isEmpty ? (
-        <div style={stateStyle} data-testid="chart-empty">
+        <div style={stateStyle} data-testid='chart-empty'>
           {emptyMessage}
         </div>
       ) : (

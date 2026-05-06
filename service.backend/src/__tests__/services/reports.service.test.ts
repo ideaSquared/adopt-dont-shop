@@ -60,10 +60,7 @@ import { ReportsService } from '../../services/reports.service';
 import { AnalyticsService } from '../../services/analytics.service';
 import { ReportCache } from '../../services/report-cache.service';
 import SavedReport from '../../models/SavedReport';
-import ReportShare, {
-  ReportShareType,
-  ReportSharePermission,
-} from '../../models/ReportShare';
+import ReportShare, { ReportShareType, ReportSharePermission } from '../../models/ReportShare';
 
 const baseConfig = {
   filters: {},
@@ -162,15 +159,12 @@ describe('ReportsService.canView', () => {
 
   it('blocks cross-rescue access to rescue-scoped reports', async () => {
     (ReportShare.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
-    const allowed = await ReportsService.canView(
-      makeReport({ rescue_id: 'rescue-A' }),
-      {
-        userId: 'staff-2',
-        rescueId: 'rescue-B',
-        canReadPlatform: false,
-        canReadRescue: true,
-      }
-    );
+    const allowed = await ReportsService.canView(makeReport({ rescue_id: 'rescue-A' }), {
+      userId: 'staff-2',
+      rescueId: 'rescue-B',
+      canReadPlatform: false,
+      canReadRescue: true,
+    });
     expect(allowed).toBe(false);
   });
 

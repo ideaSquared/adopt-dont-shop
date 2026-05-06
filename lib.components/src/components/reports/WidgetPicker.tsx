@@ -141,8 +141,8 @@ export const WidgetPicker: React.FC<WidgetPickerProps> = ({
   onAdd,
   onClose,
 }) => (
-  <div style={overlayStyle} onClick={onClose} role="presentation">
-    <div style={panelStyle} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+  <div style={overlayStyle} onClick={onClose} role='presentation'>
+    <div style={panelStyle} onClick={e => e.stopPropagation()} role='dialog' aria-modal='true'>
       <h3 style={{ marginTop: 0 }}>Add a widget</h3>
       <div
         style={{
@@ -154,7 +154,7 @@ export const WidgetPicker: React.FC<WidgetPickerProps> = ({
         {presets.map(preset => (
           <button
             key={preset.id}
-            type="button"
+            type='button'
             style={presetStyle}
             onClick={() => onAdd(preset)}
             data-testid={`widget-preset-${preset.id}`}
@@ -173,7 +173,7 @@ export const WidgetPicker: React.FC<WidgetPickerProps> = ({
         ))}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
-        <button type="button" onClick={onClose}>
+        <button type='button' onClick={onClose}>
           Close
         </button>
       </div>

@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { FilterPanel, type FilterPanelValue } from './FilterPanel';
 import { WidgetPicker, type WidgetPreset } from './WidgetPicker';
-import {
-  ReportRenderer,
-  type ReportRendererWidget,
-} from './ReportRenderer';
+import { ReportRenderer, type ReportRendererWidget } from './ReportRenderer';
 
 /**
  * ADS-105: Form-based custom report builder.
@@ -134,7 +131,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   };
 
   return (
-    <div data-testid="report-builder" style={layoutStyle}>
+    <div data-testid='report-builder' style={layoutStyle}>
       <div style={sidebarStyle}>
         <FilterPanel
           value={config.filters}
@@ -156,7 +153,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             {[1, 2, 3, 4].map(n => (
               <button
                 key={n}
-                type="button"
+                type='button'
                 onClick={() => handleColumns(n as 1 | 2 | 3 | 4)}
                 aria-pressed={config.layout.columns === n}
                 style={{
@@ -175,9 +172,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           </div>
         </div>
         <div>
-          <h4 style={{ fontSize: '13px', margin: '8px 0' }}>
-            Widgets ({config.widgets.length})
-          </h4>
+          <h4 style={{ fontSize: '13px', margin: '8px 0' }}>Widgets ({config.widgets.length})</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {config.widgets.map((widget, i) => (
               <div key={widget.id} style={widgetRowStyle}>
@@ -188,16 +183,16 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                  <button type="button" onClick={() => handleMove(i, -1)} aria-label="Move up">
+                  <button type='button' onClick={() => handleMove(i, -1)} aria-label='Move up'>
                     ↑
                   </button>
-                  <button type="button" onClick={() => handleMove(i, 1)} aria-label="Move down">
+                  <button type='button' onClick={() => handleMove(i, 1)} aria-label='Move down'>
                     ↓
                   </button>
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => handleRemove(widget.id)}
-                    aria-label="Remove widget"
+                    aria-label='Remove widget'
                   >
                     ✕
                   </button>
@@ -207,15 +202,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           </div>
         </div>
         <div style={buttonRowStyle}>
-          <button type="button" onClick={() => setPickerOpen(true)} data-testid="add-widget">
+          <button type='button' onClick={() => setPickerOpen(true)} data-testid='add-widget'>
             Add widget
           </button>
           {onSave ? (
             <button
-              type="button"
+              type='button'
               onClick={onSave}
               disabled={isSaving}
-              data-testid="save-report"
+              data-testid='save-report'
               style={{ marginLeft: 'auto' }}
             >
               {isSaving ? 'Saving…' : 'Save'}

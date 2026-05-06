@@ -55,10 +55,7 @@ const debounceKey = (rescueId: string | null, category: string): string =>
  * Emit `analytics:invalidate` to the appropriate room. Debounced per
  * (rescueId, category) so chat-heavy mutations don't flood the bus.
  */
-export const emitAnalyticsInvalidate = (
-  rescueId: string | null,
-  categories: string[]
-): void => {
+export const emitAnalyticsInvalidate = (rescueId: string | null, categories: string[]): void => {
   if (!liveIo) {
     return;
   }

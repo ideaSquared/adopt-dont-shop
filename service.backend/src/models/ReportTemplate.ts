@@ -26,19 +26,18 @@ interface ReportTemplateAttributes {
   deleted_at?: Date | null;
 }
 
-interface ReportTemplateCreationAttributes
-  extends Optional<
-    ReportTemplateAttributes,
-    | 'template_id'
-    | 'description'
-    | 'is_system'
-    | 'rescue_id'
-    | 'created_by'
-    | 'updated_by'
-    | 'created_at'
-    | 'updated_at'
-    | 'deleted_at'
-  > {}
+interface ReportTemplateCreationAttributes extends Optional<
+  ReportTemplateAttributes,
+  | 'template_id'
+  | 'description'
+  | 'is_system'
+  | 'rescue_id'
+  | 'created_by'
+  | 'updated_by'
+  | 'created_at'
+  | 'updated_at'
+  | 'deleted_at'
+> {}
 
 class ReportTemplate
   extends Model<ReportTemplateAttributes, ReportTemplateCreationAttributes>

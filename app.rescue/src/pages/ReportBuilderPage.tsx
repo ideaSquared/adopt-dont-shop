@@ -104,10 +104,10 @@ const ReportBuilderPage: React.FC = () => {
     <div style={containerStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Heading level='h1'>{id ? 'Edit report' : 'New report'}</Heading>
+          <Heading level="h1">{id ? 'Edit report' : 'New report'}</Heading>
           <Text>Build a custom report. Click Preview to run it.</Text>
         </div>
-        <button type='button' onClick={runPreview} disabled={config.widgets.length === 0}>
+        <button type="button" onClick={runPreview} disabled={config.widgets.length === 0}>
           {previewMutation.isLoading ? 'Running…' : 'Preview'}
         </button>
       </div>
@@ -125,7 +125,7 @@ const ReportBuilderPage: React.FC = () => {
         <label>
           <span style={{ fontSize: '12px', color: '#6b7280' }}>Name</span>
           <input
-            type='text'
+            type="text"
             value={name}
             onChange={e => setName(e.target.value)}
             style={{
@@ -139,7 +139,7 @@ const ReportBuilderPage: React.FC = () => {
         <label>
           <span style={{ fontSize: '12px', color: '#6b7280' }}>Description</span>
           <input
-            type='text'
+            type="text"
             value={description}
             onChange={e => setDescription(e.target.value)}
             style={{

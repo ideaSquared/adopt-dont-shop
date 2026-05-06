@@ -48,17 +48,14 @@ export type RenderAndEmailJob = {
 const SCHEDULED_RUN = 'report:scheduled-run';
 const RENDER_AND_EMAIL = 'report:render-and-email';
 
-export const repeatJobKeyFor = (scheduleId: string): string =>
-  `scheduled-run:${scheduleId}`;
+export const repeatJobKeyFor = (scheduleId: string): string => `scheduled-run:${scheduleId}`;
 
 /**
  * Add or update the BullMQ repeatable for a schedule. Returns the
  * repeat-job key so the caller can persist it on the schedule row
  * (used to remove the repeatable on delete/disable).
  */
-export const enqueueScheduleRepeat = async (
-  schedule: ScheduledReport
-): Promise<string> => {
+export const enqueueScheduleRepeat = async (schedule: ScheduledReport): Promise<string> => {
   if (!isQueueAvailable()) {
     logger.warn('Queue unavailable — schedule will not run', {
       scheduleId: schedule.schedule_id,
@@ -71,20 +68,14 @@ export const enqueueScheduleRepeat = async (
   if (schedule.repeat_job_key) {
     await queue.removeRepeatableByKey(schedule.repeat_job_key).catch(() => undefined);
   }
-  await queue.add(
-    SCHEDULED_RUN,
-    { scheduleId: schedule.schedule_id } satisfies ScheduledRunJob,
-    {
-      jobId,
-      repeat: { pattern: schedule.cron, tz: schedule.timezone },
-    }
-  );
+  await queue.add(SCHEDULED_RUN, { scheduleId: schedule.schedule_id } satisfies ScheduledRunJob, {
+    jobId,
+    repeat: { pattern: schedule.cron, tz: schedule.timezone },
+  });
   return jobId;
 };
 
-export const removeScheduleRepeat = async (
-  schedule: ScheduledReport
-): Promise<void> => {
+export const removeScheduleRepeat = async (schedule: ScheduledReport): Promise<void> => {
   if (!isQueueAvailable() || !schedule.repeat_job_key) {
     return;
   }
@@ -130,7 +121,8 @@ const handleRenderAndEmail = async (data: RenderAndEmailJob): Promise<void> => {
   const subject = `Report: ${report.name}`;
   let html: string;
   // emailService expects FileAttachment with base64 string content.
-  let attachment: { filename: string; content: string; contentType: string; size: number } | null = null;
+  let attachment: { filename: string; content: string; contentType: string; size: number } | null =
+    null;
   const safeName = report.name.replace(/[^a-z0-9-_]+/gi, '_');
 
   if (data.format === ScheduledReportFormat.INLINE_HTML) {

@@ -19,20 +19,19 @@ interface SavedReportAttributes {
   deleted_at?: Date | null;
 }
 
-interface SavedReportCreationAttributes
-  extends Optional<
-    SavedReportAttributes,
-    | 'saved_report_id'
-    | 'rescue_id'
-    | 'template_id'
-    | 'description'
-    | 'is_archived'
-    | 'created_by'
-    | 'updated_by'
-    | 'created_at'
-    | 'updated_at'
-    | 'deleted_at'
-  > {}
+interface SavedReportCreationAttributes extends Optional<
+  SavedReportAttributes,
+  | 'saved_report_id'
+  | 'rescue_id'
+  | 'template_id'
+  | 'description'
+  | 'is_archived'
+  | 'created_by'
+  | 'updated_by'
+  | 'created_at'
+  | 'updated_at'
+  | 'deleted_at'
+> {}
 
 class SavedReport
   extends Model<SavedReportAttributes, SavedReportCreationAttributes>

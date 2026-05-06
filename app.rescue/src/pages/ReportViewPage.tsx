@@ -88,20 +88,20 @@ const ReportViewPage: React.FC = () => {
     <div style={containerStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Heading level='h1'>{reportQuery.data.name}</Heading>
+          <Heading level="h1">{reportQuery.data.name}</Heading>
           {reportQuery.data.description ? <Text>{reportQuery.data.description}</Text> : null}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <Link to={`/reports/${id}/edit`}>
-            <button type='button'>Edit</button>
+            <button type="button">Edit</button>
           </Link>
-          <button type='button' onClick={() => setScheduleOpen(o => !o)}>
+          <button type="button" onClick={() => setScheduleOpen(o => !o)}>
             Schedule
           </button>
-          <button type='button' onClick={handleShare}>
+          <button type="button" onClick={handleShare}>
             Share link
           </button>
-          <button type='button' onClick={handleDelete}>
+          <button type="button" onClick={handleDelete}>
             Delete
           </button>
         </div>
@@ -119,16 +119,16 @@ const ReportViewPage: React.FC = () => {
           <Text>Schedule (cron + recipient email)</Text>
           <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
             <input
-              type='text'
+              type="text"
               value={cron}
               onChange={e => setCron(e.target.value)}
               style={{ padding: '6px', border: '1px solid #e5e7eb', borderRadius: '6px' }}
             />
             <input
-              type='email'
+              type="email"
               value={recipientEmail}
               onChange={e => setRecipientEmail(e.target.value)}
-              placeholder='recipient@example.com'
+              placeholder="recipient@example.com"
               style={{
                 flex: 1,
                 padding: '6px',
@@ -136,7 +136,7 @@ const ReportViewPage: React.FC = () => {
                 borderRadius: '6px',
               }}
             />
-            <button type='button' onClick={handleSchedule}>
+            <button type="button" onClick={handleSchedule}>
               Save schedule
             </button>
           </div>

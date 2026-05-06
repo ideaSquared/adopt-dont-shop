@@ -32,11 +32,11 @@ const ReportsPage: React.FC = () => {
     <div style={containerStyle}>
       <div style={headerStyle}>
         <div>
-          <Heading level='h1'>Reports</Heading>
+          <Heading level="h1">Reports</Heading>
           <Text>Build custom reports for your rescue, schedule them, and share with the team.</Text>
         </div>
-        <Link to='/reports/new'>
-          <button type='button'>New report</button>
+        <Link to="/reports/new">
+          <button type="button">New report</button>
         </Link>
       </div>
 
@@ -48,7 +48,7 @@ const ReportsPage: React.FC = () => {
           background: '#fff',
         }}
       >
-        <Heading level='h2'>Your reports</Heading>
+        <Heading level="h2">Your reports</Heading>
         {reportsQuery.isLoading ? (
           <Text>Loading…</Text>
         ) : (reportsQuery.data ?? []).length === 0 ? (
@@ -87,7 +87,7 @@ const ReportsPage: React.FC = () => {
           background: '#fff',
         }}
       >
-        <Heading level='h2'>Templates</Heading>
+        <Heading level="h2">Templates</Heading>
         <div
           style={{
             display: 'grid',

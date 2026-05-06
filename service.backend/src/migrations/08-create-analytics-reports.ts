@@ -362,15 +362,11 @@ export default {
     // Partial unique on user shares only — token shares share the same row
     // with shared_with_user_id NULL, so we cannot put a plain unique on
     // (saved_report_id, shared_with_user_id).
-    await queryInterface.addIndex(
-      'report_shares',
-      ['saved_report_id', 'shared_with_user_id'],
-      {
-        name: 'report_shares_unique_user_idx',
-        unique: true,
-        where: { share_type: 'user' },
-      }
-    );
+    await queryInterface.addIndex('report_shares', ['saved_report_id', 'shared_with_user_id'], {
+      name: 'report_shares_unique_user_idx',
+      unique: true,
+      where: { share_type: 'user' },
+    });
     await queryInterface.addIndex('report_shares', ['token_hash'], {
       name: 'report_shares_token_hash_idx',
     });
