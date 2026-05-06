@@ -1167,32 +1167,44 @@ if (process.env.NODE_ENV === 'development') {
     }
   });
 
-  // Dev seeded users endpoint (development only)
+  // Dev seeded users endpoint — dynamic, queries the live DB so any
+  // faker-generated demo user is logged-in-able. NEVER exposed in prod
+  // (User table has real PII).
   router.get('/api/dev/seeded-users', async (req, res) => {
+    if (config.nodeEnv === 'production') {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
     try {
-      // Import User model to fetch seeded users
       const User = (await import('../models/User')).default;
 
-      // Get all seeded dev users (identifiable by specific email patterns)
+      const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+      const userTypeRaw = typeof req.query.userType === 'string' ? req.query.userType : '';
+      const userTypes = userTypeRaw
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const limitRaw =
+        typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 100;
+      const limit = Number.isFinite(limitRaw) ? Math.min(500, Math.max(1, limitRaw)) : 100;
+
+      const where: Record<string | symbol, unknown> = {};
+      if (userTypes.length > 0) {
+        where.userType = { [Op.in]: userTypes };
+      }
+      if (q) {
+        const like = `%${q}%`;
+        where[Op.or] = [
+          { firstName: { [Op.iLike]: like } },
+          { lastName: { [Op.iLike]: like } },
+          // email is citext, so iLike here is redundant but harmless and
+          // matches the firstName/lastName pattern.
+          { email: { [Op.iLike]: like } },
+        ];
+      }
+
       const seededUsers = await User.findAll({
-        where: {
-          email: {
-            [Op.or]: [
-              { [Op.like]: '%@adoptdontshop.dev' },
-              { [Op.like]: '%@pawsrescue.dev' },
-              { [Op.like]: '%@happytailsrescue.dev' },
-              { [Op.like]: '%@happytails.org' },
-              {
-                [Op.in]: [
-                  'john.smith@gmail.com',
-                  'emily.davis@yahoo.com',
-                  'michael.brown@outlook.com',
-                  'jessica.wilson@gmail.com',
-                ],
-              },
-            ],
-          },
-        },
+        where,
         attributes: [
           'userId',
           'firstName',
@@ -1215,13 +1227,10 @@ if (process.env.NODE_ENV === 'development') {
           'createdAt',
           'updatedAt',
         ],
-        order: [
-          ['userType', 'ASC'],
-          ['email', 'ASC'],
-        ],
+        order: [['createdAt', 'DESC']],
+        limit,
       });
 
-      // Transform to DevUser format with descriptions
       const transformedUsers = seededUsers.map(user => ({
         ...user.toJSON(),
         description: getDevUserDescription(user.userType, user.email),
@@ -1231,6 +1240,8 @@ if (process.env.NODE_ENV === 'development') {
         users: transformedUsers,
         password: 'DevPassword123!',
         source: 'database',
+        limit,
+        returned: transformedUsers.length,
         timestamp: new Date(),
       });
     } catch (error) {

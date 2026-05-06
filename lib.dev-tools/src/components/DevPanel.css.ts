@@ -230,3 +230,29 @@ export const warningBanner = style({
     },
   },
 });
+
+export const searchInput = style({
+  display: 'block',
+  width: '100%',
+  padding: '0.625rem 0.875rem',
+  marginBottom: '0.75rem',
+  border: '1px solid #d1d5db',
+  borderRadius: '8px',
+  fontSize: '0.875rem',
+  fontFamily: 'inherit',
+  background: '#ffffff',
+  selectors: {
+    '&:focus': {
+      outline: 'none',
+      borderColor: '#667eea',
+      boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.18)',
+    },
+  },
+});
+
+export const resultsSummary = style({
+  fontSize: '0.75rem',
+  color: '#6b7280',
+  marginBottom: '0.75rem',
+  textAlign: 'right',
+});
