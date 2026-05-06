@@ -114,6 +114,9 @@ export function DataTable<T extends object>({
 
   const allSelected = data.length > 0 && data.every(row => selectedRows.has(getRowId(row)));
 
+  const visiblePageCount = Math.min(5, totalPages);
+  const startPage = Math.max(1, Math.min(currentPage - 2, totalPages - visiblePageCount + 1));
+
   return (
     <div className={styles.tableContainer}>
       <div className={styles.tableWrapper}>
@@ -230,8 +233,8 @@ export function DataTable<T extends object>({
               <FiChevronLeft />
             </button>
 
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const pageNum = Math.max(1, Math.min(currentPage - 2 + i, totalPages - 4 + i));
+            {Array.from({ length: visiblePageCount }, (_, i) => {
+              const pageNum = startPage + i;
               return (
                 <button
                   key={pageNum}
