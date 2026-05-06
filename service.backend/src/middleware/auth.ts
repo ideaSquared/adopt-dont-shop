@@ -153,13 +153,16 @@ export const authenticateToken = async (
       req
     );
 
-    if (error instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({ error: 'Invalid token' });
+    // TokenExpiredError must be checked before JsonWebTokenError because
+    // TokenExpiredError extends JsonWebTokenError — checking the parent first
+    // would mask expiry errors as generic "Invalid token" responses.
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({ error: 'Token expired' });
       return;
     }
 
-    if (error instanceof jwt.TokenExpiredError) {
-      res.status(401).json({ error: 'Token expired' });
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.status(401).json({ error: 'Invalid token' });
       return;
     }
 

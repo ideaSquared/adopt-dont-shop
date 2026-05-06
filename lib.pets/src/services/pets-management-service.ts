@@ -21,20 +21,8 @@ export class PetManagementService {
   private config: PetsServiceConfig;
 
   constructor(apiService?: ApiService, config: PetsServiceConfig = {}) {
-    this.apiService =
-      apiService ||
-      new ApiService({
-        apiUrl: 'http://localhost:5000',
-        getAuthToken: () => {
-          // Get token from localStorage, prioritizing authToken over accessToken
-          if (typeof localStorage !== 'undefined') {
-            return localStorage.getItem('authToken') || localStorage.getItem('accessToken');
-          }
-          return null;
-        },
-      });
+    this.apiService = apiService || new ApiService();
     this.config = {
-      apiUrl: 'http://localhost:5000',
       debug: false,
       ...config,
     };
