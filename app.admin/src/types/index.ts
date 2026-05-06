@@ -42,6 +42,10 @@ export interface PaginatedResponse<T> {
     totalPages?: number;
   };
   pagination?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    pages?: number;
     currentPage?: number;
     totalItems?: number;
     itemsPerPage?: number;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
@@ -57,7 +57,12 @@ const Support: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<TicketCategory | 'all'>('all');
+  const [page, setPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter, priorityFilter, categoryFilter]);
 
   // Build filters for API
   const filters = useMemo(() => {
@@ -71,7 +76,7 @@ const Support: React.FC = () => {
       sortBy: 'createdAt' | 'updatedAt' | 'priority' | 'dueDate';
       sortOrder: 'asc' | 'desc';
     } = {
-      page: 1,
+      page,
       limit: 20,
       sortBy: 'createdAt',
       sortOrder: 'desc',
@@ -91,7 +96,7 @@ const Support: React.FC = () => {
     }
 
     return apiFilters;
-  }, [statusFilter, priorityFilter, categoryFilter, searchQuery]);
+  }, [statusFilter, priorityFilter, categoryFilter, searchQuery, page]);
 
   // Fetch tickets and stats using hooks
   const {
@@ -104,6 +109,7 @@ const Support: React.FC = () => {
   const { addResponse } = useTicketMutations();
 
   const tickets = ticketsData?.data || [];
+  const totalPages = ticketsData?.pagination?.totalPages ?? 1;
   const loading = ticketsLoading;
 
   // Stats from API
@@ -400,6 +406,9 @@ const Support: React.FC = () => {
         loading={loading}
         emptyMessage='No support tickets found matching your criteria'
         onRowClick={ticket => setSelectedTicket(ticket)}
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
         getRowId={ticket => ticket.ticketId}
       />
 

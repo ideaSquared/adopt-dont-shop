@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
 import { FiSearch } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
@@ -33,15 +33,23 @@ const formatDate = (dateString: string) =>
 const Applications: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkApplicationActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter]);
+
   const { data, isLoading, error } = useApplications({
     search: searchQuery || undefined,
     status: statusFilter !== 'all' ? (statusFilter as ApplicationStatus) : undefined,
+    page,
     limit: 20,
   });
+
+  const totalPages = data?.pagination?.pages ?? 1;
 
   const bulkUpdateApplications = useBulkUpdateApplications();
 
@@ -177,6 +185,9 @@ const Applications: React.FC = () => {
         data={applications}
         loading={isLoading}
         emptyMessage='No applications found matching your criteria'
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
         selectable
         selectedRows={selectedRows}
         onSelectionChange={setSelectedRows}
