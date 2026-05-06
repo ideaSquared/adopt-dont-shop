@@ -24,7 +24,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const tokenProvider = useMemo(() => () => authService.getToken(), []);
 
-  const chatUser = user ? { userId: user.userId, firstName: user.firstName } : null;
+  const chatUser = user
+    ? {
+        userId: user.userId,
+        firstName: user.firstName,
+        // Drives the staff-badge / rescue-branding logic in MessageItem.
+        // Empty / undefined rescueId means the viewer is treated as an
+        // adopter and rescue-staff messages render under the rescue's
+        // public name.
+        rescueId: user.rescueId ?? undefined,
+      }
+    : null;
 
   return (
     <LibChatProvider

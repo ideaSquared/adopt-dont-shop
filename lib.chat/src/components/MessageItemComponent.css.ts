@@ -51,3 +51,37 @@ export const senderName = style({
   margin: '0 0 0.25rem 3rem',
   letterSpacing: '0.01em',
 });
+
+export const senderRow = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.375rem',
+  margin: '0 0 0.25rem 3rem',
+});
+
+export const senderRowOwn = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.375rem',
+  margin: '0 0.5rem 0.25rem 0',
+  justifyContent: 'flex-end',
+});
+
+export const senderRowName = style({
+  fontSize: '0.75rem',
+  fontWeight: '600',
+  color: vars.text.tertiary,
+  letterSpacing: '0.01em',
+});
+
+export const staffBadge = style({
+  fontSize: '0.625rem',
+  fontWeight: '700',
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
+  color: vars.colors.primary['50'],
+  backgroundColor: vars.colors.primary['600'],
+  borderRadius: '0.25rem',
+  padding: '0.0625rem 0.375rem',
+  lineHeight: '1.2',
+});

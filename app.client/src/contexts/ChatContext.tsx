@@ -103,7 +103,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [checkGate, logEvent]
   );
 
-  const chatUser = user ? { userId: user.userId, firstName: user.firstName } : null;
+  const chatUser = user
+    ? {
+        userId: user.userId,
+        firstName: user.firstName,
+        // Adopters won't have rescueId set — passing it through anyway
+        // future-proofs this for users who hold both adopter + rescue
+        // staff roles, and keeps the lib.chat behaviour consistent
+        // across apps.
+        rescueId: user.rescueId ?? undefined,
+      }
+    : null;
 
   return (
     <LibChatProvider
