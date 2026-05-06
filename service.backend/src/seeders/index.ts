@@ -87,18 +87,12 @@ export async function runAllSeeders() {
     // eslint-disable-next-line no-console
     console.log(`📊 Running ${seeders.length} seeders in sequence...`);
 
-    // Ensure database connection
+    // Ensure database connection. Schema is owned by migrations; the seeder
+    // does not call sequelize.sync. Run `npm run db:migrate` before seeding
+    // a fresh database.
     await sequelize.authenticate();
     // eslint-disable-next-line no-console
     console.log('✅ Database connection established');
-
-    // Align the schema with the current models before seeding. Without this,
-    // `seed:dev` run against an older schema fails when a seeder queries a
-    // column that only exists in the latest model (e.g. chat_participants.rescue_id).
-    // This is the alpha-app convention: re-seed instead of running migrations.
-    await sequelize.sync({ alter: true });
-    // eslint-disable-next-line no-console
-    console.log('✅ Schema synchronized with models');
 
     await clearAllData();
 
