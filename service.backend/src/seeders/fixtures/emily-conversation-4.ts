@@ -1,12 +1,12 @@
-import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
+import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 
-import Chat from '../models/Chat';
+import Chat from '../../models/Chat';
 
-import ChatParticipant from '../models/ChatParticipant';
+import ChatParticipant from '../../models/ChatParticipant';
 
-import Message from '../models/Message';
+import Message from '../../models/Message';
 
-import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
+import { ChatStatus, MessageContentFormat, ParticipantRole } from '../../types/chat';
 
 // Emily Davis (fc369713-6925-4f02-a5c6-cb84b3652116) conversation with Paws Rescue Austin (special needs focus)
 

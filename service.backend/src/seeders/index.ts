@@ -1,7 +1,12 @@
 import sequelize from '../sequelize';
-import { seedPermissions } from './01-permissions';
-import { seedRoles } from './02-roles';
-import { seedRolePermissions } from './03-role-permissions';
+import { assertSeedAllowed } from './lib/env-guard';
+import {
+  seedApplicationQuestions,
+  seedEmailTemplates,
+  seedPermissions,
+  seedRolePermissions,
+  seedRoles,
+} from './reference';
 import { seedUsers } from './04-users';
 import { seedUserRoles } from './05-user-roles';
 import { seedRescues } from './06-rescues';
@@ -12,16 +17,9 @@ import { seedChats } from './10-chats';
 import { seedMessages } from './11-messages';
 import { seedNotifications } from './12-notifications';
 import { seedRatings } from './13-ratings';
-import { seedEmailTemplates } from './14-email-templates';
 import { up as seedSwipeSessions } from './15-swipe-sessions';
 import { up as seedSwipeActions } from './16-swipe-actions';
-import { seedEmilyConversation } from './17-emily-conversation';
-import { seedEmilyConversation2 } from './19-emily-conversation-2';
-import { seedEmilyAttachmentTest } from './20-emily-attachment-test';
-import { seedEmilyConversation3 } from './20-emily-conversation-3';
 import { seedFileUploads } from './20250111-file-uploads-seeder';
-import { seedEmilyConversation4 } from './21-emily-conversation-4';
-import { seedEmilyTestNotifications } from './22-emily-test-notifications';
 import { seedHomeVisits } from './22-home-visits';
 import { seedApplicationTimeline } from './23-application-timeline';
 import { seedInvitations } from './24-invitations';
@@ -30,31 +28,58 @@ import { seedReports } from './26-reports';
 import { seedModeratorActions } from './27-moderator-actions';
 import { seedUserSanctions } from './28-user-sanctions';
 import { up as seedAuditLogs } from './29-audit-logs';
-import { seedApplicationQuestions } from './30-application-questions';
-import { seedE2EFixtures } from './31-e2e-fixtures';
+import {
+  seedDemoApplications,
+  seedDemoChats,
+  seedDemoMessages,
+  seedDemoNotifications,
+  seedDemoPets,
+  seedDemoRatings,
+  seedDemoRescues,
+  seedDemoStaff,
+  seedDemoUsers,
+} from './demo';
+import {
+  seedE2EFixtures,
+  seedEmilyAttachmentTest,
+  seedEmilyConversation,
+  seedEmilyConversation2,
+  seedEmilyConversation3,
+  seedEmilyConversation4,
+  seedEmilyTestNotifications,
+} from './fixtures';
 
 const seeders = [
   { name: 'Permissions', seeder: seedPermissions },
   { name: 'Roles', seeder: seedRoles },
   { name: 'Role Permissions', seeder: seedRolePermissions },
   { name: 'Users', seeder: seedUsers },
+  { name: 'Demo Users (Faker)', seeder: seedDemoUsers },
   { name: 'User Roles', seeder: seedUserRoles },
   { name: 'Rescues', seeder: seedRescues },
+  { name: 'Demo Rescues (Faker)', seeder: seedDemoRescues },
   { name: 'Staff Members', seeder: seedStaffMembers },
+  { name: 'Demo Staff (Faker)', seeder: seedDemoStaff },
   { name: 'Invitations', seeder: seedInvitations },
   { name: 'Support Tickets', seeder: seedSupportTickets },
   { name: 'Reports', seeder: seedReports },
   { name: 'Moderator Actions', seeder: seedModeratorActions },
   { name: 'User Sanctions', seeder: seedUserSanctions },
   { name: 'Pets', seeder: seedPets },
+  { name: 'Demo Pets (Faker)', seeder: seedDemoPets },
   { name: 'Applications', seeder: seedApplications },
+  { name: 'Demo Applications (Faker)', seeder: seedDemoApplications },
   { name: 'Home Visits', seeder: seedHomeVisits },
   { name: 'Application Timeline', seeder: seedApplicationTimeline },
   { name: 'Chats', seeder: seedChats },
+  { name: 'Demo Chats (Faker)', seeder: seedDemoChats },
   { name: 'Messages', seeder: seedMessages },
+  { name: 'Demo Messages (Faker)', seeder: seedDemoMessages },
   { name: 'File Uploads', seeder: seedFileUploads },
   { name: 'Notifications', seeder: seedNotifications },
+  { name: 'Demo Notifications (Faker)', seeder: seedDemoNotifications },
   { name: 'Ratings', seeder: seedRatings },
+  { name: 'Demo Ratings (Faker)', seeder: seedDemoRatings },
   { name: 'Email Templates', seeder: seedEmailTemplates },
   { name: 'Emily Conversation', seeder: seedEmilyConversation },
   { name: 'Emily Conversation 2', seeder: seedEmilyConversation2 },
@@ -70,24 +95,24 @@ const seeders = [
 ];
 
 export async function runAllSeeders() {
+  // Today this entry point bundles reference + demo + fixtures into one call.
+  // Until the carve-out lands, gate the whole thing as the most destructive of
+  // the three: a demo seed (which also implies a reset).
+  assertSeedAllowed('demo');
+  assertSeedAllowed('reset');
+
   try {
     // eslint-disable-next-line no-console
     console.log('🌱 Starting database seeding...');
     // eslint-disable-next-line no-console
     console.log(`📊 Running ${seeders.length} seeders in sequence...`);
 
-    // Ensure database connection
+    // Ensure database connection. Schema is owned by migrations; the seeder
+    // does not call sequelize.sync. Run `npm run db:migrate` before seeding
+    // a fresh database.
     await sequelize.authenticate();
     // eslint-disable-next-line no-console
     console.log('✅ Database connection established');
-
-    // Align the schema with the current models before seeding. Without this,
-    // `seed:dev` run against an older schema fails when a seeder queries a
-    // column that only exists in the latest model (e.g. chat_participants.rescue_id).
-    // This is the alpha-app convention: re-seed instead of running migrations.
-    await sequelize.sync({ alter: true });
-    // eslint-disable-next-line no-console
-    console.log('✅ Schema synchronized with models');
 
     await clearAllData();
 
@@ -113,6 +138,8 @@ export async function runAllSeeders() {
 }
 
 export async function clearAllData() {
+  assertSeedAllowed('reset');
+
   try {
     // eslint-disable-next-line no-console
     console.log('🧹 Clearing all seeded data...');
@@ -164,21 +191,6 @@ export async function clearAllData() {
   }
 }
 
-// CLI execution
-if (require.main === module) {
-  const command = process.argv[2];
-
-  if (command === 'clear') {
-    clearAllData()
-      // eslint-disable-next-line no-process-exit
-      .then(() => process.exit(0))
-      // eslint-disable-next-line no-process-exit
-      .catch(() => process.exit(1));
-  } else {
-    runAllSeeders()
-      // eslint-disable-next-line no-process-exit
-      .then(() => process.exit(0))
-      // eslint-disable-next-line no-process-exit
-      .catch(() => process.exit(1));
-  }
-}
+// CLI moved to ./cli.ts. runAllSeeders / clearAllData remain exported for
+// the dev boot path in src/index.ts and for test setup that wants the
+// legacy "do everything" entry. New code should compose via the CLI.

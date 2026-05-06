@@ -16,16 +16,31 @@ The seeders create a complete development environment with:
 
 ## Quick Start
 
-### Run All Seeders
+Seeders are split into three classes (reference / demo / fixtures) with
+explicit composition — no "do everything" alias.
+
+### Reference data only (idempotent, safe everywhere)
 
 ```bash
-npm run seed:dev
+npm run db:seed:reference
 ```
 
-### Clear All Seeded Data
+### Demo data (dev / staging only — Faker, requires confirmation flag)
 
 ```bash
-npm run seed:clear
+npm run db:seed:demo
+```
+
+### Test fixtures (Emily conversations, e2e accounts)
+
+```bash
+npm run db:seed:fixtures
+```
+
+### Truncate demo + fixture tables
+
+```bash
+npm run db:seed:reset
 ```
 
 ## Seeder Order
@@ -156,9 +171,9 @@ To add a new seeder:
 
 If you get foreign key constraint errors:
 
-1. Run `npm run seed:clear` first
-2. Ensure database migrations are up to date
-3. Run `npm run seed:dev` again
+1. Run `npm run db:seed:reset` first
+2. Ensure database migrations are up to date (`npm run db:migrate`)
+3. Re-seed in order: `npm run db:seed:reference && npm run db:seed:demo && npm run db:seed:fixtures`
 
 ### Performance
 

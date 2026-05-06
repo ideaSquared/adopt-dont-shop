@@ -2,7 +2,7 @@ import EmailTemplate, {
   TemplateCategory,
   TemplateStatus,
   TemplateType,
-} from '../models/EmailTemplate';
+} from '../../models/EmailTemplate';
 
 const emailTemplateData = [
   {
