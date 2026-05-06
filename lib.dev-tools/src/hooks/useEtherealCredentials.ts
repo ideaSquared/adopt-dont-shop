@@ -27,7 +27,7 @@ export const useEtherealCredentials = () => {
     ) {
       const fetchCredentials = async () => {
         try {
-          const response = await fetch('/api/dev/email/provider-info');
+          const response = await fetch('/api/v1/email/provider-info');
           if (response.ok) {
             const data = await response.json();
             setCredentials(data);

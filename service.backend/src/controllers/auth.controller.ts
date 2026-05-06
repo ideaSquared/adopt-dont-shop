@@ -65,7 +65,7 @@ export class AuthController {
       res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
       res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
 
-      const { refreshToken: _, token: __, ...responseBody } = result;
+      const { refreshToken: _, ...responseBody } = result;
       res.status(201).json(responseBody);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -93,7 +93,7 @@ export class AuthController {
       res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
       res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
 
-      const { refreshToken: _, token: __, ...responseBody } = result;
+      const { refreshToken: _, ...responseBody } = result;
       res.json(responseBody);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -149,7 +149,7 @@ export class AuthController {
       res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
       res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
 
-      const { refreshToken: _, token: __, ...responseBody } = result;
+      const { refreshToken: _, ...responseBody } = result;
       res.json(responseBody);
     } catch (error) {
       logger.error('Token refresh failed:', error);
