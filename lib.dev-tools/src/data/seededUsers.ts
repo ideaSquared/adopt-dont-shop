@@ -1,4 +1,30 @@
-import { DevUser } from '../components/DevPanel';
+// React-free dev seeded user data. Importable as
+// `@adopt-dont-shop/lib.dev-tools/data` so non-UI consumers (node scripts,
+// integration tests) don't pull in React + styled-components transitively.
+
+export interface DevUser {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  userType: string;
+  status: string;
+  emailVerified: boolean;
+  country: string;
+  city: string;
+  addressLine1: string;
+  postalCode: string;
+  timezone: string;
+  language: string;
+  bio: string;
+  dateOfBirth: string;
+  phoneNumber?: string;
+  termsAcceptedAt: string;
+  privacyPolicyAcceptedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  description: string;
+}
 
 // Dev password used in backend seeders
 export const SEEDED_PASSWORD = 'DevPassword123!';

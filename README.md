@@ -10,22 +10,23 @@ A monorepo containing three React frontends, a Node.js/Express backend, and shar
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose v2)
 - [Git](https://git-scm.com/)
 
-### Setup
+### Setup (3 steps)
 
 ```bash
 git clone https://github.com/ideaSquared/adopt-dont-shop.git
 cd adopt-dont-shop
 npm run setup
-npm run secrets:generate >> .env   # append fresh JWT/session secrets
 ```
 
-The `npm run setup` command will:
+That's it. `npm run setup` is the one-shot bootstrap and it will:
 1. Verify Node.js v20+
-2. Install all dependencies
-3. Build shared libraries (required by apps)
-4. Create `.env` from `.env.example`
+2. Create `.env` from `.env.example` (if missing)
+3. **Generate fresh JWT / session / CSRF / encryption secrets straight into `.env`** (won't overwrite existing values)
+4. Install all dependencies (`npm ci`)
+5. Build shared libraries (required by apps)
+6. Run `npm run validate:env` to surface any remaining required values
 
-Then edit `.env` to set `POSTGRES_PASSWORD` and any third-party API keys you need.
+After it finishes, set `POSTGRES_PASSWORD` and any third-party API keys in `.env`, then start the stack with `npm run docker:dev`.
 
 ### Run (Docker — recommended)
 
