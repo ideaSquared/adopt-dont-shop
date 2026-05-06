@@ -2,8 +2,8 @@ import ApplicationQuestion, {
   QuestionCategory,
   QuestionScope,
   QuestionType,
-} from '../models/ApplicationQuestion';
-import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
+} from '../../models/ApplicationQuestion';
+import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 
 type CoreQuestionSeed = {
   question_id: string;

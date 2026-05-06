@@ -1,8 +1,12 @@
 import sequelize from '../sequelize';
 import { assertSeedAllowed } from './lib/env-guard';
-import { seedPermissions } from './01-permissions';
-import { seedRoles } from './02-roles';
-import { seedRolePermissions } from './03-role-permissions';
+import {
+  seedApplicationQuestions,
+  seedEmailTemplates,
+  seedPermissions,
+  seedRolePermissions,
+  seedRoles,
+} from './reference';
 import { seedUsers } from './04-users';
 import { seedUserRoles } from './05-user-roles';
 import { seedRescues } from './06-rescues';
@@ -13,7 +17,6 @@ import { seedChats } from './10-chats';
 import { seedMessages } from './11-messages';
 import { seedNotifications } from './12-notifications';
 import { seedRatings } from './13-ratings';
-import { seedEmailTemplates } from './14-email-templates';
 import { up as seedSwipeSessions } from './15-swipe-sessions';
 import { up as seedSwipeActions } from './16-swipe-actions';
 import { seedFileUploads } from './20250111-file-uploads-seeder';
@@ -25,7 +28,6 @@ import { seedReports } from './26-reports';
 import { seedModeratorActions } from './27-moderator-actions';
 import { seedUserSanctions } from './28-user-sanctions';
 import { up as seedAuditLogs } from './29-audit-logs';
-import { seedApplicationQuestions } from './30-application-questions';
 import {
   seedE2EFixtures,
   seedEmilyAttachmentTest,

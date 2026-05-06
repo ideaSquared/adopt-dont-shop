@@ -1,4 +1,4 @@
-import Role from '../models/Role';
+import Role from '../../models/Role';
 
 const roles = [
   {
