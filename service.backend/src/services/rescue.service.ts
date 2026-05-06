@@ -174,6 +174,7 @@ export class RescueService {
         order: orderClause as Order,
         limit,
         offset,
+        distinct: true,
         include: [
           {
             model: StaffMember,
