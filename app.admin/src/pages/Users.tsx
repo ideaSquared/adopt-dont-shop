@@ -89,6 +89,11 @@ const Users: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, userTypeFilter, statusFilter]);
 
   // Modal state
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -106,9 +111,11 @@ const Users: React.FC = () => {
     search: searchQuery,
     userType: userTypeFilter !== 'all' ? userTypeFilter : undefined,
     status: statusFilter !== 'all' ? statusFilter : undefined,
-    page: 1,
+    page,
     limit: 20,
   });
+
+  const totalPages = data?.pagination?.pages ?? data?.pagination?.totalPages ?? 1;
 
   const suspendUser = useSuspendUser();
   const unsuspendUser = useUnsuspendUser();
@@ -525,6 +532,9 @@ const Users: React.FC = () => {
         loading={isLoading}
         emptyMessage='No users found matching your criteria'
         onRowClick={handleRowClick}
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
         selectable
         selectedRows={selectedRows}
         onSelectionChange={setSelectedRows}

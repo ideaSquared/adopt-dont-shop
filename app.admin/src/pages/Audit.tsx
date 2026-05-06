@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
@@ -57,6 +57,10 @@ const Audit: React.FC = () => {
   const [page, setPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
+  useEffect(() => {
+    setPage(1);
+  }, [actionFilter, resourceFilter, statusFilter]);
+
   const sevenDaysAgo = useMemo(() => {
     const date = new Date();
     date.setDate(date.getDate() - 7);
@@ -89,6 +93,7 @@ const Audit: React.FC = () => {
   );
 
   const logs = data?.data || [];
+  const totalPages = data?.pagination?.pages ?? 1;
 
   const filteredLogs = useMemo(() => {
     if (!searchQuery) {
@@ -327,6 +332,9 @@ const Audit: React.FC = () => {
         loading={isLoading}
         emptyMessage='No audit logs found matching your criteria'
         onRowClick={log => setSelectedLog(log)}
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
         getRowId={log => log.id.toString()}
       />
 

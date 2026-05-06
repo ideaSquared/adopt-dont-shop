@@ -51,12 +51,17 @@ const Rescues: React.FC = () => {
   const navigate = useNavigate();
 
   const [rescues, setRescues] = useState<AdminRescue[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [currentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
 
   const [selectedRescue, setSelectedRescue] = useState<AdminRescue | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -85,9 +90,11 @@ const Rescues: React.FC = () => {
       });
 
       setRescues(result.data);
+      setTotalPages(result.pagination?.pages ?? 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch rescues');
       setRescues([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -341,6 +348,9 @@ const Rescues: React.FC = () => {
         loading={loading}
         emptyMessage='No rescue organizations found matching your criteria'
         onRowClick={rescue => handleViewDetails(rescue.rescueId)}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
         selectable
         selectedRows={selectedRows}
         onSelectionChange={setSelectedRows}

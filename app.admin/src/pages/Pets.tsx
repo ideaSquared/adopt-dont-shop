@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiPackage } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
@@ -36,15 +36,23 @@ const formatDate = (dateString: string) =>
 const Pets: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkPetActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter]);
+
   const { data, isLoading, error } = usePets({
     search: searchQuery || undefined,
     status: statusFilter !== 'all' ? (statusFilter as PetStatus) : undefined,
+    page,
     limit: 20,
   });
+
+  const totalPages = data?.pagination?.pages ?? 1;
 
   const bulkUpdatePets = useBulkUpdatePets();
 
@@ -198,6 +206,9 @@ const Pets: React.FC = () => {
         data={pets}
         loading={isLoading}
         emptyMessage='No pets found matching your criteria'
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
         selectable
         selectedRows={selectedRows}
         onSelectionChange={setSelectedRows}
