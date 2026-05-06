@@ -173,21 +173,6 @@ export async function clearAllData() {
   }
 }
 
-// CLI execution
-if (require.main === module) {
-  const command = process.argv[2];
-
-  if (command === 'clear') {
-    clearAllData()
-      // eslint-disable-next-line no-process-exit
-      .then(() => process.exit(0))
-      // eslint-disable-next-line no-process-exit
-      .catch(() => process.exit(1));
-  } else {
-    runAllSeeders()
-      // eslint-disable-next-line no-process-exit
-      .then(() => process.exit(0))
-      // eslint-disable-next-line no-process-exit
-      .catch(() => process.exit(1));
-  }
-}
+// CLI moved to ./cli.ts. runAllSeeders / clearAllData remain exported for
+// the dev boot path in src/index.ts and for test setup that wants the
+// legacy "do everything" entry. New code should compose via the CLI.
