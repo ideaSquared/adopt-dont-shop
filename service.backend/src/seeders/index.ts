@@ -1,4 +1,5 @@
 import sequelize from '../sequelize';
+import { assertSeedAllowed } from './lib/env-guard';
 import { seedPermissions } from './01-permissions';
 import { seedRoles } from './02-roles';
 import { seedRolePermissions } from './03-role-permissions';
@@ -70,6 +71,12 @@ const seeders = [
 ];
 
 export async function runAllSeeders() {
+  // Today this entry point bundles reference + demo + fixtures into one call.
+  // Until the carve-out lands, gate the whole thing as the most destructive of
+  // the three: a demo seed (which also implies a reset).
+  assertSeedAllowed('demo');
+  assertSeedAllowed('reset');
+
   try {
     // eslint-disable-next-line no-console
     console.log('🌱 Starting database seeding...');
@@ -113,6 +120,8 @@ export async function runAllSeeders() {
 }
 
 export async function clearAllData() {
+  assertSeedAllowed('reset');
+
   try {
     // eslint-disable-next-line no-console
     console.log('🧹 Clearing all seeded data...');

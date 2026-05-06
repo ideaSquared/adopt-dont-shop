@@ -466,6 +466,10 @@ const startServer = async () => {
 
           // Always run seeders after force sync
           logger.info('Running database seeders...');
+          // Dev boot already gated by config.nodeEnv === 'development' and an
+          // explicit trigger (FORCE_SEED or empty DB). Confirm the env-guard
+          // here so the seed call doesn't refuse the dev bootstrap.
+          process.env.ALLOW_DEMO_SEED = 'true';
           const { runAllSeeders } = await import('./seeders');
           await runAllSeeders();
           logger.info('Database seeding completed.');
