@@ -676,30 +676,37 @@ class AdminService {
   }
 
   /**
-   * Export data for compliance/backup
+   * Export data for compliance/backup.
+   *
+   * Filters are intentionally not accepted: forwarding caller-supplied
+   * objects into Sequelize `where` clauses lets a (compromised or
+   * malicious) admin construct arbitrary boolean queries via Sequelize
+   * operators (`$or`, `$gt`, `$jsonb` …) and exfiltrate filtered slices
+   * of audit logs and other sensitive tables. If filtered exports are
+   * needed, expose them as named query parameters with a per-entity Zod
+   * schema and translate to a `where` clause server-side.
    */
-  static async exportData(dataType: string, format = 'json', filters?: JsonObject) {
+  static async exportData(dataType: string, format = 'json') {
     try {
       let data;
 
       switch (dataType) {
         case 'users':
           data = await User.findAll({
-            where: filters || {},
             attributes: { exclude: ['password'] },
           });
           break;
         case 'rescues':
-          data = await Rescue.findAll({ where: filters || {} });
+          data = await Rescue.findAll();
           break;
         case 'pets':
-          data = await Pet.findAll({ where: filters || {} });
+          data = await Pet.findAll();
           break;
         case 'applications':
-          data = await Application.findAll({ where: filters || {} });
+          data = await Application.findAll();
           break;
         case 'audit_logs':
-          data = await AuditLog.findAll({ where: filters || {} });
+          data = await AuditLog.findAll();
           break;
         default:
           throw new Error('Invalid data type for export');
