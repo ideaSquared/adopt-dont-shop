@@ -11,6 +11,12 @@
       "development": "./src/index.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./data": {
+      "types": "./dist/data/index.d.ts",
+      "development": "./src/data/index.ts",
+      "import": "./dist/data/index.js",
+      "default": "./dist/data/index.js"
     }
   },
   "files": [
@@ -21,9 +27,9 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "test": "jest --passWithNoTests",
+    "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage --passWithNoTests",
+    "test:coverage": "jest --coverage",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "type-check": "tsc --noEmit",

@@ -59,11 +59,55 @@ jobs:
               - 'eslint-config-base/**'
 
   # ============================================================================
+  # BUILD-LIBS — single source of truth for compiled lib.*/dist artifacts
+  # All downstream jobs depend on this and download instead of rebuilding,
+  # eliminating ~4× redundant builds per CI run.
+  # ============================================================================
+  build-libs:
+    name: Build Shared Libraries
+    needs: changes
+    if: |
+      needs.changes.outputs.backend == 'true' ||
+      needs.changes.outputs.frontend == 'true' ||
+      needs.changes.outputs.libs == 'true'
+    runs-on: ubuntu-latest
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build shared libraries
+        run: npm run build:libs
+
+      # Bundle every lib.*/dist (and matching package.json) into a single artifact
+      # that downstream jobs pick up via download-artifact. Wildcard expansion
+      # is handled by upload-artifact's tar layer.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lib-dist
+          path: |
+            lib.*/dist/**
+            lib.*/package.json
+          retention-days: 1
+          if-no-files-found: error
+
+  # ============================================================================
   # BACKEND — lint → test → build (tsc build doubles as type-check)
   # ============================================================================
   test-backend:
     name: Backend Tests
-    needs: changes
+    needs: [changes, build-libs]
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
 
@@ -101,8 +145,10 @@ jobs:
       - name: Validate environment configuration
         run: npm run validate:env
 
-      - name: Build shared libraries
-        run: npm run build:libs
+      - name: Download pre-built libraries
+        uses: actions/download-artifact@v7
+        with:
+          name: lib-dist
 
       - name: Lint
         run: npm run lint
@@ -131,7 +177,7 @@ jobs:
   # ============================================================================
   test-frontend:
     name: Frontend Tests (${{ matrix.app }})
-    needs: changes
+    needs: [changes, build-libs]
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
 
@@ -155,8 +201,10 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci
 
-      - name: Build shared libraries
-        run: npm run build:libs
+      - name: Download pre-built libraries
+        uses: actions/download-artifact@v7
+        with:
+          name: lib-dist
 
       - name: Lint
         run: npm run lint
@@ -183,12 +231,14 @@ jobs:
           retention-days: 7
 
   # ============================================================================
-  # SHARED LIBRARIES — all 21 lib.* packages tested via Turbo
-  # Turbo resolves build order via dependsOn, so libs build in dependency order
+  # SHARED LIBRARIES — lint/test/type-check the libs themselves
+  # The build job above produces dist/, so we don't repeat it here. Turbo's
+  # cache will detect dist/ is up-to-date and short-circuit any rebuild
+  # implicitly required by lint/test/type-check.
   # ============================================================================
   test-libs:
     name: Library Tests
-    needs: changes
+    needs: [changes, build-libs]
     if: needs.changes.outputs.libs == 'true'
     runs-on: ubuntu-latest
 
@@ -207,8 +257,13 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci
 
-      - name: Build, lint, test and type-check all libraries
-        run: npx turbo run build lint test type-check --filter='@adopt-dont-shop/lib.*'
+      - name: Download pre-built libraries
+        uses: actions/download-artifact@v7
+        with:
+          name: lib-dist
+
+      - name: Lint, test and type-check all libraries
+        run: npx turbo run lint test type-check --filter='@adopt-dont-shop/lib.*'
 
       - uses: actions/upload-artifact@v7
         if: always()

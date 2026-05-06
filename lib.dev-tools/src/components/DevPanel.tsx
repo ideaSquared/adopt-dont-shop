@@ -4,34 +4,26 @@ import { isDevelopmentMode } from '../index';
 import { useSeededUsers } from '../hooks/useSeededUsers';
 import * as styles from './DevPanel.css';
 
-// Dev user interface extending base User type
-export interface DevUser {
+// Re-export DevUser from the data module so existing consumers of this path
+// keep working. New code should import from '@adopt-dont-shop/lib.dev-tools/data'.
+export type { DevUser } from '../data/seededUsers';
+import type { DevUser } from '../data/seededUsers';
+
+/**
+ * Minimum shape DevPanel needs to render the authenticated state. Apps may pass
+ * a richer user object (e.g. lib.auth `User`) — only the fields below are read.
+ */
+export interface DevPanelAuthUser {
   userId: string;
+  email: string;
   firstName: string;
   lastName: string;
-  email: string;
   userType: string;
-  status: string;
-  emailVerified: boolean;
-  country: string;
-  city: string;
-  addressLine1: string;
-  postalCode: string;
-  timezone: string;
-  language: string;
-  bio: string;
-  dateOfBirth: string;
-  phoneNumber?: string;
-  termsAcceptedAt: string;
-  privacyPolicyAcceptedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  description: string;
 }
 
 // Auth context interface that apps must provide
 export interface DevPanelAuthContext {
-  user: any;
+  user: DevPanelAuthUser | null;
   login: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
