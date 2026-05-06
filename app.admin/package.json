@@ -20,6 +20,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@adopt-dont-shop/lib.analytics": "*",
     "@adopt-dont-shop/lib.api": "*",
     "@adopt-dont-shop/lib.audit-logs": "*",
     "@adopt-dont-shop/lib.auth": "*",

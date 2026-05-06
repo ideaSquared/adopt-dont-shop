@@ -77,6 +77,12 @@ import FieldPermission from './FieldPermission';
 import Content from './Content';
 import NavigationMenu from './NavigationMenu';
 
+// Analytics Reports (ADS-105)
+import ReportTemplate from './ReportTemplate';
+import SavedReport from './SavedReport';
+import ScheduledReport from './ScheduledReport';
+import ReportShare from './ReportShare';
+
 // Define all models
 const models = {
   User,
@@ -135,6 +141,10 @@ const models = {
   HomeVisitStatusTransition,
   Content,
   NavigationMenu,
+  ReportTemplate,
+  SavedReport,
+  ScheduledReport,
+  ReportShare,
 };
 
 // Setup associations (done explicitly below instead of using associate methods)
@@ -611,6 +621,47 @@ try {
 
   User.hasMany(NavigationMenu, { foreignKey: 'created_by', as: 'CreatedMenus' });
   NavigationMenu.belongsTo(User, { foreignKey: 'created_by', as: 'Creator' });
+
+  // Analytics reports (ADS-105)
+  // SavedReport — owner + optional rescue scope + optional template origin
+  User.hasMany(SavedReport, { foreignKey: 'user_id', as: 'SavedReports' });
+  SavedReport.belongsTo(User, { foreignKey: 'user_id', as: 'Owner' });
+  Rescue.hasMany(SavedReport, { foreignKey: 'rescue_id', as: 'SavedReports' });
+  SavedReport.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
+  ReportTemplate.hasMany(SavedReport, { foreignKey: 'template_id', as: 'DerivedReports' });
+  SavedReport.belongsTo(ReportTemplate, { foreignKey: 'template_id', as: 'Template' });
+
+  // ReportTemplate — optional rescue ownership for private templates
+  Rescue.hasMany(ReportTemplate, { foreignKey: 'rescue_id', as: 'ReportTemplates' });
+  ReportTemplate.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
+
+  // ScheduledReport — child of SavedReport, deletes cascade with parent
+  SavedReport.hasMany(ScheduledReport, {
+    foreignKey: 'saved_report_id',
+    as: 'Schedules',
+  });
+  ScheduledReport.belongsTo(SavedReport, {
+    foreignKey: 'saved_report_id',
+    as: 'Report',
+  });
+
+  // ReportShare — child of SavedReport
+  SavedReport.hasMany(ReportShare, {
+    foreignKey: 'saved_report_id',
+    as: 'Shares',
+  });
+  ReportShare.belongsTo(SavedReport, {
+    foreignKey: 'saved_report_id',
+    as: 'Report',
+  });
+  User.hasMany(ReportShare, {
+    foreignKey: 'shared_with_user_id',
+    as: 'ReceivedReportShares',
+  });
+  ReportShare.belongsTo(User, {
+    foreignKey: 'shared_with_user_id',
+    as: 'SharedWith',
+  });
 } catch (error) {
   // Silently ignore association errors in test environments where models may be loaded multiple times
   if (process.env.NODE_ENV !== 'test') {

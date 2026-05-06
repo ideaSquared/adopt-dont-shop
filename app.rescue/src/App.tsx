@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Spinner } from '@adopt-dont-shop/lib.components';
+import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -17,6 +18,10 @@ const Communication = lazy(() => import('./pages/Communication'));
 const Events = lazy(() => import('./pages/Events'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
 const Analytics = lazy(() => import('./pages/Analytics'));
+// Reports (ADS-105)
+const Reports = lazy(() => import('./pages/Reports'));
+const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
+const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
 
 import './App.css';
 
@@ -34,6 +39,8 @@ const PageLoader = () => (
 );
 
 function App() {
+  // ADS-105: subscribe to backend analytics:invalidate events.
+  useAnalyticsInvalidator();
   return (
     <>
       {/* Public Routes */}
@@ -57,6 +64,10 @@ function App() {
                       <Route path="/communication" element={<Communication />} />
                       <Route path="/events" element={<Events />} />
                       <Route path="/analytics" element={<Analytics />} />
+                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/reports/new" element={<ReportBuilderPage />} />
+                      <Route path="/reports/:id" element={<ReportViewPage />} />
+                      <Route path="/reports/:id/edit" element={<ReportBuilderPage />} />
                     </Routes>
                   </Suspense>
                 </Layout>

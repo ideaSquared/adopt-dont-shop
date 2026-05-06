@@ -87,3 +87,38 @@ export type { ConfirmDialogProps } from './components/ui/ConfirmDialog';
 // Component Types
 export type { FooterProps } from './components/navigation/Footer';
 export type { HeaderProps } from './components/navigation/Header';
+
+// Analytics chart primitives + report builder (ADS-105)
+export { ChartFrame } from './components/charts/ChartFrame';
+export type { ChartFrameProps } from './components/charts/ChartFrame';
+export { LineChart } from './components/charts/LineChart';
+export type { LineChartProps } from './components/charts/LineChart';
+export { BarChart } from './components/charts/BarChart';
+export type { BarChartProps } from './components/charts/BarChart';
+export { PieChart } from './components/charts/PieChart';
+export type { PieChartProps } from './components/charts/PieChart';
+export { AreaChart } from './components/charts/AreaChart';
+export type { AreaChartProps } from './components/charts/AreaChart';
+export { MetricCard } from './components/charts/MetricCard';
+export type { MetricCardProps, MetricCardFormat } from './components/charts/MetricCard';
+export { DataTable } from './components/charts/DataTable';
+export type { DataTableProps, DataTableColumn } from './components/charts/DataTable';
+export { PALETTE as ChartPalette } from './components/charts/types';
+export type { ChartSeries, ChartDatum } from './components/charts/types';
+
+export { ReportRenderer } from './components/reports/ReportRenderer';
+export type {
+  ReportRendererProps,
+  ReportRendererWidget,
+} from './components/reports/ReportRenderer';
+export { ReportBuilder } from './components/reports/ReportBuilder';
+export type { ReportBuilderProps, ReportBuilderConfig } from './components/reports/ReportBuilder';
+export { FilterPanel } from './components/reports/FilterPanel';
+export type { FilterPanelProps, FilterPanelValue } from './components/reports/FilterPanel';
+export {
+  WidgetPicker,
+  DEFAULT_PRESETS as DEFAULT_WIDGET_PRESETS,
+} from './components/reports/WidgetPicker';
+export type { WidgetPickerProps, WidgetPreset } from './components/reports/WidgetPicker';
+export { DrillDownModal } from './components/reports/DrillDownModal';
+export type { DrillDownModalProps } from './components/reports/DrillDownModal';

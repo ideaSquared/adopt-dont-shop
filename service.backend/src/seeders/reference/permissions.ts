@@ -139,6 +139,17 @@ const permissions = [
   // Notifications (expanded)
   'notifications.bulk_create',
   'notifications.cleanup',
+
+  // Analytics Reports (ADS-105)
+  'reports.create',
+  'reports.read.own',
+  'reports.read.rescue',
+  'reports.read.platform',
+  'reports.update',
+  'reports.delete',
+  'reports.share',
+  'reports.schedule',
+  'reports.template.manage',
 ];
 
 export async function seedPermissions() {

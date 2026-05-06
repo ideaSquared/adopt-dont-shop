@@ -133,6 +133,17 @@ export const PERMISSIONS = {
   // System
   AUDIT_LOG_READ: 'audit.read',
   FEATURE_FLAG_MANAGE: 'feature.manage',
+
+  // Analytics Reports (ADS-105)
+  REPORTS_CREATE: 'reports.create',
+  REPORTS_READ_OWN: 'reports.read.own',
+  REPORTS_READ_RESCUE: 'reports.read.rescue',
+  REPORTS_READ_PLATFORM: 'reports.read.platform',
+  REPORTS_UPDATE: 'reports.update',
+  REPORTS_DELETE: 'reports.delete',
+  REPORTS_SHARE: 'reports.share',
+  REPORTS_SCHEDULE: 'reports.schedule',
+  REPORTS_TEMPLATE_MANAGE: 'reports.template.manage',
 } as const;
 
 export type PermissionName = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

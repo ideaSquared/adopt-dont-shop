@@ -48,6 +48,7 @@ import moderationRoutes from './routes/moderation.routes';
 import userRoutes from './routes/user.routes';
 import fieldPermissionsRoutes from './routes/field-permissions.routes';
 import cmsRoutes from './routes/cms.routes';
+import reportsRoutes from './routes/reports.routes';
 import { authenticateToken } from './middleware/auth';
 import { requireRole } from './middleware/rbac';
 import { UserType } from './models/User';
@@ -268,6 +269,7 @@ app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/config', configRoutes);
 app.use('/api/v1/field-permissions', fieldPermissionsRoutes);
 app.use('/api/v1/cms', cmsRoutes);
+app.use('/api/v1/reports', reportsRoutes); // ADS-105: custom analytics reports
 
 // Simple health check (no dependencies)
 app.get('/api/v1/health/simple', (req, res) => {
@@ -418,6 +420,23 @@ const startServer = async () => {
 
     // Initialize Socket.IO handlers
     new SocketHandlers(io);
+
+    // ADS-105: optionally start the reports worker. Gated on
+    // WORKER_ENABLED so production can run a dedicated worker
+    // process, while dev keeps everything in one container.
+    if (process.env.WORKER_ENABLED === 'true' || process.env.NODE_ENV === 'development') {
+      try {
+        const { startReportsWorker } = await import('./workers/reports.worker');
+        const w = startReportsWorker();
+        if (w) {
+          logger.info('Reports worker started');
+        }
+      } catch (err) {
+        logger.warn('Reports worker failed to start (continuing without scheduling)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
 
     // Test database connection with retry mechanism
     let retries = 5;
