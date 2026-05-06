@@ -33,7 +33,7 @@ const emilyAttachmentTestData = {
     {
       chat_participant_id: uuidv4(),
       chat_id: '790acf56-f812-40b9-a0ec-27abd6016af8',
-      participant_id: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson from Paws Rescue (using existing staff member)
+      participant_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia from Happy Tails Senior Dog Rescue
       role: ParticipantRole.RESCUE,
       last_read_at: new Date('2024-07-20T16:25:00Z'),
       created_at: new Date('2024-07-20T10:00:00Z'),
@@ -75,7 +75,7 @@ const emilyAttachmentTestData = {
     {
       message_id: '00b3fda8-782a-4772-a1a6-93889d686614',
       chat_id: '790acf56-f812-40b9-a0ec-27abd6016af8',
-      sender_id: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
+      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
       content:
         "Thanks Emily! Those photos look great. Here's our adoption contract for you to review.",
       content_format: MessageContentFormat.PLAIN,
@@ -117,7 +117,7 @@ const emilyAttachmentTestData = {
     {
       message_id: 'a7950178-87b6-4e31-a220-2f85f10d7102',
       chat_id: '790acf56-f812-40b9-a0ec-27abd6016af8',
-      sender_id: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
+      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
       content:
         'Perfect! Here are some recent photos of Buddy to get you excited about the adoption.',
       content_format: MessageContentFormat.PLAIN,
@@ -167,7 +167,7 @@ const emilyAttachmentTestData = {
     {
       message_id: 'cfb245a5-d736-43cb-a969-e16608f3be0e',
       chat_id: '790acf56-f812-40b9-a0ec-27abd6016af8',
-      sender_id: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
+      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
       content: "Wonderful preparation! Here's Buddy's veterinary records and care instructions.",
       content_format: MessageContentFormat.PLAIN,
       attachments: [
@@ -242,7 +242,7 @@ const emilyAttachmentTestData = {
       file_size: 833,
       mime_type: 'application/pdf',
       url: '/uploads/chat/emily-attachment-test-contract.pdf',
-      uploaded_by: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
+      uploaded_by: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
       entity_type: 'chat',
       entity_id: '790acf56-f812-40b9-a0ec-27abd6016af8',
       purpose: 'chat_attachment',
@@ -280,7 +280,7 @@ const emilyAttachmentTestData = {
       file_size: 313,
       mime_type: 'image/jpeg',
       url: '/uploads/chat/emily-attachment-test-buddy-playing.jpg',
-      uploaded_by: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
+      uploaded_by: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
       entity_type: 'chat',
       entity_id: '790acf56-f812-40b9-a0ec-27abd6016af8',
       purpose: 'chat_attachment',
@@ -299,7 +299,7 @@ const emilyAttachmentTestData = {
       file_size: 298,
       mime_type: 'image/jpeg',
       url: '/uploads/chat/emily-attachment-test-buddy-sleeping.jpg',
-      uploaded_by: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
+      uploaded_by: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
       entity_type: 'chat',
       entity_id: '790acf56-f812-40b9-a0ec-27abd6016af8',
       purpose: 'chat_attachment',
@@ -337,7 +337,7 @@ const emilyAttachmentTestData = {
       file_size: 857,
       mime_type: 'application/pdf',
       url: '/uploads/chat/emily-attachment-test-vet-records.pdf',
-      uploaded_by: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
+      uploaded_by: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
       entity_type: 'chat',
       entity_id: '790acf56-f812-40b9-a0ec-27abd6016af8',
       purpose: 'chat_attachment',
@@ -356,7 +356,7 @@ const emilyAttachmentTestData = {
       file_size: 888,
       mime_type: 'application/pdf',
       url: '/uploads/chat/emily-attachment-test-care-instructions.pdf',
-      uploaded_by: '378118eb-9e97-4940-adeb-0a53b252b057', // Sarah Johnson
+      uploaded_by: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
       entity_type: 'chat',
       entity_id: '790acf56-f812-40b9-a0ec-27abd6016af8',
       purpose: 'chat_attachment',

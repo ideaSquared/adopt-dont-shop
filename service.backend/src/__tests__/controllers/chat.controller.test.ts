@@ -338,7 +338,12 @@ describe('ChatController', () => {
           mockResponse as Response
         );
 
-        expect(ChatService.getChatById).toHaveBeenCalledWith('chat-001', mockUser.userId, true);
+        expect(ChatService.getChatById).toHaveBeenCalledWith(
+          'chat-001',
+          mockUser.userId,
+          true,
+          undefined
+        );
         expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
       });
     });
@@ -670,7 +675,11 @@ describe('ChatController', () => {
           mockResponse as Response
         );
 
-        expect(ChatService.markMessagesAsRead).toHaveBeenCalledWith('chat-001', 'user-123');
+        expect(ChatService.markMessagesAsRead).toHaveBeenCalledWith(
+          'chat-001',
+          'user-123',
+          undefined
+        );
       });
     });
   });

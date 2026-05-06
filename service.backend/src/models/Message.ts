@@ -77,8 +77,19 @@ export class Message
   public flag_severity?: ScanSeverity | null;
   public moderation_status?: MessageModerationStatus | null;
   public flagged_at?: Date | null;
-  public readonly created_at!: Date;
-  public readonly updated_at!: Date;
+  // Sequelize, with `underscored: true`, maps timestamp COLUMNS to
+  // snake_case (created_at) but keeps timestamp ATTRIBUTES camelCase.
+  // Always read createdAt / updatedAt; the snake_case getters below
+  // exist only so legacy code referencing msg.created_at sees the same
+  // value rather than undefined.
+  public readonly createdAt!: Date;
+  public readonly updatedAt!: Date;
+  public get created_at(): Date {
+    return this.createdAt;
+  }
+  public get updated_at(): Date {
+    return this.updatedAt;
+  }
   public length!: number;
   public Chat?: Chat;
   public Sender?: { firstName?: string; lastName?: string };

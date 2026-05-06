@@ -57,6 +57,41 @@ type SerializedMessage = {
 };
 
 /**
+ * Reads a timestamp off a Sequelize instance or its toJSON() output. The
+ * models declare snake_case attributes (created_at) for parity with the
+ * DB schema, but with `underscored: true` Sequelize still serializes
+ * timestamps under the camelCase keys (createdAt / updatedAt). Reading
+ * `obj.created_at` therefore returns undefined and the frontend falls
+ * back to `new Date(undefined)` → 1970-01-01 01:00. This helper checks
+ * both shapes so a single field rename in the model can't silently
+ * regress every chat timestamp.
+ */
+const readTimestamp = (
+  obj: Record<string, unknown> | null | undefined,
+  ...keys: string[]
+): string | undefined => {
+  if (!obj) {
+    return undefined;
+  }
+  for (const key of keys) {
+    const value = obj[key];
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
+    }
+  }
+  return undefined;
+};
+
+const readCreatedAt = (obj: Record<string, unknown> | null | undefined): string | undefined =>
+  readTimestamp(obj, 'createdAt', 'created_at');
+
+const readUpdatedAt = (obj: Record<string, unknown> | null | undefined): string | undefined =>
+  readTimestamp(obj, 'updatedAt', 'updated_at');
+
+/**
  * Safely extract full name from a User object or serialized user data
  * Handles both Sequelize model instances and plain objects (from toJSON)
  */
@@ -80,20 +115,25 @@ const getUserFullName = (user: User | SerializedUser | undefined | null): string
 };
 
 /**
- * Canonical "frontend message" shape that matches lib.chat's Message type.
- * All three send-paths (POST /messages, GET /messages, new_message socket
- * broadcast) now funnel through this so the frontend always sees the same
- * camelCase keys with a populated senderName — no more
- * getSenderName-on-missing-association showing up as "Unknown User" because
- * one path serialized the Sequelize instance raw.
+ * Per-chat metadata that lets the frontend render rescue branding and
+ * staff badges without doing a second round-trip:
+ *   - `rescueStaffSenderIds`: senders who replied on behalf of the rescue
+ *     (membership confirmed via staff_members at the controller layer).
+ *   - `rescueName`: display name for the chat's rescue. Used by adopter
+ *     UIs to replace the staff member's real name with the rescue name.
  */
-export const toFrontendMessage = (
-  raw: MessageWithSender | SerializedMessage
-): {
+export type FrontendMessageContext = {
+  rescueStaffSenderIds?: ReadonlySet<string>;
+  rescueName?: string | null;
+};
+
+export type FrontendMessage = {
   id: string;
   conversationId: string;
   senderId: string;
   senderName: string;
+  senderRole: 'rescue_staff' | 'adopter';
+  senderRescueName: string | null;
   content: string;
   timestamp: string;
   type: string;
@@ -101,7 +141,26 @@ export const toFrontendMessage = (
   attachments: unknown[];
   isEdited: boolean;
   metadata: Record<string, never>;
-} => {
+};
+
+/**
+ * Canonical "frontend message" shape that matches lib.chat's Message type.
+ * All three send-paths (POST /messages, GET /messages, new_message socket
+ * broadcast) now funnel through this so the frontend always sees the same
+ * camelCase keys with a populated senderName — no more
+ * getSenderName-on-missing-association showing up as "Unknown User" because
+ * one path serialized the Sequelize instance raw.
+ *
+ * `context.rescueStaffSenderIds` lets each call site supply the senders
+ * who are acting as rescue staff. When omitted, `senderRole` falls back
+ * to 'adopter' — preserving prior behaviour for paths that don't yet
+ * resolve rescue affiliation (e.g. socket fan-out with only the new
+ * message in scope).
+ */
+export const toFrontendMessage = (
+  raw: MessageWithSender | SerializedMessage,
+  context: FrontendMessageContext = {}
+): FrontendMessage => {
   const msg: SerializedMessage =
     typeof (raw as MessageWithSender).toJSON === 'function'
       ? (raw as MessageWithSender).toJSON!()
@@ -112,13 +171,17 @@ export const toFrontendMessage = (
   // include Sender only on the raw instance. Prefer whichever has it.
   const sender = msg.Sender ?? (raw as MessageWithSender).Sender;
 
+  const isRescueStaff = !!context.rescueStaffSenderIds?.has(msg.sender_id);
+
   return {
     id: msg.message_id,
     conversationId: msg.chat_id,
     senderId: msg.sender_id,
     senderName: getUserFullName(sender),
+    senderRole: isRescueStaff ? 'rescue_staff' : 'adopter',
+    senderRescueName: isRescueStaff ? (context.rescueName ?? null) : null,
     content: msg.content || '',
-    timestamp: msg.created_at,
+    timestamp: readCreatedAt(msg as unknown as Record<string, unknown>) ?? '',
     type: msg.content_format || 'text',
     status: 'sent',
     attachments: msg.attachments || [],
@@ -188,15 +251,15 @@ export class ChatController {
         participants: [], // Will be populated by frontend when needed
         unreadCount: 0, // New conversation starts with 0 unread
         isTyping: [], // Empty initially
-        createdAt: chat.created_at,
-        updatedAt: chat.updated_at,
+        createdAt: readCreatedAt(chat as unknown as Record<string, unknown>),
+        updatedAt: readUpdatedAt(chat as unknown as Record<string, unknown>),
         // Keep backward compatibility fields
         chat_id: chat.chat_id,
         rescue_id: chat.rescue_id,
         pet_id: chat.pet_id,
         application_id: chat.application_id,
-        created_at: chat.created_at,
-        updated_at: chat.updated_at,
+        created_at: readCreatedAt(chat as unknown as Record<string, unknown>),
+        updated_at: readUpdatedAt(chat as unknown as Record<string, unknown>),
       };
 
       res.json({
@@ -224,8 +287,9 @@ export class ChatController {
       const { chatId } = req.params;
       const userId = req.user!.userId;
       const isAdmin = req.user!.userType === UserType.ADMIN;
+      const userRescueId = req.user!.rescueId || undefined;
 
-      const chat = await ChatService.getChatById(chatId, userId, isAdmin);
+      const chat = await ChatService.getChatById(chatId, userId, isAdmin, userRescueId);
 
       if (!chat) {
         return res.status(404).json({
@@ -274,7 +338,7 @@ export class ChatController {
       });
 
       const unreadCount = userId
-        ? await ChatService.getUnreadMessageCount(chatObj.chat_id, userId)
+        ? await ChatService.getUnreadMessageCount(chatObj.chat_id, userId, userRescueId)
         : 0;
 
       // Transform to match frontend Conversation interface
@@ -283,8 +347,8 @@ export class ChatController {
         chat_id: chatObj.chat_id,
         participants,
         unreadCount,
-        updatedAt: chatObj.updated_at,
-        createdAt: chatObj.created_at,
+        updatedAt: readUpdatedAt(chatObj as unknown as Record<string, unknown>),
+        createdAt: readCreatedAt(chatObj as unknown as Record<string, unknown>),
         isActive: chatObj.status === 'active',
         petId: chatObj.pet_id,
         rescueId: chatObj.rescue_id,
@@ -369,7 +433,7 @@ export class ChatController {
                   ? msg.content.slice(0, 120) + '...'
                   : msg.content,
               senderId: msg.sender_id,
-              createdAt: msg.created_at,
+              createdAt: readCreatedAt(msg as unknown as Record<string, unknown>),
             };
           }
 
@@ -388,7 +452,11 @@ export class ChatController {
 
           const unreadCount = isAdmin
             ? 0
-            : await ChatService.getUnreadMessageCount(chatObj.chat_id, userId);
+            : await ChatService.getUnreadMessageCount(
+                chatObj.chat_id,
+                userId,
+                rescueId || undefined
+              );
 
           return {
             id: chatObj.chat_id,
@@ -401,8 +469,8 @@ export class ChatController {
             participants,
             unreadCount,
             isTyping: [],
-            createdAt: chatObj.created_at,
-            updatedAt: chatObj.updated_at,
+            createdAt: readCreatedAt(chatObj as unknown as Record<string, unknown>),
+            updatedAt: readUpdatedAt(chatObj as unknown as Record<string, unknown>),
             rescueName: chat.rescue?.name || null,
             lastMessage,
           };
@@ -468,7 +536,7 @@ export class ChatController {
                 ? msg.content.slice(0, 120) + '...'
                 : msg.content,
             senderId: msg.sender_id,
-            createdAt: msg.created_at,
+            createdAt: readCreatedAt(msg as unknown as Record<string, unknown>),
           };
         }
         return {
@@ -514,15 +582,22 @@ export class ChatController {
         });
       }
 
+      const senderRescueId = req.user!.rescueId || undefined;
+
       const message = await ChatService.sendMessage({
         chatId,
         senderId,
         content,
         messageType,
         attachments,
+        senderRescueId,
       });
 
-      const frontendMessage = toFrontendMessage(message as unknown as MessageWithSender);
+      const chatContext = await ChatService.getChatContext(chatId);
+      const frontendMessage = toFrontendMessage(
+        message as unknown as MessageWithSender,
+        chatContext
+      );
 
       // Real-time fan-out. Without this, recipients only see the message
       // on next page load — the existing socket "new_message" event was
@@ -584,21 +659,27 @@ export class ChatController {
       const userId = req.user!.userId;
       const userType = req.user!.userType;
       const isAdmin = userType === UserType.ADMIN;
+      const userRescueId = req.user!.rescueId || undefined;
 
       // Admins bypass the participant check; everyone else must be a
-      // participant of this chat to read its messages.
-      const result = await ChatService.getMessages(chatId, {
-        page: parsedPage,
-        limit: parsedLimit,
-        userId,
-        isAdmin,
-      });
+      // participant of this chat (or staff of the chat's rescue) to read
+      // its messages.
+      const [result, chatContext] = await Promise.all([
+        ChatService.getMessages(chatId, {
+          page: parsedPage,
+          limit: parsedLimit,
+          userId,
+          isAdmin,
+          userRescueId,
+        }),
+        ChatService.getChatContext(chatId),
+      ]);
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
       // Canonical frontend shape — same helper the POST /messages path uses.
       const transformedMessages = result.messages.map(msg =>
-        toFrontendMessage(msg as unknown as MessageWithSender)
+        toFrontendMessage(msg as unknown as MessageWithSender, chatContext)
       );
 
       res.json({
@@ -639,8 +720,9 @@ export class ChatController {
     try {
       const { chatId } = req.params;
       const userId = req.user!.userId;
+      const userRescueId = req.user!.rescueId || undefined;
 
-      await ChatService.markMessagesAsRead(chatId, userId);
+      await ChatService.markMessagesAsRead(chatId, userId, userRescueId);
 
       res.json({
         success: true,
@@ -662,8 +744,9 @@ export class ChatController {
     try {
       const { chatId } = req.params;
       const userId = req.user!.userId;
+      const userRescueId = req.user!.rescueId || undefined;
 
-      const count = await ChatService.getUnreadMessageCount(chatId, userId);
+      const count = await ChatService.getUnreadMessageCount(chatId, userId, userRescueId);
 
       res.json({
         success: true,
@@ -973,6 +1056,7 @@ export class ChatController {
     try {
       const { conversationId } = req.params;
       const userId = req.user!.userId;
+      const userRescueId = req.user!.rescueId || undefined;
 
       if (!req.file) {
         return res.status(400).json({
@@ -980,19 +1064,21 @@ export class ChatController {
         });
       }
 
-      // Verify user has access to this conversation by checking if they're a participant
-      const chat = await ChatService.getChatById(conversationId, userId, false);
+      // Verify user has access to this conversation. getChatById enforces
+      // participant-or-rescue-staff access; if the user is staff of the
+      // chat's rescue we don't also require a direct participant row.
+      const chat = await ChatService.getChatById(conversationId, userId, false, userRescueId);
       if (!chat) {
         return res.status(404).json({
           error: 'Conversation not found',
         });
       }
 
-      // Check if user is a participant in the chat
       const isParticipant = chat.Participants?.some(
         (p: ChatParticipant) => p.participant_id === userId
       );
-      if (!isParticipant) {
+      const isRescueStaffOfChat = !!userRescueId && chat.rescue_id === userRescueId;
+      if (!isParticipant && !isRescueStaffOfChat) {
         return res.status(403).json({
           error: 'Access denied to this conversation',
         });

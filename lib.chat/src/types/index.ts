@@ -172,6 +172,18 @@ export interface Message {
   conversationId: string;
   senderId: string;
   senderName: string;
+  /**
+   * Whether the sender was acting on behalf of the rescue. Backend
+   * derives this from the StaffMember table; the UI uses it to show a
+   * "Staff" badge to other rescue staff and to swap in the rescue's
+   * name (`senderRescueName`) when the viewer is an adopter.
+   */
+  senderRole?: 'rescue_staff' | 'adopter';
+  /**
+   * Display name of the rescue when `senderRole` is `rescue_staff`.
+   * Adopters see this as the sender; staff still see the real name.
+   */
+  senderRescueName?: string | null;
   content: string;
   timestamp: string;
   type: 'text' | 'image' | 'file' | 'system';

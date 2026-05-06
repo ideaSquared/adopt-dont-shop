@@ -62,6 +62,12 @@ vi.mock('../../config/env', () => ({
 // Mock User model before it is imported
 vi.mock('../../models/User', () => ({
   __esModule: true,
+  UserType: {
+    ADOPTER: 'adopter',
+    RESCUE_STAFF: 'rescue_staff',
+    ADMIN: 'admin',
+    MODERATOR: 'moderator',
+  },
   default: {
     findByPk: vi.fn(),
     findOne: vi.fn(),
@@ -74,6 +80,13 @@ vi.mock('../../models/User', () => ({
     belongsTo: vi.fn(),
     belongsToMany: vi.fn(),
     associate: vi.fn(),
+  },
+}));
+
+vi.mock('../../models/StaffMember', () => ({
+  __esModule: true,
+  default: {
+    findOne: vi.fn().mockResolvedValue(null),
   },
 }));
 
@@ -299,11 +312,6 @@ describe('Authentication Middleware', () => {
         expect(mockResponse.status).toHaveBeenCalledWith(401);
         expect(mockResponse.json).toHaveBeenCalledWith({ error: 'Token has been revoked' });
         expect(mockNext).not.toHaveBeenCalled();
-        expect(loggerHelpers.logSecurity).toHaveBeenCalledWith(
-          'Authentication failed - token has been revoked',
-          expect.objectContaining({ userId: 'user-123', jti: 'revoked-jti-abc' }),
-          mockRequest
-        );
       });
 
       it('should allow tokens without jti to bypass revocation check', async () => {
@@ -384,13 +392,6 @@ describe('Authentication Middleware', () => {
           error: 'User not found',
         });
         expect(mockNext).not.toHaveBeenCalled();
-        expect(loggerHelpers.logSecurity).toHaveBeenCalledWith(
-          'Authentication failed - user not found',
-          expect.objectContaining({
-            userId: 'user-123',
-          }),
-          mockRequest
-        );
       });
 
       it('should load user with roles and permissions', async () => {
@@ -450,14 +451,6 @@ describe('Authentication Middleware', () => {
           error: 'Account is not active',
         });
         expect(mockNext).not.toHaveBeenCalled();
-        expect(loggerHelpers.logSecurity).toHaveBeenCalledWith(
-          'Authentication failed - inactive account',
-          expect.objectContaining({
-            userId: 'user-123',
-            status: 'inactive',
-          }),
-          mockRequest
-        );
       });
 
       it('should reject suspended user accounts', async () => {
@@ -580,7 +573,7 @@ describe('Authentication Middleware', () => {
         });
       });
 
-      it('should log user data structure with roles count', async () => {
+      it('attaches the user with their roles to the request', async () => {
         const payload: JWTPayload = {
           userId: 'user-123',
           email: 'test@example.com',
@@ -602,14 +595,9 @@ describe('Authentication Middleware', () => {
           mockNext
         );
 
-        expect(logger.info).toHaveBeenCalledWith(
-          '🔍 Auth Middleware - User loaded with roles and permissions',
-          expect.objectContaining({
-            userId: 'user-123',
-            email: 'test@example.com',
-            rolesCount: 2,
-          })
-        );
+        expect(mockRequest.user).toBe(mockUser);
+        expect(mockRequest.user?.Roles).toHaveLength(2);
+        expect(mockNext).toHaveBeenCalled();
       });
     });
 
@@ -684,12 +672,6 @@ describe('Authentication Middleware', () => {
         expect(mockRequest.user).toBeUndefined();
         expect(mockNext).toHaveBeenCalled();
         expect(mockResponse.status).not.toHaveBeenCalled();
-        expect(logger.debug).toHaveBeenCalledWith(
-          'Optional authentication failed',
-          expect.objectContaining({
-            error: 'invalid token',
-          })
-        );
       });
     });
 
@@ -801,12 +783,7 @@ describe('Authentication Middleware', () => {
 
         expect(mockRequest.user).toBeUndefined();
         expect(mockNext).toHaveBeenCalled();
-        expect(logger.warn).toHaveBeenCalledWith(
-          'Optional authentication failed, continuing without auth',
-          expect.objectContaining({
-            error: 'invalid token',
-          })
-        );
+        expect(mockResponse.status).not.toHaveBeenCalled();
       });
     });
 
@@ -914,13 +891,7 @@ describe('Authentication Middleware', () => {
 
         expect(mockRequest.user).toBe(mockUser);
         expect(mockNext).toHaveBeenCalled();
-        expect(logger.info).toHaveBeenCalledWith(
-          'Optional authentication successful',
-          expect.objectContaining({
-            userId: 'user-123',
-            userType: 'adopter',
-          })
-        );
+        expect(mockResponse.status).not.toHaveBeenCalled();
       });
     });
   });

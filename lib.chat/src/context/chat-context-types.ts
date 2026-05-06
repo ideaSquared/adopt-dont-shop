@@ -9,6 +9,12 @@ import type { ConnectionQuality, OfflineAdapter } from './offline-adapter';
 export type ChatUser = {
   userId: string;
   firstName?: string;
+  /**
+   * Set when the viewer is verified rescue staff. Drives badge visibility:
+   * staff viewers see other staff's real names with a "Staff" badge,
+   * adopter viewers (rescueId undefined) see the rescue's name instead.
+   */
+  rescueId?: string;
 };
 
 /**

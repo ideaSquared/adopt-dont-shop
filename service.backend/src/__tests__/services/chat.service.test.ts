@@ -408,6 +408,35 @@ describe('ChatService', () => {
       });
     });
 
+    describe("when caller is staff of the chat's rescue", () => {
+      it('returns the chat without requiring a direct participant row', async () => {
+        // Every staff member of a rescue should see every chat for that
+        // rescue — not just chats they were individually added to.
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
+
+        const result = await ChatService.getChatById(
+          chatId,
+          'rescue-staff-id',
+          false,
+          'rescue-xyz'
+        );
+
+        expect(result).toEqual(mockChat);
+        expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when caller belongs to a different rescue', () => {
+      it('falls back to the participant check and rejects', async () => {
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
+
+        await expect(
+          ChatService.getChatById(chatId, 'other-rescue-staff', false, 'different-rescue')
+        ).rejects.toThrow(/not a participant/i);
+      });
+    });
+
     describe('when the chat does not exist', () => {
       it('returns null', async () => {
         (MockedChat.findByPk as vi.Mock).mockResolvedValue(null);

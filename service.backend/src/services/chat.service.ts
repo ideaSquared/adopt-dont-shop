@@ -2,6 +2,8 @@ import { Op, WhereOptions } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
 import MessageReaction from '../models/MessageReaction';
 import MessageRead from '../models/MessageRead';
+import StaffMember from '../models/StaffMember';
+import Rescue from '../models/Rescue';
 import { validateSortField } from '../utils/sort-validation';
 
 const CHAT_SORT_FIELDS = ['created_at', 'updated_at'] as const;
@@ -49,6 +51,7 @@ interface SendMessageData {
   attachments?: MessageAttachment[];
   replyToId?: string;
   threadId?: string; // Add support for message threading
+  senderRescueId?: string;
 }
 
 interface MessageAttachment {
@@ -186,14 +189,27 @@ export class ChatService {
    * failure; the controller layer maps that to a 403. Skipped when
    * isAdmin is true, which must be explicitly set by callers after
    * verifying the user's role — never inferred from a missing userId.
+   *
+   * Rescue staff (callers passing userRescueId) gain access to any chat
+   * scoped to their rescue, even without a direct participant row. This
+   * lets every staff member of a rescue see all conversations the
+   * rescue is involved in (handover, coverage), not just chats they
+   * were individually added to.
    */
   private static async requireChatParticipant(
     chatId: string,
     userId: string,
-    isAdmin: boolean
+    isAdmin: boolean,
+    userRescueId?: string
   ): Promise<void> {
     if (isAdmin) {
       return;
+    }
+    if (userRescueId) {
+      const chat = await Chat.findByPk(chatId, { attributes: ['rescue_id'] });
+      if (chat && chat.rescue_id === userRescueId) {
+        return;
+      }
     }
     const participant = await ChatParticipant.findOne({
       where: { chat_id: chatId, participant_id: userId },
@@ -204,13 +220,53 @@ export class ChatService {
   }
 
   /**
+   * Resolves per-chat context that the controller layer needs to render
+   * sender badges and rescue branding:
+   *   - rescueName: pulled from the chat's owning Rescue row.
+   *   - rescueStaffSenderIds: every userId that holds a verified
+   *     staff_members row for the chat's rescue. We use the StaffMember
+   *     table (canonical) rather than ChatParticipant.role so a sender
+   *     who left the chat or was added by a different code path still
+   *     gets correctly tagged as rescue staff.
+   *
+   * Returns an empty context if the chat or rescue is missing — the
+   * mapper falls back to "adopter" with no branding, which is the
+   * correct rendering for a chat that lost its rescue association.
+   */
+  static async getChatContext(chatId: string): Promise<{
+    rescueStaffSenderIds: ReadonlySet<string>;
+    rescueName: string | null;
+  }> {
+    const chat = await Chat.findByPk(chatId, { attributes: ['rescue_id'] });
+    if (!chat || !chat.rescue_id) {
+      return { rescueStaffSenderIds: new Set(), rescueName: null };
+    }
+    const [rescue, staff] = await Promise.all([
+      Rescue.findByPk(chat.rescue_id, { attributes: ['name'] }),
+      StaffMember.findAll({
+        where: { rescueId: chat.rescue_id, isVerified: true },
+        attributes: ['userId'],
+      }),
+    ]);
+    return {
+      rescueStaffSenderIds: new Set(staff.map(s => s.userId)),
+      rescueName: rescue?.name ?? null,
+    };
+  }
+
+  /**
    * Get chat by ID with messages.
    *
    * When isAdmin is false the caller must be a participant of the chat;
    * otherwise an error is thrown. Set isAdmin to true only after verifying
    * the caller holds the admin role via route-level or controller-level checks.
    */
-  static async getChatById(chatId: string, userId: string, isAdmin: boolean): Promise<Chat | null> {
+  static async getChatById(
+    chatId: string,
+    userId: string,
+    isAdmin: boolean,
+    userRescueId?: string
+  ): Promise<Chat | null> {
     const startTime = Date.now();
 
     try {
@@ -243,7 +299,7 @@ export class ChatService {
       });
 
       if (chat) {
-        await this.requireChatParticipant(chatId, userId, isAdmin);
+        await this.requireChatParticipant(chatId, userId, isAdmin, userRescueId);
       }
 
       loggerHelpers.logDatabase('READ', {
@@ -402,8 +458,13 @@ export class ChatService {
         },
       ];
 
-      // Admins see all chats; regular users are filtered to chats they participate in
-      if (isAdmin) {
+      // Admins see all chats. Rescue staff (rescueId set) see every chat
+      // belonging to their rescue — already scoped by the rescue_id filter
+      // on whereConditions, so no per-user participant filter is applied.
+      // Adopters and other non-rescue users are filtered to chats they
+      // participate in directly.
+      const isRescueStaff = !isAdmin && !!rescueId;
+      if (isAdmin || isRescueStaff) {
         includes.push({
           model: ChatParticipant,
           as: 'Participants',
@@ -562,20 +623,25 @@ export class ChatService {
     const transaction = await sequelize.transaction();
 
     try {
-      // Validate chat exists and user is a participant
-      const chat = await Chat.findByPk(data.chatId, {
-        include: [
-          {
-            model: ChatParticipant,
-            as: 'Participants',
-            where: { participant_id: data.senderId }, // Use snake_case
-          },
-        ],
-        transaction,
-      });
+      // Validate chat exists. Sender must either be a direct participant
+      // or be staff of the chat's rescue (so any rescue staff member can
+      // reply to chats their rescue is involved in).
+      const chat = await Chat.findByPk(data.chatId, { transaction });
 
       if (!chat) {
         throw new Error('User is not a participant in this chat');
+      }
+
+      const isRescueStaffOfChat = !!data.senderRescueId && chat.rescue_id === data.senderRescueId;
+
+      if (!isRescueStaffOfChat) {
+        const participant = await ChatParticipant.findOne({
+          where: { chat_id: data.chatId, participant_id: data.senderId },
+          transaction,
+        });
+        if (!participant) {
+          throw new Error('User is not a participant in this chat');
+        }
       }
 
       // Check for rate limiting
@@ -817,12 +883,21 @@ export class ChatService {
       after?: Date;
       userId?: string;
       isAdmin?: boolean;
+      userRescueId?: string;
     } = {}
   ): Promise<MessageListResponse> {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 50, before, after, userId, isAdmin = false } = options;
+      const {
+        page = 1,
+        limit = 50,
+        before,
+        after,
+        userId,
+        isAdmin = false,
+        userRescueId,
+      } = options;
 
       // Validate inputs
       if (page < 1) {
@@ -832,9 +907,9 @@ export class ChatService {
         throw new Error('Limit must be between 1 and 100');
       }
 
-      // Only participants can read a chat's messages; admins bypass the check
-      // via the explicit isAdmin flag, never via an absent userId.
-      await this.requireChatParticipant(chatId, userId ?? '', isAdmin);
+      // Only participants (or rescue staff for that chat's rescue) can
+      // read a chat's messages; admins bypass via explicit isAdmin flag.
+      await this.requireChatParticipant(chatId, userId ?? '', isAdmin, userRescueId);
 
       const whereConditions: WhereOptions = { chat_id: chatId }; // Fix: use snake_case
 
@@ -887,8 +962,8 @@ export class ChatService {
           mimeType: att.mimeType,
           size: att.size,
         })),
-        created_at: msg.created_at ? msg.created_at.toISOString() : new Date(0).toISOString(),
-        updated_at: msg.updated_at ? msg.updated_at.toISOString() : new Date(0).toISOString(),
+        created_at: msg.createdAt ? msg.createdAt.toISOString() : new Date(0).toISOString(),
+        updated_at: msg.updatedAt ? msg.updatedAt.toISOString() : new Date(0).toISOString(),
         Sender: msg.Sender,
       })) as unknown as ChatMessage[];
 
@@ -911,9 +986,9 @@ export class ChatService {
   /**
    * Mark messages as read for a user
    */
-  static async markMessagesAsRead(chatId: string, userId: string) {
+  static async markMessagesAsRead(chatId: string, userId: string, userRescueId?: string) {
     try {
-      await this.requireChatParticipant(chatId, userId, false);
+      await this.requireChatParticipant(chatId, userId, false, userRescueId);
 
       // Read receipts moved to the message_reads table (plan 2.1) —
       // bulk-insert one row per (message, user). The unique
@@ -952,9 +1027,9 @@ export class ChatService {
   /**
    * Get unread message count for a user in a chat
    */
-  static async getUnreadMessageCount(chatId: string, userId: string) {
+  static async getUnreadMessageCount(chatId: string, userId: string, userRescueId?: string) {
     try {
-      await this.requireChatParticipant(chatId, userId, false);
+      await this.requireChatParticipant(chatId, userId, false, userRescueId);
 
       // "Unread for user" = chat messages not authored by user that
       // have no matching MessageRead row (plan 2.1). The eager-load
