@@ -24,3 +24,16 @@ export const normaliseSortField = (
   }
   return sortBy;
 };
+
+export type SortOrder = 'ASC' | 'DESC';
+
+export const validateSortOrder = (sortOrder: unknown): SortOrder => {
+  if (typeof sortOrder !== 'string') {
+    return 'DESC';
+  }
+  const upper = sortOrder.toUpperCase();
+  if (upper !== 'ASC' && upper !== 'DESC') {
+    throw new ApiError(400, `Invalid sort order "${sortOrder}". Allowed: ASC, DESC`);
+  }
+  return upper;
+};

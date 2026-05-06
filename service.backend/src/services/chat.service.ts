@@ -4,7 +4,7 @@ import MessageReaction from '../models/MessageReaction';
 import MessageRead from '../models/MessageRead';
 import StaffMember from '../models/StaffMember';
 import Rescue from '../models/Rescue';
-import { validateSortField } from '../utils/sort-validation';
+import { validateSortField, validateSortOrder } from '../utils/sort-validation';
 
 const CHAT_SORT_FIELDS = ['created_at', 'updated_at'] as const;
 import { NotificationPriority, NotificationType } from '../models/Notification';
@@ -413,6 +413,7 @@ export class ChatService {
 
       const offset = (page - 1) * limit;
       const safeSortBy = validateSortField(sortBy, CHAT_SORT_FIELDS, 'created_at');
+      const safeSortOrder = validateSortOrder(sortOrder);
 
       // Build where conditions
       const whereConditions: WhereOptions = {
@@ -498,7 +499,7 @@ export class ChatService {
         include: includes,
         limit,
         offset,
-        order: [[safeSortBy, sortOrder]],
+        order: [[safeSortBy, safeSortOrder]],
         distinct: true,
       });
 
@@ -536,6 +537,7 @@ export class ChatService {
 
       const offset = (page - 1) * limit;
       const safeSortBy = validateSortField(sortBy, CHAT_SORT_FIELDS, 'created_at');
+      const safeSortOrder = validateSortOrder(sortOrder);
 
       // Build where conditions for chats
       const chatWhereConditions: WhereOptions = {
@@ -595,7 +597,7 @@ export class ChatService {
         ],
         limit,
         offset,
-        order: [[safeSortBy, sortOrder]],
+        order: [[safeSortBy, safeSortOrder]],
         distinct: true,
       });
 
