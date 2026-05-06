@@ -20,24 +20,6 @@ WORKDIR /app
 ENV HUSKY=0
 
 # ============================================================================
-# LIBS-BUILT STAGE - Compile lib.types and lib.validation exactly once
-# Downstream stages COPY --from=libs-built rather than rebuilding.
-# ============================================================================
-FROM base AS libs-built
-
-COPY package.json package-lock.json ./
-COPY lib.types/ lib.types/
-COPY lib.validation/ lib.validation/
-
-WORKDIR /app/lib.types
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
-
-WORKDIR /app/lib.validation
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
-
-# ============================================================================
 # DEPENDENCIES STAGE - Install production dependencies with cache mount
 # ============================================================================
 FROM base AS dependencies
@@ -47,9 +29,9 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
-# Reuse pre-built libs from the libs-built stage so npm ci can resolve them
-COPY --from=libs-built /app/lib.types/ lib.types/
-COPY --from=libs-built /app/lib.validation/ lib.validation/
+# Copy required shared libraries so npm ci can resolve workspace references
+COPY lib.types/ lib.types/
+COPY lib.validation/ lib.validation/
 
 # Copy backend service package files
 COPY service.backend/package*.json service.backend/
@@ -72,15 +54,24 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
-# Reuse pre-built libs from the libs-built stage (one build, two consumers)
-COPY --from=libs-built /app/lib.types/ lib.types/
-COPY --from=libs-built /app/lib.validation/ lib.validation/
+# Copy required shared libraries (Node-side, zero frontend code)
+COPY lib.types/ lib.types/
+COPY lib.validation/ lib.validation/
 
 # Copy backend service (including entrypoint script)
 COPY service.backend/ service.backend/
 
 # Make entrypoint script executable
 RUN chmod +x /app/service.backend/docker-entrypoint.sh
+
+# Build shared libraries first
+WORKDIR /app/lib.types
+RUN --mount=type=cache,target=/root/.npm \
+    HUSKY=0 npm ci --prefer-offline && npm run build
+
+WORKDIR /app/lib.validation
+RUN --mount=type=cache,target=/root/.npm \
+    HUSKY=0 npm ci --prefer-offline && npm run build
 
 WORKDIR /app/service.backend
 
@@ -131,15 +122,24 @@ COPY package.json package-lock.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
-# Reuse pre-built libs from the libs-built stage
-COPY --from=libs-built /app/lib.types/ lib.types/
-COPY --from=libs-built /app/lib.validation/ lib.validation/
+# Copy required shared libraries (Node-side, zero frontend code)
+COPY lib.types/ lib.types/
+COPY lib.validation/ lib.validation/
 
 # Copy backend service (including entrypoint script)
 COPY service.backend/ service.backend/
 
 # Make entrypoint script executable
 RUN chmod +x /app/service.backend/docker-entrypoint.sh
+
+# Build shared libraries first (required for backend TypeScript compilation)
+WORKDIR /app/lib.types
+RUN --mount=type=cache,target=/root/.npm \
+    HUSKY=0 npm ci --prefer-offline && npm run build
+
+WORKDIR /app/lib.validation
+RUN --mount=type=cache,target=/root/.npm \
+    HUSKY=0 npm ci --prefer-offline && npm run build
 
 WORKDIR /app/service.backend
 
