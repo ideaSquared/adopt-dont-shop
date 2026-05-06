@@ -1,9 +1,10 @@
 import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../models/User';
+import User, { UserType } from '../models/User';
 import Role from '../models/Role';
 import Permission from '../models/Permission';
 import RevokedToken from '../models/RevokedToken';
+import StaffMember from '../models/StaffMember';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger, loggerHelpers } from '../utils/logger';
 import { setUserId } from '../utils/request-context';
@@ -26,15 +27,74 @@ const userInclude = [
   },
 ];
 
-/**
- * Fetches a user by decoded JWT payload and returns null if the user does not
- * exist or their account is not active (suspended, inactive, etc.).
- */
-const resolveActiveUser = async (decoded: JWTPayload): Promise<User | null> => {
-  const user = await User.findByPk(decoded.userId, { include: userInclude });
-  if (!user || user.status !== 'active') {
-    return null;
+class AuthError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    message: string
+  ) {
+    super(message);
+    this.name = 'AuthError';
   }
+}
+
+/**
+ * Pulls the bearer token off the Authorization header or the accessToken
+ * cookie. Returns null when neither is set.
+ */
+const extractToken = (req: AuthenticatedRequest): string | null => {
+  const authHeader = req.headers.authorization;
+  const cookies = req.cookies as Record<string, string> | undefined;
+  return (authHeader && authHeader.split(' ')[1]) || cookies?.['accessToken'] || null;
+};
+
+/**
+ * For RESCUE_STAFF users, attaches the rescueId of the verified
+ * staff_members row onto the in-memory User instance. The column was
+ * removed from the users table — affiliation lives only in
+ * staff_members, gated by the verification flag. Pending (unverified)
+ * staff get no rescue scope and behave like adopters.
+ */
+const attachRescueAffiliation = async (user: User): Promise<void> => {
+  if (user.userType !== UserType.RESCUE_STAFF) {
+    return;
+  }
+  const staff = await StaffMember.findOne({
+    where: { userId: user.userId, isVerified: true },
+    attributes: ['rescueId'],
+  });
+  const rescueId = staff?.rescueId ?? null;
+  user.rescueId = rescueId;
+  // setDataValue puts the field on the instance's dataValues bag so
+  // res.json(req.user) — which goes through Sequelize's toJSON — will
+  // include it. Plain property assignment isn't enough; toJSON
+  // serializes dataValues only.
+  user.setDataValue('rescueId' as never, rescueId as never);
+};
+
+/**
+ * Verifies the JWT, rejects revoked tokens, and loads the active User
+ * (with roles, permissions, and rescue affiliation). Throws AuthError
+ * for the call site to translate into the appropriate HTTP response;
+ * jwt library errors propagate as-is so optional-auth paths can swallow
+ * them without false 401s.
+ */
+const authenticateRequest = async (token: string): Promise<User> => {
+  const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
+
+  if (decoded.jti && (await RevokedToken.findByPk(decoded.jti))) {
+    throw new AuthError(401, 'TOKEN_REVOKED', 'Token has been revoked');
+  }
+
+  const user = await User.findByPk(decoded.userId, { include: userInclude });
+  if (!user) {
+    throw new AuthError(401, 'USER_NOT_FOUND', 'User not found');
+  }
+  if (user.status !== 'active') {
+    throw new AuthError(401, 'ACCOUNT_INACTIVE', 'Account is not active');
+  }
+
+  await attachRescueAffiliation(user);
   return user;
 };
 
@@ -43,89 +103,20 @@ export const authenticateToken = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const token = extractToken(req);
+  if (!token) {
+    loggerHelpers.logSecurity(
+      'Authentication failed - no token provided',
+      { ip: req.ip, userAgent: req.get('User-Agent'), url: req.originalUrl },
+      req
+    );
+    res.status(401).json({ error: 'Access token required' });
+    return;
+  }
+
   try {
-    const authHeader = req.headers.authorization;
-    const token =
-      (authHeader && authHeader.split(' ')[1]) ||
-      (req.cookies as Record<string, string> | undefined)?.['accessToken'];
+    const user = await authenticateRequest(token);
 
-    if (!token) {
-      loggerHelpers.logSecurity(
-        'Authentication failed - no token provided',
-        {
-          ip: req.ip,
-          userAgent: req.get('User-Agent'),
-          url: req.originalUrl,
-        },
-        req
-      );
-      res.status(401).json({ error: 'Access token required' });
-      return;
-    }
-
-    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
-
-    // Check if access token has been revoked (e.g. post-logout blacklist)
-    if (decoded.jti) {
-      const revoked = await RevokedToken.findByPk(decoded.jti);
-      if (revoked) {
-        loggerHelpers.logSecurity(
-          'Authentication failed - token has been revoked',
-          {
-            userId: decoded.userId,
-            jti: decoded.jti,
-            ip: req.ip,
-            userAgent: req.get('User-Agent'),
-          },
-          req
-        );
-        res.status(401).json({ error: 'Token has been revoked' });
-        return;
-      }
-    }
-
-    // Fetch user from database to ensure they still exist and are active
-    const user = await User.findByPk(decoded.userId, { include: userInclude });
-
-    if (!user) {
-      loggerHelpers.logSecurity(
-        'Authentication failed - user not found',
-        {
-          userId: decoded.userId,
-          ip: req.ip,
-          userAgent: req.get('User-Agent'),
-        },
-        req
-      );
-      res.status(401).json({ error: 'User not found' });
-      return;
-    }
-
-    // Debug: Log loaded user data structure
-    logger.info('🔍 Auth Middleware - User loaded with roles and permissions', {
-      userId: decoded.userId,
-      email: user.email,
-      rolesCount: user.Roles?.length || 0,
-    });
-
-    if (user.status !== 'active') {
-      loggerHelpers.logSecurity(
-        'Authentication failed - inactive account',
-        {
-          userId: user.userId,
-          status: user.status,
-          ip: req.ip,
-          userAgent: req.get('User-Agent'),
-        },
-        req
-      );
-      res.status(401).json({ error: 'Account is not active' });
-      return;
-    }
-
-    // Attach user to request and to the AsyncLocalStorage context so that
-    // Sequelize hooks (created_by / updated_by stamping) can read the actor
-    // without threading req through every call chain.
     req.user = user;
     setUserId(user.userId);
 
@@ -153,6 +144,11 @@ export const authenticateToken = async (
       req
     );
 
+    if (error instanceof AuthError) {
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+
     // TokenExpiredError must be checked before JsonWebTokenError because
     // TokenExpiredError extends JsonWebTokenError — checking the parent first
     // would mask expiry errors as generic "Invalid token" responses.
@@ -160,7 +156,6 @@ export const authenticateToken = async (
       res.status(401).json({ error: 'Token expired' });
       return;
     }
-
     if (error instanceof jwt.JsonWebTokenError) {
       res.status(401).json({ error: 'Invalid token' });
       return;
@@ -170,45 +165,43 @@ export const authenticateToken = async (
   }
 };
 
-export const optionalAuth = async (
+/**
+ * Optional auth: attaches the user when a valid token is present, but
+ * never blocks the request. Token errors and missing accounts are
+ * swallowed and the request continues anonymously.
+ */
+const optionalAuthMiddleware = async (
   req: AuthenticatedRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
-  try {
-    const authHeader = req.headers.authorization;
-    const token =
-      (authHeader && authHeader.split(' ')[1]) ||
-      (req.cookies as Record<string, string> | undefined)?.['accessToken'];
-
-    if (!token) {
-      // No token provided, continue without authentication
-      next();
-      return;
-    }
-
-    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
-    const user = await resolveActiveUser(decoded);
-
-    if (user) {
-      req.user = user;
-      setUserId(user.userId);
-      logger.debug('Optional authentication successful', {
-        userId: user.userId,
-        ip: req.ip,
-      });
-    }
-
+  const token = extractToken(req);
+  if (!token) {
     next();
+    return;
+  }
+
+  try {
+    const user = await authenticateRequest(token);
+    req.user = user;
+    setUserId(user.userId);
+    logger.debug('Optional authentication successful', {
+      userId: user.userId,
+      userType: user.userType,
+      ip: req.ip,
+    });
   } catch (error) {
-    // For optional auth, we don't fail on token errors
-    logger.debug('Optional authentication failed', {
+    logger.debug('Optional authentication skipped', {
       error: error instanceof Error ? error.message : String(error),
       ip: req.ip,
     });
-    next();
   }
+
+  next();
 };
+
+export const optionalAuth = optionalAuthMiddleware;
+export const authenticateOptionalToken = optionalAuthMiddleware;
 
 /**
  * Middleware to require specific roles
@@ -270,56 +263,6 @@ export const requireRole = (requiredRoles: string | string[]) => {
       res.status(500).json({ error: 'Authorization error' });
     }
   };
-};
-
-/**
- * Optional authentication middleware - continues if no token provided
- * Used for endpoints that work with or without authentication
- */
-export const authenticateOptionalToken = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const authHeader = req.headers.authorization;
-    const token =
-      (authHeader && authHeader.split(' ')[1]) ||
-      (req.cookies as Record<string, string> | undefined)?.['accessToken'];
-
-    if (!token) {
-      // No token provided, continue without authentication
-      next();
-      return;
-    }
-
-    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
-    const user = await resolveActiveUser(decoded);
-
-    if (!user) {
-      // User not found or not active — treat as anonymous
-      next();
-      return;
-    }
-
-    req.user = user;
-    setUserId(user.userId);
-
-    logger.info('Optional authentication successful', {
-      userId: user.userId,
-      userType: user.userType,
-      ip: req.ip,
-    });
-
-    next();
-  } catch (error) {
-    // Token verification failed, but continue without authentication
-    logger.warn('Optional authentication failed, continuing without auth', {
-      error: error instanceof Error ? error.message : String(error),
-      ip: req.ip,
-    });
-    next();
-  }
 };
 
 /**

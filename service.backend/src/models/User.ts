@@ -81,6 +81,10 @@ interface UserAttributes {
   addressLine2?: string | null;
   postalCode?: string | null;
   location?: { type: string; coordinates: [number, number] };
+  // rescueId is NOT a DB column — affiliation lives in staff_members
+  // (rescueId, userId, isVerified). Auth middleware looks up the verified
+  // StaffMember row once per request and attaches the result here, so
+  // controllers can read req.user.rescueId without doing the join.
   rescueId?: string | null;
   // privacySettings moved to user_privacy_prefs (plan 5.6).
   // notificationPreferences moved to user_notification_prefs (plan 5.6).
@@ -149,7 +153,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public addressLine2!: string | null;
   public postalCode!: string | null;
   public location!: { type: string; coordinates: [number, number] };
-  public rescueId!: string | null;
+  // Populated by auth middleware from staff_members lookup; not a DB
+  // column. Optional because not every request loads it (anonymous,
+  // adopters, public endpoints).
+  public rescueId?: string | null;
   public termsAcceptedAt!: Date | null;
   public privacyPolicyAcceptedAt!: Date | null;
   public applicationDefaults!: JsonObject | null;
@@ -421,16 +428,9 @@ User.init(
       type: getGeometryType('POINT'),
       allowNull: true,
     },
-    rescueId: {
-      type: getUuidType(),
-      allowNull: true,
-      field: 'rescue_id',
-      references: {
-        model: 'rescues',
-        key: 'rescue_id',
-      },
-      onDelete: 'SET NULL',
-    },
+    // rescueId is intentionally not a DB column — see UserAttributes
+    // comment. Sequelize won't persist it, but the model class exposes it
+    // for the auth middleware to populate.
     // privacySettings moved to user_privacy_prefs (plan 5.6); notification
     // prefs to user_notification_prefs. Both auto-created via the
     // User.afterCreate hook below.
@@ -498,10 +498,6 @@ User.init(
       },
       {
         fields: ['user_type'],
-      },
-      {
-        fields: ['rescue_id'],
-        name: 'users_rescue_id_idx',
       },
       {
         fields: ['created_at'],
