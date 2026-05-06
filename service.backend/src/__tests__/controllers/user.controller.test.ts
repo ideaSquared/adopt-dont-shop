@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
-import { Response } from 'express';
-import { UserController } from '../../controllers/user.controller';
+import { NextFunction, Request, Response } from 'express';
+import { UserController, userValidation } from '../../controllers/user.controller';
 import { UserType } from '../../models/User';
 import UserService from '../../services/user.service';
 import { AuthenticatedRequest } from '../../types';
@@ -156,14 +156,15 @@ describe('UserController', () => {
   });
 
   describe('bulkUpdateUsers', () => {
-    it('should call UserService.bulkUpdateUsers with provided data', async () => {
-      const validUserIds = [
-        '550e8400-e29b-41d4-a716-446655440000',
-        '550e8400-e29b-41d4-a716-446655440001',
-      ];
+    const validUserIds = [
+      '550e8400-e29b-41d4-a716-446655440000',
+      '550e8400-e29b-41d4-a716-446655440001',
+    ];
+
+    it('should call UserService.bulkUpdateUsers with the validated body', async () => {
       req.body = {
         userIds: validUserIds,
-        updateData: { status: 'ACTIVE' },
+        updateData: { status: 'active' },
       };
 
       MockedUserService.bulkUpdateUsers = vi.fn().mockResolvedValue(2);
@@ -171,32 +172,16 @@ describe('UserController', () => {
       await controller.bulkUpdateUsers(req as AuthenticatedRequest, res as Response);
 
       expect(MockedUserService.bulkUpdateUsers).toHaveBeenCalledWith(
-        [{ userIds: validUserIds, updates: { status: 'ACTIVE' } }],
+        [{ userIds: validUserIds, updates: { status: 'active' } }],
         'user-123'
       );
       expect(res.json).toHaveBeenCalledWith(2);
     });
 
-    it('should reject bulk update with non-array userIds', async () => {
-      req.body = {
-        userIds: 'not-an-array',
-        updateData: { status: 'ACTIVE' },
-      };
-
-      MockedUserService.bulkUpdateUsers = vi.fn().mockResolvedValue(0);
-
-      await controller.bulkUpdateUsers(req as AuthenticatedRequest, res as Response);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        error: 'userIds must be a non-empty array',
-      });
-    });
-
     it('should handle service errors', async () => {
       req.body = {
-        userIds: ['550e8400-e29b-41d4-a716-446655440000'],
-        updateData: { status: 'ACTIVE' },
+        userIds: [validUserIds[0]],
+        updateData: { status: 'active' },
       };
 
       MockedUserService.bulkUpdateUsers = vi.fn().mockRejectedValue(new Error('Database error'));
@@ -207,6 +192,80 @@ describe('UserController', () => {
       expect(res.json).toHaveBeenCalledWith({
         error: 'Failed to bulk update users',
       });
+    });
+  });
+
+  describe('userValidation.bulkUpdate middleware', () => {
+    const validUserIds = [
+      '550e8400-e29b-41d4-a716-446655440000',
+      '550e8400-e29b-41d4-a716-446655440001',
+    ];
+
+    const runMiddleware = (body: unknown) =>
+      new Promise<{ status?: number; body?: unknown }>(resolve => {
+        const mockReq = { body } as Request;
+        const mockRes = {
+          status: vi.fn().mockReturnThis(),
+          json: vi.fn(payload =>
+            resolve({
+              status: (mockRes.status as ReturnType<typeof vi.fn>).mock.calls[0]?.[0],
+              body: payload,
+            })
+          ),
+        } as unknown as Response;
+        const next: NextFunction = () => resolve({ body: mockReq.body });
+        userValidation.bulkUpdate(mockReq, mockRes, next);
+      });
+
+    it('accepts a valid status update', async () => {
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { status: 'active' },
+      });
+      expect(result.status).toBeUndefined();
+      expect((result.body as { userIds: string[] }).userIds).toEqual(validUserIds);
+    });
+
+    it('rejects userType — privilege escalation vector', async () => {
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { userType: 'admin' },
+      });
+      expect(result.status).toBe(400);
+    });
+
+    it('rejects emailVerified — bypasses email verification gate', async () => {
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { emailVerified: true },
+      });
+      expect(result.status).toBe(400);
+    });
+
+    it('rejects twoFactorEnabled — disables 2FA on victim accounts', async () => {
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { twoFactorEnabled: false },
+      });
+      expect(result.status).toBe(400);
+    });
+
+    it('rejects password field', async () => {
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { password: 'NewPass1!' },
+      });
+      expect(result.status).toBe(400);
+    });
+
+    it('rejects empty userIds array', async () => {
+      const result = await runMiddleware({ userIds: [], updateData: { status: 'active' } });
+      expect(result.status).toBe(400);
+    });
+
+    it('rejects non-UUID entries in userIds', async () => {
+      const result = await runMiddleware({ userIds: ['not-a-uuid'], updateData: {} });
+      expect(result.status).toBe(400);
     });
   });
 });

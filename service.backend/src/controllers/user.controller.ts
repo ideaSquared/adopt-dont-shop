@@ -1,9 +1,11 @@
 import { Response } from 'express';
 import { body, query } from 'express-validator';
+import { BulkUserUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
 import { UserType } from '../models/User';
 import UserService from '../services/user.service';
 import { AuthenticatedRequest } from '../types';
 import { logger } from '../utils/logger';
+import { validateBody } from '../middleware/zod-validate';
 
 // Validation rules
 export const userValidation = {
@@ -68,21 +70,7 @@ export const userValidation = {
     body('user_type').isIn(['ADOPTER', 'RESCUE_STAFF', 'ADMIN']).withMessage('Invalid user type'),
   ],
 
-  bulkUpdate: [
-    body('userIds')
-      .isArray({ min: 1, max: 100 })
-      .withMessage('User IDs must be an array with 1-100 items'),
-    body('userIds.*').isUUID().withMessage('Each user ID must be a valid UUID'),
-    body('updateData').isObject().withMessage('Update data must be an object'),
-    body('updateData.status')
-      .optional()
-      .isIn(['ACTIVE', 'INACTIVE', 'PENDING_VERIFICATION', 'SUSPENDED'])
-      .withMessage('Invalid status'),
-    body('updateData.user_type')
-      .optional()
-      .isIn(['ADOPTER', 'RESCUE_STAFF', 'ADMIN'])
-      .withMessage('Invalid user type'),
-  ],
+  bulkUpdate: validateBody(BulkUserUpdateRequestSchema),
 };
 
 export class UserController {
@@ -259,11 +247,6 @@ export class UserController {
     try {
       const { userIds, updateData } = req.body;
       const requestingUserId = req.user!.userId;
-
-      if (!Array.isArray(userIds) || userIds.length === 0) {
-        res.status(400).json({ error: 'userIds must be a non-empty array' });
-        return;
-      }
 
       // Prevent including own account in bulk operations
       UserService.validateBulkOperation(requestingUserId, userIds, 'update');

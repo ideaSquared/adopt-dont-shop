@@ -1,4 +1,5 @@
 import {
+  BulkUserUpdateRequestSchema,
   EmailSchema,
   LoginRequestSchema,
   PhoneNumberSchema,
@@ -153,6 +154,107 @@ describe('User schemas', () => {
         location: { city: 'London', country: 'GB' },
       });
       expect(parsed.location?.city).toBe('London');
+    });
+  });
+
+  describe('BulkUserUpdateRequestSchema', () => {
+    const validUserIds = [
+      '550e8400-e29b-41d4-a716-446655440000',
+      '550e8400-e29b-41d4-a716-446655440001',
+    ];
+
+    it('accepts a valid bulk status update', () => {
+      const parsed = BulkUserUpdateRequestSchema.parse({
+        userIds: validUserIds,
+        updateData: { status: 'active' },
+      });
+      expect(parsed.userIds).toHaveLength(2);
+      expect(parsed.updateData.status).toBe('active');
+    });
+
+    it('accepts updateData with no fields (no-op update)', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({ userIds: validUserIds, updateData: {} })
+      ).not.toThrow();
+    });
+
+    it('rejects userType — privilege escalation vector', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({
+          userIds: validUserIds,
+          updateData: { userType: 'admin' },
+        })
+      ).toThrow();
+    });
+
+    it('rejects emailVerified — bypasses email verification gate', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({
+          userIds: validUserIds,
+          updateData: { emailVerified: true },
+        })
+      ).toThrow();
+    });
+
+    it('rejects twoFactorEnabled — disables 2FA on victim accounts', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({
+          userIds: validUserIds,
+          updateData: { twoFactorEnabled: false },
+        })
+      ).toThrow();
+    });
+
+    it('rejects password — prevents silent credential reset', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({
+          userIds: validUserIds,
+          updateData: { password: 'NewPass1!' },
+        })
+      ).toThrow();
+    });
+
+    it('rejects loginAttempts — defeats account lockout policy', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({
+          userIds: validUserIds,
+          updateData: { loginAttempts: 0 },
+        })
+      ).toThrow();
+    });
+
+    it('rejects empty userIds array', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({ userIds: [], updateData: { status: 'active' } })
+      ).toThrow();
+    });
+
+    it('rejects non-UUID entries in userIds', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({
+          userIds: ['not-a-uuid'],
+          updateData: { status: 'active' },
+        })
+      ).toThrow();
+    });
+
+    it('rejects more than 100 user IDs', () => {
+      const tooMany = Array.from(
+        { length: 101 },
+        (_, i) => `550e8400-e29b-41d4-a716-${String(i).padStart(12, '0')}`
+      );
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({ userIds: tooMany, updateData: {} })
+      ).toThrow();
+    });
+
+    it('rejects an invalid status value', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({
+          userIds: validUserIds,
+          updateData: { status: 'ACTIVE' },
+        })
+      ).toThrow();
     });
   });
 });
