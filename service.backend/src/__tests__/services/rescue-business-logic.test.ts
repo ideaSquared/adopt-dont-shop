@@ -377,6 +377,159 @@ describe('RescueService - Business Logic Tests', () => {
       );
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
+
+    it('should allow suspension of a verified rescue', async () => {
+      // Given: A verified rescue
+      const mockRescue = createMockRescue({ status: 'verified' });
+      const mockTransaction = {
+        commit: vi.fn().mockResolvedValue(undefined),
+        rollback: vi.fn().mockResolvedValue(undefined),
+      };
+
+      MockedRescue.findByPk = vi.fn().mockResolvedValue(mockRescue as unknown);
+      (MockedRescue as unknown).sequelize = {
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
+      };
+
+      // When: Suspending the rescue
+      const result = await RescueService.suspendRescue(
+        mockRescueId,
+        mockUserId,
+        'Policy violation'
+      );
+
+      // Then: Status is updated to suspended, audit log written, transaction committed
+      expect(mockRescue.update).toHaveBeenCalledWith(
+        { status: 'suspended' },
+        { transaction: mockTransaction }
+      );
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: mockUserId,
+          action: 'suspend',
+          entity: 'rescue',
+          entityId: mockRescueId,
+        })
+      );
+      expect(mockTransaction.commit).toHaveBeenCalled();
+      expect(result.status).toBe('suspended');
+    });
+
+    it('should prevent suspension of an already-suspended rescue', async () => {
+      // Given: A rescue that is already suspended
+      const mockRescue = createMockRescue({ status: 'suspended' });
+      const mockTransaction = {
+        commit: vi.fn().mockResolvedValue(undefined),
+        rollback: vi.fn().mockResolvedValue(undefined),
+      };
+
+      MockedRescue.findByPk = vi.fn().mockResolvedValue(mockRescue as unknown);
+      (MockedRescue as unknown).sequelize = {
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
+      };
+
+      // When & Then: Re-suspension is blocked with a clear error
+      await expect(RescueService.suspendRescue(mockRescueId, mockUserId, 'Reason')).rejects.toThrow(
+        'Rescue is already suspended'
+      );
+      expect(mockTransaction.rollback).toHaveBeenCalled();
+      expect(mockTransaction.commit).not.toHaveBeenCalled();
+    });
+
+    it('should rollback transaction if audit log fails during suspend', async () => {
+      // Given: A verified rescue and an audit log service that will fail
+      const mockRescue = createMockRescue({ status: 'verified' });
+      const mockTransaction = {
+        commit: vi.fn().mockResolvedValue(undefined),
+        rollback: vi.fn().mockResolvedValue(undefined),
+      };
+
+      MockedRescue.findByPk = vi.fn().mockResolvedValue(mockRescue as unknown);
+      (MockedRescue as unknown).sequelize = {
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
+      };
+      MockedAuditLogService.log = vi.fn().mockRejectedValue(new Error('Audit log write failed'));
+
+      // When: Suspending when audit log is unavailable
+      await expect(
+        RescueService.suspendRescue(mockRescueId, mockUserId, 'Policy violation')
+      ).rejects.toThrow();
+
+      // Then: Transaction is rolled back — the status update is not persisted
+      expect(mockTransaction.rollback).toHaveBeenCalled();
+      expect(mockTransaction.commit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Bulk Rescue Operations', () => {
+    it('should suspend all rescues atomically via suspendRescue', async () => {
+      // Given: Multiple verified rescues
+      const rescueId1 = '111e4567-e89b-12d3-a456-426614174001';
+      const rescueId2 = '222e4567-e89b-12d3-a456-426614174002';
+      const mockRescue1 = createMockRescue({ rescueId: rescueId1, status: 'verified' });
+      const mockRescue2 = createMockRescue({ rescueId: rescueId2, status: 'verified' });
+      const mockTransaction = {
+        commit: vi.fn().mockResolvedValue(undefined),
+        rollback: vi.fn().mockResolvedValue(undefined),
+      };
+
+      MockedRescue.findByPk = vi
+        .fn()
+        .mockResolvedValueOnce(mockRescue1 as unknown)
+        .mockResolvedValueOnce(mockRescue2 as unknown);
+      (MockedRescue as unknown).sequelize = {
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
+      };
+
+      // When: Bulk suspending rescues
+      const result = await RescueService.bulkUpdateRescues(
+        [rescueId1, rescueId2],
+        'suspend',
+        mockUserId,
+        'Bulk policy enforcement'
+      );
+
+      // Then: Both succeed, audit log called once per rescue
+      expect(result.successCount).toBe(2);
+      expect(result.failedCount).toBe(0);
+      expect(result.errors).toHaveLength(0);
+      expect(MockedAuditLogService.log).toHaveBeenCalledTimes(2);
+    });
+
+    it('should capture per-rescue errors and continue when one suspend fails', async () => {
+      // Given: One already-suspended rescue and one eligible rescue
+      const rescueId1 = '111e4567-e89b-12d3-a456-426614174001';
+      const rescueId2 = '222e4567-e89b-12d3-a456-426614174002';
+      const mockRescue1 = createMockRescue({ rescueId: rescueId1, status: 'suspended' });
+      const mockRescue2 = createMockRescue({ rescueId: rescueId2, status: 'verified' });
+      const mockTransaction = {
+        commit: vi.fn().mockResolvedValue(undefined),
+        rollback: vi.fn().mockResolvedValue(undefined),
+      };
+
+      MockedRescue.findByPk = vi
+        .fn()
+        .mockResolvedValueOnce(mockRescue1 as unknown)
+        .mockResolvedValueOnce(mockRescue2 as unknown);
+      (MockedRescue as unknown).sequelize = {
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
+      };
+
+      // When: Bulk suspending with one already-suspended rescue
+      const result = await RescueService.bulkUpdateRescues(
+        [rescueId1, rescueId2],
+        'suspend',
+        mockUserId
+      );
+
+      // Then: One succeeds, one fails — error is captured rather than thrown
+      expect(result.successCount).toBe(1);
+      expect(result.failedCount).toBe(1);
+      expect(result.errors[0]).toMatchObject({
+        rescueId: rescueId1,
+        error: 'Rescue is already suspended',
+      });
+    });
   });
 
   describe('Staff Management', () => {
