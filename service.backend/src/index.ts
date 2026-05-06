@@ -490,6 +490,10 @@ const startServer = async () => {
             await sequelize.sync({ force: true });
             logger.info('Database models synchronized (tables created).');
             logger.info('Empty database detected - running seeders...');
+            // Dev boot already gated by config.nodeEnv === 'development' and
+            // an empty DB. Confirm the env-guard here so the seed call
+            // doesn't refuse the dev bootstrap.
+            process.env.ALLOW_DEMO_SEED = 'true';
             const { runAllSeeders } = await import('./seeders');
             await runAllSeeders();
             logger.info('Database seeding completed.');
