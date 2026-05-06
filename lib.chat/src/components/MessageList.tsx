@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '../context/use-chat';
 import type { Message } from '../types';
 import * as styles from './MessageList.css';
@@ -156,16 +156,17 @@ export function MessageList({
     Math.min(safeMessages.length, pageSize)
   );
 
-  // When a new message arrives, ensure it's inside the visible window. We
-  // grow the count by the delta so users don't accidentally hide messages
-  // they just expanded into view.
+  // When new messages arrive, grow the visible window by the delta. We track
+  // the previously-seen length in a ref so this only runs on actual length
+  // increases — not on mount or unrelated re-renders, which would otherwise
+  // expose every message and defeat the pagination.
+  const prevLengthRef = useRef(safeMessages.length);
   useEffect(() => {
-    setVisibleCount((prev) => {
-      if (safeMessages.length <= prev) {
-        return prev;
-      }
-      return Math.min(safeMessages.length, prev + (safeMessages.length - prev));
-    });
+    const delta = safeMessages.length - prevLengthRef.current;
+    prevLengthRef.current = safeMessages.length;
+    if (delta > 0) {
+      setVisibleCount((prev) => Math.min(safeMessages.length, prev + delta));
+    }
   }, [safeMessages.length]);
 
   // Take the most recent `visibleCount` messages and run grouping over only

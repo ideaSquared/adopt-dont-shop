@@ -41,6 +41,8 @@ export const SearchPage: React.FC = () => {
   const geolocation = useGeolocation();
 
   // Search filters state
+  const initialSortByParam = searchParams.get('sortBy');
+  const initialSortOrderParam = searchParams.get('sortOrder');
   const [filters, setFilters] = useState<PetSearchFilters>({
     type: searchParams.get('type') || '',
     breed: searchParams.get('breed') || '',
@@ -51,12 +53,8 @@ export const SearchPage: React.FC = () => {
     status: searchParams.get('status') || '',
     page: parseInt(searchParams.get('page') || '1'),
     limit: 12,
-    sortBy: isKnownSortBy(searchParams.get('sortBy'))
-      ? (searchParams.get('sortBy') as string)
-      : 'createdAt',
-    sortOrder: isKnownSortOrder(searchParams.get('sortOrder'))
-      ? searchParams.get('sortOrder')
-      : 'desc',
+    sortBy: isKnownSortBy(initialSortByParam) ? (initialSortByParam as string) : 'createdAt',
+    sortOrder: isKnownSortOrder(initialSortOrderParam) ? initialSortOrderParam : 'desc',
   });
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
