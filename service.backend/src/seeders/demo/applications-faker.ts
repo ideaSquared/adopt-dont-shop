@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import Application, {
   ApplicationOutcome,
   ApplicationPriority,
@@ -74,9 +75,15 @@ export async function seedDemoApplications(): Promise<void> {
     return;
   }
 
+  // Only demo adopters — using canonical adopters (John, Emily, …) here
+  // would create demo chats that show up as "first chat" for those
+  // canonical users in e2e tests, which expect the canonical seeded chat.
   const adopters = await User.findAll({
     paranoid: false,
-    where: { userType: UserType.ADOPTER },
+    where: {
+      userType: UserType.ADOPTER,
+      email: { [Op.like]: '%@demo.test' },
+    },
     attributes: ['userId'],
   });
   const pets = await Pet.findAll({
