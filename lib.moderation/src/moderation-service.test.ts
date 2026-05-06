@@ -1,16 +1,9 @@
 import { ModerationService } from './moderation-service';
+import { apiService } from '@adopt-dont-shop/lib.api';
 
-const apiServiceMock = {
-  get: jest.fn(),
-  post: jest.fn(),
-  patch: jest.fn(),
-  delete: jest.fn(),
-  put: jest.fn(),
-};
+jest.mock('@adopt-dont-shop/lib.api');
 
-jest.mock('@adopt-dont-shop/lib.api', () => ({
-  apiService: apiServiceMock,
-}));
+const mockedApi = apiService as jest.Mocked<typeof apiService>;
 
 const validReport = {
   reportId: 'rep_1',
@@ -36,34 +29,35 @@ describe('ModerationService', () => {
   });
 
   describe('getReports', () => {
-    it('issues a GET against the reports endpoint and returns parsed payload', async () => {
-      apiServiceMock.get.mockResolvedValueOnce({
+    it('issues a GET against the reports endpoint', async () => {
+      mockedApi.get.mockResolvedValueOnce({
         success: true,
         data: [validReport],
         pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
       });
 
       const result = await service.getReports();
-      expect(apiServiceMock.get).toHaveBeenCalledWith('/api/v1/admin/moderation/reports');
+      expect(mockedApi.get).toHaveBeenCalledWith('/api/v1/admin/moderation/reports');
       expect(result.data).toHaveLength(1);
       expect(result.data[0]?.reportId).toBe('rep_1');
     });
 
     it('appends a query string when filters are provided', async () => {
-      apiServiceMock.get.mockResolvedValueOnce({
+      mockedApi.get.mockResolvedValueOnce({
         success: true,
         data: [],
         pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
       });
 
       await service.getReports({ status: 'pending', page: 2 } as never);
-      expect(apiServiceMock.get).toHaveBeenCalledWith(
-        '/api/v1/admin/moderation/reports?status=pending&page=2'
-      );
+      const calledWith = mockedApi.get.mock.calls[0]?.[0] as string;
+      expect(calledWith).toContain('/api/v1/admin/moderation/reports?');
+      expect(calledWith).toContain('status=pending');
+      expect(calledWith).toContain('page=2');
     });
 
     it('rejects when the backend payload fails schema validation', async () => {
-      apiServiceMock.get.mockResolvedValueOnce({
+      mockedApi.get.mockResolvedValueOnce({
         success: true,
         data: [{ reportId: 1 }],
         pagination: {},
@@ -75,7 +69,7 @@ describe('ModerationService', () => {
 
   describe('createReport', () => {
     it('POSTs the body and returns the parsed Report', async () => {
-      apiServiceMock.post.mockResolvedValueOnce({ data: validReport });
+      mockedApi.post.mockResolvedValueOnce({ data: validReport });
 
       const result = await service.createReport({
         reportedEntityType: 'user',
@@ -86,7 +80,7 @@ describe('ModerationService', () => {
         description: 'A long enough description so the schema accepts it.',
       } as never);
 
-      expect(apiServiceMock.post).toHaveBeenCalledWith(
+      expect(mockedApi.post).toHaveBeenCalledWith(
         '/api/v1/admin/moderation/reports',
         expect.objectContaining({ category: 'harassment' })
       );

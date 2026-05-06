@@ -1,10 +1,12 @@
-const useContextMock = jest.fn();
+// jest.mock factories must only reference variables whose names begin with
+// "mock" — see useFeatureGate.test.ts for the rationale.
+const mockUseContext = jest.fn();
 
 jest.mock('react', () => {
   const actual = jest.requireActual('react');
   return {
     ...actual,
-    useContext: (...args: unknown[]) => useContextMock(...args),
+    useContext: (...args: unknown[]) => mockUseContext(...args),
   };
 });
 
@@ -28,7 +30,7 @@ describe('useDynamicConfig', () => {
 
   beforeEach(() => {
     warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    useContextMock.mockReset();
+    mockUseContext.mockReset();
   });
 
   afterEach(() => {
@@ -40,13 +42,13 @@ describe('useDynamicConfig', () => {
       value: { max_applications_per_user: 10 },
       get: (k, f) => (config.value[k] === undefined ? f : (config.value[k] as never)),
     };
-    useContextMock.mockReturnValue({ client: buildClient({ application_settings: config }) });
+    mockUseContext.mockReturnValue({ client: buildClient({ application_settings: config }) });
 
     expect(useDynamicConfig('application_settings')).toEqual({ max_applications_per_user: 10 });
   });
 
   it('returns null and warns when the client is not initialized', () => {
-    useContextMock.mockReturnValue({ client: null });
+    mockUseContext.mockReturnValue({ client: null });
 
     expect(useDynamicConfig('whatever')).toBeNull();
     expect(warnSpy).toHaveBeenCalled();
@@ -58,7 +60,7 @@ describe('useConfigValue', () => {
 
   beforeEach(() => {
     warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    useContextMock.mockReset();
+    mockUseContext.mockReset();
   });
 
   afterEach(() => {
@@ -70,14 +72,14 @@ describe('useConfigValue', () => {
       value: { max_applications_per_user: 7 },
       get: (k, f) => (config.value[k] === undefined ? f : (config.value[k] as never)),
     };
-    useContextMock.mockReturnValue({ client: buildClient({ application_settings: config }) });
+    mockUseContext.mockReturnValue({ client: buildClient({ application_settings: config }) });
 
     expect(useConfigValue('application_settings', 'max_applications_per_user', 5)).toBe(7);
   });
 
   it('returns the supplied fallback when the key is missing', () => {
     const config: FakeConfig = { value: {}, get: <T>(_: string, f: T): T => f };
-    useContextMock.mockReturnValue({ client: buildClient({ application_settings: config }) });
+    mockUseContext.mockReturnValue({ client: buildClient({ application_settings: config }) });
 
     expect(useConfigValue('application_settings', 'missing', 'default-value')).toBe(
       'default-value'
@@ -85,7 +87,7 @@ describe('useConfigValue', () => {
   });
 
   it('returns the supplied fallback and warns when the client is not initialized', () => {
-    useContextMock.mockReturnValue({ client: null });
+    mockUseContext.mockReturnValue({ client: null });
 
     expect(useConfigValue('any', 'k', 'fallback')).toBe('fallback');
     expect(warnSpy).toHaveBeenCalled();

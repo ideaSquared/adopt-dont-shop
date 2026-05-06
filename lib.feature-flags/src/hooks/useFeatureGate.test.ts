@@ -1,13 +1,14 @@
-// Tests use jest.mock to swap React.useContext, so the hook can be invoked
-// directly as a plain function in node — no React renderer required.
-
-const useContextMock = jest.fn();
+// jest.mock factories must only reference variables whose names begin with
+// "mock" — Jest hoists the mock above the imports but NOT the local
+// declarations, so non-mock-prefixed variables would be undefined at the
+// time the factory runs.
+const mockUseContext = jest.fn();
 
 jest.mock('react', () => {
   const actual = jest.requireActual('react');
   return {
     ...actual,
-    useContext: (...args: unknown[]) => useContextMock(...args),
+    useContext: (...args: unknown[]) => mockUseContext(...args),
   };
 });
 
@@ -22,7 +23,7 @@ describe('useFeatureGate', () => {
 
   beforeEach(() => {
     warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    useContextMock.mockReset();
+    mockUseContext.mockReset();
   });
 
   afterEach(() => {
@@ -30,7 +31,7 @@ describe('useFeatureGate', () => {
   });
 
   it('returns the gate value from the Statsig client when present', () => {
-    useContextMock.mockReturnValue({
+    mockUseContext.mockReturnValue({
       client: {
         checkGate: (name: string) => name === 'chat_enabled',
       },
@@ -42,7 +43,7 @@ describe('useFeatureGate', () => {
   });
 
   it('returns false and warns when the Statsig client is not initialized', () => {
-    useContextMock.mockReturnValue({ client: null });
+    mockUseContext.mockReturnValue({ client: null });
 
     expect(useFeatureGate('any_gate')).toEqual({ value: false });
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('any_gate'));
