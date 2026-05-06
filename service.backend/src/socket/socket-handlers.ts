@@ -7,6 +7,7 @@ import MessageReaction from '../models/MessageReaction';
 import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
 import { getMessageBroker } from '../services/messageBroker.service';
+import { setAnalyticsIo } from './analytics-emitter';
 import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 
@@ -153,6 +154,9 @@ export class SocketHandlers {
     // (broadcastNewMessage) so controllers can fan out events without
     // having to plumb a reference through.
     liveIo = io;
+    // ADS-105: same registration for the analytics emitter so service-
+    // layer mutations can fan invalidations out without plumbing a ref.
+    setAnalyticsIo(io);
     this.setupMiddleware();
     this.setupConnectionHandler();
     this.setupMessageBrokerSubscriptions();
@@ -208,6 +212,24 @@ export class SocketHandlers {
 
       // Join user to their personal room for notifications
       socket.join(`user:${socket.userId}`);
+
+      // ADS-105: analytics rooms. Rescue staff get rescue-scoped
+      // invalidations; admins/super-admins also get platform-wide.
+      // We can't read DB permissions on every handshake, so we gate
+      // platform-room membership on userType/role from the JWT —
+      // matches how the rest of the socket layer trusts the JWT
+      // payload.
+      if (socket.rescueId) {
+        socket.join(`analytics:rescue:${socket.rescueId}`);
+      }
+      if (
+        socket.role === 'super_admin' ||
+        socket.role === 'admin' ||
+        socket.userType === 'admin' ||
+        socket.userType === 'moderator'
+      ) {
+        socket.join('analytics:platform');
+      }
 
       // Setup event handlers
       this.setupChatHandlers(socket);

@@ -21,6 +21,11 @@ type RequiredEnvVars = {
   DEV_DATABASE_URL?: string;
   TEST_DATABASE_URL?: string;
   DATABASE_URL?: string;
+  // Analytics reports (ADS-105). All optional — service degrades
+  // gracefully when Redis isn't available.
+  REDIS_URL?: string;
+  JWT_REPORT_SHARE_SECRET?: string;
+  WORKER_ENABLED?: string;
 };
 
 type ValidatedEnv = {
@@ -41,6 +46,9 @@ type ValidatedEnv = {
   DEV_DATABASE_URL?: string;
   TEST_DATABASE_URL?: string;
   DATABASE_URL?: string;
+  REDIS_URL?: string;
+  JWT_REPORT_SHARE_SECRET?: string;
+  WORKER_ENABLED?: string;
 };
 
 /**
@@ -204,6 +212,9 @@ const validateEnv = (): ValidatedEnv => {
     DEV_DATABASE_URL: process.env.DEV_DATABASE_URL,
     TEST_DATABASE_URL: process.env.TEST_DATABASE_URL,
     DATABASE_URL: process.env.DATABASE_URL,
+    REDIS_URL: process.env.REDIS_URL,
+    JWT_REPORT_SHARE_SECRET: process.env.JWT_REPORT_SHARE_SECRET,
+    WORKER_ENABLED: process.env.WORKER_ENABLED,
   };
 
   return validated;

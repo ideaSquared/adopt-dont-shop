@@ -109,6 +109,16 @@ const rolePermissionMappings = {
     'notifications.bulk_create',
     'notifications.cleanup',
     'chat.analytics.read',
+    // Analytics Reports (ADS-105)
+    'reports.create',
+    'reports.read.own',
+    'reports.read.rescue',
+    'reports.read.platform',
+    'reports.update',
+    'reports.delete',
+    'reports.share',
+    'reports.schedule',
+    'reports.template.manage',
   ],
 
   admin: [
@@ -206,6 +216,16 @@ const rolePermissionMappings = {
     'notifications.update',
     'notifications.bulk_create',
     'chat.analytics.read',
+    // Analytics Reports (ADS-105) — admins get full platform read
+    'reports.create',
+    'reports.read.own',
+    'reports.read.rescue',
+    'reports.read.platform',
+    'reports.update',
+    'reports.delete',
+    'reports.share',
+    'reports.schedule',
+    'reports.template.manage',
   ],
 
   moderator: [
@@ -289,6 +309,14 @@ const rolePermissionMappings = {
     'notifications.create',
     'notifications.read',
     'notifications.update',
+    // Analytics Reports (ADS-105) — rescue admins manage their rescue's reports
+    'reports.create',
+    'reports.read.own',
+    'reports.read.rescue',
+    'reports.update',
+    'reports.delete',
+    'reports.share',
+    'reports.schedule',
   ],
 
   rescue_staff: [
@@ -320,6 +348,10 @@ const rolePermissionMappings = {
     'ratings.create',
     'ratings.read',
     'notifications.read',
+    // Analytics Reports (ADS-105) — staff can view rescue reports + create their own
+    'reports.create',
+    'reports.read.own',
+    'reports.read.rescue',
   ],
 
   rescue_volunteer: [
