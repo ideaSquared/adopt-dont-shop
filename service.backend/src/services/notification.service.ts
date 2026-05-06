@@ -11,6 +11,7 @@ import { JsonObject, WhereClause } from '../types/common';
 import logger, { loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { NotificationChannelService } from './notificationChannelService';
+import { smsService } from './sms.service';
 
 export interface NotificationSearchOptions {
   page?: number;
@@ -809,22 +810,28 @@ export class NotificationService {
         return;
       }
 
-      // This would integrate with Twilio, AWS SNS, or other SMS service
       const smsMessage = `${notification.title}: ${notification.message}`;
+      const result = await smsService.send({
+        to: user.phoneNumber,
+        message: smsMessage,
+      });
 
-      // Mock SMS sending
+      if (!result.success) {
+        loggerHelpers.logExternalService('SMS Notification', 'Failed', {
+          notificationId: notification.notification_id,
+          userId: notification.user_id,
+          provider: smsService.getProviderName(),
+          error: result.error,
+        });
+        return;
+      }
+
       loggerHelpers.logExternalService('SMS Notification', 'Delivered', {
         notificationId: notification.notification_id,
         userId: notification.user_id,
-        phoneNumber: user.phoneNumber,
-        message: smsMessage, // Include message content in logs
+        provider: smsService.getProviderName(),
+        messageId: result.messageId,
       });
-
-      // In real implementation:
-      // await smsService.send({
-      //   to: user.phone_number,
-      //   message: smsMessage
-      // });
     } catch (error) {
       logger.error('Error sending SMS notification:', {
         error: error instanceof Error ? error.message : String(error),

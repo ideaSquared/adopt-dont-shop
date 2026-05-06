@@ -552,6 +552,42 @@ The {{system.appName}} Team
     });
   }
 
+  /**
+   * Locale-aware template lookup with fallback chain.
+   *
+   * Tries in order:
+   *   1. exact locale (e.g. "fr-CA")
+   *   2. language-only locale (e.g. "fr")
+   *   3. the supplied `fallbackLocale` (default "en")
+   *
+   * Returns the first match. Returns `null` when none of the lookups
+   * resolve. Used by EmailService when a user has a non-default
+   * `language` preference but a translation may or may not exist for
+   * the requested template category.
+   */
+  public async getTemplateForLocale(
+    category: TemplateCategory,
+    requestedLocale: string,
+    fallbackLocale: string = 'en'
+  ): Promise<EmailTemplate | null> {
+    const tried = new Set<string>();
+    const locales = [requestedLocale, requestedLocale.split('-')[0], fallbackLocale]
+      .map(l => l?.trim().toLowerCase())
+      .filter((l): l is string => Boolean(l));
+
+    for (const locale of locales) {
+      if (tried.has(locale)) {
+        continue;
+      }
+      tried.add(locale);
+      const template = await this.getDefaultTemplate(category, locale);
+      if (template) {
+        return template;
+      }
+    }
+    return null;
+  }
+
   public getDefaultTemplateDefinitions(): DefaultTemplate[] {
     return this.defaultTemplates;
   }
