@@ -32,14 +32,12 @@ export class SmsService {
   constructor(config: SmsServiceConfig = {}) {
     this.provider = config.provider ?? new ConsoleSmsProvider();
     this.defaultCountryCode = config.defaultCountryCode;
-
-    if (!this.provider.validateConfiguration()) {
-      logger.warn(
-        `SMS provider '${this.provider.getName()}' reported invalid configuration; sends will likely fail.`
-      );
-    } else {
-      logger.info(`SMS service ready (provider: ${this.provider.getName()})`);
-    }
+    // NB: deliberately NOT logging in the constructor. The default singleton
+    // below is instantiated at module load, which happens before some test
+    // files' `vi.mock('../utils/logger', ...)` factories return their default
+    // export. Calling `logger.info(...)` here would crash those test imports.
+    // We log on first send() instead, which is enough for production
+    // observability.
   }
 
   getProviderName(): string {
