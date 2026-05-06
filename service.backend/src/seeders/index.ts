@@ -28,7 +28,17 @@ import { seedReports } from './26-reports';
 import { seedModeratorActions } from './27-moderator-actions';
 import { seedUserSanctions } from './28-user-sanctions';
 import { up as seedAuditLogs } from './29-audit-logs';
-import { seedDemoUsers } from './demo';
+import {
+  seedDemoApplications,
+  seedDemoChats,
+  seedDemoMessages,
+  seedDemoNotifications,
+  seedDemoPets,
+  seedDemoRatings,
+  seedDemoRescues,
+  seedDemoStaff,
+  seedDemoUsers,
+} from './demo';
 import {
   seedE2EFixtures,
   seedEmilyAttachmentTest,
@@ -47,21 +57,29 @@ const seeders = [
   { name: 'Demo Users (Faker)', seeder: seedDemoUsers },
   { name: 'User Roles', seeder: seedUserRoles },
   { name: 'Rescues', seeder: seedRescues },
+  { name: 'Demo Rescues (Faker)', seeder: seedDemoRescues },
   { name: 'Staff Members', seeder: seedStaffMembers },
+  { name: 'Demo Staff (Faker)', seeder: seedDemoStaff },
   { name: 'Invitations', seeder: seedInvitations },
   { name: 'Support Tickets', seeder: seedSupportTickets },
   { name: 'Reports', seeder: seedReports },
   { name: 'Moderator Actions', seeder: seedModeratorActions },
   { name: 'User Sanctions', seeder: seedUserSanctions },
   { name: 'Pets', seeder: seedPets },
+  { name: 'Demo Pets (Faker)', seeder: seedDemoPets },
   { name: 'Applications', seeder: seedApplications },
+  { name: 'Demo Applications (Faker)', seeder: seedDemoApplications },
   { name: 'Home Visits', seeder: seedHomeVisits },
   { name: 'Application Timeline', seeder: seedApplicationTimeline },
   { name: 'Chats', seeder: seedChats },
+  { name: 'Demo Chats (Faker)', seeder: seedDemoChats },
   { name: 'Messages', seeder: seedMessages },
+  { name: 'Demo Messages (Faker)', seeder: seedDemoMessages },
   { name: 'File Uploads', seeder: seedFileUploads },
   { name: 'Notifications', seeder: seedNotifications },
+  { name: 'Demo Notifications (Faker)', seeder: seedDemoNotifications },
   { name: 'Ratings', seeder: seedRatings },
+  { name: 'Demo Ratings (Faker)', seeder: seedDemoRatings },
   { name: 'Email Templates', seeder: seedEmailTemplates },
   { name: 'Emily Conversation', seeder: seedEmilyConversation },
   { name: 'Emily Conversation 2', seeder: seedEmilyConversation2 },
