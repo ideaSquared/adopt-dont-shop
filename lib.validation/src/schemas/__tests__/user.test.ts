@@ -239,8 +239,9 @@ describe('User schemas', () => {
     });
 
     it('rejects more than 100 user IDs', () => {
-      const tooMany = Array.from({ length: 101 }, (_, i) =>
-        `550e8400-e29b-41d4-a716-${String(i).padStart(12, '0')}`
+      const tooMany = Array.from(
+        { length: 101 },
+        (_, i) => `550e8400-e29b-41d4-a716-${String(i).padStart(12, '0')}`
       );
       expect(() =>
         BulkUserUpdateRequestSchema.parse({ userIds: tooMany, updateData: {} })

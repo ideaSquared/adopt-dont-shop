@@ -1,6 +1,5 @@
 import { vi } from 'vitest';
-import { Response } from 'express';
-import { NextFunction, Request } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { UserController, userValidation } from '../../controllers/user.controller';
 import { UserType } from '../../models/User';
 import UserService from '../../services/user.service';
@@ -203,39 +202,59 @@ describe('UserController', () => {
     ];
 
     const runMiddleware = (body: unknown) =>
-      new Promise<{ status?: number; body?: unknown }>((resolve) => {
+      new Promise<{ status?: number; body?: unknown }>(resolve => {
         const mockReq = { body } as Request;
         const mockRes = {
           status: vi.fn().mockReturnThis(),
-          json: vi.fn((payload) => resolve({ status: (mockRes.status as ReturnType<typeof vi.fn>).mock.calls[0]?.[0], body: payload })),
+          json: vi.fn(payload =>
+            resolve({
+              status: (mockRes.status as ReturnType<typeof vi.fn>).mock.calls[0]?.[0],
+              body: payload,
+            })
+          ),
         } as unknown as Response;
         const next: NextFunction = () => resolve({ body: mockReq.body });
         userValidation.bulkUpdate(mockReq, mockRes, next);
       });
 
     it('accepts a valid status update', async () => {
-      const result = await runMiddleware({ userIds: validUserIds, updateData: { status: 'active' } });
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { status: 'active' },
+      });
       expect(result.status).toBeUndefined();
       expect((result.body as { userIds: string[] }).userIds).toEqual(validUserIds);
     });
 
     it('rejects userType — privilege escalation vector', async () => {
-      const result = await runMiddleware({ userIds: validUserIds, updateData: { userType: 'admin' } });
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { userType: 'admin' },
+      });
       expect(result.status).toBe(400);
     });
 
     it('rejects emailVerified — bypasses email verification gate', async () => {
-      const result = await runMiddleware({ userIds: validUserIds, updateData: { emailVerified: true } });
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { emailVerified: true },
+      });
       expect(result.status).toBe(400);
     });
 
     it('rejects twoFactorEnabled — disables 2FA on victim accounts', async () => {
-      const result = await runMiddleware({ userIds: validUserIds, updateData: { twoFactorEnabled: false } });
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { twoFactorEnabled: false },
+      });
       expect(result.status).toBe(400);
     });
 
     it('rejects password field', async () => {
-      const result = await runMiddleware({ userIds: validUserIds, updateData: { password: 'NewPass1!' } });
+      const result = await runMiddleware({
+        userIds: validUserIds,
+        updateData: { password: 'NewPass1!' },
+      });
       expect(result.status).toBe(400);
     });
 
