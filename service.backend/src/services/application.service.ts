@@ -561,6 +561,7 @@ export class ApplicationService {
         limit,
         offset,
         paranoid: !include_deleted,
+        distinct: true,
       });
 
       const totalPages = Math.ceil(total / limit);

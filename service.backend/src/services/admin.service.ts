@@ -113,6 +113,7 @@ class AdminService {
             ],
           },
         ],
+        distinct: true,
         order: [[sortBy, sortOrder]],
         limit,
         offset: (page - 1) * limit,

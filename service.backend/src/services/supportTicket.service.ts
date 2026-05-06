@@ -103,6 +103,7 @@ class SupportTicketService {
         limit,
         offset,
         order: [[safeSortBy, sortOrder]],
+        distinct: true,
         include: [
           {
             model: User,
