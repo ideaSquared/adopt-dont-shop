@@ -10,7 +10,7 @@ import FileUpload from '../models/FileUpload';
 
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
-// Emily Davis (fc369713-6925-4f02-a5c6-cb84b3652116) conversation with Bunny Haven Rabbit Rescue
+// Emily Davis (fc369713-6925-4f02-a5c6-cb84b3652116) conversation with Furry Friends Manchester
 
 const emilyRabbitConversationData = {
   // Chat conversation
@@ -18,7 +18,7 @@ const emilyRabbitConversationData = {
   chat: {
     chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-    rescue_id: '550e8400-e29b-41d4-a716-446655440003', // Bunny Haven Rabbit Rescue
+    rescue_id: '550e8400-e29b-41d4-a716-446655440003', // Furry Friends Manchester
 
     status: ChatStatus.ACTIVE,
 
@@ -51,7 +51,7 @@ const emilyRabbitConversationData = {
 
       chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      participant_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen from Bunny Haven
+      participant_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Content Moderator (Rescue Coordinator) from Furry Friends Manchester
 
       role: ParticipantRole.RESCUE,
 
@@ -91,7 +91,7 @@ const emilyRabbitConversationData = {
 
       chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen
+      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Content Moderator
 
       content:
         "Hi Emily! It's wonderful that you're considering rabbits. Luna and Stella are indeed a bonded pair - they must be adopted together. Rabbits and cats can coexist, but it requires careful introduction and supervision. The cats need to be calm and not overly predatory. How do your cats typically react to small animals?",
@@ -131,7 +131,7 @@ const emilyRabbitConversationData = {
 
       chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen
+      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Content Moderator
 
       content:
         "That sounds very promising! Senior cats are often ideal companions for rabbits. Luna and Stella need a large exercise pen (at least 4x4 feet) with hiding spots, plus daily supervised floor time for exercise. They're litter trained and need fresh hay, pellets, and vegetables daily. They're both spayed and very social with humans. Would you like to meet them?",
@@ -171,7 +171,7 @@ const emilyRabbitConversationData = {
 
       chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen
+      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Content Moderator
 
       content:
         "Bonded pairs are actually easier in some ways - they keep each other company and play together! The adoption fee is $120 for both. We do require a home visit to ensure the setup is safe. Luna is more outgoing while Stella is shy but sweet. They've been together for 2 years. How about Sunday afternoon for a meet-and-greet?",
@@ -211,7 +211,7 @@ const emilyRabbitConversationData = {
 
       chat_id: 'baf57283-6e8a-4dfc-a503-aa9bbbeb6096',
 
-      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Lisa Chen
+      sender_id: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Content Moderator
 
       content:
         "I'd love to advise on the setup during the home visit! Every house is different and I can help you choose the best spot and arrangement. For Sunday, just come as you are - bring any questions you have. Luna and Stella are going to love meeting you! See you at 2 PM at our facility. 🐰🐰",
@@ -319,7 +319,7 @@ export async function seedEmilyRabbitConversation() {
 
     // eslint-disable-next-line no-console
 
-    console.log('✅ Created Emily Davis rabbit conversation with Bunny Haven Rabbit Rescue');
+    console.log('✅ Created Emily Davis rabbit conversation with Furry Friends Manchester');
 
     // eslint-disable-next-line no-console
 

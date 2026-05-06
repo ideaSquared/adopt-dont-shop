@@ -16,7 +16,7 @@ const emilyConversation3Data = {
   chat: {
     chat_id: '74f96cdf-e9cd-4b14-a1da-dd3c14445ec2',
 
-    rescue_id: '550e8400-e29b-41d4-a716-446655440003', // Furry Friends Portland
+    rescue_id: '550e8400-e29b-41d4-a716-446655440003', // Furry Friends Manchester
 
     status: ChatStatus.ACTIVE,
 

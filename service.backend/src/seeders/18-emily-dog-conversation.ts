@@ -10,7 +10,7 @@ import FileUpload from '../models/FileUpload';
 
 import { ChatStatus, MessageContentFormat, ParticipantRole } from '../types/chat';
 
-// Emily Davis (fc369713-6925-4f02-a5c6-cb84b3652116) conversation with Happy Tails Dog Rescue about a senior dog
+// Emily Davis (fc369713-6925-4f02-a5c6-cb84b3652116) conversation with Happy Tails Senior Dog Rescue about a senior dog
 
 const emilyDogConversationData = {
   // Chat conversation
@@ -18,7 +18,7 @@ const emilyDogConversationData = {
   chat: {
     chat_id: 'ff52fc99-d1c7-4012-aded-defbb2bafe7a',
 
-    rescue_id: '550e8400-e29b-41d4-a716-446655440002', // Happy Tails Dog Rescue
+    rescue_id: '550e8400-e29b-41d4-a716-446655440002', // Happy Tails Senior Dog Rescue
 
     status: ChatStatus.ACTIVE,
 
@@ -51,7 +51,7 @@ const emilyDogConversationData = {
 
       chat_id: 'ff52fc99-d1c7-4012-aded-defbb2bafe7a',
 
-      participant_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Mike Rodriguez from Happy Tails
+      participant_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia from Happy Tails Senior Dog Rescue
 
       role: ParticipantRole.RESCUE,
 
@@ -91,7 +91,7 @@ const emilyDogConversationData = {
 
       chat_id: 'ff52fc99-d1c7-4012-aded-defbb2bafe7a',
 
-      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Mike Rodriguez
+      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
 
       content:
         "Hi Emily! Charlie is such a gentle soul and yes, he's excellent with cats! His previous home had 3 cats and he was their best friend. At 8 years old, he's past the puppy energy phase and just wants to be part of a loving family. How many cats do you currently have, and what are their temperaments like?",
@@ -131,7 +131,7 @@ const emilyDogConversationData = {
 
       chat_id: 'ff52fc99-d1c7-4012-aded-defbb2bafe7a',
 
-      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Mike Rodriguez
+      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
 
       content:
         "That sounds like a perfect setup! Charlie needs moderate exercise - a couple of walks a day and some playtime in the yard would make him very happy. He's not a high-energy dog anymore, more of a 'let's go for a nice walk then nap together' kind of guy. Would you be interested in bringing your cats for a meet-and-greet, or would you prefer to meet Charlie first?",
@@ -171,7 +171,7 @@ const emilyDogConversationData = {
 
       chat_id: 'ff52fc99-d1c7-4012-aded-defbb2bafe7a',
 
-      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Mike Rodriguez
+      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
 
       content:
         "That's a great approach! Charlie would love to meet you. How about Thursday evening around 5 PM? That's when he's most relaxed but still social. If you two hit it off, we can definitely arrange a home visit with your cats. Charlie is fostered nearby so we could potentially do a home trial weekend if everyone gets along well.",
@@ -211,7 +211,7 @@ const emilyDogConversationData = {
 
       chat_id: 'ff52fc99-d1c7-4012-aded-defbb2bafe7a',
 
-      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Mike Rodriguez
+      sender_id: 'c283bd85-11ce-4494-add0-b06896d38e2d', // Maria Garcia
 
       content:
         "Just bring yourself and maybe some dog treats! Charlie loves meeting new people and I have a feeling you two will be great together. He's been waiting for the right home, and a house with cats who are already calm and confident sounds ideal. See you Thursday! 🐕🐱",
@@ -300,7 +300,7 @@ export async function seedEmilyDogConversation() {
 
     // eslint-disable-next-line no-console
 
-    console.log('✅ Created Emily Davis dog conversation with Happy Tails Dog Rescue');
+    console.log('✅ Created Emily Davis dog conversation with Happy Tails Senior Dog Rescue');
 
     // eslint-disable-next-line no-console
 

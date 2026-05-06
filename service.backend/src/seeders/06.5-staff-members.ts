@@ -33,14 +33,17 @@ const staffMembers = [
     addedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     addedAt: new Date('2023-02-20'),
   },
-  // Furry Friends Portland - let's add a staff member for the third rescue too
+  // Furry Friends Manchester — verified so the rescue actually has at
+  // least one staff member who can be tagged as `senderRole: rescue_staff`
+  // by the chat layer. Without verification, every Furry Friends chat
+  // looked like an unaffiliated user replying.
   {
-    rescueId: '550e8400-e29b-41d4-a716-446655440003', // Furry Friends Portland
-    userId: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Content Moderator (can act as rescue coordinator)
+    rescueId: '550e8400-e29b-41d4-a716-446655440003', // Furry Friends Manchester
+    userId: '7599debb-3d71-497c-a6e9-a2aa255d77df', // Content Moderator (acting as rescue coordinator)
     title: 'Rescue Coordinator',
-    isVerified: false, // This one is pending verification
-    verifiedBy: undefined,
-    verifiedAt: undefined,
+    isVerified: true,
+    verifiedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
+    verifiedAt: new Date('2024-01-15'),
     addedBy: '0e394fc1-c11a-4148-a2c7-5dfc51798d8d',
     addedAt: new Date('2024-01-10'),
   },
