@@ -1,4 +1,4 @@
-import Permission from '../models/Permission';
+import Permission from '../../models/Permission';
 
 const permissions = [
   // User Management

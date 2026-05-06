@@ -1,6 +1,6 @@
-import Permission from '../models/Permission';
-import Role from '../models/Role';
-import RolePermission from '../models/RolePermission';
+import Permission from '../../models/Permission';
+import Role from '../../models/Role';
+import RolePermission from '../../models/RolePermission';
 
 const rolePermissionMappings = {
   super_admin: [

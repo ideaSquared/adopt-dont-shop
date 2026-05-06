@@ -7,12 +7,12 @@
  * If you change a fixture here, also update the corresponding e2e spec
  * that relies on it.  See e2e/README.md for the contract.
  */
-import { generateUuidV7 } from '../utils/uuid';
-import ChatParticipant from '../models/ChatParticipant';
-import Pet, { PetStatus } from '../models/Pet';
-import UserFavorite from '../models/UserFavorite';
-import UserNotificationPrefs from '../models/UserNotificationPrefs';
-import { ParticipantRole } from '../types/chat';
+import { generateUuidV7 } from '../../utils/uuid';
+import ChatParticipant from '../../models/ChatParticipant';
+import Pet, { PetStatus } from '../../models/Pet';
+import UserFavorite from '../../models/UserFavorite';
+import UserNotificationPrefs from '../../models/UserNotificationPrefs';
+import { ParticipantRole } from '../../types/chat';
 
 // Anchor IDs — kept stable so the e2e specs can address them directly
 // when the test only needs to read one specific fixture.

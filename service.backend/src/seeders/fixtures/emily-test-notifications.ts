@@ -3,8 +3,8 @@ import Notification, {
   NotificationPriority,
   NotificationStatus,
   NotificationType,
-} from '../models/Notification';
-import { JsonObject } from '../types/common';
+} from '../../models/Notification';
+import { JsonObject } from '../../types/common';
 
 interface NotificationSeedData {
   notification_id: string;

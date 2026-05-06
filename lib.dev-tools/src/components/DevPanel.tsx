@@ -45,6 +45,8 @@ export interface DevPanelProps {
   isDevelopment?: () => boolean;
   userTypes?: string[];
   useApiData?: boolean;
+  /** Default page size when searching against the dynamic API. */
+  searchLimit?: number;
 }
 
 export const DevPanelComponent: React.FC<DevPanelProps> = ({
@@ -55,8 +57,10 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
   isDevelopment: isDev = isDevelopmentMode,
   userTypes,
   useApiData = false,
+  searchLimit = 100,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, login, logout, isAuthenticated } = authContext;
 
   // Use API data if requested, otherwise use prop data
@@ -66,6 +70,8 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
     error: usersError,
   } = useSeededUsers({
     userTypes,
+    query: useApiData ? searchQuery : undefined,
+    limit: searchLimit,
     fallbackToLocal: true,
   });
 
@@ -131,6 +137,18 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
             Available Users (Password: {seededPassword}):
           </h4>
 
+          {useApiData && (
+            <input
+              type="search"
+              className={styles.searchInput}
+              placeholder="Search by name or email…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoComplete="off"
+              aria-label="Search dev users"
+            />
+          )}
+
           {usersLoading && useApiData && (
             <div
               style={{ color: '#6b7280', fontSize: '0.8rem', textAlign: 'center', padding: '1rem' }}
@@ -152,6 +170,18 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
             >
               ⚠️ {usersError}
             </div>
+          )}
+
+          {useApiData && !usersLoading && users.length > 0 && (
+            <div className={styles.resultsSummary}>
+              {users.length === searchLimit
+                ? `Showing first ${users.length} matches — refine your search`
+                : `${users.length} match${users.length === 1 ? '' : 'es'}`}
+            </div>
+          )}
+
+          {useApiData && !usersLoading && users.length === 0 && (
+            <div className={styles.resultsSummary}>No users match this search.</div>
           )}
 
           {users.map((devUser: DevUser) => (

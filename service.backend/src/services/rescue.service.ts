@@ -83,6 +83,10 @@ export interface RescueStatsResponse {
   averageTimeToAdoption: number;
 }
 
+export type RescueWithStatistics = ReturnType<Rescue['toJSON']> & {
+  statistics: RescueStatsResponse;
+};
+
 export class RescueService {
   /**
    * Search and filter rescues with pagination
@@ -211,12 +215,24 @@ export class RescueService {
   }
 
   /**
-   * Get rescue by ID with full details
+   * Get rescue by ID with full details.
+   *
+   * When `includeStats` is true the return is a plain object (rescue
+   * attributes + statistics) rather than a Sequelize model instance — this
+   * avoids mutating the model with a non-column property and keeps the
+   * return type honest without any `as any` cast.
    */
+  static async getRescueById(rescueId: string): Promise<Rescue>;
+  static async getRescueById(rescueId: string, includeStats: false): Promise<Rescue>;
+  static async getRescueById(rescueId: string, includeStats: true): Promise<RescueWithStatistics>;
+  static async getRescueById(
+    rescueId: string,
+    includeStats?: boolean
+  ): Promise<Rescue | RescueWithStatistics>;
   static async getRescueById(
     rescueId: string,
     includeStats = false
-  ): Promise<Rescue & { statistics?: RescueStatsResponse }> {
+  ): Promise<Rescue | RescueWithStatistics> {
     const startTime = Date.now();
 
     try {
@@ -249,7 +265,7 @@ export class RescueService {
 
       if (includeStats) {
         const statistics = await this.getRescueStatistics(rescueId);
-        return Object.assign(rescue, { statistics });
+        return { ...rescue.toJSON(), statistics };
       }
 
       return rescue;

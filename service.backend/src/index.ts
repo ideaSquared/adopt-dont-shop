@@ -73,6 +73,12 @@ configRoutes.get('/', async (req, res) => {
 
 // Initialize express app
 const app = express();
+
+// Trust the first proxy hop (nginx in our deploy). Without this, req.ip resolves
+// to the proxy container, so per-IP rate limits collapse to a global bucket and
+// security logs / audit IP fields lose forensic value.
+app.set('trust proxy', 1);
+
 const server = createServer(app);
 
 // Initialize Socket.IO
@@ -466,6 +472,10 @@ const startServer = async () => {
 
           // Always run seeders after force sync
           logger.info('Running database seeders...');
+          // Dev boot already gated by config.nodeEnv === 'development' and an
+          // explicit trigger (FORCE_SEED or empty DB). Confirm the env-guard
+          // here so the seed call doesn't refuse the dev bootstrap.
+          process.env.ALLOW_DEMO_SEED = 'true';
           const { runAllSeeders } = await import('./seeders');
           await runAllSeeders();
           logger.info('Database seeding completed.');
@@ -486,6 +496,10 @@ const startServer = async () => {
             await sequelize.sync({ force: true });
             logger.info('Database models synchronized (tables created).');
             logger.info('Empty database detected - running seeders...');
+            // Dev boot already gated by config.nodeEnv === 'development' and
+            // an empty DB. Confirm the env-guard here so the seed call
+            // doesn't refuse the dev bootstrap.
+            process.env.ALLOW_DEMO_SEED = 'true';
             const { runAllSeeders } = await import('./seeders');
             await runAllSeeders();
             logger.info('Database seeding completed.');
