@@ -114,6 +114,12 @@ export function DataTable<T extends object>({
 
   const allSelected = data.length > 0 && data.every(row => selectedRows.has(getRowId(row)));
 
+  const visiblePageCount = Math.min(5, totalPages);
+  const startPage = Math.max(
+    1,
+    Math.min(currentPage - 2, totalPages - visiblePageCount + 1)
+  );
+
   return (
     <div className={styles.tableContainer}>
       <div className={styles.tableWrapper}>
@@ -207,68 +213,61 @@ export function DataTable<T extends object>({
         </table>
       </div>
 
-      {onPageChange && totalPages > 1 && (() => {
-        const visiblePageCount = Math.min(5, totalPages);
-        const startPage = Math.max(
-          1,
-          Math.min(currentPage - 2, totalPages - visiblePageCount + 1)
-        );
-        return (
-          <div className={styles.paginationContainer}>
-            <div className={styles.paginationInfo}>
-              Page {currentPage} of {totalPages}
-            </div>
-            <div className={styles.paginationControls}>
-              <button
-                className={styles.pageButton({ active: false })}
-                onClick={() => onPageChange(1)}
-                disabled={currentPage === 1}
-                aria-label='First page'
-              >
-                <FiChevronsLeft />
-              </button>
-              <button
-                className={styles.pageButton({ active: false })}
-                onClick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                aria-label='Previous page'
-              >
-                <FiChevronLeft />
-              </button>
-
-              {Array.from({ length: visiblePageCount }, (_, i) => {
-                const pageNum = startPage + i;
-                return (
-                  <button
-                    key={pageNum}
-                    className={styles.pageButton({ active: currentPage === pageNum })}
-                    onClick={() => onPageChange(pageNum)}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-
-              <button
-                className={styles.pageButton({ active: false })}
-                onClick={() => onPageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                aria-label='Next page'
-              >
-                <FiChevronRight />
-              </button>
-              <button
-                className={styles.pageButton({ active: false })}
-                onClick={() => onPageChange(totalPages)}
-                disabled={currentPage === totalPages}
-                aria-label='Last page'
-              >
-                <FiChevronsRight />
-              </button>
-            </div>
+      {onPageChange && totalPages > 1 && (
+        <div className={styles.paginationContainer}>
+          <div className={styles.paginationInfo}>
+            Page {currentPage} of {totalPages}
           </div>
-        );
-      })()}
+          <div className={styles.paginationControls}>
+            <button
+              className={styles.pageButton({ active: false })}
+              onClick={() => onPageChange(1)}
+              disabled={currentPage === 1}
+              aria-label='First page'
+            >
+              <FiChevronsLeft />
+            </button>
+            <button
+              className={styles.pageButton({ active: false })}
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              aria-label='Previous page'
+            >
+              <FiChevronLeft />
+            </button>
+
+            {Array.from({ length: visiblePageCount }, (_, i) => {
+              const pageNum = startPage + i;
+              return (
+                <button
+                  key={pageNum}
+                  className={styles.pageButton({ active: currentPage === pageNum })}
+                  onClick={() => onPageChange(pageNum)}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+
+            <button
+              className={styles.pageButton({ active: false })}
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              aria-label='Next page'
+            >
+              <FiChevronRight />
+            </button>
+            <button
+              className={styles.pageButton({ active: false })}
+              onClick={() => onPageChange(totalPages)}
+              disabled={currentPage === totalPages}
+              aria-label='Last page'
+            >
+              <FiChevronsRight />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
