@@ -80,7 +80,6 @@ npm run docker:dev               # start
 npm run docker:logs              # follow logs
 npm run docker:shell:backend     # shell into backend
 npm run docker:shell:db          # psql into database
-npm run docker:rebuild:types     # rebuild lib.types into backend (after editing lib.types/src)
 npm run docker:reset             # nuke containers + volumes (DESTROYS data)
 
 # Build / test / quality
@@ -114,7 +113,7 @@ The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 
 - **Frontend apps** — Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`). Edits to `app.*/src/**` and `lib.*/src/**` reload in the browser within ~1-2 seconds.
 - **Backend** — `ts-node-dev --poll` restarts on edits to `service.backend/src/**` within ~2 seconds.
-- **lib.types** — built into backend `node_modules` at container start. After editing `lib.types/src/**`, run `npm run docker:rebuild:types` (no container restart needed).
+- **lib.types** — the `lib-types-watcher` sidecar runs `tsc --watch` and writes to `dist/` continuously; the backend picks up changes automatically via the workspace symlink.
 - **Other libraries** (`lib.api`, `lib.auth`, etc.) — Vite aliases point at their `src/` folders, so HMR picks up changes automatically.
 
 ## Tech Stack
@@ -166,7 +165,6 @@ Common issues:
 
 - **Port conflict** — check 3000-3002, 5000, 5432, 6379 are free
 - **HMR not firing** — verify `CHOKIDAR_USEPOLLING=true` is set in container env (it is by default in `docker-compose.yml`)
-- **lib.types changes not reflected in backend** — run `npm run docker:rebuild:types`
 - **Slow builds** — ensure BuildKit is on: `export DOCKER_BUILDKIT=1`
 
 ## Contributing
