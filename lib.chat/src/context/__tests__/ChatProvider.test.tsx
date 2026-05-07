@@ -291,8 +291,13 @@ describe('ChatProvider', () => {
       </ChatProvider>
     );
 
-    await waitFor(() => expect(latest?.unreadMessageCount).toBe(0));
-    expect(markSpy).toHaveBeenCalledWith('chat-1');
+    // Wait until the service call fires — this is the authoritative signal
+    // that markAsRead ran. Asserting on unreadMessageCount alone is
+    // insufficient because it starts at 0 before conversations load,
+    // which lets waitFor pass trivially (before markAsRead is ever called).
+    await waitFor(() => expect(markSpy).toHaveBeenCalledWith('chat-1'));
+    // The optimistic setConversations update must have cleared the badge.
+    expect(latest?.unreadMessageCount).toBe(0);
   });
 
   it('surfaces a clear error when the tokenProvider returns null at connect time', async () => {
