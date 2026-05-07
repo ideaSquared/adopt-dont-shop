@@ -12,6 +12,22 @@ concurrency:
 
 jobs:
   # ============================================================================
+  # WORKSPACE DRIFT — verify package.json workspaces matches filesystem lib.*
+  # Catches the case where a lib is added to workspaces but the directory is
+  # missing (or vice-versa), which silently breaks Docker image builds.
+  # ============================================================================
+  workspace-drift:
+    name: Verify Workspace ↔ Filesystem Alignment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify workspace ↔ filesystem alignment
+        run: |
+          expected=$(node -p "require('./package.json').workspaces.filter(w => w.startsWith('lib.')).sort().join('\n')")
+          actual=$(ls -d lib.* | sort)
+          diff <(echo "$expected") <(echo "$actual") || (echo "Workspace drift!" && exit 1)
+
+  # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================
   changes:

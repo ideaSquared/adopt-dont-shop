@@ -36,7 +36,13 @@ COPY --chown=viteuser:nodejs eslint-config-base/ ./eslint-config-base/
 COPY --chown=viteuser:nodejs eslint-config-react/ ./eslint-config-react/
 COPY --chown=viteuser:nodejs eslint-config-node/ ./eslint-config-node/
 
-# Copy library package.json files first (better layer caching)
+# Copy library package.json files first (better layer caching for npm ci).
+# NOTE: explicit list is intentional — Docker's COPY src/ dest/ semantics copy
+# the *contents* of src/, not the directory itself. A glob like `COPY lib.*/ ./`
+# merges all 21 directories' contents into ./, destroying per-lib directory
+# structure and breaking npm workspaces. The workspace-drift CI check
+# (ci.yml: "Verify Workspace ↔ Filesystem Alignment") is the safety net that
+# catches any mismatch between package.json workspaces and this list.
 COPY --chown=viteuser:nodejs lib.analytics/package.json ./lib.analytics/
 COPY --chown=viteuser:nodejs lib.api/package.json ./lib.api/
 COPY --chown=viteuser:nodejs lib.applications/package.json ./lib.applications/
@@ -44,8 +50,8 @@ COPY --chown=viteuser:nodejs lib.audit-logs/package.json ./lib.audit-logs/
 COPY --chown=viteuser:nodejs lib.auth/package.json ./lib.auth/
 COPY --chown=viteuser:nodejs lib.chat/package.json ./lib.chat/
 COPY --chown=viteuser:nodejs lib.components/package.json ./lib.components/
-COPY --chown=viteuser:nodejs lib.discovery/package.json ./lib.discovery/
 COPY --chown=viteuser:nodejs lib.dev-tools/package.json ./lib.dev-tools/
+COPY --chown=viteuser:nodejs lib.discovery/package.json ./lib.discovery/
 COPY --chown=viteuser:nodejs lib.feature-flags/package.json ./lib.feature-flags/
 COPY --chown=viteuser:nodejs lib.invitations/package.json ./lib.invitations/
 COPY --chown=viteuser:nodejs lib.moderation/package.json ./lib.moderation/
@@ -74,8 +80,8 @@ COPY --chown=viteuser:nodejs lib.audit-logs/ ./lib.audit-logs/
 COPY --chown=viteuser:nodejs lib.auth/ ./lib.auth/
 COPY --chown=viteuser:nodejs lib.chat/ ./lib.chat/
 COPY --chown=viteuser:nodejs lib.components/ ./lib.components/
-COPY --chown=viteuser:nodejs lib.discovery/ ./lib.discovery/
 COPY --chown=viteuser:nodejs lib.dev-tools/ ./lib.dev-tools/
+COPY --chown=viteuser:nodejs lib.discovery/ ./lib.discovery/
 COPY --chown=viteuser:nodejs lib.feature-flags/ ./lib.feature-flags/
 COPY --chown=viteuser:nodejs lib.invitations/ ./lib.invitations/
 COPY --chown=viteuser:nodejs lib.moderation/ ./lib.moderation/
