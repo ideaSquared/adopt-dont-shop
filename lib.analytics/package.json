@@ -36,7 +36,7 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^20.19.0",
     "@adopt-dont-shop/lib.api": "*",
     "socket.io-client": "^4.7.5",
     "zod": "^3.25.76"

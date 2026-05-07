@@ -40,7 +40,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
+          # Cache npm downloads so this workflow is fast and doesn't re-hit
+          # the public registry for every matrix shard.
           cache: 'npm'
 
       - name: Install workspace dependencies

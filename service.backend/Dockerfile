@@ -1,10 +1,12 @@
 # syntax=docker/dockerfile:1.4
 # Enable BuildKit features: cache mounts, bind mounts, and advanced layer caching
 
+ARG NODE_VERSION=20.19.0
+
 # ============================================================================
 # BASE STAGE - Shared foundation for all stages
 # ============================================================================
-FROM node:24-alpine AS base
+FROM node:${NODE_VERSION}-alpine AS base
 
 # Install security updates and necessary packages
 # hadolint ignore=DL3018
@@ -25,6 +27,7 @@ ENV HUSKY=0
 FROM base AS libs-built
 
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
 COPY lib.types/ lib.types/
 COPY lib.validation/ lib.validation/
 
@@ -43,6 +46,7 @@ FROM base AS dependencies
 
 # Copy workspace configuration from monorepo root
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
@@ -68,6 +72,7 @@ FROM base AS development
 
 # Copy workspace configuration from monorepo root
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
@@ -120,6 +125,7 @@ FROM base AS build
 
 # Copy workspace configuration from monorepo root
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
@@ -171,7 +177,7 @@ RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
 # ============================================================================
 # PRODUCTION STAGE - Minimal image with only runtime dependencies
 # ============================================================================
-FROM node:24-alpine AS production
+FROM node:${NODE_VERSION}-alpine AS production
 
 # Install only runtime essentials + security updates
 # hadolint ignore=DL3018
