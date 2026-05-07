@@ -90,6 +90,12 @@ jobs:
       - name: Build shared libraries
         run: npm run build:libs
 
+      # ADS-390: Surface Turbo cache hit/miss summary for this run.
+      # The JSON summary is written to .turbo/runs/ and printed here so
+      # engineers can verify remote cache is working without digging through logs.
+      - name: Show Turbo build summary
+        run: npx turbo run build:libs --summarize 2>/dev/null || true
+
       # Bundle every lib.*/dist (and matching package.json) into a single artifact
       # that downstream jobs pick up via download-artifact. Wildcard expansion
       # is handled by upload-artifact's tar layer.
@@ -281,6 +287,9 @@ jobs:
   test-e2e:
     name: E2E Tests (Playwright)
     needs: [changes, test-backend, test-frontend]
+    # ADS-386: continue-on-error remains true until the follow-up gate is met:
+    #   - 10 consecutive green E2E runs on main, then flip to false and add
+    #     test-e2e as a required status check in branch protection settings.
     # Non-blocking: this job exists to surface integration regressions
     # against the full docker-compose stack, but is allowed to fail until
     # the suite has been smoke-tested against a real running stack and
@@ -398,7 +407,26 @@ jobs:
         # The backend bootstraps the database (sync + runAllSeeders) on
         # startup in development mode, so by the time /health responds in
         # the previous step the seeded data is already available.
+        # Retries are configured in e2e/playwright.config.ts (retries: CI ? 2 : 0).
         run: npm run test:e2e
+
+      # ADS-386: Surface flaky-retry signal so engineers can see which tests
+      # needed retries without having to open the full HTML report.
+      # This step never blocks CI — it is informational only.
+      - name: Report E2E retry counts
+        if: always()
+        run: |
+          report_dir="e2e/test-results"
+          if [ ! -d "$report_dir" ]; then
+            echo "No test-results directory found — Playwright may not have run."
+            exit 0
+          fi
+          retried=$(find "$report_dir" -name '*.json' -exec grep -l '"retry":[^0]' {} \; 2>/dev/null | wc -l)
+          if [ "$retried" -gt 0 ]; then
+            echo "::warning::$retried test result file(s) contain retries — check the Playwright report artifact for details."
+          else
+            echo "No retried tests detected in this run."
+          fi
 
       - name: Capture docker-compose logs on failure
         if: failure()
