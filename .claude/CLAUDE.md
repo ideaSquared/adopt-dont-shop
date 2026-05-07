@@ -141,7 +141,6 @@ npm run docker:reset           # Stop and wipe volumes (incl. DB)
 npm run docker:logs            # Follow logs
 npm run docker:shell:backend   # Shell into backend container
 npm run docker:shell:db        # Open psql in database container
-npm run docker:rebuild:types   # Rebuild lib.types into backend (after editing lib.types/src)
 
 # Native dev (no Docker — fastest HMR but you must run Postgres yourself)
 npm run dev                    # Run everything via Turbo
@@ -180,11 +179,10 @@ npx turbo test --filter=@adopt-dont-shop/service-backend
 **Important Monorepo Rules:**
 
 1. **Turbo handles build ordering automatically** via `dependsOn: ["^build"]` — `npm run build` builds libs before apps. No need to manually sequence.
-2. **In Docker dev, lib.types is special**: it's built into backend node_modules at container start. If you edit `lib.types/src/*`, run `npm run docker:rebuild:types` (no container restart needed).
-3. **Other libs (lib.api, lib.auth, etc.) hot-reload automatically** in dev — Vite aliases point at their `src/` directories.
-4. Reference workspace packages with `*` version (e.g., `"@adopt-dont-shop/lib.api": "*"`)
-5. Changes to shared libraries affect multiple consumers — test thoroughly
-6. Each package has its own `package.json`, `tsconfig.json`, and tests
+2. **Libraries hot-reload automatically** in dev — Vite aliases point at their src/ directories for the React apps, and a lib-types-watcher sidecar runs tsc --watch for lib.types so the backend container picks up type changes within seconds.
+3. Reference workspace packages with `*` version (e.g., `"@adopt-dont-shop/lib.api": "*"`)
+4. Changes to shared libraries affect multiple consumers — test thoroughly
+5. Each package has its own `package.json`, `tsconfig.json`, and tests
 
 ---
 

@@ -53,8 +53,6 @@ npx turbo lint  --filter=@adopt-dont-shop/lib.permissions
 # All libraries
 npm run build:libs
 
-# After editing lib.types in Docker dev
-npm run docker:rebuild:types
 ```
 
 ## See also

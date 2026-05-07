@@ -1,24 +1,58 @@
-# Global fallback
+# CODEOWNERS
+#
+# Teams are not yet created on the org. Once the following teams exist,
+# replace @paragonjenko in the matching sections with the team handle:
+#
+#   @adopt-dont-shop/backend   → /service.backend/, backend-facing libs
+#   @adopt-dont-shop/frontend  → /app.*/, /lib.components/
+#   @adopt-dont-shop/libs      → all other /lib.*/
+#   @adopt-dont-shop/infra     → /.github/, Docker/nginx/CI files
+#
+# See ADS-392: https://linear.app/ideasquared/issue/ADS-392
+#
+# When teams exist, also configure branch protection on `main` to require
+# a review from the relevant CODEOWNERS team (repo Settings → Branches).
+
+# ──────────────────────────────────────────────
+# Global fallback — catches anything not matched below
+# ──────────────────────────────────────────────
 *                           @paragonjenko
 
+# ──────────────────────────────────────────────
 # Frontend apps
+# Future owner: @adopt-dont-shop/frontend
+# ──────────────────────────────────────────────
 /app.admin/                 @paragonjenko
 /app.client/                @paragonjenko
 /app.rescue/                @paragonjenko
 
-# Backend
+# ──────────────────────────────────────────────
+# Backend service
+# Future owner: @adopt-dont-shop/backend
+# ──────────────────────────────────────────────
 /service.backend/           @paragonjenko
 
+# ──────────────────────────────────────────────
 # Shared libraries
+# Future owner: @adopt-dont-shop/frontend (lib.components)
+#               @adopt-dont-shop/backend  (lib.types, lib.validation)
+#               @adopt-dont-shop/libs     (all others)
+# ──────────────────────────────────────────────
 /lib.*/                     @paragonjenko
 
+# ──────────────────────────────────────────────
 # Infrastructure & CI
+# Future owner: @adopt-dont-shop/infra
+# ──────────────────────────────────────────────
 /.github/                   @paragonjenko
 /docker-compose*.yml        @paragonjenko
 /Dockerfile*                @paragonjenko
 /nginx/                     @paragonjenko
 /turbo.json                 @paragonjenko
 
+# ──────────────────────────────────────────────
 # Documentation
+# Future owner: @adopt-dont-shop/infra (or whole-team)
+# ──────────────────────────────────────────────
 /docs/                      @paragonjenko
 /README.md                  @paragonjenko

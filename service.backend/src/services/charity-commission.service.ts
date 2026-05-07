@@ -42,6 +42,10 @@ export type CharityCommissionResult =
   | { verified: true; charityName: string }
   | { verified: false; reason: string };
 
+// See companies-house.service.ts for the rationale on these constants.
+const REQUEST_TIMEOUT_MS = 5_000;
+const TOTAL_BUDGET_MS = 7_000;
+
 const isAnimalRelated = (charity: CharityDetails): boolean => {
   const text = [
     charity.charity_name,
@@ -53,22 +57,74 @@ const isAnimalRelated = (charity: CharityDetails): boolean => {
   return ANIMAL_KEYWORDS.some(kw => text.includes(kw));
 };
 
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError');
+
+class TimeoutError extends Error {
+  constructor() {
+    super('Charity Commission API timeout');
+    this.name = 'TimeoutError';
+  }
+}
+
+const fetchWithTimeout = async (
+  url: string,
+  subscriptionKey: string,
+  budgetSignal: AbortSignal
+): Promise<Response> => {
+  const requestSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  const signal = AbortSignal.any([requestSignal, budgetSignal]);
+  return fetch(url, {
+    headers: { 'Ocp-Apim-Subscription-Key': subscriptionKey },
+    signal,
+  });
+};
+
 const fetchWithRetry = async (
   url: string,
   subscriptionKey: string,
-  attempt = 0
+  budgetSignal: AbortSignal
 ): Promise<Response> => {
-  const res = await fetch(url, {
-    headers: { 'Ocp-Apim-Subscription-Key': subscriptionKey },
-  });
+  let attempt = 0;
+  // Bail conditions are explicit at the bottom of the loop body. ESLint's
+  // no-constant-condition rule is overly cautious here.
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    if (budgetSignal.aborted) {
+      throw new TimeoutError();
+    }
 
-  if (res.status === 429 && attempt < 3) {
+    let res: Response;
+    try {
+      res = await fetchWithTimeout(url, subscriptionKey, budgetSignal);
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw new TimeoutError();
+      }
+      throw error;
+    }
+
+    if (res.status !== 429 || attempt >= 3) {
+      return res;
+    }
+
     const delay = Math.pow(2, attempt) * 1000;
-    await new Promise(resolve => setTimeout(resolve, delay));
-    return fetchWithRetry(url, subscriptionKey, attempt + 1);
+    if (budgetSignal.aborted) {
+      throw new TimeoutError();
+    }
+    await new Promise<void>((resolve, reject) => {
+      const t = setTimeout(resolve, delay);
+      budgetSignal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(t);
+          reject(new TimeoutError());
+        },
+        { once: true }
+      );
+    });
+    attempt += 1;
   }
-
-  return res;
 };
 
 // Strip the sub-charity suffix for the API lookup (e.g. "1234567-1" → "1234567").
@@ -84,11 +140,13 @@ export const verifyCharityRegistrationNumber = async (
   }
 
   const regno = baseRegistrationNumber(number);
+  const budgetSignal = AbortSignal.timeout(TOTAL_BUDGET_MS);
 
   try {
     const res = await fetchWithRetry(
       `${BASE_URL}/allcharitydetails/${encodeURIComponent(regno)}/0`,
-      subscriptionKey
+      subscriptionKey,
+      budgetSignal
     );
 
     if (res.status === 404) {
@@ -122,6 +180,10 @@ export const verifyCharityRegistrationNumber = async (
 
     return { verified: true, charityName: charity.charity_name };
   } catch (error) {
+    if (error instanceof TimeoutError || isAbortError(error)) {
+      logger.warn('Charity Commission verification timed out', { number });
+      return { verified: false, reason: 'Charity Commission API timeout' };
+    }
     logger.error('Charity Commission verification failed', { error, number });
     return { verified: false, reason: 'Failed to contact Charity Commission API' };
   }
