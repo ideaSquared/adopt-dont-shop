@@ -171,11 +171,7 @@ Common issues:
 
 ## Contributing
 
-1. Fork and branch from `main`
-2. Follow TDD — write or modify tests first (see [.claude/CLAUDE.md](./.claude/CLAUDE.md))
-3. Run `npm run lint` and `npm run test` before opening a PR
-4. Use conventional commit messages
-5. Open a PR
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full contributor guide.
 
 ## License
 
