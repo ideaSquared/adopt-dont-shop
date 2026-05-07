@@ -1,23 +1,17 @@
 {
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2020",
-    "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"],
@@ -31,6 +25,15 @@
     }
   },
   "include": ["src"],
-  "exclude": ["dist", "node_modules", "**/*.test.*", "**/*.spec.*", "src/test-utils", "src/setup-tests.ts", "src/setup-tests.tsx", "src/__mocks__"],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "src/test-utils",
+    "src/setup-tests.ts",
+    "src/setup-tests.tsx",
+    "src/__mocks__"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

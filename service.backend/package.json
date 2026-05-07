@@ -97,7 +97,7 @@
     "@types/jsdom": "^27.0.0",
     "@types/marked": "^6.0.0",
     "@types/morgan": "^1.9.4",
-    "@types/node": "^22.19.0",
+    "@types/node": "^20.19.0",
     "@types/papaparse": "^5.3.14",
     "@types/pdfkit": "^0.13.4",
     "@types/qrcode": "^1.5.6",
