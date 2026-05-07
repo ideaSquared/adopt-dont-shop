@@ -1,6 +1,6 @@
 import { authService } from '@/services';
 import { Alert, Button, Card } from '@adopt-dont-shop/lib.components';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import * as styles from './VerifyEmailPage.css';
 
@@ -16,26 +16,48 @@ export const VerifyEmailPage: React.FC = () => {
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
 
-  useEffect(() => {
-    const verifyEmail = async () => {
-      if (!token) {
-        setStatus('error');
-        setErrorMessage('No verification token provided');
-        return;
-      }
+  // ADS-375: tokens are single-use, so we must not let StrictMode's dev
+  // double-invoke (or any re-render that re-runs the effect) call
+  // verifyEmail twice — the second call would burn an already-consumed
+  // token and the user sees a spurious "error" state. The ref keys on
+  // token so a genuinely-different token (very rare) is still verified.
+  const verifiedTokenRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    if (!token) {
+      setStatus('error');
+      setErrorMessage('No verification token provided');
+      return;
+    }
+
+    // StrictMode / fast re-render guard.
+    if (verifiedTokenRef.current === token) {
+      return;
+    }
+    verifiedTokenRef.current = token;
+
+    let cancelled = false;
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const verifyEmail = async () => {
       try {
         // Strip the token from browser history before the response arrives
         // so it doesn't linger in address bar, history, or referer headers.
         window.history.replaceState(null, '', window.location.pathname);
         await authService.verifyEmail(token);
+        if (cancelled) {
+          return;
+        }
         setStatus('success');
 
         // Redirect to login after 3 seconds
-        setTimeout(() => {
+        redirectTimer = setTimeout(() => {
           navigate('/login?verified=true');
         }, 3000);
       } catch (error) {
+        if (cancelled) {
+          return;
+        }
         const message = error instanceof Error ? error.message : 'Verification failed';
 
         if (message.includes('expired')) {
@@ -49,6 +71,13 @@ export const VerifyEmailPage: React.FC = () => {
     };
 
     verifyEmail();
+
+    return () => {
+      cancelled = true;
+      if (redirectTimer !== undefined) {
+        clearTimeout(redirectTimer);
+      }
+    };
   }, [token, navigate]);
 
   const handleResendEmail = async () => {
