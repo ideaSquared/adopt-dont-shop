@@ -1,4 +1,4 @@
-import { vars } from '@adopt-dont-shop/lib.components';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
