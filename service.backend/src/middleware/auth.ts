@@ -9,6 +9,7 @@ import { AuthenticatedRequest } from '../types/auth';
 import { logger, loggerHelpers } from '../utils/logger';
 import { setUserId } from '../utils/request-context';
 import { env } from '../config/env';
+import { getCachedUser, setCachedUser } from '../lib/auth-cache';
 
 export interface JWTPayload {
   userId: string;
@@ -82,14 +83,28 @@ const attachRescueAffiliation = async (user: User): Promise<void> => {
 const authenticateRequest = async (token: string): Promise<User> => {
   const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
 
+  // Revocation check runs *before* the cache lookup so a revoked token
+  // can't ride a stale entry through to the request handler.
   if (decoded.jti && (await RevokedToken.findByPk(decoded.jti))) {
     throw new AuthError(401, 'TOKEN_REVOKED', 'Token has been revoked');
   }
 
-  const user = await User.findByPk(decoded.userId, { include: userInclude });
+  // ADS-253: hot-path cache. The user → roles → permissions join was
+  // running on every authenticated request; for a page firing N parallel
+  // API calls that's N copies of the same join. The cache TTL is short
+  // (60s) and role-mutating call sites bust it explicitly.
+  let user = getCachedUser(decoded.userId);
   if (!user) {
-    throw new AuthError(401, 'USER_NOT_FOUND', 'User not found');
+    const fetched = await User.findByPk(decoded.userId, { include: userInclude });
+    if (!fetched) {
+      throw new AuthError(401, 'USER_NOT_FOUND', 'User not found');
+    }
+    user = fetched;
+    setCachedUser(decoded.userId, user);
   }
+
+  // Status check runs even on cache hits — a freshly suspended account
+  // shouldn't get to ride out the TTL.
   if (user.status !== 'active') {
     throw new AuthError(401, 'ACCOUNT_INACTIVE', 'Account is not active');
   }
@@ -120,16 +135,15 @@ export const authenticateToken = async (
     req.user = user;
     setUserId(user.userId);
 
-    loggerHelpers.logAuth(
-      'User authenticated',
-      {
-        userId: user.userId,
-        email: user.email,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-      },
-      req
-    );
+    // ADS-253: dropped from `loggerHelpers.logAuth` (info) to debug — the
+    // per-request "User authenticated" line was firing on every API call
+    // and bloating logs without security value. Failed auth still logs
+    // at info via `logSecurity` below.
+    logger.debug('User authenticated', {
+      userId: user.userId,
+      email: user.email,
+      ip: req.ip,
+    });
 
     next();
   } catch (error) {

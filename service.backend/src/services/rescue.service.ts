@@ -3,6 +3,7 @@ import EmailService from './email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import { logger, loggerHelpers } from '../utils/logger';
+import { invalidateAuthCache } from '../lib/auth-cache';
 import { AuditLogService } from './auditLog.service';
 import { validateSortField } from '../utils/sort-validation';
 import { verifyCompaniesHouseNumber } from './companies-house.service';
@@ -941,6 +942,9 @@ export class RescueService {
             },
             { transaction }
           );
+          // ADS-253: bust the auth cache so the new role takes effect on
+          // the next request without waiting for the TTL.
+          invalidateAuthCache(userId);
 
           logger.info(`Assigned rescue_staff role to user ${userId}`);
         } else {
