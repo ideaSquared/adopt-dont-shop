@@ -7,6 +7,7 @@ import StaffMember from '../models/StaffMember';
 import Role from '../models/Role';
 import UserRole from '../models/UserRole';
 import EmailTemplateService from './email-template.service';
+import { invalidateAuthCache } from '../lib/auth-cache';
 import { logger } from '../utils/logger';
 import { hashToken } from '../utils/secrets';
 
@@ -243,6 +244,9 @@ export class InvitationService {
           },
           { transaction }
         );
+        // ADS-253: bust the auth cache so the new role propagates to
+        // the caller's next request without waiting for the TTL.
+        invalidateAuthCache(user.userId);
       }
 
       // Mark invitation as used

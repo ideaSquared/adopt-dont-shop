@@ -146,6 +146,7 @@ import {
   authenticateOptionalToken,
   JWTPayload,
 } from '../../middleware/auth';
+import { resetAuthCacheForTests } from '../../lib/auth-cache';
 import User from '../../models/User';
 import RevokedToken from '../../models/RevokedToken';
 import { AuthenticatedRequest } from '../../types/auth';
@@ -180,6 +181,10 @@ describe('Authentication Middleware', () => {
 
     // Clear all mocks
     vi.clearAllMocks();
+
+    // ADS-253: drop the in-process auth cache so each test sees a fresh
+    // User.findByPk mock instead of riding a previous test's cached user.
+    resetAuthCacheForTests();
 
     // Default: token is not revoked
     (RevokedToken.findByPk as vi.Mock).mockResolvedValue(null);
@@ -508,13 +513,14 @@ describe('Authentication Middleware', () => {
         expect(mockRequest.user).toBe(mockUser);
         expect(mockNext).toHaveBeenCalled();
         expect(mockResponse.status).not.toHaveBeenCalled();
-        expect(loggerHelpers.logAuth).toHaveBeenCalledWith(
+        // ADS-253: dropped from info-level `loggerHelpers.logAuth` to
+        // debug. Failed-auth still logs at info via `logSecurity`.
+        expect(logger.debug).toHaveBeenCalledWith(
           'User authenticated',
           expect.objectContaining({
             userId: 'user-123',
             email: 'test@example.com',
-          }),
-          mockRequest
+          })
         );
       });
 
