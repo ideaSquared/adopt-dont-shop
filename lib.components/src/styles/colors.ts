@@ -106,6 +106,15 @@ export const palette = {
     950: '#172554',
   },
 
+  // Brand-extension accents — sampled from the multi-color logo (paw orange, sky, leaf, magenta).
+  // Use sparingly for delight moments / illustrative touches; rose+teal+slate carry the load.
+  accent: {
+    paw: '#FF6B35',
+    sky: '#38BDF8',
+    leaf: '#22C55E',
+    magenta: '#E11D48',
+  },
+
   // Modern gradients
   gradients: {
     primary: 'linear-gradient(135deg, #F43F5E 0%, #E11D48 100%)',
@@ -113,6 +122,8 @@ export const palette = {
     success: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
     warm: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
     cool: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+    // Sky → rose → paw-orange — sampled from the logo. Hero / celebratory moments only.
+    brand: 'linear-gradient(135deg, #38BDF8 0%, #F43F5E 55%, #FF6B35 100%)',
   },
 };
 
@@ -155,7 +166,8 @@ export const typography = {
       'Menlo',
       'monospace',
     ].join(', '),
-    display: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'].join(', '),
+    // Fredoka is a rounded, friendly display face used for the wordmark + h1/h2.
+    display: ['Fredoka', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'].join(', '),
   },
   weight: {
     thin: 100,

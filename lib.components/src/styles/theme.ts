@@ -126,6 +126,13 @@ export interface Theme {
       success: string;
       warm: string;
       cool: string;
+      brand: string;
+    };
+    accent: {
+      paw: string;
+      sky: string;
+      leaf: string;
+      magenta: string;
     };
   };
   text: {
@@ -401,6 +408,7 @@ export const lightTheme: Theme = {
       info: palette.info,
     },
     gradients: palette.gradients,
+    accent: palette.accent,
   },
   text: {
     primary: palette.neutral[900],
@@ -471,6 +479,7 @@ export const darkTheme: Theme = {
       info: palette.info,
     },
     gradients: palette.gradients,
+    accent: palette.accent,
   },
   text: {
     primary: palette.neutral[100],
