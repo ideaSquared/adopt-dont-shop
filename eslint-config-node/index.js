@@ -4,8 +4,10 @@ export default [
   ...baseConfig,
   {
     rules: {
-      // Stricter rules for backend services
-      '@typescript-eslint/no-explicit-any': 'error',
+      // Stricter rules for backend services. ADS-282 leaves
+      // `@typescript-eslint/no-explicit-any` at the base 'warn' level so new
+      // `as any` introductions surface in PR checks/IDE without a CI-failing
+      // gate; the existing-site sweep stays deferred.
       'no-console': 'error',
       'no-process-exit': 'error',
       'no-process-env': 'off',
