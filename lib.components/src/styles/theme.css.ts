@@ -35,6 +35,13 @@ export const vars = createThemeContract({
       success: null,
       warm: null,
       cool: null,
+      brand: null,
+    },
+    accent: {
+      paw: null,
+      sky: null,
+      leaf: null,
+      magenta: null,
     },
   },
 
@@ -427,6 +434,7 @@ const baseTokens = {
     primary: { ...palette.primary },
     secondary: { ...palette.secondary },
     gradients: { ...palette.gradients },
+    accent: { ...palette.accent },
     semantic: {
       success: { ...palette.success },
       error: { ...palette.error },

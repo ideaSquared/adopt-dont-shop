@@ -399,6 +399,59 @@ describe('ApplicationService - Business Logic', () => {
         ApplicationService.updateApplicationStatus(mockApplicationId, updateRequest, mockUserId)
       ).rejects.toThrow('Cannot transition from approved to withdrawn');
     });
+
+    it('rejects status update when caller is rescue staff at a different rescue [ADS-234]', async () => {
+      // Given: application owned by rescue-789, caller is staff at a DIFFERENT rescue.
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+      MockedStaffMember.findOne = vi.fn().mockResolvedValue({
+        userId: 'foreign-staff-id',
+        rescueId: 'rescue-OTHER',
+        isVerified: true,
+      });
+
+      const updateRequest: ApplicationStatusUpdateRequest = {
+        status: ApplicationStatus.APPROVED,
+        actionedBy: 'foreign-staff-id',
+      };
+
+      await expect(
+        ApplicationService.updateApplicationStatus(
+          mockApplicationId,
+          updateRequest,
+          'foreign-staff-id',
+          UserType.RESCUE_STAFF
+        )
+      ).rejects.toThrow(/Access denied/);
+
+      // The status transition row must NOT be created — the IDOR attempt
+      // is rejected before any side-effects.
+      expect(MockedApplicationStatusTransition.create).not.toHaveBeenCalled();
+    });
+
+    it('allows status update when admin caller has no staff membership [ADS-234]', async () => {
+      // Given: admin caller, no StaffMember row needed.
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+      MockedStaffMember.findOne = vi.fn().mockResolvedValue(null);
+
+      const updateRequest: ApplicationStatusUpdateRequest = {
+        status: ApplicationStatus.APPROVED,
+        actionedBy: 'admin-user-id',
+      };
+
+      await expect(
+        ApplicationService.updateApplicationStatus(
+          mockApplicationId,
+          updateRequest,
+          'admin-user-id',
+          UserType.ADMIN
+        )
+      ).resolves.toBeDefined();
+
+      expect(MockedApplicationStatusTransition.create).toHaveBeenCalled();
+    });
   });
 
   describe('Business Rule: Application Modification', () => {

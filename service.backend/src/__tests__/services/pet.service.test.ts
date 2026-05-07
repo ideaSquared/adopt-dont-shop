@@ -859,9 +859,103 @@ describe('PetService', () => {
 
       const result = await PetService.bulkUpdatePets(operation, testCallerId);
 
-      // Service archives both successfully (nonexistent just doesn't do anything)
-      expect(result.successCount).toBe(2);
-      expect(result.failedCount).toBe(0);
+      // ADS-372: archive now runs assertCallerOwnsPet per pet, which loads
+      // the row and throws 404 for missing IDs — surfacing the failure
+      // instead of silently no-op-ing the Pet.update against zero rows.
+      expect(result.successCount).toBe(1);
+      expect(result.failedCount).toBe(1);
+      expect(result.errors[0]).toMatchObject({ petId: 'nonexistent' });
+    });
+
+    it('rejects bulk archive of pets owned by another rescue [ADS-372]', async () => {
+      // Set up a second rescue with its own pet, then attempt to archive it
+      // from testCallerId (who is staff of testRescue, not the second one).
+      const otherRescue = await Rescue.create({
+        rescueId: uniqueId('rescue-other'),
+        name: 'Other Rescue',
+        email: `other-${Date.now()}@test.com`,
+        address: '999 Other St',
+        city: 'Other City',
+        postcode: 'OTHER1',
+        contactPerson: 'Other Contact',
+        status: 'verified',
+        country: 'GB',
+      });
+      const foreignPetId = uniqueId('foreign-pet');
+      await Pet.create({
+        petId: foreignPetId,
+        name: 'Foreign Pet',
+        type: PetType.DOG,
+        status: PetStatus.AVAILABLE,
+        breed: 'Mixed',
+        size: Size.MEDIUM,
+        ageGroup: AgeGroup.ADULT,
+        gender: Gender.MALE,
+        energyLevel: EnergyLevel.MEDIUM,
+        vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+        spayNeuterStatus: SpayNeuterStatus.NEUTERED,
+        rescueId: otherRescue.rescueId,
+        archived: false,
+      });
+
+      const operation: BulkPetOperation = {
+        petIds: [foreignPetId],
+        operation: 'archive',
+      };
+
+      // The pre-flight ownership check on the bulk operation rejects the
+      // whole batch — the caller should not be able to archive a pet they
+      // don't own.
+      await expect(PetService.bulkUpdatePets(operation, testCallerId)).rejects.toThrow(
+        /Access denied/
+      );
+
+      const foreign = await Pet.findByPk(foreignPetId);
+      expect(foreign?.archived).toBe(false);
+    });
+
+    it('rejects bulk feature toggle on pets owned by another rescue [ADS-372]', async () => {
+      const otherRescue = await Rescue.create({
+        rescueId: uniqueId('rescue-other-2'),
+        name: 'Other Rescue 2',
+        email: `other2-${Date.now()}@test.com`,
+        address: '888 Other St',
+        city: 'Other City',
+        postcode: 'OTHER2',
+        contactPerson: 'Other Contact 2',
+        status: 'verified',
+        country: 'GB',
+      });
+      const foreignPetId = uniqueId('foreign-pet-feature');
+      await Pet.create({
+        petId: foreignPetId,
+        name: 'Foreign Featured Pet',
+        type: PetType.CAT,
+        status: PetStatus.AVAILABLE,
+        breed: 'Mixed',
+        size: Size.SMALL,
+        ageGroup: AgeGroup.ADULT,
+        gender: Gender.FEMALE,
+        energyLevel: EnergyLevel.LOW,
+        vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+        spayNeuterStatus: SpayNeuterStatus.SPAYED,
+        rescueId: otherRescue.rescueId,
+        archived: false,
+        featured: false,
+      });
+
+      const operation: BulkPetOperation = {
+        petIds: [foreignPetId],
+        operation: 'feature',
+        data: { featured: true },
+      };
+
+      await expect(PetService.bulkUpdatePets(operation, testCallerId)).rejects.toThrow(
+        /Access denied/
+      );
+
+      const foreign = await Pet.findByPk(foreignPetId);
+      expect(foreign?.featured).toBe(false);
     });
 
     it('should handle unsupported operation by returning error result', async () => {

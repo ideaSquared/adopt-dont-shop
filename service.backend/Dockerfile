@@ -22,6 +22,23 @@ WORKDIR /app
 ENV HUSKY=0
 
 # ============================================================================
+# LIBS-BUILT STAGE - Build shared libraries once, reused by all downstream stages
+# ============================================================================
+FROM base AS libs-built
+
+COPY package.json package-lock.json ./
+COPY lib.types/ lib.types/
+COPY lib.validation/ lib.validation/
+
+WORKDIR /app/lib.types
+RUN --mount=type=cache,target=/root/.npm \
+    HUSKY=0 npm ci --prefer-offline && npm run build
+
+WORKDIR /app/lib.validation
+RUN --mount=type=cache,target=/root/.npm \
+    HUSKY=0 npm ci --prefer-offline && npm run build
+
+# ============================================================================
 # DEPENDENCIES STAGE - Install production dependencies with cache mount
 # ============================================================================
 FROM base AS dependencies
@@ -66,32 +83,16 @@ COPY service.backend/ service.backend/
 # Make entrypoint script executable
 RUN chmod +x /app/service.backend/docker-entrypoint.sh
 
-# Build shared libraries first
-WORKDIR /app/lib.types
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
-
-WORKDIR /app/lib.validation
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
+# Bring in pre-built lib artifacts from the libs-built stage
+COPY --from=libs-built /app/lib.types/dist /app/lib.types/dist
+COPY --from=libs-built /app/lib.validation/dist /app/lib.validation/dist
 
 WORKDIR /app/service.backend
 
 # Install all dependencies (including dev dependencies) with cache mount
+# npm workspaces will symlink lib.types and lib.validation from their COPY'd paths above
 RUN --mount=type=cache,target=/root/.npm \
     HUSKY=0 npm ci --prefer-offline
-
-# Copy built lib.types and lib.validation directly into node_modules for
-# reliable module resolution. Avoids symlink issues with partial npm
-# workspace installations in Docker.
-RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
-    mkdir -p node_modules/@adopt-dont-shop/lib.types && \
-    cp /app/lib.types/package.json node_modules/@adopt-dont-shop/lib.types/ && \
-    cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/ && \
-    rm -rf node_modules/@adopt-dont-shop/lib.validation && \
-    mkdir -p node_modules/@adopt-dont-shop/lib.validation && \
-    cp /app/lib.validation/package.json node_modules/@adopt-dont-shop/lib.validation/ && \
-    cp -r /app/lib.validation/dist node_modules/@adopt-dont-shop/lib.validation/
 
 # Create non-root user and transfer ownership of writable paths.
 # uploads/ is created at runtime by file-upload.service.ts, so its parent
@@ -134,14 +135,9 @@ COPY service.backend/ service.backend/
 # Make entrypoint script executable
 RUN chmod +x /app/service.backend/docker-entrypoint.sh
 
-# Build shared libraries first (required for backend TypeScript compilation)
-WORKDIR /app/lib.types
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
-
-WORKDIR /app/lib.validation
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
+# Bring in pre-built lib artifacts from the libs-built stage
+COPY --from=libs-built /app/lib.types/dist /app/lib.types/dist
+COPY --from=libs-built /app/lib.validation/dist /app/lib.validation/dist
 
 WORKDIR /app/service.backend
 

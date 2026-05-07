@@ -111,6 +111,20 @@ services:
     cpus: '1.0'
 
   # ============================================================================
+  # LIB.TYPES WATCHER - Continuously compiles lib.types so the backend picks
+  # up changes automatically via the workspace symlink (no manual rebuild)
+  # ============================================================================
+
+  lib-types-watcher:
+    image: node:20-alpine
+    working_dir: /app/lib.types
+    volumes:
+      - ./lib.types:/app/lib.types
+      - lib_types_node_modules:/app/lib.types/node_modules
+    command: sh -c "npm install --prefer-offline && npm run dev"
+    restart: unless-stopped
+
+  # ============================================================================
   # FRONTEND APPLICATIONS - Using Optimized Workspace Pattern
   # ============================================================================
 

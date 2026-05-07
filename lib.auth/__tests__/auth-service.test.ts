@@ -332,7 +332,9 @@ describe('AuthService', () => {
 
       await authService.verifyEmail('verify-token');
 
-      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/verify-email', { token: 'verify-token' });
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
+        token: 'verify-token',
+      });
     });
   });
 

@@ -821,12 +821,34 @@ export class ApplicationService {
   static async updateApplicationStatus(
     applicationId: string,
     statusUpdate: ApplicationStatusUpdateRequest,
-    actionedBy: string
+    actionedBy: string,
+    actionedByUserType?: UserType
   ): Promise<ApplicationData> {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
         throw new Error('Application not found');
+      }
+
+      // ADS-234: enforce rescue ownership. The route already checks the
+      // caller has the RESCUE_STAFF or ADMIN role, but does NOT verify
+      // that a staff caller belongs to THIS application's rescue. Without
+      // this check, staff at rescue A could approve/reject applications
+      // submitted to rescue B (cross-rescue IDOR).
+      if (
+        actionedByUserType !== undefined &&
+        actionedByUserType !== UserType.ADMIN &&
+        actionedByUserType !== UserType.MODERATOR
+      ) {
+        const StaffMember = (await import('../models/StaffMember')).default;
+        const membership = await StaffMember.findOne({
+          where: { userId: actionedBy, isVerified: true },
+        });
+        if (!membership || membership.rescueId !== application.rescueId) {
+          throw Object.assign(new Error('Access denied: application belongs to another rescue'), {
+            statusCode: 403,
+          });
+        }
       }
 
       // Validate status transition
