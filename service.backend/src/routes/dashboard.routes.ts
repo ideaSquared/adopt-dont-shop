@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../types/auth';
 import StaffMember from '../models/StaffMember';
 import { logger } from '../utils/logger';
 import { parsePaginationLimit } from '../utils/pagination';
+import { DashboardService } from '../services/dashboard.service';
 
 const router = Router();
 
@@ -132,54 +133,18 @@ router.get('/activity', async (req: AuthenticatedRequest, res) => {
       });
     }
 
-    // TODO: Use rescueId to fetch real activity data from database
-    // const rescueId = staffMember.rescueId;
+    const rescueId = staffMember.rescueId;
 
     const limit = parsePaginationLimit(req.query.limit as string | undefined, {
       default: 10,
       max: 100,
     });
 
-    // Return mock activity data
-    const activities = [
-      {
-        id: 'activity_1',
-        type: 'pet_added',
-        title: 'New Pet Added',
-        description: 'Buddy the Golden Retriever was added to your rescue',
-        timestamp: new Date().toISOString(),
-        metadata: {
-          petId: 'pet_1',
-          petName: 'Buddy',
-        },
-      },
-      {
-        id: 'activity_2',
-        type: 'application_received',
-        title: 'New Application',
-        description: 'Application received for Luna the Cat',
-        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        metadata: {
-          applicationId: 'app_1',
-          petName: 'Luna',
-        },
-      },
-      {
-        id: 'activity_3',
-        type: 'adoption_completed',
-        title: 'Adoption Completed',
-        description: 'Max the Dog found his forever home!',
-        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        metadata: {
-          petId: 'pet_2',
-          petName: 'Max',
-        },
-      },
-    ];
+    const activities = await DashboardService.getActivityForRescue(rescueId, limit);
 
     res.json({
       success: true,
-      data: activities.slice(0, limit),
+      data: activities,
       message: 'Activity retrieved successfully',
     });
   } catch (error) {
