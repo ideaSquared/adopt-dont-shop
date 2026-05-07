@@ -20,6 +20,23 @@ WORKDIR /app
 ENV HUSKY=0
 
 # ============================================================================
+# LIBS-BUILT STAGE - Build shared libraries once, reused by all downstream stages
+# ============================================================================
+FROM base AS libs-built
+
+COPY package.json package-lock.json ./
+COPY lib.types/ lib.types/
+COPY lib.validation/ lib.validation/
+
+WORKDIR /app/lib.types
+RUN --mount=type=cache,target=/root/.npm \
+    HUSKY=0 npm ci --prefer-offline && npm run build
+
+WORKDIR /app/lib.validation
+RUN --mount=type=cache,target=/root/.npm \
+    HUSKY=0 npm ci --prefer-offline && npm run build
+
+# ============================================================================
 # DEPENDENCIES STAGE - Install production dependencies with cache mount
 # ============================================================================
 FROM base AS dependencies
@@ -64,14 +81,9 @@ COPY service.backend/ service.backend/
 # Make entrypoint script executable
 RUN chmod +x /app/service.backend/docker-entrypoint.sh
 
-# Build shared libraries first
-WORKDIR /app/lib.types
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
-
-WORKDIR /app/lib.validation
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
+# Bring in pre-built lib artifacts from the libs-built stage
+COPY --from=libs-built /app/lib.types/dist /app/lib.types/dist
+COPY --from=libs-built /app/lib.validation/dist /app/lib.validation/dist
 
 WORKDIR /app/service.backend
 
@@ -132,14 +144,9 @@ COPY service.backend/ service.backend/
 # Make entrypoint script executable
 RUN chmod +x /app/service.backend/docker-entrypoint.sh
 
-# Build shared libraries first (required for backend TypeScript compilation)
-WORKDIR /app/lib.types
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
-
-WORKDIR /app/lib.validation
-RUN --mount=type=cache,target=/root/.npm \
-    HUSKY=0 npm ci --prefer-offline && npm run build
+# Bring in pre-built lib artifacts from the libs-built stage
+COPY --from=libs-built /app/lib.types/dist /app/lib.types/dist
+COPY --from=libs-built /app/lib.validation/dist /app/lib.validation/dist
 
 WORKDIR /app/service.backend
 
