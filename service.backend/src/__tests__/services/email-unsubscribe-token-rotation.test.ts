@@ -40,6 +40,17 @@ vi.mock('../../models/EmailPreference', () => ({
   },
 }));
 
+// setup-tests.ts globally mocks './services/email.service' to a stub that
+// only exports a default singleton — the EmailService named-export comes
+// back undefined under that mock, so we can't `new EmailService()` here.
+// Re-import the real module on top of the global mock.
+vi.mock('../../services/email.service', async () => {
+  const actual = await vi.importActual<typeof import('../../services/email.service')>(
+    '../../services/email.service'
+  );
+  return actual;
+});
+
 import EmailPreference from '../../models/EmailPreference';
 import { EmailService } from '../../services/email.service';
 
