@@ -11,8 +11,8 @@ export type VerificationSource = 'companies_house' | 'charity_commission' | 'man
 export type RescueLocation = {
   address: string;
   city: string;
-  state: string;
-  zipCode: string;
+  county?: string;
+  postcode: string;
   country: string;
 };
 
@@ -39,8 +39,8 @@ export type Rescue = {
   phone?: string;
   address: string;
   city: string;
-  state: string;
-  zipCode: string;
+  county?: string;
+  postcode: string;
   country: string;
   website?: string;
   description?: string;
@@ -77,9 +77,8 @@ export type RescueAPIResponse = {
   phone?: string;
   address: string;
   city: string;
-  state: string;
-  zip_code?: string;
-  zipCode?: string;
+  county?: string;
+  postcode: string;
   country: string;
   website?: string;
   description?: string;

@@ -158,7 +158,8 @@ const Rescues: React.FC = () => {
     { header: 'Name', accessor: 'name' },
     { header: 'Email', accessor: 'email' },
     { header: 'City', accessor: 'city' },
-    { header: 'State', accessor: 'state' },
+    { header: 'County', accessor: row => row.county ?? '' },
+    { header: 'Postcode', accessor: 'postcode' },
     { header: 'Status', accessor: 'status' },
     { header: 'Registered', accessor: 'createdAt' },
     { header: 'Verified', accessor: row => row.verifiedAt ?? '' },
@@ -197,7 +198,8 @@ const Rescues: React.FC = () => {
           </div>
           <div className={styles.rescueDetail}>
             <FiMapPin />
-            {row.city}, {row.state}
+            {row.city}
+            {row.county ? `, ${row.county}` : ''}
           </div>
         </div>
       ),

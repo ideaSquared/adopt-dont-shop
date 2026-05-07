@@ -60,7 +60,7 @@ const makeRescue = (overrides: Partial<AdminRescue> = {}): AdminRescue => ({
   name: 'Test Rescue',
   email: 'rescue@example.com',
   city: 'London',
-  state: 'England',
+  county: 'England',
   status: 'verified',
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-01-01T00:00:00Z',

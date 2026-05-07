@@ -350,8 +350,8 @@ export interface Rescue {
   phone?: string;
   address: string;
   city: string;
-  state: string;
-  zipCode: string;
+  county?: string;
+  postcode: string;
   country: string;
   website?: string;
   description?: string;
@@ -382,8 +382,8 @@ export interface Rescue {
   location: {
     address: string;
     city: string;
-    state: string;
-    zipCode: string;
+    county?: string;
+    postcode: string;
     country: string;
   };
   type: 'individual' | 'organization';
