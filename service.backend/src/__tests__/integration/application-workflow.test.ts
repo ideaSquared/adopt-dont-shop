@@ -1598,6 +1598,17 @@ describe('Application Submission Workflow Integration Tests', () => {
       // partial unique index on (user_id, pet_id) then rejects the second
       // INSERT with a UniqueConstraintError, which the service maps to the
       // same "already have an active application" error as the guard.
+      //
+      // sequelize.transaction is mocked here because SQLite (used in tests)
+      // serialises concurrent writers: two real transactions racing to commit
+      // would both fail with SQLITE_BUSY rather than one succeeding and one
+      // getting a UniqueConstraintError. The mock isolates the service-layer
+      // UniqueConstraintError-handling logic from the SQLite concurrency model.
+      const sequelizeModule = await import('../../sequelize');
+      vi.spyOn(sequelizeModule.default, 'transaction').mockImplementation(((
+        cb: (t: unknown) => Promise<unknown>
+      ) => cb({ LOCK: { UPDATE: 'UPDATE' } })) as never);
+
       const { UniqueConstraintError } = await import('sequelize');
 
       const mockUser = createMockUser({ userId: adopterId });
