@@ -230,7 +230,9 @@ export function ChatProvider({
       // inside loadConversations already ran — but the socket disconnect in the
       // cleanup will reset conversations on the next mount anyway.
     };
-    if (!cancelled) void doLoad();
+    if (!cancelled) {
+      void doLoad();
+    }
 
     return () => {
       cancelled = true;
