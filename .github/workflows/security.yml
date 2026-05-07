@@ -33,13 +33,6 @@ jobs:
     name: Dependency Audit
     runs-on: ubuntu-latest
 
-    strategy:
-      # One shard hitting a transient npm registry / cache issue shouldn't
-      # mask results for the others.
-      fail-fast: false
-      matrix:
-        project: [service.backend, app.client, app.admin, app.rescue, lib.components]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -48,23 +41,12 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '20'
-          # Cache npm downloads so this workflow is fast and doesn't re-hit
-          # the public registry for every matrix shard.
           cache: 'npm'
 
-      # Install once at the workspace root (npm ci is deterministic against
-      # the committed lockfile and resolves all `@adopt-dont-shop/*`
-      # workspace refs in one pass). Each matrix shard was previously
-      # running `npm install` in its own subdir, which is racy on shared
-      # registry/cache and was the specific source of the intermittent
-      # "Install dependencies" failures on app.client and lib.components.
       - name: Install workspace dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Audit for critical vulnerabilities in ${{ matrix.project }}
-        run: npm audit --audit-level=critical
-        working-directory: ${{ matrix.project }}
-
-      - name: Audit for high+ vulnerabilities in ${{ matrix.project }}
-        run: npm audit --audit-level=high
-        working-directory: ${{ matrix.project }}
+      # ADS-387: Single workspace-level audit covers all 28 packages via the
+      # root package-lock.json, replacing the previous 5-package hardcoded matrix.
+      - name: Audit all workspaces for high+ vulnerabilities
+        run: npm audit --workspaces --include-workspace-root --audit-level=high
