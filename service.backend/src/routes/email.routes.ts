@@ -1312,6 +1312,30 @@ router.put(
   emailController.updateUserPreferences
 );
 
+/**
+ * @swagger
+ * /api/v1/email/preferences/unsubscribe-token/rotate:
+ *   post:
+ *     tags: [Email Management]
+ *     summary: Rotate the authenticated user's unsubscribe token (ADS-301)
+ *     description: |
+ *       Generates a new unsubscribe token for the caller and invalidates
+ *       the old one. Use when a token may have leaked (forwarded email,
+ *       mailbox compromise) — old emails' unsubscribe links will stop
+ *       working until a fresh email is sent.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Token rotated successfully
+ */
+router.post(
+  '/preferences/unsubscribe-token/rotate',
+  authenticateToken,
+  emailController.rotateUnsubscribeToken
+);
+
 // Public Unsubscribe (No authentication required)
 
 /**

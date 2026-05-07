@@ -783,6 +783,36 @@ class EmailService {
     }
   }
 
+  /**
+   * Rotate a user's unsubscribe token. Use cases:
+   *
+   *   - Operator response to suspected token compromise (e.g. mailbox
+   *     breach, accidental forwarding to a wide list).
+   *   - Routine periodic rotation as part of a hygiene policy.
+   *
+   * After rotation:
+   *   - Old token immediately stops working (the column has a unique
+   *     index; the old plaintext value no longer matches any row).
+   *   - All previously-sent emails carrying the old token in their
+   *     unsubscribe footer will produce 'Invalid or expired unsubscribe
+   *     token' until they're re-sent or the user finds a recent email.
+   *
+   * This is the explicit revocation path for ADS-301 — `unsubscribeToken`
+   * is intentionally not auto-expired (links must keep working in
+   * archived emails for CAN-SPAM / consumer-trust reasons), but the
+   * operator must be able to invalidate one on demand.
+   */
+  public async rotateUnsubscribeToken(userId: string): Promise<string> {
+    const preference = await EmailPreference.findOne({ where: { userId } });
+    if (!preference) {
+      throw new Error('Email preferences not found');
+    }
+    const fresh = EmailPreference.generateUnsubscribeToken();
+    await preference.update({ unsubscribeToken: fresh });
+    logger.info(`Unsubscribe token rotated for user: ${userId}`);
+    return fresh;
+  }
+
   // Analytics and Reporting
   public async getEmailAnalytics(
     filters: {
