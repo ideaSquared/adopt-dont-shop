@@ -89,19 +89,12 @@ export enum Permission {
   RESCUE_SETTINGS_UPDATE = 'rescue_settings_update',
 }
 
-export interface Rescue {
-  rescueId: string;
-  rescueName: string;
-  rescueType: string;
-  contactEmail: string;
-  contactPhone?: string;
-  websiteUrl?: string;
-  description?: string;
-  logoUrl?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+// ADS-281: a `Rescue` interface used to live here with a different shape
+// from `lib.rescue/src/types/index.ts:Rescue` (rescueName/rescueType/
+// websiteUrl/logoUrl/isActive vs the canonical name/email/address/etc.).
+// It was unused outside lib.auth's barrel re-export, so removing it stops
+// the divergent shape from leaking into consumers — the canonical source
+// is `@adopt-dont-shop/lib.rescue`.
 
 // Permission mappings for role-based access control
 export const rolePermissions: Record<RescueRole, Permission[]> = {

@@ -27,7 +27,6 @@ export type {
   LoginRequest,
   RegisterRequest,
   AuthResponse,
-  Rescue,
   ChangePasswordRequest,
   RefreshTokenRequest,
   RefreshTokenResponse,

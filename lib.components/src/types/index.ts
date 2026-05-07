@@ -1,63 +1,11 @@
-export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Pet {
-  id: string;
-  name: string;
-  species: string;
-  breed: string;
-  age: number;
-  gender: string;
-  size: string;
-  description: string;
-  images: string[];
-  isAvailable: boolean;
-  rescueId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Application {
-  id: string;
-  petId: string;
-  userId: string;
-  status: ApplicationStatus;
-  answers: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Message {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  content: string;
-  attachments: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type: NotificationType;
-  isRead: boolean;
-  createdAt: string;
-}
-
-export type UserRole = 'USER' | 'RESCUE_ADMIN' | 'RESCUE_STAFF' | 'ADMIN';
-export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN';
-export type NotificationType = 'APPLICATION' | 'MESSAGE' | 'SYSTEM' | 'ADOPTION';
+// ADS-281: domain types (`User`, `Pet`, `Application`, `Message`,
+// `Notification`, `UserRole`, `ApplicationStatus`, `NotificationType`)
+// previously declared here used UPPERCASE literals incompatible with the
+// rest of the workspace (`lib.types`, `lib.applications`, etc.). They were
+// dead — no consumer imported them — so removing them rather than aligning
+// avoids resurrecting the wrong-cased literals as a public surface. The
+// real `NotificationType` enum used by the components lives in
+// `./notifications`.
 
 export type ButtonVariant =
   | 'primary'
