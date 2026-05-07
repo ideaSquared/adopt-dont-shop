@@ -6,10 +6,10 @@ import { lightTheme } from '../../../styles/theme';
 import { ThemeToggle } from './ThemeToggle';
 
 // Mock the theme context
-const mockSetThemeMode = jest.fn();
+const mockSetThemeMode = vi.fn();
 
-jest.mock('../../../styles/ThemeProvider', () => ({
-  ...jest.requireActual('../../../styles/ThemeProvider'),
+vi.mock('../../../styles/ThemeProvider', async () => ({
+  ...((await vi.importActual('../../../styles/ThemeProvider')) as Record<string, unknown>),
   useTheme: () => ({
     themeMode: 'light',
     setThemeMode: mockSetThemeMode,
@@ -79,34 +79,14 @@ describe('ThemeToggle', () => {
   });
 });
 
-// Test with dark theme - Create a simple test for dark mode without complex mocking
+// Test with dark theme — the module is already mocked above with `themeMode: 'light'`.
+// Verifying the toggle aria-label confirms the mock is wired up correctly.
 describe('ThemeToggle - Dark Mode Integration', () => {
   it('should toggle from light to dark mode', () => {
-    // Import ThemeProvider at the top for proper ES import usage
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const ThemeProviderModule = require('../../../styles/ThemeProvider');
-
-    const TestWrapper = () => {
-      const [mode, setMode] = React.useState<'light' | 'dark'>('light');
-
-      React.useEffect(() => {
-        jest.spyOn(ThemeProviderModule, 'useTheme').mockReturnValue({
-          themeMode: mode,
-          setThemeMode: setMode,
-          theme: lightTheme,
-        });
-
-        return () => {
-          jest.restoreAllMocks();
-        };
-      }, [mode]);
-
-      return <ThemeToggle />;
-    };
-
-    renderWithTheme(<TestWrapper />);
+    renderWithTheme(<ThemeToggle />);
 
     const button = screen.getByRole('button');
+    // The mock returns themeMode: 'light', so the button should offer to switch to dark
     expect(button).toHaveAttribute('aria-label', 'Switch to dark mode');
   });
 });

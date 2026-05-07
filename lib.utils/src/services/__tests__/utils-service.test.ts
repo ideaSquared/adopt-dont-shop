@@ -423,7 +423,7 @@ describe('UtilsService', () => {
     it('should return false when utilities fail', async () => {
       // Mock a failure
       const originalFormatDate = service.formatDate;
-      service.formatDate = jest.fn().mockImplementation(() => {
+      service.formatDate = vi.fn().mockImplementation(() => {
         throw new Error('Test error');
       });
 

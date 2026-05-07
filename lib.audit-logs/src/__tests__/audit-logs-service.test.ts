@@ -2,13 +2,13 @@ import { AuditLogsService } from '../services/audit-logs-service';
 import { api } from '@adopt-dont-shop/lib.api';
 import { AuditLogLevel, AuditLogStatus } from '../types';
 
-jest.mock('@adopt-dont-shop/lib.api');
+vi.mock('@adopt-dont-shop/lib.api');
 
 describe('AuditLogsService', () => {
-  const mockApi = api as jest.Mocked<typeof api>;
+  const mockApi = api as vi.Mocked<typeof api>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getAuditLogs', () => {

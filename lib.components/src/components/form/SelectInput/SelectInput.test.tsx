@@ -45,7 +45,7 @@ describe('SelectInput', () => {
   });
 
   it('calls onChange when value changes', () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(<SelectInput options={mockOptions} onChange={handleChange} />);
 
     // Test that the component is set up to handle changes
@@ -55,7 +55,7 @@ describe('SelectInput', () => {
   });
 
   it('renders in multiple mode', () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(
       <SelectInput options={mockOptions} multiple onChange={handleChange} value={[]} />
     );
@@ -75,7 +75,7 @@ describe('SelectInput', () => {
 
   it('removes selected value when remove button is clicked in multiple mode', async () => {
     const user = userEvent.setup();
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(
       <SelectInput
         options={mockOptions}
@@ -101,7 +101,7 @@ describe('SelectInput', () => {
   });
 
   it('handles search functionality when searchable', () => {
-    const onSearch = jest.fn();
+    const onSearch = vi.fn();
     renderWithTheme(<SelectInput options={mockOptions} searchable onSearch={onSearch} />);
 
     const select = screen.getByRole('combobox');
@@ -110,7 +110,7 @@ describe('SelectInput', () => {
   });
 
   it('accepts onSearch callback when searchable', () => {
-    const onSearch = jest.fn();
+    const onSearch = vi.fn();
     renderWithTheme(<SelectInput options={mockOptions} searchable onSearch={onSearch} />);
 
     const select = screen.getByRole('combobox');
@@ -127,7 +127,7 @@ describe('SelectInput', () => {
 
   it('clears value when clear button is clicked', async () => {
     const user = userEvent.setup();
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(
       <SelectInput options={mockOptions} value='option1' clearable onChange={handleChange} />
     );
@@ -140,7 +140,7 @@ describe('SelectInput', () => {
 
   it('clears multiple values when clear button is clicked', async () => {
     const user = userEvent.setup();
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(
       <SelectInput
         options={mockOptions}
@@ -221,7 +221,7 @@ describe('SelectInput', () => {
   });
 
   it('handles disabled options in options array', () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(<SelectInput options={mockOptions} onChange={handleChange} />);
 
     const select = screen.getByRole('combobox');

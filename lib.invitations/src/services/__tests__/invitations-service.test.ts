@@ -2,15 +2,15 @@ import { InvitationsService } from '../invitations-service';
 import { ApiService } from '@adopt-dont-shop/lib.api';
 
 // Mock the ApiService
-jest.mock('@adopt-dont-shop/lib.api');
+vi.mock('@adopt-dont-shop/lib.api');
 
 describe('InvitationsService', () => {
   let service: InvitationsService;
-  let mockApiService: jest.Mocked<ApiService>;
+  let mockApiService: vi.Mocked<ApiService>;
 
   beforeEach(() => {
     // Create a mock ApiService
-    mockApiService = new ApiService() as jest.Mocked<ApiService>;
+    mockApiService = new ApiService() as vi.Mocked<ApiService>;
 
     service = new InvitationsService(mockApiService, {
       debug: false,
@@ -38,7 +38,7 @@ describe('InvitationsService', () => {
         invitationId: 123,
       };
 
-      mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
+      mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
       const result = await service.sendInvitation('rescue-1', {
         email: 'test@example.com',
@@ -65,7 +65,7 @@ describe('InvitationsService', () => {
         },
       ];
 
-      mockApiService.get = jest.fn().mockResolvedValue({
+      mockApiService.get = vi.fn().mockResolvedValue({
         success: true,
         invitations: mockInvitations,
       });
@@ -77,7 +77,7 @@ describe('InvitationsService', () => {
     });
 
     it('should return empty array on error', async () => {
-      mockApiService.get = jest.fn().mockRejectedValue(new Error('Network error'));
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('Network error'));
 
       const result = await service.getPendingInvitations('rescue-1');
 
@@ -87,7 +87,7 @@ describe('InvitationsService', () => {
 
   describe('cancelInvitation', () => {
     it('should cancel invitation successfully', async () => {
-      mockApiService.delete = jest.fn().mockResolvedValue({ success: true });
+      mockApiService.delete = vi.fn().mockResolvedValue({ success: true });
 
       await service.cancelInvitation('rescue-1', 123);
 
@@ -104,7 +104,7 @@ describe('InvitationsService', () => {
         expiresAt: '2025-01-08',
       };
 
-      mockApiService.get = jest.fn().mockResolvedValue({
+      mockApiService.get = vi.fn().mockResolvedValue({
         success: true,
         invitation: mockDetails,
       });
@@ -116,7 +116,7 @@ describe('InvitationsService', () => {
     });
 
     it('should return null on error', async () => {
-      mockApiService.get = jest.fn().mockRejectedValue(new Error('Not found'));
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('Not found'));
 
       const result = await service.getInvitationDetails('invalid-token');
 
@@ -132,7 +132,7 @@ describe('InvitationsService', () => {
         userId: 'user-123',
       };
 
-      mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
+      mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
       const payload = {
         token: 'token123',

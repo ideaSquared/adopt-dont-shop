@@ -2,8 +2,9 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
-// Create comprehensive mocks for Radix UI components
-const mockRadixUI = {
+// vi.mock is hoisted above all variable declarations, so the mock factory must be
+// self-contained — no references to variables declared in this file.
+vi.mock('@radix-ui/react-dropdown-menu', () => ({
   Root: Object.assign(
     function MockDropdownRoot({
       children,
@@ -88,10 +89,7 @@ const mockRadixUI = {
       </Element>
     );
   }),
-};
-
-// Mock the entire Radix UI module
-jest.mock('@radix-ui/react-dropdown-menu', () => mockRadixUI);
+}));
 
 // Import the component after mocking
 import { DropdownButton } from './DropdownButton';
@@ -99,8 +97,8 @@ import { DropdownButton } from './DropdownButton';
 const renderWithTheme = (component: React.ReactElement) => render(component);
 
 describe('DropdownButton', () => {
-  const mockOnClick = jest.fn();
-  const mockOnClick2 = jest.fn();
+  const mockOnClick = vi.fn();
+  const mockOnClick2 = vi.fn();
 
   const sampleItems = [
     { label: 'Edit', onClick: mockOnClick },

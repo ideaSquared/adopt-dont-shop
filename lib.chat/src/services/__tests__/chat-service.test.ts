@@ -2,25 +2,25 @@ import { ChatService } from '../chat-service';
 import { ConnectionStatus } from '../../types';
 
 // Mock socket.io-client
-jest.mock('socket.io-client', () => {
+vi.mock('socket.io-client', () => {
   const mockSocket = {
-    on: jest.fn(),
-    emit: jest.fn(),
-    off: jest.fn(),
-    connect: jest.fn(),
-    disconnect: jest.fn(),
+    on: vi.fn(),
+    emit: vi.fn(),
+    off: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
     connected: false,
     id: 'mock-socket-id',
   };
 
   return {
-    io: jest.fn(() => mockSocket),
+    io: vi.fn(() => mockSocket),
     __mockSocket: mockSocket,
   };
 });
 
 // Mock global fetch
-global.fetch = jest.fn(() =>
+global.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({ data: {} }),
@@ -33,7 +33,7 @@ describe('ChatService', () => {
   let service: ChatService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     service = new ChatService({
       debug: false,
     });
@@ -133,14 +133,16 @@ describe('ChatService', () => {
       expect(status).toBe('disconnected');
     });
 
-    it('should allow subscribing to connection status changes', (done) => {
-      const statusCallback = jest.fn((status: ConnectionStatus) => {
-        expect(['disconnected', 'connecting', 'connected']).toContain(status);
-        done();
-      });
+    it('should allow subscribing to connection status changes', () => {
+      return new Promise<void>((resolve) => {
+        const statusCallback = vi.fn((status: ConnectionStatus) => {
+          expect(['disconnected', 'connecting', 'connected']).toContain(status);
+          resolve();
+        });
 
-      service.onConnectionStatusChange(statusCallback);
-      service.connect('user-123', 'token');
+        service.onConnectionStatusChange(statusCallback);
+        service.connect('user-123', 'token');
+      });
     });
 
     it('should disconnect cleanly', () => {
@@ -152,7 +154,7 @@ describe('ChatService', () => {
     });
 
     it('should handle connection errors gracefully', () => {
-      const errorCallback = jest.fn((error: Error) => {
+      const errorCallback = vi.fn((error: Error) => {
         expect(error).toBeDefined();
         expect(error.message).toBeTruthy();
       });
@@ -178,8 +180,8 @@ describe('ChatService', () => {
     });
 
     it('should allow multiple connection status listeners', () => {
-      const listener1 = jest.fn();
-      const listener2 = jest.fn();
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
 
       service.onConnectionStatusChange(listener1);
       service.onConnectionStatusChange(listener2);
@@ -192,7 +194,7 @@ describe('ChatService', () => {
     });
 
     it('should remove connection status listeners', () => {
-      const listener = jest.fn();
+      const listener = vi.fn();
 
       service.onConnectionStatusChange(listener);
       service.offConnectionStatusChange(listener);
@@ -205,21 +207,23 @@ describe('ChatService', () => {
   });
 
   describe('Socket.IO connection - reconnection with exponential backoff', () => {
-    it('should automatically reconnect when connection is lost', (done) => {
-      const reconnectCallback = jest.fn(() => {
-        expect(reconnectCallback).toHaveBeenCalled();
-        done();
-      });
+    it('should automatically reconnect when connection is lost', () => {
+      return new Promise<void>((resolve) => {
+        const reconnectCallback = vi.fn(() => {
+          expect(reconnectCallback).toHaveBeenCalled();
+          resolve();
+        });
 
-      service.onConnectionStatusChange((status) => {
-        if (status === 'reconnecting') {
-          reconnectCallback();
-        }
-      });
+        service.onConnectionStatusChange((status) => {
+          if (status === 'reconnecting') {
+            reconnectCallback();
+          }
+        });
 
-      service.connect('user-123', 'token');
-      // Simulate disconnect
-      service.simulateDisconnect();
+        service.connect('user-123', 'token');
+        // Simulate disconnect
+        service.simulateDisconnect();
+      });
     });
 
     it('should use exponential backoff for reconnection attempts', () => {
@@ -237,7 +241,7 @@ describe('ChatService', () => {
       const originalSetTimeout = global.setTimeout;
 
       // Mock setTimeout to capture delays
-      global.setTimeout = jest.fn((callback, delay) => {
+      global.setTimeout = vi.fn((callback, delay) => {
         delays.push(delay as number);
         return originalSetTimeout(callback, 0);
       }) as unknown as typeof setTimeout;
@@ -296,7 +300,7 @@ describe('ChatService', () => {
         },
       });
 
-      const statusCallback = jest.fn();
+      const statusCallback = vi.fn();
       customService.onConnectionStatusChange(statusCallback);
 
       customService.connect('user-123', 'token');
@@ -322,7 +326,7 @@ describe('ChatService', () => {
       const delays: number[] = [];
       const originalSetTimeout = global.setTimeout;
 
-      global.setTimeout = jest.fn((callback, delay) => {
+      global.setTimeout = vi.fn((callback, delay) => {
         delays.push(delay as number);
         return originalSetTimeout(callback, 0);
       }) as unknown as typeof setTimeout;
@@ -435,80 +439,90 @@ describe('ChatService', () => {
   });
 
   describe('Socket.IO connection - real-time event handlers', () => {
-    it('should receive new messages in real-time', (done) => {
-      service.connect('user-123', 'token');
+    it('should receive new messages in real-time', () => {
+      return new Promise<void>((resolve) => {
+        service.connect('user-123', 'token');
 
-      service.onMessage((message) => {
-        expect(message).toBeDefined();
-        expect(message.content).toBeTruthy();
-        done();
-      });
+        service.onMessage((message) => {
+          expect(message).toBeDefined();
+          expect(message.content).toBeTruthy();
+          resolve();
+        });
 
-      // Simulate receiving a message
-      service.simulateIncomingMessage({
-        id: 'msg-123',
-        conversationId: 'conv-123',
-        senderId: 'user-456',
-        senderName: 'Test User',
-        content: 'Hello!',
-        timestamp: new Date().toISOString(),
-        type: 'text',
-        status: 'sent',
-      });
-    });
-
-    it('should receive typing indicators in real-time', (done) => {
-      service.connect('user-123', 'token');
-
-      service.onTyping((typing) => {
-        expect(typing).toBeDefined();
-        expect(typing.userId).toBeTruthy();
-        done();
-      });
-
-      service.simulateTypingIndicator({
-        conversationId: 'conv-123',
-        userId: 'user-456',
-        userName: 'Test User',
-        startedAt: new Date().toISOString(),
+        // Simulate receiving a message
+        service.simulateIncomingMessage({
+          id: 'msg-123',
+          conversationId: 'conv-123',
+          senderId: 'user-456',
+          senderName: 'Test User',
+          content: 'Hello!',
+          timestamp: new Date().toISOString(),
+          type: 'text',
+          status: 'sent',
+        });
       });
     });
 
-    it('should handle connection events', (done) => {
-      service.onConnectionStatusChange((status) => {
-        if (status === 'connected') {
-          done();
-        }
-      });
+    it('should receive typing indicators in real-time', () => {
+      return new Promise<void>((resolve) => {
+        service.connect('user-123', 'token');
 
-      service.connect('user-123', 'token');
-      service.simulateConnectEvent();
+        service.onTyping((typing) => {
+          expect(typing).toBeDefined();
+          expect(typing.userId).toBeTruthy();
+          resolve();
+        });
+
+        service.simulateTypingIndicator({
+          conversationId: 'conv-123',
+          userId: 'user-456',
+          userName: 'Test User',
+          startedAt: new Date().toISOString(),
+        });
+      });
     });
 
-    it('should handle disconnection events', (done) => {
-      service.connect('user-123', 'token');
+    it('should handle connection events', () => {
+      return new Promise<void>((resolve) => {
+        service.onConnectionStatusChange((status) => {
+          if (status === 'connected') {
+            resolve();
+          }
+        });
 
-      service.onConnectionStatusChange((status) => {
-        if (status === 'disconnected') {
-          done();
-        }
+        service.connect('user-123', 'token');
+        service.simulateConnectEvent();
       });
-
-      service.simulateDisconnect();
     });
 
-    it('should handle error events', (done) => {
-      service.onConnectionError((error) => {
-        expect(error).toBeDefined();
-        expect(error.message).toBe('Connection failed');
-        done();
-      });
+    it('should handle disconnection events', () => {
+      return new Promise<void>((resolve) => {
+        service.connect('user-123', 'token');
 
-      service.simulateError(new Error('Connection failed'));
+        service.onConnectionStatusChange((status) => {
+          if (status === 'disconnected') {
+            resolve();
+          }
+        });
+
+        service.simulateDisconnect();
+      });
+    });
+
+    it('should handle error events', () => {
+      return new Promise<void>((resolve) => {
+        service.onConnectionError((error) => {
+          expect(error).toBeDefined();
+          expect(error.message).toBe('Connection failed');
+          resolve();
+        });
+
+        service.simulateError(new Error('Connection failed'));
+      });
     });
 
     it('should allow removing event listeners', () => {
-      const messageCallback = jest.fn();
+      const messageCallback = vi.fn();
 
       service.onMessage(messageCallback);
       service.off('message');
@@ -527,48 +541,52 @@ describe('ChatService', () => {
       expect(messageCallback).not.toHaveBeenCalled();
     });
 
-    it('should receive reaction updates in real-time', (done) => {
-      service.connect('user-123', 'token');
+    it('should receive reaction updates in real-time', () => {
+      return new Promise<void>((resolve) => {
+        service.connect('user-123', 'token');
 
-      service.onReactionUpdate((event) => {
-        expect(event).toBeDefined();
-        expect(event.messageId).toBe('msg-123');
-        expect(event.emoji).toBe('\u{1F44D}');
-        expect(event.userId).toBe('user-456');
-        expect(event.reactions).toHaveLength(1);
-        done();
-      });
+        service.onReactionUpdate((event) => {
+          expect(event).toBeDefined();
+          expect(event.messageId).toBe('msg-123');
+          expect(event.emoji).toBe('\u{1F44D}');
+          expect(event.userId).toBe('user-456');
+          expect(event.reactions).toHaveLength(1);
+          resolve();
+        });
 
-      service.simulateReactionUpdate({
-        messageId: 'msg-123',
-        emoji: '\u{1F44D}',
-        userId: 'user-456',
-        reactions: [
-          { userId: 'user-456', emoji: '\u{1F44D}', createdAt: new Date().toISOString() },
-        ],
+        service.simulateReactionUpdate({
+          messageId: 'msg-123',
+          emoji: '\u{1F44D}',
+          userId: 'user-456',
+          reactions: [
+            { userId: 'user-456', emoji: '\u{1F44D}', createdAt: new Date().toISOString() },
+          ],
+        });
       });
     });
 
-    it('should receive read status updates in real-time', (done) => {
-      service.connect('user-123', 'token');
+    it('should receive read status updates in real-time', () => {
+      return new Promise<void>((resolve) => {
+        service.connect('user-123', 'token');
 
-      service.onReadStatusUpdate((event) => {
-        expect(event).toBeDefined();
-        expect(event.chatId).toBe('conv-123');
-        expect(event.userId).toBe('user-456');
-        expect(event.timestamp).toBeTruthy();
-        done();
-      });
+        service.onReadStatusUpdate((event) => {
+          expect(event).toBeDefined();
+          expect(event.chatId).toBe('conv-123');
+          expect(event.userId).toBe('user-456');
+          expect(event.timestamp).toBeTruthy();
+          resolve();
+        });
 
-      service.simulateReadStatusUpdate({
-        chatId: 'conv-123',
-        userId: 'user-456',
-        timestamp: new Date().toISOString(),
+        service.simulateReadStatusUpdate({
+          chatId: 'conv-123',
+          userId: 'user-456',
+          timestamp: new Date().toISOString(),
+        });
       });
     });
 
     it('should allow removing reaction listeners', () => {
-      const reactionCallback = jest.fn();
+      const reactionCallback = vi.fn();
 
       service.onReactionUpdate(reactionCallback);
       service.off('reaction');
@@ -584,7 +602,7 @@ describe('ChatService', () => {
     });
 
     it('should allow removing read status listeners', () => {
-      const readStatusCallback = jest.fn();
+      const readStatusCallback = vi.fn();
 
       service.onReadStatusUpdate(readStatusCallback);
       service.off('readStatus');
@@ -601,7 +619,7 @@ describe('ChatService', () => {
 
   describe('message reactions', () => {
     it('should add a reaction to a message via API', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ data: { success: true } }),
         status: 200,
@@ -622,7 +640,7 @@ describe('ChatService', () => {
     });
 
     it('should remove a reaction from a message via API', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ data: { success: true } }),
         status: 200,
@@ -645,7 +663,7 @@ describe('ChatService', () => {
     });
 
     it('should throw error when adding reaction fails', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         status: 403,
         statusText: 'Forbidden',
@@ -659,7 +677,7 @@ describe('ChatService', () => {
     });
 
     it('should throw error when removing reaction fails', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         status: 404,
         statusText: 'Not Found',
@@ -673,8 +691,8 @@ describe('ChatService', () => {
     });
 
     it('should notify multiple reaction listeners', () => {
-      const listener1 = jest.fn();
-      const listener2 = jest.fn();
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
 
       service.onReactionUpdate(listener1);
       service.onReactionUpdate(listener2);
@@ -697,7 +715,7 @@ describe('ChatService', () => {
 
   describe('read receipt tracking', () => {
     it('should mark conversation as read via API', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({}),
         status: 200,
@@ -715,8 +733,8 @@ describe('ChatService', () => {
     });
 
     it('should notify multiple read status listeners', () => {
-      const listener1 = jest.fn();
-      const listener2 = jest.fn();
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
 
       service.onReadStatusUpdate(listener1);
       service.onReadStatusUpdate(listener2);
@@ -744,7 +762,7 @@ describe('ChatService', () => {
       } as Response);
 
     it('includes the x-csrf-token header and credentials on sendMessage', async () => {
-      const csrfProvider = jest.fn(async () => 'test-csrf-token');
+      const csrfProvider = vi.fn(async () => 'test-csrf-token');
       const csrfService = new ChatService({
         apiUrl: 'https://api.test',
         csrfToken: csrfProvider,
@@ -754,11 +772,11 @@ describe('ChatService', () => {
         enableMessageQueue: false,
       });
 
-      (global.fetch as jest.Mock).mockImplementation(okJson);
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(okJson);
 
       await csrfService.sendMessage('chat-1', 'hello');
 
-      const call = (global.fetch as jest.Mock).mock.calls[0];
+      const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
       const init = call[1] as RequestInit & { headers: Record<string, string> };
       expect(csrfProvider).toHaveBeenCalled();
       expect(init.headers['x-csrf-token']).toBe('test-csrf-token');
@@ -775,11 +793,11 @@ describe('ChatService', () => {
         apiUrl: 'https://api.test',
         enableMessageQueue: false,
       });
-      (global.fetch as jest.Mock).mockImplementation(okJson);
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(okJson);
 
       await service.sendMessage('chat-1', 'hello');
 
-      const call = (global.fetch as jest.Mock).mock.calls[0];
+      const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
       const init = call[1] as RequestInit & { headers: Record<string, string> };
       expect(init.headers['Content-Type']).toBe('application/json');
       expect(typeof init.body).toBe('string');
@@ -788,11 +806,11 @@ describe('ChatService', () => {
 
     it('omits the x-csrf-token header when no provider is supplied', async () => {
       const plainService = new ChatService({ apiUrl: 'https://api.test' });
-      (global.fetch as jest.Mock).mockImplementation(okJson);
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(okJson);
 
       await plainService.markAsRead('chat-1');
 
-      const call = (global.fetch as jest.Mock).mock.calls[0];
+      const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
       const init = call[1] as RequestInit & { headers: Record<string, string> };
       expect(init.headers['x-csrf-token']).toBeUndefined();
       // credentials are still included so the session cookie travels.
@@ -801,7 +819,7 @@ describe('ChatService', () => {
 
     it('sends credentials on GET so the session cookie travels', async () => {
       const service = new ChatService({ apiUrl: 'https://api.test' });
-      (global.fetch as jest.Mock).mockImplementation(() =>
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() =>
         Promise.resolve({
           ok: true,
           status: 200,
@@ -812,7 +830,7 @@ describe('ChatService', () => {
 
       await service.getConversations();
 
-      const call = (global.fetch as jest.Mock).mock.calls[0];
+      const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
       const init = call[1] as RequestInit;
       expect(init.credentials).toBe('include');
     });

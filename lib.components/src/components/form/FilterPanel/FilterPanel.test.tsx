@@ -5,7 +5,7 @@ import GenericFilters, { FilterConfig } from './FilterPanel';
 describe('GenericFilters Component', () => {
   const renderWithTheme = (ui: React.ReactElement) => render(ui);
 
-  const mockOnFilterChange = jest.fn();
+  const mockOnFilterChange = vi.fn();
 
   const filterConfig: FilterConfig[] = [
     { name: 'name', label: 'Name', type: 'text', placeholder: 'Enter name' },
@@ -30,7 +30,7 @@ describe('GenericFilters Component', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders all inputs based on the configuration', () => {

@@ -11,21 +11,23 @@ import {
 } from '../../types';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib.api', () => ({
-  ApiService: jest.fn().mockImplementation(() => ({
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  })),
+vi.mock('@adopt-dont-shop/lib.api', () => ({
+  ApiService: vi.fn().mockImplementation(function () {
+    return {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+  }),
 }));
 
 // Mock setInterval
-const mockSetInterval = jest.fn();
+const mockSetInterval = vi.fn();
 global.setInterval = mockSetInterval;
 
 // Mock timers for cache cleanup tests
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 describe('SearchService', () => {
   let service: SearchService;
@@ -82,18 +84,20 @@ describe('SearchService', () => {
   };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-    jest.clearAllTimers();
+    vi.clearAllMocks();
+    vi.clearAllTimers();
 
     // Get the mocked constructor and create a mock instance
     const { ApiService } = await import('@adopt-dont-shop/lib.api');
     mockApiService = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
     };
-    ApiService.mockImplementation(() => mockApiService);
+    ApiService.mockImplementation(function () {
+      return mockApiService;
+    });
 
     service = new SearchService({
       debug: false,
@@ -102,9 +106,9 @@ describe('SearchService', () => {
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
-    jest.useFakeTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
+    vi.useFakeTimers();
   });
 
   describe('initialization', () => {
@@ -414,7 +418,7 @@ describe('SearchService', () => {
 
   describe('error handling and debug mode', () => {
     it('should log debug information when debug mode is enabled', async () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
 
       const debugService = new SearchService({ debug: true });
       mockApiService.get.mockRejectedValue(new Error('Test error'));

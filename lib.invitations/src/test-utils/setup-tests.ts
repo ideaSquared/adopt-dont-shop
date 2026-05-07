@@ -4,30 +4,30 @@
 // Type declarations for global variables
 declare global {
   // eslint-disable-next-line no-var
-  var mockFetch: jest.Mock;
+  var mockFetch: ReturnType<typeof vi.fn>;
   // eslint-disable-next-line no-var
   var mockLocalStorage: {
-    getItem: jest.Mock;
-    setItem: jest.Mock;
-    removeItem: jest.Mock;
-    clear: jest.Mock;
+    getItem: ReturnType<typeof vi.fn>;
+    setItem: ReturnType<typeof vi.fn>;
+    removeItem: ReturnType<typeof vi.fn>;
+    clear: ReturnType<typeof vi.fn>;
     length: number;
-    key: jest.Mock;
+    key: ReturnType<typeof vi.fn>;
   };
 }
 
 // Mock fetch globally
-const mockFetch = jest.fn();
+const mockFetch = vi.fn();
 (global as any).fetch = mockFetch;
 
 // Mock localStorage
 const mockLocalStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
   length: 0,
-  key: jest.fn(),
+  key: vi.fn(),
 };
 
 // Mock global localStorage (for Node.js environment)
@@ -47,11 +47,11 @@ if (typeof window !== 'undefined') {
 // Mock console methods to reduce noise in tests (optional)
 // global.console = {
 //   ...console,
-//   log: jest.fn(),
-//   debug: jest.fn(),
-//   info: jest.fn(),
-//   warn: jest.fn(),
-//   error: jest.fn(),
+//   log: vi.fn(),
+//   debug: vi.fn(),
+//   info: vi.fn(),
+//   warn: vi.fn(),
+//   error: vi.fn(),
 // };
 
 // Global test utilities available in all tests
@@ -60,7 +60,7 @@ if (typeof window !== 'undefined') {
 
 // Clean up after each test
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockFetch.mockClear();
   mockLocalStorage.getItem.mockClear();
   mockLocalStorage.setItem.mockClear();

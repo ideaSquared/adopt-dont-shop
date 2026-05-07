@@ -25,7 +25,7 @@ describe('Navbar', () => {
 
   it('handles item clicks', async () => {
     const user = userEvent.setup();
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
 
     const itemsWithClick = [
       { label: 'Home', onClick: handleClick },

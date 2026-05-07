@@ -46,7 +46,7 @@ describe('Breadcrumbs', () => {
 
   it('handles click events on breadcrumb items', async () => {
     const user = userEvent.setup();
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
 
     const itemsWithClick = [
       { label: 'Home', onClick: handleClick },

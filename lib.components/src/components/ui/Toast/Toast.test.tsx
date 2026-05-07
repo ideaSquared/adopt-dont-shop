@@ -14,12 +14,12 @@ const mockToast = {
 
 describe('Toast', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   it('renders correctly with basic props', () => {
@@ -44,48 +44,48 @@ describe('Toast', () => {
   });
 
   it('calls onClose when close button is clicked', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(<Toast {...mockToast} onClose={handleClose} />);
 
     const closeButton = screen.getByLabelText('Close notification');
     fireEvent.click(closeButton);
 
     // Should call onClose after animation delay
-    jest.advanceTimersByTime(200);
+    vi.advanceTimersByTime(200);
     expect(handleClose).toHaveBeenCalledWith('test-toast-1');
   });
 
   it('auto-closes after duration when autoClose is true', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(<Toast {...mockToast} onClose={handleClose} autoClose duration={3000} />);
 
     // Fast-forward time
-    jest.advanceTimersByTime(3000);
+    vi.advanceTimersByTime(3000);
 
     // Should start closing animation
-    jest.advanceTimersByTime(200);
+    vi.advanceTimersByTime(200);
 
     expect(handleClose).toHaveBeenCalledWith('test-toast-1');
   });
 
   it('does not auto-close when autoClose is false', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(
       <Toast {...mockToast} onClose={handleClose} autoClose={false} duration={3000} />
     );
 
     // Fast-forward time beyond duration
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
 
     expect(handleClose).not.toHaveBeenCalled();
   });
 
   it('does not auto-close when duration is 0', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(<Toast {...mockToast} onClose={handleClose} duration={0} />);
 
     // Fast-forward time
-    jest.advanceTimersByTime(5000);
+    vi.advanceTimersByTime(5000);
 
     expect(handleClose).not.toHaveBeenCalled();
   });

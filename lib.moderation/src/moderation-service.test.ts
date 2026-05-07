@@ -1,9 +1,9 @@
 import { ModerationService } from './moderation-service';
 import { apiService } from '@adopt-dont-shop/lib.api';
 
-jest.mock('@adopt-dont-shop/lib.api');
+vi.mock('@adopt-dont-shop/lib.api');
 
-const mockedApi = apiService as jest.Mocked<typeof apiService>;
+const mockedApi = apiService as vi.Mocked<typeof apiService>;
 
 const validReport = {
   reportId: 'rep_1',
@@ -24,7 +24,7 @@ describe('ModerationService', () => {
   let service: ModerationService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     service = new ModerationService();
   });
 

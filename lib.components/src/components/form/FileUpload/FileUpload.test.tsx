@@ -33,7 +33,7 @@ describe('FileUpload', () => {
   });
 
   it('handles file selection', () => {
-    const handleFilesSelect = jest.fn();
+    const handleFilesSelect = vi.fn();
     renderWithTheme(<FileUpload onFilesSelect={handleFilesSelect} data-testid='file-upload' />);
 
     const input = screen.getByTestId('file-upload').querySelector('input[type="file"]');
@@ -81,7 +81,7 @@ describe('FileUpload', () => {
   });
 
   it('handles file removal', () => {
-    const handleFileRemove = jest.fn();
+    const handleFileRemove = vi.fn();
     const file = createMockFile('test.pdf', 1024, 'application/pdf');
 
     renderWithTheme(
@@ -108,8 +108,8 @@ describe('FileUpload', () => {
   });
 
   it('validates file size', () => {
-    const handleError = jest.fn();
-    const handleFilesSelect = jest.fn();
+    const handleError = vi.fn();
+    const handleFilesSelect = vi.fn();
 
     renderWithTheme(
       <FileUpload
@@ -130,8 +130,8 @@ describe('FileUpload', () => {
   });
 
   it('validates file type', () => {
-    const handleError = jest.fn();
-    const handleFilesSelect = jest.fn();
+    const handleError = vi.fn();
+    const handleFilesSelect = vi.fn();
 
     renderWithTheme(
       <FileUpload
@@ -152,7 +152,7 @@ describe('FileUpload', () => {
   });
 
   it('validates max files count', () => {
-    const handleError = jest.fn();
+    const handleError = vi.fn();
     const existingFile = createMockFile('existing.pdf', 1024, 'application/pdf');
 
     renderWithTheme(

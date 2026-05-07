@@ -32,7 +32,7 @@ describe('CheckboxInput', () => {
 
   it('handles change events', async () => {
     const user = userEvent.setup();
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(<CheckboxInput onChange={handleChange} />);
 
     const checkbox = screen.getByRole('checkbox');

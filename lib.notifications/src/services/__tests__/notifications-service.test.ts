@@ -8,31 +8,33 @@ import {
 } from '../../types';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib.api', () => ({
+vi.mock('@adopt-dont-shop/lib.api', () => ({
   apiService: {
-    post: jest.fn(),
-    get: jest.fn(),
-    put: jest.fn(),
-    patch: jest.fn(),
-    delete: jest.fn(),
-    fetchWithAuth: jest.fn(),
-    setToken: jest.fn(),
-    clearToken: jest.fn(),
-    isAuthenticated: jest.fn(),
-    updateConfig: jest.fn(),
+    post: vi.fn(),
+    get: vi.fn(),
+    put: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    fetchWithAuth: vi.fn(),
+    setToken: vi.fn(),
+    clearToken: vi.fn(),
+    isAuthenticated: vi.fn(),
+    updateConfig: vi.fn(),
   },
-  ApiService: jest.fn().mockImplementation(() => ({
-    post: jest.fn(),
-    get: jest.fn(),
-    put: jest.fn(),
-    patch: jest.fn(),
-    delete: jest.fn(),
-    fetchWithAuth: jest.fn(),
-    setToken: jest.fn(),
-    clearToken: jest.fn(),
-    isAuthenticated: jest.fn(),
-    updateConfig: jest.fn(),
-  })),
+  ApiService: vi.fn().mockImplementation(function () {
+    return {
+      post: vi.fn(),
+      get: vi.fn(),
+      put: vi.fn(),
+      patch: vi.fn(),
+      delete: vi.fn(),
+      fetchWithAuth: vi.fn(),
+      setToken: vi.fn(),
+      clearToken: vi.fn(),
+      isAuthenticated: vi.fn(),
+      updateConfig: vi.fn(),
+    };
+  }),
 }));
 
 describe('NotificationsService', () => {
@@ -48,7 +50,7 @@ describe('NotificationsService', () => {
     });
 
     mockApiService = service['apiService'];
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('initialization', () => {
@@ -82,7 +84,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.sendNotification(notificationRequest);
 
@@ -102,7 +104,7 @@ describe('NotificationsService', () => {
         };
 
         const error = new Error('Send failed');
-        mockApiService.post = jest.fn().mockRejectedValue(error);
+        mockApiService.post = vi.fn().mockRejectedValue(error);
 
         await expect(service.sendNotification(notificationRequest)).rejects.toThrow('Send failed');
       });
@@ -133,7 +135,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.sendBulkNotifications(bulkRequest);
 
@@ -159,7 +161,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.scheduleNotification(notificationRequest, scheduledFor);
 
@@ -200,7 +202,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.get = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.getUserNotifications(userId, filters);
 
@@ -226,7 +228,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.get = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.getUserNotifications(userId);
 
@@ -244,7 +246,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.patch = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.patch = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.markAsRead(notificationIds);
 
@@ -264,7 +266,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.patch = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.patch = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.markAllAsRead(userId);
 
@@ -284,7 +286,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.delete = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.delete = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.deleteNotification(notificationId);
 
@@ -315,7 +317,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.get = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.getUserPreferences(userId);
 
@@ -343,7 +345,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.patch = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.patch = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.setDoNotDisturb(userId, startTime, endTime);
 
@@ -368,7 +370,7 @@ describe('NotificationsService', () => {
           timestamp: new Date().toISOString(),
         };
 
-        mockApiService.get = jest.fn().mockResolvedValue(mockResponse);
+        mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
 
         const result = await service.getUnreadCount(userId);
 
@@ -382,7 +384,7 @@ describe('NotificationsService', () => {
 
   describe('healthCheck', () => {
     it('should return true when API is healthy', async () => {
-      mockApiService.get = jest.fn().mockResolvedValue({});
+      mockApiService.get = vi.fn().mockResolvedValue({});
 
       const result = await service.healthCheck();
 
@@ -391,7 +393,7 @@ describe('NotificationsService', () => {
     });
 
     it('should return false when API fails', async () => {
-      mockApiService.get = jest.fn().mockRejectedValue(new Error('API Error'));
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('API Error'));
 
       const result = await service.healthCheck();
 

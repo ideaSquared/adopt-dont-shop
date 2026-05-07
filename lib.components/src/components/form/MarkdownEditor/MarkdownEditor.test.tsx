@@ -3,10 +3,10 @@ import MarkdownEditor from './MarkdownEditor';
 
 // TODO: Fix this test
 describe.skip('MarkdownEditor', () => {
-  const mockOnChange = jest.fn();
+  const mockOnChange = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders with default placeholder', () => {

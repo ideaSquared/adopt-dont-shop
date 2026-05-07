@@ -33,7 +33,7 @@ describe('ImageGallery Component', () => {
   });
 
   it('calls onUpload when an image is uploaded', async () => {
-    const mockOnUpload = jest.fn();
+    const mockOnUpload = vi.fn();
     renderWithTheme(<ImageGallery images={[]} viewMode='gallery' onUpload={mockOnUpload} />);
 
     const file = new File(['dummy content'], 'example.png', {
@@ -55,7 +55,7 @@ describe('ImageGallery Component', () => {
   });
 
   it('calls onDelete when an image is deleted in gallery view', () => {
-    const mockOnDelete = jest.fn();
+    const mockOnDelete = vi.fn();
     renderWithTheme(
       <ImageGallery images={initialImages} viewMode='gallery' onDelete={mockOnDelete} />
     );
@@ -75,7 +75,7 @@ describe('ImageGallery Component', () => {
   });
 
   it('calls onDelete when an image is deleted in carousel view', () => {
-    const mockOnDelete = jest.fn();
+    const mockOnDelete = vi.fn();
     renderWithTheme(
       <ImageGallery images={initialImages} viewMode='carousel' onDelete={mockOnDelete} />
     );

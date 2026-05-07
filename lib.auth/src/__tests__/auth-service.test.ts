@@ -3,30 +3,30 @@ import { apiService } from '@adopt-dont-shop/lib.api';
 import { AuthResponse, LoginRequest, RegisterRequest, User, STORAGE_KEYS } from '../types';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib.api', () => ({
+vi.mock('@adopt-dont-shop/lib.api', () => ({
   apiService: {
-    post: jest.fn(),
-    get: jest.fn(),
-    put: jest.fn(),
-    fetchWithAuth: jest.fn(),
-    updateConfig: jest.fn(),
+    post: vi.fn(),
+    get: vi.fn(),
+    put: vi.fn(),
+    fetchWithAuth: vi.fn(),
+    updateConfig: vi.fn(),
   },
 }));
 
 // Mock localStorage
 const mockLocalStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
 };
 
 // Mock sessionStorage (access tokens are stored here)
 const mockSessionStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
 };
 
 Object.defineProperty(window, 'localStorage', {
@@ -61,7 +61,7 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     authService = new AuthService();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockLocalStorage.clear.mockClear();
     mockLocalStorage.getItem.mockClear();
     mockLocalStorage.setItem.mockClear();
@@ -74,7 +74,7 @@ describe('AuthService', () => {
 
   describe('initialization', () => {
     it('should configure API service with getAuthToken callback on construction', () => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
       new AuthService();
 
@@ -91,7 +91,7 @@ describe('AuthService', () => {
         password: 'password123',
       };
 
-      (apiService.post as jest.Mock).mockResolvedValue(mockAuthResponse);
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockAuthResponse);
 
       const result = await authService.login(credentials);
 
@@ -122,7 +122,7 @@ describe('AuthService', () => {
       };
 
       const error = new Error('Invalid credentials');
-      (apiService.post as jest.Mock).mockRejectedValue(error);
+      (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(error);
 
       await expect(authService.login(credentials)).rejects.toThrow('Invalid credentials');
       expect(mockSessionStorage.setItem).not.toHaveBeenCalled();
@@ -138,7 +138,7 @@ describe('AuthService', () => {
         lastName: 'Doe',
       };
 
-      (apiService.post as jest.Mock).mockResolvedValue(mockAuthResponse);
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockAuthResponse);
 
       const result = await authService.register(userData);
 
@@ -155,7 +155,7 @@ describe('AuthService', () => {
 
   describe('logout', () => {
     it('should logout successfully and clear sessionStorage tokens', async () => {
-      (apiService.post as jest.Mock).mockResolvedValue({});
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
       await authService.logout();
 
@@ -168,8 +168,8 @@ describe('AuthService', () => {
     });
 
     it('should clear storage even if API call fails', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      (apiService.post as jest.Mock).mockRejectedValue(new Error('Network error'));
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+      (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'));
 
       await authService.logout();
 
@@ -271,7 +271,7 @@ describe('AuthService', () => {
         // refreshToken not returned — it's set as httpOnly cookie by backend
       };
 
-      (apiService.post as jest.Mock).mockResolvedValue(refreshResponse);
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResponse);
 
       const newToken = await authService.refreshToken();
 
@@ -282,7 +282,7 @@ describe('AuthService', () => {
     });
 
     it('should propagate error if refresh API call fails', async () => {
-      (apiService.post as jest.Mock).mockRejectedValue(new Error('Unauthorized'));
+      (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Unauthorized'));
 
       await expect(authService.refreshToken()).rejects.toThrow('Unauthorized');
     });
@@ -294,7 +294,7 @@ describe('AuthService', () => {
         secret: 'JBSWY3DPEHPK3PXP',
         qrCodeDataUrl: 'data:image/png;base64,abc',
       };
-      (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
 
       const result = await authService.twoFactorSetup();
 
@@ -309,7 +309,7 @@ describe('AuthService', () => {
         success: true,
         backupCodes: ['code1', 'code2', 'code3'],
       };
-      (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockUser));
 
       const result = await authService.twoFactorEnable('JBSWY3DPEHPK3PXP', '123456');
@@ -332,7 +332,7 @@ describe('AuthService', () => {
         success: true,
         message: 'Two-factor authentication has been disabled',
       };
-      (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
       mockLocalStorage.getItem.mockReturnValue(
         JSON.stringify({ ...mockUser, twoFactorEnabled: true })
       );
@@ -356,7 +356,7 @@ describe('AuthService', () => {
         success: true,
         backupCodes: ['new1', 'new2', 'new3'],
       };
-      (apiService.post as jest.Mock).mockResolvedValue(mockResponse);
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
 
       const result = await authService.twoFactorRegenerateBackupCodes();
 

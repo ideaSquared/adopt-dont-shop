@@ -2,27 +2,27 @@
 // "mock" — Jest hoists the mock above the imports but NOT the local
 // declarations, so non-mock-prefixed variables would be undefined at the
 // time the factory runs.
-const mockUseContext = jest.fn();
+const mockUseContext = vi.fn();
 
-jest.mock('react', () => {
-  const actual = jest.requireActual('react');
+vi.mock('react', async () => {
+  const actual = await vi.importActual('react');
   return {
-    ...actual,
+    ...(actual as Record<string, unknown>),
     useContext: (...args: unknown[]) => mockUseContext(...args),
   };
 });
 
-jest.mock('@statsig/react-bindings', () => ({
+vi.mock('@statsig/react-bindings', () => ({
   StatsigContext: { _statsigContextMarker: true },
 }));
 
 import { useFeatureGate } from './useFeatureGate';
 
 describe('useFeatureGate', () => {
-  let warnSpy: jest.SpyInstance;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockUseContext.mockReset();
   });
 

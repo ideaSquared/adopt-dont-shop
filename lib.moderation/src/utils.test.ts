@@ -46,12 +46,12 @@ describe('formatRelativeTime', () => {
   const now = new Date('2026-04-21T12:00:00Z');
 
   beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it.each([
@@ -87,12 +87,12 @@ describe('isReportOverdue', () => {
   const now = new Date('2026-04-21T12:00:00Z');
 
   beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
   });
 
   afterAll(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('returns false for any non-pending status', () => {

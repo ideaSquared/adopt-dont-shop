@@ -3,12 +3,12 @@ import { ApiService } from '@adopt-dont-shop/lib.api';
 
 // Mock the API service
 const mockApiService = {
-  get: jest.fn(),
-  post: jest.fn(),
-  put: jest.fn(),
-  delete: jest.fn(),
-  updateConfig: jest.fn(),
-} as unknown as jest.Mocked<ApiService>;
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  delete: vi.fn(),
+  updateConfig: vi.fn(),
+} as unknown as vi.Mocked<ApiService>;
 
 describe('PetsService', () => {
   let service: PetsService;
@@ -18,7 +18,7 @@ describe('PetsService', () => {
     localStorage.clear();
 
     // Reset mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     service = new PetsService(mockApiService, {
       debug: false,

@@ -1,23 +1,23 @@
 import { FieldPermissionsService } from '../field-permissions-service';
 import { ApiService } from '@adopt-dont-shop/lib.api';
 
-jest.mock('@adopt-dont-shop/lib.api');
-const MockedApiService = ApiService as jest.MockedClass<typeof ApiService>;
+vi.mock('@adopt-dont-shop/lib.api');
+const MockedApiService = ApiService as vi.MockedClass<typeof ApiService>;
 
 describe('FieldPermissionsService', () => {
   let service: FieldPermissionsService;
-  let mockApiService: jest.Mocked<ApiService>;
+  let mockApiService: vi.Mocked<ApiService>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockApiService = new MockedApiService() as jest.Mocked<ApiService>;
+    vi.clearAllMocks();
+    mockApiService = new MockedApiService() as vi.Mocked<ApiService>;
     service = new FieldPermissionsService({}, mockApiService);
     service.clearCache();
   });
 
   describe('getFieldAccess', () => {
     it('should return default access level when no overrides exist', async () => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
 
       const result = await service.getFieldAccess('users', 'admin', 'email');
 
@@ -29,7 +29,7 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should return none for sensitive fields regardless of role', async () => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
 
       const result = await service.getFieldAccess('users', 'admin', 'password');
 
@@ -41,7 +41,7 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should return override access level when override exists', async () => {
-      mockApiService.get = jest.fn().mockResolvedValue({
+      mockApiService.get = vi.fn().mockResolvedValue({
         data: [
           {
             field_permission_id: 1,
@@ -65,7 +65,7 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should deny access to hidden fields for adopters by default', async () => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
 
       // status is an internal admin field that adopters should never see.
       const result = await service.getFieldAccess('users', 'adopter', 'status');
@@ -80,7 +80,7 @@ describe('FieldPermissionsService', () => {
 
   describe('checkFieldAccess', () => {
     beforeEach(() => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
     });
 
     it('should allow read access when field has write level', async () => {
@@ -117,7 +117,7 @@ describe('FieldPermissionsService', () => {
 
   describe('maskFields', () => {
     beforeEach(() => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
     });
 
     it('should remove hidden fields from response for adopter', async () => {
@@ -229,7 +229,7 @@ describe('FieldPermissionsService', () => {
 
   describe('maskFieldsArray', () => {
     beforeEach(() => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
     });
 
     it('should mask fields consistently across all items', async () => {
@@ -269,7 +269,7 @@ describe('FieldPermissionsService', () => {
 
   describe('getWriteBlockedFields', () => {
     beforeEach(() => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
     });
 
     it('should identify read-only fields in a write request', async () => {
@@ -303,7 +303,7 @@ describe('FieldPermissionsService', () => {
 
   describe('application field permissions', () => {
     beforeEach(() => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
     });
 
     it('should hide internal notes from adopters', async () => {
@@ -367,7 +367,7 @@ describe('FieldPermissionsService', () => {
 
   describe('pet field permissions', () => {
     beforeEach(() => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
     });
 
     it('should hide medical history from adopters', async () => {
@@ -410,7 +410,7 @@ describe('FieldPermissionsService', () => {
 
   describe('caching', () => {
     it('should cache override lookups', async () => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
 
       await service.getFieldAccess('users', 'admin', 'email');
       await service.getFieldAccess('users', 'admin', 'firstName');
@@ -420,7 +420,7 @@ describe('FieldPermissionsService', () => {
     });
 
     it('should clear cache when requested', async () => {
-      mockApiService.get = jest.fn().mockResolvedValue({ data: [] });
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [] });
 
       await service.getFieldAccess('users', 'admin', 'email');
       service.clearCache();
@@ -432,7 +432,7 @@ describe('FieldPermissionsService', () => {
 
   describe('updateFieldPermission', () => {
     it('should post the update and clear cache', async () => {
-      mockApiService.post = jest.fn().mockResolvedValue({ success: true });
+      mockApiService.post = vi.fn().mockResolvedValue({ success: true });
 
       const result = await service.updateFieldPermission({
         resource: 'users',
@@ -455,7 +455,7 @@ describe('FieldPermissionsService', () => {
 
   describe('deleteFieldPermission', () => {
     it('should delete the override and clear cache', async () => {
-      mockApiService.delete = jest.fn().mockResolvedValue({ success: true });
+      mockApiService.delete = vi.fn().mockResolvedValue({ success: true });
 
       const result = await service.deleteFieldPermission('users', 'adopter', 'email');
 
