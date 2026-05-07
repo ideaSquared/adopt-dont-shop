@@ -1,4 +1,4 @@
-import { col, fn, Includeable, Op, Order, WhereOptions } from 'sequelize';
+import { col, fn, Includeable, Op, Order, UniqueConstraintError, WhereOptions } from 'sequelize';
 import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import Application, { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import ApplicationAnswer from '../models/ApplicationAnswer';
@@ -245,6 +245,13 @@ export class ApplicationService {
         };
       });
     } catch (error) {
+      // Race condition safety net: if two concurrent requests both pass the
+      // pre-flight findOne check, the DB unique index rejects the second
+      // INSERT. Map that to the same user-facing error as the pre-flight guard.
+      if (error instanceof UniqueConstraintError) {
+        throw new Error('You already have an active application for this pet');
+      }
+
       logger.error('Failed to create application:', {
         error: error instanceof Error ? error.message : String(error),
         applicationData: JSON.parse(JSON.stringify(applicationData)),
