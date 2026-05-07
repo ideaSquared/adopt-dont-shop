@@ -530,6 +530,58 @@ describe('RescueService - Business Logic Tests', () => {
         error: 'Rescue is already suspended',
       });
     });
+
+    it('preserves the operator action verb (approve vs verify) in the audit log [ADS-378]', async () => {
+      // Given: A pending rescue
+      const rescueId = 'aaa11111-e89b-12d3-a456-426614174a01';
+      const mockRescue = createMockRescue({ rescueId, status: 'pending' });
+      const mockTransaction = {
+        commit: vi.fn().mockResolvedValue(undefined),
+        rollback: vi.fn().mockResolvedValue(undefined),
+      };
+
+      MockedRescue.findByPk = vi.fn().mockResolvedValue(mockRescue as unknown);
+      (MockedRescue as unknown).sequelize = {
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
+      };
+
+      // When: Bulk-approving (rather than bulk-verifying) the rescue
+      await RescueService.bulkUpdateRescues([rescueId], 'approve', mockUserId, 'Bulk approval');
+
+      // Then: The audit log entry records the 'approve' verb, not 'verify' —
+      // operator intent is preserved per ADS-378.
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'approve',
+          entity: 'rescue',
+          entityId: rescueId,
+        })
+      );
+    });
+
+    it('logs the verify verb when bulk action is verify [ADS-378]', async () => {
+      const rescueId = 'bbb22222-e89b-12d3-a456-426614174b01';
+      const mockRescue = createMockRescue({ rescueId, status: 'pending' });
+      const mockTransaction = {
+        commit: vi.fn().mockResolvedValue(undefined),
+        rollback: vi.fn().mockResolvedValue(undefined),
+      };
+
+      MockedRescue.findByPk = vi.fn().mockResolvedValue(mockRescue as unknown);
+      (MockedRescue as unknown).sequelize = {
+        transaction: vi.fn().mockResolvedValue(mockTransaction),
+      };
+
+      await RescueService.bulkUpdateRescues([rescueId], 'verify', mockUserId);
+
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'verify',
+          entity: 'rescue',
+          entityId: rescueId,
+        })
+      );
+    });
   });
 
   describe('Staff Management', () => {
