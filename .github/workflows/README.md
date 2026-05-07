@@ -86,7 +86,9 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 
 - **Concurrency Control**: Cancels old runs when new commits are pushed
 - **Matrix Builds**: Parallel execution for multiple projects
-- **Caching**: Docker layer caching and npm dependency caching
+- **Lib dist caching (ADS-390)**: The `build-libs` job caches compiled `lib.*/dist` artifacts across runs via `actions/cache@v4`. On a cache hit the build step is skipped entirely; on a miss the libs are compiled and the cache is saved for the next run. Within a single run, the compiled artifacts are shared to consumer jobs (`test-backend`, `test-frontend`, `test-libs`, `test-e2e`) via `upload-artifact`/`download-artifact`, eliminating redundant builds across the matrix.
+- **npm dependency caching**: `actions/setup-node` with `cache: 'npm'` restores `~/.npm` between runs
+- **Docker layer caching**: BuildKit layer cache in `docker.yml` for image rebuilds
 - **Path Filters**: Only runs when relevant files change
 
 ### 🔒 **Security Best Practices**
