@@ -1,3 +1,5 @@
+<!-- Before opening: make sure you've read [CONTRIBUTING.md](../CONTRIBUTING.md) and that all CI checks pass. -->
+
 ## Summary
 
 <!-- What does this PR do? 1-3 bullet points. -->

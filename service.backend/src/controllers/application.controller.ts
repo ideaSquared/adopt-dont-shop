@@ -556,7 +556,8 @@ export class ApplicationController extends BaseController {
       const application = await ApplicationService.updateApplicationStatus(
         applicationId,
         statusUpdate,
-        req.user!.userId
+        req.user!.userId,
+        req.user!.userType as UserType
       );
 
       res.status(200).json({

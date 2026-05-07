@@ -1,3 +1,4 @@
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
@@ -15,8 +16,11 @@ export const header = style({
 });
 
 export const title = style({
+  fontFamily: vars.typography.family.display,
   fontSize: '2rem',
-  color: '#111827',
+  fontWeight: vars.typography.weight.bold,
+  color: vars.text.primary,
+  letterSpacing: '-0.025em',
   margin: '0',
 });
 
@@ -29,10 +33,10 @@ export const applicationGrid = style({
 export const applicationCard = style({
   padding: '1.5rem',
   cursor: 'pointer',
-  transition: 'transform 0.2s, box-shadow 0.2s',
+  transition: `transform ${vars.transitions.fast}, box-shadow ${vars.transitions.fast}`,
   ':hover': {
     transform: 'translateY(-2px)',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    boxShadow: vars.shadows.lg,
   },
 });
 
@@ -44,13 +48,15 @@ export const petInfo = style({
 
 export const petDetailsH3 = style({
   margin: '0 0 0.25rem 0',
+  fontFamily: vars.typography.family.display,
   fontSize: '1.25rem',
-  color: '#111827',
+  fontWeight: vars.typography.weight.semibold,
+  color: vars.text.primary,
 });
 
 export const petDetailsP = style({
   margin: '0',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: '0.875rem',
 });
 
@@ -58,7 +64,7 @@ export const statusBadge = recipe({
   base: {
     display: 'inline-block',
     padding: '0.25rem 0.75rem',
-    borderRadius: '20px',
+    borderRadius: vars.border.radius.full,
     fontSize: '0.75rem',
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -66,11 +72,11 @@ export const statusBadge = recipe({
   },
   variants: {
     status: {
-      submitted: { background: '#3b82f6' },
-      under_review: { background: '#8b5cf6' },
-      approved: { background: '#10b981' },
-      rejected: { background: '#ef4444' },
-      default: { background: '#6b7280' },
+      submitted: { background: vars.colors.semantic.info['500'] },
+      under_review: { background: vars.colors.semantic.warning['500'] },
+      approved: { background: vars.colors.semantic.success['500'] },
+      rejected: { background: vars.colors.semantic.error['500'] },
+      default: { background: vars.colors.neutral['500'] },
     },
   },
 });
@@ -82,7 +88,7 @@ export const applicationDetails = style({
 globalStyle(`${applicationDetails} p`, {
   margin: '0.5rem 0',
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const actionButtons = style({
@@ -97,11 +103,11 @@ export const emptyState = style({
 });
 
 globalStyle(`${emptyState} h2`, {
-  color: '#6b7280',
+  color: vars.text.secondary,
   marginBottom: '1rem',
 });
 
 globalStyle(`${emptyState} p`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginBottom: '2rem',
 });

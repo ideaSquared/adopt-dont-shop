@@ -1,3 +1,4 @@
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 import { globalStyle, style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
@@ -12,14 +13,15 @@ export const searchHeader = style({
 });
 
 globalStyle(`${searchHeader} h1`, {
+  fontFamily: vars.typography.family.display,
   fontSize: '2.5rem',
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '1rem',
 });
 
 globalStyle(`${searchHeader} p`, {
   fontSize: '1.2rem',
-  color: '#6b7280',
+  color: vars.text.secondary,
   maxWidth: '600px',
   margin: '0 auto',
 });
@@ -83,7 +85,7 @@ export const resultsHeader = style({
 });
 
 globalStyle(`${resultsHeader} h2`, {
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0',
 });
 
@@ -115,13 +117,13 @@ export const loadingContainer = style({
 export const emptyState = style({
   textAlign: 'center',
   padding: '3rem 1rem',
-  color: '#6b7280',
+  color: vars.text.secondary,
 });
 
 globalStyle(`${emptyState} h3`, {
   fontSize: '1.5rem',
   marginBottom: '1rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${emptyState} p`, {
@@ -139,7 +141,7 @@ export const pagination = style({
 });
 
 globalStyle(`${pagination} .page-info`, {
-  color: '#6b7280',
+  color: vars.text.secondary,
   fontSize: '0.9rem',
 });
 
@@ -171,7 +173,7 @@ export const locationInputGroup = style({
 
 export const orLabel = style({
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   whiteSpace: 'nowrap',
   paddingBottom: '10px',
   '@media': {
@@ -189,7 +191,7 @@ export const locationButton = style({
 
 export const locationHint = style({
   fontSize: '0.85rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: '0 0 0.75rem 0',
 });
 
@@ -200,9 +202,9 @@ export const locationStatus = recipe({
   },
   variants: {
     variant: {
-      success: { color: '#111827' },
-      error: { color: '#dc3545' },
-      info: { color: '#6b7280' },
+      success: { color: vars.text.success },
+      error: { color: vars.text.error },
+      info: { color: vars.text.tertiary },
     },
   },
 });

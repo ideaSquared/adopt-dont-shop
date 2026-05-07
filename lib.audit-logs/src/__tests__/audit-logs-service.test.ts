@@ -171,9 +171,12 @@ describe('AuditLogsService', () => {
 
       const sevenDaysAgo = new Date(beforeCall);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAfterCall = new Date(afterCall);
+      sevenDaysAfterCall.setDate(sevenDaysAfterCall.getDate() - 7);
 
-      expect(startDate.getTime()).toBeLessThanOrEqual(sevenDaysAgo.getTime());
-      expect(startDate.getTime()).toBeGreaterThanOrEqual(sevenDaysAgo.getTime() - 1000);
+      // startDate should be approximately (callTime - 7days), bracketed by [beforeCall-7d, afterCall-7d]
+      expect(startDate.getTime()).toBeGreaterThanOrEqual(sevenDaysAgo.getTime());
+      expect(startDate.getTime()).toBeLessThanOrEqual(sevenDaysAfterCall.getTime() + 1000);
 
       expect(endDate.getTime()).toBeGreaterThanOrEqual(beforeCall.getTime() - 1000);
       expect(endDate.getTime()).toBeLessThanOrEqual(afterCall.getTime() + 1000);

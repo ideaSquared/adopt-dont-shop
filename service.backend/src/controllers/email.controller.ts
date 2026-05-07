@@ -374,6 +374,40 @@ export const updateUserPreferences = async (
   }
 };
 
+/**
+ * Rotate the authenticated user's unsubscribe token (ADS-301).
+ *
+ * Use cases:
+ *   - User suspects their email was forwarded / their mailbox was breached.
+ *   - Routine token hygiene.
+ *
+ * After rotation, any previously-sent email's unsubscribe link stops
+ * working — the response includes the new token so the caller can
+ * preview / log it if needed.
+ */
+export const rotateUnsubscribeToken = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+    const newToken = await emailService.rotateUnsubscribeToken(userId);
+    res.json({
+      message: 'Unsubscribe token rotated',
+      data: { unsubscribeToken: newToken },
+    });
+  } catch (error) {
+    logger.error('Failed to rotate unsubscribe token:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to rotate unsubscribe token',
+    });
+  }
+};
+
 // Public endpoints
 export const unsubscribeUser = async (req: Request, res: Response): Promise<void> => {
   try {

@@ -153,6 +153,16 @@ describe('AuthService - Security Business Logic', () => {
     MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
     MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(null);
 
+    // ADS-169: refreshToken now wraps revoke/rotate in a sequelize
+    // transaction. Provide a pass-through so the inner callback runs.
+    (MockedRefreshToken as unknown as { sequelize: unknown }).sequelize = {
+      transaction: vi.fn().mockImplementation(async (cb: (t: unknown) => Promise<unknown>) =>
+        cb({
+          /* sentinel transaction */
+        })
+      ),
+    };
+
     // Setup speakeasy mocks
     if (!MockedSpeakeasy.totp) {
       MockedSpeakeasy.totp = {} as typeof speakeasy.totp;

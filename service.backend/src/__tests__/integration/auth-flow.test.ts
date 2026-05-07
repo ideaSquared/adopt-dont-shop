@@ -110,6 +110,16 @@ describe('Authentication Flow Integration Tests', () => {
     (MockedUser as unknown as { sequelize: unknown }).sequelize = {
       transaction: vi.fn().mockResolvedValue(mockTransaction),
     };
+
+    // ADS-169: refreshToken now wraps revoke/rotate in a sequelize
+    // transaction on RefreshToken.sequelize. Provide a pass-through.
+    (MockedRefreshToken as unknown as { sequelize: unknown }).sequelize = {
+      transaction: vi.fn().mockImplementation(async (cb: (t: unknown) => Promise<unknown>) =>
+        cb({
+          /* sentinel transaction */
+        })
+      ),
+    };
   });
 
   describe('User Registration and Email Verification', () => {

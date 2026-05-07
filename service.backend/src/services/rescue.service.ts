@@ -289,8 +289,13 @@ export class RescueService {
   static async createRescue(rescueData: CreateRescueRequest, createdBy: string): Promise<Rescue> {
     const startTime = Date.now();
 
+    // Phase 1: persist the rescue inside a transaction. Duplicate-checks plus
+    // the create-in-pending-state. External verification HTTP is deliberately
+    // NOT called here — it would hold a DB connection during arbitrary network
+    // I/O and exhaust the pool under load. See ADS-365.
     const transaction = await Rescue.sequelize!.transaction();
 
+    let rescue: Rescue;
     try {
       // Check for duplicate email
       const existingByEmail = await Rescue.findOne({
@@ -321,8 +326,8 @@ export class RescueService {
         }
       }
 
-      // Create the rescue in pending state — verification runs after
-      const rescue = await Rescue.create(
+      // Create the rescue in pending state — verification runs after commit.
+      rescue = await Rescue.create(
         {
           ...rescueData,
           status: 'pending',
@@ -330,58 +335,7 @@ export class RescueService {
         { transaction }
       );
 
-      // Attempt automated external verification
-      const verificationUpdate = await RescueService.attemptExternalVerification(
-        rescue.rescueId,
-        rescueData.companiesHouseNumber,
-        rescueData.charityRegistrationNumber
-      );
-
-      if (Object.keys(verificationUpdate).length > 0) {
-        await rescue.update(verificationUpdate, { transaction });
-      }
-
-      // Log the action
-      await AuditLogService.log({
-        userId: createdBy,
-        action: 'create',
-        entity: 'rescue',
-        entityId: rescue.rescueId,
-        details: {
-          rescueId: rescue.rescueId,
-          name: rescue.name,
-          email: rescue.email,
-          verificationStatus: verificationUpdate.status ?? 'pending',
-        },
-      });
-
-      loggerHelpers.logBusiness(
-        'Rescue Created',
-        {
-          rescueId: rescue.rescueId,
-          name: rescue.name,
-          createdBy,
-          verificationStatus: verificationUpdate.status ?? 'pending',
-          duration: Date.now() - startTime,
-        },
-        createdBy
-      );
-
       await transaction.commit();
-
-      // Send manual verification email outside the transaction so a send failure
-      // does not roll back the rescue creation.
-      if (verificationUpdate.manualVerificationRequestedAt) {
-        await RescueService.sendManualVerificationEmail(rescue.name, rescue.email).catch(err =>
-          logger.error('Failed to send manual verification email', {
-            err,
-            rescueId: rescue.rescueId,
-          })
-        );
-      }
-
-      logger.info(`Created new rescue: ${rescue.rescueId}`);
-      return rescue;
     } catch (error) {
       await transaction.rollback();
       logger.error('Error creating rescue:', {
@@ -395,6 +349,76 @@ export class RescueService {
       }
       throw new Error('Failed to create rescue');
     }
+
+    // Phase 2: verification runs AFTER commit, so the upstream API latency
+    // never holds a DB connection. The rescue already exists in the database
+    // with status='pending'; this update transitions it to verified or
+    // routes it to manual review. If anything in this phase fails, the
+    // rescue is still safely created and an admin can re-run verification.
+    let verificationUpdate: Awaited<ReturnType<typeof RescueService.attemptExternalVerification>> =
+      {};
+    try {
+      verificationUpdate = await RescueService.attemptExternalVerification(
+        rescue.rescueId,
+        rescueData.companiesHouseNumber,
+        rescueData.charityRegistrationNumber
+      );
+
+      if (Object.keys(verificationUpdate).length > 0) {
+        await rescue.update(verificationUpdate);
+      }
+    } catch (err) {
+      logger.error('External verification step failed (rescue already created)', {
+        err,
+        rescueId: rescue.rescueId,
+      });
+      // Don't throw — the rescue exists in pending state and can be
+      // verified manually by an admin.
+    }
+
+    try {
+      await AuditLogService.log({
+        userId: createdBy,
+        action: 'create',
+        entity: 'rescue',
+        entityId: rescue.rescueId,
+        details: {
+          rescueId: rescue.rescueId,
+          name: rescue.name,
+          email: rescue.email,
+          verificationStatus: verificationUpdate.status ?? 'pending',
+        },
+      });
+    } catch (err) {
+      logger.error('Failed to write audit log for rescue create', {
+        err,
+        rescueId: rescue.rescueId,
+      });
+    }
+
+    loggerHelpers.logBusiness(
+      'Rescue Created',
+      {
+        rescueId: rescue.rescueId,
+        name: rescue.name,
+        createdBy,
+        verificationStatus: verificationUpdate.status ?? 'pending',
+        duration: Date.now() - startTime,
+      },
+      createdBy
+    );
+
+    if (verificationUpdate.manualVerificationRequestedAt) {
+      await RescueService.sendManualVerificationEmail(rescue.name, rescue.email).catch(err =>
+        logger.error('Failed to send manual verification email', {
+          err,
+          rescueId: rescue.rescueId,
+        })
+      );
+    }
+
+    logger.info(`Created new rescue: ${rescue.rescueId}`);
+    return rescue;
   }
 
   /**
@@ -488,7 +512,13 @@ export class RescueService {
     rescueId: string,
     verifiedBy: string,
     notes?: string,
-    verificationSource: 'companies_house' | 'charity_commission' | 'manual' = 'manual'
+    verificationSource: 'companies_house' | 'charity_commission' | 'manual' = 'manual',
+    /**
+     * Operator intent verb recorded in the audit log. Defaults to `'verify'`.
+     * `bulkUpdateRescues` passes the caller's original action ('approve' or
+     * 'verify') so audit entries preserve the chosen verb — see ADS-378.
+     */
+    auditAction: 'verify' | 'approve' = 'verify'
   ): Promise<Rescue> {
     const startTime = Date.now();
 
@@ -517,10 +547,11 @@ export class RescueService {
         { transaction }
       );
 
-      // Log the action
+      // Log the action — `auditAction` lets bulk callers preserve their
+      // original verb ('approve' vs 'verify') rather than collapsing them.
       await AuditLogService.log({
         userId: verifiedBy,
-        action: 'verify',
+        action: auditAction,
         entity: 'rescue',
         entityId: rescueId,
         details: {
@@ -1454,7 +1485,11 @@ export class RescueService {
     for (const rescueId of rescueIds) {
       try {
         if (action === 'approve' || action === 'verify') {
-          await RescueService.verifyRescue(rescueId, performedBy, reason);
+          // Both actions perform identical state transitions, but operator
+          // intent must be preserved in the audit log. Pass the original
+          // action verb through so the audit entry records 'approve' vs
+          // 'verify' rather than collapsing them — see ADS-378.
+          await RescueService.verifyRescue(rescueId, performedBy, reason, 'manual', action);
         } else if (action === 'suspend') {
           await RescueService.suspendRescue(rescueId, performedBy, reason);
         }

@@ -12,6 +12,22 @@ concurrency:
 
 jobs:
   # ============================================================================
+  # WORKSPACE DRIFT — verify package.json workspaces matches filesystem lib.*
+  # Catches the case where a lib is added to workspaces but the directory is
+  # missing (or vice-versa), which silently breaks Docker image builds.
+  # ============================================================================
+  workspace-drift:
+    name: Verify Workspace ↔ Filesystem Alignment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify workspace ↔ filesystem alignment
+        run: |
+          expected=$(node -p "require('./package.json').workspaces.filter(w => w.startsWith('lib.')).sort().join('\n')")
+          actual=$(ls -d lib.* | sort)
+          diff <(echo "$expected") <(echo "$actual") || (echo "Workspace drift!" && exit 1)
+
+  # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================
   changes:
@@ -81,13 +97,26 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install workspace dependencies
         run: npm ci
 
+      # ADS-390: Cache compiled lib.*/dist across CI runs.
+      # Key covers all lib source files, package manifests, tsconfig files and
+      # the root lockfile. A cache hit skips the build:libs step entirely.
+      - name: Restore lib dist cache
+        id: cache-lib-dist
+        uses: actions/cache@v4
+        with:
+          path: lib.*/dist
+          key: lib-dist-${{ runner.os }}-${{ hashFiles('lib.*/src/**', 'lib.*/package.json', 'lib.*/tsconfig*.json', 'package-lock.json') }}
+          restore-keys: |
+            lib-dist-${{ runner.os }}-
+
       - name: Build shared libraries
+        if: steps.cache-lib-dist.outputs.cache-hit != 'true'
         run: npm run build:libs
 
       # Bundle every lib.*/dist (and matching package.json) into a single artifact
@@ -136,7 +165,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install workspace dependencies
@@ -195,7 +224,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install workspace dependencies
@@ -251,7 +280,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install workspace dependencies
@@ -281,6 +310,9 @@ jobs:
   test-e2e:
     name: E2E Tests (Playwright)
     needs: [changes, test-backend, test-frontend]
+    # ADS-386: continue-on-error remains true until the follow-up gate is met:
+    #   - 10 consecutive green E2E runs on main, then flip to false and add
+    #     test-e2e as a required status check in branch protection settings.
     # Non-blocking: this job exists to surface integration regressions
     # against the full docker-compose stack, but is allowed to fail until
     # the suite has been smoke-tested against a real running stack and
@@ -311,7 +343,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - uses: docker/setup-buildx-action@v4
@@ -398,7 +430,26 @@ jobs:
         # The backend bootstraps the database (sync + runAllSeeders) on
         # startup in development mode, so by the time /health responds in
         # the previous step the seeded data is already available.
+        # Retries are configured in e2e/playwright.config.ts (retries: CI ? 2 : 0).
         run: npm run test:e2e
+
+      # ADS-386: Surface flaky-retry signal so engineers can see which tests
+      # needed retries without having to open the full HTML report.
+      # This step never blocks CI — it is informational only.
+      - name: Report E2E retry counts
+        if: always()
+        run: |
+          report_dir="e2e/test-results"
+          if [ ! -d "$report_dir" ]; then
+            echo "No test-results directory found — Playwright may not have run."
+            exit 0
+          fi
+          retried=$(find "$report_dir" -name '*.json' -exec grep -l '"retry":[^0]' {} \; 2>/dev/null | wc -l)
+          if [ "$retried" -gt 0 ]; then
+            echo "::warning::$retried test result file(s) contain retries — check the Playwright report artifact for details."
+          else
+            echo "No retried tests detected in this run."
+          fi
 
       - name: Capture docker-compose logs on failure
         if: failure()

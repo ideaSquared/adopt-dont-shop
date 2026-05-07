@@ -3,9 +3,21 @@ import { randomBytes } from 'node:crypto';
 
 const b64 = (n = 32) => randomBytes(n).toString('base64');
 
-console.log('# Copy these into your .env file:');
-console.log(`JWT_SECRET=${b64()}`);
-console.log(`JWT_REFRESH_SECRET=${b64()}`);
-console.log(`SESSION_SECRET=${b64()}`);
-console.log(`CSRF_SECRET=${b64()}`);
-console.log(`ENCRYPTION_KEY=${randomBytes(32).toString('hex')}`);
+/**
+ * Returns a block of freshly-generated secret key=value lines suitable for
+ * appending to a .env file.  Called by bootstrap.mjs on fresh .env creation
+ * and by the standalone `npm run secrets:generate` command.
+ */
+export function generateSecretsBlock() {
+  return [
+    '# Copy these into your .env file:',
+    `JWT_SECRET=${b64()}`,
+    `JWT_REFRESH_SECRET=${b64()}`,
+    `SESSION_SECRET=${b64()}`,
+    `CSRF_SECRET=${b64()}`,
+    `ENCRYPTION_KEY=${randomBytes(32).toString('hex')}`,
+  ].join('\n');
+}
+
+// Thin wrapper — prints the block when run directly via `npm run secrets:generate`.
+console.log(generateSecretsBlock());

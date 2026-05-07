@@ -36,8 +36,8 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@adopt-dont-shop/lib.api": "file:../lib.api",
-    "@types/node": "^20.0.0"
+    "@adopt-dont-shop/lib.api": "*",
+    "@types/node": "^20.19.0"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",

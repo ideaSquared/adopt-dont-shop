@@ -100,9 +100,7 @@ The dev stack is configured for HMR on Windows/macOS/Linux:
 | Frontend apps (`app.*/src/**`) | Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`, `CHOKIDAR_INTERVAL=1000`) | ~1-2s |
 | Frontend libs (`lib.*/src/**` except `lib.types`) | Vite aliases point at lib `src/` — HMR picks them up | ~1-2s |
 | Backend (`service.backend/src/**`) | `ts-node-dev --poll` | ~2s |
-| `lib.types/src/**` | Built into backend `node_modules` at container start. Re-run via `npm run docker:rebuild:types` | manual |
-
-**Why lib.types is special:** the backend imports types via `node_modules/@adopt-dont-shop/lib.types`, so type changes need a rebuild + copy. Symlinks across Windows bind mounts into Linux containers are flaky, so we copy. The `docker:rebuild:types` script does the same thing the container's startup command does, without restarting the container.
+| `lib.types/src/**` | `lib-types-watcher` sidecar runs `tsc --watch`; backend picks up dist changes via workspace symlink | ~2-5s |
 
 ### Targeting Specific Services
 
@@ -251,7 +249,7 @@ Polling is enabled by default (`CHOKIDAR_USEPOLLING=true`). If HMR still misfire
 
 - Confirm the env var is set inside the container: `docker compose exec app-client env | grep CHOKIDAR`
 - Reduce watch scope in the relevant `vite.config.ts`
-- For lib.types changes: run `npm run docker:rebuild:types` (HMR doesn't apply to lib.types)
+
 
 ### Port Already in Use
 

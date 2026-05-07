@@ -3,7 +3,7 @@ import { globalStyle } from '@vanilla-extract/css';
 import { vars } from './theme.css';
 
 // NOTE: Add Google Fonts to your app's index.html:
-// <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Playfair+Display:wght@400..900&display=swap" rel="stylesheet">
+// <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Fredoka:wght@300..700&family=Playfair+Display:wght@400..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 globalStyle('*, *::before, *::after', {
   boxSizing: 'border-box',
@@ -42,7 +42,8 @@ globalStyle('h1, h2, h3, h4, h5, h6', {
 
 globalStyle('h1', {
   fontSize: vars.typography.size['4xl'],
-  fontWeight: vars.typography.weight.extrabold,
+  // Fredoka tops out at 700 (bold). Avoid extrabold so the heading doesn't synth-bold or fall back to Inter mid-page.
+  fontWeight: vars.typography.weight.bold,
 });
 
 globalStyle('h2', {
