@@ -9,6 +9,7 @@ import { AuthenticatedRequest } from '../types/auth';
 import { logger, loggerHelpers } from '../utils/logger';
 import { setUserId } from '../utils/request-context';
 import { env } from '../config/env';
+import { getAuthCache, setAuthCache } from '../lib/auth-cache';
 
 export interface JWTPayload {
   userId: string;
@@ -86,6 +87,15 @@ const authenticateRequest = async (token: string): Promise<User> => {
     throw new AuthError(401, 'TOKEN_REVOKED', 'Token has been revoked');
   }
 
+  const cached = await getAuthCache<Record<string, unknown>>(decoded.userId);
+  if (cached) {
+    logger.debug('auth-cache hit', { userId: decoded.userId });
+    // Cached data is the plain JSON from user.toJSON() — the same shape
+    // that downstream middleware and controllers consume. Cast is safe
+    // because we only cache after validating status === 'active'.
+    return cached as unknown as User;
+  }
+
   const user = await User.findByPk(decoded.userId, { include: userInclude });
   if (!user) {
     throw new AuthError(401, 'USER_NOT_FOUND', 'User not found');
@@ -95,6 +105,8 @@ const authenticateRequest = async (token: string): Promise<User> => {
   }
 
   await attachRescueAffiliation(user);
+  const serialised = typeof user.toJSON === 'function' ? user.toJSON() : user;
+  await setAuthCache(decoded.userId, serialised);
   return user;
 };
 

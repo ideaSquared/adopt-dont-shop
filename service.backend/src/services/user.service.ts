@@ -24,6 +24,7 @@ import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { redactSensitiveFields } from '../utils/redact';
+import { invalidateAuthCache } from '../lib/auth-cache';
 
 const USER_SORT_FIELDS = [
   'createdAt',
@@ -1070,6 +1071,7 @@ export class UserService {
 
       const oldUserType = user.userType;
       await user.update({ userType: newUserType });
+      await invalidateAuthCache(userId);
 
       // Audit log
       await AuditLog.create({
@@ -1133,6 +1135,7 @@ export class UserService {
       user.status = UserStatus.INACTIVE;
       // user.deactivatedAt = new Date(); // User model doesn't have this field
       await user.save();
+      await invalidateAuthCache(userId);
 
       // Log deactivation
       await AuditLogService.log({
@@ -1187,6 +1190,7 @@ export class UserService {
       user.status = UserStatus.ACTIVE;
       // user.deactivatedAt = null; // User model doesn't have this field
       await user.save();
+      await invalidateAuthCache(userId);
 
       // Log activation
       await AuditLogService.log({

@@ -9,6 +9,7 @@ import UserRole from '../models/UserRole';
 import EmailTemplateService from './email-template.service';
 import { logger } from '../utils/logger';
 import { hashToken } from '../utils/secrets';
+import { invalidateAuthCache } from '../lib/auth-cache';
 
 export class InvitationService {
   /**
@@ -243,6 +244,7 @@ export class InvitationService {
           },
           { transaction }
         );
+        await invalidateAuthCache(user.userId);
       }
 
       // Mark invitation as used

@@ -5,6 +5,7 @@ import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { validateSortField } from '../utils/sort-validation';
+import { invalidateAuthCache } from '../lib/auth-cache';
 import { verifyCompaniesHouseNumber } from './companies-house.service';
 import { verifyCharityRegistrationNumber } from './charity-commission.service';
 
@@ -941,6 +942,7 @@ export class RescueService {
             },
             { transaction }
           );
+          await invalidateAuthCache(userId);
 
           logger.info(`Assigned rescue_staff role to user ${userId}`);
         } else {

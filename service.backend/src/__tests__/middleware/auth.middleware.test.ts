@@ -1,5 +1,12 @@
 import { vi } from 'vitest';
 
+// Mock auth-cache before any imports so the middleware picks it up
+vi.mock('../../lib/auth-cache', () => ({
+  getAuthCache: vi.fn(async () => null),
+  setAuthCache: vi.fn(async () => undefined),
+  invalidateAuthCache: vi.fn(async () => undefined),
+}));
+
 // Mock jsonwebtoken with error classes
 vi.mock('jsonwebtoken', () => {
   class JsonWebTokenError extends Error {
@@ -151,6 +158,7 @@ import RevokedToken from '../../models/RevokedToken';
 import { AuthenticatedRequest } from '../../types/auth';
 import { logger, loggerHelpers } from '../../utils/logger';
 import { env } from '../../config/env';
+import { getAuthCache, setAuthCache } from '../../lib/auth-cache';
 
 describe('Authentication Middleware', () => {
   let mockRequest: Partial<AuthenticatedRequest>;
@@ -643,6 +651,124 @@ describe('Authentication Middleware', () => {
           }),
           mockRequest
         );
+      });
+    });
+
+    describe('Redis permission cache', () => {
+      describe('on a cache miss', () => {
+        it('should query the database and populate the cache', async () => {
+          const payload: JWTPayload = { userId: 'user-123', email: 'test@example.com' };
+          const mockUser = {
+            userId: 'user-123',
+            email: 'test@example.com',
+            status: 'active',
+            Roles: [{ name: 'adopter', Permissions: [] }],
+            toJSON: vi.fn().mockReturnValue({
+              userId: 'user-123',
+              email: 'test@example.com',
+              status: 'active',
+              Roles: [{ name: 'adopter', Permissions: [] }],
+            }),
+          };
+
+          mockRequest.headers = { authorization: 'Bearer valid-token' };
+          (jwt.verify as vi.Mock).mockReturnValue(payload);
+          (getAuthCache as vi.Mock).mockResolvedValue(null);
+          (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+          await authenticateToken(
+            mockRequest as AuthenticatedRequest,
+            mockResponse as Response,
+            mockNext
+          );
+
+          expect(User.findByPk).toHaveBeenCalledWith('user-123', expect.anything());
+          expect(setAuthCache).toHaveBeenCalledWith('user-123', expect.anything());
+          expect(mockNext).toHaveBeenCalled();
+        });
+      });
+
+      describe('on a cache hit', () => {
+        it('should serve the user from cache and skip the database query', async () => {
+          const payload: JWTPayload = { userId: 'user-123', email: 'test@example.com' };
+          const cachedUser = {
+            userId: 'user-123',
+            email: 'test@example.com',
+            status: 'active',
+            Roles: [{ name: 'admin', Permissions: [] }],
+          };
+
+          mockRequest.headers = { authorization: 'Bearer valid-token' };
+          (jwt.verify as vi.Mock).mockReturnValue(payload);
+          (getAuthCache as vi.Mock).mockResolvedValue(cachedUser);
+
+          await authenticateToken(
+            mockRequest as AuthenticatedRequest,
+            mockResponse as Response,
+            mockNext
+          );
+
+          expect(User.findByPk).not.toHaveBeenCalled();
+          expect(mockRequest.user).toEqual(cachedUser);
+          expect(mockNext).toHaveBeenCalled();
+        });
+
+        it('should not write to the cache again on a cache hit', async () => {
+          const payload: JWTPayload = { userId: 'user-123', email: 'test@example.com' };
+          const cachedUser = {
+            userId: 'user-123',
+            email: 'test@example.com',
+            status: 'active',
+            Roles: [],
+          };
+
+          mockRequest.headers = { authorization: 'Bearer valid-token' };
+          (jwt.verify as vi.Mock).mockReturnValue(payload);
+          (getAuthCache as vi.Mock).mockResolvedValue(cachedUser);
+
+          await authenticateToken(
+            mockRequest as AuthenticatedRequest,
+            mockResponse as Response,
+            mockNext
+          );
+
+          expect(setAuthCache).not.toHaveBeenCalled();
+        });
+      });
+
+      describe('when Redis is unavailable', () => {
+        it('should fall through to the database when cache returns null', async () => {
+          const payload: JWTPayload = { userId: 'user-123', email: 'test@example.com' };
+          const mockUser = {
+            userId: 'user-123',
+            email: 'test@example.com',
+            status: 'active',
+            Roles: [],
+            toJSON: vi.fn().mockReturnValue({
+              userId: 'user-123',
+              email: 'test@example.com',
+              status: 'active',
+              Roles: [],
+            }),
+          };
+
+          mockRequest.headers = { authorization: 'Bearer valid-token' };
+          (jwt.verify as vi.Mock).mockReturnValue(payload);
+          // Simulate Redis down: getAuthCache returns null, setAuthCache is a no-op
+          (getAuthCache as vi.Mock).mockResolvedValue(null);
+          (setAuthCache as vi.Mock).mockResolvedValue(undefined);
+          (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+          await authenticateToken(
+            mockRequest as AuthenticatedRequest,
+            mockResponse as Response,
+            mockNext
+          );
+
+          expect(User.findByPk).toHaveBeenCalled();
+          expect(mockRequest.user).toBe(mockUser);
+          expect(mockNext).toHaveBeenCalled();
+        });
       });
     });
   });
