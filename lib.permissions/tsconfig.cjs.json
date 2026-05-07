@@ -1,13 +1,15 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "../tsconfig.cjs.base.json",
   "compilerOptions": {
-    "module": "CommonJS",
-    "moduleResolution": "node10",
-    "ignoreDeprecations": "5.0",
     "outDir": "./dist/cjs",
-    "declaration": false,
-    "declarationMap": false,
-    "sourceMap": false,
-    "incremental": false
-  }
+    "rootDir": "./src",
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "noEmit": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "src/test-utils"]
 }

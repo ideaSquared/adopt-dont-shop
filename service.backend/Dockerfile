@@ -1,10 +1,12 @@
 # syntax=docker/dockerfile:1.4
 # Enable BuildKit features: cache mounts, bind mounts, and advanced layer caching
 
+ARG NODE_VERSION=20.18.0
+
 # ============================================================================
 # BASE STAGE - Shared foundation for all stages
 # ============================================================================
-FROM node:24-alpine AS base
+FROM node:${NODE_VERSION}-alpine AS base
 
 # Install security updates and necessary packages
 # hadolint ignore=DL3018
@@ -175,7 +177,7 @@ RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
 # ============================================================================
 # PRODUCTION STAGE - Minimal image with only runtime dependencies
 # ============================================================================
-FROM node:24-alpine AS production
+FROM node:${NODE_VERSION}-alpine AS production
 
 # Install only runtime essentials + security updates
 # hadolint ignore=DL3018

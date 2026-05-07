@@ -36,7 +36,7 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^20.19.0",
     "date-fns": "^4.1.0"
   },
   "devDependencies": {

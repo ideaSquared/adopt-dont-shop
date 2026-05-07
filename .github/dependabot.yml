@@ -45,6 +45,9 @@ updates:
       turbo:
         patterns:
           - "turbo"
+      types-node:
+        patterns:
+          - "@types/node"
 
   # GitHub Actions
   - package-ecosystem: github-actions
