@@ -488,7 +488,13 @@ export class RescueService {
     rescueId: string,
     verifiedBy: string,
     notes?: string,
-    verificationSource: 'companies_house' | 'charity_commission' | 'manual' = 'manual'
+    verificationSource: 'companies_house' | 'charity_commission' | 'manual' = 'manual',
+    /**
+     * Operator intent verb recorded in the audit log. Defaults to `'verify'`.
+     * `bulkUpdateRescues` passes the caller's original action ('approve' or
+     * 'verify') so audit entries preserve the chosen verb — see ADS-378.
+     */
+    auditAction: 'verify' | 'approve' = 'verify'
   ): Promise<Rescue> {
     const startTime = Date.now();
 
@@ -517,10 +523,11 @@ export class RescueService {
         { transaction }
       );
 
-      // Log the action
+      // Log the action — `auditAction` lets bulk callers preserve their
+      // original verb ('approve' vs 'verify') rather than collapsing them.
       await AuditLogService.log({
         userId: verifiedBy,
-        action: 'verify',
+        action: auditAction,
         entity: 'rescue',
         entityId: rescueId,
         details: {
@@ -1454,7 +1461,11 @@ export class RescueService {
     for (const rescueId of rescueIds) {
       try {
         if (action === 'approve' || action === 'verify') {
-          await RescueService.verifyRescue(rescueId, performedBy, reason);
+          // Both actions perform identical state transitions, but operator
+          // intent must be preserved in the audit log. Pass the original
+          // action verb through so the audit entry records 'approve' vs
+          // 'verify' rather than collapsing them — see ADS-378.
+          await RescueService.verifyRescue(rescueId, performedBy, reason, 'manual', action);
         } else if (action === 'suspend') {
           await RescueService.suspendRescue(rescueId, performedBy, reason);
         }
