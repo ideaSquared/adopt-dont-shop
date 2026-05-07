@@ -24,7 +24,7 @@
     "adopt-dont-shop"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@adopt-dont-shop/lib.api": "*"
   },
