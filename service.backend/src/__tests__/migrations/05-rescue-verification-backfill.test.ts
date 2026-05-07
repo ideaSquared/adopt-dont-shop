@@ -78,7 +78,15 @@ const buildRescueRow = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-describe('migration 05 — ein/registration_number backfill (ADS-370)', () => {
+// The migration's backfill SQL is Postgres-specific (DO blocks, regex `~`,
+// `RAISE NOTICE`, `information_schema` lookups). The unit-test runner uses an
+// in-memory SQLite — the assertions are meaningless there because none of
+// those constructs exist in SQLite. Skip on non-postgres dialects so the
+// suite is a no-op locally and only runs in CI where Postgres is provisioned.
+const isPostgres = sequelize.getDialect() === 'postgres';
+const describeIfPostgres = isPostgres ? describe : describe.skip;
+
+describeIfPostgres('migration 05 — ein/registration_number backfill (ADS-370)', () => {
   beforeEach(async () => {
     await sequelize.sync({ force: true });
 
