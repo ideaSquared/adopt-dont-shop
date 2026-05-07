@@ -14,11 +14,7 @@ module.exports = {
   overrides: [
     {
       // Test files - more lenient
-      files: [
-        '**/*.test.{ts,tsx,js,jsx}',
-        '**/*.spec.{ts,tsx,js,jsx}',
-        '**/__tests__/**',
-      ],
+      files: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}', '**/__tests__/**'],
       rules: {
         'no-console': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
