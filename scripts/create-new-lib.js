@@ -72,11 +72,11 @@ function generatePackageJson(libName, libDescription, useLibApi = false, libType
       build: 'tsc',
       dev: 'tsc --watch',
       clean: 'rm -rf dist',
-      test: 'jest',
-      'test:watch': 'jest --watch',
-      'test:coverage': 'jest --coverage',
-      lint: isUtility ? 'eslint src --ext ts,tsx' : 'eslint src --ext ts',
-      'lint:fix': isUtility ? 'eslint src --ext ts,tsx --fix' : 'eslint src --ext ts --fix',
+      test: 'vitest run',
+      'test:watch': 'vitest',
+      'test:coverage': 'vitest run --coverage',
+      lint: 'eslint src',
+      'lint:fix': 'eslint src --fix',
       'type-check': 'tsc --noEmit',
       prepublishOnly: 'npm run clean && npm run build',
     },
@@ -89,7 +89,7 @@ function generatePackageJson(libName, libDescription, useLibApi = false, libType
     author: "Adopt Don't Shop Team",
     license: 'MIT',
     dependencies: {
-      '@types/node': '^20.0.0',
+      '@types/node': '^20.19.0',
       ...(useLibApi ? { '@adopt-dont-shop/lib.api': 'file:../lib.api' } : {}),
       ...(isUtility
         ? {
@@ -99,23 +99,23 @@ function generatePackageJson(libName, libDescription, useLibApi = false, libType
         : {}),
     },
     devDependencies: {
-      '@typescript-eslint/eslint-plugin': '^7.0.0',
-      '@typescript-eslint/parser': '^7.0.0',
-      '@types/jest': '^29.4.0',
+      '@adopt-dont-shop/eslint-config-base': '*',
+      '@typescript-eslint/eslint-plugin': '^8.59.1',
+      '@typescript-eslint/parser': '^8.59.1',
       ...(isUtility
         ? {
             '@types/react': '^18.2.0',
             '@types/styled-components': '^5.1.26',
           }
         : {}),
-      eslint: '^8.57.0',
+      eslint: '^9.0.0',
       'eslint-config-prettier': '^9.1.0',
       'eslint-plugin-prettier': '^5.1.3',
-      jest: '^29.4.0',
-      'jest-environment-jsdom': '^29.4.0',
       prettier: '^3.2.5',
-      'ts-jest': '^29.1.0',
       typescript: '^5.4.5',
+      'typescript-eslint': '^8.0.0',
+      vitest: '^4.0.8',
+      '@vitest/coverage-v8': '^4.0.8',
     },
     peerDependencies: {
       typescript: '^5.0.0',
@@ -189,79 +189,32 @@ function generateTsConfig(libType = 'service') {
 }
 
 /**
- * Generate Jest configuration
+ * Generate Vitest configuration
  */
-function generateJestConfig(useLibApi = false, libType = 'service') {
-  const isUtility = libType === 'utility';
+function generateVitestConfig(libName) {
+  return `import { defineConfig, mergeConfig } from 'vitest/config';
+import sharedConfig from '../vitest.shared.config';
 
-  const jestConfig = {
-    preset: 'ts-jest',
-    testEnvironment: 'jsdom',
-    roots: ['<rootDir>/src'],
-    testMatch: [
-      '**/__tests__/**/*.test.ts',
-      '**/?(*.)+(spec|test).ts',
-      ...(isUtility ? ['**/__tests__/**/*.test.tsx', '**/?(*.)+(spec|test).tsx'] : []),
-    ],
-    transform: {
-      '^.+\\.ts$': 'ts-jest',
-      ...(isUtility ? { '^.+\\.tsx$': 'ts-jest' } : {}),
+export default mergeConfig(
+  sharedConfig,
+  defineConfig({
+    test: {
+      name: 'lib.${libName}',
+      setupFiles: ['./src/test-utils/setup-tests.ts'],
     },
-    setupFilesAfterEnv: ['<rootDir>/src/test-utils/setup-tests.ts'],
-    collectCoverageFrom: [
-      'src/**/*.ts',
-      '!src/**/*.d.ts',
-      '!src/**/*.test.ts',
-      '!src/**/*.spec.ts',
-      '!src/test-utils/**',
-    ],
-    coverageDirectory: 'coverage',
-    coverageReporters: ['text', 'lcov', 'html'],
-    moduleFileExtensions: ['ts', 'js', 'json'],
-    testTimeout: 10000,
-  };
-
-  // Add moduleNameMapper for lib.api integration
-  if (useLibApi) {
-    jestConfig.moduleNameMapper = {
-      '^lib\\.api$': '<rootDir>/../lib.api/src',
-    };
-  }
-
-  return `module.exports = ${JSON.stringify(jestConfig, null, 2)};`;
+  })
+);
+`;
 }
 
 /**
- * Generate ESLint configuration
+ * Generate ESLint flat config that delegates to the shared base config
  */
 function generateEslintConfig() {
-  return JSON.stringify(
-    {
-      parser: '@typescript-eslint/parser',
-      parserOptions: {
-        ecmaVersion: 2020,
-        sourceType: 'module',
-        project: './tsconfig.json',
-      },
-      plugins: ['@typescript-eslint', 'prettier'],
-      extends: ['eslint:recommended', '@typescript-eslint/recommended', 'prettier'],
-      env: {
-        node: true,
-        es2020: true,
-        jest: true,
-      },
-      rules: {
-        'prettier/prettier': 'error',
-        '@typescript-eslint/explicit-function-return-type': 'warn',
-        '@typescript-eslint/no-explicit-any': 'warn',
-        '@typescript-eslint/no-unused-vars': 'error',
-        '@typescript-eslint/prefer-const': 'error',
-      },
-      ignorePatterns: ['dist/', 'node_modules/', '*.js'],
-    },
-    null,
-    2
-  );
+  return `import baseConfig from '@adopt-dont-shop/eslint-config-base';
+
+export default baseConfig;
+`;
 }
 
 /**
@@ -618,28 +571,28 @@ function generateTestFile(libName, useLibApi = false) {
 import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib.api', () => ({
+vi.mock('@adopt-dont-shop/lib.api', () => ({
   apiService: {
-    post: jest.fn(),
-    get: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-    fetchWithAuth: jest.fn(),
-    setToken: jest.fn(),
-    clearToken: jest.fn(),
-    isAuthenticated: jest.fn(),
-    updateConfig: jest.fn(),
+    post: vi.fn(),
+    get: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    fetchWithAuth: vi.fn(),
+    setToken: vi.fn(),
+    clearToken: vi.fn(),
+    isAuthenticated: vi.fn(),
+    updateConfig: vi.fn(),
   },
-  ApiService: jest.fn().mockImplementation(() => ({
-    post: jest.fn(),
-    get: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-    fetchWithAuth: jest.fn(),
-    setToken: jest.fn(),
-    clearToken: jest.fn(),
-    isAuthenticated: jest.fn(),
-    updateConfig: jest.fn(),
+  ApiService: vi.fn().mockImplementation(() => ({
+    post: vi.fn(),
+    get: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    fetchWithAuth: vi.fn(),
+    setToken: vi.fn(),
+    clearToken: vi.fn(),
+    isAuthenticated: vi.fn(),
+    updateConfig: vi.fn(),
   })),
 }));
 
@@ -649,12 +602,12 @@ describe('${serviceName}', () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
-    
+
     service = new ${serviceName}({
       debug: false,
     });
-    
-    jest.clearAllMocks();
+
+    vi.clearAllMocks();
   });
 
   describe('initialization', () => {
@@ -674,7 +627,7 @@ describe('${serviceName}', () => {
     it('should call API service get method', async () => {
       const mockResponse = { id: '123', name: 'Test' };
       const mockApiService = service['apiService'];
-      mockApiService.get = jest.fn().mockResolvedValue(mockResponse);
+      mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
 
       const result = await service.exampleGet('123');
 
@@ -685,7 +638,7 @@ describe('${serviceName}', () => {
     it('should handle API errors', async () => {
       const error = new Error('API Error');
       const mockApiService = service['apiService'];
-      mockApiService.get = jest.fn().mockRejectedValue(error);
+      mockApiService.get = vi.fn().mockRejectedValue(error);
 
       await expect(service.exampleGet('123')).rejects.toThrow('API Error');
     });
@@ -696,7 +649,7 @@ describe('${serviceName}', () => {
       const mockData = { name: 'Test' };
       const mockResponse = { id: '123', ...mockData };
       const mockApiService = service['apiService'];
-      mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
+      mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
       const result = await service.exampleCreate(mockData);
 
@@ -708,7 +661,7 @@ describe('${serviceName}', () => {
   describe('healthCheck', () => {
     it('should return true when API is healthy', async () => {
       const mockApiService = service['apiService'];
-      mockApiService.get = jest.fn().mockResolvedValue({});
+      mockApiService.get = vi.fn().mockResolvedValue({});
 
       const result = await service.healthCheck();
 
@@ -718,7 +671,7 @@ describe('${serviceName}', () => {
 
     it('should return false when API fails', async () => {
       const mockApiService = service['apiService'];
-      mockApiService.get = jest.fn().mockRejectedValue(new Error('API Error'));
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('API Error'));
 
       const result = await service.healthCheck();
 
@@ -738,7 +691,7 @@ describe('${serviceName}', () => {
   beforeEach(() => {
     // Clear localStorage before each test
     localStorage.clear();
-    
+
     service = new ${serviceName}({
       debug: false,
     });
@@ -760,7 +713,7 @@ describe('${serviceName}', () => {
   describe('exampleMethod', () => {
     it('should process data successfully', async () => {
       const testData = { test: 'data' };
-      
+
       const result = await service.exampleMethod(testData);
 
       expect(result.success).toBe(true);
@@ -771,10 +724,10 @@ describe('${serviceName}', () => {
     it('should handle errors gracefully', async () => {
       // Mock an error condition
       const originalMethod = service.exampleMethod;
-      service.exampleMethod = jest.fn().mockRejectedValue(new Error('Test error'));
+      service.exampleMethod = vi.fn().mockRejectedValue(new Error('Test error'));
 
       await expect(service.exampleMethod({})).rejects.toThrow('Test error');
-      
+
       // Restore original method
       service.exampleMethod = originalMethod;
     });
@@ -797,34 +750,35 @@ describe('${serviceName}', () => {
  * Generate test setup file
  */
 function generateTestSetup() {
-  return `// Test setup file for Jest
+  return `// Test setup file for Vitest
 // This file is automatically loaded before each test file
+import { afterEach, vi, type Mock } from 'vitest';
 
 // Type declarations for global variables
 declare global {
-  var mockFetch: jest.Mock;
+  var mockFetch: Mock;
   var mockLocalStorage: {
-    getItem: jest.Mock;
-    setItem: jest.Mock;
-    removeItem: jest.Mock;
-    clear: jest.Mock;
+    getItem: Mock;
+    setItem: Mock;
+    removeItem: Mock;
+    clear: Mock;
     length: number;
-    key: jest.Mock;
+    key: Mock;
   };
 }
 
 // Mock fetch globally
-const mockFetch = jest.fn();
+const mockFetch = vi.fn();
 (global as any).fetch = mockFetch;
 
 // Mock localStorage
 const mockLocalStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
   length: 0,
-  key: jest.fn(),
+  key: vi.fn(),
 };
 
 // Mock global localStorage (for Node.js environment)
@@ -844,11 +798,11 @@ if (typeof window !== 'undefined') {
 // Mock console methods to reduce noise in tests (optional)
 // global.console = {
 //   ...console,
-//   log: jest.fn(),
-//   debug: jest.fn(),
-//   info: jest.fn(),
-//   warn: jest.fn(),
-//   error: jest.fn(),
+//   log: vi.fn(),
+//   debug: vi.fn(),
+//   info: vi.fn(),
+//   warn: vi.fn(),
+//   error: vi.fn(),
 // };
 
 // Global test utilities available in all tests
@@ -857,7 +811,7 @@ if (typeof window !== 'undefined') {
 
 // Clean up after each test
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockFetch.mockClear();
   mockLocalStorage.getItem.mockClear();
   mockLocalStorage.setItem.mockClear();
@@ -1170,10 +1124,10 @@ lib.${libName}/
 ├── dist/                             # Built output (generated)
 ├── docker-compose.lib.yml           # Standalone development
 ├── Dockerfile                       # Standalone container build
-├── jest.config.js                   # Jest test configuration
+├── vitest.config.ts                 # Vitest test configuration
 ├── package.json                     # Package configuration
 ├── tsconfig.json                    # TypeScript configuration
-├── .eslintrc.json                   # ESLint configuration
+├── eslint.config.js                 # ESLint flat configuration
 ├── .prettierrc.json                 # Prettier configuration
 └── README.md                        # This file
 \`\`\`
@@ -1587,8 +1541,8 @@ async function createNewLibrary() {
       generatePackageJson(libName, libDescription, useLibApi, libType)
     );
     writeFile(path.join(libDir, 'tsconfig.json'), generateTsConfig(libType));
-    writeFile(path.join(libDir, 'jest.config.cjs'), generateJestConfig(useLibApi, libType));
-    writeFile(path.join(libDir, '.eslintrc.json'), generateEslintConfig());
+    writeFile(path.join(libDir, 'vitest.config.ts'), generateVitestConfig(libName));
+    writeFile(path.join(libDir, 'eslint.config.js'), generateEslintConfig());
     writeFile(path.join(libDir, '.prettierrc.json'), generatePrettierConfig());
     writeFile(path.join(libDir, 'src', 'index.ts'), generateIndexFile(libName, libType));
 
