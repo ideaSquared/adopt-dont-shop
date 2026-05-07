@@ -215,22 +215,54 @@ export class PetController {
       // Import StaffMember model to get rescue ID
       const StaffMember = (await import('../models/StaffMember')).default;
 
-      // Find the user's rescue association
-      const staffMember = await StaffMember.findOne({
+      // ADS-376: a user can be verified staff at multiple rescues. Listing
+      // all verified rows lets us (a) keep the single-rescue UX implicit
+      // and (b) require an explicit selection when ambiguous. Explicit
+      // rescueId travels via the query string because `fieldWriteGuard`
+      // marks `pets.rescueId` as READ-only for rescue_staff and would
+      // reject it on the body.
+      const verifiedStaff = await StaffMember.findAll({
         where: {
           userId: user.userId,
           isVerified: true,
         },
+        attributes: ['rescueId'],
       });
 
-      if (!staffMember) {
+      if (verifiedStaff.length === 0) {
         return res.status(403).json({
           success: false,
           message: 'User is not associated with a rescue organization',
         });
       }
 
-      logger.info('Creating pet for rescue', { rescueId: staffMember.rescueId });
+      const requestedRescueId =
+        typeof req.query.rescueId === 'string' && req.query.rescueId.trim() !== ''
+          ? req.query.rescueId
+          : null;
+
+      let resolvedRescueId: string;
+      if (requestedRescueId) {
+        const match = verifiedStaff.find(s => s.rescueId === requestedRescueId);
+        if (!match) {
+          return res.status(403).json({
+            success: false,
+            message: 'You are not verified staff at the requested rescue',
+          });
+        }
+        resolvedRescueId = match.rescueId;
+      } else if (verifiedStaff.length === 1) {
+        resolvedRescueId = verifiedStaff[0].rescueId;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message:
+            'You are verified staff at multiple rescues. Specify ?rescueId=<id> to indicate which rescue this pet belongs to.',
+          rescueIds: verifiedStaff.map(s => s.rescueId),
+        });
+      }
+
+      logger.info('Creating pet for rescue', { rescueId: resolvedRescueId });
 
       // Sanitize request body - convert empty strings to null for numeric fields
       const sanitizedBody = { ...req.body };
@@ -247,10 +279,10 @@ export class PetController {
         }
       });
 
-      // Use the rescue ID from the staff member association
+      // Use the rescue ID resolved from the staff member association(s)
       const pet = await this.petService.createPet(
         sanitizedBody,
-        staffMember.rescueId,
+        resolvedRescueId,
         req.user!.userId
       );
 

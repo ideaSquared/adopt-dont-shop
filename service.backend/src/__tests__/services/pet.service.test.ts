@@ -444,6 +444,36 @@ describe('PetService', () => {
       expect(result).toBeDefined();
       expect(result.name).toBe('Updated Name');
     });
+
+    // ADS-367: previously the snake_case → camelCase mapping was a
+    // tautological no-op (identical key/value strings) and snake_case
+    // input was silently dropped before reaching the DB write whitelist.
+    it('writes through snake_case keys for snake-cased clients [ADS-367]', async () => {
+      const snakeUpdate = {
+        short_description: 'Snake case wrote through',
+        age_years: 7,
+        good_with_children: true,
+        spay_neuter_status: SpayNeuterStatus.NEUTERED,
+      } as unknown as PetUpdateData;
+
+      const result = await PetService.updatePet(petId, snakeUpdate, testCallerId);
+
+      expect(result.shortDescription).toBe('Snake case wrote through');
+      expect(result.ageYears).toBe(7);
+      expect(result.goodWithChildren).toBe(true);
+      expect(result.spayNeuterStatus).toBe(SpayNeuterStatus.NEUTERED);
+    });
+
+    it('prefers the camelCase value when both casings are sent [ADS-367]', async () => {
+      const mixed = {
+        shortDescription: 'camel wins',
+        short_description: 'should be ignored',
+      } as unknown as PetUpdateData;
+
+      const result = await PetService.updatePet(petId, mixed, testCallerId);
+
+      expect(result.shortDescription).toBe('camel wins');
+    });
   });
 
   describe('updatePetStatus', () => {

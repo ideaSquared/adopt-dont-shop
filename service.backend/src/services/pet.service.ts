@@ -585,51 +585,24 @@ export class PetService {
       // Store original data for audit
       const originalData = pet.toJSON();
 
-      // Normalize input: the API accepts both camelCase and snake_case field names.
-      // The frontend service sends snake_case, so we normalize to camelCase first,
-      // then convert to snake_case for the database.
-      const snakeToCamelMapping: Record<string, string> = {
-        shortDescription: 'shortDescription',
-        longDescription: 'longDescription',
-        ageYears: 'ageYears',
-        ageMonths: 'ageMonths',
-        ageGroup: 'ageGroup',
-        secondaryBreedId: 'secondaryBreedId',
-        weightKg: 'weightKg',
-        microchipId: 'microchipId',
-        priorityListing: 'priorityListing',
-        adoptionFeeMinor: 'adoptionFeeMinor',
-        adoptionFeeCurrency: 'adoptionFeeCurrency',
-        specialNeeds: 'specialNeeds',
-        specialNeedsDescription: 'specialNeedsDescription',
-        houseTrained: 'houseTrained',
-        goodWithChildren: 'goodWithChildren',
-        goodWithDogs: 'goodWithDogs',
-        goodWithCats: 'goodWithCats',
-        goodWithSmallAnimals: 'goodWithSmallAnimals',
-        energyLevel: 'energyLevel',
-        exerciseNeeds: 'exerciseNeeds',
-        groomingNeeds: 'groomingNeeds',
-        trainingNotes: 'trainingNotes',
-        medicalNotes: 'medicalNotes',
-        behavioralNotes: 'behavioralNotes',
-        surrenderReason: 'surrenderReason',
-        intakeDate: 'intakeDate',
-        vaccinationStatus: 'vaccinationStatus',
-        vaccinationDate: 'vaccinationDate',
-        spayNeuterStatus: 'spayNeuterStatus',
-        spayNeuterDate: 'spayNeuterDate',
-        lastVetCheckup: 'lastVetCheckup',
-      };
-
+      // Normalize input: the API contract is camelCase, but defend against
+      // snake_case slipping in (e.g. integration callers that bypass the
+      // Zod validator). Mirrors the regex `fieldWriteGuard` uses for
+      // permission lookups so the two layers agree on key shape.
+      // ADS-367: the previous Record<string,string> map had identical key
+      // and value strings, so the conversion loop was a tautological no-op
+      // and snake_case inputs were silently dropped.
       const rawData = updateData as Record<string, unknown>;
       const normalizedData: Record<string, unknown> = { ...rawData };
-
-      for (const [snakeKey, camelKey] of Object.entries(snakeToCamelMapping)) {
-        if (rawData[snakeKey] !== undefined && rawData[camelKey] === undefined) {
-          normalizedData[camelKey] = rawData[snakeKey];
-          delete normalizedData[snakeKey];
+      for (const key of Object.keys(rawData)) {
+        if (!key.includes('_')) {
+          continue;
         }
+        const camelKey = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+        if (rawData[camelKey] === undefined) {
+          normalizedData[camelKey] = rawData[key];
+        }
+        delete normalizedData[key];
       }
 
       // Build update data using camelCase attribute names (Sequelize maps to DB columns via field:)
