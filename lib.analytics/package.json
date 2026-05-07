@@ -47,8 +47,12 @@
     "typescript": "^5.0.0"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "react-query": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "react-query": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",

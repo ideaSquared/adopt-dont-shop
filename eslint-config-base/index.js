@@ -9,11 +9,7 @@ module.exports = {
     es2022: true,
     jest: true,
   },
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    'prettier',
-  ],
+  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
   plugins: ['@typescript-eslint', 'prettier'],
   rules: {
     // Prettier integration
@@ -41,8 +37,8 @@ module.exports = {
     'no-debugger': 'warn',
     'prefer-const': 'error',
     'no-var': 'error',
-    'eqeqeq': ['error', 'always'],
-    'curly': ['error', 'all'],
+    eqeqeq: ['error', 'always'],
+    curly: ['error', 'all'],
     'no-duplicate-imports': 'error',
     'no-unused-expressions': 'error',
     'no-eval': 'error',
@@ -51,11 +47,7 @@ module.exports = {
   overrides: [
     {
       // Test files - more lenient
-      files: [
-        '**/*.test.{ts,tsx,js,jsx}',
-        '**/*.spec.{ts,tsx,js,jsx}',
-        '**/__tests__/**',
-      ],
+      files: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}', '**/__tests__/**'],
       rules: {
         'no-console': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
