@@ -53,6 +53,17 @@ describe('Refresh token rotation', () => {
       transaction: vi.fn().mockResolvedValue(mockTransaction),
     };
 
+    // ADS-169: refreshToken now wraps revoke/rotate writes in
+    // RefreshToken.sequelize.transaction(async cb => ...). Provide a
+    // pass-through so the callback runs and the inner model calls execute.
+    (MockedRefreshToken as unknown as { sequelize: unknown }).sequelize = {
+      transaction: vi.fn().mockImplementation(async (cb: (t: unknown) => Promise<unknown>) =>
+        cb({
+          /* sentinel transaction */
+        })
+      ),
+    };
+
     vi.spyOn(AuthService as unknown, 'generateTokens').mockResolvedValue({
       token: 'new-access-token',
       refreshToken: 'new-refresh-token',
@@ -145,8 +156,11 @@ describe('Refresh token rotation', () => {
 
       await AuthService.refreshToken('valid.refresh.jwt');
 
+      // ADS-169: rotation happens inside a sequelize transaction, so the
+      // update is called with both the data and a transaction option.
       expect(storedToken.update).toHaveBeenCalledWith(
-        expect.objectContaining({ is_revoked: true })
+        expect.objectContaining({ is_revoked: true }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
@@ -160,10 +174,13 @@ describe('Refresh token rotation', () => {
 
       await AuthService.refreshToken('valid.refresh.jwt');
 
+      // ADS-169: storeRefreshToken now also receives the rotation transaction
+      // so it participates in the same atomic write.
       expect(storeRefreshTokenSpy).toHaveBeenCalledWith(
         'user-123',
         expect.any(String),
-        'family-abc'
+        'family-abc',
+        expect.anything()
       );
     });
 
@@ -189,7 +206,11 @@ describe('Refresh token rotation', () => {
         'Invalid refresh token'
       );
 
-      expect(storedToken.update).toHaveBeenCalledWith({ is_revoked: true });
+      // ADS-169: storedToken.update now runs inside a sequelize transaction
+      expect(storedToken.update).toHaveBeenCalledWith(
+        { is_revoked: true },
+        expect.objectContaining({ transaction: expect.anything() })
+      );
     });
   });
 
@@ -215,7 +236,10 @@ describe('Refresh token rotation', () => {
 
       expect(MockedRefreshToken.update).toHaveBeenCalledWith(
         { is_revoked: true },
-        { where: { family_id: 'family-abc', user_id: 'user-123' } }
+        expect.objectContaining({
+          where: { family_id: 'family-abc', user_id: 'user-123' },
+          transaction: expect.anything(),
+        })
       );
     });
 
