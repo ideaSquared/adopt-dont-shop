@@ -76,20 +76,9 @@ RUN --mount=type=cache,target=/root/.npm \
 WORKDIR /app/service.backend
 
 # Install all dependencies (including dev dependencies) with cache mount
+# npm workspaces will symlink lib.types and lib.validation from their COPY'd paths above
 RUN --mount=type=cache,target=/root/.npm \
     HUSKY=0 npm ci --prefer-offline
-
-# Copy built lib.types and lib.validation directly into node_modules for
-# reliable module resolution. Avoids symlink issues with partial npm
-# workspace installations in Docker.
-RUN rm -rf node_modules/@adopt-dont-shop/lib.types && \
-    mkdir -p node_modules/@adopt-dont-shop/lib.types && \
-    cp /app/lib.types/package.json node_modules/@adopt-dont-shop/lib.types/ && \
-    cp -r /app/lib.types/dist node_modules/@adopt-dont-shop/lib.types/ && \
-    rm -rf node_modules/@adopt-dont-shop/lib.validation && \
-    mkdir -p node_modules/@adopt-dont-shop/lib.validation && \
-    cp /app/lib.validation/package.json node_modules/@adopt-dont-shop/lib.validation/ && \
-    cp -r /app/lib.validation/dist node_modules/@adopt-dont-shop/lib.validation/
 
 # Create non-root user and transfer ownership of writable paths.
 # uploads/ is created at runtime by file-upload.service.ts, so its parent

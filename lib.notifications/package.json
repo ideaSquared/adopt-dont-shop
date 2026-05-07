@@ -36,7 +36,7 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@adopt-dont-shop/lib.api": "file:../lib.api",
+    "@adopt-dont-shop/lib.api": "*",
     "@types/node": "^20.0.0"
   },
   "devDependencies": {
