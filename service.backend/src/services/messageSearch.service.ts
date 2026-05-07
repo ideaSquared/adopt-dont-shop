@@ -302,30 +302,33 @@ export class MessageSearchService {
 
   /**
    * Get popular search terms from recent messages
+   *
+   * ADS-399: the chat-scoping clause is a *static* SQL string; the userId
+   * value is bound via the parameterised `:userId` placeholder. The clause
+   * is gated by `(:userId::uuid IS NULL OR ...)` so that the same compiled
+   * statement works whether or not a user is supplied — we never
+   * interpolate user-controlled fragments into the query text.
    */
   private static async getPopularTerms(userId?: string): Promise<SearchSuggestion[]> {
     try {
-      const chatFilter = userId
-        ? `
-        AND m.chat_id IN (
-          SELECT DISTINCT cp.chat_id 
-          FROM chat_participants cp 
-          WHERE cp.participant_id = :userId
-        )
-      `
-        : '';
-
       const query = `
-        SELECT 
+        SELECT
           word,
           COUNT(*) as count
         FROM (
-          SELECT 
+          SELECT
             unnest(string_to_array(lower(regexp_replace(content, '[^a-zA-Z0-9\\s]', '', 'g')), ' ')) as word
           FROM messages m
           WHERE m.created_at > NOW() - INTERVAL '30 days'
             AND char_length(content) > 0
-            ${chatFilter}
+            AND (
+              CAST(:userId AS uuid) IS NULL
+              OR m.chat_id IN (
+                SELECT DISTINCT cp.chat_id
+                FROM chat_participants cp
+                WHERE cp.participant_id = CAST(:userId AS uuid)
+              )
+            )
         ) words
         WHERE char_length(word) > 3
         GROUP BY word
@@ -336,7 +339,7 @@ export class MessageSearchService {
 
       const results = (await sequelize.query(query, {
         type: QueryTypes.SELECT,
-        replacements: { userId },
+        replacements: { userId: userId ?? null },
       })) as Array<{ word: string; count: number }>;
 
       return results.map(result => ({
@@ -362,16 +365,8 @@ export class MessageSearchService {
     }
 
     try {
-      const chatFilter = userId
-        ? `
-        AND m.chat_id IN (
-          SELECT DISTINCT cp.chat_id 
-          FROM chat_participants cp 
-          WHERE cp.participant_id = :userId
-        )
-      `
-        : '';
-
+      // ADS-399: chat-scoping is gated by `(:userId IS NULL OR ...)` so the
+      // SQL text is fully static; userId/queryPattern are bound parameters.
       const suggestionQuery = `
         SELECT DISTINCT
           regexp_split_to_table(lower(content), '\\s+') as word
@@ -379,7 +374,14 @@ export class MessageSearchService {
         WHERE lower(content) LIKE :queryPattern
           AND char_length(content) > 0
           AND created_at > NOW() - INTERVAL '7 days'
-          ${chatFilter}
+          AND (
+            CAST(:userId AS uuid) IS NULL
+            OR m.chat_id IN (
+              SELECT DISTINCT cp.chat_id
+              FROM chat_participants cp
+              WHERE cp.participant_id = CAST(:userId AS uuid)
+            )
+          )
         LIMIT 20;
       `;
 
@@ -387,7 +389,7 @@ export class MessageSearchService {
         type: QueryTypes.SELECT,
         replacements: {
           queryPattern: `%${query.toLowerCase()}%`,
-          userId,
+          userId: userId ?? null,
         },
       })) as Array<{ word: string }>;
 
