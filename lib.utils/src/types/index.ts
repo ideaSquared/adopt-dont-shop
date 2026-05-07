@@ -154,22 +154,5 @@ export interface IdGenerationOptions {
   charset?: 'alphanumeric' | 'alphabetic' | 'numeric' | 'hex';
 }
 
-/**
- * Base response interface
- */
-export interface BaseResponse<T = unknown> {
-  data: T;
-  success: boolean;
-  message?: string;
-  timestamp: string;
-}
-
-/**
- * Error response interface
- */
-export interface ErrorResponse {
-  error: string;
-  code?: string;
-  details?: Record<string, unknown>;
-  timestamp: string;
-}
+// ADS-262: response envelopes are owned by @adopt-dont-shop/lib.types.
+export type { BaseResponse, ErrorResponse, PaginatedResponse } from '@adopt-dont-shop/lib.types';

@@ -158,11 +158,16 @@ export interface PermissionAuditLog {
 
 /**
  * Base response interface
+ *
+ * Canonical envelope shape for `data`-bearing API responses. Re-exported
+ * from each `lib.*` that previously redeclared its own copy
+ * (ADS-262) — keep this file as the single source of truth.
  */
-export interface BaseResponse<T> {
+export interface BaseResponse<T = unknown> {
   data: T;
   success: boolean;
   message?: string;
+  timestamp: string;
 }
 
 /**

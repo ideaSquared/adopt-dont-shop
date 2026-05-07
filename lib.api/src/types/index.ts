@@ -154,25 +154,12 @@ export interface ApiServiceOptions {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Base response interface
- */
-export interface BaseResponse<T = unknown> {
-  data: T;
-  success: boolean;
-  message?: string;
-  timestamp: string;
-}
-
-/**
- * Error response interface
- */
-export interface ErrorResponse {
-  error: string;
-  code?: string;
-  timestamp: string;
-  details?: unknown;
-}
+// ADS-262: response envelopes are owned by @adopt-dont-shop/lib.types. Note
+// that the wire-format `PaginatedResponse` above (with optional `meta`/`pagination`
+// from the raw backend response) is intentionally NOT consolidated — it
+// describes a different, looser shape than `lib.types`'s envelope-extending
+// `PaginatedResponse<T> extends BaseResponse<T[]>`.
+export type { BaseResponse, ErrorResponse } from '@adopt-dont-shop/lib.types';
 
 // Re-export interceptor and error types
 export * from '../interceptors';
