@@ -11,7 +11,6 @@ import { RescueService } from '@adopt-dont-shop/lib.rescue';
 import { ChatService } from '@adopt-dont-shop/lib.chat';
 import { NotificationsService } from '@adopt-dont-shop/lib.notifications';
 import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
-import { ValidationService } from '@adopt-dont-shop/lib.validation';
 import { InvitationsService } from '@adopt-dont-shop/lib.invitations';
 
 // Configure the global apiService FIRST
@@ -85,7 +84,6 @@ export const chatService = new ChatService({
 
 export const notificationsService = new NotificationsService(serviceConfig);
 export const permissionsService = new PermissionsService(serviceConfig, globalApiService);
-export const validationService = new ValidationService(serviceConfig);
 export const invitationService = new InvitationsService(globalApiService, serviceConfig);
 
 // Export the configured API service for direct use

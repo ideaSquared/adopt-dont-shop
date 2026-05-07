@@ -8,7 +8,7 @@ Canonical Zod schemas for the User, Pet, Rescue, and Application domains. One so
 
 The schema definitions deliberately track the column-level validators in `service.backend/src/models/*.ts` — drift between the two is what this library exists to eliminate.
 
-> **Status**: schemas are live for the four domains above. The `ValidationService` class in this package is still a placeholder (`exampleMethod`, `healthCheck`) and isn't relied on by anything; treat the schema exports as the supported surface.
+> **Status**: schemas are live for the four domains above. New schemas land here per-feature; there's no runtime service surface — all exports are pure Zod schemas and inferred types.
 
 Consumed as a workspace dependency:
 
