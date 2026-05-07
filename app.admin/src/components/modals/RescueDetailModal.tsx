@@ -340,12 +340,12 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
                         <div className={styles.infoValue}>{rescue.city}</div>
                       </div>
                       <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>State/County</div>
-                        <div className={styles.infoValue}>{rescue.state}</div>
+                        <div className={styles.infoLabel}>County</div>
+                        <div className={styles.infoValue}>{rescue.county || 'N/A'}</div>
                       </div>
                       <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Postal Code</div>
-                        <div className={styles.infoValue}>{rescue.zipCode}</div>
+                        <div className={styles.infoLabel}>Postcode</div>
+                        <div className={styles.infoValue}>{rescue.postcode}</div>
                       </div>
                     </div>
                   </div>

@@ -6,7 +6,6 @@ import {
   PaginatedResponse,
   Pet,
   RescueServiceConfig,
-  RescueLocation,
   AdoptionPolicy,
 } from '../types';
 
@@ -26,8 +25,8 @@ const transformRescueFromAPI = (rescue: RescueAPIResponse): Rescue => {
     phone: rescue.phone,
     address: rescue.address,
     city: rescue.city,
-    state: rescue.state,
-    zipCode: rescue.zip_code || rescue.zipCode || '',
+    county: rescue.county,
+    postcode: rescue.postcode,
     country: rescue.country,
     website: rescue.website,
     description: rescue.description,
@@ -60,10 +59,10 @@ const transformRescueFromAPI = (rescue: RescueAPIResponse): Rescue => {
     location: {
       address: rescue.address,
       city: rescue.city,
-      state: rescue.state,
-      zipCode: rescue.zip_code || rescue.zipCode || '',
+      county: rescue.county,
+      postcode: rescue.postcode,
       country: rescue.country,
-    } as RescueLocation,
+    },
     type:
       rescue.type ||
       (rescue.companies_house_number ||

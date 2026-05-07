@@ -132,7 +132,8 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           <div className='meta-item'>
             <MdLocationOn className='icon' />
             <span>
-              {rescue.city}, {rescue.state}
+              {rescue.city}
+              {rescue.county ? `, ${rescue.county}` : ''}
             </span>
           </div>
           <div className='meta-item'>
@@ -174,8 +175,9 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
             <p>{rescue.description}</p>
           ) : (
             <p>
-              {rescue.name} is a {formatRescueType(rescue).toLowerCase()} based in {rescue.city},{' '}
-              {rescue.state}. They are dedicated to helping pets find loving homes.
+              {rescue.name} is a {formatRescueType(rescue).toLowerCase()} based in {rescue.city}
+              {rescue.county ? `, ${rescue.county}` : ''}. They are dedicated to helping pets find
+              loving homes.
             </p>
           )}
 
@@ -249,9 +251,10 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
               <div className='label'>Location</div>
               <div className='value'>
                 {rescue.address && `${rescue.address}, `}
-                {rescue.city}, {rescue.state}
-                {rescue.zipCode && ` ${rescue.zipCode}`}
-                {rescue.country !== 'US' && `, ${rescue.country}`}
+                {rescue.city}
+                {rescue.county ? `, ${rescue.county}` : ''}
+                {rescue.postcode && ` ${rescue.postcode}`}
+                {rescue.country !== 'GB' && `, ${rescue.country}`}
               </div>
             </div>
           </div>

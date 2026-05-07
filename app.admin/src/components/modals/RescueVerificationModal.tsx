@@ -115,7 +115,8 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
             <div className={styles.infoBox}>
               <div className={styles.infoLabel}>Location</div>
               <div className={styles.infoValue}>
-                {rescue.city}, {rescue.state}
+                {rescue.city}
+                {rescue.county ? `, ${rescue.county}` : ''}
               </div>
             </div>
 

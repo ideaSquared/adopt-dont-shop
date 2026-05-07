@@ -111,16 +111,22 @@ const makeRescue = (overrides: Partial<AdminRescue> = {}): AdminRescue => ({
   email: 'contact@happypaws.org',
   phone: '555-0100',
   address: '123 Rescue Lane',
-  city: 'San Francisco',
-  state: 'CA',
-  zipCode: '94102',
-  country: 'US',
+  city: 'London',
+  county: 'Greater London',
+  postcode: 'SW1A 1AA',
+  country: 'GB',
   status: 'pending',
   verified: false,
   isDeleted: false,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
-  location: { city: 'San Francisco', state: 'CA', country: 'US' },
+  location: {
+    address: '123 Rescue Lane',
+    city: 'London',
+    county: 'Greater London',
+    postcode: 'SW1A 1AA',
+    country: 'GB',
+  },
   type: 'nonprofit',
   activeListings: 5,
   staffCount: 3,
@@ -243,8 +249,8 @@ describe('Rescue Management page', () => {
     it('renders rescue locations', async () => {
       renderWithProviders(<Rescues />);
       await waitFor(() => {
-        expect(screen.getByText('San Francisco, CA')).toBeInTheDocument();
-        expect(screen.getByText('Los Angeles, CA')).toBeInTheDocument();
+        expect(screen.getByText('London, Greater London')).toBeInTheDocument();
+        expect(screen.getByText('Los Angeles, Greater London')).toBeInTheDocument();
       });
     });
 
