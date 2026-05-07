@@ -87,12 +87,19 @@ export type RescueWithStatistics = ReturnType<Rescue['toJSON']> & {
   statistics: RescueStatsResponse;
 };
 
+// ADS-373: `searchRescues` maps each row through `toJSON()` before
+// returning, so the array contains plain objects — Sequelize-instance
+// methods (`.update()`, association accessors) are not present.
+// Mirrors the pattern already used by `getRescueById` and
+// `RescueWithStatistics`.
+export type RescuePlain = ReturnType<Rescue['toJSON']>;
+
 export class RescueService {
   /**
    * Search and filter rescues with pagination
    */
   static async searchRescues(options: RescueSearchOptions = {}): Promise<{
-    rescues: Rescue[];
+    rescues: RescuePlain[];
     pagination: {
       page: number;
       limit: number;
