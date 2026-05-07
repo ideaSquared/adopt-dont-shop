@@ -1292,14 +1292,22 @@ export class PetService {
                 await this.updatePetStatus(petId, data as unknown as PetStatusUpdate, updatedBy);
               }
               break;
-            case 'archive':
+            case 'archive': {
+              // ADS-372: per-iteration ownership check defends against TOCTOU
+              // (a pet moved to a different rescue between pre-flight and the
+              // update) and prevents future bulk operation types from
+              // accidentally bypassing the pre-flight by forgetting it.
+              await PetService.assertCallerOwnsPet(petId, updatedBy);
               await Pet.update({ archived: true }, { where: { petId } });
               break;
-            case 'feature':
+            }
+            case 'feature': {
               if (data && typeof data.featured === 'boolean') {
+                await PetService.assertCallerOwnsPet(petId, updatedBy);
                 await Pet.update({ featured: data.featured }, { where: { petId } });
               }
               break;
+            }
             case 'delete':
               await this.deletePet(petId, updatedBy, reason);
               break;
