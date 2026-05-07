@@ -328,12 +328,28 @@ export class AuthService {
         throw new Error('Invalid refresh token');
       }
 
+      // Refresh-token rotation is security-critical: a partial write on the
+      // reuse-detection path leaves a stolen token still usable; a partial
+      // write on rotation creates a new token without revoking the old one,
+      // turning a normal reuse path into a stolen-token replay vector.
+      // Wrap both branches in a single transaction so they're atomic.
+      // See ADS-169.
+      const sequelize = RefreshToken.sequelize;
+      if (!sequelize) {
+        throw new Error('RefreshToken model has no Sequelize instance');
+      }
+
       if (storedToken.is_revoked) {
-        // Reuse detected: revoke entire token family to protect the account
-        await RefreshToken.update(
-          { is_revoked: true },
-          { where: { family_id: storedToken.family_id, user_id: storedToken.user_id } }
-        );
+        // Reuse detected: revoke entire token family to protect the account.
+        await sequelize.transaction(async transaction => {
+          await RefreshToken.update(
+            { is_revoked: true },
+            {
+              where: { family_id: storedToken.family_id, user_id: storedToken.user_id },
+              transaction,
+            }
+          );
+        });
         loggerHelpers.logSecurity('Refresh token reuse detected – family revoked', {
           userId: storedToken.user_id,
           familyId: storedToken.family_id,
@@ -342,7 +358,9 @@ export class AuthService {
       }
 
       if (storedToken.isExpired()) {
-        await storedToken.update({ is_revoked: true });
+        await sequelize.transaction(async transaction => {
+          await storedToken.update({ is_revoked: true }, { transaction });
+        });
         throw new Error('Invalid refresh token');
       }
 
@@ -364,8 +382,15 @@ export class AuthService {
         { userId: user.userId, email: user.email, userType: user.userType },
         newTokenId
       );
-      await this.storeRefreshToken(user.userId, newTokenId, storedToken.family_id);
-      await storedToken.update({ is_revoked: true, replaced_by_token_id: newTokenId });
+      // Atomically: store the new token AND revoke the old one. Either both
+      // happen or neither does — no half-rotated state is observable.
+      await sequelize.transaction(async transaction => {
+        await this.storeRefreshToken(user.userId, newTokenId, storedToken.family_id, transaction);
+        await storedToken.update(
+          { is_revoked: true, replaced_by_token_id: newTokenId },
+          { transaction }
+        );
+      });
 
       return {
         user: this.sanitizeUser(user),
@@ -771,17 +796,21 @@ Need help? Contact us at support@adoptdontshop.com
   private static async storeRefreshToken(
     userId: string,
     tokenId: string,
-    familyId: string
+    familyId: string,
+    transaction?: Transaction
   ): Promise<void> {
     const expiresAt = new Date(Date.now() + this.parseExpirationTime(this.JWT_REFRESH_EXPIRES_IN));
-    await RefreshToken.create({
-      token_id: tokenId,
-      user_id: userId,
-      family_id: familyId,
-      is_revoked: false,
-      expires_at: expiresAt,
-      replaced_by_token_id: null,
-    });
+    await RefreshToken.create(
+      {
+        token_id: tokenId,
+        user_id: userId,
+        family_id: familyId,
+        is_revoked: false,
+        expires_at: expiresAt,
+        replaced_by_token_id: null,
+      },
+      { transaction }
+    );
   }
 
   private static parseExpirationTime(expiresIn: string): number {
@@ -1036,15 +1065,27 @@ Need help? Contact us at support@adoptdontshop.com
             continue;
           }
 
-          const verificationUrl = `${frontendUrl}/verify-email?token=${user.verificationToken}`;
+          // ADS-352: never email the stored `user.verificationToken` value —
+          // it's already SHA-256-hashed by the User model's
+          // `protectSecretsIfChanged` hook before persistence. Mailing the
+          // hash produces a permanently-broken verification link (the
+          // re-hash on inbound verification can't match the already-hashed
+          // value). Issue a fresh raw token, save (the hook hashes it), and
+          // email the raw value the same way `resendVerificationEmail` does.
+          const rawToken = crypto.randomBytes(32).toString('hex');
+          user.verificationToken = rawToken;
+          user.verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+          await user.save();
+
+          const verificationUrl = `${frontendUrl}/verify-email?token=${rawToken}`;
 
           await emailService.sendEmail({
             toEmail: user.email,
             templateData: {
               firstName: user.firstName,
-              verificationToken: user.verificationToken,
+              verificationToken: rawToken,
               verificationUrl,
-              expiresAt: user.verificationTokenExpiresAt?.toISOString() ?? null,
+              expiresAt: user.verificationTokenExpiresAt.toISOString(),
             },
             type: 'notification',
             priority: 'medium',

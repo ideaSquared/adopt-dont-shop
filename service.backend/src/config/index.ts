@@ -46,11 +46,26 @@ export const config = {
     origin: (() => {
       const corsOrigin = process.env.CORS_ORIGIN;
       if (corsOrigin) {
-        // Handle multiple origins (comma-separated)
-        if (corsOrigin.includes(',')) {
-          return corsOrigin.split(',').map(origin => origin.trim());
+        // ADS-215: with `credentials: true` the browser already disallows
+        // wildcard (`*`) Access-Control-Allow-Origin, but reject it here
+        // explicitly so the misconfiguration fails at startup with a
+        // clearer error than CORS-blocked-in-the-browser noise. Same for
+        // `null` and bare wildcards inside the comma-list.
+        const origins = corsOrigin.includes(',')
+          ? corsOrigin
+              .split(',')
+              .map(origin => origin.trim())
+              .filter(Boolean)
+          : [corsOrigin.trim()];
+        const wildcards = origins.filter(o => o === '*' || o === 'null' || o.includes('*'));
+        if (wildcards.length > 0) {
+          throw new Error(
+            `CORS_ORIGIN must be an explicit allowlist when credentials are enabled. ` +
+              `Got wildcard/unsafe entries: ${wildcards.join(', ')}. ` +
+              `List exact origins, comma-separated.`
+          );
         }
-        return corsOrigin;
+        return origins.length === 1 ? origins[0] : origins;
       }
       if (process.env.NODE_ENV === 'production') {
         throw new Error('CORS_ORIGIN environment variable is required in production');
