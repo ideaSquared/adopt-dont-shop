@@ -1588,6 +1588,69 @@ describe('Application Submission Workflow Integration Tests', () => {
       });
     });
   });
+
+  describe('Concurrent Application Submission', () => {
+    it('allows exactly one application when two concurrent submits race for the same (userId, petId)', async () => {
+      // This test verifies the race-condition safety net introduced in ADS-168.
+      //
+      // Scenario: two browser tabs submit simultaneously. Both pass the
+      // pre-flight findOne check (because neither has committed yet). The DB
+      // partial unique index on (user_id, pet_id) then rejects the second
+      // INSERT with a UniqueConstraintError, which the service maps to the
+      // same "already have an active application" error as the guard.
+      const { UniqueConstraintError } = await import('sequelize');
+
+      const mockUser = createMockUser({ userId: adopterId });
+      const mockPet = createMockPet({ petId: petId, status: PetStatus.AVAILABLE });
+      const mockApplication = createMockApplication({
+        applicationId: applicationId,
+        userId: adopterId,
+        petId: petId,
+        status: ApplicationStatus.SUBMITTED,
+      });
+
+      const applicationData: CreateApplicationRequest = {
+        petId: petId,
+        answers: { experience: 'I have owned dogs for 10 years' },
+        references: [
+          { id: 'ref-0', name: 'Jane Smith', relationship: 'friend', phone: '555-0100' },
+        ],
+      };
+
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser as never);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet as never);
+
+      // Both requests pass the pre-flight guard (findOne returns null for both)
+      MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+
+      // First create succeeds; second throws UniqueConstraintError (DB index fires)
+      MockedApplication.create = vi
+        .fn()
+        .mockResolvedValueOnce(mockApplication as never)
+        .mockRejectedValueOnce(
+          new UniqueConstraintError({ message: 'applications_active_user_pet_uniq' })
+        );
+
+      const results = await Promise.allSettled([
+        ApplicationService.createApplication(applicationData, adopterId),
+        ApplicationService.createApplication(applicationData, adopterId),
+      ]);
+
+      const fulfilled = results.filter(r => r.status === 'fulfilled');
+      const rejected = results.filter(r => r.status === 'rejected');
+
+      // Exactly one succeeds
+      expect(fulfilled).toHaveLength(1);
+
+      // The other rejects with the conflict message
+      expect(rejected).toHaveLength(1);
+      const rejectedReason = (rejected[0] as PromiseRejectedResult).reason as Error;
+      expect(rejectedReason.message).toBe('You already have an active application for this pet');
+
+      // create was called twice (both requests got through the pre-flight guard)
+      expect(MockedApplication.create).toHaveBeenCalledTimes(2);
+    });
+  });
 });
 
 // Helper function to create mock user
