@@ -1,3 +1,4 @@
+import { vars } from '@adopt-dont-shop/lib.components';
 import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
@@ -12,15 +13,15 @@ export const backLink = style({
   padding: '0.5rem 1rem',
   marginBottom: '2rem',
   textDecoration: 'none',
-  color: '#6b7280',
-  border: '1px solid #e5e7eb',
-  borderRadius: '6px',
+  color: vars.text.secondary,
+  border: `1px solid ${vars.border.color.primary}`,
+  borderRadius: vars.border.radius.md,
   fontSize: '0.9rem',
-  transition: 'all 0.2s ease',
+  transition: `all ${vars.transitions.fast}`,
   ':hover': {
-    color: '#111827',
-    borderColor: '#d1d5db',
-    background: '#f9fafb',
+    color: vars.text.primary,
+    borderColor: vars.border.color.secondary,
+    background: vars.background.tertiary,
   },
 });
 
@@ -30,28 +31,29 @@ export const actionLink = style({
   justifyContent: 'center',
   padding: '0.75rem 1.5rem',
   textDecoration: 'none',
-  borderRadius: '6px',
+  borderRadius: vars.border.radius.lg,
   fontWeight: '500',
-  transition: 'all 0.2s ease',
+  transition: `all ${vars.transitions.fast}`,
   width: '100%',
 });
 
 export const actionLinkPrimary = style({
-  background: '#6366f1',
+  background: vars.colors.primary['500'],
   color: 'white',
   ':hover': {
-    background: '#4f46e5',
+    background: vars.colors.primary['600'],
+    boxShadow: vars.shadows.md,
     transform: 'translateY(-1px)',
   },
 });
 
 export const actionLinkOutline = style({
   background: 'transparent',
-  color: '#111827',
-  border: '1px solid #e5e7eb',
+  color: vars.text.primary,
+  border: `1px solid ${vars.border.color.primary}`,
   ':hover': {
-    background: '#f9fafb',
-    borderColor: '#d1d5db',
+    background: vars.background.tertiary,
+    borderColor: vars.border.color.secondary,
   },
 });
 
@@ -66,13 +68,13 @@ export const errorActionLink = style({
   justifyContent: 'center',
   padding: '0.75rem 1.5rem',
   textDecoration: 'none',
-  borderRadius: '6px',
+  borderRadius: vars.border.radius.lg,
   fontWeight: '500',
-  transition: 'all 0.2s ease',
-  background: '#6366f1',
+  transition: `all ${vars.transitions.fast}`,
+  background: vars.colors.primary['500'],
   color: 'white',
   ':hover': {
-    background: '#4f46e5',
+    background: vars.colors.primary['600'],
     transform: 'translateY(-1px)',
   },
 });
@@ -94,15 +96,17 @@ export const petHeader = style({
 export const petTitle = style({});
 
 globalStyle(`${petTitle} h1`, {
+  fontFamily: vars.typography.family.display,
   fontSize: '2.5rem',
-  fontWeight: '700',
+  fontWeight: vars.typography.weight.bold,
   marginBottom: '0.5rem',
-  color: '#111827',
+  color: vars.text.primary,
+  letterSpacing: '-0.025em',
 });
 
 globalStyle(`${petTitle} .subtitle`, {
   fontSize: '1.2rem',
-  color: '#6b7280',
+  color: vars.text.secondary,
   display: 'flex',
   alignItems: 'center',
   gap: '0.5rem',
@@ -132,10 +136,11 @@ export const imageSection = style({});
 globalStyle(`${imageSection} .primary-image`, {
   width: '100%',
   height: '400px',
-  borderRadius: '12px',
+  borderRadius: vars.border.radius['2xl'],
   overflow: 'hidden',
   marginBottom: '1rem',
   position: 'relative',
+  boxShadow: vars.shadows.md,
 });
 
 globalStyle(`${imageSection} .primary-image img`, {
@@ -155,19 +160,19 @@ globalStyle(`${imageSection} .thumbnail-grid`, {
 globalStyle(`${imageSection} .thumbnail`, {
   width: '80px',
   height: '80px',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.lg,
   overflow: 'hidden',
   cursor: 'pointer',
   border: '2px solid transparent',
-  transition: 'border-color 0.2s ease',
+  transition: `border-color ${vars.transitions.fast}`,
 });
 
 globalStyle(`${imageSection} .thumbnail.active`, {
-  borderColor: '#6366f1',
+  borderColor: vars.colors.primary['500'],
 });
 
 globalStyle(`${imageSection} .thumbnail:hover`, {
-  borderColor: '#e5e7eb',
+  borderColor: vars.border.color.primary,
 });
 
 globalStyle(`${imageSection} .thumbnail img`, {
@@ -179,7 +184,7 @@ globalStyle(`${imageSection} .thumbnail img`, {
 export const placeholderImage = style({
   width: '100%',
   height: '100%',
-  background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+  background: `linear-gradient(135deg, ${vars.colors.neutral['100']} 0%, ${vars.colors.neutral['200']} 100%)`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -206,18 +211,18 @@ export const placeholderImage = style({
     bottom: '20px',
     fontSize: '0.9rem',
     opacity: '0.8',
-    color: '#666',
+    color: vars.text.tertiary,
   },
 });
 
 export const thumbnailPlaceholder = style({
   width: '100%',
   height: '100%',
-  background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+  background: `linear-gradient(135deg, ${vars.colors.neutral['100']} 0%, ${vars.colors.neutral['200']} 100%)`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   '::before': {
     content: '""',
     width: '20px',
@@ -242,10 +247,11 @@ export const infoCard = style({
 });
 
 globalStyle(`${infoCard} h2`, {
+  fontFamily: vars.typography.family.display,
   fontSize: '1.5rem',
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   marginBottom: '1.5rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${infoCard} .info-grid`, {
@@ -258,7 +264,7 @@ globalStyle(`${infoCard} .info-item`, {
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '0.75rem 0',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.primary}`,
 });
 
 globalStyle(`${infoCard} .info-item:last-child`, {
@@ -267,12 +273,15 @@ globalStyle(`${infoCard} .info-item:last-child`, {
 
 globalStyle(`${infoCard} .info-item .label`, {
   fontWeight: '500',
-  color: '#6b7280',
+  color: vars.text.tertiary,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  fontSize: '0.75rem',
 });
 
 globalStyle(`${infoCard} .info-item .value`, {
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const actionCard = style({
@@ -281,28 +290,29 @@ export const actionCard = style({
 });
 
 globalStyle(`${actionCard} h3`, {
+  fontFamily: vars.typography.family.display,
   fontSize: '1.25rem',
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   marginBottom: '1rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${actionCard} .rescue-info`, {
-  background: '#f9fafb',
-  borderRadius: '8px',
+  background: vars.background.tertiary,
+  borderRadius: vars.border.radius.lg,
   padding: '1rem',
   marginBottom: '1.5rem',
 });
 
 globalStyle(`${actionCard} .rescue-info .rescue-name`, {
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '0.25rem',
 });
 
 globalStyle(`${actionCard} .rescue-info .rescue-location`, {
   fontSize: '0.9rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${actionCard} .actions`, {
@@ -317,15 +327,16 @@ export const descriptionCard = style({
 });
 
 globalStyle(`${descriptionCard} h2`, {
+  fontFamily: vars.typography.family.display,
   fontSize: '1.5rem',
-  fontWeight: '600',
+  fontWeight: vars.typography.weight.semibold,
   marginBottom: '1rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${descriptionCard} p`, {
   lineHeight: '1.6',
-  color: '#6b7280',
+  color: vars.text.secondary,
   whiteSpace: 'pre-wrap',
 });
 
@@ -335,13 +346,13 @@ export const loadingContainer = style({
   alignItems: 'center',
   minHeight: '400px',
   fontSize: '1.1rem',
-  color: '#6b7280',
+  color: vars.text.secondary,
 });
 
 export const errorContainer = style({
   textAlign: 'center',
   padding: '3rem',
-  color: '#ef4444',
+  color: vars.text.error,
 });
 
 globalStyle(`${errorContainer} h2`, {

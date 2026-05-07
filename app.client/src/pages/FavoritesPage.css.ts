@@ -1,3 +1,4 @@
+import { vars } from '@adopt-dont-shop/lib.components';
 import { globalStyle, style } from '@vanilla-extract/css';
 
 export const pageContainer = style({
@@ -11,14 +12,17 @@ export const header = style({
 });
 
 globalStyle(`${header} h1`, {
+  fontFamily: vars.typography.family.display,
   fontSize: '2.5rem',
-  color: '#333',
+  fontWeight: vars.typography.weight.bold,
+  color: vars.text.primary,
   marginBottom: '1rem',
+  letterSpacing: '-0.025em',
 });
 
 globalStyle(`${header} p`, {
   fontSize: '1.1rem',
-  color: '#666',
+  color: vars.text.secondary,
   maxWidth: '600px',
   margin: '0 auto',
   lineHeight: '1.6',
@@ -47,8 +51,8 @@ export const petGrid = style({
 export const emptyState = style({
   textAlign: 'center',
   padding: '4rem 2rem',
-  background: '#f9f9f9',
-  borderRadius: '12px',
+  background: vars.background.tertiary,
+  borderRadius: vars.border.radius['2xl'],
   margin: '2rem 0',
 });
 
@@ -59,14 +63,15 @@ globalStyle(`${emptyState} .emoji`, {
 });
 
 globalStyle(`${emptyState} h2`, {
+  fontFamily: vars.typography.family.display,
   fontSize: '1.8rem',
-  color: '#333',
+  color: vars.text.primary,
   marginBottom: '1rem',
 });
 
 globalStyle(`${emptyState} p`, {
   fontSize: '1.1rem',
-  color: '#666',
+  color: vars.text.secondary,
   marginBottom: '2rem',
   lineHeight: '1.6',
 });
@@ -75,15 +80,17 @@ export const ctaButton = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.5rem',
-  background: '#667eea',
+  background: vars.colors.primary['500'],
   color: 'white',
   padding: '0.8rem 1.5rem',
-  borderRadius: '8px',
+  borderRadius: vars.border.radius.lg,
   textDecoration: 'none',
   fontWeight: '500',
-  transition: 'all 0.2s ease',
+  boxShadow: vars.shadows.sm,
+  transition: `all ${vars.transitions.fast}`,
   ':hover': {
-    background: '#5a67d8',
+    background: vars.colors.primary['600'],
+    boxShadow: vars.shadows.md,
     transform: 'translateY(-1px)',
   },
 });
@@ -91,20 +98,21 @@ export const ctaButton = style({
 export const loginPrompt = style({
   textAlign: 'center',
   padding: '4rem 2rem',
-  background: '#f0f4f8',
-  borderRadius: '12px',
+  background: vars.background.tertiary,
+  borderRadius: vars.border.radius['2xl'],
   margin: '2rem 0',
 });
 
 globalStyle(`${loginPrompt} h2`, {
+  fontFamily: vars.typography.family.display,
   fontSize: '1.8rem',
-  color: '#333',
+  color: vars.text.primary,
   marginBottom: '1rem',
 });
 
 globalStyle(`${loginPrompt} p`, {
   fontSize: '1.1rem',
-  color: '#666',
+  color: vars.text.secondary,
   marginBottom: '2rem',
   lineHeight: '1.6',
 });
@@ -123,24 +131,26 @@ export const statsContainer = style({
 });
 
 export const statCard = style({
-  background: 'white',
-  border: '1px solid #e2e8f0',
-  borderRadius: '8px',
+  background: vars.background.secondary,
+  border: `1px solid ${vars.border.color.primary}`,
+  borderRadius: vars.border.radius.lg,
   padding: '1.5rem',
   textAlign: 'center',
   minWidth: '120px',
+  boxShadow: vars.shadows.sm,
 });
 
 globalStyle(`${statCard} .number`, {
+  fontFamily: vars.typography.family.display,
   fontSize: '2rem',
-  fontWeight: 'bold',
-  color: '#667eea',
+  fontWeight: vars.typography.weight.bold,
+  color: vars.colors.primary['600'],
   marginBottom: '0.5rem',
 });
 
 globalStyle(`${statCard} .label`, {
   fontSize: '0.9rem',
-  color: '#666',
+  color: vars.text.tertiary,
   textTransform: 'uppercase',
   letterSpacing: '0.5px',
 });
