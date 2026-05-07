@@ -503,6 +503,63 @@ describe('ApiService', () => {
     });
   });
 
+  describe('JSON contract [ADS-261]', () => {
+    beforeEach(() => {
+      apiService = new ApiService();
+    });
+
+    it('returns undefined for 204 No Content responses (callers type T as void)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        statusText: 'No Content',
+        headers: new Headers(),
+        json: () => Promise.reject(new Error('should not parse')),
+      } as Response);
+
+      // Use GET to avoid the CSRF preflight; the contract is method-agnostic.
+      const result = await apiService.fetch('/users/account');
+      expect(result).toBeUndefined();
+    });
+
+    it('returns undefined for empty 200 responses with no Content-Type', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: () => Promise.reject(new Error('should not parse')),
+      } as Response);
+
+      const result = await apiService.fetch('/empty');
+      expect(result).toBeUndefined();
+    });
+
+    it('throws when an OK response has a non-JSON Content-Type', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers([['content-type', 'text/html']]),
+        text: () => Promise.resolve('<html />'),
+      } as Response);
+
+      await expect(apiService.fetch('/legacy-page')).rejects.toThrow(
+        /Use fetchRaw\(\) if you need the raw Response/
+      );
+    });
+
+    it('fetchRaw returns the underlying Response untouched', async () => {
+      const rawResponse = {
+        ok: true,
+        status: 200,
+        headers: new Headers([['content-type', 'application/octet-stream']]),
+      } as Response;
+      mockFetch.mockResolvedValueOnce(rawResponse);
+
+      const result = await apiService.fetchRaw('/download/file.zip');
+      expect(result).toBe(rawResponse);
+    });
+  });
+
   describe('Environment Variable Handling', () => {
     it('should use default URL when no environment variables are set', () => {
       apiService = new ApiService();

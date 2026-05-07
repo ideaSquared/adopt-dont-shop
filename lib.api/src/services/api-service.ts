@@ -270,8 +270,44 @@ export class ApiService {
     }
   }
 
-  // Core request method
+  // Core request method.
+  //
+  // ADS-261: this used to return `response as unknown as T` for any non-JSON
+  // response, which lied about the runtime shape and pushed callers into
+  // double-casting. Now `makeRequest` always parses JSON (or returns
+  // `undefined` for empty-body responses like 204 No Content). Callers
+  // wanting the raw `Response` use `fetchRaw()` instead.
   private async makeRequest<T>(url: string, options: FetchOptions = {}): Promise<T> {
+    const response = await this.executeFetch(url, options);
+
+    // 204 No Content / explicit empty body — `T` is expected to be `void`.
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      // Empty body with no Content-Type (some 200/202 responses) is
+      // treated like 204 — there's nothing to parse.
+      const contentLength = response.headers.get('content-length');
+      if (
+        contentLength === '0' ||
+        (!contentType && response.status >= 200 && response.status < 300)
+      ) {
+        return undefined as T;
+      }
+      throw new Error(
+        `makeRequest expected JSON but received '${contentType ?? 'no Content-Type'}'. ` +
+          `Use fetchRaw() if you need the raw Response object.`
+      );
+    }
+
+    return (await response.json()) as T;
+  }
+
+  // Issue the HTTP request and return the raw `Response`. Internally shared
+  // by `makeRequest` (which then parses JSON) and `fetchRaw` (which doesn't).
+  private async executeFetch(url: string, options: FetchOptions = {}): Promise<Response> {
     const { method = 'GET', headers = {}, body, timeout = this.config.timeout } = options;
 
     // Build full URL
@@ -332,15 +368,7 @@ export class ApiService {
       // Apply response interceptors
       response = await this.interceptors.applyResponseInterceptors(response);
 
-      // Parse response
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const jsonResponse = (await response.json()) as T;
-        return jsonResponse;
-      }
-
-      // For non-JSON responses, return the response as-is
-      return response as unknown as T;
+      return response;
     } catch (error) {
       clearTimeout(timeoutId);
 
@@ -369,6 +397,23 @@ export class ApiService {
     };
 
     return this.makeRequest<T>(url, { ...options, headers });
+  }
+
+  // ADS-261: escape hatch for callers that genuinely need the raw `Response`
+  // (binary downloads, custom Content-Types, etc.). Going through this entry
+  // point keeps them honest — the call site uses `Response`, not a typed
+  // payload that doesn't exist.
+  async fetchRaw(url: string, options: FetchOptions = {}): Promise<Response> {
+    return this.executeFetch(url, options);
+  }
+
+  async fetchRawWithAuth(url: string, options: FetchOptions = {}): Promise<Response> {
+    const token = this.getAuthToken();
+    const headers = {
+      ...options.headers,
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+    return this.executeFetch(url, { ...options, headers });
   }
 
   // Generic HTTP methods with authentication
