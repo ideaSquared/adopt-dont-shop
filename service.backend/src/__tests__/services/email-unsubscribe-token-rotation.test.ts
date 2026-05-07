@@ -7,19 +7,41 @@
  * verify the rotation method actually replaces the column with a new
  * crypto-strong value.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../utils/logger', () => ({
   __esModule: true,
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
-  loggerHelpers: { logBusiness: vi.fn(), logExternalService: vi.fn() },
+  loggerHelpers: {
+    logBusiness: vi.fn(),
+    logDatabase: vi.fn(),
+    logPerformance: vi.fn(),
+    logExternalService: vi.fn(),
+  },
 }));
 
-import { EmailService } from '../../services/email.service';
-import EmailPreference from '../../models/EmailPreference';
+// Avoid the EmailService constructor's async ethereal-provider init
+// (network call to ethereal.email) by stubbing both providers.
+vi.mock('../../services/email-providers/ethereal-provider', () => ({
+  EtherealProvider: class {
+    initialize = vi.fn().mockResolvedValue(undefined);
+    send = vi.fn();
+    getName = vi.fn().mockReturnValue('ethereal');
+    getPreviewInfo = vi.fn().mockReturnValue(null);
+  },
+}));
 
-vi.mock('../../models/EmailPreference');
+vi.mock('../../models/EmailPreference', () => ({
+  __esModule: true,
+  default: {
+    findOne: vi.fn(),
+    generateUnsubscribeToken: vi.fn(),
+  },
+}));
+
+import EmailPreference from '../../models/EmailPreference';
+import { EmailService } from '../../services/email.service';
 
 const MockedEmailPreference = EmailPreference as unknown as {
   findOne: ReturnType<typeof vi.fn>;
@@ -27,18 +49,13 @@ const MockedEmailPreference = EmailPreference as unknown as {
 };
 
 describe('rotateUnsubscribeToken [ADS-301]', () => {
-  const service = new EmailService();
+  let service: EmailService;
   let updateMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    service = new EmailService();
     updateMock = vi.fn().mockResolvedValue(undefined);
-    MockedEmailPreference.findOne = vi.fn();
-    MockedEmailPreference.generateUnsubscribeToken = vi.fn();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
   });
 
   it('returns a fresh token and persists it to the row', async () => {
