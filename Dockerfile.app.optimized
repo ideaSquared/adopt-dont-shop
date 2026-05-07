@@ -30,6 +30,7 @@ ARG APP_NAME
 
 # Copy workspace configuration files for better caching
 COPY --chown=viteuser:nodejs package*.json turbo.json ./
+COPY --chown=viteuser:nodejs tsconfig.base.json tsconfig.cjs.base.json ./
 
 # Copy eslint-config packages (workspace dependencies needed for npm install)
 COPY --chown=viteuser:nodejs eslint-config-base/ ./eslint-config-base/

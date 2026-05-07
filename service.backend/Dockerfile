@@ -27,6 +27,7 @@ ENV HUSKY=0
 FROM base AS libs-built
 
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
 COPY lib.types/ lib.types/
 COPY lib.validation/ lib.validation/
 
@@ -45,6 +46,7 @@ FROM base AS dependencies
 
 # Copy workspace configuration from monorepo root
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
@@ -70,6 +72,7 @@ FROM base AS development
 
 # Copy workspace configuration from monorepo root
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
@@ -122,6 +125,7 @@ FROM base AS build
 
 # Copy workspace configuration from monorepo root
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
 COPY eslint-config-base/ eslint-config-base/
 COPY eslint-config-node/ eslint-config-node/
 
