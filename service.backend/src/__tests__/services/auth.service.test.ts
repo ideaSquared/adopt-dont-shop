@@ -384,6 +384,21 @@ describe('AuthService', () => {
   });
 
   describe('refreshToken', () => {
+    // ADS-169: refreshToken now performs the rotation/revoke writes inside a
+    // sequelize transaction. Tests mock the transaction wrapper to a pass-
+    // through so the assertions stay focused on the model calls.
+    const buildPassThroughTransaction = () => {
+      const txMock = vi.fn().mockImplementation(async (cb: (t: unknown) => Promise<unknown>) =>
+        cb({
+          /* fake transaction object — only its identity matters */
+        })
+      );
+      (MockedRefreshToken as unknown as { sequelize: unknown }).sequelize = {
+        transaction: txMock,
+      };
+      return txMock;
+    };
+
     it('should refresh token successfully', async () => {
       const refreshToken = 'valid-refresh-token';
       const mockPayload = { userId: 'user-123', jti: 'token-123' };
@@ -412,7 +427,9 @@ describe('AuthService', () => {
 
       mockedJwt.verify = vi.fn().mockReturnValue(mockPayload);
       MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(mockStoredToken);
+      MockedRefreshToken.create = vi.fn().mockResolvedValue(undefined);
       MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      const txMock = buildPassThroughTransaction();
 
       const result = await AuthService.refreshToken(refreshToken);
 
@@ -423,6 +440,8 @@ describe('AuthService', () => {
       );
       expect(MockedRefreshToken.findByPk).toHaveBeenCalledWith(mockPayload.jti);
       expect(MockedUser.findByPk).toHaveBeenCalledWith(mockPayload.userId, expect.any(Object));
+      // ADS-169: rotation must run inside a transaction
+      expect(txMock).toHaveBeenCalled();
       expect(result.user).toBeDefined();
       expect(result.token).toBe('mocked-access-token');
     });
@@ -435,6 +454,36 @@ describe('AuthService', () => {
       });
 
       await expect(AuthService.refreshToken(invalidToken)).rejects.toThrow('Invalid refresh token');
+    });
+
+    it('revokes the entire token family inside a single transaction on reuse [ADS-169]', async () => {
+      const refreshToken = 'reused-refresh-token';
+      const mockPayload = { userId: 'user-123', jti: 'token-reused' };
+
+      const mockStoredToken = {
+        token_id: 'token-reused',
+        user_id: 'user-123',
+        family_id: 'family-abc',
+        is_revoked: true,
+        isExpired: vi.fn().mockReturnValue(false),
+        update: vi.fn().mockResolvedValue(undefined),
+      };
+
+      mockedJwt.verify = vi.fn().mockReturnValue(mockPayload);
+      MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(mockStoredToken);
+      MockedRefreshToken.update = vi.fn().mockResolvedValue([1]);
+      const txMock = buildPassThroughTransaction();
+
+      await expect(AuthService.refreshToken(refreshToken)).rejects.toThrow('Invalid refresh token');
+
+      expect(txMock).toHaveBeenCalled();
+      expect(MockedRefreshToken.update).toHaveBeenCalledWith(
+        { is_revoked: true },
+        expect.objectContaining({
+          where: { family_id: 'family-abc', user_id: 'user-123' },
+          transaction: expect.anything(),
+        })
+      );
     });
   });
 
