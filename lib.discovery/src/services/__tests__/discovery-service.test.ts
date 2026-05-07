@@ -10,21 +10,21 @@ import {
 } from '../../types';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib.api', () => ({
-  ApiService: jest.fn().mockImplementation(() => ({
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  })),
+vi.mock('@adopt-dont-shop/lib.api', () => ({
+  ApiService: vi.fn().mockImplementation(function () {
+    return {
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+  }),
 }));
 
 // Mock Image constructor for preloading tests
-global.Image = jest.fn(() => ({
-  src: '',
-  onload: null,
-  onerror: null,
-})) as any;
+global.Image = vi.fn().mockImplementation(function () {
+  return { src: '', onload: null, onerror: null };
+}) as unknown as typeof Image;
 
 describe('DiscoveryService', () => {
   let service: DiscoveryService;
@@ -62,17 +62,19 @@ describe('DiscoveryService', () => {
   };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Get the mocked constructor and create a mock instance
     const { ApiService } = await import('@adopt-dont-shop/lib.api');
     mockApiService = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
     };
-    ApiService.mockImplementation(() => mockApiService);
+    ApiService.mockImplementation(function () {
+      return mockApiService;
+    });
 
     service = new DiscoveryService({
       debug: true,
@@ -399,7 +401,7 @@ describe('DiscoveryService', () => {
 
   describe('error handling and debug mode', () => {
     it('should log debug information when debug mode is enabled', async () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
       mockApiService.post.mockRejectedValue(new Error('API Error'));
 
       await service.getDiscoveryQueue();

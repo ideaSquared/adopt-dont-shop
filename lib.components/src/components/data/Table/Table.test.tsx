@@ -45,7 +45,7 @@ describe('Table', () => {
 
   it('handles column sorting when sortable', async () => {
     const user = userEvent.setup();
-    const handleSort = jest.fn();
+    const handleSort = vi.fn();
 
     renderWithTheme(
       <Table
@@ -123,7 +123,7 @@ describe('Table', () => {
 
   it('handles row click events', async () => {
     const user = userEvent.setup();
-    const handleRowClick = jest.fn();
+    const handleRowClick = vi.fn();
 
     renderWithTheme(<Table data={mockData} columns={mockColumns} onRowClick={handleRowClick} />);
 
@@ -162,7 +162,7 @@ describe('Table', () => {
 
   it('combines all features correctly', async () => {
     const user = userEvent.setup();
-    const handleSort = jest.fn();
+    const handleSort = vi.fn();
 
     renderWithTheme(
       <Table

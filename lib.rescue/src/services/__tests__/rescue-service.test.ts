@@ -10,11 +10,11 @@ import {
 } from '../../types';
 
 // Mock the ApiService
-jest.mock('@adopt-dont-shop/lib.api');
+vi.mock('@adopt-dont-shop/lib.api');
 
 describe('RescueService', () => {
   let rescueService: RescueService;
-  let mockApiService: jest.Mocked<ApiService>;
+  let mockApiService: vi.Mocked<ApiService>;
 
   const mockRescueAPIResponse: RescueAPIResponse = {
     rescue_id: 'rescue-123',
@@ -103,19 +103,21 @@ describe('RescueService', () => {
 
   beforeEach(() => {
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Create mock ApiService instance
     mockApiService = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      updateConfig: jest.fn(),
-    } as unknown as jest.Mocked<ApiService>;
+      get: vi.fn(),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      updateConfig: vi.fn(),
+    } as unknown as vi.Mocked<ApiService>;
 
     // Mock the ApiService constructor
-    (ApiService as jest.MockedClass<typeof ApiService>).mockImplementation(() => mockApiService);
+    (ApiService as vi.MockedClass<typeof ApiService>).mockImplementation(function () {
+      return mockApiService;
+    });
 
     // Create service instance
     rescueService = new RescueService();

@@ -26,7 +26,7 @@ describe('TextArea', () => {
 
   it('handles value changes', async () => {
     const user = userEvent.setup();
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(<TextArea onChange={handleChange} />);
 
     const textarea = screen.getByRole('textbox');
@@ -69,8 +69,8 @@ describe('TextArea', () => {
 
   it('handles focus and blur events', async () => {
     const user = userEvent.setup();
-    const handleFocus = jest.fn();
-    const handleBlur = jest.fn();
+    const handleFocus = vi.fn();
+    const handleBlur = vi.fn();
 
     renderWithTheme(<TextArea onFocus={handleFocus} onBlur={handleBlur} />);
     const textarea = screen.getByRole('textbox');
@@ -102,7 +102,7 @@ describe('TextArea', () => {
 
   it('combines all props correctly', async () => {
     const user = userEvent.setup();
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     renderWithTheme(
       <TextArea

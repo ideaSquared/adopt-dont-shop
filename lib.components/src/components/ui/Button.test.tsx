@@ -12,7 +12,7 @@ describe('Button', () => {
   });
 
   it('handles click events', () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
     renderWithTheme(<Button onClick={handleClick}>Click me</Button>);
 
     const button = screen.getByRole('button', { name: /click me/i });
@@ -58,7 +58,7 @@ describe('Button', () => {
   });
 
   it('prevents click when disabled', () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
     renderWithTheme(
       <Button disabled onClick={handleClick}>
         Disabled Button
@@ -72,7 +72,7 @@ describe('Button', () => {
   });
 
   it('prevents click when loading', () => {
-    const handleClick = jest.fn();
+    const handleClick = vi.fn();
     renderWithTheme(
       <Button isLoading onClick={handleClick}>
         Loading Button

@@ -19,7 +19,7 @@ describe('Modal', () => {
   });
 
   it('renders modal when isOpen is true', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(<MockModal isOpen={true} onClose={handleClose} />);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe('Modal', () => {
   });
 
   it('does not render modal when isOpen is false', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(<MockModal isOpen={false} onClose={handleClose} />);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('Modal', () => {
 
   it('calls onClose when close button is clicked', async () => {
     const user = userEvent.setup();
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(<MockModal isOpen={true} onClose={handleClose} />);
 
     const closeButton = screen.getByRole('button', { name: /close/i });
@@ -47,7 +47,7 @@ describe('Modal', () => {
 
   it('calls onClose when overlay is clicked', async () => {
     const user = userEvent.setup();
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(<MockModal isOpen={true} onClose={handleClose} />);
 
     const overlay = screen.getByRole('dialog').parentElement!;
@@ -57,7 +57,7 @@ describe('Modal', () => {
   });
 
   it('calls onClose when escape key is pressed', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(<MockModal isOpen={true} onClose={handleClose} />);
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -67,7 +67,7 @@ describe('Modal', () => {
 
   it('does not close on overlay click when closeOnOverlayClick is false', async () => {
     const user = userEvent.setup();
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(
       <Modal isOpen={true} onClose={handleClose} closeOnOverlayClick={false}>
         <p>Content</p>
@@ -81,7 +81,7 @@ describe('Modal', () => {
   });
 
   it('does not close on escape when closeOnEscape is false', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(
       <Modal isOpen={true} onClose={handleClose} closeOnEscape={false}>
         <p>Content</p>
@@ -94,7 +94,7 @@ describe('Modal', () => {
   });
 
   it('applies different sizes correctly', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(
       <Modal isOpen={true} onClose={handleClose} size='lg'>
         <p>Content</p>
@@ -106,7 +106,7 @@ describe('Modal', () => {
   });
 
   it('hides close button when showCloseButton is false', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(
       <Modal isOpen={true} onClose={handleClose} showCloseButton={false}>
         <p>Content</p>
@@ -117,7 +117,7 @@ describe('Modal', () => {
   });
 
   it('applies data-testid when provided', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(
       <Modal isOpen={true} onClose={handleClose} data-testid='test-modal'>
         <p>Content</p>
@@ -130,7 +130,7 @@ describe('Modal', () => {
 
   it('traps focus within modal', async () => {
     const user = userEvent.setup();
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(
       <Modal isOpen={true} onClose={handleClose}>
         <button>First button</button>
@@ -159,14 +159,14 @@ describe('Modal', () => {
   });
 
   it('prevents body scroll when modal is open', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     renderWithTheme(<MockModal isOpen={true} onClose={handleClose} />);
 
     expect(document.body.style.overflow).toBe('hidden');
   });
 
   it('restores body scroll when modal is closed', () => {
-    const handleClose = jest.fn();
+    const handleClose = vi.fn();
     const { rerender } = renderWithTheme(<MockModal isOpen={true} onClose={handleClose} />);
 
     expect(document.body.style.overflow).toBe('hidden');

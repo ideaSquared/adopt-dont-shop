@@ -3,16 +3,16 @@ import { ApiService } from '@adopt-dont-shop/lib.api';
 import { Permission, UserWithPermissions } from '../../types';
 
 // Mock the ApiService
-jest.mock('@adopt-dont-shop/lib.api');
-const MockedApiService = ApiService as jest.MockedClass<typeof ApiService>;
+vi.mock('@adopt-dont-shop/lib.api');
+const MockedApiService = ApiService as vi.MockedClass<typeof ApiService>;
 
 describe('PermissionsService', () => {
   let service: PermissionsService;
-  let mockApiService: jest.Mocked<ApiService>;
+  let mockApiService: vi.Mocked<ApiService>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockApiService = new MockedApiService() as jest.Mocked<ApiService>;
+    vi.clearAllMocks();
+    mockApiService = new MockedApiService() as vi.Mocked<ApiService>;
     service = new PermissionsService({}, mockApiService);
   });
 
@@ -32,7 +32,7 @@ describe('PermissionsService', () => {
   describe('hasPermission', () => {
     it('should check user permission successfully', async () => {
       const mockResponse = { hasPermission: true };
-      mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
+      mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
       const result = await service.hasPermission('user123', 'pets.read');
 
@@ -46,7 +46,7 @@ describe('PermissionsService', () => {
 
     it('should return false when permission denied', async () => {
       const mockResponse = { hasPermission: false };
-      mockApiService.post = jest.fn().mockResolvedValue(mockResponse);
+      mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
 
       const result = await service.hasPermission('user123', 'admin.dashboard');
 
@@ -55,7 +55,7 @@ describe('PermissionsService', () => {
 
     it('should handle API errors by denying access', async () => {
       const error = new Error('API Error');
-      mockApiService.post = jest.fn().mockRejectedValue(error);
+      mockApiService.post = vi.fn().mockRejectedValue(error);
 
       const result = await service.hasPermission('user123', 'pets.read');
 
@@ -67,7 +67,7 @@ describe('PermissionsService', () => {
     it('should retrieve user permissions', async () => {
       const mockPermissions: Permission[] = ['pets.read', 'pets.create'];
       const mockResponse = { permissions: mockPermissions };
-      mockApiService.get = jest.fn().mockResolvedValue(mockResponse);
+      mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
 
       const result = await service.getUserPermissions('user123');
 
@@ -77,7 +77,7 @@ describe('PermissionsService', () => {
 
     it('should return empty array on API error', async () => {
       const error = new Error('API Error');
-      mockApiService.get = jest.fn().mockRejectedValue(error);
+      mockApiService.get = vi.fn().mockRejectedValue(error);
 
       const result = await service.getUserPermissions('user123');
 
@@ -87,7 +87,7 @@ describe('PermissionsService', () => {
 
   describe('healthCheck', () => {
     it('should return true when API is healthy', async () => {
-      mockApiService.get = jest.fn().mockResolvedValue({});
+      mockApiService.get = vi.fn().mockResolvedValue({});
 
       const result = await service.healthCheck();
 
@@ -97,7 +97,7 @@ describe('PermissionsService', () => {
 
     it('should return false when API fails', async () => {
       const error = new Error('API Error');
-      mockApiService.get = jest.fn().mockRejectedValue(error);
+      mockApiService.get = vi.fn().mockRejectedValue(error);
 
       const result = await service.healthCheck();
 

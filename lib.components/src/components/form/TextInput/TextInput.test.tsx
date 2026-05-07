@@ -26,7 +26,7 @@ describe('TextInput', () => {
 
   it('handles value changes', async () => {
     const user = userEvent.setup();
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(<TextInput onChange={handleChange} />);
 
     const input = screen.getByRole('textbox');
@@ -67,8 +67,8 @@ describe('TextInput', () => {
 
   it('handles focus and blur events', async () => {
     const user = userEvent.setup();
-    const handleFocus = jest.fn();
-    const handleBlur = jest.fn();
+    const handleFocus = vi.fn();
+    const handleBlur = vi.fn();
 
     renderWithTheme(<TextInput onFocus={handleFocus} onBlur={handleBlur} />);
     const input = screen.getByRole('textbox');

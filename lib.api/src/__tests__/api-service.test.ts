@@ -2,17 +2,17 @@ import { ApiService } from '../services/api-service';
 import { ApiServiceConfig } from '../types';
 
 // Mock fetch globally
-const mockFetch = jest.fn();
+const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 // Mock localStorage
 const mockLocalStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
   length: 0,
-  key: jest.fn(),
+  key: vi.fn(),
 };
 
 // Mock global localStorage
@@ -31,7 +31,7 @@ describe('ApiService', () => {
   let apiService: ApiService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockFetch.mockClear();
     mockLocalStorage.getItem.mockClear();
   });
@@ -389,7 +389,7 @@ describe('ApiService', () => {
     });
 
     it('should call onUnauthorized callback when receiving a 401 response', async () => {
-      const onUnauthorized = jest.fn();
+      const onUnauthorized = vi.fn();
       apiService = new ApiService({
         apiUrl: 'https://api.example.com',
         onUnauthorized,
@@ -408,7 +408,7 @@ describe('ApiService', () => {
     });
 
     it('should not call onUnauthorized for non-401 errors', async () => {
-      const onUnauthorized = jest.fn();
+      const onUnauthorized = vi.fn();
       apiService = new ApiService({
         apiUrl: 'https://api.example.com',
         onUnauthorized,
@@ -428,15 +428,15 @@ describe('ApiService', () => {
 
     it('should handle timeout errors', async () => {
       // Mock AbortController
-      const mockAbort = jest.fn();
+      const mockAbort = vi.fn();
       const mockSignal = {
         aborted: false,
         onabort: null,
         reason: undefined,
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
-        throwIfAborted: jest.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+        throwIfAborted: vi.fn(),
       } as AbortSignal;
 
       const mockController = {
@@ -444,8 +444,11 @@ describe('ApiService', () => {
         signal: mockSignal,
       };
 
-      // Mock the global AbortController
-      global.AbortController = jest.fn(() => mockController) as any;
+      // Mock the global AbortController (save and restore to avoid test isolation issues)
+      const OriginalAbortController = global.AbortController;
+      global.AbortController = vi.fn().mockImplementation(function () {
+        return mockController;
+      }) as unknown as typeof AbortController;
 
       // Mock fetch to simulate timeout by checking if abort was called
       mockFetch.mockImplementationOnce(() => {
@@ -465,6 +468,9 @@ describe('ApiService', () => {
 
       // Verify that abort was called
       expect(mockAbort).toHaveBeenCalled();
+
+      // Restore AbortController to avoid polluting subsequent tests
+      global.AbortController = OriginalAbortController;
     }, 500); // Set test timeout to 500ms
   });
 

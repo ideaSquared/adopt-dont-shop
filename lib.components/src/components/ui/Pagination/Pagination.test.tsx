@@ -9,11 +9,11 @@ describe('Pagination', () => {
   const defaultProps = {
     currentPage: 1,
     totalPages: 10,
-    onPageChange: jest.fn(),
+    onPageChange: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders correctly with basic props', () => {
@@ -32,7 +32,7 @@ describe('Pagination', () => {
   });
 
   it('handles page change correctly', () => {
-    const handlePageChange = jest.fn();
+    const handlePageChange = vi.fn();
     renderWithTheme(
       <Pagination {...defaultProps} onPageChange={handlePageChange} data-testid='pagination' />
     );
@@ -42,7 +42,7 @@ describe('Pagination', () => {
   });
 
   it('handles next page navigation', () => {
-    const handlePageChange = jest.fn();
+    const handlePageChange = vi.fn();
     renderWithTheme(
       <Pagination {...defaultProps} onPageChange={handlePageChange} data-testid='pagination' />
     );
@@ -52,7 +52,7 @@ describe('Pagination', () => {
   });
 
   it('handles previous page navigation', () => {
-    const handlePageChange = jest.fn();
+    const handlePageChange = vi.fn();
     renderWithTheme(
       <Pagination
         {...defaultProps}
@@ -88,7 +88,7 @@ describe('Pagination', () => {
   });
 
   it('handles first page navigation', () => {
-    const handlePageChange = jest.fn();
+    const handlePageChange = vi.fn();
     renderWithTheme(
       <Pagination
         {...defaultProps}
@@ -104,7 +104,7 @@ describe('Pagination', () => {
   });
 
   it('handles last page navigation', () => {
-    const handlePageChange = jest.fn();
+    const handlePageChange = vi.fn();
     renderWithTheme(
       <Pagination
         {...defaultProps}
@@ -196,7 +196,7 @@ describe('Pagination', () => {
   });
 
   it('does not call onPageChange for current page', () => {
-    const handlePageChange = jest.fn();
+    const handlePageChange = vi.fn();
     renderWithTheme(
       <Pagination
         {...defaultProps}

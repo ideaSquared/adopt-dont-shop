@@ -21,8 +21,8 @@ describe('ConversationList', () => {
   });
 
   it('invokes setActiveConversation and the onConversationSelect callback on click', () => {
-    const setActiveConversation = jest.fn();
-    const onSelect = jest.fn();
+    const setActiveConversation = vi.fn();
+    const onSelect = vi.fn();
     const conversation = buildTestConversation({ id: 'c1', rescueName: 'Paws Rescue' });
 
     renderWithChatContext(<ConversationList onConversationSelect={onSelect} />, {
@@ -39,7 +39,7 @@ describe('ConversationList', () => {
   });
 
   it('shows the empty state with the configured CTA when no conversations exist', () => {
-    const emptyAction = { label: 'Discover Pets', onClick: jest.fn() };
+    const emptyAction = { label: 'Discover Pets', onClick: vi.fn() };
     renderWithChatContext(
       <ConversationList
         emptyStateDescription="Nothing to see here yet."

@@ -37,7 +37,7 @@ describe('BaseSidebar', () => {
   });
 
   it('calls the handleClose function when the close button is clicked', () => {
-    const handleCloseMock = jest.fn();
+    const handleCloseMock = vi.fn();
     renderWithTheme(
       <BaseSidebar show={true} handleClose={handleCloseMock} title='Test Sidebar'>
         <p>Sidebar content</p>

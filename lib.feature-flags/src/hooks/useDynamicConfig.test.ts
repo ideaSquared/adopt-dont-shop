@@ -1,16 +1,16 @@
 // jest.mock factories must only reference variables whose names begin with
 // "mock" — see useFeatureGate.test.ts for the rationale.
-const mockUseContext = jest.fn();
+const mockUseContext = vi.fn();
 
-jest.mock('react', () => {
-  const actual = jest.requireActual('react');
+vi.mock('react', async () => {
+  const actual = await vi.importActual('react');
   return {
-    ...actual,
+    ...(actual as Record<string, unknown>),
     useContext: (...args: unknown[]) => mockUseContext(...args),
   };
 });
 
-jest.mock('@statsig/react-bindings', () => ({
+vi.mock('@statsig/react-bindings', () => ({
   StatsigContext: { _statsigContextMarker: true },
 }));
 
@@ -26,10 +26,10 @@ const buildClient = (configs: Record<string, FakeConfig | undefined>) => ({
 });
 
 describe('useDynamicConfig', () => {
-  let warnSpy: jest.SpyInstance;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockUseContext.mockReset();
   });
 
@@ -56,10 +56,10 @@ describe('useDynamicConfig', () => {
 });
 
 describe('useConfigValue', () => {
-  let warnSpy: jest.SpyInstance;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockUseContext.mockReset();
   });
 

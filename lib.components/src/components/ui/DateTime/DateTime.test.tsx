@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // Mock Radix UI tooltip
-jest.mock('@radix-ui/react-tooltip', () => ({
+vi.mock('@radix-ui/react-tooltip', () => ({
   Provider: Object.assign(
     function MockTooltipProvider({ children }: { children: React.ReactNode }) {
       return <div>{children}</div>;

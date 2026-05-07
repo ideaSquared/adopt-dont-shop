@@ -52,22 +52,22 @@ const TestConsumer = ({ onRender }: { onRender: (h: Harness) => void }) => {
 
 type Harness2 = {
   chatService: ChatService;
-  connectSpy: jest.SpyInstance;
-  tokenProvider: jest.Mock<string | null, []>;
-  getConversationsMock: jest.Mock;
+  connectSpy: ReturnType<typeof vi.spyOn>;
+  tokenProvider: ReturnType<typeof vi.fn>;
+  getConversationsMock: ReturnType<typeof vi.fn>;
 };
 
 const buildHarness = (initialConversations: Conversation[] = [buildConversation()]): Harness2 => {
   const chatService = new ChatService();
-  const connectSpy = jest.spyOn(chatService, 'connect').mockImplementation(() => {
+  const connectSpy = vi.spyOn(chatService, 'connect').mockImplementation(() => {
     // Don't actually open a socket; the provider just needs the listeners to be registered.
   });
-  jest.spyOn(chatService, 'disconnect').mockImplementation(() => {});
+  vi.spyOn(chatService, 'disconnect').mockImplementation(() => {});
 
-  const getConversationsMock = jest.fn().mockResolvedValue(initialConversations);
-  jest.spyOn(chatService, 'getConversations').mockImplementation(getConversationsMock);
+  const getConversationsMock = vi.fn().mockResolvedValue(initialConversations);
+  vi.spyOn(chatService, 'getConversations').mockImplementation(getConversationsMock);
 
-  const tokenProvider = jest.fn(() => 'test-token');
+  const tokenProvider = vi.fn(() => 'test-token');
 
   return { chatService, connectSpy, tokenProvider, getConversationsMock };
 };
@@ -75,7 +75,7 @@ const buildHarness = (initialConversations: Conversation[] = [buildConversation(
 describe('ChatProvider', () => {
   it('does not connect when the user is not authenticated', () => {
     const { chatService, connectSpy, tokenProvider } = buildHarness();
-    const onRender = jest.fn();
+    const onRender = vi.fn();
 
     render(
       <ChatProvider
@@ -102,7 +102,7 @@ describe('ChatProvider', () => {
         isAuthenticated
         tokenProvider={tokenProvider}
       >
-        <TestConsumer onRender={jest.fn()} />
+        <TestConsumer onRender={vi.fn()} />
       </ChatProvider>
     );
 
@@ -130,7 +130,7 @@ describe('ChatProvider', () => {
       return null;
     };
 
-    jest.spyOn(chatService, 'getMessages').mockResolvedValue({
+    vi.spyOn(chatService, 'getMessages').mockResolvedValue({
       data: [],
       success: true,
       timestamp: '2026-01-01T00:00:00Z',
@@ -143,7 +143,7 @@ describe('ChatProvider', () => {
         hasPrev: false,
       },
     });
-    jest.spyOn(chatService, 'markAsRead').mockResolvedValue();
+    vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
     render(
       <ChatProvider
@@ -238,7 +238,7 @@ describe('ChatProvider', () => {
       return null;
     };
     // Suppress expected console.error from React's re-throw.
-    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<BadConsumer />)).toThrow(/useChat must be used within a ChatProvider/);
     spy.mockRestore();
   });
@@ -252,7 +252,7 @@ describe('ChatProvider', () => {
         isAuthenticated={false}
         tokenProvider={tokenProvider}
       >
-        <TestConsumer onRender={jest.fn()} />
+        <TestConsumer onRender={vi.fn()} />
       </ChatProvider>
     );
     expect(screen.getByTestId('consumer')).toBeInTheDocument();
@@ -262,7 +262,7 @@ describe('ChatProvider', () => {
     const conv = buildConversation({ id: 'chat-1', unreadCount: 3 });
     const { chatService, tokenProvider } = buildHarness([conv]);
 
-    const markSpy = jest.spyOn(chatService, 'markAsRead').mockImplementation(
+    const markSpy = vi.spyOn(chatService, 'markAsRead').mockImplementation(
       // Hold the promise open so we can assert the optimistic update
       // happened synchronously, before the network round-trip resolves.
       () => new Promise<void>(() => {})
@@ -297,8 +297,8 @@ describe('ChatProvider', () => {
 
   it('surfaces a clear error when the tokenProvider returns null at connect time', async () => {
     const { chatService } = buildHarness();
-    const connectSpy = jest.spyOn(chatService, 'connect');
-    const nullTokenProvider = jest.fn(() => null);
+    const connectSpy = vi.spyOn(chatService, 'connect');
+    const nullTokenProvider = vi.fn(() => null);
 
     render(
       <ChatProvider
@@ -307,7 +307,7 @@ describe('ChatProvider', () => {
         isAuthenticated
         tokenProvider={nullTokenProvider}
       >
-        <TestConsumer onRender={jest.fn()} />
+        <TestConsumer onRender={vi.fn()} />
       </ChatProvider>
     );
 
@@ -330,14 +330,14 @@ describe('ChatProvider', () => {
       senderName: 'Alice',
       content: 'hello there',
     });
-    jest.spyOn(chatService, 'sendMessage').mockResolvedValue(sent);
-    jest.spyOn(chatService, 'getMessages').mockResolvedValue({
+    vi.spyOn(chatService, 'sendMessage').mockResolvedValue(sent);
+    vi.spyOn(chatService, 'getMessages').mockResolvedValue({
       data: [],
       success: true,
       timestamp: '2026-01-01T00:00:00Z',
       pagination: { page: 1, limit: 50, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
     });
-    jest.spyOn(chatService, 'markAsRead').mockResolvedValue();
+    vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
     let latest: Harness | null = null;
     const Caller = () => {
@@ -385,7 +385,7 @@ describe('ChatProvider', () => {
       rescueId: 'rescue-42',
       petId: 'pet-99',
     });
-    jest.spyOn(chatService, 'createConversation').mockResolvedValue(newConv);
+    vi.spyOn(chatService, 'createConversation').mockResolvedValue(newConv);
 
     let latest: Harness | null = null;
     const Caller = () => {
@@ -423,7 +423,10 @@ describe('ChatProvider', () => {
   it('auto-clears a typing indicator after the display window', async () => {
     // User journey: someone starts typing, I see their name; they pause,
     // and the indicator disappears on its own after ~3 seconds.
-    jest.useFakeTimers();
+    //
+    // shouldAdvanceTime lets Promise microtasks and waitFor polling
+    // work correctly while fake timers are in effect.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const { chatService, tokenProvider } = buildHarness();
 
@@ -454,11 +457,11 @@ describe('ChatProvider', () => {
 
       // Advance past the 3s clear window.
       act(() => {
-        jest.advanceTimersByTime(3100);
+        vi.advanceTimersByTime(3100);
       });
       expect(latest?.typingUsers).not.toContain('Other');
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -480,7 +483,7 @@ describe('ChatProvider', () => {
     );
     const secondPage = [buildMessage({ id: 'm-older', timestamp: '2026-01-01T09:00:00Z' })];
 
-    const getMessagesSpy = jest
+    const getMessagesSpy = vi
       .spyOn(chatService, 'getMessages')
       .mockResolvedValueOnce({
         data: firstPage,
@@ -494,7 +497,7 @@ describe('ChatProvider', () => {
         timestamp: '2026-01-01T00:00:00Z',
         pagination: { page: 2, limit: 50, total: 51, totalPages: 2, hasNext: false, hasPrev: true },
       });
-    jest.spyOn(chatService, 'markAsRead').mockResolvedValue();
+    vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
     let latest: Harness | null = null;
     const Caller = () => {

@@ -43,7 +43,7 @@ describe('RadioInput', () => {
   });
 
   it('handles value selection', () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
     renderWithTheme(
       <RadioInput
         name='test'

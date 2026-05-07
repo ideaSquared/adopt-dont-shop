@@ -6,7 +6,7 @@ import { DateInput } from './DateInput';
 const renderWithTheme = (component: React.ReactElement) => render(component);
 
 describe('DateInput', () => {
-  const mockOnChange = jest.fn();
+  const mockOnChange = vi.fn();
 
   beforeEach(() => {
     mockOnChange.mockClear();

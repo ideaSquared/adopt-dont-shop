@@ -67,8 +67,8 @@ describe('EmptyState', () => {
   });
 
   it('renders action buttons', () => {
-    const action1 = jest.fn();
-    const action2 = jest.fn();
+    const action1 = vi.fn();
+    const action2 = vi.fn();
 
     const actions = [
       { label: 'Primary Action', onClick: action1, variant: 'primary' as const },
@@ -82,7 +82,7 @@ describe('EmptyState', () => {
   });
 
   it('handles action button clicks', () => {
-    const handleAction = jest.fn();
+    const handleAction = vi.fn();
 
     const actions = [{ label: 'Click me', onClick: handleAction }];
 
@@ -93,7 +93,7 @@ describe('EmptyState', () => {
   });
 
   it('disables action buttons when specified', () => {
-    const handleAction = jest.fn();
+    const handleAction = vi.fn();
 
     const actions = [{ label: 'Disabled Action', onClick: handleAction, disabled: true }];
 
@@ -132,9 +132,9 @@ describe('EmptyState', () => {
 
   it('renders multiple actions correctly', () => {
     const actions = [
-      { label: 'Action 1', onClick: jest.fn() },
-      { label: 'Action 2', onClick: jest.fn() },
-      { label: 'Action 3', onClick: jest.fn() },
+      { label: 'Action 1', onClick: vi.fn() },
+      { label: 'Action 2', onClick: vi.fn() },
+      { label: 'Action 3', onClick: vi.fn() },
     ];
 
     renderWithTheme(

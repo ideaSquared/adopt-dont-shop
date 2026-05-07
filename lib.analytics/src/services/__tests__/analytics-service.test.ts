@@ -2,29 +2,31 @@ import { AnalyticsService } from '../analytics-service';
 import { apiService } from '@adopt-dont-shop/lib.api';
 
 // Mock lib.api
-jest.mock('@adopt-dont-shop/lib.api', () => ({
+vi.mock('@adopt-dont-shop/lib.api', () => ({
   apiService: {
-    post: jest.fn(),
-    get: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-    fetchWithAuth: jest.fn(),
-    setToken: jest.fn(),
-    clearToken: jest.fn(),
-    isAuthenticated: jest.fn(),
-    updateConfig: jest.fn(),
+    post: vi.fn(),
+    get: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    fetchWithAuth: vi.fn(),
+    setToken: vi.fn(),
+    clearToken: vi.fn(),
+    isAuthenticated: vi.fn(),
+    updateConfig: vi.fn(),
   },
-  ApiService: jest.fn().mockImplementation(() => ({
-    post: jest.fn(),
-    get: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-    fetchWithAuth: jest.fn(),
-    setToken: jest.fn(),
-    clearToken: jest.fn(),
-    isAuthenticated: jest.fn(),
-    updateConfig: jest.fn(),
-  })),
+  ApiService: vi.fn().mockImplementation(function () {
+    return {
+      post: vi.fn(),
+      get: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+      fetchWithAuth: vi.fn(),
+      setToken: vi.fn(),
+      clearToken: vi.fn(),
+      isAuthenticated: vi.fn(),
+      updateConfig: vi.fn(),
+    };
+  }),
 }));
 
 // Mock DOM globals
@@ -53,8 +55,8 @@ describe('AnalyticsService', () => {
   let mockApiService: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
 
     service = new AnalyticsService({
       debug: false,
@@ -66,7 +68,7 @@ describe('AnalyticsService', () => {
 
   afterEach(() => {
     service.destroy();
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('initialization', () => {
@@ -112,7 +114,7 @@ describe('AnalyticsService', () => {
       });
 
       // Events are queued, so we need to advance timers to trigger flush
-      jest.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(5000);
 
       expect(mockApiService.post).toHaveBeenCalledWith(
         '/api/v1/analytics/events/batch',
@@ -170,7 +172,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should track conversions', async () => {
-      const trackEventSpy = jest.spyOn(service, 'trackEvent');
+      const trackEventSpy = vi.spyOn(service, 'trackEvent');
 
       await service.trackConversion('adoption_completed', 1, { petId: 'pet123' });
 
@@ -186,7 +188,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should track errors', async () => {
-      const trackEventSpy = jest.spyOn(service, 'trackEvent');
+      const trackEventSpy = vi.spyOn(service, 'trackEvent');
 
       await service.trackError('API_ERROR', { endpoint: '/api/pets' });
 
@@ -202,7 +204,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should track performance timing', async () => {
-      const trackEventSpy = jest.spyOn(service, 'trackEvent');
+      const trackEventSpy = vi.spyOn(service, 'trackEvent');
 
       await service.trackTiming('page', 'load', 1500, 'home_page');
 
@@ -366,7 +368,7 @@ describe('AnalyticsService', () => {
       });
 
       // Mock the shouldSampleEvent method to return false
-      jest.spyOn(sampledService as any, 'shouldSampleEvent').mockReturnValue(false);
+      vi.spyOn(sampledService as any, 'shouldSampleEvent').mockReturnValue(false);
 
       await sampledService.trackEvent({
         category: 'test',
@@ -388,7 +390,7 @@ describe('AnalyticsService', () => {
       await service.trackEvent({ category: 'test2', action: 'action2' });
 
       // Advance timers to trigger flush
-      jest.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(5000);
 
       expect(mockApiService.post).toHaveBeenCalledWith(
         '/api/v1/analytics/events/batch',
@@ -427,7 +429,7 @@ describe('AnalyticsService', () => {
       await service.trackEvent({ category: 'test', action: 'test' });
 
       // Advance timers to trigger flush
-      jest.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(5000);
 
       // Verify the flush was attempted
       expect(mockApiService.post).toHaveBeenCalledWith(
@@ -483,7 +485,7 @@ describe('AnalyticsService', () => {
 
   describe('cleanup and lifecycle', () => {
     it('should clean up resources on destroy', () => {
-      const flushSpy = jest.spyOn(service, 'flushEventQueue' as any);
+      const flushSpy = vi.spyOn(service, 'flushEventQueue' as any);
 
       service.destroy();
 
