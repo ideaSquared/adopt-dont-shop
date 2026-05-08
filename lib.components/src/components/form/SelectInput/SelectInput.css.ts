@@ -381,3 +381,15 @@ export const helperText = recipe({
   },
   defaultVariants: { state: 'default' },
 });
+
+export const iconRow = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+});
+
+export const emptyMessage = style({
+  padding: '8px',
+  textAlign: 'center',
+  color: '#9ca3af',
+});

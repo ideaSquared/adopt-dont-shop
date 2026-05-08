@@ -190,3 +190,21 @@ export const loadingSkeletonRow = style({
     animation: `${shimmer} 1.5s infinite`,
   },
 });
+
+export const emptyState = style({
+  textAlign: 'center',
+  padding: '2rem',
+  color: '#6b7280',
+});
+
+export const legendColorGreen = style({
+  background: '#10B981',
+});
+
+export const legendColorRed = style({
+  background: '#EF4444',
+});
+
+export const legendColorGray = style({
+  background: '#D1D5DB',
+});

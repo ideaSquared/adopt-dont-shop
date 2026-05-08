@@ -158,3 +158,17 @@ globalStyle(`${statCard} .label`, {
 export const errorAlert = style({
   margin: '2rem 0',
 });
+
+export const ctaButtonGreen = style({
+  background: '#48bb78',
+  ':hover': {
+    background: '#38a169',
+  },
+});
+
+export const ctaButtonRow = style({
+  display: 'flex',
+  gap: '1rem',
+  justifyContent: 'center',
+  flexWrap: 'wrap',
+});

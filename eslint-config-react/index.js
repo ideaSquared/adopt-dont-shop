@@ -36,6 +36,19 @@ export default [
       'jsx-a11y/anchor-is-valid': 'warn',
       'jsx-a11y/mouse-events-have-key-events': 'warn',
 
+      // ADS-522: discourage inline styles — prefer Vanilla Extract classes
+      'react/forbid-component-props': [
+        'warn',
+        {
+          forbid: [
+            {
+              propName: 'style',
+              message: 'Use a Vanilla Extract class instead of inline style — see ADS-522.',
+            },
+          ],
+        },
+      ],
+
       // Security: disallow unsanitized dangerouslySetInnerHTML
       'react/no-danger': 'error',
 

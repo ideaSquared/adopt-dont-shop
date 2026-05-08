@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import clsx from 'clsx';
 import * as styles from './ResponseTimeChart.css';
 
 interface ResponseTimeData {
@@ -26,11 +27,7 @@ const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({ data, loading = f
   }
 
   if (!data || data.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-        No response time data available
-      </div>
-    );
+    return <div className={styles.emptyState}>No response time data available</div>;
   }
 
   // Calculate max value for scaling
@@ -84,15 +81,15 @@ const ResponseTimeChart: React.FC<ResponseTimeChartProps> = ({ data, loading = f
 
       <div className={styles.legend}>
         <div className={styles.legendItem}>
-          <div className={styles.legendColor} style={{ background: '#10B981' }} />
+          <div className={clsx(styles.legendColor, styles.legendColorGreen)} />
           <span>Actual Response Time (Compliant)</span>
         </div>
         <div className={styles.legendItem}>
-          <div className={styles.legendColor} style={{ background: '#EF4444' }} />
+          <div className={clsx(styles.legendColor, styles.legendColorRed)} />
           <span>Actual Response Time (Over SLA)</span>
         </div>
         <div className={styles.legendItem}>
-          <div className={styles.legendColor} style={{ background: '#D1D5DB' }} />
+          <div className={clsx(styles.legendColor, styles.legendColorGray)} />
           <span>SLA Target</span>
         </div>
       </div>

@@ -120,3 +120,13 @@ export const loadingSkeleton = style({
     animation: `${shimmer} 1.5s infinite`,
   },
 });
+
+export const emptyState = style({
+  textAlign: 'center',
+  padding: '2rem',
+  color: '#6b7280',
+});
+
+export const chartWrapper = style({
+  position: 'relative',
+});

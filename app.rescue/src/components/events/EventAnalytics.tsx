@@ -1,4 +1,5 @@
 import React from 'react';
+import clsx from 'clsx';
 import { EventAnalytics as EventAnalyticsType } from '../../types/events';
 import * as styles from './EventAnalytics.css';
 
@@ -101,11 +102,8 @@ const EventAnalytics: React.FC<EventAnalyticsProps> = ({ analytics, loading }) =
             <div className={styles.metricValue}>{analytics.feedbackScore}/5</div>
             <div className={styles.progressBar}>
               <div
-                className={styles.progressFill}
-                style={{
-                  width: `${(analytics.feedbackScore / 5) * 100}%`,
-                  background: '#f59e0b',
-                }}
+                className={clsx(styles.progressFill, styles.progressFillAmber)}
+                style={{ width: `${(analytics.feedbackScore / 5) * 100}%` }}
               />
             </div>
           </div>

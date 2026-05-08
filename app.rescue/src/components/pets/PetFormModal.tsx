@@ -419,9 +419,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
             </div>
           </div>
 
-          {errors.submit && (
-            <div style={{ color: '#ef4444', marginBottom: '1rem' }}>{errors.submit}</div>
-          )}
+          {errors.submit && <div className={styles.submitError}>{errors.submit}</div>}
 
           <div className={styles.modalActions}>
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>

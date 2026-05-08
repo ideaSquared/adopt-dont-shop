@@ -123,3 +123,7 @@ export const emptyStateText = style({
   fontSize: '0.875rem',
   color: '#6b7280',
 });
+
+export const progressFillAmber = style({
+  background: '#f59e0b',
+});

@@ -45,11 +45,7 @@ const ConversionFunnelChart: React.FC<ConversionFunnelChartProps> = ({ data, loa
   }
 
   if (!data || data.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-        No funnel data available
-      </div>
-    );
+    return <div className={styles.emptyState}>No funnel data available</div>;
   }
 
   const totalApplications = data[0]?.applicationsCount || 0;

@@ -252,3 +252,39 @@ export const loadingRowTd = style({
     },
   },
 });
+
+export const srOnly = style({
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+});
+
+export const loadingSkeletonCell = style({
+  height: '20px',
+  width: '100%',
+});
+
+export const emptyStateIcon = style({
+  marginBottom: '16px',
+  opacity: 0.5,
+});
+
+export const headerCellContentLeft = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+});
+
+export const headerCellContentCenter = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+});
+
+export const headerCellContentRight = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+});

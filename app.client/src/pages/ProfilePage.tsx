@@ -378,12 +378,12 @@ export const ProfilePage: React.FC = () => {
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Settings</h2>
       {successMessage && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div className={styles.sectionGap}>
           <Alert variant='success'>{successMessage}</Alert>
         </div>
       )}
       {error && (
-        <div style={{ marginBottom: '1rem' }} role='alert'>
+        <div className={styles.sectionGap} role='alert'>
           <Alert variant='error'>{error}</Alert>
         </div>
       )}

@@ -25,9 +25,7 @@ const StageDistributionChart: React.FC<StageDistributionChartProps> = ({
   if (!data || data.length === 0) {
     return (
       <div className={styles.chartContainer}>
-        <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-          No data available
-        </div>
+        <div className={styles.emptyState}>No data available</div>
       </div>
     );
   }
