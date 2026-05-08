@@ -231,7 +231,7 @@ describe('UserController', () => {
         userIds: validUserIds,
         updateData: { userType: 'admin' },
       });
-      expect(result.status).toBe(400);
+      expect(result.status).toBe(422);
     });
 
     it('rejects emailVerified — bypasses email verification gate', async () => {
@@ -239,7 +239,7 @@ describe('UserController', () => {
         userIds: validUserIds,
         updateData: { emailVerified: true },
       });
-      expect(result.status).toBe(400);
+      expect(result.status).toBe(422);
     });
 
     it('rejects twoFactorEnabled — disables 2FA on victim accounts', async () => {
@@ -247,7 +247,7 @@ describe('UserController', () => {
         userIds: validUserIds,
         updateData: { twoFactorEnabled: false },
       });
-      expect(result.status).toBe(400);
+      expect(result.status).toBe(422);
     });
 
     it('rejects password field', async () => {
@@ -255,17 +255,17 @@ describe('UserController', () => {
         userIds: validUserIds,
         updateData: { password: 'NewPass1!' },
       });
-      expect(result.status).toBe(400);
+      expect(result.status).toBe(422);
     });
 
     it('rejects empty userIds array', async () => {
       const result = await runMiddleware({ userIds: [], updateData: { status: 'active' } });
-      expect(result.status).toBe(400);
+      expect(result.status).toBe(422);
     });
 
     it('rejects non-UUID entries in userIds', async () => {
       const result = await runMiddleware({ userIds: ['not-a-uuid'], updateData: {} });
-      expect(result.status).toBe(400);
+      expect(result.status).toBe(422);
     });
   });
 });
