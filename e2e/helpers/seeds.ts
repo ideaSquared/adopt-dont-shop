@@ -198,8 +198,7 @@ export async function createAvailablePet(
   if (!petId) {
     throw new Error(`pet creation returned no id: ${JSON.stringify(body).slice(0, 200)}`);
   }
-  const rescueId =
-    body.rescueId ?? body.rescue_id ?? body.data?.rescueId ?? body.data?.rescue_id;
+  const rescueId = body.rescueId ?? body.rescue_id ?? body.data?.rescueId ?? body.data?.rescue_id;
   if (!rescueId) {
     throw new Error(`pet creation returned no rescueId: ${JSON.stringify(body).slice(0, 200)}`);
   }

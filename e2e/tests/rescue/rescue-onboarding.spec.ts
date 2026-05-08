@@ -45,9 +45,7 @@ test.describe('rescue onboarding → first listing visibility', () => {
           pets?: Array<{ petId?: string; pet_id?: string; id?: string }>;
         };
         const list = body.data ?? body.pets ?? [];
-        found = list.some(
-          p => (p.petId ?? p.pet_id ?? p.id) === pet.petId
-        );
+        found = list.some(p => (p.petId ?? p.pet_id ?? p.id) === pet.petId);
       }
       if (!found) {
         await new Promise(r => setTimeout(r, 500));
