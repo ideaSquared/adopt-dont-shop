@@ -173,6 +173,28 @@ export const profileImageUpload = createUploadMiddleware('profiles', {
 // Enhanced File Upload Service
 export class FileUploadService {
   /**
+   * Resolve a multer-supplied file path and verify it lives inside the
+   * configured uploads directory. Returns the resolved absolute path on
+   * success, throws on traversal.
+   *
+   * Multer constructs `file.path` from the configured destination plus a
+   * server-generated filename, so this is defence-in-depth. CodeQL's
+   * `js/path-injection` rule treats anything reachable from a request
+   * handler as user-tainted; routing every fs operation through this
+   * helper localises the validation in one auditable spot and gives the
+   * dataflow analyser the explicit containment check it expects.
+   */
+  private static safeResolveUploadPath(filePath: string): string {
+    const uploadsRoot = path.resolve(config.storage.local.directory);
+    const resolved = path.resolve(filePath);
+    const relative = path.relative(uploadsRoot, resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      throw new Error('Refused path outside uploads root');
+    }
+    return resolved;
+  }
+
+  /**
    * Upload a single file with enhanced validation and processing
    */
   static async uploadFile(
@@ -360,7 +382,7 @@ export class FileUploadService {
   private static async validateFile(file: Express.Multer.File): Promise<void> {
     const deleteFile = async () => {
       try {
-        await fs.promises.unlink(file.path);
+        await fs.promises.unlink(this.safeResolveUploadPath(file.path));
       } catch {
         /* best-effort cleanup */
       }
@@ -449,8 +471,9 @@ export class FileUploadService {
    */
   private static async sanitizeSvgFile(file: Express.Multer.File): Promise<void> {
     try {
+      const safePath = this.safeResolveUploadPath(file.path);
       // Read the SVG file content
-      const svgContent = await fs.promises.readFile(file.path, 'utf-8');
+      const svgContent = await fs.promises.readFile(safePath, 'utf-8');
 
       // Sanitize the SVG content using DOMPurify
       // isomorphic-dompurify works in Node.js environment automatically
@@ -480,7 +503,7 @@ export class FileUploadService {
       }
 
       // Write the sanitized content back to the file
-      await fs.promises.writeFile(file.path, cleanSvg, 'utf-8');
+      await fs.promises.writeFile(safePath, cleanSvg, 'utf-8');
 
       logger.info('SVG file sanitized successfully', {
         filename: file.originalname,
@@ -684,7 +707,7 @@ export class FileUploadService {
     file: Express.Multer.File,
     processedFile: ProcessedFileInfo
   ): Promise<FileMetadata> {
-    const stats = await fs.promises.stat(file.path);
+    const stats = await fs.promises.stat(this.safeResolveUploadPath(file.path));
 
     return {
       filename: file.filename,
