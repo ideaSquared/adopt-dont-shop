@@ -29,6 +29,18 @@ const FLAG_REQUIREMENTS: Partial<Record<SeedTarget, { var: string; value: string
   bootstrap: { var: 'ALLOW_BOOTSTRAP', value: 'true' },
 };
 
+/**
+ * Production-only flag requirements (ADS-506).
+ *
+ * Targets in this map are allowed in production by NODE_ENV policy but still
+ * require a per-invocation confirmation flag when NODE_ENV=production. This
+ * stops `npm run db:seed:reference` from silently overwriting reference data
+ * if it is accidentally pointed at a prod DSN.
+ */
+const PROD_ONLY_FLAG_REQUIREMENTS: Partial<Record<SeedTarget, { var: string; value: string }>> = {
+  reference: { var: 'ALLOW_REFERENCE_SEED_PROD', value: 'true' },
+};
+
 const isNodeEnv = (value: string): value is NodeEnv =>
   value === 'development' || value === 'test' || value === 'staging' || value === 'production';
 
@@ -49,5 +61,15 @@ export function assertSeedAllowed(target: SeedTarget): void {
       `Seed target "${target}" requires ${flag.var}=${flag.value} to confirm. ` +
         `This double-gate prevents accidental destructive operations.`
     );
+  }
+
+  if (env === 'production') {
+    const prodFlag = PROD_ONLY_FLAG_REQUIREMENTS[target];
+    if (prodFlag && process.env[prodFlag.var] !== prodFlag.value) {
+      throw new Error(
+        `Seed target "${target}" requires ${prodFlag.var}=${prodFlag.value} when NODE_ENV=production. ` +
+          `This guards against accidental seed runs against a production database.`
+      );
+    }
   }
 }

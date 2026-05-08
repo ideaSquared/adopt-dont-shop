@@ -26,6 +26,8 @@
     "db:seed:fixtures": "ts-node src/seeders/cli.ts --fixtures",
     "db:seed:reset": "cross-env ALLOW_DEMO_SEED=true ts-node src/seeders/cli.ts --reset",
     "db:bootstrap": "cross-env ALLOW_BOOTSTRAP=true ts-node src/seeders/cli.ts --bootstrap",
+    "db:backup": "bash scripts/db-backup.sh",
+    "db:restore": "bash scripts/db-restore.sh",
     "security:validate": "node scripts/validate-security.js",
     "docs:generate": "ts-node scripts/generate-swagger.ts generate",
     "docs:validate": "ts-node scripts/generate-swagger.ts validate",
