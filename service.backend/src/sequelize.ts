@@ -4,6 +4,67 @@ import { env, getDatabaseName } from './config/env';
 
 dotenv.config();
 
+/**
+ * Connection pool + statement/lock timeouts (ADS-401).
+ *
+ * Sequelize defaults to a 5-connection pool with no per-query timeout, which
+ * lets a single slow query exhaust the pool and cascade to 500s. The values
+ * below are env-overridable so ops can tune per instance count.
+ */
+type PoolConfig = {
+  max: number;
+  min: number;
+  acquire: number;
+  idle: number;
+};
+
+type TimeoutConfig = {
+  statementTimeoutMs: number;
+  lockTimeoutMs: number;
+  idleInTransactionSessionTimeoutMs: number;
+};
+
+const parseIntEnv = (name: string, fallback: number): number => {
+  const raw = process.env[name];
+  if (!raw) {
+    return fallback;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (Number.isNaN(parsed) || parsed < 0) {
+    return fallback;
+  }
+  return parsed;
+};
+
+export const buildPoolConfig = (): PoolConfig => ({
+  max: parseIntEnv('DB_POOL_MAX', 20),
+  min: parseIntEnv('DB_POOL_MIN', 2),
+  acquire: parseIntEnv('DB_POOL_ACQUIRE_MS', 30000),
+  idle: parseIntEnv('DB_POOL_IDLE_MS', 10000),
+});
+
+export const buildTimeoutConfig = (): TimeoutConfig => ({
+  statementTimeoutMs: parseIntEnv('DB_STATEMENT_TIMEOUT_MS', 30000),
+  lockTimeoutMs: parseIntEnv('DB_LOCK_TIMEOUT_MS', 10000),
+  idleInTransactionSessionTimeoutMs: parseIntEnv('DB_IDLE_IN_TRANSACTION_TIMEOUT_MS', 60000),
+});
+
+export const logEffectiveDbConfig = (
+  pool: PoolConfig,
+  timeouts: TimeoutConfig,
+  log: (message: string) => void = msg => {
+    // eslint-disable-next-line no-console
+    console.log(msg);
+  }
+): void => {
+  log(
+    `[db] pool max=${pool.max} min=${pool.min} acquireMs=${pool.acquire} idleMs=${pool.idle} ` +
+      `statementTimeoutMs=${timeouts.statementTimeoutMs} ` +
+      `lockTimeoutMs=${timeouts.lockTimeoutMs} ` +
+      `idleInTransactionSessionTimeoutMs=${timeouts.idleInTransactionSessionTimeoutMs}`
+  );
+};
+
 const buildConnectionString = (database: string): string => {
   const username = process.env.DB_USERNAME;
   const password = process.env.DB_PASSWORD;
@@ -62,6 +123,9 @@ const isTestEnvironment = process.env.NODE_ENV === 'test';
 
 const databaseUrl = isTestEnvironment ? '' : getDatabaseUrl();
 
+const poolConfig = buildPoolConfig();
+const timeoutConfig = buildTimeoutConfig();
+
 const sequelize = isTestEnvironment
   ? new Sequelize('sqlite::memory:', {
       dialect: 'sqlite',
@@ -92,6 +156,19 @@ const sequelize = isTestEnvironment
         // Enable paranoid (soft delete) by default
         paranoid: true,
       },
+      pool: {
+        max: poolConfig.max,
+        min: poolConfig.min,
+        acquire: poolConfig.acquire,
+        idle: poolConfig.idle,
+      },
+      dialectOptions: {
+        // Per-query and per-lock-wait ceilings keep a single misbehaving
+        // query from holding a connection forever. Values are in ms.
+        statement_timeout: timeoutConfig.statementTimeoutMs,
+        lock_timeout: timeoutConfig.lockTimeoutMs,
+        idle_in_transaction_session_timeout: timeoutConfig.idleInTransactionSessionTimeoutMs,
+      },
       logging:
         process.env.NODE_ENV === 'development' && process.env.DB_LOGGING === 'true'
           ? (sql: string) => {
@@ -100,6 +177,10 @@ const sequelize = isTestEnvironment
             }
           : false,
     });
+
+if (!isTestEnvironment) {
+  logEffectiveDbConfig(poolConfig, timeoutConfig);
+}
 
 /**
  * Get the appropriate JSON data type based on the database dialect
