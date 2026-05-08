@@ -12,6 +12,7 @@ import { logger, loggerHelpers } from '../utils/logger';
 import { decryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
 import { getValidatedFrontendOrigin } from '../utils/url-allowlist';
 import { AuditLogService } from './auditLog.service';
+import { redactEmail } from './redact';
 import { env } from '../config/env';
 
 import {
@@ -74,7 +75,7 @@ export class AuthService {
 
       loggerHelpers.logBusiness('User Registered', {
         userId: user.userId,
-        email: user.email,
+        email: redactEmail(user.email),
         userType: UserType.ADOPTER,
       });
 
@@ -108,7 +109,10 @@ export class AuthService {
           priority: 'high',
         });
 
-        logger.info('Verification email sent', { userId: user.userId, email: user.email });
+        logger.info('Verification email sent', {
+          userId: user.userId,
+          email: redactEmail(user.email),
+        });
       } catch (emailError) {
         logger.error('Failed to send verification email, queuing for retry:', emailError);
         // Queue email for retry instead of silently failing
@@ -137,7 +141,7 @@ export class AuthService {
           });
           logger.info('Verification email queued for retry', {
             userId: user.userId,
-            email: user.email,
+            email: redactEmail(user.email),
           });
         } catch (queueError) {
           logger.error('Failed to queue verification email:', queueError);
@@ -160,7 +164,7 @@ export class AuthService {
     } catch (error) {
       logger.error('Registration failed:', {
         error: error instanceof Error ? error.message : String(error),
-        email: userData.email,
+        email: redactEmail(userData.email),
       });
       throw error;
     }
@@ -196,7 +200,7 @@ export class AuthService {
         if (!user) {
           await transaction.rollback();
           loggerHelpers.logSecurity('Login attempt with non-existent email', {
-            email: credentials.email,
+            email: redactEmail(credentials.email),
             ipAddress,
           });
           throw new Error('Invalid credentials');
@@ -288,7 +292,7 @@ export class AuthService {
 
       loggerHelpers.logAuth('User logged in', {
         userId: loggedInUser.userId,
-        email: loggedInUser.email,
+        email: redactEmail(loggedInUser.email),
         ipAddress,
       });
 
@@ -308,7 +312,7 @@ export class AuthService {
     } catch (error) {
       logger.error('Login failed:', {
         error: error instanceof Error ? error.message : String(error),
-        email: credentials.email,
+        email: redactEmail(credentials.email),
         ipAddress,
       });
       throw error;
@@ -418,7 +422,9 @@ export class AuthService {
 
       if (!user) {
         // Don't reveal if email exists
-        logger.info('Password reset requested for non-existent email', { email: data.email });
+        logger.info('Password reset requested for non-existent email', {
+          email: redactEmail(data.email),
+        });
         return { message: 'If the email exists, a reset link has been sent' };
       }
 
@@ -441,7 +447,7 @@ export class AuthService {
 
       loggerHelpers.logAuth('Password reset requested', {
         userId: user.userId,
-        email: user.email,
+        email: redactEmail(user.email),
       });
 
       // Send password reset email
@@ -558,7 +564,10 @@ Need help? Contact us at support@adoptdontshop.com
           priority: 'high',
         });
 
-        logger.info('Password reset email sent', { userId: user.userId, email: user.email });
+        logger.info('Password reset email sent', {
+          userId: user.userId,
+          email: redactEmail(user.email),
+        });
       } catch (emailError) {
         logger.error('Failed to send password reset email:', emailError);
         // Don't throw error - we still want to return success to user for security
@@ -568,7 +577,7 @@ Need help? Contact us at support@adoptdontshop.com
     } catch (error) {
       logger.error('Password reset request failed:', {
         error: error instanceof Error ? error.message : String(error),
-        email: data.email,
+        email: redactEmail(data.email),
       });
       throw error;
     }
@@ -755,7 +764,10 @@ Need help? Contact us at support@adoptdontshop.com
           subject: 'Verify Your Email Address',
         });
 
-        logger.info('Verification email sent', { userId: user.userId, email: user.email });
+        logger.info('Verification email sent', {
+          userId: user.userId,
+          email: redactEmail(user.email),
+        });
       } catch (emailError) {
         logger.error('Failed to send verification email:', emailError);
         // Don't throw error - we still want to return success to user for security
@@ -905,7 +917,6 @@ Need help? Contact us at support@adoptdontshop.com
     // stored hash and try to match; first hit is the used code.
     let matchIndex = -1;
     for (let i = 0; i < user.backupCodes.length; i++) {
-      // eslint-disable-next-line no-await-in-loop
       if (await verifyBackupCode(code, user.backupCodes[i])) {
         matchIndex = i;
         break;
@@ -1108,13 +1119,13 @@ Need help? Contact us at support@adoptdontshop.com
           sent++;
           logger.info('Verification reminder sent', {
             userId: user.userId,
-            email: user.email,
+            email: redactEmail(user.email),
           });
         } catch (error) {
           failed++;
           logger.error('Failed to send verification reminder', {
             userId: user.userId,
-            email: user.email,
+            email: redactEmail(user.email),
             error: error instanceof Error ? error.message : String(error),
           });
         }

@@ -2,7 +2,7 @@ import express from 'express';
 import { ReportsController } from '../controllers/reports.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
-import { generalLimiter } from '../middleware/rate-limiter';
+import { generalLimiter, reportLimiter } from '../middleware/rate-limiter';
 import { PERMISSIONS } from '../types/rbac';
 
 /**
@@ -34,8 +34,11 @@ router.get(
 );
 
 // Preview endpoint — un-saved config; cheaper than persisting then executing.
+// ADS-517: pre-aggregations + large response bodies, so a tighter
+// limiter than the general apiLimiter.
 router.post(
   '/execute',
+  reportLimiter,
   requirePermission(PERMISSIONS.REPORTS_CREATE),
   ReportsController.executePreview
 );
@@ -44,7 +47,7 @@ router.get('/:id', ReportsController.get); // service-side perm check
 router.put('/:id', requirePermission(PERMISSIONS.REPORTS_UPDATE), ReportsController.update);
 router.delete('/:id', requirePermission(PERMISSIONS.REPORTS_DELETE), ReportsController.remove);
 
-router.post('/:id/execute', ReportsController.executeSaved);
+router.post('/:id/execute', reportLimiter, ReportsController.executeSaved);
 
 router.post(
   '/:id/schedule',

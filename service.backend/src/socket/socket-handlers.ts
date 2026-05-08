@@ -4,6 +4,7 @@ import { Socket, Server as SocketIOServer } from 'socket.io';
 import { config } from '../config';
 import { toFrontendMessage } from '../controllers/chat.controller';
 import MessageReaction from '../models/MessageReaction';
+import RevokedToken from '../models/RevokedToken';
 import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
 import { getMessageBroker } from '../services/messageBroker.service';
@@ -181,7 +182,18 @@ export class SocketHandlers {
           userType: string;
           role?: string;
           rescueId?: string;
+          jti?: string;
         };
+
+        // ADS-473: HTTP authenticateToken middleware checks the
+        // RevokedToken table on every authenticated request, but
+        // Socket.IO previously trusted any signature-valid JWT — so
+        // a logged-out user could keep / reconnect a WebSocket and
+        // receive messages. Mirror the HTTP path here.
+        if (decoded.jti && (await RevokedToken.findByPk(decoded.jti))) {
+          return next(new Error('Token has been revoked'));
+        }
+
         socket.userId = decoded.userId;
         socket.role = decoded.role || 'user';
         socket.rescueId = decoded.rescueId;

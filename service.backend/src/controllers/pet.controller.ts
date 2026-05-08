@@ -118,19 +118,15 @@ export class PetController {
       const authenticatedReq = req as AuthenticatedRequest;
       if (authenticatedReq.user && !filters.rescueId) {
         try {
-          const StaffMember = (await import('../models/StaffMember')).default;
-          const staffMember = await StaffMember.findOne({
-            where: {
-              userId: authenticatedReq.user.userId,
-              isVerified: true,
-            },
-          });
+          const rescueId = await PetService.getVerifiedRescueIdForUser(
+            authenticatedReq.user.userId
+          );
 
-          if (staffMember) {
-            filters.rescueId = staffMember.rescueId;
+          if (rescueId) {
+            filters.rescueId = rescueId;
             logger.info('Auto-filtering pets by user rescue:', {
               userId: authenticatedReq.user.userId,
-              rescueId: staffMember.rescueId,
+              rescueId,
             });
           }
         } catch (error) {
@@ -212,24 +208,15 @@ export class PetController {
         });
       }
 
-      // Import StaffMember model to get rescue ID
-      const StaffMember = (await import('../models/StaffMember')).default;
-
       // ADS-376: a user can be verified staff at multiple rescues. Listing
       // all verified rows lets us (a) keep the single-rescue UX implicit
       // and (b) require an explicit selection when ambiguous. Explicit
       // rescueId travels via the query string because `fieldWriteGuard`
       // marks `pets.rescueId` as READ-only for rescue_staff and would
       // reject it on the body.
-      const verifiedStaff = await StaffMember.findAll({
-        where: {
-          userId: user.userId,
-          isVerified: true,
-        },
-        attributes: ['rescueId'],
-      });
+      const verifiedRescueIds = await PetService.getVerifiedRescueIdsForUser(user.userId);
 
-      if (verifiedStaff.length === 0) {
+      if (verifiedRescueIds.length === 0) {
         return res.status(403).json({
           success: false,
           message: 'User is not associated with a rescue organization',
@@ -243,22 +230,22 @@ export class PetController {
 
       let resolvedRescueId: string;
       if (requestedRescueId) {
-        const match = verifiedStaff.find(s => s.rescueId === requestedRescueId);
+        const match = verifiedRescueIds.find(id => id === requestedRescueId);
         if (!match) {
           return res.status(403).json({
             success: false,
             message: 'You are not verified staff at the requested rescue',
           });
         }
-        resolvedRescueId = match.rescueId;
-      } else if (verifiedStaff.length === 1) {
-        resolvedRescueId = verifiedStaff[0].rescueId;
+        resolvedRescueId = match;
+      } else if (verifiedRescueIds.length === 1) {
+        resolvedRescueId = verifiedRescueIds[0];
       } else {
         return res.status(400).json({
           success: false,
           message:
             'You are verified staff at multiple rescues. Specify ?rescueId=<id> to indicate which rescue this pet belongs to.',
-          rescueIds: verifiedStaff.map(s => s.rescueId),
+          rescueIds: verifiedRescueIds,
         });
       }
 
@@ -529,18 +516,10 @@ export class PetController {
         });
       }
 
-      // Import StaffMember model to get rescue ID
-      const StaffMember = (await import('../models/StaffMember')).default;
-
       // Find the user's rescue association
-      const staffMember = await StaffMember.findOne({
-        where: {
-          userId: user.userId,
-          isVerified: true,
-        },
-      });
+      const staffRescueId = await PetService.getVerifiedRescueIdForUser(user.userId);
 
-      if (!staffMember) {
+      if (!staffRescueId) {
         return res.status(403).json({
           success: false,
           message: 'User is not associated with a rescue organization',
@@ -565,7 +544,7 @@ export class PetController {
       // Use the searchPets method with rescue filter
       const result = await this.petService.searchPets(
         {
-          rescueId: staffMember.rescueId,
+          rescueId: staffRescueId,
           status: status as PetStatus,
           search,
           type: type as PetType,

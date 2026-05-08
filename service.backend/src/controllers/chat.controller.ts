@@ -208,15 +208,11 @@ export class ChatController {
       if (rescueId && rescueId !== createdBy) {
         try {
           // Find users who belong to this rescue (limit to 50 to avoid unbounded queries)
-          const rescueUsers = await User.findAll({
-            where: { rescueId: rescueId },
-            attributes: ['userId'],
-            limit: 50,
-          });
+          const rescueUserIds = await ChatService.getRescueParticipantUserIds(rescueId);
 
           // Add rescue staff user IDs to participants (use Set for O(1) dedup)
           const participantSet = new Set(participantIds);
-          rescueUsers.forEach(user => participantSet.add(user.userId));
+          rescueUserIds.forEach(uid => participantSet.add(uid));
           participantIds.length = 0;
           participantIds.push(...Array.from(participantSet));
         } catch (error) {
