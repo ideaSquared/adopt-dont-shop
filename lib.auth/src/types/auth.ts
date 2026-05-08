@@ -49,6 +49,15 @@ export interface User {
   // Legacy fields for backward compatibility
   phone?: string;
   preferredContactMethod?: 'email' | 'phone' | 'both';
+  // Adopter discovery / matching preferences (ADS-425). The backend
+  // already persists these, but the lib.auth User shape was missing them
+  // so the SettingsForm save in app.client (preferences.petTypes,
+  // preferences.maxDistance, preferences.newsletterOptIn) wouldn't compile.
+  preferences?: {
+    petTypes?: string[];
+    maxDistance?: number;
+    newsletterOptIn?: boolean;
+  };
   // Rescue-specific fields
   rescueId?: string;
   role?: RescueRole;
