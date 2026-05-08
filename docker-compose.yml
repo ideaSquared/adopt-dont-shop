@@ -77,10 +77,14 @@ services:
       DB_LOGGING: ${DB_LOGGING:-false}
       # Development mode configuration
       FORCE_SEED: ${FORCE_SEED:-false}
-      # Redis configuration
+      # Redis configuration. The backend's lib/redis.ts and BullMQ scheduler
+      # read REDIS_URL — without it Redis stays disabled, the /health probe
+      # returns 503 (ADS-446/460), and the docker healthcheck fails. Build it
+      # from the discrete vars so existing per-component overrides still work.
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-devredispassword}
+      REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD:-devredispassword}@${REDIS_HOST:-redis}:${REDIS_PORT:-6379}}
       # Security - JWT tokens (REQUIRED)
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
