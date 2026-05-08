@@ -33,7 +33,8 @@ vi.mock('../../middleware/rate-limiter', () => ({
   searchLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   reportLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   sensitiveWriteLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
-  accountDeletionLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  accountDeletionLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+    next(),
   invitationSendLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
