@@ -137,12 +137,12 @@ describe('GET /api/v1/admin/moderation/metrics', () => {
     });
   });
 
-  it('returns 400 when period query param is invalid', async () => {
+  it('returns 422 when period query param is invalid (ADS-455 — semantic violation)', async () => {
     const res = await request(app)
       .get('/api/v1/admin/moderation/metrics')
       .query({ period: 'invalid_period' });
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
   });
 
   it('returns 401 when request is unauthenticated', async () => {

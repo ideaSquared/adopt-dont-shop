@@ -597,6 +597,25 @@ class EmailService {
     }
   }
 
+  /**
+   * ADS-477: previously processed each batch with a sequential
+   * `for...of await`. With a 500ms SMTP round-trip a batch of 10
+   * already pegged the worker for 5 seconds, so the queue would
+   * never catch up under load.
+   *
+   * Now we run a bounded `Promise.all` across the batch — up to
+   * `EMAIL_QUEUE_CONCURRENCY` (default 5) concurrent sends. Failures
+   * are isolated per email so one bad send can't poison the batch.
+   */
+  private getQueueConcurrency(): number {
+    const raw = process.env.EMAIL_QUEUE_CONCURRENCY;
+    const parsed = raw ? parseInt(raw, 10) : NaN;
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 5;
+    }
+    return Math.min(parsed, 50);
+  }
+
   private async processEmailQueue(): Promise<void> {
     if (this.isProcessing) {
       return;
@@ -605,7 +624,11 @@ class EmailService {
     this.isProcessing = true;
 
     try {
-      // Get emails that are ready to send
+      const concurrency = this.getQueueConcurrency();
+      // Pull a batch sized to the concurrency window so we don't
+      // hold rows in QUEUED state any longer than necessary.
+      const batchSize = Math.max(concurrency * 2, 10);
+
       const emails = await EmailQueue.findAll({
         where: {
           status: EmailStatus.QUEUED,
@@ -615,12 +638,32 @@ class EmailService {
           ['priority', 'DESC'],
           ['createdAt', 'ASC'],
         ],
-        limit: 10, // Process in batches
+        limit: batchSize,
       });
 
-      for (const email of emails) {
-        await this.processEmail(email);
-      }
+      // Bounded parallel: `concurrency` workers pull from a shared
+      // queue. Each worker awaits its current send before pulling
+      // the next, so we never exceed `concurrency` in-flight calls.
+      const queue = [...emails];
+      const workers = Array.from({ length: Math.min(concurrency, queue.length) }, async () => {
+        while (queue.length > 0) {
+          const email = queue.shift();
+          if (!email) {
+            return;
+          }
+          try {
+            await this.processEmail(email);
+          } catch (error) {
+            // processEmail already records failure on the row; this
+            // catch keeps a single send from killing the worker.
+            logger.error('Email worker caught unhandled error', {
+              emailId: email.emailId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      });
+      await Promise.all(workers);
     } catch (error) {
       logger.error('Error processing email queue:', error);
     } finally {
