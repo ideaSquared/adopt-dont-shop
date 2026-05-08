@@ -1,0 +1,48 @@
+# GitHub CodeQL static analysis for JavaScript / TypeScript.
+# Trivy in `docker.yml` covers container images; this covers source code.
+# Runs on every push to main, every PR, and weekly (catches new queries
+# released in the GitHub-managed query packs). [ADS-498]
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays at 06:00 UTC. Aligns with the Dependabot weekly schedule so
+    # security review happens in the same window.
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # security-extended adds queries beyond the default set; this is
+          # the recommended config for production code.
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'

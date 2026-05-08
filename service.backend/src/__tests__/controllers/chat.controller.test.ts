@@ -70,7 +70,7 @@ describe('ChatController', () => {
           updated_at: new Date().toISOString(),
         };
 
-        (User.findAll as vi.Mock).mockResolvedValue([{ userId: 'rescue-staff-1' }]);
+        (ChatService.getRescueParticipantUserIds as Mock).mockResolvedValue(['rescue-staff-1']);
         (ChatService.createChat as vi.Mock).mockResolvedValue(mockChat);
 
         await ChatController.createChat(
@@ -95,7 +95,7 @@ describe('ChatController', () => {
           type: 'inquiry',
         };
 
-        const rescueStaff = [{ userId: 'staff-1' }, { userId: 'staff-2' }];
+        const rescueStaffIds = ['staff-1', 'staff-2'];
 
         const mockChat = {
           chat_id: 'chat-001',
@@ -106,7 +106,7 @@ describe('ChatController', () => {
           updated_at: new Date().toISOString(),
         };
 
-        (User.findAll as Mock).mockResolvedValue(rescueStaff);
+        (ChatService.getRescueParticipantUserIds as Mock).mockResolvedValue(rescueStaffIds);
         (ChatService.createChat as Mock).mockResolvedValue(mockChat);
 
         await ChatController.createChat(
@@ -128,7 +128,7 @@ describe('ChatController', () => {
           initialMessage: 'Hello',
         };
 
-        (User.findAll as Mock).mockResolvedValue([]);
+        (ChatService.getRescueParticipantUserIds as Mock).mockResolvedValue([]);
         (ChatService.createChat as Mock).mockResolvedValue({
           chatId: 'chat-001',
         });
@@ -162,7 +162,9 @@ describe('ChatController', () => {
           rescueId: 'invalid-rescue',
         };
 
-        (User.findAll as Mock).mockRejectedValue(new Error('Rescue not found'));
+        (ChatService.getRescueParticipantUserIds as Mock).mockRejectedValue(
+          new Error('Rescue not found')
+        );
         (ChatService.createChat as Mock).mockResolvedValue({
           chatId: 'chat-001',
         });
@@ -183,7 +185,7 @@ describe('ChatController', () => {
           type: 'inquiry',
         };
 
-        (User.findAll as vi.Mock).mockResolvedValue([]);
+        (ChatService.getRescueParticipantUserIds as Mock).mockResolvedValue([]);
         (ChatService.createChat as vi.Mock).mockRejectedValue(new Error('Database error'));
 
         await ChatController.createChat(
@@ -203,7 +205,7 @@ describe('ChatController', () => {
       it('should log error with request details', async () => {
         mockRequest.body = { type: 'inquiry' };
 
-        (User.findAll as vi.Mock).mockResolvedValue([]);
+        (ChatService.getRescueParticipantUserIds as Mock).mockResolvedValue([]);
         (ChatService.createChat as vi.Mock).mockRejectedValue(new Error('Creation failed'));
 
         await ChatController.createChat(
@@ -1007,7 +1009,7 @@ describe('ChatController', () => {
 
     it('should handle service errors gracefully', async () => {
       mockRequest.body = { type: 'inquiry' };
-      (User.findAll as vi.Mock).mockResolvedValue([]);
+      (ChatService.getRescueParticipantUserIds as Mock).mockResolvedValue([]);
       (ChatService.createChat as vi.Mock).mockRejectedValue(new Error('Unexpected error'));
 
       await ChatController.createChat(

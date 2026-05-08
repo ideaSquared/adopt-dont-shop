@@ -233,6 +233,29 @@ export class ChatService {
    * mapper falls back to "adopter" with no branding, which is the
    * correct rendering for a chat that lost its rescue association.
    */
+  /**
+   * Resolve user IDs that should be added as participants when a chat is
+   * opened against a given rescue. Centralised here so the controller
+   * doesn't need to query the User model directly (ADS-489).
+   *
+   * Preserves the previous controller behaviour: the lookup is bounded
+   * (default 50) and uses the User table (rescue affiliation lives in the
+   * StaffMember join, but this is a cheap pre-filter for chat seeding —
+   * downstream chat permission checks remain authoritative).
+   */
+  static async getRescueParticipantUserIds(
+    rescueId: string,
+    options: { limit?: number } = {}
+  ): Promise<string[]> {
+    const limit = options.limit ?? 50;
+    const users = await User.findAll({
+      where: { rescueId },
+      attributes: ['userId'],
+      limit,
+    });
+    return users.map(row => row.userId);
+  }
+
   static async getChatContext(chatId: string): Promise<{
     rescueStaffSenderIds: ReadonlySet<string>;
     rescueName: string | null;

@@ -7,6 +7,7 @@ import Chat from '../models/Chat';
 import Message from '../models/Message';
 import { generateUuidV7 } from '../utils/uuid';
 import { JsonObject, JsonValue } from '../types/common';
+import { bulkInsert } from './lib/bulk-insert';
 
 export async function seedReports() {
   try {
@@ -309,7 +310,12 @@ export async function seedReports() {
           }>) || [],
       };
     });
-    await Report.bulkCreate(reportsWithEvidence.map(r => ({ ...r.fields, reportId: r.reportId })));
+    // Idempotent inserts — re-runs after a partial failure must not throw
+    // on duplicate primary keys (ADS-441).
+    await bulkInsert(
+      Report,
+      reportsWithEvidence.map(r => ({ ...r.fields, reportId: r.reportId }))
+    );
     const evidenceRows = reportsWithEvidence.flatMap(r =>
       r.evidence.map(e => ({
         parent_type: EvidenceParentType.REPORT,
@@ -320,9 +326,7 @@ export async function seedReports() {
         uploaded_at: new Date(),
       }))
     );
-    if (evidenceRows.length > 0) {
-      await ModerationEvidence.bulkCreate(evidenceRows);
-    }
+    await bulkInsert(ModerationEvidence, evidenceRows);
     console.log(
       `✅ Created ${validReports.length} moderation reports + ${evidenceRows.length} evidence rows`
     );

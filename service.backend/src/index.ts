@@ -52,6 +52,9 @@ import cmsRoutes from './routes/cms.routes';
 import healthRoutes from './routes/health.routes';
 import metricsRoutes from './routes/metrics.routes';
 import reportsRoutes from './routes/reports.routes';
+import legalRoutes from './routes/legal.routes';
+import privacyRoutes from './routes/privacy.routes';
+import uploadServeRoutes from './routes/upload-serve.routes';
 import { authenticateToken } from './middleware/auth';
 import { requireRole } from './middleware/rbac';
 import { UserType } from './models/User';
@@ -85,18 +88,33 @@ app.set('trust proxy', 1);
 
 const server = createServer(app);
 
+// ADS-474: explicit CORS allowlists. Without an `allowedHeaders`
+// list, the `cors` middleware reflects whatever Access-Control-
+// Request-Headers the browser advertises — fine in dev, but it makes
+// the surface area opaque in production. Pin both the methods and
+// the headers we actually accept.
+const ALLOWED_CORS_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+const ALLOWED_CORS_HEADERS = ['Content-Type', 'Authorization', 'X-CSRF-Token', 'Idempotency-Key'];
+
 // Initialize Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
     origin: config.cors.origin,
-    methods: ['GET', 'POST'],
+    methods: ALLOWED_CORS_METHODS,
+    allowedHeaders: ALLOWED_CORS_HEADERS,
     credentials: true,
   },
   transports: config.nodeEnv === 'production' ? ['websocket'] : ['websocket', 'polling'],
 });
 
 // Apply middleware
-app.use(cors(config.cors));
+app.use(
+  cors({
+    ...config.cors,
+    methods: ALLOWED_CORS_METHODS,
+    allowedHeaders: ALLOWED_CORS_HEADERS,
+  })
+);
 
 // Sentry instrumentation - automatically instruments Express
 // Note: In Sentry v8+, instrumentation is automatic with setupExpressErrorHandler
@@ -157,8 +175,22 @@ app.use(
     },
   })
 );
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ADS-514: Permissions-Policy header. Helmet doesn't ship a
+// permissionsPolicy directive in this version, so set it directly.
+// Empty allowlists deny these powerful APIs everywhere — the app
+// doesn't use geolocation/camera/microphone/payment.
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=(), payment=()');
+  next();
+});
+// ADS-457: 10 MB body limits were a DoS amplifier on auth/search/chat
+// endpoints that only need a few KB of JSON. Multipart file uploads go
+// through multer (not body-parser), so this lower limit doesn't affect
+// uploads. Override via MAX_JSON_BODY_BYTES if a specific deployment
+// needs a larger ceiling for one route.
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Establish AsyncLocalStorage context per-request so model hooks can read
 // the authenticated userId for created_by / updated_by stamping. Must come
@@ -196,12 +228,16 @@ app.use('/api', (req, res, next) => {
   return csrfProtection(req, res, next);
 });
 
-// Serve uploaded files in development
-if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
+// ADS-429: /uploads is now auth-gated. The express.static mount that
+// previously served local files unauthenticated has been replaced by
+// upload-serve.routes — every request requires a valid session/JWT
+// before the file is streamed from disk. Signed-URL escape hatch for
+// email/render contexts lives in the same router (/uploads-signed/...).
+// nginx-direct serving is tracked as the ADS-422 follow-up.
+if (config.storage.provider === 'local') {
   const projectRoot = path.resolve(__dirname, '..', '..');
   const uploadDir = path.resolve(config.storage.local.directory);
 
-  // Prevent directory traversal: reject any path that escapes the project root
   if (!uploadDir.startsWith(projectRoot + path.sep) && uploadDir !== projectRoot) {
     throw new Error(
       `Unsafe upload directory: "${uploadDir}" is outside project root "${projectRoot}". ` +
@@ -209,46 +245,8 @@ if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
     );
   }
 
-  // Configure static file serving with proper CORS headers
-  app.use(
-    '/uploads',
-    (req, res, next) => {
-      // Set CORS headers for uploaded files - restrict to configured allowed origins
-      const origin = req.headers.origin;
-      const allowedOrigins = Array.isArray(config.cors.origin)
-        ? config.cors.origin
-        : [config.cors.origin];
-
-      if (origin !== undefined && allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      }
-
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-      res.setHeader(
-        'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept'
-      );
-
-      // Set cache headers for better performance
-      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year
-
-      // Set proper content types
-      if (req.path.endsWith('.jpg') || req.path.endsWith('.jpeg')) {
-        res.setHeader('Content-Type', 'image/jpeg');
-      } else if (req.path.endsWith('.png')) {
-        res.setHeader('Content-Type', 'image/png');
-      } else if (req.path.endsWith('.pdf')) {
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline'); // Show PDFs in browser instead of downloading
-      }
-
-      next();
-    },
-    express.static(uploadDir, { dotfiles: 'deny', index: false, redirect: false })
-  );
-
-  logger.info(`Serving static files from: ${uploadDir} with CORS enabled`);
+  app.use('/', uploadServeRoutes);
+  logger.info(`Auth-gated upload serving enabled for directory: ${uploadDir}`);
 }
 
 // Setup Swagger UI for API documentation
@@ -282,6 +280,8 @@ app.use('/api/v1/config', configRoutes);
 app.use('/api/v1/field-permissions', fieldPermissionsRoutes);
 app.use('/api/v1/cms', cmsRoutes);
 app.use('/api/v1/reports', reportsRoutes); // ADS-105: custom analytics reports
+app.use('/api/v1/legal', legalRoutes); // ADS-495: public terms / privacy
+app.use('/api/v1/privacy', privacyRoutes); // ADS-427/496/497: GDPR delete + export + consent
 
 // ADS-446 / ADS-460: readiness endpoint that probes DB + Redis + BullMQ.
 app.use('/api/v1', healthRoutes);
@@ -474,6 +474,22 @@ const startServer = async () => {
           error: err instanceof Error ? err.message : String(err),
         });
       }
+
+      // ADS-428: schedule + start the retention enforcement job. Both
+      // calls are no-ops without REDIS_URL so dev/test boots aren't
+      // forced to bring up Redis.
+      try {
+        const { scheduleRetentionJob, startRetentionWorker } = await import('./jobs/retention.job');
+        await scheduleRetentionJob();
+        const w = startRetentionWorker();
+        if (w) {
+          logger.info('Retention worker started');
+        }
+      } catch (err) {
+        logger.warn('Retention job failed to start (continuing without scheduling)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
 
     // Test database connection with retry mechanism
@@ -599,17 +615,37 @@ const startServer = async () => {
     });
 
     // Graceful shutdown
+    // Without an explicit process.exit(), Socket.IO connections + timers keep
+    // the event loop alive after server.close(), so dumb-init eventually
+    // SIGKILLs the container. We exit cleanly after draining, with a 10s
+    // force-exit fallback for stuck connections. [ADS-395]
+    let shuttingDown = false;
     const gracefulShutdown = (signal: string) => {
+      if (shuttingDown) {
+        return;
+      }
+      shuttingDown = true;
       logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+      const forceExitTimer = setTimeout(() => {
+        logger.error('Graceful shutdown timed out after 10s — forcing exit.');
+        process.exit(1);
+      }, 10_000);
+      forceExitTimer.unref();
+
       server.close(async () => {
         logger.info('HTTP server closed.');
         try {
+          const { messageBroker } = await import('./services/messageBroker.service');
+          await messageBroker.disconnect();
+          logger.info('Message broker disconnected.');
           await sequelize.close();
           logger.info('Database connection closed.');
           logger.info('Graceful shutdown completed.');
+          process.exit(0);
         } catch (error) {
           logger.error('Error during graceful shutdown:', error);
-          throw error;
+          process.exit(1);
         }
       });
     };

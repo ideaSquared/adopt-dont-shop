@@ -9,9 +9,29 @@ import { logger } from '../utils/logger';
 type SwaggerSpec = OAS3Definition & { paths?: Record<string, unknown> };
 
 /**
+ * Whether the OpenAPI docs (`/api/docs`, `/api/docs/swagger.json`,
+ * `/api/docs/swagger.yaml`) should be exposed.
+ *
+ * ADS-412: in production, the full schema is a roadmap for attackers.
+ * Default to off in production unless `EXPOSE_API_DOCS=true` is set
+ * explicitly (e.g. for an internal staging-prod for partners).
+ */
+export function shouldExposeApiDocs(): boolean {
+  if (process.env.EXPOSE_API_DOCS === 'true') {
+    return true;
+  }
+  return process.env.NODE_ENV !== 'production';
+}
+
+/**
  * Setup Swagger UI for API documentation
  */
 export function setupSwagger(app: Express) {
+  if (!shouldExposeApiDocs()) {
+    logger.info('Swagger UI disabled (production gate). Set EXPOSE_API_DOCS=true to override.');
+    return;
+  }
+
   try {
     // swagger-jsdoc configuration
     const swaggerOptions: Options = {

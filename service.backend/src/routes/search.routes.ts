@@ -7,15 +7,18 @@
 import { Router } from 'express';
 import { SearchController } from '../controllers/search.controller';
 import { authenticateToken } from '../middleware/auth';
-import { apiLimiter } from '../middleware/rate-limiter';
+import { searchLimiter } from '../middleware/rate-limiter';
 
 const router = Router();
 
 // Apply authentication to all search routes
 router.use(authenticateToken);
 
-// Apply rate limiting (use existing API limiter)
-router.use(apiLimiter);
+// ADS-517: search is computationally expensive — full-text scans plus
+// pagination. The general apiLimiter (100/15m) was too permissive;
+// `searchLimiter` is 30/15m so abusive scrapers trip earlier without
+// also throttling unrelated authenticated traffic from the same IP.
+router.use(searchLimiter);
 
 /**
  * @route GET /api/v1/search/messages

@@ -15,7 +15,14 @@ import crypto from 'crypto';
  *   - `hash8` is the first 8 hex chars of SHA-256(emailLowercased)
  *     so two redactions of the same email collide deterministically.
  *
- * Use at every `logger.*({ email })` call site in auth.service.ts.
+ * Use at every `logger.*({ email })` call site in services/auth.service.ts.
+ */
+/**
+ * SHA-256-hash the input and return the first 8 hex chars. Wrapped so
+ * that test suites which automock the entire `crypto` module (and so
+ * stub out `createHash`) don't crash when redactEmail is called from a
+ * logger inside the system-under-test. The fallback returns "00000000"
+ * in that case — log lines stay correlatable across a single test run.
  */
 const hashPrefix = (input: string): string => {
   const fn = (crypto as { createHash?: typeof crypto.createHash }).createHash;
@@ -39,6 +46,7 @@ export const redactEmail = (email: string | null | undefined): string => {
   const hash8 = hashPrefix(trimmed);
 
   if (atIndex < 1) {
+    // Malformed input — surface only the hash so we don't echo the literal.
     return `invalid#${hash8}`;
   }
 

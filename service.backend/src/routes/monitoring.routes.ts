@@ -1,11 +1,29 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { Op } from 'sequelize';
 import { config } from '../config';
+import { authenticateToken } from '../middleware/auth';
 import { authLimiter, uploadLimiter } from '../middleware/rate-limiter';
+import { requireAdmin } from '../middleware/rbac';
 import { HealthCheckService } from '../services/health-check.service';
 import { logger } from '../utils/logger';
 
 const router = Router();
+
+// ADS-398: belt-and-braces gate. The router is also gated at mount time in
+// index.ts (NODE_ENV !== 'production'), but the inner check protects against
+// future re-mounts. Every monitoring response is treated as containing PII
+// and admin credentials and MUST require admin auth.
+const monitoringGuard = (req: Request, res: Response, next: NextFunction): void => {
+  if (config.nodeEnv === 'production') {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  next();
+};
+
+router.use(monitoringGuard);
+router.use(authenticateToken);
+router.use(requireAdmin);
 
 // Helper function to generate descriptions for dev users
 const getDevUserDescription = (userType: string, email: string): string => {
@@ -1171,10 +1189,9 @@ if (process.env.NODE_ENV === 'development') {
   // faker-generated demo user is logged-in-able. NEVER exposed in prod
   // (User table has real PII).
   router.get('/api/dev/seeded-users', async (req, res) => {
-    if (config.nodeEnv === 'production') {
-      return res.status(404).json({ error: 'Not found' });
-    }
-
+    // Production gate is enforced by `monitoringGuard` at the router level;
+    // we keep an admin-auth requirement (router.use(requireAdmin)) since the
+    // response includes user PII even outside production.
     try {
       const User = (await import('../models/User')).default;
 
@@ -1236,9 +1253,11 @@ if (process.env.NODE_ENV === 'development') {
         description: getDevUserDescription(user.userType, user.email),
       }));
 
+      // ADS-398: never return a shared dev password in the response. The
+      // dev password is documented in the seeder README; emitting it here
+      // turned a misconfigured NODE_ENV into a one-shot credential leak.
       res.json({
         users: transformedUsers,
-        password: 'DevPassword123!',
         source: 'database',
         limit,
         returned: transformedUsers.length,

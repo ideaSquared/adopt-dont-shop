@@ -39,14 +39,12 @@ const PetManagement: React.FC = () => {
         contactPhone: '555-0123',
       };
 
-      // Call the API using lib.api
-      const result = await apiService.post<any>(
-        'http://localhost:5000/api/v1/rescues',
-        demoRescueData
-      );
+      // Call the API using lib.api (relative path resolves against the
+      // configured API base URL, so this works in any environment).
+      const result = await apiService.post<any>('/api/v1/rescues', demoRescueData);
 
       // Now update the user with the rescue ID
-      await apiService.patch<any>(`http://localhost:5000/api/v1/users/${user?.userId}`, {
+      await apiService.patch<any>(`/api/v1/users/${user?.userId}`, {
         rescueId: result.data.rescueId,
       });
 
@@ -150,9 +148,7 @@ const PetManagement: React.FC = () => {
   const fetchStats = async () => {
     try {
       // Try to get stats using the dashboard endpoint which works
-      const dashboardData = await apiService.get<any>(
-        'http://localhost:5000/api/v1/dashboard/rescue'
-      );
+      const dashboardData = await apiService.get<any>('/api/v1/dashboard/rescue');
 
       // Map dashboard data to our stats format
       setStats({

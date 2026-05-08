@@ -5,6 +5,9 @@ import ApplicationAnswer from '../models/ApplicationAnswer';
 import ApplicationReferenceModel, {
   ApplicationReferenceStatus,
 } from '../models/ApplicationReference';
+import HomeVisit, { HomeVisitStatus } from '../models/HomeVisit';
+import HomeVisitStatusTransition from '../models/HomeVisitStatusTransition';
+import StaffMember from '../models/StaffMember';
 import { validateSortField } from '../utils/sort-validation';
 
 const APPLICATION_SORT_FIELDS = [
@@ -66,7 +69,202 @@ const loadAnswersJson = async (applicationId: string): Promise<JsonObject> => {
   return answersToJson(rows);
 };
 
+type HomeVisitDto = {
+  id: string;
+  applicationId: string;
+  scheduledDate: Date | string | null;
+  scheduledTime: string | null;
+  assignedStaff: string | null;
+  status: HomeVisitStatus;
+  notes?: string | null;
+  outcome?: string | null;
+  outcomeNotes?: string | null;
+  rescheduleReason?: string | null;
+  cancelledReason?: string | null;
+  completedAt?: string;
+};
+
+const formatHomeVisit = (visit: HomeVisit): HomeVisitDto => ({
+  id: visit.visit_id,
+  applicationId: visit.application_id,
+  scheduledDate: visit.scheduled_date,
+  scheduledTime: visit.scheduled_time,
+  assignedStaff: visit.assigned_staff,
+  status: visit.status,
+  notes: visit.notes,
+  outcome: visit.outcome,
+  outcomeNotes: visit.outcome_notes,
+  rescheduleReason: visit.reschedule_reason,
+  cancelledReason: visit.cancelled_reason,
+  completedAt: visit.completed_at?.toISOString(),
+});
+
 export class ApplicationService {
+  /**
+   * Look up the rescueId for any StaffMember row owned by the user.
+   * Mirrors the previous controller-side `StaffMember.findOne({ where:
+   * { userId } })` lookup (no `isVerified` filter), centralised in the
+   * service layer so the controller stays thin (ADS-489).
+   */
+  static async getStaffRescueIdForUser(userId: string): Promise<string | null> {
+    const membership = await StaffMember.findOne({
+      where: { userId },
+      attributes: ['rescueId'],
+    });
+    return membership?.rescueId ?? null;
+  }
+
+  /**
+   * List all HomeVisit rows for an application, newest first, projected
+   * into the frontend-friendly DTO shape.
+   */
+  static async listHomeVisitsForApplication(applicationId: string): Promise<HomeVisitDto[]> {
+    const visits = await HomeVisit.findAll({
+      where: { application_id: applicationId },
+      order: [['created_at', 'DESC']],
+    });
+    return visits.map(formatHomeVisit);
+  }
+
+  /**
+   * Create a HomeVisit row, seed the status-transition log, and bump the
+   * parent application to SUBMITTED so the rescue UI shows scheduling
+   * progress. Returns the freshly-created visit projected into the DTO.
+   */
+  static async scheduleHomeVisit(
+    applicationId: string,
+    input: {
+      scheduledDate: string;
+      scheduledTime: string;
+      assignedStaff: string;
+      notes?: string | null;
+    },
+    transitionedBy: string | null
+  ): Promise<HomeVisitDto> {
+    const visitId = `visit_${applicationId}_${Date.now()}`;
+
+    const visit = await HomeVisit.create({
+      visit_id: visitId,
+      application_id: applicationId,
+      scheduled_date: input.scheduledDate,
+      scheduled_time: input.scheduledTime,
+      assigned_staff: input.assignedStaff,
+      notes: input.notes ?? null,
+      status: HomeVisitStatus.SCHEDULED,
+    });
+
+    await HomeVisitStatusTransition.create({
+      visitId: visit.visit_id,
+      fromStatus: null,
+      toStatus: visit.status,
+      transitionedBy,
+      reason: 'Visit scheduled',
+    });
+
+    await Application.update({ status: ApplicationStatus.SUBMITTED }, { where: { applicationId } });
+
+    return formatHomeVisit(visit);
+  }
+
+  /**
+   * Apply a partial update to a HomeVisit, append a transition row when
+   * status changes, and propagate completion outcomes onto the parent
+   * application status.
+   *
+   * Returns `null` when the visit isn't found (controllers convert this
+   * to HTTP 404).
+   */
+  static async updateHomeVisit(
+    applicationId: string,
+    visitId: string,
+    updateData: {
+      scheduledDate?: string;
+      scheduledTime?: string;
+      assignedStaff?: string;
+      notes?: string | null;
+      outcome?: string;
+      outcomeNotes?: string | null;
+      rescheduleReason?: string | null;
+      cancelledReason?: string | null;
+      status?: HomeVisitStatus | string;
+    },
+    transitionedBy: string | null
+  ): Promise<HomeVisitDto | null> {
+    const visit = await HomeVisit.findOne({
+      where: { visit_id: visitId, application_id: applicationId },
+    });
+
+    if (!visit) {
+      return null;
+    }
+
+    // Convert frontend camelCase to backend snake_case. Status is handled
+    // separately via the transition log; we never write it to the parent
+    // row directly.
+    const dbUpdateData: Record<string, string | Date | null> = {};
+    if (updateData.scheduledDate) {
+      dbUpdateData.scheduled_date = updateData.scheduledDate;
+    }
+    if (updateData.scheduledTime) {
+      dbUpdateData.scheduled_time = updateData.scheduledTime;
+    }
+    if (updateData.assignedStaff) {
+      dbUpdateData.assigned_staff = updateData.assignedStaff;
+    }
+    if (updateData.notes !== undefined) {
+      dbUpdateData.notes = updateData.notes;
+    }
+    if (updateData.outcome) {
+      dbUpdateData.outcome = updateData.outcome;
+    }
+    if (updateData.outcomeNotes !== undefined) {
+      dbUpdateData.outcome_notes = updateData.outcomeNotes;
+    }
+    if (updateData.rescheduleReason !== undefined) {
+      dbUpdateData.reschedule_reason = updateData.rescheduleReason;
+    }
+    if (updateData.cancelledReason !== undefined) {
+      dbUpdateData.cancelled_reason = updateData.cancelledReason;
+    }
+
+    // Set completed_at when status changes to completed.
+    if (updateData.status === 'completed' && visit.status !== 'completed') {
+      dbUpdateData.completed_at = new Date();
+    }
+
+    if (Object.keys(dbUpdateData).length > 0) {
+      await visit.update(dbUpdateData);
+    }
+
+    // Append a transition row for the status change; the trigger / hook
+    // updates home_visits.status.
+    if (updateData.status && updateData.status !== visit.status) {
+      await HomeVisitStatusTransition.create({
+        visitId: visit.visit_id,
+        fromStatus: visit.status,
+        toStatus: updateData.status as HomeVisitStatus,
+        transitionedBy,
+        reason: updateData.cancelledReason || updateData.rescheduleReason || null,
+      });
+    }
+
+    // Update application status based on visit outcome.
+    if (updateData.status === 'completed' && updateData.outcome) {
+      let applicationStatus: ApplicationStatus = ApplicationStatus.SUBMITTED;
+      if (updateData.outcome === 'approved') {
+        applicationStatus = ApplicationStatus.APPROVED;
+      } else if (updateData.outcome === 'conditional') {
+        applicationStatus = ApplicationStatus.APPROVED; // Treat conditional as approved
+      } else if (updateData.outcome === 'rejected') {
+        applicationStatus = ApplicationStatus.REJECTED;
+      }
+
+      await Application.update({ status: applicationStatus }, { where: { applicationId } });
+    }
+
+    return formatHomeVisit(visit);
+  }
+
   /**
    * Create a new application
    */

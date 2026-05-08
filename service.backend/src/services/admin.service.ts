@@ -1,4 +1,5 @@
-import { Op, QueryTypes, WhereOptions } from 'sequelize';
+import { Readable } from 'stream';
+import { ModelStatic, Model, Op, QueryTypes, WhereOptions } from 'sequelize';
 import Application from '../models/Application';
 import AuditLog from '../models/AuditLog';
 import Pet from '../models/Pet';
@@ -9,6 +10,43 @@ import { RescueListResponse, SystemStatistics, UserListResponse } from '../types
 import { JsonObject } from '../types/common';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+
+export type ExportType = 'users' | 'rescues' | 'pets' | 'applications' | 'audit_logs';
+export type ExportFormat = 'json' | 'jsonl' | 'csv';
+
+const EXPORT_PAGE_SIZE = 1000;
+
+type ExportableRow = Record<string, unknown>;
+
+/**
+ * ADS-421: Per-export-type Sequelize options. Centralised so the
+ * streamer (and the legacy non-streaming `exportData`) both project
+ * the same column set and never include sensitive fields.
+ */
+const EXPORT_QUERY_OPTIONS: Record<
+  ExportType,
+  { model: ModelStatic<Model>; attributesExclude?: string[] }
+> = {
+  users: { model: User, attributesExclude: ['password'] },
+  rescues: { model: Rescue },
+  pets: { model: Pet },
+  applications: { model: Application },
+  audit_logs: { model: AuditLog },
+};
+
+const toPlainRow = (row: Model): ExportableRow => row.toJSON() as ExportableRow;
+
+/** CSV-escape a single cell. */
+const csvEscape = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
 
 interface UserFilter {
   role?: string;
@@ -688,43 +726,133 @@ class AdminService {
    * schema and translate to a `where` clause server-side.
    */
   static async exportData(dataType: string, format = 'json') {
-    try {
-      let data;
-
-      switch (dataType) {
-        case 'users':
-          data = await User.findAll({
-            attributes: { exclude: ['password'] },
-          });
-          break;
-        case 'rescues':
-          data = await Rescue.findAll();
-          break;
-        case 'pets':
-          data = await Pet.findAll();
-          break;
-        case 'applications':
-          data = await Application.findAll();
-          break;
-        case 'audit_logs':
-          data = await AuditLog.findAll();
-          break;
-        default:
-          throw new Error('Invalid data type for export');
-      }
-
-      if (format === 'json') {
-        return JSON.stringify(data, null, 2);
-      } else if (format === 'csv') {
-        // Would need to implement CSV conversion
-        throw new Error('CSV export not yet implemented');
-      }
-
-      return data;
-    } catch (error) {
-      logger.error('Error exporting data:', error);
-      throw error;
+    // ADS-421: Non-streaming entry point retained only for tests /
+    // small datasets. Production callers should use `streamExport`.
+    // We still page rather than `findAll()`-with-no-limit so a stale
+    // caller can't OOM the process.
+    if (!Object.prototype.hasOwnProperty.call(EXPORT_QUERY_OPTIONS, dataType)) {
+      throw new Error('Invalid data type for export');
     }
+    if (format !== 'json' && format !== 'jsonl' && format !== 'csv') {
+      throw new Error(`Unsupported export format: ${format}`);
+    }
+
+    const stream = AdminService.streamExport(dataType as ExportType, format as ExportFormat);
+    const chunks: string[] = [];
+    for await (const chunk of stream) {
+      chunks.push(typeof chunk === 'string' ? chunk : chunk.toString('utf-8'));
+    }
+    return chunks.join('');
+  }
+
+  /**
+   * ADS-421: Stream the export as a Readable so the caller can pipe
+   * it directly to the HTTP response. Pages through the table in
+   * fixed-size chunks (no `findAll()` over the whole table) and
+   * emits each row as JSON / JSONL / CSV without holding the full
+   * result set in memory.
+   */
+  static streamExport(dataType: ExportType, format: ExportFormat = 'json'): Readable {
+    const options = EXPORT_QUERY_OPTIONS[dataType];
+    if (!options) {
+      throw new Error('Invalid data type for export');
+    }
+
+    const { model, attributesExclude } = options;
+
+    let offset = 0;
+    let firstRow = true;
+    let csvHeader: string[] | null = null;
+    let exhausted = false;
+
+    const stream = new Readable({
+      objectMode: false,
+      read() {
+        // Pull is driven by the async loop below; this no-op satisfies
+        // the Readable contract.
+      },
+    });
+
+    const pushFrame = (frame: string) => {
+      stream.push(frame);
+    };
+
+    const drive = async () => {
+      try {
+        if (format === 'json') {
+          pushFrame('[');
+        }
+
+        while (!exhausted) {
+          const queryOptions: {
+            limit: number;
+            offset: number;
+            order: [string, string][];
+            attributes?: { exclude: string[] };
+          } = {
+            limit: EXPORT_PAGE_SIZE,
+            offset,
+            order: [['createdAt', 'ASC']],
+          };
+          if (attributesExclude) {
+            queryOptions.attributes = { exclude: attributesExclude };
+          }
+
+          const rows = (await model.findAll(queryOptions)) as Model[];
+
+          if (rows.length === 0) {
+            exhausted = true;
+            break;
+          }
+
+          for (const row of rows) {
+            const plain = toPlainRow(row);
+
+            if (format === 'jsonl') {
+              pushFrame(`${JSON.stringify(plain)}\n`);
+              continue;
+            }
+
+            if (format === 'json') {
+              pushFrame(`${firstRow ? '' : ','}\n  ${JSON.stringify(plain)}`);
+              firstRow = false;
+              continue;
+            }
+
+            // CSV: derive the header from the first row's keys.
+            if (csvHeader === null) {
+              csvHeader = Object.keys(plain);
+              pushFrame(`${csvHeader.join(',')}\n`);
+            }
+            pushFrame(`${csvHeader.map(col => csvEscape(plain[col])).join(',')}\n`);
+          }
+
+          if (rows.length < EXPORT_PAGE_SIZE) {
+            exhausted = true;
+            break;
+          }
+
+          offset += rows.length;
+        }
+
+        if (format === 'json') {
+          pushFrame(firstRow ? ']' : '\n]');
+        }
+
+        stream.push(null);
+      } catch (error) {
+        logger.error('Error streaming export:', {
+          dataType,
+          format,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        stream.destroy(error instanceof Error ? error : new Error(String(error)));
+      }
+    };
+
+    void drive();
+
+    return stream;
   }
 
   /**

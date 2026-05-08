@@ -48,6 +48,8 @@ const Events: React.FC = () => {
   // State for loading and errors
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // In-flight flag to prevent duplicate create/update/delete submissions.
+  const [submitting, setSubmitting] = useState(false);
 
   // Fetch events on mount and when filters change
   useEffect(() => {
@@ -128,6 +130,10 @@ const Events: React.FC = () => {
    * Handle event creation
    */
   const handleCreateEvent = async (eventData: CreateEventInput) => {
+    if (submitting) {
+      return;
+    }
+    setSubmitting(true);
     try {
       const newEvent = await eventsService.createEvent(eventData);
       setEvents(prev => [newEvent, ...prev]);
@@ -137,6 +143,8 @@ const Events: React.FC = () => {
     } catch (err) {
       console.error('Failed to create event:', err);
       alert('Failed to create event. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -144,10 +152,11 @@ const Events: React.FC = () => {
    * Handle event update
    */
   const handleUpdateEvent = async (eventData: CreateEventInput) => {
-    if (!eventToEdit) {
+    if (!eventToEdit || submitting) {
       return;
     }
 
+    setSubmitting(true);
     try {
       const updates: UpdateEventInput = {
         ...eventData,
@@ -166,6 +175,8 @@ const Events: React.FC = () => {
     } catch (err) {
       console.error('Failed to update event:', err);
       alert('Failed to update event. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -173,10 +184,14 @@ const Events: React.FC = () => {
    * Handle event deletion
    */
   const handleDeleteEvent = async (eventId: string) => {
+    if (submitting) {
+      return;
+    }
     if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
       return;
     }
 
+    setSubmitting(true);
     try {
       await eventsService.deleteEvent(eventId);
       setEvents(prev => prev.filter(event => event.id !== eventId));
@@ -186,6 +201,8 @@ const Events: React.FC = () => {
     } catch (err) {
       console.error('Failed to delete event:', err);
       alert('Failed to delete event. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -356,12 +373,10 @@ const Events: React.FC = () => {
       </div>
 
       {/* Create Event Modal */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         className={clsx(styles.modal, showCreateModal ? styles.modalOpen : styles.modalClosed)}
         onClick={() => handleCloseModal('create')}
       >
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
           <div className={styles.modalHeader}>
             <h2 className={styles.modalTitle}>Create New Event</h2>
@@ -374,18 +389,17 @@ const Events: React.FC = () => {
               onSubmit={handleCreateEvent}
               onCancel={() => handleCloseModal('create')}
               isEditing={false}
+              submitting={submitting}
             />
           </div>
         </div>
       </div>
 
       {/* Edit Event Modal */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         className={clsx(styles.modal, showEditModal ? styles.modalOpen : styles.modalClosed)}
         onClick={() => handleCloseModal('edit')}
       >
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
           <div className={styles.modalHeader}>
             <h2 className={styles.modalTitle}>Edit Event</h2>
@@ -413,6 +427,7 @@ const Events: React.FC = () => {
                 onSubmit={handleUpdateEvent}
                 onCancel={() => handleCloseModal('edit')}
                 isEditing={true}
+                submitting={submitting}
               />
             )}
           </div>
@@ -420,12 +435,10 @@ const Events: React.FC = () => {
       </div>
 
       {/* Event Details Modal */}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         className={clsx(styles.modal, showDetailsModal ? styles.modalOpen : styles.modalClosed)}
         onClick={() => handleCloseModal('details')}
       >
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
           <div className={styles.modalHeader}>
             <h2 className={styles.modalTitle}>Event Details</h2>
