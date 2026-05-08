@@ -1223,14 +1223,14 @@ export class RescueService {
       });
 
       return {
-        totalPets: totalPets as unknown as number,
-        availablePets: availablePets as unknown as number,
-        adoptedPets: adoptedPets as unknown as number,
+        totalPets,
+        availablePets,
+        adoptedPets,
         pendingApplications,
         totalApplications,
         staffCount,
-        activeListings: availablePets as unknown as number,
-        monthlyAdoptions: monthlyAdoptions as unknown as number,
+        activeListings: availablePets,
+        monthlyAdoptions,
         averageTimeToAdoption,
       };
     } catch (error) {

@@ -133,12 +133,7 @@ export const previewTemplate = async (req: AuthenticatedRequest, res: Response):
     }
 
     // Process template with provided data
-    // Accessing private processTemplate method for preview functionality
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const processedContent = await (emailService as any).processTemplate(
-      template,
-      templateData || {}
-    );
+    const processedContent = await emailService.renderTemplatePreview(template, templateData || {});
 
     res.json({
       message: 'Template preview generated successfully',
@@ -237,9 +232,7 @@ export const getQueueStatus = async (req: AuthenticatedRequest, res: Response): 
 export const processQueue = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     // Start queue processing
-    // Accessing private startQueueProcessor method
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (emailService as any).startQueueProcessor();
+    emailService.startQueueProcessor();
 
     res.json({
       message: 'Queue processing started successfully',

@@ -518,6 +518,21 @@ class EmailService {
   }
 
   // Template Processing
+  /**
+   * Public wrapper for processTemplate, used by preview endpoints to render
+   * a template with provided data without queueing/sending.
+   */
+  public async renderTemplatePreview(
+    template: EmailTemplate,
+    data: TemplateData
+  ): Promise<{
+    subject: string;
+    htmlContent: string;
+    textContent?: string;
+  }> {
+    return this.processTemplate(template, data);
+  }
+
   private async processTemplate(
     template: EmailTemplate,
     data: TemplateData

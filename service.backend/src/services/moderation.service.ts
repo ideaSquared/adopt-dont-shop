@@ -968,15 +968,15 @@ class ModerationService {
   }
 
   async getActiveActionsForUser(userId: string): Promise<ModeratorAction[]> {
-    // Split the query to avoid complex Op.or with null handling
-    // Type assertion needed: Sequelize doesn't allow null in where clause correctly
-    // This is a valid runtime pattern - checking for records where expiresAt is null
+    // Split the query to avoid complex Op.or with null handling.
+    // `[Op.is]: null` emits `IS NULL`, which is the SQL semantics we want
+    // for "never expires" and avoids casting null into a Date-shaped attribute.
     const [neverExpiringActions, futureExpiringActions] = await Promise.all([
       ModeratorAction.findAll({
         where: {
           targetUserId: userId,
           isActive: true,
-          expiresAt: null as unknown as undefined,
+          expiresAt: { [Op.is]: null },
         },
         order: [['createdAt', 'DESC']],
       }),

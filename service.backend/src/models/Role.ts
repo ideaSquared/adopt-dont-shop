@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize';
+import type Permission from './Permission';
 
 interface RoleAttributes {
   roleId: number;
@@ -17,6 +18,11 @@ class Role extends Model<RoleAttributes, RoleCreationAttributes> implements Role
   public description!: string;
   public createdAt!: Date;
   public updatedAt!: Date;
+
+  // Sequelize association — populated by Role.belongsToMany(Permission)
+  // declared in src/models/index.ts. Declared here so callers reading
+  // role.Permissions[i].permissionName don't need cast escapes.
+  public Permissions?: Permission[];
 }
 
 Role.init(
