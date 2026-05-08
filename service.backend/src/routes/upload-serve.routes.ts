@@ -161,18 +161,23 @@ router.get(
   }
 );
 
-router.get('/uploads/*', apiLimiter, authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const filePath = (req.params as Record<string, string>)['0'] ?? '';
-  const resolved = safeResolve(filePath);
-  if (!resolved) {
-    logger.warn('Upload serve: rejected unsafe path', {
-      userId: req.user?.userId,
-      requested: filePath,
-    });
-    res.status(400).json({ error: 'Invalid file path' });
-    return;
+router.get(
+  '/uploads/*',
+  apiLimiter,
+  authenticateToken,
+  (req: AuthenticatedRequest, res: Response) => {
+    const filePath = (req.params as Record<string, string>)['0'] ?? '';
+    const resolved = safeResolve(filePath);
+    if (!resolved) {
+      logger.warn('Upload serve: rejected unsafe path', {
+        userId: req.user?.userId,
+        requested: filePath,
+      });
+      res.status(400).json({ error: 'Invalid file path' });
+      return;
+    }
+    streamFile(resolved, res);
   }
-  streamFile(resolved, res);
-});
+);
 
 export default router;
