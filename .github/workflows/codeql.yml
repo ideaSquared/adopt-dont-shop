@@ -41,6 +41,9 @@ jobs:
           # security-extended adds queries beyond the default set; this is
           # the recommended config for production code.
           queries: security-extended
+          # Scope: production source only. Excludes CLI scripts, test files,
+          # node_modules, dist, e2e — see .github/codeql/codeql-config.yml.
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

@@ -1060,7 +1060,13 @@ class EmailService {
       });
 
       if (!email) {
-        logger.warn(`Email not found for webhook: ${data.messageId}`);
+        // Strip CR/LF before logging to prevent log-injection from a
+        // crafted `messageId`. Truncate to keep log lines tidy.
+        const safeMessageId =
+          typeof data.messageId === 'string'
+            ? data.messageId.replace(/[\r\n]/g, '').slice(0, 128)
+            : '';
+        logger.warn('Email not found for webhook', { messageId: safeMessageId });
         return;
       }
 
