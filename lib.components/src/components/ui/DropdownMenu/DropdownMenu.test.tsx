@@ -1,61 +1,60 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 import Dropdown from './DropdownMenu';
 
+/**
+ * Dropdown wraps @radix-ui/react-dropdown-menu. The behaviours the consumer
+ * cares about are:
+ *   - the labelled trigger is rendered
+ *   - opening the menu reveals each configured item, with hrefs preserved
+ *     for navigational items and click handlers for action items
+ *
+ * Radix relies on `pointerdown` events that JSDOM doesn't fully synthesize
+ * via userEvent, so we use fireEvent.pointerDown which Radix accepts.
+ */
 describe('Dropdown', () => {
-  const renderWithTheme = (component: React.ReactElement) => render(component);
+  const renderUI = (component: React.ReactElement) => render(component);
 
-  it('renders the trigger label correctly', () => {
-    renderWithTheme(<Dropdown triggerLabel='Menu' items={[]} />);
-
-    // Check if the trigger label is rendered
-    const triggerElement = screen.getByText('Menu');
-    expect(triggerElement).toBeInTheDocument();
+  it('renders the trigger label', () => {
+    renderUI(<Dropdown triggerLabel='Menu' items={[]} />);
+    expect(screen.getByText('Menu')).toBeInTheDocument();
   });
 
-  it.skip('shows dropdown items when the trigger is clicked', async () => {
+  it('reveals navigational items with their hrefs when opened', async () => {
     const items = [
-      { label: 'Item 1', to: '/item1' },
-      { label: 'Item 2', to: '/item2' },
+      { label: 'Profile', to: '/profile' },
+      { label: 'Settings', to: '/settings' },
     ];
+    renderUI(<Dropdown triggerLabel='Menu' items={items} />);
 
-    const user = userEvent.setup();
-    renderWithTheme(<Dropdown triggerLabel='Menu' items={items} />);
+    const trigger = screen.getByText('Menu');
+    fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
+    fireEvent.click(trigger);
 
-    // The trigger is a span, so use keyboard to open (Space or Enter)
-    const triggerElement = screen.getByText('Menu');
-    triggerElement.focus();
-    await user.keyboard('{Enter}');
-
-    // Ensure the dropdown has opened by checking for the presence of the dropdown items
     await waitFor(() => {
-      items.forEach(item => {
-        expect(screen.getByText(item.label)).toBeInTheDocument();
-      });
+      expect(screen.getByText('Profile')).toBeInTheDocument();
     });
+    expect(screen.getByText('Profile').closest('a')).toHaveAttribute('href', '/profile');
+    expect(screen.getByText('Settings').closest('a')).toHaveAttribute('href', '/settings');
   });
 
-  it.skip('renders dropdown items with correct href attributes', async () => {
-    const items = [
-      { label: 'Item 1', to: '/item1' },
-      { label: 'Item 2', to: '/item2' },
-    ];
+  it('invokes the item callback when an action item is selected', async () => {
+    const onSelect = vi.fn();
+    const items = [{ label: 'Sign out', onClick: onSelect }];
+    renderUI(<Dropdown triggerLabel='Menu' items={items} />);
 
-    const user = userEvent.setup();
-    renderWithTheme(<Dropdown triggerLabel='Menu' items={items} />);
+    const trigger = screen.getByText('Menu');
+    fireEvent.pointerDown(trigger, { button: 0, pointerType: 'mouse' });
+    fireEvent.click(trigger);
 
-    const triggerElement = screen.getByText('Menu');
-    triggerElement.focus();
-    await user.keyboard('{Enter}');
+    const item = await screen.findByText('Sign out');
+    fireEvent.pointerDown(item, { button: 0, pointerType: 'mouse' });
+    fireEvent.pointerUp(item, { button: 0, pointerType: 'mouse' });
+    fireEvent.click(item);
 
-    // Wait for the dropdown items to appear and check href attributes
     await waitFor(() => {
-      items.forEach(item => {
-        const linkElement = screen.getByText(item.label);
-        expect(linkElement.closest('a')).toHaveAttribute('href', item.to);
-      });
+      expect(onSelect).toHaveBeenCalled();
     });
   });
 });

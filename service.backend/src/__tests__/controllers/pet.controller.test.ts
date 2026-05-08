@@ -22,11 +22,10 @@ vi.mock('express-validator', () => ({
   validationResult: () => ({ isEmpty: () => true, array: () => [] }),
 }));
 
-const MockedPetService = PetService as unknown as {
-  createPet: ReturnType<typeof vi.fn>;
-  getVerifiedRescueIdForUser: ReturnType<typeof vi.fn>;
-  getVerifiedRescueIdsForUser: ReturnType<typeof vi.fn>;
-};
+// ADS-527: vi.mocked() recovers the typed mock without manually-cast
+// shapes. The vi.mock() factory above declares which methods are mocked;
+// vi.mocked() infers the rest from the mocked module type.
+const MockedPetService = vi.mocked(PetService);
 
 describe('PetController.createPet — rescueId resolution [ADS-376]', () => {
   let controller: PetController;

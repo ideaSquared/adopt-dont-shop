@@ -15,8 +15,11 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
-const MockedAuthService = AuthService as vi.Mocked<typeof AuthService>;
-const MockedUser = User as vi.Mocked<typeof User>;
+// ADS-527: prefer vi.mocked() over hand-cast `vi.Mocked<T>` — the typed
+// helper avoids the type-assertion lint warning and keeps the typing
+// consistent with the mocks set up via vi.mock() above.
+const MockedAuthService = vi.mocked(AuthService);
+const MockedUser = vi.mocked(User);
 
 type MockUser = {
   userId: string;
