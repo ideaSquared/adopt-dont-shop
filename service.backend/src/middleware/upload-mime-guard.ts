@@ -13,7 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { NextFunction, Request, Response } from 'express';
-import { fromFile as fileTypeFromFile } from 'file-type';
+import { fileTypeFromFile } from '../utils/file-type-wrapper';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 

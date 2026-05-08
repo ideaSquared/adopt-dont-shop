@@ -18,8 +18,11 @@ vi.mock('fs', () => {
   };
 });
 
-vi.mock('file-type', () => ({
-  fromFile: vi.fn(),
+// Mock the wrapper rather than 'file-type' itself: the wrapper uses
+// dynamic import (ADS-491) which bypasses Vitest's module registry for
+// the inner 'file-type' specifier.
+vi.mock('../../utils/file-type-wrapper', () => ({
+  fileTypeFromFile: vi.fn(),
 }));
 
 vi.mock('isomorphic-dompurify', () => ({
@@ -48,7 +51,7 @@ vi.mock('../../config', () => ({
 // ──── Imports ─────────────────────────────────────────────────────────────────
 
 import fs from 'fs';
-import { fromFile as fileTypeFromFile } from 'file-type';
+import { fileTypeFromFile } from '../../utils/file-type-wrapper';
 import DOMPurify from 'isomorphic-dompurify';
 import FileUpload from '../../models/FileUpload';
 import { AuditLogService } from '../../services/auditLog.service';
