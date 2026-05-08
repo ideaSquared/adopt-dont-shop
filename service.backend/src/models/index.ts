@@ -13,6 +13,7 @@ import RescueSettings from './RescueSettings';
 import User from './User';
 import UserFavorite from './UserFavorite';
 import UserApplicationPrefs from './UserApplicationPrefs';
+import UserConsent from './UserConsent';
 import UserNotificationPrefs from './UserNotificationPrefs';
 import UserPrivacyPrefs from './UserPrivacyPrefs';
 
@@ -87,6 +88,7 @@ import ReportShare from './ReportShare';
 const models = {
   User,
   UserFavorite,
+  UserConsent,
   UserNotificationPrefs,
   UserPrivacyPrefs,
   UserApplicationPrefs,
@@ -595,6 +597,16 @@ try {
   User.hasOne(UserPrivacyPrefs, { foreignKey: 'user_id', as: 'PrivacyPrefs' });
   UserPrivacyPrefs.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
+  // UserConsent — append-only audit trail of consent grants and
+  // withdrawals (GDPR Art. 7). CASCADE on user delete: legal basis is
+  // the user's own grant; once the user is gone, the consent record
+  // serves no purpose. The anonymizeUser flow tombstones the user row
+  // anyway, so consent rows tied to a real identifier are no longer
+  // useful for an audit trail. If we later need post-erasure consent
+  // history, switch to SET NULL and keep policy_version + timestamps.
+  User.hasMany(UserConsent, { foreignKey: 'user_id', as: 'Consents' });
+  UserConsent.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+
   // UserApplicationPrefs association (1:1, auto-created via
   // User.afterCreate hook). Plan 5.6.
   User.hasOne(UserApplicationPrefs, { foreignKey: 'user_id', as: 'ApplicationPrefs' });
@@ -719,6 +731,7 @@ export {
   SwipeSession,
   User,
   UserFavorite,
+  UserConsent,
   UserNotificationPrefs,
   UserPrivacyPrefs,
   UserApplicationPrefs,
