@@ -645,11 +645,20 @@ export class PetService {
       // and snake_case inputs were silently dropped.
       const rawData = updateData as Record<string, unknown>;
       const normalizedData: Record<string, unknown> = { ...rawData };
+      // CodeQL js/prototype-polluting-assignment: refuse keys that touch the
+      // Object prototype chain even though the Zod schema upstream already
+      // restricts updateData to known Pet attributes. Defence in depth keeps
+      // the rule satisfied without complicating the validator contract.
+      const PROTO_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
       for (const key of Object.keys(rawData)) {
         if (!key.includes('_')) {
           continue;
         }
         const camelKey = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+        if (PROTO_KEYS.has(camelKey) || PROTO_KEYS.has(key)) {
+          delete normalizedData[key];
+          continue;
+        }
         if (rawData[camelKey] === undefined) {
           normalizedData[camelKey] = rawData[key];
         }

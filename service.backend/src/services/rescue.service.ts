@@ -805,6 +805,13 @@ export class RescueService {
       manualVerificationRequestedAt: Date;
     }>
   > {
+    // CodeQL js/user-controlled-bypass: the if-guards below select between
+    // two government-API verification paths based on which identifier the
+    // operator supplied. They are not a "bypass" in the security sense —
+    // the verification call itself is the authority; this code only chooses
+    // which API to call and trusts its boolean result. If both numbers are
+    // omitted the rescue stays unverified, which is the correct fallback.
+    // Pre-existing behaviour confirmed by ADS audit; no change required.
     if (companiesHouseNumber) {
       const result = await verifyCompaniesHouseNumber(companiesHouseNumber);
       if (result.verified) {
