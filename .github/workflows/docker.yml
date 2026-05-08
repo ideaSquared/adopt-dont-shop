@@ -232,7 +232,11 @@ jobs:
       - name: Build and start backend
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d service-backend
-          timeout 90 bash -c 'until curl -sf http://localhost:5000/health; do sleep 3; done'
+          # 180s ceiling: cold ts-node-dev start + 5×5s DB retry loop + 3s PostGIS settle +
+          # citext + immutable-created-at + iso-check trigger DDL + Express listen.
+          # The previous 90s figure was tight even before the audit added Sentry,
+          # prom-client, audit-log triggers, and the retention worker init.
+          timeout 180 bash -c 'until curl -sf http://localhost:5000/health; do sleep 3; done'
 
       - name: Verify backend health endpoint
         run: curl -sf http://localhost:5000/health
