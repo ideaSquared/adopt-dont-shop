@@ -1130,7 +1130,6 @@ export class UserService {
       }
 
       user.status = UserStatus.INACTIVE;
-      // user.deactivatedAt = new Date(); // User model doesn't have this field
       await user.save();
 
       // Log deactivation
@@ -1184,7 +1183,6 @@ export class UserService {
       }
 
       user.status = UserStatus.ACTIVE;
-      // user.deactivatedAt = null; // User model doesn't have this field
       await user.save();
 
       // Log activation

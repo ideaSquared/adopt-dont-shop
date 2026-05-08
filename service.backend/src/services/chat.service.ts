@@ -846,9 +846,6 @@ export class ChatService {
         content: data.content,
         content_format: MessageContentFormat.PLAIN,
         attachments: data.attachments || [],
-        // Add scheduled_for field to your Message model
-        // scheduled_for: data.scheduledFor,
-        // is_scheduled: true,
         created_at: new Date(),
       });
 
@@ -876,8 +873,6 @@ export class ChatService {
       const scheduledMessages = await Message.findAll({
         where: {
           chat_id: chatId,
-          // is_scheduled: true,
-          // scheduled_for: { [Op.gt]: new Date() }
         },
         include: [
           {

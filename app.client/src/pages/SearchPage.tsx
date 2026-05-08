@@ -34,7 +34,6 @@ export const SearchPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginatedResponse<Pet>['pagination'] | null>(null);
-  // const [useAdvancedFilters, setUseAdvancedFilters] = useState(false); // Future feature
   const { logEvent } = useStatsig();
   const { trackPageView, trackEvent } = useAnalytics();
   const { value: advancedFiltersEnabled } = useFeatureGate('advanced_search_filters');
