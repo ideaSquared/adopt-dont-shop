@@ -1,5 +1,6 @@
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { AuthProvider } from '@adopt-dont-shop/lib.auth';
+import { captureException, initSentry, reportWebVitals } from '@adopt-dont-shop/lib.observability';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -8,9 +9,30 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { StatsigWrapper } from './contexts/StatsigContext';
 
-// Defaults copied from app.rescue (ADS-476). Without these, react-query v3 uses
-// staleTime: 0 and retry: 3, causing every component remount to re-fetch and
-// auth/404 errors to retry 3x before surfacing.
+// ADS-406: initialise Sentry as early as possible so any synchronous module-load
+// error is captured. No-ops when VITE_SENTRY_DSN is unset.
+initSentry({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  appName: 'admin',
+  environment: import.meta.env.MODE,
+  release: import.meta.env.VITE_APP_RELEASE,
+});
+
+// ADS-507: report Core Web Vitals. For now we just forward to Sentry so the
+// metrics end up in one place; a dedicated /api/v1/web-vitals backend endpoint
+// is a follow-up.
+reportWebVitals(metric => {
+  captureException(`web-vital:${metric.name}`, {
+    name: metric.name,
+    value: metric.value,
+    rating: metric.rating,
+    id: metric.id,
+  });
+});
+
+// ADS-476: explicit defaults so every component remount doesn't refetch and
+// auth/404 errors don't retry 3× before failing. Defaults copied from app.rescue;
+// without these, react-query v3 uses staleTime: 0 and retry: 3.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

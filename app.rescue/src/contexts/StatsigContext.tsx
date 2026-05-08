@@ -1,20 +1,11 @@
 import { StatsigProvider, useClientAsyncInit } from '@statsig/react-bindings';
 import React, { useMemo } from 'react';
-import styled from 'styled-components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
+import './StatsigContext.css';
 
-const StatsigLoadingScreen = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-size: 18px;
-  color: #666;
-`;
-
-interface StatsigWrapperProps {
+type StatsigWrapperProps = {
   children: React.ReactNode;
-}
+};
 
 export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
   const { user } = useAuth();
@@ -45,7 +36,7 @@ export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
   return (
     <StatsigProvider
       client={client}
-      loadingComponent={<StatsigLoadingScreen>Loading...</StatsigLoadingScreen>}
+      loadingComponent={<div className="statsig-loading-fallback">Loading...</div>}
     >
       {children}
     </StatsigProvider>

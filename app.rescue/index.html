@@ -10,6 +10,13 @@
       content="Adopt Don't Shop Rescue Portal — manage your rescue's pets, adoption applications, staff, events, and communications in one place."
     />
     <title>Rescue Portal | Adopt Don't Shop</title>
+    <!--
+      ADS-481: stop blocking first paint on Google Fonts.
+      We keep preconnect (cheap, just opens the TCP/TLS handshake) but switch
+      the stylesheet itself to a non-blocking media-print swap. Browsers
+      download it asynchronously and apply it once it arrives. The <noscript>
+      fallback ensures users with JS disabled still get the fonts.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!--

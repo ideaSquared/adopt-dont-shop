@@ -1,12 +1,13 @@
-import React, { lazy, Suspense } from 'react';
+import React, { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import styled from 'styled-components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
 import DevLoginPanel from './components/dev/DevLoginPanel';
+import ErrorBoundary from './components/ErrorBoundary';
+import * as styles from './App.css';
 
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() =>
@@ -31,17 +32,16 @@ const SecurityCenter = lazy(() => import('./pages/SecurityCenter'));
 const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
 const ContentManagement = lazy(() => import('./pages/ContentManagement'));
 
-const PageLoaderContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-`;
-
 const PageLoader = () => (
-  <PageLoaderContainer>
+  <div className={styles.pageLoader}>
     <Spinner size='lg' label='Loading page' />
-  </PageLoaderContainer>
+  </div>
+);
+
+// ADS-482: route-level ErrorBoundary so a crash in one risky admin route
+// (moderation, messages, audit, etc.) doesn't blank the whole dashboard.
+const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }) => (
+  <ErrorBoundary boundary={name}>{children}</ErrorBoundary>
 );
 
 const AdminApp: React.FC = () => {
@@ -99,18 +99,53 @@ const AdminApp: React.FC = () => {
               <Route path='/applications' element={<Applications />} />
               <Route path='/applications/:applicationId' element={<Applications />} />
 
-              {/* Content Moderation & Safety */}
-              <Route path='/moderation' element={<Moderation />} />
-              <Route path='/moderation/queue' element={<Moderation />} />
-              <Route path='/moderation/reports' element={<Moderation />} />
-              <Route path='/moderation/sanctions' element={<Moderation />} />
+              {/* Content Moderation & Safety — wrapped in a route-level boundary */}
+              <Route
+                path='/moderation'
+                element={
+                  <RouteBoundary name='moderation'>
+                    <Moderation />
+                  </RouteBoundary>
+                }
+              />
+              <Route
+                path='/moderation/queue'
+                element={
+                  <RouteBoundary name='moderation'>
+                    <Moderation />
+                  </RouteBoundary>
+                }
+              />
+              <Route
+                path='/moderation/reports'
+                element={
+                  <RouteBoundary name='moderation'>
+                    <Moderation />
+                  </RouteBoundary>
+                }
+              />
+              <Route
+                path='/moderation/sanctions'
+                element={
+                  <RouteBoundary name='moderation'>
+                    <Moderation />
+                  </RouteBoundary>
+                }
+              />
 
               {/* Support System */}
               <Route path='/support' element={<Support />} />
               <Route path='/support/:ticketId' element={<Support />} />
 
               {/* Communication */}
-              <Route path='/messages' element={<Messages />} />
+              <Route
+                path='/messages'
+                element={
+                  <RouteBoundary name='messages'>
+                    <Messages />
+                  </RouteBoundary>
+                }
+              />
 
               {/* Analytics & Reporting */}
               <Route path='/analytics' element={<Analytics />} />

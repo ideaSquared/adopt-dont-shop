@@ -16,7 +16,8 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
-const MockedUserService = UserService as vi.MockedObject<UserService>;
+// ADS-527: prefer vi.mocked() so we avoid hand-rolled type assertions.
+const MockedUserService = vi.mocked(UserService);
 
 describe('UserController', () => {
   let req: Partial<AuthenticatedRequest>;

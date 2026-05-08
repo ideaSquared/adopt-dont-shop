@@ -317,8 +317,8 @@ export class DiscoveryService {
    * Apply smart filtering based on user preferences and behavior
    */
   private applySmartFiltering(pets: Pet[], _userId?: string): Pet[] {
-    // For now, implement basic filtering
-    // TODO: Implement ML-based filtering based on user behavior
+    // For now, implement basic filtering. ML-based filtering on user
+    // behaviour is a future enhancement and tracked separately.
 
     // Remove pets with no images. Media is eager-loaded via PetMedia
     // (plan 2.1).

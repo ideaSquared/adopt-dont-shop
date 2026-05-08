@@ -498,7 +498,7 @@ export class FileUploadService {
   /**
    * Scan file for malware
    *
-   * TODO: Integrate with antivirus solution
+   * Antivirus integration is a tracked future enhancement.
    * Options:
    * 1. ClamAV (open-source, self-hosted)
    *    - Install: apt-get install clamav clamav-daemon

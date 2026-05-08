@@ -35,6 +35,17 @@ export default defineConfig({
       reportsDirectory: './coverage',
       include: ['src/**/*.{ts,js}'],
       exclude: ['src/**/*.d.ts', 'src/**/*.test.{ts,js}', 'src/**/*.spec.{ts,js}', 'src/index.ts'],
+      // ADS-418: enforce coverage floors so CI fails when behaviour is left
+      // untested. Numbers reflect the current achievable baseline — they
+      // MUST tighten over time, never loosen, as new tests land.
+      // Run via `npm run test:coverage`; the default `npm test` skips
+      // coverage to keep watch-mode fast.
+      thresholds: {
+        lines: 60,
+        statements: 60,
+        functions: 55,
+        branches: 50,
+      },
     },
 
     // Test file patterns
