@@ -97,6 +97,16 @@ export type RescuePlain = ReturnType<Rescue['toJSON']>;
 
 export class RescueService {
   /**
+   * Check whether a user has any StaffMember row for the given rescue.
+   * Lives on the service so controllers don't need to import the
+   * StaffMember model directly (ADS-489).
+   */
+  static async isUserStaffOfRescue(userId: string, rescueId: string): Promise<boolean> {
+    const membership = await StaffMember.findOne({ where: { userId, rescueId } });
+    return Boolean(membership);
+  }
+
+  /**
    * Search and filter rescues with pagination
    */
   static async searchRescues(options: RescueSearchOptions = {}): Promise<{

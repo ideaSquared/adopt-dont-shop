@@ -82,6 +82,35 @@ const resolveBreedIdsByName = async (name: string): Promise<string[]> => {
 
 export class PetService {
   /**
+   * Look up the verified staff membership for a user, returning the linked
+   * rescueId if exactly one exists. Returns `null` when the user has no
+   * verified staff row (e.g. anonymous browsing or pending invitation).
+   *
+   * Centralised here so controllers don't need to load the StaffMember
+   * model directly (ADS-489).
+   */
+  static async getVerifiedRescueIdForUser(userId: string): Promise<string | null> {
+    const staff = await StaffMember.findOne({
+      where: { userId, isVerified: true },
+      attributes: ['rescueId'],
+    });
+    return staff?.rescueId ?? null;
+  }
+
+  /**
+   * Return every rescueId the user is verified staff at. Used when a user
+   * may be staff at multiple rescues and an explicit selection is required
+   * (e.g. POST /pets create flow).
+   */
+  static async getVerifiedRescueIdsForUser(userId: string): Promise<string[]> {
+    const staff = await StaffMember.findAll({
+      where: { userId, isVerified: true },
+      attributes: ['rescueId'],
+    });
+    return staff.map(row => row.rescueId);
+  }
+
+  /**
    * Verifies that the calling user owns the pet's rescue, then returns the
    * loaded Pet. Admins and moderators bypass the check. Throws 403 for any
    * cross-rescue attempt, or 404 when the pet doesn't exist.

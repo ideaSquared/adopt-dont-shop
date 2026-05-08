@@ -9,7 +9,6 @@ import { AdoptionPolicy } from '../types/rescue';
 import EmailService from '../services/email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { UserType } from '../models/User';
-import StaffMember from '../models/StaffMember';
 import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
 
 export class RescueController {
@@ -594,8 +593,8 @@ export class RescueController {
       const userId = req.user!.userId;
 
       if (userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
-        const membership = await StaffMember.findOne({ where: { userId, rescueId } });
-        if (!membership) {
+        const isStaff = await RescueService.isUserStaffOfRescue(userId, rescueId);
+        if (!isStaff) {
           return res.status(403).json({ success: false, message: 'Access denied' });
         }
       }
