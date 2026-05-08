@@ -11,17 +11,29 @@
  *   router.post('/upload', auth, multerInstance.single('file'), enforceUploadMime, ctrl);
  */
 import fs from 'fs';
+import path from 'path';
 import type { NextFunction, Request, Response } from 'express';
 import { fromFile as fileTypeFromFile } from 'file-type';
+import { config } from '../config';
 import { logger } from '../utils/logger';
 
 // Text-based formats have no reliable magic bytes; allow them through with
 // the declared mimetype as long as it's on the allowlist.
 const TEXT_BASED_MIMES = new Set(['text/plain', 'text/csv']);
 
+// CodeQL js/path-injection: `filePath` comes from `req.files[].path` which
+// multer wrote to disk under the configured uploads directory. Re-validate
+// here so the unlink can never escape that root, even if a future regression
+// in multer's filename sanitiser allowed a traversal payload through.
 const removeFile = async (filePath: string): Promise<void> => {
   try {
-    await fs.promises.unlink(filePath);
+    const uploadsRoot = path.resolve(config.storage.local.directory);
+    const resolved = path.resolve(filePath);
+    const relative = path.relative(uploadsRoot, resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      return;
+    }
+    await fs.promises.unlink(resolved);
   } catch {
     /* best-effort cleanup */
   }

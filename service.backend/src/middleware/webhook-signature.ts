@@ -143,26 +143,25 @@ const verifyGeneric = (req: Request, raw: Buffer): boolean => {
   if (!header) {
     return false;
   }
-  const parts = header.split(',').reduce<Record<string, string>>(
-    (acc, part) => {
-      const [k, v] = part.split('=');
-      if (!k || !v) {
-        return acc;
-      }
-      const key = k.trim();
-      // CodeQL js/prototype-polluting-assignment: refuse keys that touch the
-      // Object prototype chain. We only ever consume `t` and `v1` further down;
-      // anything outside a strict allowlist would be ignored anyway.
-      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-        return acc;
-      }
-      acc[key] = v.trim();
-      return acc;
-    },
-    Object.create(null) as Record<string, string>
-  );
-  const timestamp = parts.t;
-  const signature = parts.v1;
+  // Only `t` (timestamp) and `v1` (signature) are meaningful. Parse them
+  // directly rather than building a Record<string, string> from arbitrary
+  // header keys — that pattern is benign here (we'd never read `__proto__`)
+  // but CodeQL's `js/prototype-polluting-assignment` rule fires on it
+  // regardless. Direct extraction sidesteps the rule and produces tighter code.
+  let timestamp = '';
+  let signature = '';
+  for (const part of header.split(',')) {
+    const [k, v] = part.split('=');
+    if (!k || !v) {
+      continue;
+    }
+    const key = k.trim();
+    if (key === 't') {
+      timestamp = v.trim();
+    } else if (key === 'v1') {
+      signature = v.trim();
+    }
+  }
   if (!timestamp || !signature) {
     return false;
   }

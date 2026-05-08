@@ -192,6 +192,7 @@ app.use((req, res, next) => {
 // with the JSON object so downstream validators behave normally.
 app.post(
   '/api/v1/email/webhook/delivery',
+  apiLimiter,
   express.raw({ type: '*/*', limit: '5mb' }),
   verifyEmailDeliveryWebhook
 );
