@@ -15,14 +15,20 @@ import { fileURLToPath } from 'url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
+/**
+ * Allowlist policy (ADS-528):
+ *
+ * Add a package id here only if it genuinely has no testable behaviour
+ * (e.g. a re-export-only barrel package). Every entry MUST be paired
+ * with a comment explaining why and either a follow-up Linear ticket
+ * or a "no testable surface" justification. This list must SHRINK over
+ * time, never grow casually. CI failure is the desired outcome when a
+ * new lib lands without tests — do not silence it by adding to this list.
+ */
 const ALLOWED_EMPTY = new Set([
-  // Add a package id here only if it genuinely has no testable surface.
-  // This list MUST shrink over time, not grow.
-  //
-  // 'lib.dev-tools' — baseline suite added in PR #293 (group F). Remove
-  // this entry after that PR merges. Keeping it here so this Group D PR
-  // can land independently of Group F.
-  'lib.dev-tools',
+  // intentionally empty — every lib.* now ships with at least one
+  // behaviour test. Re-introduce entries with a Linear ticket reference
+  // and an expiry plan only.
 ]);
 
 function findTestFiles(dir) {

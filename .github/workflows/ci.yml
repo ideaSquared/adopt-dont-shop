@@ -183,8 +183,10 @@ jobs:
         run: npm run lint
         working-directory: service.backend
 
-      - name: Test
-        run: npm test
+      # ADS-418: run with coverage so the thresholds in vitest.config.ts
+      # block the build when behaviour coverage regresses.
+      - name: Test (with coverage thresholds)
+        run: npm run test:coverage
         working-directory: service.backend
         env:
           NODE_ENV: test
@@ -310,14 +312,11 @@ jobs:
   test-e2e:
     name: E2E Tests (Playwright)
     needs: [changes, test-backend, test-frontend]
-    # ADS-386: continue-on-error remains true until the follow-up gate is met:
-    #   - 10 consecutive green E2E runs on main, then flip to false and add
-    #     test-e2e as a required status check in branch protection settings.
-    # Non-blocking: this job exists to surface integration regressions
-    # against the full docker-compose stack, but is allowed to fail until
-    # the suite has been smoke-tested against a real running stack and
-    # any environment-specific selector adjustments have been made.
-    continue-on-error: true
+    # ADS-419: e2e is now a blocking signal. The previous continue-on-error
+    # escape hatch was removed because broken integration tests must fail PRs
+    # — a green CI badge that ignores e2e failures gives a false sense of
+    # readiness. After this lands, add `test-e2e` as a required status check
+    # in branch protection.
     if: |
       always() &&
       (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true') &&
