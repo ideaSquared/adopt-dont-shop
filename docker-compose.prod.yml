@@ -62,15 +62,39 @@ services:
       # URLs
       API_URL: ${API_URL:?Error: API_URL required}
       CORS_ORIGIN: ${CORS_ORIGIN:?Error: CORS_ORIGIN required}
+      # ADS-410: backend builds password-reset / verification / invitation
+      # email links from these. Without them, every email links to localhost.
+      FRONTEND_URL: ${FRONTEND_URL:?Error: FRONTEND_URL required (used to build email links)}
+      RESCUE_FRONTEND_URL: ${RESCUE_FRONTEND_URL:?Error: RESCUE_FRONTEND_URL required (used to build rescue invitation links)}
       # Email (required for production)
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:?Error: EMAIL_PROVIDER required}
       EMAIL_FROM: ${EMAIL_FROM:?Error: EMAIL_FROM required}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-${EMAIL_FROM}}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-${EMAIL_FROM}}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-${EMAIL_FROM}}
+      # ADS-411: feature flags silently default-off without this key.
+      STATSIG_SERVER_SECRET_KEY: ${STATSIG_SERVER_SECRET_KEY:?Error: STATSIG_SERVER_SECRET_KEY required (server-side feature flags silently disabled when missing)}
+      # ADS-451: optional / operational
+      WORKER_ENABLED: ${WORKER_ENABLED:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_DIR: ${LOG_DIR:-logs}
+      SMS_DEFAULT_COUNTRY_CODE: ${SMS_DEFAULT_COUNTRY_CODE:-GB}
+      JWT_REPORT_SHARE_SECRET: ${JWT_REPORT_SHARE_SECRET:-}
       # Disable development features
       FORCE_SEED: false
       DB_LOGGING: false
+      # ADS-512: never enable raw error responses in production. The startup
+      # validator also enforces this, but make the default explicit.
+      DEBUG_ERRORS: false
     volumes:
       # Only mount uploads directory in production
       - uploads:/app/uploads
+    # ADS-454/468: harden the backend container filesystem. Application code
+    # and node_modules are baked into the image; the only writable surface is
+    # the uploads volume (mounted above) and a small tmpfs for /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
     # Don't expose port directly - use nginx
     expose:
       - "5000"
