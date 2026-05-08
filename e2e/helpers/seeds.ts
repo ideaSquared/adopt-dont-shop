@@ -163,7 +163,7 @@ export async function getMyRescueId(rescueApi: ApiClient): Promise<string | null
 export async function createAvailablePet(
   rescueApi: ApiClient,
   namePrefix = 'Seed'
-): Promise<{ petId: string; name: string }> {
+): Promise<{ petId: string; name: string; rescueId: string }> {
   const name = uniquePetName(namePrefix);
   const createRes = await postWithCsrf(rescueApi.context, '/api/v1/pets', {
     name,
@@ -178,18 +178,31 @@ export async function createAvailablePet(
       `pet creation failed: ${createRes.status()} ${(await createRes.text()).slice(0, 300)}`
     );
   }
-  const body = (await createRes.json()) as {
+  type PetCreateResponse = {
     petId?: string;
     id?: string;
     pet_id?: string;
-    data?: { petId?: string; id?: string; pet_id?: string };
+    rescueId?: string;
+    rescue_id?: string;
+    data?: {
+      petId?: string;
+      id?: string;
+      pet_id?: string;
+      rescueId?: string;
+      rescue_id?: string;
+    };
   };
+  const body = (await createRes.json()) as PetCreateResponse;
   const petId =
     body.petId ?? body.id ?? body.pet_id ?? body.data?.petId ?? body.data?.id ?? body.data?.pet_id;
   if (!petId) {
     throw new Error(`pet creation returned no id: ${JSON.stringify(body).slice(0, 200)}`);
   }
-  return { petId, name };
+  const rescueId = body.rescueId ?? body.rescue_id ?? body.data?.rescueId ?? body.data?.rescue_id;
+  if (!rescueId) {
+    throw new Error(`pet creation returned no rescueId: ${JSON.stringify(body).slice(0, 200)}`);
+  }
+  return { petId, name, rescueId };
 }
 
 /**
@@ -269,6 +282,34 @@ export async function getFirstAdopterApplication(adopterApi: ApiClient): Promise
  * Useful when a test wants to mutate application state without touching
  * the seeded fixtures (which other tests may also be reading).
  */
+/**
+ * Complete answer set for the 19 required core application questions
+ * (see service.backend/src/seeders/reference/application-questions.ts).
+ * SELECT answers must match the seeded option list exactly. Optional
+ * questions are omitted; the validator only flags missing required ones.
+ */
+const COMPLETE_APPLICATION_ANSWERS = {
+  employment_status: 'Employed full-time',
+  hours_from_home: '4–6 hours',
+  willing_to_provide_id: true,
+  housing_type: 'House',
+  home_ownership: 'Own',
+  yard_fenced: true,
+  household_members: 'Two adults',
+  household_all_agree: true,
+  experience_level: 'Experienced',
+  has_pets: false,
+  hours_alone: '2–4 hours',
+  exercise_plan: 'Daily walks and weekend hikes',
+  pet_sleeping_location: 'Indoors — own bed or crate',
+  vet_registered: true,
+  pet_costs_prepared: 'Yes — I have budgeted for all ongoing costs',
+  pet_if_circumstances_change: 'Return to rescue with full handover',
+  why_adopt: 'We have the time, space, and experience to give a pet a great home.',
+  agree_home_visit: true,
+  agree_terms: true,
+} as const;
+
 export async function createAdopterApplication(
   adopterApi: ApiClient,
   rescueApi: ApiClient
@@ -276,7 +317,9 @@ export async function createAdopterApplication(
   const pet = await createAvailablePet(rescueApi, 'AppFlow');
   const createRes = await postWithCsrf(adopterApi.context, '/api/v1/applications', {
     petId: pet.petId,
-    answers: { reason: 'e2e application' },
+    answers: COMPLETE_APPLICATION_ANSWERS,
+    // ADS-535: SUBMITTED applications require the references-consent flag.
+    referencesConsented: true,
   });
   if (!createRes.ok()) {
     throw new Error(

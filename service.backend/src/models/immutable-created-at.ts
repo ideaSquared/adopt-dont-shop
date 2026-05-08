@@ -52,6 +52,12 @@ export const installImmutableCreatedAtTriggers = async (
     if (model.options.timestamps === false) {
       continue;
     }
+    // Models that opt out of just createdAt (e.g. revoked_tokens uses
+    // `revoked_at` as its birthday and a separate `updated_at` for forward
+    // compat — `createdAt: false`) don't have a `created_at` column either.
+    if (model.options.createdAt === false) {
+      continue;
+    }
 
     const rawTable = model.getTableName();
     const tableName = typeof rawTable === 'string' ? rawTable : rawTable.tableName;

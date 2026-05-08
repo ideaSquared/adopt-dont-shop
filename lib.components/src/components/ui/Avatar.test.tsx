@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { Avatar } from './Avatar';
 
@@ -57,19 +57,15 @@ describe('Avatar', () => {
 
   // No backgroundColor or textColor props in AvatarProps, so this test is removed
 
-  // TODO: Fix
-  it.skip('handles image load error by showing fallback', () => {
+  it('handles image load error by showing fallback', () => {
     renderWithTheme(<Avatar src='/invalid-image.jpg' name='JD' />);
-    // Simulate image error event
     const images = screen.getAllByRole('img', { hidden: true });
     const img = images.find(el => el.tagName.toLowerCase() === 'img');
-    if (img) {
-      // Fire error event to simulate image load failure
-      img.dispatchEvent(new Event('error'));
-    }
-    // Now the fallback initial should be rendered
-    const fallback = screen.getByText('J');
-    expect(fallback).toBeInTheDocument();
+    expect(img).toBeDefined();
+    // Use React Testing Library's fireEvent to invoke the synthetic
+    // onError handler — a raw dispatchEvent skips React's event system.
+    fireEvent.error(img!);
+    expect(screen.getByText('J')).toBeInTheDocument();
   });
 
   it('applies data-testid when provided', () => {

@@ -1,4 +1,4 @@
-import { Op, Transaction, WhereOptions } from 'sequelize';
+import { Op, Transaction, WhereOptions, literal } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/ModerationEvidence';
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
@@ -968,15 +968,17 @@ class ModerationService {
   }
 
   async getActiveActionsForUser(userId: string): Promise<ModeratorAction[]> {
-    // Split the query to avoid complex Op.or with null handling
-    // Type assertion needed: Sequelize doesn't allow null in where clause correctly
-    // This is a valid runtime pattern - checking for records where expiresAt is null
+    // Split the query to avoid complex Op.or with null handling.
+    // `[Op.is]: null` emits `IS NULL`, which is the SQL semantics we want
+    // for "never expires" and avoids casting null into a Date-shaped attribute.
     const [neverExpiringActions, futureExpiringActions] = await Promise.all([
       ModeratorAction.findAll({
         where: {
           targetUserId: userId,
           isActive: true,
-          expiresAt: null as unknown as undefined,
+          // Sequelize types `[Op.is]` as `Literal | undefined`; `literal('NULL')`
+          // emits `IS NULL` without the implicit-null cast escape.
+          expiresAt: { [Op.is]: literal('NULL') },
         },
         order: [['createdAt', 'DESC']],
       }),
@@ -1013,6 +1015,17 @@ class ModerationService {
     return affectedCount;
   }
 
+  /**
+   * ADS-478: Previously this method called `User.findByPk` /
+   * `Pet.findByPk` / `Rescue.findByPk` inside a `Promise.map`. The
+   * in-process `entityCache` only deduplicated exact repeats within
+   * one call, so a page of 20 unique reports fired 20 parallel DB
+   * queries — classic N+1.
+   *
+   * Now we collect IDs by type, run one batched `findAll` per type,
+   * build a lookup map, and hydrate the reports from the maps. The
+   * returned array preserves the input order.
+   */
   async enrichReportsWithEntityContext(
     reports: Report[]
   ): Promise<Array<Report & { entityContext?: JsonObject }>> {
@@ -1020,111 +1033,132 @@ class ModerationService {
       return reports;
     }
 
-    const entityCache = new Map<string, JsonObject>();
+    // Bucket the entity ids by type so we can fan out one query per
+    // type instead of one per report.
+    const userIds = new Set<string>();
+    const petIds = new Set<string>();
+    const rescueIds = new Set<string>();
 
-    const enrichedReports = await Promise.all(
-      reports.map(async report => {
-        const cacheKey = `${report.reportedEntityType}:${report.reportedEntityId}`;
-        let entityContext: JsonObject | null = null;
+    for (const report of reports) {
+      switch (report.reportedEntityType) {
+        case 'user':
+          userIds.add(report.reportedEntityId);
+          break;
+        case 'pet':
+          petIds.add(report.reportedEntityId);
+          break;
+        case 'rescue':
+          rescueIds.add(report.reportedEntityId);
+          break;
+        default:
+          // Other entity types render a synthetic context, no fetch.
+          break;
+      }
+    }
 
-        if (entityCache.has(cacheKey)) {
-          entityContext = entityCache.get(cacheKey)!;
-        } else {
-          try {
-            switch (report.reportedEntityType) {
-              case 'user': {
-                const user = await User.findByPk(report.reportedEntityId);
-                entityContext = user
-                  ? {
-                      type: 'user',
-                      id: user.userId,
-                      displayName: `${user.firstName} ${user.lastName}`,
-                      email: user.email,
-                      userType: user.userType,
-                    }
-                  : {
-                      type: 'user',
-                      id: report.reportedEntityId,
-                      displayName: '[Deleted User]',
-                      deleted: true,
-                    };
-                break;
+    // Run the three fetches in parallel; each is a single bounded
+    // IN-query.
+    const [users, pets, rescues] = await Promise.all([
+      userIds.size > 0
+        ? User.findAll({ where: { userId: { [Op.in]: Array.from(userIds) } } })
+        : Promise.resolve([] as User[]),
+      petIds.size > 0
+        ? Pet.findAll({
+            where: { petId: { [Op.in]: Array.from(petIds) } },
+            include: [{ model: Breed, as: 'Breed', attributes: ['name'] }],
+          })
+        : Promise.resolve([] as Pet[]),
+      rescueIds.size > 0
+        ? Rescue.findAll({ where: { rescueId: { [Op.in]: Array.from(rescueIds) } } })
+        : Promise.resolve([] as Rescue[]),
+    ]);
+
+    const userMap = new Map<string, User>(users.map(u => [u.userId, u]));
+    const petMap = new Map<string, Pet>(pets.map(p => [p.petId, p]));
+    const rescueMap = new Map<string, Rescue>(rescues.map(r => [r.rescueId, r]));
+
+    const buildContext = (report: Report): JsonObject => {
+      switch (report.reportedEntityType) {
+        case 'user': {
+          const user = userMap.get(report.reportedEntityId);
+          return user
+            ? {
+                type: 'user',
+                id: user.userId,
+                displayName: `${user.firstName} ${user.lastName}`,
+                email: user.email,
+                userType: user.userType,
               }
-
-              case 'pet': {
-                // Plan 2.4 — breed name lives in the breeds lookup
-                // table, eager-loaded via the Breed association.
-                const pet = await Pet.findByPk(report.reportedEntityId, {
-                  include: [{ model: Breed, as: 'Breed', attributes: ['name'] }],
-                });
-                const petWithBreed = pet as (Pet & { Breed?: { name: string } | null }) | null;
-                entityContext = pet
-                  ? {
-                      type: 'pet',
-                      id: pet.petId,
-                      displayName: pet.name,
-                      petType: pet.type,
-                      breed: petWithBreed?.Breed?.name ?? null,
-                      rescueId: pet.rescueId,
-                    }
-                  : {
-                      type: 'pet',
-                      id: report.reportedEntityId,
-                      displayName: '[Deleted Pet]',
-                      deleted: true,
-                    };
-                break;
-              }
-
-              case 'rescue': {
-                const rescue = await Rescue.findByPk(report.reportedEntityId);
-                entityContext = rescue
-                  ? {
-                      type: 'rescue',
-                      id: rescue.rescueId,
-                      displayName: rescue.name,
-                      city: rescue.city,
-                      country: rescue.country,
-                    }
-                  : {
-                      type: 'rescue',
-                      id: report.reportedEntityId,
-                      displayName: '[Deleted Rescue]',
-                      deleted: true,
-                    };
-                break;
-              }
-
-              default:
-                entityContext = {
-                  type: report.reportedEntityType,
-                  id: report.reportedEntityId,
-                  displayName: `${report.reportedEntityType} ${report.reportedEntityId.substring(0, 8)}...`,
-                };
-            }
-
-            if (entityContext) {
-              entityCache.set(cacheKey, entityContext);
-            }
-          } catch (error) {
-            logger.error('Error fetching entity context:', error);
-            entityContext = {
-              type: report.reportedEntityType,
-              id: report.reportedEntityId,
-              displayName: '[Error Loading Entity]',
-              error: true,
-            };
-          }
+            : {
+                type: 'user',
+                id: report.reportedEntityId,
+                displayName: '[Deleted User]',
+                deleted: true,
+              };
         }
+        case 'pet': {
+          const pet = petMap.get(report.reportedEntityId);
+          const petWithBreed = pet as (Pet & { Breed?: { name: string } | null }) | undefined;
+          return pet
+            ? {
+                type: 'pet',
+                id: pet.petId,
+                displayName: pet.name,
+                petType: pet.type,
+                breed: petWithBreed?.Breed?.name ?? null,
+                rescueId: pet.rescueId,
+              }
+            : {
+                type: 'pet',
+                id: report.reportedEntityId,
+                displayName: '[Deleted Pet]',
+                deleted: true,
+              };
+        }
+        case 'rescue': {
+          const rescue = rescueMap.get(report.reportedEntityId);
+          return rescue
+            ? {
+                type: 'rescue',
+                id: rescue.rescueId,
+                displayName: rescue.name,
+                city: rescue.city,
+                country: rescue.country,
+              }
+            : {
+                type: 'rescue',
+                id: report.reportedEntityId,
+                displayName: '[Deleted Rescue]',
+                deleted: true,
+              };
+        }
+        default:
+          return {
+            type: report.reportedEntityType,
+            id: report.reportedEntityId,
+            displayName: `${report.reportedEntityType} ${report.reportedEntityId.substring(0, 8)}...`,
+          };
+      }
+    };
 
-        return {
-          ...(report.toJSON ? report.toJSON() : report),
-          entityContext,
-        } as Report & { entityContext?: JsonObject };
-      })
-    );
-
-    return enrichedReports;
+    return reports.map(report => {
+      let entityContext: JsonObject;
+      try {
+        entityContext = buildContext(report);
+      } catch (error) {
+        logger.error('Error building entity context:', error);
+        entityContext = {
+          type: report.reportedEntityType,
+          id: report.reportedEntityId,
+          displayName: '[Error Loading Entity]',
+          error: true,
+        };
+      }
+      return {
+        ...(report.toJSON ? report.toJSON() : report),
+        entityContext,
+      } as Report & { entityContext?: JsonObject };
+    });
   }
 
   async getReportsWithContext(

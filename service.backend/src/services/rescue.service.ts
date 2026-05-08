@@ -4,6 +4,7 @@ import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import { logger, loggerHelpers } from '../utils/logger';
 import { invalidateAuthCache } from '../lib/auth-cache';
+import { cached, invalidateNamespace } from '../cache/redis-cache';
 import { AuditLogService } from './auditLog.service';
 import { validateSortField } from '../utils/sort-validation';
 import { verifyCompaniesHouseNumber } from './companies-house.service';
@@ -95,11 +96,48 @@ export type RescueWithStatistics = ReturnType<Rescue['toJSON']> & {
 // `RescueWithStatistics`.
 export type RescuePlain = ReturnType<Rescue['toJSON']>;
 
+/**
+ * ADS-479: cache namespaces touched by rescue writes. Invalidated by
+ * `createRescue` / `updateRescue` etc. so listings reflect the new
+ * state on the next read.
+ */
+const RESCUE_CACHE_NAMESPACES = ['rescues:search'] as const;
+
+const invalidateRescueCaches = async (): Promise<void> => {
+  await Promise.all(RESCUE_CACHE_NAMESPACES.map(ns => invalidateNamespace(ns)));
+};
+
 export class RescueService {
+  /**
+   * Check whether a user has any StaffMember row for the given rescue.
+   * Lives on the service so controllers don't need to import the
+   * StaffMember model directly (ADS-489).
+   */
+  static async isUserStaffOfRescue(userId: string, rescueId: string): Promise<boolean> {
+    const membership = await StaffMember.findOne({ where: { userId, rescueId } });
+    return Boolean(membership);
+  }
+
   /**
    * Search and filter rescues with pagination
    */
   static async searchRescues(options: RescueSearchOptions = {}): Promise<{
+    rescues: RescuePlain[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }> {
+    // ADS-479: rescue search is fanned out from public-facing pages;
+    // cache for 60s with the full options blob in the key.
+    return cached({ namespace: 'rescues:search', args: options, ttlSeconds: 60 }, () =>
+      RescueService.searchRescuesUncached(options)
+    );
+  }
+
+  private static async searchRescuesUncached(options: RescueSearchOptions = {}): Promise<{
     rescues: RescuePlain[];
     pagination: {
       page: number;
@@ -425,6 +463,10 @@ export class RescueService {
       );
     }
 
+    // ADS-479: bust cached rescue search results so the new rescue
+    // surfaces on the next read.
+    await invalidateRescueCaches();
+
     logger.info(`Created new rescue: ${rescue.rescueId}`);
     return rescue;
   }
@@ -495,6 +537,9 @@ export class RescueService {
       );
 
       await transaction.commit();
+
+      // ADS-479: bust cached rescue search results.
+      await invalidateRescueCaches();
 
       logger.info(`Updated rescue: ${rescueId}`);
       return rescue.toJSON();
@@ -760,6 +805,13 @@ export class RescueService {
       manualVerificationRequestedAt: Date;
     }>
   > {
+    // CodeQL js/user-controlled-bypass: the if-guards below select between
+    // two government-API verification paths based on which identifier the
+    // operator supplied. They are not a "bypass" in the security sense —
+    // the verification call itself is the authority; this code only chooses
+    // which API to call and trusts its boolean result. If both numbers are
+    // omitted the rescue stays unverified, which is the correct fallback.
+    // Pre-existing behaviour confirmed by ADS audit; no change required.
     if (companiesHouseNumber) {
       const result = await verifyCompaniesHouseNumber(companiesHouseNumber);
       if (result.verified) {
@@ -1178,14 +1230,14 @@ export class RescueService {
       });
 
       return {
-        totalPets: totalPets as unknown as number,
-        availablePets: availablePets as unknown as number,
-        adoptedPets: adoptedPets as unknown as number,
+        totalPets,
+        availablePets,
+        adoptedPets,
         pendingApplications,
         totalApplications,
         staffCount,
-        activeListings: availablePets as unknown as number,
-        monthlyAdoptions: monthlyAdoptions as unknown as number,
+        activeListings: availablePets,
+        monthlyAdoptions,
         averageTimeToAdoption,
       };
     } catch (error) {

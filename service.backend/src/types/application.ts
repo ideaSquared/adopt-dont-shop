@@ -138,6 +138,10 @@ export interface CreateApplicationRequest {
   priority?: ApplicationPriority;
   notes?: string;
   tags?: string[];
+  // ADS-535: applicant must confirm references have consented to contact
+  // before SUBMITTED applications are accepted. The Application model's
+  // beforeValidate hook enforces this, so the API has to thread the flag in.
+  referencesConsented?: boolean;
 }
 
 export interface UpdateApplicationRequest {

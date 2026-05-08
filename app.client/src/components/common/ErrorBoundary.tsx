@@ -5,6 +5,10 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  // ADS-482: optional name passed by per-route boundaries so Sentry breadcrumb
+  // context can attribute a crash to the route that crashed (chat / discovery
+  // / application form / etc.).
+  boundary?: string;
 }
 
 interface State {
@@ -49,13 +53,9 @@ export class ErrorBoundary extends Component<Props, State> {
             if the problem persists.
           </p>
           {import.meta.env.DEV && this.state.error && (
-            <details style={{ marginBottom: '1rem', textAlign: 'left' }}>
-              <summary style={{ cursor: 'pointer', marginBottom: '0.5rem' }}>
-                Error Details (Development Only)
-              </summary>
-              <pre style={{ fontSize: '0.875rem', overflow: 'auto', maxWidth: '100%' }}>
-                {this.state.error.toString()}
-              </pre>
+            <details className={styles.errorDetails}>
+              <summary className={styles.errorSummary}>Error Details (Development Only)</summary>
+              <pre className={styles.errorPre}>{this.state.error.toString()}</pre>
             </details>
           )}
           <button className={styles.retryButton} onClick={this.handleRetry}>

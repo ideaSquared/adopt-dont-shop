@@ -101,3 +101,8 @@ export const characterCount = recipe({
   },
   defaultVariants: { isNearLimit: false },
 });
+
+export const submitError = style({
+  color: 'red',
+  fontSize: '0.875rem',
+});

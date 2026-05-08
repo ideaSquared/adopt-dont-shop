@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import ModerationService, {
   ModerationActionRequest,
   ReportFilters,
@@ -73,8 +74,8 @@ export class ModerationController {
       const options: ReportSearchOptions = {
         page: parsePage(req.query.page as string | undefined),
         limit: parsePaginationLimit(req.query.limit as string | undefined, {
-          default: 20,
-          max: 100,
+          default: DEFAULT_PAGE_SIZE,
+          max: MAX_PAGE_SIZE,
         }),
         sortBy: (req.query.sortBy as string) || 'createdAt',
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
@@ -322,8 +323,8 @@ export class ModerationController {
     try {
       const page = parsePage(req.query.page as string | undefined);
       const limit = parsePaginationLimit(req.query.limit as string | undefined, {
-        default: 20,
-        max: 100,
+        default: DEFAULT_PAGE_SIZE,
+        max: MAX_PAGE_SIZE,
       });
       const severity = req.query.severity ? String(req.query.severity) : undefined;
       const moderationStatus = req.query.moderationStatus

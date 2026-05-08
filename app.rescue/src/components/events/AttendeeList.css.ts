@@ -96,3 +96,8 @@ export const emptyState = style({
   color: '#6b7280',
   fontSize: '0.875rem',
 });
+
+export const checkedInBadge = style({
+  fontSize: '0.75rem',
+  color: '#10b981',
+});

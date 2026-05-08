@@ -82,8 +82,8 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
                   <div className={styles.loadingIconPlaceholder} />
                 </div>
                 <div className={styles.cardBody}>
-                  <div className={styles.loadingTextPlaceholder} style={{ width: '4rem' }} />
-                  <div className={styles.loadingValuePlaceholder} style={{ width: '3rem' }} />
+                  <div className={styles.loadingTextPlaceholder} />
+                  <div className={styles.loadingValuePlaceholder} />
                 </div>
               </div>
             </div>

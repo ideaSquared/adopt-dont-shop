@@ -405,6 +405,9 @@ const applicationFieldPermissions: FieldPermissionConfig['applications'] = {
     interviewNotes: NONE,
     homeVisitNotes: NONE,
     score: NONE,
+    // ADS-535: applicant must declare references-consent on submit; the
+    // model hook rejects SUBMITTED rows without it.
+    referencesConsented: WRITE,
   },
   super_admin: {
     id: READ,

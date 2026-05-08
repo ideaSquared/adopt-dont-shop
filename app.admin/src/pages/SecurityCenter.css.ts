@@ -173,3 +173,17 @@ export const statusPill = style({
 export const statusSuccess = style([statusPill, { background: '#dcfce7', color: '#166534' }]);
 export const statusFailure = style([statusPill, { background: '#fee2e2', color: '#991b1b' }]);
 export const statusNeutral = style([statusPill, { background: '#e5e7eb', color: '#374151' }]);
+
+export const userIdSubtext = style({
+  color: '#6b7280',
+  fontSize: '0.75rem',
+});
+
+export const successBanner = style([
+  errorBanner,
+  {
+    background: '#ecfdf5',
+    borderColor: '#a7f3d0',
+    color: '#065f46',
+  },
+]);

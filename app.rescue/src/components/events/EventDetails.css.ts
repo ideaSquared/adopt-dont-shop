@@ -175,3 +175,8 @@ export const progressFill = style({
   background: '#2563eb',
   transition: 'width 0.3s ease',
 });
+
+export const virtualLink = style({
+  color: '#2563eb',
+  textDecoration: 'underline',
+});

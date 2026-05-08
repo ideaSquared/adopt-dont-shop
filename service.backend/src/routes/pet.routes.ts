@@ -3,6 +3,7 @@ import { PetController } from '../controllers/pet.controller';
 import { authenticateToken, authenticateOptionalToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { idempotency } from '../middleware/idempotency';
+import { sensitiveWriteLimiter } from '../middleware/rate-limiter';
 import { requirePermission } from '../middleware/rbac';
 import { handleValidationErrors } from '../middleware/validation';
 import { petValidation } from '../validation/pet.validation';
@@ -1366,6 +1367,7 @@ router.patch(
 
 router.delete(
   '/:petId',
+  sensitiveWriteLimiter,
   authenticateToken,
   requirePermission('pets.delete'),
   PetController.validatePetId,
@@ -1430,6 +1432,7 @@ router.post(
 // Bulk update pets (admin only)
 router.post(
   '/bulk-update',
+  sensitiveWriteLimiter,
   authenticateToken,
   requirePermission('pets.update'),
   PetController.validateBulkUpdate,

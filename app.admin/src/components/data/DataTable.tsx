@@ -125,8 +125,7 @@ export function DataTable<T extends object>({
             <tr>
               {selectable && (
                 <th
-                  className={styles.th({ align: 'center', sortable: false })}
-                  style={{ width: '48px' }}
+                  className={`${styles.th({ align: 'center', sortable: false })} ${styles.checkboxColumn}`}
                 >
                   <input
                     className={styles.checkbox}
@@ -157,7 +156,7 @@ export function DataTable<T extends object>({
                             <FiChevronDown />
                           )
                         ) : (
-                          <FiChevronDown style={{ opacity: 0.3 }} />
+                          <FiChevronDown className={styles.sortIconInactive} />
                         )}
                       </span>
                     )}

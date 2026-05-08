@@ -132,13 +132,7 @@ export const ForgotPasswordPage: React.FC = () => {
             />
           </div>
 
-          <Button
-            type='submit'
-            size='lg'
-            variant='primary'
-            disabled={isLoading}
-            style={{ width: '100%' }}
-          >
+          <Button type='submit' size='lg' variant='primary' disabled={isLoading} isFullWidth>
             {isLoading ? 'Sending Instructions...' : 'Send Reset Instructions'}
           </Button>
         </form>

@@ -77,11 +77,21 @@ export const installStatusTransitionTrigger = (
     // NEW.<parentFkColumn>. No-op if the parent has been deleted (the
     // CASCADE FK on the transitions table makes that impossible in
     // practice; this is just defensive).
+    //
+    // Cast through text: Sequelize gives each enum column its own type
+    // (`enum_pets_status`, `enum_pet_status_transitions_to_status`) and
+    // Postgres treats them as distinct even when the labels match, so a
+    // direct UPDATE pets SET status = NEW.to_status fails with
+    //   column "status" is of type enum_<parent> but expression is of type
+    //   enum_<transitions>
+    // Round-tripping through text is the standard idiom for moving values
+    // between equivalent-but-distinct enum types.
+    const parentEnumType = `enum_${options.parentTable}_${options.statusColumn}`;
     await sequelize.query(`
       CREATE OR REPLACE FUNCTION ${fnName}() RETURNS trigger AS $$
       BEGIN
         UPDATE "${options.parentTable}"
-           SET "${options.statusColumn}" = NEW."to_status"
+           SET "${options.statusColumn}" = NEW."to_status"::text::"${parentEnumType}"
          WHERE "${options.parentPkColumn}" = NEW."${options.parentFkColumn}";
         RETURN NEW;
       END;

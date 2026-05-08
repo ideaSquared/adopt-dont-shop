@@ -12,13 +12,26 @@
  * with canonical accounts on adoptdontshop.dev or with @e2e.test fixtures.
  */
 
+import crypto from 'crypto';
 import User, { UserStatus, UserType } from '../../models/User';
 import { hashPassword } from '../../utils/password';
 import { ukFaker } from '../lib/faker-rng';
 import { bulkInsert } from '../lib/bulk-insert';
 
 const DEFAULT_ADOPTER_COUNT = 200;
-const DEMO_PASSWORD = 'DevPassword123!';
+
+/**
+ * ADS-536: per-seed-run random password for demo accounts. Honours
+ * SEED_PASSWORD when set so deterministic local fixtures still work.
+ */
+const generateDemoPassword = (): string => {
+  const override = process.env.SEED_PASSWORD;
+  if (override !== undefined && override.length >= 8) {
+    return override;
+  }
+  const random = crypto.randomBytes(12).toString('base64url').slice(0, 12);
+  return `S!${random}9a`;
+};
 
 const targetCount = (): number => {
   const raw = process.env.DEMO_ADOPTER_COUNT;
@@ -43,7 +56,8 @@ export async function seedDemoUsers(): Promise<void> {
     return;
   }
 
-  const passwordHash = await hashPassword(DEMO_PASSWORD);
+  const demoPassword = generateDemoPassword();
+  const passwordHash = await hashPassword(demoPassword);
 
   const rows = Array.from({ length: count }, () => {
     const firstName = ukFaker.person.firstName();
@@ -78,6 +92,5 @@ export async function seedDemoUsers(): Promise<void> {
 
   await bulkInsert(User, rows);
 
-  // eslint-disable-next-line no-console
-  console.log(`✅ Inserted ${rows.length} faker-generated adopters (password: ${DEMO_PASSWORD})`);
+  console.log(`✅ Inserted ${rows.length} faker-generated adopters (password: ${demoPassword})`);
 }

@@ -157,3 +157,7 @@ export const errorMessage = style({
   color: '#991b1b',
   fontSize: '0.875rem',
 });
+
+export const dimDash = style({
+  color: '#9ca3af',
+});

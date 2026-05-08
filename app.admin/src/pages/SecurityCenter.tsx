@@ -190,7 +190,7 @@ const SessionsTab: React.FC = () => {
                   {s.user ? (
                     <>
                       <div>{s.user.email}</div>
-                      <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>{s.userId}</div>
+                      <div className={styles.userIdSubtext}>{s.userId}</div>
                     </>
                   ) : (
                     s.userId
@@ -643,14 +643,7 @@ const RecoveryTab: React.FC = () => {
       </p>
 
       {error && <div className={styles.errorBanner}>{error}</div>}
-      {message && (
-        <div
-          className={styles.errorBanner}
-          style={{ background: '#ecfdf5', borderColor: '#a7f3d0', color: '#065f46' }}
-        >
-          {message}
-        </div>
-      )}
+      {message && <div className={styles.successBanner}>{message}</div>}
 
       <div className={styles.inlineForm}>
         <input

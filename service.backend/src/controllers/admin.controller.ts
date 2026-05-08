@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import User, { UserStatus, UserType } from '../models/User';
 import AdminService from '../services/admin.service';
 import { logger, loggerHelpers } from '../utils/logger';
@@ -58,7 +59,7 @@ export class AdminController {
         status,
         verificationStatus,
         page = 1,
-        limit = 20,
+        limit = DEFAULT_PAGE_SIZE,
         sortBy = 'createdAt',
         sortOrder = 'DESC',
       } = req.query;
@@ -209,7 +210,7 @@ export class AdminController {
     try {
       const {
         page = 1,
-        limit = 50,
+        limit = LARGE_PAGE_SIZE,
         action,
         userId,
         entity,
@@ -263,7 +264,7 @@ export class AdminController {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 20, status } = req.query;
+      const { page = 1, limit = DEFAULT_PAGE_SIZE, status } = req.query;
 
       const result = await AdminService.getRescues({
         status: status as string,
@@ -424,7 +425,12 @@ export class AdminController {
   }
 
   /**
-   * Export platform data
+   * Export platform data.
+   *
+   * ADS-421: previously buffered the entire table in memory and
+   * pretty-printed it to a JSON string — a single export request
+   * could OOM the process. Now streams paginated rows directly to
+   * the response in JSON / JSONL / CSV.
    */
   static async exportData(req: AuthenticatedRequest, res: Response) {
     try {
@@ -437,39 +443,49 @@ export class AdminController {
         });
       }
 
-      const validTypes = ['users', 'rescues', 'pets', 'applications'];
+      const validTypes = ['users', 'rescues', 'pets', 'applications', 'audit_logs'];
       if (!validTypes.includes(type as string)) {
         return res.status(400).json({
           error: 'Invalid export type',
         });
       }
 
-      const validFormats = ['json', 'csv'];
+      const validFormats = ['json', 'jsonl', 'csv'];
       if (!validFormats.includes(format as string)) {
         return res.status(400).json({
           error: 'Invalid export format',
         });
       }
 
-      const exportData = await AdminService.exportData(
-        type as 'users' | 'rescues' | 'pets' | 'applications',
-        format as string
-      );
-
-      // Set appropriate headers for download
       const filename = `${type}_export_${new Date().toISOString().split('T')[0]}.${format}`;
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-      if (format === 'json') {
-        res.setHeader('Content-Type', 'application/json');
-      } else if (format === 'csv') {
-        res.setHeader('Content-Type', 'text/csv');
+      if (format === 'csv') {
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      } else if (format === 'jsonl') {
+        res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+      } else {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
       }
 
-      res.json({
-        success: true,
-        data: exportData,
+      const stream = AdminService.streamExport(
+        type as 'users' | 'rescues' | 'pets' | 'applications' | 'audit_logs',
+        format as 'json' | 'jsonl' | 'csv'
+      );
+
+      stream.on('error', error => {
+        logger.error('Error streaming export:', error);
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: 'Failed to export data',
+            message: error instanceof Error ? error.message : 'Unknown error',
+          });
+        } else {
+          res.end();
+        }
       });
+
+      stream.pipe(res);
     } catch (error) {
       logger.error('Error exporting data:', error);
       res.status(500).json({
@@ -585,7 +601,7 @@ export class AdminController {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 20, status, userType, search } = req.query;
+      const { page = 1, limit = DEFAULT_PAGE_SIZE, status, userType, search } = req.query;
 
       const result = await AdminService.getUsers({
         status: status as UserStatus,
@@ -651,6 +667,19 @@ export class AdminController {
 
       const user = await AdminService.updateUserStatus(userId, status, adminId);
 
+      // ADS-450 / ADS-464: capture request-level metadata (IP, user-agent)
+      // alongside the service-layer audit row so admin actions are
+      // forensically reconstructible.
+      await AuditLogService.log({
+        userId: adminId,
+        action: 'ADMIN_UPDATE_USER_STATUS',
+        entity: 'User',
+        entityId: userId,
+        details: { status },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || '',
+      });
+
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
       res.json({
@@ -681,6 +710,17 @@ export class AdminController {
 
       const user = await AdminService.suspendUser(userId, adminId, reason);
 
+      // ADS-450 / ADS-464: durable audit trail with request metadata.
+      await AuditLogService.log({
+        userId: adminId,
+        action: 'ADMIN_SUSPEND_USER',
+        entity: 'User',
+        entityId: userId,
+        details: { reason: reason ?? null },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || '',
+      });
+
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
       res.json({
@@ -709,6 +749,16 @@ export class AdminController {
       const adminId = (req as AuthenticatedRequest).user?.userId || 'system';
 
       const user = await AdminService.unsuspendUser(userId, adminId);
+
+      // ADS-450 / ADS-464: durable audit trail with request metadata.
+      await AuditLogService.log({
+        userId: adminId,
+        action: 'ADMIN_UNSUSPEND_USER',
+        entity: 'User',
+        entityId: userId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || '',
+      });
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
@@ -763,7 +813,7 @@ export class AdminController {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 20, status, search } = req.query;
+      const { page = 1, limit = DEFAULT_PAGE_SIZE, status, search } = req.query;
 
       const result = await AdminService.getRescues({
         status: status as string,
@@ -872,7 +922,7 @@ export class AdminController {
         status,
         _verificationStatus, // Prefix with underscore to indicate intentionally unused
         page = 1,
-        limit = 20,
+        limit = DEFAULT_PAGE_SIZE,
         sortBy = 'createdAt',
         sortOrder = 'DESC',
       } = req.query;

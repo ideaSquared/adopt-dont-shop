@@ -201,7 +201,7 @@ const Audit: React.FC = () => {
           </div>
           <div>
             <div className={styles.userName}>{row.userName || 'System'}</div>
-            <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{row.userType || 'system'}</div>
+            <div className={styles.subUserType}>{row.userType || 'system'}</div>
           </div>
         </div>
       ),
@@ -222,7 +222,7 @@ const Audit: React.FC = () => {
             View Details
           </button>
         ) : (
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>—</span>
+          <span className={styles.subUserType}>—</span>
         ),
       width: '100px',
       align: 'center',
@@ -259,7 +259,7 @@ const Audit: React.FC = () => {
         </HeaderLeft>
         <div className={styles.headerActions}>
           <Button variant='outline' size='md' onClick={() => refetch()} disabled={isLoading}>
-            <FiRefreshCw style={{ marginRight: '0.5rem' }} />
+            <FiRefreshCw className={styles.buttonIcon} />
             Refresh
           </Button>
         </div>
@@ -313,15 +313,7 @@ const Audit: React.FC = () => {
       </FilterBar>
 
       {isError && (
-        <div
-          style={{
-            padding: '1rem',
-            color: '#dc2626',
-            background: '#fee2e2',
-            borderRadius: '8px',
-            margin: '1rem 0',
-          }}
-        >
+        <div className={styles.errorBanner}>
           Error loading audit logs: {error instanceof Error ? error.message : 'Unknown error'}
         </div>
       )}

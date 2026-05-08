@@ -404,7 +404,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
         </div>
       </div>
 
-      {errors.submit && <div style={{ color: 'red', fontSize: '0.875rem' }}>{errors.submit}</div>}
+      {errors.submit && <div className={styles.submitError}>{errors.submit}</div>}
 
       <div className={styles.buttonGroup}>
         <Button type='button' variant='secondary' onClick={handleCancel} disabled={isLoading}>

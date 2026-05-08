@@ -62,9 +62,9 @@ const makeFile = (overrides: Partial<Express.Multer.File> = {}): Express.Multer.
   encoding: '7bit',
   mimetype: 'image/jpeg',
   size: 1024,
-  destination: '/tmp',
+  destination: '/test-uploads',
   filename: 'photo_123.jpg',
-  path: '/tmp/photo_123.jpg',
+  path: '/test-uploads/photo_123.jpg',
   buffer: Buffer.from(''),
   stream: {} as NodeJS.ReadableStream,
   ...overrides,
@@ -189,7 +189,7 @@ describe('FileUploadService', () => {
       const file = makeFile({
         originalname: 'readme.txt',
         mimetype: 'text/plain',
-        path: '/tmp/readme.txt',
+        path: '/test-uploads/readme.txt',
         filename: 'readme_123.txt',
       });
       vi.mocked(fileTypeFromFile).mockResolvedValue(undefined);
@@ -210,7 +210,7 @@ describe('FileUploadService', () => {
       const file = makeFile({
         originalname: 'data.csv',
         mimetype: 'text/csv',
-        path: '/tmp/data.csv',
+        path: '/test-uploads/data.csv',
         filename: 'data_123.csv',
       });
       vi.mocked(fileTypeFromFile).mockResolvedValue(undefined);
@@ -242,7 +242,7 @@ describe('FileUploadService', () => {
       makeFile({
         originalname: 'icon.svg',
         mimetype: 'image/svg+xml',
-        path: '/tmp/icon.svg',
+        path: '/test-uploads/icon.svg',
         filename: 'icon_123.svg',
       });
 
@@ -270,7 +270,7 @@ describe('FileUploadService', () => {
 
       expect(result.success).toBe(true);
       expect(vi.mocked(fs.promises.writeFile)).toHaveBeenCalledWith(
-        '/tmp/icon.svg',
+        '/test-uploads/icon.svg',
         cleanSvg,
         'utf-8'
       );
@@ -308,7 +308,7 @@ describe('FileUploadService', () => {
 
       expect(result.success).toBe(true);
       expect(vi.mocked(fs.promises.writeFile)).toHaveBeenCalledWith(
-        '/tmp/icon.svg',
+        '/test-uploads/icon.svg',
         cleanSvg,
         'utf-8'
       );
@@ -389,8 +389,8 @@ describe('FileUploadService', () => {
   describe('uploadMultipleFiles()', () => {
     it('returns a success result for each file that passes validation', async () => {
       const files = [
-        makeFile({ originalname: 'a.jpg', path: '/tmp/a.jpg', filename: 'a_123.jpg' }),
-        makeFile({ originalname: 'b.jpg', path: '/tmp/b.jpg', filename: 'b_123.jpg' }),
+        makeFile({ originalname: 'a.jpg', path: '/test-uploads/a.jpg', filename: 'a_123.jpg' }),
+        makeFile({ originalname: 'b.jpg', path: '/test-uploads/b.jpg', filename: 'b_123.jpg' }),
       ];
       vi.mocked(fileTypeFromFile).mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
       vi.mocked(fs.promises.stat).mockResolvedValue({
@@ -418,7 +418,7 @@ describe('FileUploadService', () => {
         originalname: 'good.jpg',
         mimetype: 'image/jpeg',
         size: 1024,
-        path: '/tmp/good.jpg',
+        path: '/test-uploads/good.jpg',
         filename: 'good_123.jpg',
       });
       // Bad file fails at the MIME-type check — fileTypeFromFile is never reached

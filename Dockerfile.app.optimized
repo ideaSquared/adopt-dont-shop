@@ -57,6 +57,7 @@ COPY --chown=viteuser:nodejs lib.feature-flags/package.json ./lib.feature-flags/
 COPY --chown=viteuser:nodejs lib.invitations/package.json ./lib.invitations/
 COPY --chown=viteuser:nodejs lib.moderation/package.json ./lib.moderation/
 COPY --chown=viteuser:nodejs lib.notifications/package.json ./lib.notifications/
+COPY --chown=viteuser:nodejs lib.observability/package.json ./lib.observability/
 COPY --chown=viteuser:nodejs lib.permissions/package.json ./lib.permissions/
 COPY --chown=viteuser:nodejs lib.pets/package.json ./lib.pets/
 COPY --chown=viteuser:nodejs lib.rescue/package.json ./lib.rescue/
@@ -87,6 +88,7 @@ COPY --chown=viteuser:nodejs lib.feature-flags/ ./lib.feature-flags/
 COPY --chown=viteuser:nodejs lib.invitations/ ./lib.invitations/
 COPY --chown=viteuser:nodejs lib.moderation/ ./lib.moderation/
 COPY --chown=viteuser:nodejs lib.notifications/ ./lib.notifications/
+COPY --chown=viteuser:nodejs lib.observability/ ./lib.observability/
 COPY --chown=viteuser:nodejs lib.permissions/ ./lib.permissions/
 COPY --chown=viteuser:nodejs lib.pets/ ./lib.pets/
 COPY --chown=viteuser:nodejs lib.rescue/ ./lib.rescue/
@@ -113,15 +115,81 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["npm", "run", "dev"]
 
 # Build stage for production
+# Selective COPY discipline: workspace metadata first, then library
+# package.json files for layer-cache-friendly `npm ci`, then sources. This
+# mirrors the development stage above and keeps test files / storybook
+# configs / .git out of the build image. [ADS-433]
 FROM base AS build
 ARG APP_NAME
 
-# Copy entire workspace
-COPY . .
+COPY package*.json turbo.json ./
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
+COPY eslint-config-base/ ./eslint-config-base/
+COPY eslint-config-react/ ./eslint-config-react/
+COPY eslint-config-node/ ./eslint-config-node/
+
+# Library package.json files (cache-friendly install layer).
+COPY lib.analytics/package.json ./lib.analytics/
+COPY lib.api/package.json ./lib.api/
+COPY lib.applications/package.json ./lib.applications/
+COPY lib.audit-logs/package.json ./lib.audit-logs/
+COPY lib.auth/package.json ./lib.auth/
+COPY lib.chat/package.json ./lib.chat/
+COPY lib.components/package.json ./lib.components/
+COPY lib.dev-tools/package.json ./lib.dev-tools/
+COPY lib.discovery/package.json ./lib.discovery/
+COPY lib.feature-flags/package.json ./lib.feature-flags/
+COPY lib.invitations/package.json ./lib.invitations/
+COPY lib.moderation/package.json ./lib.moderation/
+COPY lib.notifications/package.json ./lib.notifications/
+COPY lib.observability/package.json ./lib.observability/
+COPY lib.permissions/package.json ./lib.permissions/
+COPY lib.pets/package.json ./lib.pets/
+COPY lib.rescue/package.json ./lib.rescue/
+COPY lib.search/package.json ./lib.search/
+COPY lib.support-tickets/package.json ./lib.support-tickets/
+COPY lib.types/package.json ./lib.types/
+COPY lib.utils/package.json ./lib.utils/
+COPY lib.validation/package.json ./lib.validation/
+
+# Backend package.json — required for npm workspace resolution even though
+# we don't build it here (Turbo `--filter=...@adopt-dont-shop/${APP_NAME}`
+# only builds the app and its lib deps).
+COPY service.backend/package.json ./service.backend/
+
+# App package.json
+COPY ${APP_NAME}/package.json ./${APP_NAME}/
 
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
+
+# Library sources
+COPY lib.analytics/ ./lib.analytics/
+COPY lib.api/ ./lib.api/
+COPY lib.applications/ ./lib.applications/
+COPY lib.audit-logs/ ./lib.audit-logs/
+COPY lib.auth/ ./lib.auth/
+COPY lib.chat/ ./lib.chat/
+COPY lib.components/ ./lib.components/
+COPY lib.dev-tools/ ./lib.dev-tools/
+COPY lib.discovery/ ./lib.discovery/
+COPY lib.feature-flags/ ./lib.feature-flags/
+COPY lib.invitations/ ./lib.invitations/
+COPY lib.moderation/ ./lib.moderation/
+COPY lib.notifications/ ./lib.notifications/
+COPY lib.observability/ ./lib.observability/
+COPY lib.permissions/ ./lib.permissions/
+COPY lib.pets/ ./lib.pets/
+COPY lib.rescue/ ./lib.rescue/
+COPY lib.search/ ./lib.search/
+COPY lib.support-tickets/ ./lib.support-tickets/
+COPY lib.types/ ./lib.types/
+COPY lib.utils/ ./lib.utils/
+COPY lib.validation/ ./lib.validation/
+
+# App source
+COPY ${APP_NAME}/ ./${APP_NAME}/
 
 # Build libraries first, then the specific app using Turbo
 # Use cache mount for Turbo cache
@@ -181,7 +249,10 @@ http { \
         add_header Referrer-Policy "strict-origin-when-cross-origin" always; \
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always; \
         add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always; \
-        add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"' '"'"'unsafe-inline'"'"' '"'"'unsafe-eval'"'"'; style-src '"'"'self'"'"' '"'"'unsafe-inline'"'"'; img-src '"'"'self'"'"' data: https:; font-src '"'"'self'"'"' data:; connect-src '"'"'self'"'"' ws: wss:;" always; \
+        # CSP without unsafe-inline / unsafe-eval on script-src. style-src \
+        # keeps unsafe-inline only because styled-components injects runtime \
+        # styles. [ADS-434] \
+        add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"'; style-src '"'"'self'"'"' '"'"'unsafe-inline'"'"'; img-src '"'"'self'"'"' data: https:; font-src '"'"'self'"'"' data:; connect-src '"'"'self'"'"' wss: https:; frame-ancestors '"'"'none'"'"'; object-src '"'"'none'"'"'; base-uri '"'"'self'"'"'; form-action '"'"'self'"'"'; upgrade-insecure-requests" always; \
         \
         # SPA routing - all routes to index.html \
         location / { \

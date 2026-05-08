@@ -127,3 +127,7 @@ export const clearButton = style({
     textDecoration: 'underline',
   },
 });
+
+export const filterGroupRight = style({
+  justifyContent: 'flex-end',
+});

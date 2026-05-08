@@ -48,12 +48,12 @@ export const CheckYourEmailPage: React.FC = () => {
             {isResending ? 'Sending...' : 'Resend Verification Email'}
           </Button>
           {resendSuccess && (
-            <div style={{ marginTop: '1rem' }}>
+            <div className={styles.resendAlert}>
               <Alert variant='success'>Verification email sent! Please check your inbox.</Alert>
             </div>
           )}
           {resendError && (
-            <div style={{ marginTop: '1rem' }}>
+            <div className={styles.resendAlert}>
               <Alert variant='error'>{resendError}</Alert>
             </div>
           )}

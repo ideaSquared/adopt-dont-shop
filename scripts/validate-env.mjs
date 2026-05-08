@@ -1,20 +1,29 @@
 #!/usr/bin/env node
 
 /**
- * Environment Configuration Validation Script
+ * Real environment / secret validator (ADS-408).
  *
- * This script validates the environment configuration across all apps and libraries
- * to ensure they follow the industry standard URL environment variable setup.
+ * Replaces the previous URL-only check. This script:
+ *  1. Loads the active .env (defaults to repo-root /.env, or --env-file=PATH).
+ *  2. Validates required vars per NODE_ENV using the same rules as the
+ *     backend startup validator (service.backend/src/utils/validate-env.ts).
+ *  3. Diffs the active env against root /.env.example so missing or stale
+ *     keys surface before deploy.
+ *  4. Exits non-zero on any error so it can run as a CI gate.
+ *
+ * Keep the rule set in sync with service.backend/src/utils/validate-env.ts.
+ * The two implementations validate the same secrets so operators get the same
+ * answer pre-deploy as at boot.
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const rootDir = path.dirname(__dirname);
 
-// Color codes for terminal output
 const colors = {
   red: '\x1b[31m',
   green: '\x1b[32m',
@@ -25,237 +34,311 @@ const colors = {
 };
 
 const log = {
-  error: msg => console.log(`${colors.red}❌ ${msg}${colors.reset}`),
-  success: msg => console.log(`${colors.green}✅ ${msg}${colors.reset}`),
-  warning: msg => console.log(`${colors.yellow}⚠️  ${msg}${colors.reset}`),
-  info: msg => console.log(`${colors.blue}ℹ️  ${msg}${colors.reset}`),
-  title: msg => console.log(`${colors.bold}${colors.blue}${msg}${colors.reset}`),
+  error: msg => console.error(`${colors.red}✗ ${msg}${colors.reset}`),
+  success: msg => console.info(`${colors.green}✓ ${msg}${colors.reset}`),
+  warn: msg => console.warn(`${colors.yellow}! ${msg}${colors.reset}`),
+  info: msg => console.info(`${colors.blue}i ${msg}${colors.reset}`),
+  title: msg => console.info(`${colors.bold}${colors.blue}${msg}${colors.reset}`),
 };
 
-// Configuration - go up one level from scripts directory to project root
-const rootDir = path.dirname(__dirname);
-const apps = ['app.client', 'app.rescue', 'app.admin'];
-const libs = ['lib.api', 'lib.utils'];
+const MIN_SECRET_LENGTH = 32;
+const ENCRYPTION_KEY_HEX_LEN = 64;
 
-// Standard environment variables
-const standardVars = ['VITE_API_BASE_URL', 'VITE_WS_BASE_URL'];
-const deprecatedVars = ['VITE_API_URL', 'VITE_WEBSOCKET_URL', 'VITE_SOCKET_URL'];
-
-let errorCount = 0;
-let warningCount = 0;
-
-/**
- * Check if file exists
- */
-function fileExists(filePath) {
-  try {
-    return fs.statSync(filePath).isFile();
-  } catch {
-    return false;
+// ---------------------------------------------------------------------------
+// .env parsing — minimal KEY=value, ignores blank/comment lines
+// ---------------------------------------------------------------------------
+function parseDotEnv(content) {
+  const out = {};
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+    const eq = line.indexOf('=');
+    if (eq === -1) {
+      continue;
+    }
+    const key = line.slice(0, eq).trim();
+    if (!/^[A-Z0-9_]+$/i.test(key)) {
+      continue;
+    }
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    out[key] = value;
   }
+  return out;
 }
 
-/**
- * Read file content safely
- */
-function readFile(filePath) {
+function loadEnvFile(envPath) {
+  if (!fs.existsSync(envPath)) {
+    return null;
+  }
   try {
-    return fs.readFileSync(filePath, 'utf8');
-  } catch {
+    return parseDotEnv(fs.readFileSync(envPath, 'utf8'));
+  } catch (err) {
+    log.error(`Failed to read ${envPath}: ${err.message}`);
     return null;
   }
 }
 
-/**
- * Check environment file
- */
-function checkEnvFile(appPath, fileName) {
-  const filePath = path.join(appPath, fileName);
+// ---------------------------------------------------------------------------
+// Validation rules (mirror service.backend/src/utils/validate-env.ts)
+// ---------------------------------------------------------------------------
+function isPlaceholder(value) {
+  return typeof value === 'string' && value.startsWith('CHANGE_THIS');
+}
 
-  if (!fileExists(filePath)) {
-    log.error(`Missing ${fileName} in ${path.basename(appPath)}`);
-    errorCount++;
-    return;
-  }
-
-  const content = readFile(filePath);
-  if (!content) {
-    log.error(`Cannot read ${fileName} in ${path.basename(appPath)}`);
-    errorCount++;
-    return;
-  }
-
-  // Check for standard variables
-  let hasStandardVars = false;
-  for (const varName of standardVars) {
-    if (content.includes(varName)) {
-      hasStandardVars = true;
-      break;
+function checkSecret(name, value, errors, { required }) {
+  if (!value) {
+    if (required) {
+      errors.push(`${name} is required`);
     }
+    return;
   }
-
-  if (!hasStandardVars) {
-    log.error(
-      `${fileName} in ${path.basename(appPath)} missing standard variables: ${standardVars.join(', ')}`
+  if (value.length < MIN_SECRET_LENGTH) {
+    errors.push(
+      `${name} must be at least ${MIN_SECRET_LENGTH} characters long for security (got ${value.length})`
     );
-    errorCount++;
-  } else {
-    log.success(`${fileName} in ${path.basename(appPath)} has standard variables`);
+  }
+  if (isPlaceholder(value)) {
+    errors.push(`${name} must not use the default placeholder value (CHANGE_THIS...)`);
+  }
+}
+
+function checkEncryptionKey(value, errors, { required }) {
+  if (!value) {
+    if (required) {
+      errors.push('ENCRYPTION_KEY is required');
+    }
+    return;
+  }
+  if (value.length !== ENCRYPTION_KEY_HEX_LEN) {
+    errors.push(
+      `ENCRYPTION_KEY must be exactly ${ENCRYPTION_KEY_HEX_LEN} hex characters (32 bytes); got ${value.length}`
+    );
+  } else if (!/^[0-9a-f]+$/i.test(value)) {
+    errors.push('ENCRYPTION_KEY must be hex (0-9, a-f)');
+  }
+}
+
+function checkDistinctSecrets(env, errors) {
+  const pairs = [
+    ['JWT_SECRET', 'JWT_REFRESH_SECRET'],
+    ['JWT_SECRET', 'SESSION_SECRET'],
+    ['JWT_SECRET', 'CSRF_SECRET'],
+    ['JWT_REFRESH_SECRET', 'SESSION_SECRET'],
+    ['JWT_REFRESH_SECRET', 'CSRF_SECRET'],
+    ['SESSION_SECRET', 'CSRF_SECRET'],
+  ];
+  for (const [a, b] of pairs) {
+    if (env[a] && env[b] && env[a] === env[b]) {
+      errors.push(`${a} and ${b} must be distinct (reuse increases compromise blast radius)`);
+    }
+  }
+}
+
+function checkUrl(name, value, errors) {
+  if (!value) {
+    return;
+  }
+  try {
+    new URL(value);
+  } catch {
+    // Don't echo the raw value back — even non-secret env vars can carry
+    // PII or tenant-identifying URLs. The variable name is enough context.
+    errors.push(`${name} must be a valid URL`);
+  }
+}
+
+function validate(env) {
+  const errors = [];
+  const warnings = [];
+  const nodeEnv = env.NODE_ENV || 'development';
+  const isProduction = nodeEnv === 'production';
+
+  if (!['development', 'test', 'production'].includes(nodeEnv)) {
+    errors.push(`NODE_ENV must be one of development|test|production`);
   }
 
-  // Check for deprecated variables
-  for (const varName of deprecatedVars) {
-    if (content.includes(varName) && !content.includes('Legacy support')) {
-      log.warning(
-        `${fileName} in ${path.basename(appPath)} still uses deprecated variable: ${varName}`
+  // Secrets — required everywhere so a dev config can't leak into prod.
+  checkSecret('JWT_SECRET', env.JWT_SECRET, errors, { required: true });
+  checkSecret('JWT_REFRESH_SECRET', env.JWT_REFRESH_SECRET, errors, { required: true });
+  checkSecret('SESSION_SECRET', env.SESSION_SECRET, errors, { required: true });
+  checkSecret('CSRF_SECRET', env.CSRF_SECRET, errors, { required: true });
+  checkEncryptionKey(env.ENCRYPTION_KEY, errors, { required: true });
+
+  if (env.JWT_REPORT_SHARE_SECRET) {
+    checkSecret('JWT_REPORT_SHARE_SECRET', env.JWT_REPORT_SHARE_SECRET, errors, {
+      required: false,
+    });
+  }
+
+  checkDistinctSecrets(env, errors);
+
+  // DB connection
+  for (const name of ['DB_HOST', 'DB_PORT', 'DB_USERNAME', 'DB_PASSWORD']) {
+    if (!env[name]) {
+      errors.push(`${name} is required`);
+    }
+  }
+  if (env.DB_PORT && Number.isNaN(Number(env.DB_PORT))) {
+    errors.push(`DB_PORT must be a number (got "${env.DB_PORT}")`);
+  }
+
+  // Per-env DB names (ADS-409/452/465)
+  if (nodeEnv === 'development' && !env.DEV_DB_NAME) {
+    errors.push('DEV_DB_NAME is required for development');
+  }
+  if (nodeEnv === 'test' && !env.TEST_DB_NAME) {
+    errors.push('TEST_DB_NAME is required for test');
+  }
+  if (nodeEnv === 'production' && !env.PROD_DB_NAME) {
+    errors.push('PROD_DB_NAME is required for production');
+  }
+
+  // Booleans
+  for (const name of ['DB_LOGGING', 'WORKER_ENABLED', 'DEBUG_ERRORS']) {
+    if (env[name] && !['true', 'false'].includes(env[name].toLowerCase())) {
+      errors.push(`${name} must be 'true' or 'false' (got "${env[name]}")`);
+    }
+  }
+
+  // Production-only requirements
+  if (isProduction) {
+    if (!env.CORS_ORIGIN) {
+      errors.push('CORS_ORIGIN is required in production');
+    } else if (env.CORS_ORIGIN.split(',').some(o => o.trim() === '*' || o.includes('*'))) {
+      errors.push("CORS_ORIGIN cannot contain wildcard ('*') in production");
+    }
+    // ADS-410
+    if (!env.FRONTEND_URL) {
+      errors.push('FRONTEND_URL is required in production (used to build email links)');
+    } else {
+      checkUrl('FRONTEND_URL', env.FRONTEND_URL, errors);
+    }
+    if (!env.RESCUE_FRONTEND_URL) {
+      errors.push('RESCUE_FRONTEND_URL is required in production (used to build email links)');
+    } else {
+      checkUrl('RESCUE_FRONTEND_URL', env.RESCUE_FRONTEND_URL, errors);
+    }
+    // ADS-411
+    if (!env.STATSIG_SERVER_SECRET_KEY) {
+      errors.push(
+        'STATSIG_SERVER_SECRET_KEY is required in production (missing key silently disables all server-side feature flags)'
       );
-      warningCount++;
+    }
+    // ADS-512
+    if (env.DEBUG_ERRORS === 'true') {
+      errors.push(
+        'DEBUG_ERRORS=true is not allowed in production (leaks raw error messages to clients)'
+      );
+    }
+    // BCRYPT_ROUNDS warning
+    if (env.BCRYPT_ROUNDS && Number(env.BCRYPT_ROUNDS) < 12) {
+      warnings.push('BCRYPT_ROUNDS should be at least 12 for production security');
+    }
+    if (env.DB_LOGGING === 'true') {
+      warnings.push('DB_LOGGING is enabled in production (may log sensitive data)');
     }
   }
+
+  return { errors, warnings };
 }
 
-/**
- * Check TypeScript environment definitions
- */
-function checkViteEnvFile(appPath) {
-  const filePath = path.join(appPath, 'src', 'vite-env.d.ts');
-
-  if (!fileExists(filePath)) {
-    log.error(`Missing vite-env.d.ts in ${path.basename(appPath)}/src/`);
-    errorCount++;
-    return;
+// ---------------------------------------------------------------------------
+// Diff: keys present in .env.example but missing from active env
+// ---------------------------------------------------------------------------
+function diffAgainstExample(env, examplePath) {
+  if (!fs.existsSync(examplePath)) {
+    return { missing: [], examplePath: null };
   }
-
-  const content = readFile(filePath);
-  if (!content) {
-    log.error(`Cannot read vite-env.d.ts in ${path.basename(appPath)}`);
-    errorCount++;
-    return;
-  }
-
-  // Check for standard type definitions
-  let hasStandardTypes = false;
-  for (const varName of standardVars) {
-    if (content.includes(`readonly ${varName}`)) {
-      hasStandardTypes = true;
-      break;
-    }
-  }
-
-  if (!hasStandardTypes) {
-    log.error(`vite-env.d.ts in ${path.basename(appPath)} missing standard type definitions`);
-    errorCount++;
-  } else {
-    log.success(`vite-env.d.ts in ${path.basename(appPath)} has standard type definitions`);
-  }
+  const example = parseDotEnv(fs.readFileSync(examplePath, 'utf8'));
+  const missing = Object.keys(example).filter(key => !(key in env));
+  return { missing, examplePath };
 }
 
-/**
- * Check source code for deprecated variables
- */
-function checkSourceCode(appPath) {
-  const srcPath = path.join(appPath, 'src');
-  if (!fs.existsSync(srcPath)) return;
-
-  function checkDirectory(dirPath) {
-    const items = fs.readdirSync(dirPath);
-
-    for (const item of items) {
-      const itemPath = path.join(dirPath, item);
-      const stat = fs.statSync(itemPath);
-
-      if (stat.isDirectory()) {
-        checkDirectory(itemPath);
-      } else if (item.endsWith('.ts') || item.endsWith('.tsx')) {
-        const content = readFile(itemPath);
-        if (!content) continue;
-
-        // Check for deprecated variables in actual usage (not in comments)
-        const lines = content.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-
-          // Skip comments and legacy support lines
-          if (line.startsWith('//') || line.startsWith('*') || line.includes('Legacy support')) {
-            continue;
-          }
-
-          for (const varName of deprecatedVars) {
-            if (line.includes(`${varName}`) && line.includes('import.meta.env')) {
-              const relativePath = path.relative(rootDir, itemPath);
-              log.warning(`${relativePath}:${i + 1} still uses deprecated variable: ${varName}`);
-              warningCount++;
-            }
-          }
-        }
-      }
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+function parseArgs(argv) {
+  const args = { envFile: null, examplePath: null, json: false };
+  for (const arg of argv.slice(2)) {
+    if (arg.startsWith('--env-file=')) {
+      args.envFile = arg.slice('--env-file='.length);
+    } else if (arg.startsWith('--example=')) {
+      args.examplePath = arg.slice('--example='.length);
+    } else if (arg === '--json') {
+      args.json = true;
     }
   }
-
-  checkDirectory(srcPath);
+  return args;
 }
 
-/**
- * Main validation function
- */
-function validateEnvironmentConfig() {
-  log.title('🔍 Environment Configuration Validation');
-  console.log('');
+function main() {
+  const args = parseArgs(process.argv);
+  const envFile = args.envFile ? path.resolve(args.envFile) : path.join(rootDir, '.env');
+  const examplePath = args.examplePath
+    ? path.resolve(args.examplePath)
+    : path.join(rootDir, '.env.example');
 
-  // Check applications
-  log.title('📱 Checking Applications');
-  for (const app of apps) {
-    const appPath = path.join(rootDir, app);
+  log.title('Environment / secret validation');
+  log.info(`env file:    ${envFile}`);
+  log.info(`example:     ${examplePath}`);
 
-    if (!fs.existsSync(appPath)) {
-      log.error(`Application directory not found: ${app}`);
-      errorCount++;
-      continue;
-    }
+  const fileEnv = loadEnvFile(envFile);
+  // Merge file env on top of process.env so `STATSIG_SERVER_SECRET_KEY=foo
+  // npm run validate:env` works for CI. process.env wins for already-set
+  // overrides (CI typically injects secrets that way).
+  const env = { ...(fileEnv || {}), ...process.env };
 
-    log.info(`Checking ${app}...`);
-    checkEnvFile(appPath, '.env.example');
-    checkViteEnvFile(appPath);
-    checkSourceCode(appPath);
-    console.log('');
+  if (!fileEnv) {
+    log.warn(`No .env file at ${envFile}; validating process.env only`);
   }
 
-  // Check libraries
-  log.title('📚 Checking Libraries');
-  for (const lib of libs) {
-    const libPath = path.join(rootDir, lib);
+  const { errors, warnings } = validate(env);
+  const { missing, examplePath: foundExample } = diffAgainstExample(env, examplePath);
 
-    if (!fs.existsSync(libPath)) {
-      log.warning(`Library directory not found: ${lib}`);
-      continue;
+  if (foundExample && missing.length > 0) {
+    log.warn(`${missing.length} key(s) in .env.example missing from active env:`);
+    for (const key of missing) {
+      console.info(`    - ${key}`);
     }
-
-    log.info(`Checking ${lib}...`);
-    if (lib === 'lib.api' || lib === 'lib.utils') {
-      checkViteEnvFile(libPath);
-      checkSourceCode(libPath);
-    }
-    console.log('');
+  } else if (foundExample) {
+    log.success('All keys from .env.example are present in active env');
   }
 
-  // Summary
-  log.title('📊 Validation Summary');
-  if (errorCount === 0 && warningCount === 0) {
-    log.success('All environment configurations are correct! 🎉');
-  } else {
-    if (errorCount > 0) {
-      log.error(`Found ${errorCount} error(s) that need to be fixed`);
+  if (warnings.length > 0) {
+    log.warn(`${warnings.length} warning(s):`);
+    for (const w of warnings) {
+      console.warn(`    - ${w}`);
     }
-    if (warningCount > 0) {
-      log.warning(`Found ${warningCount} warning(s) about deprecated usage`);
-    }
-
-    console.log('');
-    log.info('For help with environment configuration, see: docs/environment-variables.md');
   }
 
-  process.exit(errorCount > 0 ? 1 : 0);
+  if (args.json) {
+    console.info(
+      JSON.stringify(
+        { ok: errors.length === 0, errors, warnings, missingFromExample: missing },
+        null,
+        2
+      )
+    );
+  }
+
+  if (errors.length > 0) {
+    log.error(`Validation failed with ${errors.length} error(s):`);
+    for (const e of errors) {
+      console.error(`    - ${e}`);
+    }
+    process.exit(1);
+  }
+
+  log.success('Environment validation passed');
+  process.exit(0);
 }
 
-// Run validation
-validateEnvironmentConfig();
+main();

@@ -1,53 +1,48 @@
-import { fireEvent, render } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
 import MarkdownEditor from './MarkdownEditor';
 
-// TODO: Fix this test
-describe.skip('MarkdownEditor', () => {
-  const mockOnChange = vi.fn();
-
+/**
+ * The original test suite targeted a Quill-based implementation. The
+ * component has since been reduced to a labelled textarea with a markdown
+ * hint, so these tests cover the actual surface: rendering the placeholder,
+ * displaying the initial value, calling onChange with markdown format, and
+ * honouring the readOnly flag.
+ */
+describe('MarkdownEditor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders with default placeholder', () => {
-    render(<MarkdownEditor value='' onChange={mockOnChange} />);
-    const editor = document.querySelector('.ql-editor[data-placeholder="Type your message..."]');
-    expect(editor).toBeInTheDocument();
+  it('uses the default placeholder when none is provided', () => {
+    render(<MarkdownEditor value='' onChange={vi.fn()} />);
+    expect(screen.getByPlaceholderText('Type your message...')).toBeInTheDocument();
   });
 
-  it('renders with custom placeholder', () => {
-    const customPlaceholder = 'Write something...';
-    render(<MarkdownEditor value='' onChange={mockOnChange} placeholder={customPlaceholder} />);
-    const editor = document.querySelector(`.ql-editor[data-placeholder="${customPlaceholder}"]`);
-    expect(editor).toBeInTheDocument();
+  it('uses a custom placeholder when provided', () => {
+    render(<MarkdownEditor value='' onChange={vi.fn()} placeholder='Write something...' />);
+    expect(screen.getByPlaceholderText('Write something...')).toBeInTheDocument();
   });
 
-  it('displays initial value', () => {
-    const initialValue = '<p>Hello, world!</p>';
-    render(<MarkdownEditor value={initialValue} onChange={mockOnChange} />);
-    const editor = document.querySelector('.ql-editor');
-    expect(editor).not.toBeNull();
-    expect(editor?.innerHTML).toBe(initialValue);
+  it('displays the initial value', () => {
+    const value = '# Hello, world!';
+    render(<MarkdownEditor value={value} onChange={vi.fn()} />);
+    expect(screen.getByLabelText('Message input')).toHaveValue(value);
   });
 
-  it('calls onChange with HTML format', () => {
-    render(<MarkdownEditor value='' onChange={mockOnChange} />);
-    const editor = document.querySelector('.ql-editor');
-    expect(editor).not.toBeNull();
-    fireEvent.input(editor!, { target: { innerHTML: '<p>New content</p>' } });
-    expect(mockOnChange).toHaveBeenCalledWith(expect.stringContaining('New content'), 'html');
+  it('calls onChange with the new content and markdown format on input', () => {
+    const onChange = vi.fn();
+    render(<MarkdownEditor value='' onChange={onChange} />);
+
+    fireEvent.change(screen.getByLabelText('Message input'), {
+      target: { value: 'New **content**' },
+    });
+
+    expect(onChange).toHaveBeenCalledWith('New **content**', 'markdown');
   });
 
-  it('renders toolbar with formatting options', () => {
-    render(<MarkdownEditor value='' onChange={mockOnChange} />);
-
-    // Check for common formatting buttons in Quill's toolbar
-    const boldButton = document.querySelector('button.ql-bold');
-    const italicButton = document.querySelector('button.ql-italic');
-    const underlineButton = document.querySelector('button.ql-underline');
-
-    expect(boldButton).toBeInTheDocument();
-    expect(italicButton).toBeInTheDocument();
-    expect(underlineButton).toBeInTheDocument();
+  it('disables the textarea when readOnly is true', () => {
+    render(<MarkdownEditor value='locked' onChange={vi.fn()} readOnly />);
+    expect(screen.getByLabelText('Message input')).toBeDisabled();
   });
 });

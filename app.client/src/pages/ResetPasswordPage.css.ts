@@ -106,3 +106,7 @@ globalStyle(`${successContainer} .redirect-message`, {
   color: '#9ca3af',
   fontStyle: 'italic',
 });
+
+export const fullWidthTopGap = style({
+  marginTop: '1rem',
+});

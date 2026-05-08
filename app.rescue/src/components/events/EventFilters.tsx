@@ -102,7 +102,7 @@ const EventFilters: React.FC<EventFiltersProps> = ({
         </div>
 
         {hasActiveFilters && (
-          <div className={styles.filterGroup} style={{ justifyContent: 'flex-end' }}>
+          <div className={`${styles.filterGroup} ${styles.filterGroupRight}`}>
             <button className={styles.clearButton} onClick={handleClearFilters}>
               Clear All Filters
             </button>

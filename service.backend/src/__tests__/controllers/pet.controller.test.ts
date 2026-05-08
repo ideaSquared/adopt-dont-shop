@@ -1,15 +1,18 @@
 import { vi } from 'vitest';
 import { Response } from 'express';
 import { PetController } from '../../controllers/pet.controller';
-import StaffMember from '../../models/StaffMember';
 import { UserType } from '../../models/User';
 import PetService from '../../services/pet.service';
 import { AuthenticatedRequest } from '../../types';
 
-vi.mock('../../models/StaffMember');
+// ADS-489: rescue-membership lookups moved from direct StaffMember.findAll
+// calls in the controller into PetService methods. These tests now mock the
+// service shim instead of the model.
 vi.mock('../../services/pet.service', () => ({
   default: {
     createPet: vi.fn(),
+    getVerifiedRescueIdForUser: vi.fn(),
+    getVerifiedRescueIdsForUser: vi.fn(),
   },
 }));
 vi.mock('../../utils/logger', () => ({
@@ -19,8 +22,10 @@ vi.mock('express-validator', () => ({
   validationResult: () => ({ isEmpty: () => true, array: () => [] }),
 }));
 
-const MockedStaffMember = StaffMember as unknown as { findAll: ReturnType<typeof vi.fn> };
-const MockedPetService = PetService as unknown as { createPet: ReturnType<typeof vi.fn> };
+// ADS-527: vi.mocked() recovers the typed mock without manually-cast
+// shapes. The vi.mock() factory above declares which methods are mocked;
+// vi.mocked() infers the rest from the mocked module type.
+const MockedPetService = vi.mocked(PetService);
 
 describe('PetController.createPet — rescueId resolution [ADS-376]', () => {
   let controller: PetController;
@@ -49,7 +54,7 @@ describe('PetController.createPet — rescueId resolution [ADS-376]', () => {
   });
 
   it('uses the single verified rescue implicitly when the user belongs to one rescue', async () => {
-    MockedStaffMember.findAll = vi.fn().mockResolvedValue([{ rescueId: 'rescue-A' }]);
+    MockedPetService.getVerifiedRescueIdsForUser.mockResolvedValueOnce(['rescue-A']);
 
     await controller.createPet(req as AuthenticatedRequest, res as Response);
 
@@ -62,9 +67,7 @@ describe('PetController.createPet — rescueId resolution [ADS-376]', () => {
   });
 
   it('returns 400 when the user is verified at multiple rescues and no selector is provided', async () => {
-    MockedStaffMember.findAll = vi
-      .fn()
-      .mockResolvedValue([{ rescueId: 'rescue-A' }, { rescueId: 'rescue-B' }]);
+    MockedPetService.getVerifiedRescueIdsForUser.mockResolvedValueOnce(['rescue-A', 'rescue-B']);
 
     await controller.createPet(req as AuthenticatedRequest, res as Response);
 
@@ -79,9 +82,7 @@ describe('PetController.createPet — rescueId resolution [ADS-376]', () => {
   });
 
   it('uses the explicit ?rescueId when the user is verified at multiple rescues and the id matches one', async () => {
-    MockedStaffMember.findAll = vi
-      .fn()
-      .mockResolvedValue([{ rescueId: 'rescue-A' }, { rescueId: 'rescue-B' }]);
+    MockedPetService.getVerifiedRescueIdsForUser.mockResolvedValueOnce(['rescue-A', 'rescue-B']);
     req.query = { rescueId: 'rescue-B' };
 
     await controller.createPet(req as AuthenticatedRequest, res as Response);
@@ -94,7 +95,7 @@ describe('PetController.createPet — rescueId resolution [ADS-376]', () => {
   });
 
   it('returns 403 when ?rescueId points at a rescue the user is not verified staff at', async () => {
-    MockedStaffMember.findAll = vi.fn().mockResolvedValue([{ rescueId: 'rescue-A' }]);
+    MockedPetService.getVerifiedRescueIdsForUser.mockResolvedValueOnce(['rescue-A']);
     req.query = { rescueId: 'rescue-Z' };
 
     await controller.createPet(req as AuthenticatedRequest, res as Response);
@@ -104,7 +105,7 @@ describe('PetController.createPet — rescueId resolution [ADS-376]', () => {
   });
 
   it('returns 403 when the user has no verified rescue association', async () => {
-    MockedStaffMember.findAll = vi.fn().mockResolvedValue([]);
+    MockedPetService.getVerifiedRescueIdsForUser.mockResolvedValueOnce([]);
 
     await controller.createPet(req as AuthenticatedRequest, res as Response);
 

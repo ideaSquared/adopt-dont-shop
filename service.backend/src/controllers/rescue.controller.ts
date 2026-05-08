@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { RescueService, BulkRescueAction } from '../services/rescue.service';
 import { InvitationService } from '../services/invitation.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
@@ -9,7 +10,6 @@ import { AdoptionPolicy } from '../types/rescue';
 import EmailService from '../services/email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { UserType } from '../models/User';
-import StaffMember from '../models/StaffMember';
 import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
 
 export class RescueController {
@@ -29,7 +29,7 @@ export class RescueController {
 
       const {
         page = 1,
-        limit = 20,
+        limit = DEFAULT_PAGE_SIZE,
         search,
         status,
         location,
@@ -39,7 +39,7 @@ export class RescueController {
 
       const options = {
         page: parseInt(page as string),
-        limit: Math.min(parseInt(limit as string), 100), // Max 100 per page
+        limit: Math.min(parseInt(limit as string), MAX_PAGE_SIZE),
         search: search as string,
         status: status as 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected',
         location: location as string,
@@ -330,7 +330,7 @@ export class RescueController {
       }
 
       const { rescueId } = req.params;
-      const { page = 1, limit = 20 } = req.query;
+      const { page = 1, limit = DEFAULT_PAGE_SIZE } = req.query;
 
       // First verify rescue exists
       const rescue = await RescueService.getRescueById(rescueId);
@@ -548,11 +548,17 @@ export class RescueController {
       }
 
       const { rescueId } = req.params;
-      const { page = 1, limit = 20, status, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+      const {
+        page = 1,
+        limit = DEFAULT_PAGE_SIZE,
+        status,
+        sortBy = 'createdAt',
+        sortOrder = 'DESC',
+      } = req.query;
 
       const options = {
         page: parseInt(page as string),
-        limit: Math.min(parseInt(limit as string), 100),
+        limit: Math.min(parseInt(limit as string), MAX_PAGE_SIZE),
         status: status as string,
         sortBy: sortBy as string,
         sortOrder: sortOrder as 'ASC' | 'DESC',
@@ -594,8 +600,8 @@ export class RescueController {
       const userId = req.user!.userId;
 
       if (userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
-        const membership = await StaffMember.findOne({ where: { userId, rescueId } });
-        if (!membership) {
+        const isStaff = await RescueService.isUserStaffOfRescue(userId, rescueId);
+        if (!isStaff) {
           return res.status(403).json({ success: false, message: 'Access denied' });
         }
       }

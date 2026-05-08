@@ -1,13 +1,17 @@
 import { Router, Request, Response } from 'express';
 import { body, param, validationResult } from 'express-validator';
+import { sensitiveWriteLimiter } from '../middleware/rate-limiter';
 import { InvitationService } from '../services/invitation.service';
 import { logger } from '../utils/logger';
 
 const router = Router();
 
 // Accept invitation (public route - no authentication required)
+// ADS-458: tighter limit on this destructive endpoint to discourage
+// brute-forcing tokens / creating accounts in bulk.
 router.post(
   '/accept',
+  sensitiveWriteLimiter,
   [
     body('token').notEmpty().withMessage('Invitation token is required'),
     body('firstName')

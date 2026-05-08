@@ -835,6 +835,14 @@ export async function seedApplications() {
 
     const defaults = {
       ...applicationFields,
+      // ADS-535: Application.beforeValidate refuses SUBMITTED applications
+      // unless the adopter has confirmed their references consented to be
+      // contacted (a real-world step the rescue does outside the app).
+      // Seed fixtures all use SUBMITTED status, so set the flag here so
+      // the hook lets the seeder land. The same applies to ADS-534's
+      // COPPA flag — none of the seed fixtures contain children, so
+      // requiresCoppaConsent stays falsy.
+      referencesConsented: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
