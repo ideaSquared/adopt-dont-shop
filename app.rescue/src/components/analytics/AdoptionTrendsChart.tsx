@@ -25,11 +25,7 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
   }
 
   if (!data || data.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-        No trend data available
-      </div>
-    );
+    return <div className={styles.emptyState}>No trend data available</div>;
   }
 
   const padding = { top: 20, right: 20, bottom: 40, left: 50 };
@@ -88,7 +84,7 @@ const AdoptionTrendsChart: React.FC<AdoptionTrendsChartProps> = ({
 
   return (
     <div className={styles.chartContainer}>
-      <div style={{ position: 'relative' }}>
+      <div className={styles.chartWrapper}>
         <svg
           className={styles.svgContainer}
           height={chartHeight}

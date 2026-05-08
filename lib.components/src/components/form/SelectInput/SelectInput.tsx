@@ -19,6 +19,8 @@ import {
   clearButton,
   placeholder,
   helperText,
+  iconRow,
+  emptyMessage,
 } from './SelectInput.css';
 
 export type SelectOption = {
@@ -230,7 +232,7 @@ export const SelectInput = forwardRef<HTMLButtonElement, SelectInputProps>(
               aria-label={label}
             >
               {renderValue()}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div className={iconRow}>
                 {clearable &&
                   (currentValue || (Array.isArray(currentValue) && currentValue.length > 0)) && (
                     <button
@@ -264,9 +266,7 @@ export const SelectInput = forwardRef<HTMLButtonElement, SelectInputProps>(
                 )}
                 <Select.Viewport className={viewport}>
                   {filteredOptions.length === 0 ? (
-                    <div style={{ padding: '8px', textAlign: 'center', color: '#9ca3af' }}>
-                      No options found
-                    </div>
+                    <div className={emptyMessage}>No options found</div>
                   ) : (
                     filteredOptions.map(option => (
                       <Select.Item

@@ -2,9 +2,15 @@ import React, { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import {
   emptyState,
+  emptyStateIcon,
+  headerCellContentCenter,
+  headerCellContentLeft,
+  headerCellContentRight,
   loadingRowTd,
+  loadingSkeletonCell,
   sortIconBase,
   sortIconVariants,
+  srOnly,
   stripedRow,
   styledTable,
   tableCell,
@@ -211,17 +217,7 @@ export const Table = <T,>({
     return (
       <div className={clsx(tableContainer({ responsive }), className)} style={containerStyle}>
         {/* Visually hidden spinner for a11y */}
-        <div
-          role='status'
-          aria-live='polite'
-          style={{
-            position: 'absolute',
-            width: 1,
-            height: 1,
-            overflow: 'hidden',
-            clip: 'rect(0 0 0 0)',
-          }}
-        >
+        <div role='status' aria-live='polite' className={srOnly}>
           Loading…
         </div>
         <table className={styledTable({ size, variant })} data-testid={dataTestId}>
@@ -247,7 +243,7 @@ export const Table = <T,>({
               <tr key={index}>
                 {columns.map(column => (
                   <td key={column.key} className={loadingRowTd}>
-                    <div style={{ height: '20px', width: '100%' }} />
+                    <div className={loadingSkeletonCell} />
                   </td>
                 ))}
               </tr>
@@ -269,7 +265,7 @@ export const Table = <T,>({
             fill='none'
             stroke='currentColor'
             strokeWidth='1'
-            style={{ marginBottom: '16px', opacity: 0.5 }}
+            className={emptyStateIcon}
           >
             <rect x='3' y='3' width='18' height='18' rx='2' ry='2' />
             <path d='M9 9h6v6H9z' />
@@ -317,16 +313,13 @@ export const Table = <T,>({
                 }
               >
                 <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent:
-                      column.align === 'center'
-                        ? 'center'
-                        : column.align === 'right'
-                          ? 'flex-end'
-                          : 'flex-start',
-                  }}
+                  className={clsx(
+                    column.align === 'center'
+                      ? headerCellContentCenter
+                      : column.align === 'right'
+                        ? headerCellContentRight
+                        : headerCellContentLeft
+                  )}
                 >
                   {column.headerRender ? column.headerRender() : column.header}
                   {(column.sortable || sortable) && (

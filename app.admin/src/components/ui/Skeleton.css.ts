@@ -32,3 +32,67 @@ export const cardContainer = style({
   borderRadius: '12px',
   padding: '1.5rem',
 });
+
+export const tableCell = style({
+  padding: '1rem',
+});
+
+export const checkboxSkeleton = style({
+  width: '1rem',
+  height: '1rem',
+  borderRadius: '2px',
+});
+
+export const avatarSkeleton = style({
+  width: '2rem',
+  height: '2rem',
+  borderRadius: '50%',
+  flexShrink: 0,
+});
+
+export const flexFill = style({
+  flex: 1,
+});
+
+export const textRowPrimary = style({
+  height: '0.875rem',
+  borderRadius: '4px',
+  marginBottom: '0.25rem',
+});
+
+export const textRowSecondary = style({
+  height: '0.75rem',
+  width: '70%',
+  borderRadius: '4px',
+});
+
+export const genericTextRow = style({
+  height: '0.875rem',
+  borderRadius: '4px',
+});
+
+export const avatarLarge = style({
+  width: '3rem',
+  height: '3rem',
+  borderRadius: '50%',
+  flexShrink: 0,
+});
+
+export const avatarRow = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+  marginBottom: '1rem',
+});
+
+export const cardTextPrimary = style({
+  height: '1rem',
+  borderRadius: '4px',
+  marginBottom: '0.375rem',
+});
+
+export const cardTextSecondary = style({
+  height: '0.875rem',
+  width: '60%',
+  borderRadius: '4px',
+});

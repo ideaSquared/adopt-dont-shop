@@ -32,12 +32,8 @@ export const SkeletonText: React.FC<SkeletonTextProps> = ({ lines = 3, lastLineW
     {Array.from({ length: lines }, (_, i) => (
       <div
         key={i}
-        className={clsx(styles.skeletonBase, styles.textLine)}
-        style={{
-          height: '0.875rem',
-          width: i === lines - 1 ? lastLineWidth : '100%',
-          borderRadius: '4px',
-        }}
+        className={clsx(styles.skeletonBase, styles.textLine, styles.genericTextRow)}
+        style={{ width: i === lines - 1 ? lastLineWidth : '100%' }}
       />
     ))}
   </div>
@@ -54,41 +50,25 @@ export const SkeletonTableRow: React.FC<SkeletonTableRowProps> = ({
 }) => (
   <tr aria-hidden='true' data-testid='skeleton-row'>
     {hasCheckbox && (
-      <td style={{ padding: '1rem' }}>
-        <div
-          className={styles.skeletonBase}
-          style={{ width: '1rem', height: '1rem', borderRadius: '2px' }}
-        />
+      <td className={styles.tableCell}>
+        <div className={clsx(styles.skeletonBase, styles.checkboxSkeleton)} />
       </td>
     )}
     {Array.from({ length: columnCount }, (_, i) => (
-      <td key={i} style={{ padding: '1rem' }}>
+      <td key={i} className={styles.tableCell}>
         <div className={styles.cellContainer}>
           {i === 0 ? (
             <>
-              <div
-                className={styles.skeletonBase}
-                style={{ width: '2rem', height: '2rem', borderRadius: '50%', flexShrink: 0 }}
-              />
-              <div style={{ flex: 1 }}>
-                <div
-                  className={styles.skeletonBase}
-                  style={{ height: '0.875rem', borderRadius: '4px', marginBottom: '0.25rem' }}
-                />
-                <div
-                  className={styles.skeletonBase}
-                  style={{ height: '0.75rem', width: '70%', borderRadius: '4px' }}
-                />
+              <div className={clsx(styles.skeletonBase, styles.avatarSkeleton)} />
+              <div className={styles.flexFill}>
+                <div className={clsx(styles.skeletonBase, styles.textRowPrimary)} />
+                <div className={clsx(styles.skeletonBase, styles.textRowSecondary)} />
               </div>
             </>
           ) : (
             <div
-              className={styles.skeletonBase}
-              style={{
-                height: '0.875rem',
-                width: i % 3 === 0 ? '60%' : '80%',
-                borderRadius: '4px',
-              }}
+              className={clsx(styles.skeletonBase, styles.genericTextRow)}
+              style={{ width: i % 3 === 0 ? '60%' : '80%' }}
             />
           )}
         </div>
@@ -105,20 +85,11 @@ type SkeletonCardProps = {
 export const SkeletonCard: React.FC<SkeletonCardProps> = ({ lines = 3, showAvatar = false }) => (
   <div className={styles.cardContainer} aria-hidden='true'>
     {showAvatar && (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        <div
-          className={styles.skeletonBase}
-          style={{ width: '3rem', height: '3rem', borderRadius: '50%', flexShrink: 0 }}
-        />
-        <div style={{ flex: 1 }}>
-          <div
-            className={styles.skeletonBase}
-            style={{ height: '1rem', borderRadius: '4px', marginBottom: '0.375rem' }}
-          />
-          <div
-            className={styles.skeletonBase}
-            style={{ height: '0.875rem', width: '60%', borderRadius: '4px' }}
-          />
+      <div className={styles.avatarRow}>
+        <div className={clsx(styles.skeletonBase, styles.avatarLarge)} />
+        <div className={styles.flexFill}>
+          <div className={clsx(styles.skeletonBase, styles.cardTextPrimary)} />
+          <div className={clsx(styles.skeletonBase, styles.cardTextSecondary)} />
         </div>
       </div>
     )}

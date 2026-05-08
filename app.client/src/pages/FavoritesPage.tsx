@@ -131,11 +131,11 @@ export const FavoritesPage: React.FC = () => {
             You haven&apos;t saved any pets to your favorites yet. Start exploring to find pets that
             steal your heart!
           </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className={styles.ctaButtonRow}>
             <Link to='/discover' className={styles.ctaButton}>
               🔍 Start Swiping
             </Link>
-            <Link to='/search' className={styles.ctaButton} style={{ background: '#48bb78' }}>
+            <Link to='/search' className={`${styles.ctaButton} ${styles.ctaButtonGreen}`}>
               📋 Browse All Pets
             </Link>
           </div>

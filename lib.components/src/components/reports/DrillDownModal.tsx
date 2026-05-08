@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import * as styles from './DrillDownModal.css';
 
 /**
  * ADS-105: Detail view shown when a widget supports drill-down and
@@ -18,25 +19,6 @@ export type DrillDownModalProps = {
   children: React.ReactNode;
 };
 
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(15, 23, 42, 0.4)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 50,
-};
-
-const panelStyle: React.CSSProperties = {
-  background: 'var(--color-surface, #fff)',
-  borderRadius: '12px',
-  padding: '20px',
-  width: 'min(720px, 92vw)',
-  maxHeight: '85vh',
-  overflowY: 'auto',
-};
-
 export const DrillDownModal: React.FC<DrillDownModalProps> = ({ title, onClose, children }) => {
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
@@ -49,17 +31,10 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({ title, onClose, 
   }, [onClose]);
 
   return (
-    <div style={overlayStyle} role='presentation'>
-      <div style={panelStyle} role='dialog' aria-modal='true'>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '12px',
-          }}
-        >
-          <h3 style={{ margin: 0 }}>{title}</h3>
+    <div className={styles.overlay} role='presentation'>
+      <div className={styles.panel} role='dialog' aria-modal='true'>
+        <div className={styles.header}>
+          <h3 className={styles.title}>{title}</h3>
           <button type='button' onClick={onClose} aria-label='Close'>
             ✕
           </button>

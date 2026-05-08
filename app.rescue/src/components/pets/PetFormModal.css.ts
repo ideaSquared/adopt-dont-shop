@@ -115,3 +115,8 @@ export const modalActions = style({
     },
   },
 });
+
+export const submitError = style({
+  color: '#ef4444',
+  marginBottom: '1rem',
+});
