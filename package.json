@@ -101,6 +101,9 @@
     "vitest": "^4.0.8",
     "whatwg-fetch": "^3.6.20"
   },
+  "overridesDocumentation": {
+    "lodash": "Force lodash to >=4.17.21 to mitigate the prototype-pollution vulnerability tracked by CVE-2019-10744 / CVE-2020-8203 (GHSA-jf85-cpcp-j695, GHSA-p6mc-m468-83gw). The constraint is intentionally permissive (^4.18.1) so npm resolves the latest patched 4.x release across all transitive consumers. Do not remove without first verifying every transitive lodash dependency satisfies >=4.17.21."
+  },
   "overrides": {
     "lodash": "^4.18.1"
   },
