@@ -143,21 +143,24 @@ const verifyGeneric = (req: Request, raw: Buffer): boolean => {
   if (!header) {
     return false;
   }
-  const parts = header.split(',').reduce<Record<string, string>>((acc, part) => {
-    const [k, v] = part.split('=');
-    if (!k || !v) {
+  const parts = header.split(',').reduce<Record<string, string>>(
+    (acc, part) => {
+      const [k, v] = part.split('=');
+      if (!k || !v) {
+        return acc;
+      }
+      const key = k.trim();
+      // CodeQL js/prototype-polluting-assignment: refuse keys that touch the
+      // Object prototype chain. We only ever consume `t` and `v1` further down;
+      // anything outside a strict allowlist would be ignored anyway.
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        return acc;
+      }
+      acc[key] = v.trim();
       return acc;
-    }
-    const key = k.trim();
-    // CodeQL js/prototype-polluting-assignment: refuse keys that touch the
-    // Object prototype chain. We only ever consume `t` and `v1` further down;
-    // anything outside a strict allowlist would be ignored anyway.
-    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-      return acc;
-    }
-    acc[key] = v.trim();
-    return acc;
-  }, Object.create(null) as Record<string, string>);
+    },
+    Object.create(null) as Record<string, string>
+  );
   const timestamp = parts.t;
   const signature = parts.v1;
   if (!timestamp || !signature) {
