@@ -68,7 +68,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClick }) => {
       tabIndex={0}
     >
       <div className={styles.eventHeader}>
-        <div style={{ flex: 1 }}>
+        <div className={styles.eventTitleColumn}>
           <h3 className={styles.eventTitle}>{event.name}</h3>
           <span className={styles.eventTypeBadge({ type: getTypeVariant(event.type) })}>
             {getEventTypeIcon(event.type)} {getEventTypeLabel(event.type)}

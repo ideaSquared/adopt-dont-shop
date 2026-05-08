@@ -245,3 +245,20 @@ export const jsonBlock = style({
   lineHeight: 1.5,
   margin: 0,
 });
+
+export const subUserType = style({
+  fontSize: '0.75rem',
+  color: '#9ca3af',
+});
+
+export const buttonIcon = style({
+  marginRight: '0.5rem',
+});
+
+export const errorBanner = style({
+  padding: '1rem',
+  color: '#dc2626',
+  background: '#fee2e2',
+  borderRadius: '8px',
+  margin: '1rem 0',
+});

@@ -180,7 +180,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({
                   href={event.location.virtualLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: '#2563eb', textDecoration: 'underline' }}
+                  className={styles.virtualLink}
                 >
                   {event.location.virtualLink}
                 </a>

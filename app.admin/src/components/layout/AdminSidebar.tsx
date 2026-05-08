@@ -40,7 +40,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
       </div>
 
       {collapsed && (
-        <div style={{ padding: '1rem 0', display: 'flex', justifyContent: 'center' }}>
+        <div className={styles.collapsedToggleRow}>
           <button className={styles.toggleButton} onClick={onToggle} aria-label='Expand sidebar'>
             <FiChevronRight size={16} />
           </button>

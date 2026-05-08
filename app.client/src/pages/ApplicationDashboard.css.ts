@@ -111,3 +111,8 @@ globalStyle(`${emptyState} p`, {
   color: vars.text.tertiary,
   marginBottom: '2rem',
 });
+
+export const loadingState = style({
+  textAlign: 'center',
+  padding: '4rem',
+});

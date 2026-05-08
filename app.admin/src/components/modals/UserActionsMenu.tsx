@@ -80,16 +80,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
         {requiresReason && (
           <div>
-            <label
-              htmlFor='reason'
-              style={{
-                display: 'block',
-                marginBottom: '0.5rem',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: '#374151',
-              }}
-            >
+            <label htmlFor='reason' className={styles.reasonLabel}>
               Reason {!isDanger && '(Optional)'}
             </label>
             <textarea

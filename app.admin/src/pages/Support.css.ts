@@ -276,3 +276,34 @@ export const priorityBadgeDefault = style({
 globalStyle(`${priorityBadgeDefault} svg`, {
   fontSize: '0.875rem',
 });
+
+export const replyCount = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  color: '#6b7280',
+});
+
+export const errorState = style({
+  padding: '2rem',
+  textAlign: 'center',
+  color: '#ef4444',
+});
+
+const statIconBase = style({
+  width: '48px',
+  height: '48px',
+  borderRadius: '10px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '1.5rem',
+});
+
+export const statIconRed = style([statIconBase, { background: '#ef444420', color: '#ef4444' }]);
+
+export const statIconBlue = style([statIconBase, { background: '#3b82f620', color: '#3b82f6' }]);
+
+export const statIconAmber = style([statIconBase, { background: '#f59e0b20', color: '#f59e0b' }]);
+
+export const statIconGreen = style([statIconBase, { background: '#10b98120', color: '#10b981' }]);

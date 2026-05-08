@@ -205,10 +205,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
             )}
             {data.petExperience.currentPets && data.petExperience.currentPets.length > 0 && (
               <>
-                <span
-                  className={styles.reviewLabel}
-                  style={{ marginTop: '1rem', marginBottom: '0.5rem', display: 'block' }}
-                >
+                <span className={`${styles.reviewLabel} ${styles.subSectionLabel}`}>
                   Current Pets:
                 </span>
                 {data.petExperience.currentPets.map((pet, index) => (
@@ -229,10 +226,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
             )}
             {data.petExperience.previousPets && data.petExperience.previousPets.length > 0 && (
               <>
-                <span
-                  className={styles.reviewLabel}
-                  style={{ marginTop: '1rem', marginBottom: '0.5rem', display: 'block' }}
-                >
+                <span className={`${styles.reviewLabel} ${styles.subSectionLabel}`}>
                   Previous Pets:
                 </span>
                 {data.petExperience.previousPets.map((pet, index) => (
@@ -258,10 +252,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
             <h3 className={styles.sectionTitle}>References</h3>
             {data.references.veterinarian && (
               <>
-                <span
-                  className={styles.reviewLabel}
-                  style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 'bold' }}
-                >
+                <span className={`${styles.reviewLabel} ${styles.subSectionLabelBold}`}>
                   Veterinarian Reference:
                 </span>
                 <div className={styles.reviewItem}>
@@ -294,25 +285,13 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
             )}
             {data.references.personal && data.references.personal.length > 0 && (
               <>
-                <span
-                  className={styles.reviewLabel}
-                  style={{
-                    marginTop: '1rem',
-                    marginBottom: '0.5rem',
-                    display: 'block',
-                    fontWeight: 'bold',
-                  }}
-                >
+                <span className={`${styles.reviewLabel} ${styles.subSectionLabelBoldSpaced}`}>
                   Personal References:
                 </span>
                 {data.references.personal.map((ref, index) => (
                   <div
                     key={`ref-${ref.name}-${ref.relationship}-${index}`}
-                    style={{
-                      marginBottom: '1rem',
-                      paddingBottom: '1rem',
-                      borderBottom: '1px solid #eee',
-                    }}
+                    className={styles.referenceItem}
                   >
                     <div className={styles.reviewItem}>
                       <span className={styles.reviewLabel}>Name:</span>
@@ -342,7 +321,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
             )}
             {!data.references.veterinarian &&
               (!data.references.personal || data.references.personal.length === 0) && (
-                <p style={{ fontStyle: 'italic', color: '#666' }}>
+                <p className={styles.noteText}>
                   No references provided. You may be contacted later for references if needed.
                 </p>
               )}
@@ -352,7 +331,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
         {!data.references && (
           <div className={styles.reviewSection}>
             <h3 className={styles.sectionTitle}>References</h3>
-            <p style={{ fontStyle: 'italic', color: '#666' }}>
+            <p className={styles.noteText}>
               No references provided. You may be contacted later for references if needed.
             </p>
           </div>
@@ -390,7 +369,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
               : 'This is a new application submission.'}
           </p>
           <p>By submitting this application, you agree to our terms and conditions.</p>
-          <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
+          <p className={styles.submitNote}>
             Please review all information above for accuracy. Once submitted, you may not be able to
             edit certain details.
           </p>

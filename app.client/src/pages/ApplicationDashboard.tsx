@@ -68,7 +68,7 @@ export const ApplicationDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className={styles.container}>
-        <div style={{ textAlign: 'center', padding: '4rem' }}>
+        <div className={styles.loadingState}>
           <div>Loading your applications...</div>
         </div>
       </div>

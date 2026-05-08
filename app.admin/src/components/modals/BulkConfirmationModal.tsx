@@ -87,7 +87,7 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
         <div className={styles.modalBody}>
           {resultSummary ? (
             <div className={styles.resultBanner({ hasFailures: resultSummary.failed > 0 })}>
-              <FiCheckCircle style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
+              <FiCheckCircle className={styles.resultIcon} />
               {resultSummary.succeeded} succeeded
               {resultSummary.failed > 0 && `, ${resultSummary.failed} failed`}
             </div>
@@ -102,7 +102,7 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
                 <div className={styles.formGroup}>
                   <label className={styles.label}>
                     {reasonLabel}
-                    <span style={{ color: '#ef4444', marginLeft: '0.25rem' }}>*</span>
+                    <span className={styles.requiredMark}>*</span>
                   </label>
                   <textarea
                     className={styles.textArea}

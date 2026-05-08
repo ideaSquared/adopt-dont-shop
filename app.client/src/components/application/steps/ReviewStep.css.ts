@@ -5,6 +5,42 @@ export const stepContainer = style({
   maxWidth: '600px',
 });
 
+export const subSectionLabel = style({
+  display: 'block',
+  marginTop: '1rem',
+  marginBottom: '0.5rem',
+});
+
+export const subSectionLabelBold = style({
+  display: 'block',
+  marginBottom: '0.5rem',
+  fontWeight: 'bold',
+});
+
+export const subSectionLabelBoldSpaced = style({
+  display: 'block',
+  marginTop: '1rem',
+  marginBottom: '0.5rem',
+  fontWeight: 'bold',
+});
+
+export const referenceItem = style({
+  marginBottom: '1rem',
+  paddingBottom: '1rem',
+  borderBottom: '1px solid #eee',
+});
+
+export const noteText = style({
+  fontStyle: 'italic',
+  color: '#666',
+});
+
+export const submitNote = style({
+  marginTop: '1rem',
+  fontSize: '0.9rem',
+  color: '#666',
+});
+
 export const stepTitle = style({
   fontSize: '1.5rem',
   color: vars.text.primary,

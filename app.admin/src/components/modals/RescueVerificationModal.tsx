@@ -83,10 +83,10 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
               {isApproval ? <FiCheckCircle /> : <FiXCircle />}
             </div>
             <div className={styles.headerContent}>
-              <Heading level='h3' style={{ margin: 0 }}>
+              <Heading level='h3' className={styles.headerHeading}>
                 {isApproval ? 'Approve Rescue' : 'Reject Rescue'}
               </Heading>
-              <Text style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
+              <Text className={styles.headerText}>
                 {isApproval
                   ? 'Verify this rescue organization for the platform'
                   : 'Decline this rescue organization application'}

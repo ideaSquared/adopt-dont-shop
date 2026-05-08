@@ -46,6 +46,11 @@
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      ADS-481: Non-blocking Google Fonts load. The `media="print"` + onload swap
+      keeps the stylesheet off the critical path until after first paint, then
+      promotes it to all media. <noscript> fallback preserves no-JS UX.
+    -->
     <link
       rel="preload"
       as="style"

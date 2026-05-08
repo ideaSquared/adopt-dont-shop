@@ -350,7 +350,7 @@ export const ApplicationPage: React.FC = () => {
         <Alert variant='error' title='Error'>
           {error}
         </Alert>
-        <Button onClick={() => navigate('/search')} style={{ marginTop: '1rem' }}>
+        <Button onClick={() => navigate('/search')} className={styles.backToSearchButton}>
           Back to Search
         </Button>
       </div>
@@ -366,7 +366,7 @@ export const ApplicationPage: React.FC = () => {
           <h1>Let&apos;s get you adopting {pet?.name} 🐾</h1>
           <p>A few quick questions and {pet?.name}&apos;s rescue will take it from there.</p>
           {loadedDraft && (
-            <p style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>
+            <p className={styles.draftWelcome}>
               Welcome back — we picked up where you left off. ✨
             </p>
           )}
@@ -374,7 +374,7 @@ export const ApplicationPage: React.FC = () => {
       )}
 
       {error && (
-        <div style={{ marginBottom: '2rem' }}>
+        <div className={styles.sectionAlert}>
           <Alert variant='error' title='Error' onClose={() => setError(null)}>
             {error}
           </Alert>
@@ -382,7 +382,7 @@ export const ApplicationPage: React.FC = () => {
       )}
 
       {successMessage && (
-        <div style={{ marginBottom: '2rem' }}>
+        <div className={styles.sectionAlert}>
           <Alert variant='success' title='Success' onClose={() => setSuccessMessage(null)}>
             {successMessage}
           </Alert>

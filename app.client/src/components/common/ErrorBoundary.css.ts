@@ -29,6 +29,22 @@ export const errorMessage = style({
   maxWidth: '500px',
 });
 
+export const errorDetails = style({
+  marginBottom: '1rem',
+  textAlign: 'left',
+});
+
+export const errorSummary = style({
+  cursor: 'pointer',
+  marginBottom: '0.5rem',
+});
+
+export const errorPre = style({
+  fontSize: '0.875rem',
+  overflow: 'auto',
+  maxWidth: '100%',
+});
+
 export const retryButton = style({
   background: vars.colors.primary['500'],
   color: 'white',

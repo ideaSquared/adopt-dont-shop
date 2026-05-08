@@ -74,3 +74,11 @@ export const dangerBox = style({
   fontSize: '0.875rem',
   fontWeight: '500',
 });
+
+export const reasonLabel = style({
+  display: 'block',
+  marginBottom: '0.5rem',
+  fontSize: '0.875rem',
+  fontWeight: 600,
+  color: '#374151',
+});

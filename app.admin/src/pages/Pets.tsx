@@ -120,7 +120,7 @@ const Pets: React.FC = () => {
         row.featured ? (
           <span className={styles.badgeInfo}>Featured</span>
         ) : (
-          <span style={{ color: '#9ca3af' }}>-</span>
+          <span className={styles.dimDash}>-</span>
         ),
       width: '100px',
       align: 'center',

@@ -54,3 +54,24 @@ export const actionButtons = style({
 export const warningText = style({
   marginBottom: '1.5rem',
 });
+
+export const charCounter = style({
+  fontSize: '0.8rem',
+  color: '#666',
+  textAlign: 'right',
+  marginTop: '0.25rem',
+});
+
+export const errorAlert = style({
+  marginBottom: '1rem',
+});
+
+export const dangerButton = style({
+  backgroundColor: '#dc2626',
+  borderColor: '#dc2626',
+  color: 'white',
+});
+
+export const buttonSpinner = style({
+  marginRight: '0.5rem',
+});

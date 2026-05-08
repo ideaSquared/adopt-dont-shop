@@ -55,7 +55,7 @@ const AttendeeList: React.FC<AttendeeListProps> = ({ attendees, onCheckIn }) => 
                       Check In
                     </button>
                   ) : (
-                    <span style={{ fontSize: '0.75rem', color: '#10b981' }}>✓ Checked In</span>
+                    <span className={styles.checkedInBadge}>✓ Checked In</span>
                   )}
                 </td>
               )}

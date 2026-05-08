@@ -236,7 +236,7 @@ export const ProfilePage: React.FC = () => {
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Profile Information</h2>
       {successMessage && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div className={styles.sectionGap}>
           <Alert variant='success'>{successMessage}</Alert>
         </div>
       )}
@@ -298,7 +298,7 @@ export const ProfilePage: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div style={{ marginTop: '2rem' }}>
+              <div className={styles.sectionTopGap}>
                 <Button onClick={() => setIsEditingProfile(true)}>Edit Profile</Button>
               </div>
               {user.userType === 'adopter' && <AdopterProfileSummary />}
@@ -313,12 +313,12 @@ export const ProfilePage: React.FC = () => {
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>My Applications</h2>
       {error && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div className={styles.sectionGap}>
           <Alert variant='error'>{error}</Alert>
         </div>
       )}
       {user?.userType !== 'adopter' ? (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <div className={styles.centeredEmpty}>
           <p>Applications are only available for adopter accounts.</p>
           <p>As a {user?.userType}, you don&apos;t submit adoption applications.</p>
         </div>
@@ -327,9 +327,9 @@ export const ProfilePage: React.FC = () => {
           <Spinner />
         </div>
       ) : applications.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <div className={styles.centeredEmpty}>
           <p>You haven&apos;t submitted any adoption applications yet.</p>
-          <Button onClick={() => navigate('/search')} style={{ marginTop: '1rem' }}>
+          <Button onClick={() => navigate('/search')} className={styles.buttonTopGap}>
             Browse Pets
           </Button>
         </div>
@@ -357,7 +357,7 @@ export const ProfilePage: React.FC = () => {
                 >
                   {application.status.replace('_', ' ')}
                 </span>
-                <div style={{ marginTop: '0.5rem' }}>
+                <div className={styles.smallTopGap}>
                   <Button
                     variant='secondary'
                     size='sm'

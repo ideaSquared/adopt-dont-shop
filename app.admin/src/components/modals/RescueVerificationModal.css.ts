@@ -158,3 +158,12 @@ export const requiredIndicator = style({
   color: '#ef4444',
   marginLeft: '0.25rem',
 });
+
+export const headerHeading = style({
+  margin: 0,
+});
+
+export const headerText = style({
+  margin: '0.25rem 0 0 0',
+  fontSize: '0.875rem',
+});

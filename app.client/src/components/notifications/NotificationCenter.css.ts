@@ -213,3 +213,8 @@ export const paginationButtons = style({
   display: 'flex',
   gap: '0.5rem',
 });
+
+export const headerActions = style({
+  display: 'flex',
+  gap: '0.5rem',
+});

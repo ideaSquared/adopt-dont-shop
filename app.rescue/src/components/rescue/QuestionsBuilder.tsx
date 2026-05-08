@@ -451,9 +451,7 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
   if (loading) {
     return (
       <div className={styles.container}>
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
-          Loading questions...
-        </div>
+        <div className={styles.loadingState}>Loading questions...</div>
       </div>
     );
   }

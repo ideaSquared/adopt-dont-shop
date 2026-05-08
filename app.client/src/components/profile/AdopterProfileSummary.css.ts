@@ -68,3 +68,7 @@ export const emptyHint = style({
   color: vars.text.secondary,
   fontStyle: 'italic',
 });
+
+export const statusMark = style({
+  marginLeft: 'auto',
+});
