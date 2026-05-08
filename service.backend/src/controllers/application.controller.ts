@@ -309,6 +309,9 @@ export class ApplicationController extends BaseController {
             ? RichTextProcessingService.sanitize(req.body.notes)
             : undefined,
         tags: req.body.tags,
+        // ADS-535: must thread the references-consent flag through; the
+        // model hook refuses SUBMITTED rows without it.
+        referencesConsented: req.body.referencesConsented,
       };
 
       const application = await ApplicationService.createApplication(
