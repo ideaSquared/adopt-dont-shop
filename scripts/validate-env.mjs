@@ -149,7 +149,9 @@ function checkUrl(name, value, errors) {
   try {
     new URL(value);
   } catch {
-    errors.push(`${name} must be a valid URL (got "${value}")`);
+    // Don't echo the raw value back — even non-secret env vars can carry
+    // PII or tenant-identifying URLs. The variable name is enough context.
+    errors.push(`${name} must be a valid URL`);
   }
 }
 
@@ -160,7 +162,7 @@ function validate(env) {
   const isProduction = nodeEnv === 'production';
 
   if (!['development', 'test', 'production'].includes(nodeEnv)) {
-    errors.push(`NODE_ENV must be one of development|test|production (got "${nodeEnv}")`);
+    errors.push(`NODE_ENV must be one of development|test|production`);
   }
 
   // Secrets — required everywhere so a dev config can't leak into prod.

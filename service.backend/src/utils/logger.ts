@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import path from 'path';
 import winston from 'winston';
 import { JsonValue, JsonObject } from '../types/common';
+import { redactLogPayload } from './redact';
+import { getCorrelationId } from './request-context';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -53,10 +55,56 @@ const logColors = {
 
 winston.addColors(logColors);
 
+/**
+ * ADS-405: stamp every log line with the AsyncLocalStorage correlation ID
+ * unless the call site already supplied one. Without this, services that
+ * do not thread req through their function signatures emit uncorrelated
+ * lines.
+ */
+const correlationFormat = winston.format(info => {
+  if (!info.correlationId) {
+    const fromCtx = getCorrelationId();
+    if (fromCtx) {
+      info.correlationId = fromCtx;
+    }
+  }
+  return info;
+})();
+
+/**
+ * ADS-445 / ADS-459: redact credential and PII fields from every log line
+ * by walking the info object before serialisation. Defence-in-depth for
+ * the case where a service spreads a user object into a logger call.
+ *
+ * Winston control fields (`level`, `message`, `timestamp`, `label`,
+ * `correlationId`, `service`) are exempt from redaction so the structured
+ * envelope is preserved.
+ */
+const PROTECTED_LOG_FIELDS = new Set([
+  'level',
+  'message',
+  'timestamp',
+  'label',
+  'correlationId',
+  'service',
+]);
+
+const redactionFormat = winston.format(info => {
+  for (const key of Object.keys(info)) {
+    if (PROTECTED_LOG_FIELDS.has(key)) {
+      continue;
+    }
+    info[key] = redactLogPayload(info[key]);
+  }
+  return info;
+})();
+
 // Enhanced log format with correlation ID and service info
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
   winston.format.errors({ stack: true }),
+  correlationFormat,
+  redactionFormat,
   winston.format.json(),
   winston.format.printf(info => {
     const {
@@ -90,6 +138,8 @@ const logFormat = winston.format.combine(
 const devFormat = winston.format.combine(
   winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
   winston.format.errors({ stack: true }),
+  correlationFormat,
+  redactionFormat,
   winston.format.colorize({ all: true }),
   winston.format.printf(info => {
     const { timestamp, level, message, correlationId, ...meta } = info;
@@ -188,7 +238,7 @@ export const loggerHelpers = {
       userAgent: req.get('User-Agent'),
       ip: req.ip || req.connection.remoteAddress,
       userId: req.userId || req.user?.user_id,
-      correlationId: req.get('X-Correlation-ID') || req.get('X-Request-ID'),
+      correlationId: req.get('X-Correlation-ID') || req.get('X-Request-ID') || getCorrelationId(),
       contentLength: res.get('Content-Length'),
       referer: req.get('Referer'),
     };
@@ -209,7 +259,7 @@ export const loggerHelpers = {
       category: 'AUTHENTICATION',
       ip: req?.ip,
       userAgent: req?.get('User-Agent'),
-      correlationId: req?.get('X-Correlation-ID'),
+      correlationId: req?.get('X-Correlation-ID') || getCorrelationId(),
       ...data,
     });
   },
@@ -229,7 +279,7 @@ export const loggerHelpers = {
       category: 'SECURITY',
       ip: req?.ip,
       userAgent: req?.get('User-Agent'),
-      correlationId: req?.get('X-Correlation-ID'),
+      correlationId: req?.get('X-Correlation-ID') || getCorrelationId(),
       severity: 'HIGH',
       ...data,
     });
@@ -341,7 +391,6 @@ if (isProduction) {
       }
     })
     .catch(error => {
-      // eslint-disable-next-line no-console
       console.error('Failed to create logs directory:', error);
     });
 }

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 /**
- * ADS-494: log-safe email redaction.
+ * ADS-407 / ADS-494: log-safe email redaction.
  *
  * Logs are a controlled-access PII sink under GDPR/UK regulators — emails
  * shouldn't appear in plaintext in structured log output. This helper

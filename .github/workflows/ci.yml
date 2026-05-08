@@ -172,6 +172,30 @@ jobs:
         run: npm ci
 
       - name: Validate environment configuration
+        # `validate:env` (ADS-408) refuses placeholder secrets and demands
+        # real lengths/distinctness — that's what we want pre-deploy. In CI
+        # we don't have production secrets, so pass deterministic
+        # test-grade values just for the validator step. These NEVER touch
+        # the test suite below; vitest seeds its own fixtures.
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci_jwt_secret_chars_at_least_thirty_two_a
+          JWT_REFRESH_SECRET: ci_jwt_refresh_secret_at_least_32_b
+          SESSION_SECRET: ci_session_secret_at_least_thirty_two_c
+          CSRF_SECRET: ci_csrf_secret_chars_at_least_thirty_two
+          ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          TEST_DB_NAME: adopt_dont_shop_test
+          DEV_DB_NAME: adopt_dont_shop_dev
+          PROD_DB_NAME: adopt_dont_shop_prod
+          DB_HOST: localhost
+          DB_PORT: '5432'
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          REDIS_URL: redis://localhost:6379
+          FRONTEND_URL: http://localhost:5173
+          RESCUE_FRONTEND_URL: http://localhost:5174
+          API_URL: http://localhost:5000
+          STATSIG_SERVER_SECRET_KEY: secret-test-statsig-server-key
         run: npm run validate:env
 
       - name: Download pre-built libraries

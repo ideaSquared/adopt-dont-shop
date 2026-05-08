@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { redactEmail } from '../../services/redact';
 
-describe('redactEmail', () => {
+describe('redactEmail (ADS-407 / ADS-494)', () => {
   it('redacts a typical address with a 2-char local prefix and stable hash', () => {
     const out = redactEmail('jessica.wilson@gmail.com');
     expect(out).toMatch(/^je\*\*\*@gmail\.com#[0-9a-f]{8}$/);

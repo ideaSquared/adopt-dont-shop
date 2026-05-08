@@ -4,6 +4,7 @@ import path from 'path';
 import { Router, type Response } from 'express';
 import { config } from '../config';
 import { authenticateToken } from '../middleware/auth';
+import { apiLimiter } from '../middleware/rate-limiter';
 import { env } from '../config/env';
 import type { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
@@ -59,7 +60,12 @@ const safeResolve = (relativePath: string): string | null => {
   }
 
   const resolved = path.resolve(uploadDir, cleaned);
-  if (!resolved.startsWith(uploadDir + path.sep) && resolved !== uploadDir) {
+
+  // Use path.relative for the containment check — CodeQL recognises this
+  // as a path-traversal sanitiser. A relative path that starts with `..` or
+  // is absolute escapes the upload directory; reject in either case.
+  const relative = path.relative(uploadDir, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
     return null;
   }
   return resolved;
@@ -124,6 +130,7 @@ const streamFile = (resolved: string, res: Response): void => {
 
 router.get(
   '/uploads-signed/:expiresAt/:signature/*',
+  apiLimiter,
   (req: AuthenticatedRequest, res: Response) => {
     const expiresAt = Number.parseInt(req.params.expiresAt, 10);
     const { signature } = req.params;
@@ -154,18 +161,23 @@ router.get(
   }
 );
 
-router.get('/uploads/*', authenticateToken, (req: AuthenticatedRequest, res: Response) => {
-  const filePath = (req.params as Record<string, string>)['0'] ?? '';
-  const resolved = safeResolve(filePath);
-  if (!resolved) {
-    logger.warn('Upload serve: rejected unsafe path', {
-      userId: req.user?.userId,
-      requested: filePath,
-    });
-    res.status(400).json({ error: 'Invalid file path' });
-    return;
+router.get(
+  '/uploads/*',
+  apiLimiter,
+  authenticateToken,
+  (req: AuthenticatedRequest, res: Response) => {
+    const filePath = (req.params as Record<string, string>)['0'] ?? '';
+    const resolved = safeResolve(filePath);
+    if (!resolved) {
+      logger.warn('Upload serve: rejected unsafe path', {
+        userId: req.user?.userId,
+        requested: filePath,
+      });
+      res.status(400).json({ error: 'Invalid file path' });
+      return;
+    }
+    streamFile(resolved, res);
   }
-  streamFile(resolved, res);
-});
+);
 
 export default router;

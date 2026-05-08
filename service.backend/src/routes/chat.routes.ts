@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth';
 import { idempotency } from '../middleware/idempotency';
 import { requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter, uploadLimiter } from '../middleware/rate-limiter';
+import { enforceUploadMime } from '../middleware/upload-mime-guard';
 import { handleValidationErrors } from '../middleware/validation';
 import { chatAttachmentUpload } from '../services/file-upload.service';
 import { chatValidation } from '../validation/chat.validation';
@@ -1094,6 +1095,7 @@ router.post(
   uploadLimiter,
   authenticateToken,
   chatAttachmentUpload.single('file'),
+  enforceUploadMime,
   ChatController.uploadAttachment
 );
 

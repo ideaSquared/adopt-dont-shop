@@ -607,7 +607,21 @@ export class FileUploadService {
     }
 
     try {
-      const originalPath = file.path;
+      // CodeQL js/path-injection: sharp processing operates on `file.path`,
+      // which multer wrote to disk under `config.storage.local.directory`. We
+      // re-validate at function entry that the path is inside the configured
+      // uploads directory before treating it as a base for further joins.
+      const uploadsRoot = path.resolve(config.storage.local.directory);
+      const resolvedOriginal = path.resolve(file.path);
+      const relative = path.relative(uploadsRoot, resolvedOriginal);
+      if (relative.startsWith('..') || path.isAbsolute(relative)) {
+        logger.error('processFile rejected path outside uploads root', {
+          uploadsRoot,
+          attempted: file.path,
+        });
+        return null;
+      }
+      const originalPath = resolvedOriginal;
       const ext = path.extname(originalPath);
       const dir = path.dirname(originalPath);
       const base = path.basename(originalPath, ext);

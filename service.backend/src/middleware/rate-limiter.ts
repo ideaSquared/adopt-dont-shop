@@ -13,6 +13,14 @@ interface RateLimitRequest extends Request {
   };
 }
 
+// Narrow shape for the authenticated user attached by upstream auth middleware.
+// Used here only to extract userId for per-user rate limiting; full
+// AuthenticatedRequest is over-broad for express-rate-limit's req parameter.
+type RequestWithMaybeUser = Request & { user?: { userId?: string } };
+
+const getUserIdOrIp = (req: RequestWithMaybeUser): string =>
+  req.user?.userId || req.ip || 'unknown';
+
 // Development rate limiter that tracks but doesn't block
 const createDevLimiter = (windowMs: number, max: number, name: string) => {
   return rateLimit({
@@ -151,18 +159,15 @@ export const twoFactorLimiter =
     : rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 5,
-        keyGenerator: req =>
-          (req as unknown as { user?: { userId?: string } }).user?.userId || req.ip || 'unknown',
+        keyGenerator: (req: RequestWithMaybeUser) => getUserIdOrIp(req),
         message: {
           error: 'Too many 2FA attempts, please try again later.',
           retryAfter: 900,
         },
         standardHeaders: true,
         legacyHeaders: false,
-        handler: (req, res) => {
-          logger.warn(
-            `2FA rate limit exceeded for user: ${(req as unknown as { user?: { userId?: string } }).user?.userId || req.ip}`
-          );
+        handler: (req: RequestWithMaybeUser, res) => {
+          logger.warn(`2FA rate limit exceeded for user: ${req.user?.userId || req.ip}`);
           res.status(429).json({
             error: 'Too many 2FA attempts, please try again later.',
             retryAfter: 900,

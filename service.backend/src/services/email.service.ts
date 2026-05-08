@@ -518,6 +518,21 @@ class EmailService {
   }
 
   // Template Processing
+  /**
+   * Public wrapper for processTemplate, used by preview endpoints to render
+   * a template with provided data without queueing/sending.
+   */
+  public async renderTemplatePreview(
+    template: EmailTemplate,
+    data: TemplateData
+  ): Promise<{
+    subject: string;
+    htmlContent: string;
+    textContent?: string;
+  }> {
+    return this.processTemplate(template, data);
+  }
+
   private async processTemplate(
     template: EmailTemplate,
     data: TemplateData
@@ -1045,7 +1060,13 @@ class EmailService {
       });
 
       if (!email) {
-        logger.warn(`Email not found for webhook: ${data.messageId}`);
+        // Strip CR/LF before logging to prevent log-injection from a
+        // crafted `messageId`. Truncate to keep log lines tidy.
+        const safeMessageId =
+          typeof data.messageId === 'string'
+            ? data.messageId.replace(/[\r\n]/g, '').slice(0, 128)
+            : '';
+        logger.warn('Email not found for webhook', { messageId: safeMessageId });
         return;
       }
 

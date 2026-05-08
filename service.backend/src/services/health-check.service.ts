@@ -1,6 +1,8 @@
 import fs from 'fs-extra';
 import path from 'path';
 import sequelize from '../sequelize';
+import { ensureRedisReady, getRedis } from '../lib/redis';
+import { getReportsQueue, isQueueAvailable } from '../lib/queue';
 import { logger } from '../utils/logger';
 import EmailService from './email.service';
 
@@ -22,6 +24,8 @@ interface HealthCheckResult {
     email: ServiceHealth;
     storage: ServiceHealth;
     fileSystem: ServiceHealth;
+    redis: ServiceHealth;
+    queue: ServiceHealth;
   };
   metrics: {
     memoryUsage: NodeJS.MemoryUsage;
@@ -223,15 +227,102 @@ export class HealthCheckService {
     }
   }
 
+  /**
+   * ADS-446 / ADS-460: probe Redis with PING. Required by BullMQ and the
+   * report-cache layer; previous readiness checks only validated the DB so
+   * Redis outages passed silently.
+   */
+  static async checkRedisHealth(): Promise<ServiceHealth> {
+    const start = Date.now();
+    try {
+      const ready = await ensureRedisReady();
+      if (!ready) {
+        return {
+          status: 'unhealthy',
+          responseTime: Date.now() - start,
+          details: 'Redis is not configured or could not connect',
+          lastChecked: new Date(),
+        };
+      }
+
+      const client = getRedis();
+      if (!client) {
+        return {
+          status: 'unhealthy',
+          responseTime: Date.now() - start,
+          details: 'Redis client unavailable after ensureRedisReady()',
+          lastChecked: new Date(),
+        };
+      }
+
+      const pong = await client.ping();
+      const responseTime = Date.now() - start;
+      return {
+        status: pong === 'PONG' ? (responseTime < 500 ? 'healthy' : 'degraded') : 'unhealthy',
+        responseTime,
+        details: pong === 'PONG' ? 'Redis PING ok' : `Unexpected PING reply: ${pong}`,
+        lastChecked: new Date(),
+      };
+    } catch (error) {
+      logger.error('Redis health check failed:', error);
+      return {
+        status: 'unhealthy',
+        responseTime: Date.now() - start,
+        details: error instanceof Error ? error.message : 'Unknown Redis error',
+        lastChecked: new Date(),
+      };
+    }
+  }
+
+  /**
+   * ADS-446 / ADS-460: probe the BullMQ reports queue. Constructing the
+   * queue lazily and asking for a worker count is enough to confirm the
+   * BullMQ <-> Redis link is alive end-to-end.
+   */
+  static async checkQueueHealth(): Promise<ServiceHealth> {
+    const start = Date.now();
+    try {
+      if (!isQueueAvailable()) {
+        return {
+          status: 'unhealthy',
+          responseTime: Date.now() - start,
+          details: 'BullMQ unavailable — REDIS_URL not configured',
+          lastChecked: new Date(),
+        };
+      }
+
+      const queue = getReportsQueue();
+      // getWorkers() round-trips to Redis; failure means the queue cannot
+      // dispatch jobs even if a plain PING worked.
+      await queue.getWorkers();
+
+      return {
+        status: 'healthy',
+        responseTime: Date.now() - start,
+        details: 'BullMQ reports queue reachable',
+        lastChecked: new Date(),
+      };
+    } catch (error) {
+      logger.error('Queue health check failed:', error);
+      return {
+        status: 'unhealthy',
+        responseTime: Date.now() - start,
+        details: error instanceof Error ? error.message : 'Unknown queue error',
+        lastChecked: new Date(),
+      };
+    }
+  }
+
   static async getFullHealthCheck(): Promise<HealthCheckResult> {
-    const [databaseResult, emailResult, storageResult, fileSystemResult] = await Promise.allSettled(
-      [
+    const [databaseResult, emailResult, storageResult, fileSystemResult, redisResult, queueResult] =
+      await Promise.allSettled([
         this.checkDatabaseHealth(),
         this.checkEmailHealth(),
         this.checkStorageHealth(),
         this.checkFileSystemHealth(),
-      ]
-    );
+        this.checkRedisHealth(),
+        this.checkQueueHealth(),
+      ]);
 
     const toServiceHealth = (
       result: PromiseSettledResult<ServiceHealth>,
@@ -253,6 +344,8 @@ export class HealthCheckService {
       email: toServiceHealth(emailResult, 'email'),
       storage: toServiceHealth(storageResult, 'storage'),
       fileSystem: toServiceHealth(fileSystemResult, 'fileSystem'),
+      redis: toServiceHealth(redisResult, 'redis'),
+      queue: toServiceHealth(queueResult, 'queue'),
     };
 
     // Determine overall status

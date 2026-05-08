@@ -41,7 +41,9 @@ const stableStringify = (value: unknown): string => {
 
 const hashArgs = (args: unknown): string => {
   const serialized = stableStringify(args);
-  return createHash('sha1').update(serialized).digest('hex');
+  // SHA-256 over SHA-1: not a security boundary (this is a cache key) but the
+  // CodeQL js/weak-cryptographic-algorithm rule fires on SHA-1 regardless.
+  return createHash('sha256').update(serialized).digest('hex');
 };
 
 const versionKey = (namespace: string): string => `${VERSION_KEY_PREFIX}${namespace}`;

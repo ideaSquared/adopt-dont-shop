@@ -10,8 +10,16 @@ import * as path from 'path';
 import sharp from 'sharp';
 
 import { FileUploadService } from '../../services/file-upload.service';
+import { config } from '../../config';
 
 const TMP_ROOT = path.join(os.tmpdir(), `ads-518-${Date.now()}`);
+
+// `processFile` rejects paths outside `config.storage.local.directory`
+// (defence-in-depth check added for the CodeQL `js/path-injection` rule).
+// Synthetic uploads in this suite live under `os.tmpdir()`, so point the
+// configured uploads root at TMP_ROOT for the duration of these tests
+// and restore it afterwards. Production behaviour is unchanged.
+const ORIGINAL_UPLOAD_DIR = config.storage.local.directory;
 
 let counter = 0;
 
@@ -55,9 +63,11 @@ const buildSyntheticUpload = async (
 describe('FileUploadService image processing [ADS-518]', () => {
   beforeAll(async () => {
     await fs.promises.mkdir(TMP_ROOT, { recursive: true });
+    config.storage.local.directory = TMP_ROOT;
   });
 
   afterAll(async () => {
+    config.storage.local.directory = ORIGINAL_UPLOAD_DIR;
     await fs.promises.rm(TMP_ROOT, { recursive: true, force: true });
   });
 
