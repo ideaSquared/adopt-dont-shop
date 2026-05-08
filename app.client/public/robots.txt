@@ -1,0 +1,30 @@
+# robots.txt for Adopt Don't Shop (app.client)
+# Allow crawlers to index public listing pages, but keep authenticated and
+# transactional sections out of search results.
+
+User-agent: *
+Allow: /
+Allow: /search
+Allow: /pets/
+Allow: /rescues/
+Allow: /blog
+Allow: /blog/
+Allow: /help
+Allow: /help/
+
+Disallow: /login
+Disallow: /register
+Disallow: /verify-email
+Disallow: /check-your-email
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /profile
+Disallow: /favorites
+Disallow: /notifications
+Disallow: /chat
+Disallow: /chat/
+Disallow: /apply/
+Disallow: /applications
+Disallow: /applications/
+
+Sitemap: https://adoptdontshop.app/sitemap.xml
