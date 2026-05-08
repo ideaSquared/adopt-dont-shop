@@ -1,8 +1,9 @@
 version: 2
 updates:
-  # npm workspace — covers all packages via root lockfile
-  # Only major version bumps are surfaced here. Security advisories
-  # always bypass `ignore` rules, so security fixes still come through.
+  # npm workspace — covers all packages via root lockfile.
+  # Patch + minor updates surface here so security fixes that ship as
+  # patch releases are caught automatically. Major bumps still raise
+  # individual PRs; minor/patch are grouped to keep PR volume manageable. [ADS-499]
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -10,13 +11,18 @@ updates:
       day: monday
       time: "09:00"
       timezone: Europe/London
-    open-pull-requests-limit: 10
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - version-update:semver-patch
-          - version-update:semver-minor
+    open-pull-requests-limit: 15
     groups:
+      production-minor-patch:
+        dependency-type: production
+        update-types:
+          - patch
+          - minor
+      development-minor-patch:
+        dependency-type: development
+        update-types:
+          - patch
+          - minor
       typescript-eslint:
         patterns:
           - "@typescript-eslint/*"
@@ -46,7 +52,7 @@ updates:
         patterns:
           - "turbo"
 
-  # GitHub Actions
+  # GitHub Actions — keep workflow actions current; patch + minor allowed.
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -55,11 +61,11 @@ updates:
       time: "09:00"
       timezone: Europe/London
     open-pull-requests-limit: 5
-    ignore:
-      - dependency-name: "*"
+    groups:
+      actions-minor-patch:
         update-types:
-          - version-update:semver-patch
-          - version-update:semver-minor
+          - patch
+          - minor
 
   # Docker — backend
   - package-ecosystem: docker
@@ -68,11 +74,6 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 3
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - version-update:semver-patch
-          - version-update:semver-minor
 
   # Docker — frontend app Dockerfile
   - package-ecosystem: docker
@@ -81,8 +82,3 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 3
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - version-update:semver-patch
-          - version-update:semver-minor

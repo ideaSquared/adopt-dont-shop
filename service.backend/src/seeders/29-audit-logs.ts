@@ -1,4 +1,5 @@
 import AuditLog from '../models/AuditLog';
+import { bulkInsert } from './lib/bulk-insert';
 
 const auditLogs = [
   // Admin actions
@@ -347,7 +348,8 @@ export async function up() {
   console.log('🌱 Seeding audit logs...');
 
   try {
-    await AuditLog.bulkCreate(auditLogs);
+    // Idempotent — see ADS-441. A partial seed must be safe to re-run.
+    await bulkInsert(AuditLog, auditLogs);
     console.log(`✅ Created ${auditLogs.length} audit log entries`);
   } catch (error) {
     console.error('❌ Error seeding audit logs:', error);

@@ -12,7 +12,6 @@ import {
 } from '@adopt-dont-shop/lib.validation';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
-import { HomeVisitStatus } from '../models/HomeVisit';
 import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
 import { FileUploadService } from '../services/file-upload.service';
@@ -73,11 +72,18 @@ export class ApplicationController extends BaseController {
   static validateBulkUpdate = [validateBody(ApplicationBulkUpdateRequestSchema)];
 
   /**
-   * Transform database Application model to frontend-compatible format
+   * Transform database Application model to frontend-compatible format.
+   *
+   * Accepts \`unknown\` so callers can pass in either a Sequelize model
+   * instance or the result of \`.toJSON()\` without sprinkling
+   * \`as unknown as Record<string, unknown>\` at every call site. The body
+   * narrows once and reads via the established Record-shape pattern.
    */
-  protected transformApplicationModel(
-    applicationModel: Record<string, unknown>
-  ): FrontendApplication {
+  protected transformApplicationModel(applicationModelInput: unknown): FrontendApplication {
+    const applicationModel: Record<string, unknown> =
+      applicationModelInput && typeof applicationModelInput === 'object'
+        ? (applicationModelInput as Record<string, unknown>)
+        : {};
     const User = applicationModel.User as Record<string, unknown> | undefined;
     const Pet = applicationModel.Pet as Record<string, unknown> | undefined;
 
@@ -261,7 +267,7 @@ export class ApplicationController extends BaseController {
 
       // Transform the applications to frontend format
       const transformedApplications = result.applications.map(app =>
-        this.transformApplicationModel(app as unknown as Record<string, unknown>)
+        this.transformApplicationModel(app)
       );
 
       return this.sendPaginatedSuccess(res, transformedApplications, {
@@ -378,9 +384,7 @@ export class ApplicationController extends BaseController {
       }
 
       // Transform the raw application data to frontend format
-      const transformedApplication = this.transformApplicationModel(
-        application as unknown as Record<string, unknown>
-      );
+      const transformedApplication = this.transformApplicationModel(application);
 
       res.status(200).json({
         success: true,
@@ -854,12 +858,11 @@ export class ApplicationController extends BaseController {
       if (userType === UserType.ADMIN || userType === UserType.MODERATOR) {
         rescueId = req.query.rescueId as string | undefined;
       } else {
-        const StaffMember = (await import('../models/StaffMember')).default;
-        const membership = await StaffMember.findOne({ where: { userId } });
-        if (!membership) {
+        const staffRescueId = await ApplicationService.getStaffRescueIdForUser(userId);
+        if (!staffRescueId) {
           return res.status(403).json({ success: false, message: 'Access denied' });
         }
-        rescueId = membership.rescueId;
+        rescueId = staffRescueId;
       }
 
       const statistics = await ApplicationService.getApplicationStatistics(rescueId);
@@ -1034,36 +1037,7 @@ export class ApplicationController extends BaseController {
   getHomeVisits = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { applicationId } = req.params;
-      const HomeVisit = (await import('../models/HomeVisit')).default;
-
-      const visits = await HomeVisit.findAll({
-        where: { application_id: applicationId },
-        order: [['created_at', 'DESC']],
-      });
-
-      // If no visits exist, return empty array
-      if (visits.length === 0) {
-        return res.json({
-          success: true,
-          visits: [],
-        });
-      }
-
-      // Convert to frontend format
-      const formattedVisits = visits.map(visit => ({
-        id: visit.visit_id,
-        applicationId: visit.application_id,
-        scheduledDate: visit.scheduled_date,
-        scheduledTime: visit.scheduled_time,
-        assignedStaff: visit.assigned_staff,
-        status: visit.status,
-        notes: visit.notes,
-        outcome: visit.outcome,
-        outcomeNotes: visit.outcome_notes,
-        rescheduleReason: visit.reschedule_reason,
-        cancelledReason: visit.cancelled_reason,
-        completedAt: visit.completed_at?.toISOString(),
-      }));
+      const formattedVisits = await ApplicationService.listHomeVisitsForApplication(applicationId);
 
       res.json({
         success: true,
@@ -1090,51 +1064,21 @@ export class ApplicationController extends BaseController {
         });
       }
 
-      const HomeVisit = (await import('../models/HomeVisit')).default;
-      const HomeVisitStatusTransition = (await import('../models/HomeVisitStatusTransition'))
-        .default;
-
-      // Generate a unique visit_id
-      const visitId = `visit_${applicationId}_${Date.now()}`;
-
-      const visit = await HomeVisit.create({
-        visit_id: visitId,
-        application_id: applicationId,
-        scheduled_date,
-        scheduled_time,
-        assigned_staff,
-        notes,
-        status: HomeVisitStatus.SCHEDULED,
-      });
-
-      // Seed the transition log with the initial status.
-      await HomeVisitStatusTransition.create({
-        visitId: visit.visit_id,
-        fromStatus: null,
-        toStatus: visit.status,
-        transitionedBy: req.user?.userId ?? null,
-        reason: 'Visit scheduled',
-      });
-
-      // Update application status to indicate scheduling progress
-      const Application = (await import('../models/Application')).default;
-      await Application.update(
-        { status: ApplicationStatus.SUBMITTED },
-        { where: { applicationId: applicationId } }
+      const visit = await ApplicationService.scheduleHomeVisit(
+        applicationId,
+        {
+          scheduledDate: scheduled_date,
+          scheduledTime: scheduled_time,
+          assignedStaff: assigned_staff,
+          notes,
+        },
+        req.user?.userId ?? null
       );
 
       res.status(201).json({
         success: true,
         message: 'Home visit scheduled successfully',
-        visit: {
-          id: visit.visit_id,
-          applicationId: visit.application_id,
-          scheduledDate: visit.scheduled_date,
-          scheduledTime: visit.scheduled_time,
-          assignedStaff: visit.assigned_staff,
-          status: visit.status,
-          notes: visit.notes,
-        },
+        visit,
       });
     } catch (error) {
       logger.error('Error scheduling home visit:', error);
@@ -1150,11 +1094,12 @@ export class ApplicationController extends BaseController {
       const { applicationId, visitId } = req.params;
       const updateData = req.body;
 
-      const HomeVisit = (await import('../models/HomeVisit')).default;
-
-      const visit = await HomeVisit.findOne({
-        where: { visit_id: visitId, application_id: applicationId },
-      });
+      const visit = await ApplicationService.updateHomeVisit(
+        applicationId,
+        visitId,
+        updateData,
+        req.user?.userId ?? null
+      );
 
       if (!visit) {
         return res.status(404).json({
@@ -1163,94 +1108,10 @@ export class ApplicationController extends BaseController {
         });
       }
 
-      // Convert frontend camelCase to backend snake_case. Note: status is
-      // handled separately via the transition log (below); we never write
-      // it to the parent row directly.
-      const dbUpdateData: Record<string, string | Date | null> = {};
-      if (updateData.scheduledDate) {
-        dbUpdateData.scheduled_date = updateData.scheduledDate;
-      }
-      if (updateData.scheduledTime) {
-        dbUpdateData.scheduled_time = updateData.scheduledTime;
-      }
-      if (updateData.assignedStaff) {
-        dbUpdateData.assigned_staff = updateData.assignedStaff;
-      }
-      if (updateData.notes !== undefined) {
-        dbUpdateData.notes = updateData.notes;
-      }
-      if (updateData.outcome) {
-        dbUpdateData.outcome = updateData.outcome;
-      }
-      if (updateData.outcomeNotes !== undefined) {
-        dbUpdateData.outcome_notes = updateData.outcomeNotes;
-      }
-      if (updateData.rescheduleReason !== undefined) {
-        dbUpdateData.reschedule_reason = updateData.rescheduleReason;
-      }
-      if (updateData.cancelledReason !== undefined) {
-        dbUpdateData.cancelled_reason = updateData.cancelledReason;
-      }
-
-      // Set completed_at when status changes to completed
-      if (updateData.status === 'completed' && visit.status !== 'completed') {
-        dbUpdateData.completed_at = new Date();
-      }
-
-      if (Object.keys(dbUpdateData).length > 0) {
-        await visit.update(dbUpdateData);
-      }
-
-      // Append a transition row for the status change; the trigger / hook
-      // updates home_visits.status.
-      if (updateData.status && updateData.status !== visit.status) {
-        const HomeVisitStatusTransition = (await import('../models/HomeVisitStatusTransition'))
-          .default;
-        await HomeVisitStatusTransition.create({
-          visitId: visit.visit_id,
-          fromStatus: visit.status,
-          toStatus: updateData.status,
-          transitionedBy: req.user?.userId ?? null,
-          reason: updateData.cancelledReason || updateData.rescheduleReason || null,
-        });
-      }
-
-      // Update application status based on visit outcome
-      if (updateData.status === 'completed' && updateData.outcome) {
-        const Application = (await import('../models/Application')).default;
-        let applicationStatus: ApplicationStatus = ApplicationStatus.SUBMITTED;
-
-        if (updateData.outcome === 'approved') {
-          applicationStatus = ApplicationStatus.APPROVED;
-        } else if (updateData.outcome === 'conditional') {
-          applicationStatus = ApplicationStatus.APPROVED; // Treat conditional as approved
-        } else if (updateData.outcome === 'rejected') {
-          applicationStatus = ApplicationStatus.REJECTED;
-        }
-
-        await Application.update(
-          { status: applicationStatus },
-          { where: { applicationId: applicationId } }
-        );
-      }
-
       res.json({
         success: true,
         message: 'Home visit updated successfully',
-        visit: {
-          id: visit.visit_id,
-          applicationId: visit.application_id,
-          scheduledDate: visit.scheduled_date,
-          scheduledTime: visit.scheduled_time,
-          assignedStaff: visit.assigned_staff,
-          status: visit.status,
-          notes: visit.notes,
-          outcome: visit.outcome,
-          outcomeNotes: visit.outcome_notes,
-          rescheduleReason: visit.reschedule_reason,
-          cancelledReason: visit.cancelled_reason,
-          completedAt: visit.completed_at?.toISOString(),
-        },
+        visit,
       });
     } catch (error) {
       logger.error('Error updating home visit:', error);

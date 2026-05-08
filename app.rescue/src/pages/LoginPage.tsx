@@ -1,12 +1,19 @@
 import { AuthLayout, LoginForm } from '@adopt-dont-shop/lib.auth';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import * as styles from './LoginPage.css';
+
+type LocationState = {
+  from?: { pathname?: string };
+};
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSuccess = () => {
-    navigate('/', { replace: true });
+    const state = location.state as LocationState | null;
+    const redirectTo = state?.from?.pathname ?? '/';
+    navigate(redirectTo, { replace: true });
   };
 
   return (

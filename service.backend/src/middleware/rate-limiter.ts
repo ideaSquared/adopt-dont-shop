@@ -13,6 +13,14 @@ interface RateLimitRequest extends Request {
   };
 }
 
+// Narrow shape for the authenticated user attached by upstream auth middleware.
+// Used here only to extract userId for per-user rate limiting; full
+// AuthenticatedRequest is over-broad for express-rate-limit's req parameter.
+type RequestWithMaybeUser = Request & { user?: { userId?: string } };
+
+const getUserIdOrIp = (req: RequestWithMaybeUser): string =>
+  req.user?.userId || req.ip || 'unknown';
+
 // Development rate limiter that tracks but doesn't block
 const createDevLimiter = (windowMs: number, max: number, name: string) => {
   return rateLimit({
@@ -151,18 +159,15 @@ export const twoFactorLimiter =
     : rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 5,
-        keyGenerator: req =>
-          (req as unknown as { user?: { userId?: string } }).user?.userId || req.ip || 'unknown',
+        keyGenerator: (req: RequestWithMaybeUser) => getUserIdOrIp(req),
         message: {
           error: 'Too many 2FA attempts, please try again later.',
           retryAfter: 900,
         },
         standardHeaders: true,
         legacyHeaders: false,
-        handler: (req, res) => {
-          logger.warn(
-            `2FA rate limit exceeded for user: ${(req as unknown as { user?: { userId?: string } }).user?.userId || req.ip}`
-          );
+        handler: (req: RequestWithMaybeUser, res) => {
+          logger.warn(`2FA rate limit exceeded for user: ${req.user?.userId || req.ip}`);
           res.status(429).json({
             error: 'Too many 2FA attempts, please try again later.',
             retryAfter: 900,
@@ -200,6 +205,48 @@ export const loginEmailLimiter =
           });
         },
       });
+
+// ADS-458: per-route limiters for destructive / outbound endpoints on
+// the user, rescue, pet and invitation routers. The global
+// `apiLimiter` (100 req / 15 min per IP) is too permissive for things
+// like account deletion or invitation sends.
+const buildRouteLimiter = (
+  windowMs: number,
+  max: number,
+  name: string,
+  retryAfter: number
+): ReturnType<typeof rateLimit> =>
+  config.nodeEnv === 'development'
+    ? createDevLimiter(windowMs, max, name)
+    : createProdLimiter(windowMs, max, name, retryAfter);
+
+// Account deletion / sensitive destructive actions — 5 / hour / IP
+export const accountDeletionLimiter = buildRouteLimiter(
+  60 * 60 * 1000,
+  5,
+  'ACCOUNT_DELETION',
+  3600
+);
+
+// Invitation sends — 20 / hour / IP, prevents using invites as an
+// outbound email relay
+export const invitationSendLimiter = buildRouteLimiter(60 * 60 * 1000, 20, 'INVITATION_SEND', 3600);
+
+// General write-heavy mutations on user/rescue/pet routers —
+// 60 / 15 min / IP. Tighter than the global apiLimiter (100/15m) so
+// abusive write loops trip earlier.
+export const sensitiveWriteLimiter = buildRouteLimiter(15 * 60 * 1000, 60, 'SENSITIVE_WRITE', 900);
+
+// ADS-517: tighter dedicated limiter for search and analytics/export
+// endpoints. The general apiLimiter (100/15m) is too permissive given
+// these are computationally expensive — full-text search, large CSV
+// streams, etc. Production: 30 / 15 min / IP. Dev: tracked but not
+// blocked (consistent with the rest of the limiters).
+export const searchLimiter = buildRouteLimiter(15 * 60 * 1000, 30, 'SEARCH', 900);
+
+// Reports / analytics export — even tighter, 10 / 15 min / IP.
+// These run pre-aggregations and stream large response bodies.
+export const reportLimiter = buildRouteLimiter(15 * 60 * 1000, 10, 'REPORT', 900);
 
 // Email verification resend limiter — stricter than auth limiter to prevent abuse
 // Keyed on both IP and target email to prevent using endpoint as email relay

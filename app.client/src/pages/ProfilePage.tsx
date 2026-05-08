@@ -20,6 +20,7 @@ interface UserSettings {
     email?: boolean;
     push?: boolean;
     sms?: boolean;
+    marketing?: boolean;
   };
   privacy?: {
     profileVisibility?: 'public' | 'private';
@@ -123,23 +124,82 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleSettingsSave = async (settings: UserSettings) => {
+    if (!user) {
+      setError('You must be signed in to save settings.');
+      return;
+    }
+
     try {
       setIsSavingSettings(true);
       setError(null);
+      setSuccessMessage(null);
 
-      // In dev mode, just store settings in localStorage
-      if (import.meta.env.DEV) {
-        localStorage.setItem('user_settings', JSON.stringify(settings));
-        return;
+      if (!updateProfile) {
+        throw new Error('Settings update is not available. Please refresh the page and try again.');
       }
 
-      // For real users, this would call the API
-      // TODO: Implement API call when backend is ready
-      // eslint-disable-next-line no-console
-      console.log('Settings would be sent to API:', settings);
+      // Map the SettingsForm shape onto the User profile fields persisted by the
+      // backend. Notification toggles in the form itself are saved via
+      // notificationService.updatePreferences (see SettingsForm); here we
+      // persist privacy, marketing-email opt-in and pet/search preferences so
+      // they round-trip with the user profile.
+      const profilePatch: Partial<User> = {
+        privacySettings: {
+          ...(user.privacySettings ?? {}),
+          ...(settings.privacy?.profileVisibility !== undefined && {
+            profileVisibility: settings.privacy.profileVisibility,
+          }),
+        },
+        notificationPreferences: {
+          ...(user.notificationPreferences ?? {}),
+          ...(settings.notifications?.email !== undefined && {
+            emailNotifications: settings.notifications.email,
+          }),
+          ...(settings.notifications?.push !== undefined && {
+            pushNotifications: settings.notifications.push,
+          }),
+          ...(settings.notifications?.sms !== undefined && {
+            smsNotifications: settings.notifications.sms,
+          }),
+          ...(settings.notifications?.marketing !== undefined && {
+            marketingEmails: settings.notifications.marketing,
+          }),
+        },
+        preferences: {
+          ...(user.preferences ?? {}),
+          ...(settings.preferences?.petTypes !== undefined && {
+            petTypes: settings.preferences.petTypes,
+          }),
+          ...(settings.preferences?.maxDistance !== undefined && {
+            maxDistance: settings.preferences.maxDistance,
+          }),
+          ...(settings.preferences?.newsletterOptIn !== undefined && {
+            newsletterOptIn: settings.preferences.newsletterOptIn,
+          }),
+        },
+      };
+
+      await updateProfile(profilePatch);
+
+      setSuccessMessage('Settings saved successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error('Failed to save settings:', error);
-      setError('Failed to save settings. Please try again.');
+
+      if (error instanceof Error) {
+        if (error.message.includes('unauthorized') || error.message.includes('Unauthorized')) {
+          setError('Your session has expired. Please log in again.');
+        } else if (error.message.includes('network') || error.message.includes('Network')) {
+          setError('Network error. Please check your connection and try again.');
+        } else {
+          setError(error.message || 'Failed to save settings. Please try again.');
+        }
+      } else {
+        setError('Failed to save settings. Please try again.');
+      }
+
+      // Re-throw so SettingsForm can keep the unsaved-changes flag set
+      throw error;
     } finally {
       setIsSavingSettings(false);
     }
@@ -317,6 +377,16 @@ export const ProfilePage: React.FC = () => {
   const renderSettingsTab = () => (
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Settings</h2>
+      {successMessage && (
+        <div style={{ marginBottom: '1rem' }}>
+          <Alert variant='success'>{successMessage}</Alert>
+        </div>
+      )}
+      {error && (
+        <div style={{ marginBottom: '1rem' }} role='alert'>
+          <Alert variant='error'>{error}</Alert>
+        </div>
+      )}
       {user && (
         <SettingsForm
           user={user}

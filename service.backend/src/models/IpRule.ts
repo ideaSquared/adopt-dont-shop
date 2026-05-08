@@ -51,7 +51,9 @@ IpRule.init(
       allowNull: false,
     },
     cidr: {
-      type: DataTypes.STRING(64),
+      // ADS-444: native Postgres CIDR. Validates format on insert and
+      // enables `>>`/`<<=` containment operators for fast subnet checks.
+      type: DataTypes.CIDR,
       allowNull: false,
     },
     label: {

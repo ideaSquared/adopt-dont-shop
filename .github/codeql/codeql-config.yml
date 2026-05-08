@@ -1,0 +1,32 @@
+# CodeQL scope for the JavaScript / TypeScript analysis.
+#
+# We want the security-extended queries running on production source
+# (`service.backend/src`, `lib.*`, `app.*` source) but not on:
+#
+#   - `scripts/*.mjs` — CLI tooling. The "clear-text logging of sensitive
+#     information" rule fires on validator output that prints variable
+#     names (not values) derived from `process.env.*` reads. Real secret
+#     leakage would be caught by reviewers; the rule's data-flow is too
+#     coarse for a diagnostic CLI.
+#
+#   - `**/__tests__/**` and `*.test.ts` / `*.spec.ts` — the
+#     "missing-rate-limiting" rule fires on Express handlers declared
+#     inside test files, but those handlers don't exist at runtime.
+#
+#   - `node_modules/**` — third-party code; not our attack surface.
+#
+# Production source is still fully analysed.
+name: 'JS/TS analysis (prod source only)'
+
+paths-ignore:
+  - 'node_modules/**'
+  - '**/node_modules/**'
+  - 'scripts/**'
+  - '**/__tests__/**'
+  - '**/*.test.ts'
+  - '**/*.test.tsx'
+  - '**/*.spec.ts'
+  - '**/*.spec.tsx'
+  - '**/dist/**'
+  - '**/build/**'
+  - 'e2e/**'

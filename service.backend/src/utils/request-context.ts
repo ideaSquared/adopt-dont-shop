@@ -11,9 +11,15 @@ import { AsyncLocalStorage } from 'async_hooks';
  *     created_by / updated_by.
  *   - Outside a request (cron jobs, seeders, tests) the store is empty and
  *     hooks fall through to null. The columns are nullable on purpose.
+ *
+ * ADS-405: also carries the correlation ID that the request-context
+ * middleware generates (or reads from `X-Correlation-ID` / `X-Request-ID`)
+ * so every downstream `logger.*` call can stamp the same ID without
+ * threading it through every function signature.
  */
 type RequestContextStore = {
   userId?: string;
+  correlationId?: string;
 };
 
 const storage = new AsyncLocalStorage<RequestContextStore>();
@@ -37,5 +43,16 @@ export const setUserId = (userId: string): void => {
   const store = storage.getStore();
   if (store) {
     store.userId = userId;
+  }
+};
+
+/** ADS-405: read the correlation ID for the current request, if any. */
+export const getCorrelationId = (): string | undefined => storage.getStore()?.correlationId;
+
+/** ADS-405: set the correlation ID for the current request. */
+export const setCorrelationId = (correlationId: string): void => {
+  const store = storage.getStore();
+  if (store) {
+    store.correlationId = correlationId;
   }
 };
