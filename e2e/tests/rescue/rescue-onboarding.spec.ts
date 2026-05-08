@@ -29,11 +29,16 @@ test.describe('rescue onboarding → first listing visibility', () => {
     const pet = await createAvailablePet(rescueApi, 'Onboard');
 
     // Discovery feeds GET /api/v1/pets — eventually consistent in some
-    // environments. Poll up to a few seconds before failing.
+    // environments. Poll up to a few seconds before failing. Filter by
+    // rescueId so the demo seeder's 800-pet dataset (with featured /
+    // priorityListing rows that sort first) doesn't push the freshly
+    // created pet off the first page.
     const deadline = Date.now() + 15_000;
     let found = false;
     while (Date.now() < deadline && !found) {
-      const res = await adopterApi.context.get('/api/v1/pets', { params: { limit: '100' } });
+      const res = await adopterApi.context.get('/api/v1/pets', {
+        params: { limit: '100', rescueId: pet.rescueId },
+      });
       if (res.ok()) {
         const body = (await res.json()) as {
           data?: Array<{ petId?: string; pet_id?: string; id?: string }>;
