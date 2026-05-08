@@ -473,14 +473,15 @@ class EmailService {
     const startTime = Date.now();
 
     const emailIds: string[] = [];
-    const batchSize = options.batchSize || 100;
-    // ADS-549 (CodeQL js/loop-bound-injection): clamp the user-supplied
-    // inter-batch delay to a sane range. Without the clamp a caller could
-    // pass an arbitrarily large value and pin a worker on setTimeout(),
-    // turning the bulk-email endpoint into a DoS primitive.
-    const requestedDelay = options.delayBetweenBatches ?? 1000;
-    const MAX_BATCH_DELAY_MS = 60_000;
-    const delay = Math.max(0, Math.min(MAX_BATCH_DELAY_MS, Number(requestedDelay) || 0));
+    // CodeQL js/loop-bound-injection: batchSize and the inter-batch delay
+    // both control loop / setTimeout cost. The express-validator chain on
+    // /v1/email/bulk caps recipients at 1000 but doesn't validate either
+    // pacing knob — and a clamp pattern (`Math.min(MAX, Number(x))`) wasn't
+    // a recognised sanitizer in CodeQL's data-flow on the previous attempt.
+    // Both knobs are pacing internals that callers don't actually pass, so
+    // pin them to constants and stop accepting a user-controlled value.
+    const batchSize = 100;
+    const delay = 1000;
 
     logger.info(`Starting bulk email send: ${options.recipients.length} recipients`);
 
