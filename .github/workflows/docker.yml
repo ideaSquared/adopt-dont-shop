@@ -197,15 +197,31 @@ jobs:
         run: |
           {
             echo "NODE_ENV=development"
+            # Postgres container vars (consumed by the database image itself)
             echo "POSTGRES_USER=postgres"
             echo "POSTGRES_PASSWORD=${{ steps.secrets.outputs.POSTGRES_PASSWORD }}"
             echo "POSTGRES_DB=adopt_dont_shop_dev"
+            # Backend-side DB vars (consumed by service.backend config schema —
+            # ADS-409/452 required these to be distinct from the generic
+            # POSTGRES_* family the postgres image uses).
+            echo "DB_USERNAME=postgres"
+            echo "DB_PASSWORD=${{ steps.secrets.outputs.POSTGRES_PASSWORD }}"
+            echo "DB_HOST=database"
+            echo "DB_PORT=5432"
+            echo "DEV_DB_NAME=adopt_dont_shop_dev"
+            echo "TEST_DB_NAME=adopt_dont_shop_test"
+            echo "PROD_DB_NAME=adopt_dont_shop_prod"
+            # Auth / session secrets
             echo "JWT_SECRET=${{ steps.secrets.outputs.JWT_SECRET }}"
             echo "JWT_REFRESH_SECRET=${{ steps.secrets.outputs.JWT_REFRESH_SECRET }}"
             echo "SESSION_SECRET=${{ steps.secrets.outputs.SESSION_SECRET }}"
             echo "CSRF_SECRET=${{ steps.secrets.outputs.CSRF_SECRET }}"
             echo "ENCRYPTION_KEY=${{ steps.secrets.outputs.ENCRYPTION_KEY }}"
+            # CORS / public URLs
             echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
+            echo "FRONTEND_URL=http://localhost:3000"
+            echo "RESCUE_FRONTEND_URL=http://localhost:3002"
+            echo "API_URL=http://localhost:5000"
           } > .env
 
       - name: Start database and cache
