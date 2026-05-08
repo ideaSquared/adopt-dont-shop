@@ -373,10 +373,12 @@ const Events: React.FC = () => {
       </div>
 
       {/* Create Event Modal */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions -- click-outside backdrop; keyboard close is handled by the explicit button */}
       <div
         className={clsx(styles.modal, showCreateModal ? styles.modalOpen : styles.modalClosed)}
         onClick={() => handleCloseModal('create')}
       >
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions -- stop-propagation guard so clicks inside the modal don't bubble to the backdrop above */}
         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
           <div className={styles.modalHeader}>
             <h2 className={styles.modalTitle}>Create New Event</h2>
@@ -396,10 +398,12 @@ const Events: React.FC = () => {
       </div>
 
       {/* Edit Event Modal */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions -- click-outside backdrop; keyboard close is handled by the explicit button */}
       <div
         className={clsx(styles.modal, showEditModal ? styles.modalOpen : styles.modalClosed)}
         onClick={() => handleCloseModal('edit')}
       >
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions -- stop-propagation guard so clicks inside the modal don't bubble to the backdrop above */}
         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
           <div className={styles.modalHeader}>
             <h2 className={styles.modalTitle}>Edit Event</h2>
@@ -435,10 +439,12 @@ const Events: React.FC = () => {
       </div>
 
       {/* Event Details Modal */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions -- click-outside backdrop; keyboard close is handled by the explicit button */}
       <div
         className={clsx(styles.modal, showDetailsModal ? styles.modalOpen : styles.modalClosed)}
         onClick={() => handleCloseModal('details')}
       >
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions -- stop-propagation guard so clicks inside the modal don't bubble to the backdrop above */}
         <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
           <div className={styles.modalHeader}>
             <h2 className={styles.modalTitle}>Event Details</h2>

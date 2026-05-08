@@ -1,6 +1,7 @@
 import tseslint from 'typescript-eslint';
 import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 
 export default tseslint.config(
   ...tseslint.configs.recommended,
@@ -8,6 +9,12 @@ export default tseslint.config(
   {
     plugins: {
       prettier: prettierPlugin,
+      // Register jsx-a11y at the base level so `eslint-disable-next-line
+      // jsx-a11y/...` directives in `.tsx` files are recognised when the
+      // root lint-staged hook runs on staged files. Per-app configs still
+      // override this with their own jsx-a11y rule severities; this just
+      // makes the plugin's namespace known to the base config.
+      'jsx-a11y': jsxA11y,
     },
     rules: {
       // Prettier integration
