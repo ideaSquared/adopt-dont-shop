@@ -24,6 +24,7 @@
     "lib.invitations",
     "lib.moderation",
     "lib.notifications",
+    "lib.observability",
     "lib.permissions",
     "lib.pets",
     "lib.rescue",

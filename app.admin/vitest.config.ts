@@ -99,6 +99,10 @@ export default defineConfig({
         __dirname,
         '../lib.notifications/src/index.ts'
       ),
+      '@adopt-dont-shop/lib.observability': path.resolve(
+        __dirname,
+        '../lib.observability/src/index.ts'
+      ),
       '@adopt-dont-shop/lib.feature-flags': path.resolve(
         __dirname,
         '../lib.feature-flags/src/index.ts'

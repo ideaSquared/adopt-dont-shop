@@ -79,8 +79,8 @@ class OfflineManager {
     setTimeout(() => this.checkConnectionQuality(), 2000);
 
     // Check every 2 minutes in development to reduce log noise, or 30 seconds in production
-    const isDev =
-      process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost';
+    // ADS-423: import.meta.env.DEV is statically replaced by Vite at build time.
+    const isDev = import.meta.env.DEV === true || window.location.hostname === 'localhost';
     const interval = isDev ? 120000 : 30000; // 2 minutes for dev, 30 seconds for prod
 
     this.connectionCheckInterval = setInterval(() => {

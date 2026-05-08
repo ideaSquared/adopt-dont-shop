@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
@@ -7,6 +7,7 @@ import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 import ProtectedRoute from './components/ProtectedRoute';
 import DevLoginPanel from './components/dev/DevLoginPanel';
 import Layout from './components/shared/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages — lazily loaded for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -23,20 +24,21 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const Reports = lazy(() => import('./pages/Reports'));
 const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
 const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 import './App.css';
+import * as styles from './AppRouting.css';
 
 const PageLoader = () => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '60vh',
-    }}
-  >
+  <div className={styles.pageLoader}>
     <Spinner size="lg" label="Loading page" />
   </div>
+);
+
+// ADS-482: route-level ErrorBoundary so a crash in one risky route (chat,
+// applications, etc.) doesn't blank the whole rescue dashboard.
+const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }) => (
+  <ErrorBoundary boundary={name}>{children}</ErrorBoundary>
 );
 
 function App() {
@@ -60,16 +62,32 @@ function App() {
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/pets" element={<PetManagement />} />
-                      <Route path="/applications" element={<Applications />} />
+                      <Route
+                        path="/applications"
+                        element={
+                          <RouteBoundary name="applications">
+                            <Applications />
+                          </RouteBoundary>
+                        }
+                      />
                       <Route path="/staff" element={<StaffManagement />} />
                       <Route path="/settings" element={<RescueSettings />} />
-                      <Route path="/communication" element={<Communication />} />
+                      <Route
+                        path="/communication"
+                        element={
+                          <RouteBoundary name="communication">
+                            <Communication />
+                          </RouteBoundary>
+                        }
+                      />
                       <Route path="/events" element={<Events />} />
                       <Route path="/analytics" element={<Analytics />} />
                       <Route path="/reports" element={<Reports />} />
                       <Route path="/reports/new" element={<ReportBuilderPage />} />
                       <Route path="/reports/:id" element={<ReportViewPage />} />
                       <Route path="/reports/:id/edit" element={<ReportBuilderPage />} />
+                      {/* ADS-480: 404 catch-all inside the protected subtree */}
+                      <Route path="*" element={<NotFoundPage />} />
                     </Routes>
                   </Suspense>
                 </Layout>

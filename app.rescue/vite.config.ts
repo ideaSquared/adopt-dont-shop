@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
           '@adopt-dont-shop/lib.discovery': resolve(__dirname, '../lib.discovery/src'),
           '@adopt-dont-shop/lib.feature-flags': resolve(__dirname, '../lib.feature-flags/src'),
           '@adopt-dont-shop/lib.notifications': resolve(__dirname, '../lib.notifications/src'),
+          '@adopt-dont-shop/lib.observability': resolve(__dirname, '../lib.observability/src'),
           '@adopt-dont-shop/lib.permissions': resolve(__dirname, '../lib.permissions/src'),
           '@adopt-dont-shop/lib.types': resolve(__dirname, '../lib.types/src'),
           '@adopt-dont-shop/lib.pets': resolve(__dirname, '../lib.pets/src'),
@@ -94,10 +95,22 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: false,
-    },
-    define: {
-      'process.env': '{}',
+      // ADS-447 / ADS-461: hidden source maps so Sentry can resolve stack traces
+      // without exposing them publicly. CI uploads the maps to Sentry then the
+      // .map files are stripped from the deployed artifact.
+      sourcemap: 'hidden',
+      rollupOptions: {
+        output: {
+          // ADS-475: split heavy vendor deps into stable chunks for cacheability.
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom'],
+            'router-vendor': ['react-router-dom'],
+            'query-vendor': ['react-query'],
+            'styled-components': ['styled-components'],
+            sentry: ['@sentry/react'],
+          },
+        },
+      },
     },
   };
 });
