@@ -77,6 +77,12 @@ services:
       DB_LOGGING: ${DB_LOGGING:-false}
       # Development mode configuration
       FORCE_SEED: ${FORCE_SEED:-false}
+      # ADS-536: deterministic seed password for local + CI fixtures. Without
+      # this the seeder mints a fresh random password each run, which breaks
+      # the Playwright `john.smith@gmail.com / DevPassword123!` API probe in
+      # global-setup.ts. docker-compose.prod.yml sets FORCE_SEED=false so the
+      # seeder doesn't run in production at all.
+      SEED_PASSWORD: ${SEED_PASSWORD:-DevPassword123!}
       # Redis configuration. The backend's lib/redis.ts and BullMQ scheduler
       # read REDIS_URL — without it Redis stays disabled, the /health probe
       # returns 503 (ADS-446/460), and the docker healthcheck fails. Build it
