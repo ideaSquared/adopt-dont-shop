@@ -61,7 +61,7 @@
     "react-spring": "^10.0.1",
     "socket.io-client": "^4.7.5",
     "styled-components": "^6.1.19",
-    "zod": "^3.23.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-react": "*",
