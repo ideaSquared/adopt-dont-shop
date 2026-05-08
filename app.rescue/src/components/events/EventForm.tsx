@@ -7,9 +7,18 @@ interface EventFormProps {
   onSubmit: (data: CreateEventInput) => void;
   onCancel: () => void;
   isEditing?: boolean;
+  // Set to true while a parent-managed mutation is in flight so the submit
+  // button is disabled and double-submits are prevented (ADS-483).
+  submitting?: boolean;
 }
 
-const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, isEditing }) => {
+const EventForm: React.FC<EventFormProps> = ({
+  initialData,
+  onSubmit,
+  onCancel,
+  isEditing,
+  submitting = false,
+}) => {
   const [formData, setFormData] = useState<CreateEventInput>({
     name: initialData?.name || '',
     description: initialData?.description || '',
@@ -70,6 +79,9 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) {
+      return;
+    }
     onSubmit(formData);
   };
 
@@ -335,11 +347,17 @@ const EventForm: React.FC<EventFormProps> = ({ initialData, onSubmit, onCancel, 
             type="button"
             className={styles.button({ variant: 'secondary' })}
             onClick={onCancel}
+            disabled={submitting}
           >
             Cancel
           </button>
-          <button type="submit" className={styles.button({ variant: 'primary' })}>
-            {isEditing ? 'Update Event' : 'Create Event'}
+          <button
+            type="submit"
+            className={styles.button({ variant: 'primary' })}
+            disabled={submitting}
+            aria-busy={submitting}
+          >
+            {submitting ? 'Saving...' : isEditing ? 'Update Event' : 'Create Event'}
           </button>
         </div>
       </form>
