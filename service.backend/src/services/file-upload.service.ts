@@ -9,7 +9,6 @@ import { logger } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import FileUpload from '../models/FileUpload';
 import { UserType } from '../models/User';
-import { fromFile as fileTypeFromFile } from 'file-type';
 import DOMPurify from 'isomorphic-dompurify';
 
 // File upload configuration
@@ -409,6 +408,7 @@ export class FileUploadService {
    */
   private static async validateFileContent(file: Express.Multer.File): Promise<void> {
     try {
+      const { fileTypeFromFile } = await import('file-type');
       const fileTypeResult = await fileTypeFromFile(file.path);
 
       // If we can't determine the file type, reject it for security

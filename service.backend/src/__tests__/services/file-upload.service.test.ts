@@ -19,7 +19,7 @@ vi.mock('fs', () => {
 });
 
 vi.mock('file-type', () => ({
-  fromFile: vi.fn(),
+  fileTypeFromFile: vi.fn(),
 }));
 
 vi.mock('isomorphic-dompurify', () => ({
@@ -48,7 +48,7 @@ vi.mock('../../config', () => ({
 // ──── Imports ─────────────────────────────────────────────────────────────────
 
 import fs from 'fs';
-import { fromFile as fileTypeFromFile } from 'file-type';
+import { fileTypeFromFile } from 'file-type';
 import DOMPurify from 'isomorphic-dompurify';
 import FileUpload from '../../models/FileUpload';
 import { AuditLogService } from '../../services/auditLog.service';
