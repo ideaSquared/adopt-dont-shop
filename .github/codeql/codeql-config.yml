@@ -35,13 +35,18 @@ paths-ignore:
 # codebase. Each entry must be reviewed and justified before adding —
 # the goal is to keep CodeQL useful, not to silence noisy-but-real findings.
 query-filters:
-  # `js/user-controlled-bypass-security-check` fires on rescue.service.ts
+  # User-controlled bypass of security check: fires on rescue.service.ts
   # where the service chooses between Companies House and Charity Commission
   # verification APIs based on which identifier the operator supplied. The
   # if-guards aren't a bypass — they select the verification path; the API
   # response itself is the security authority. With both numbers omitted the
   # rescue stays unverified, which is the correct fallback. Reviewed and
-  # confirmed pre-existing intentional behaviour.
+  # confirmed pre-existing intentional behaviour. Both rule-ID variants
+  # registered because the GitHub-managed CodeQL pack renames this query
+  # between releases (`js/user-controlled-bypass` ↔ `js/user-controlled-
+  # bypass-security-check`).
+  - exclude:
+      id: js/user-controlled-bypass
   - exclude:
       id: js/user-controlled-bypass-security-check
   # `js/log-injection` fires on every `logger.info(..., { rescueId })` call
