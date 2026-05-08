@@ -474,7 +474,13 @@ class EmailService {
 
     const emailIds: string[] = [];
     const batchSize = options.batchSize || 100;
-    const delay = options.delayBetweenBatches || 1000;
+    // ADS-549 (CodeQL js/loop-bound-injection): clamp the user-supplied
+    // inter-batch delay to a sane range. Without the clamp a caller could
+    // pass an arbitrarily large value and pin a worker on setTimeout(),
+    // turning the bulk-email endpoint into a DoS primitive.
+    const requestedDelay = options.delayBetweenBatches ?? 1000;
+    const MAX_BATCH_DELAY_MS = 60_000;
+    const delay = Math.max(0, Math.min(MAX_BATCH_DELAY_MS, Number(requestedDelay) || 0));
 
     logger.info(`Starting bulk email send: ${options.recipients.length} recipients`);
 
