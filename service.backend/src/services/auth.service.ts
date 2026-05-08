@@ -10,6 +10,7 @@ import RevokedToken from '../models/RevokedToken';
 import EmailQueue, { EmailStatus, EmailType, EmailPriority } from '../models/EmailQueue';
 import { logger, loggerHelpers } from '../utils/logger';
 import { decryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
+import { getValidatedFrontendOrigin } from '../utils/url-allowlist';
 import { AuditLogService } from './auditLog.service';
 import { env } from '../config/env';
 
@@ -82,7 +83,8 @@ export class AuthService {
         const emailService = (await import('./email.service')).default;
         // app.client runs on :3000 in dev (see docker-compose / CORS_ORIGIN).
         // Set FRONTEND_URL in .env to override (e.g. for staging/prod).
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        // ADS-438: origin is validated against the configured allowlist.
+        const frontendUrl = getValidatedFrontendOrigin();
         const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
         // sendEmail requires either templateId+templateData OR explicit
@@ -115,7 +117,7 @@ export class AuthService {
             fromEmail: process.env.EMAIL_FROM_ADDRESS || 'noreply@adoptdontshop.com',
             toEmail: user.email,
             subject: 'Verify Your Email',
-            htmlContent: `<p>Hello ${user.firstName},</p><p>Please verify your email by clicking <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}">here</a></p>`,
+            htmlContent: `<p>Hello ${user.firstName},</p><p>Please verify your email by clicking <a href="${getValidatedFrontendOrigin()}/verify-email?token=${verificationToken}">here</a></p>`,
             type: EmailType.TRANSACTIONAL,
             priority: EmailPriority.HIGH,
             status: EmailStatus.QUEUED,
@@ -129,7 +131,7 @@ export class AuthService {
             templateData: {
               firstName: user.firstName,
               verificationToken,
-              verificationUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`,
+              verificationUrl: `${getValidatedFrontendOrigin()}/verify-email?token=${verificationToken}`,
               expiresAt: verificationExpires.toISOString(),
             },
           });
@@ -445,7 +447,9 @@ export class AuthService {
       // Send password reset email
       try {
         const emailService = (await import('./email.service')).default;
-        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+        // ADS-438: validate FRONTEND_URL origin before building the link so a
+        // misconfigured env var cannot redirect users to an attacker domain.
+        const resetUrl = `${getValidatedFrontendOrigin()}/reset-password?token=${resetToken}`;
 
         await emailService.sendEmail({
           toEmail: user.email,
@@ -743,7 +747,7 @@ Need help? Contact us at support@adoptdontshop.com
           templateData: {
             firstName: user.firstName,
             verificationToken: verificationToken,
-            verificationUrl: `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`,
+            verificationUrl: `${getValidatedFrontendOrigin()}/verify-email?token=${verificationToken}`,
             expiresAt: verificationExpires.toISOString(),
           },
           type: 'transactional',
@@ -1057,7 +1061,8 @@ Need help? Contact us at support@adoptdontshop.com
       let failed = 0;
 
       const emailService = (await import('./email.service')).default;
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      // ADS-438: origin is validated against the configured allowlist.
+      const frontendUrl = getValidatedFrontendOrigin();
 
       for (const user of unverifiedUsers) {
         try {
