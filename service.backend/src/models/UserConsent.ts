@@ -31,8 +31,10 @@ interface UserConsentAttributes {
   updatedAt?: Date;
 }
 
-interface UserConsentCreationAttributes
-  extends Optional<UserConsentAttributes, 'consentId' | 'source' | 'ipAddress' | 'createdAt' | 'updatedAt'> {}
+interface UserConsentCreationAttributes extends Optional<
+  UserConsentAttributes,
+  'consentId' | 'source' | 'ipAddress' | 'createdAt' | 'updatedAt'
+> {}
 
 class UserConsent
   extends Model<UserConsentAttributes, UserConsentCreationAttributes>

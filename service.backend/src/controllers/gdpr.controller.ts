@@ -20,8 +20,7 @@ export const gdprValidation = {
   anonymize: [body('reason').optional().isString().isLength({ max: 500 })],
 };
 
-const isAdmin = (req: AuthenticatedRequest): boolean =>
-  req.user?.userType === UserType.ADMIN;
+const isAdmin = (req: AuthenticatedRequest): boolean => req.user?.userType === UserType.ADMIN;
 
 export class GdprController {
   /**

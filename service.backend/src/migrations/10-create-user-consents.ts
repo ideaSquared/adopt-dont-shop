@@ -21,12 +21,7 @@ export default {
         onDelete: 'CASCADE',
       },
       purpose: {
-        type: DataTypes.ENUM(
-          'marketing_email',
-          'analytics',
-          'third_party_sharing',
-          'profiling'
-        ),
+        type: DataTypes.ENUM('marketing_email', 'analytics', 'third_party_sharing', 'profiling'),
         allowNull: false,
       },
       granted: {
