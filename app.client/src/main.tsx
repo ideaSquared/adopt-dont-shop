@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { StatsigWrapper } from './contexts/StatsigContext';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 const queryClient = new QueryClient();
 
