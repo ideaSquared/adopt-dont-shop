@@ -1,10 +1,10 @@
 /**
  * Round-trip tests for the audit forward-fix migrations (ADS-484):
  *
- *   10 — ip_rules.cidr → CIDR type           (ADS-444)
- *   11 — revoked_tokens.updated_at           (ADS-502)
- *   12 — report_shares.token_hash UNIQUE     (ADS-505)
- *   13 — soft-delete partial indexes         (ADS-504)
+ *   13 — ip_rules.cidr → CIDR type           (ADS-444)
+ *   14 — revoked_tokens.updated_at           (ADS-502)
+ *   15 — report_shares.token_hash UNIQUE     (ADS-505)
+ *   16 — soft-delete partial indexes         (ADS-504)
  *
  * Every test runs `up`, asserts the post-state, runs `down`, and asserts
  * the pre-state is restored. Postgres-only — the migration bodies use
@@ -23,10 +23,10 @@ import {
   Pet,
   Application,
 } from '../../models';
-import migration10 from '../../migrations/10-ip-rules-cidr-type';
-import migration11 from '../../migrations/11-revoked-tokens-updated-at';
-import migration12 from '../../migrations/12-report-shares-token-hash-unique';
-import migration13 from '../../migrations/13-soft-delete-partial-indexes';
+import migration13 from '../../migrations/13-convert-ip-rules-cidr-to-native';
+import migration14 from '../../migrations/14-add-revoked-tokens-updated-at';
+import migration15 from '../../migrations/15-add-report-shares-token-hash-unique-index';
+import migration16 from '../../migrations/16-add-paranoid-partial-indexes';
 
 // Reference models so they register with the Sequelize instance before
 // `sync()` runs.
@@ -87,22 +87,22 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
       const before = await describeColumn('ip_rules', 'cidr');
       expect(before?.udt_name).toBe('varchar');
 
-      await migration10.up(queryInterface);
+      await migration13.up(queryInterface);
 
       const after = await describeColumn('ip_rules', 'cidr');
       expect(after?.udt_name).toBe('cidr');
     });
 
     it('down() restores VARCHAR(64)', async () => {
-      await migration10.up(queryInterface);
-      await migration10.down(queryInterface);
+      await migration13.up(queryInterface);
+      await migration13.down(queryInterface);
 
       const col = await describeColumn('ip_rules', 'cidr');
       expect(col?.udt_name).toBe('varchar');
     });
 
     it('CIDR type rejects malformed input after up()', async () => {
-      await migration10.up(queryInterface);
+      await migration13.up(queryInterface);
 
       await expect(
         sequelize.query(
@@ -120,7 +120,7 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
     });
 
     it('up() adds updated_at column', async () => {
-      await migration11.up(queryInterface);
+      await migration14.up(queryInterface);
 
       const col = await describeColumn('revoked_tokens', 'updated_at');
       expect(col).toBeDefined();
@@ -128,8 +128,8 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
     });
 
     it('down() removes updated_at column', async () => {
-      await migration11.up(queryInterface);
-      await migration11.down(queryInterface);
+      await migration14.up(queryInterface);
+      await migration14.down(queryInterface);
 
       const col = await describeColumn('revoked_tokens', 'updated_at');
       expect(col).toBeUndefined();
@@ -153,7 +153,7 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
     });
 
     it('up() creates the partial unique index and drops the plain one', async () => {
-      await migration12.up(queryInterface);
+      await migration15.up(queryInterface);
 
       const unique = await findIndex('report_shares', 'report_shares_token_hash_unique_idx');
       expect(unique).toBeDefined();
@@ -165,8 +165,8 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
     });
 
     it('down() drops the unique index and restores the plain one', async () => {
-      await migration12.up(queryInterface);
-      await migration12.down(queryInterface);
+      await migration15.up(queryInterface);
+      await migration15.down(queryInterface);
 
       const unique = await findIndex('report_shares', 'report_shares_token_hash_unique_idx');
       expect(unique).toBeUndefined();
@@ -191,7 +191,7 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
     });
 
     it('up() creates the partial indexes with deleted_at IS NULL predicate', async () => {
-      await migration13.up(queryInterface);
+      await migration16.up(queryInterface);
 
       for (const { table, name } of expectedIndexes) {
         const idx = await findIndex(table, name);
@@ -201,8 +201,8 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
     });
 
     it('down() removes the partial indexes', async () => {
-      await migration13.up(queryInterface);
-      await migration13.down(queryInterface);
+      await migration16.up(queryInterface);
+      await migration16.down(queryInterface);
 
       for (const { table, name } of expectedIndexes) {
         const idx = await findIndex(table, name);
