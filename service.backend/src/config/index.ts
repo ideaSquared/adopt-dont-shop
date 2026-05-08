@@ -111,6 +111,11 @@ export const config = {
         'application/pdf',
         'text/plain',
       ],
+      // ADS-422: in production nginx serves /uploads/* directly from the
+      // shared volume after an auth_request to /api/v1/uploads/authorize.
+      // Set SERVE_LOCAL_UPLOADS=true only when nginx is NOT in front
+      // (local dev, CI without Docker networking).
+      serveLocalUploads: process.env.SERVE_LOCAL_UPLOADS !== 'false',
     },
     s3: {
       bucket: process.env.S3_BUCKET_NAME,

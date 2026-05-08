@@ -143,6 +143,8 @@ services:
       LOG_DIR: ${LOG_DIR:-logs}
       SMS_DEFAULT_COUNTRY_CODE: ${SMS_DEFAULT_COUNTRY_CODE:-GB}
       JWT_REPORT_SHARE_SECRET: ${JWT_REPORT_SHARE_SECRET:-}
+      # ADS-422: nginx serves /uploads directly; disable Express fallback.
+      SERVE_LOCAL_UPLOADS: false
       # Disable development features
       FORCE_SEED: false
       DB_LOGGING: false
@@ -285,6 +287,10 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       # Let's Encrypt certificates (if using)
       - letsencrypt:/etc/letsencrypt:ro
+      # ADS-422: shared uploads volume mounted read-only so nginx can serve
+      # files directly after a successful auth_request to the backend.
+      # Must match the path used in the nginx `root` directive (/srv/uploads).
+      - uploads:/srv/uploads:ro
     ports:
       - "80:80"
       - "443:443"

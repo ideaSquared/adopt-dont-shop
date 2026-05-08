@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import fs from 'fs';
+import * as fs from 'fs';
 import path from 'path';
 import { Router, type Response } from 'express';
 import { config } from '../config';
@@ -158,6 +158,51 @@ router.get(
       return;
     }
     streamFile(resolved, res);
+  }
+);
+
+/**
+ * ADS-422: nginx auth_request subrequest endpoint.
+ *
+ * nginx calls this internally before streaming a file from the shared
+ * uploads volume. The request carries the original client cookies/JWT so
+ * authentication works identically to the regular API. nginx only inspects
+ * the HTTP status code; a 200 means "proceed", anything else means "deny".
+ * The body MUST be empty so nginx does not buffer it.
+ *
+ * nginx sets X-Original-URI to the full request path; we also accept a
+ * `path` query parameter for explicitness.
+ */
+router.get(
+  '/api/v1/uploads/authorize',
+  apiLimiter,
+  authenticateToken,
+  (req: AuthenticatedRequest, res: Response) => {
+    const filePath = (req.query['path'] as string | undefined) ?? '';
+
+    if (!filePath) {
+      res.status(400).end();
+      return;
+    }
+
+    const resolved = safeResolve(filePath);
+    if (!resolved) {
+      logger.warn('Upload authorize: rejected unsafe path', {
+        userId: req.user?.userId,
+        requested: filePath,
+        originalUri: req.headers['x-original-uri'],
+      });
+      res.status(403).end();
+      return;
+    }
+
+    fs.stat(resolved, (statErr, stats) => {
+      if (statErr || !stats.isFile()) {
+        res.status(404).end();
+        return;
+      }
+      res.status(200).end();
+    });
   }
 );
 
