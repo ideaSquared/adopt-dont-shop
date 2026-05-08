@@ -644,26 +644,36 @@ export class PetService {
       // and value strings, so the conversion loop was a tautological no-op
       // and snake_case inputs were silently dropped.
       const rawData = updateData as Record<string, unknown>;
-      const normalizedData: Record<string, unknown> = { ...rawData };
-      // CodeQL js/prototype-polluting-assignment: refuse keys that touch the
-      // Object prototype chain even though the Zod schema upstream already
-      // restricts updateData to known Pet attributes. Defence in depth keeps
-      // the rule satisfied without complicating the validator contract.
+      // CodeQL js/prototype-polluting-assignment: build the normalised record
+      // through a Map so user-supplied keys can never reach Object.prototype,
+      // then materialise into a null-prototype object before downstream code
+      // does its `.shortDescription` etc. lookups. The audit's upstream Zod
+      // schema already restricts `updateData` to known Pet attributes, so this
+      // is purely a defence-in-depth shape that satisfies the static analyser.
       const PROTO_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+      const normalizedEntries = new Map<string, unknown>();
       for (const key of Object.keys(rawData)) {
+        if (PROTO_KEYS.has(key)) {
+          continue;
+        }
         if (!key.includes('_')) {
+          normalizedEntries.set(key, rawData[key]);
           continue;
         }
         const camelKey = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
-        if (PROTO_KEYS.has(camelKey) || PROTO_KEYS.has(key)) {
-          delete normalizedData[key];
+        if (PROTO_KEYS.has(camelKey)) {
           continue;
         }
+        // Prefer an explicit camelCase key already on the input, otherwise
+        // promote the snake_case value under the camelCase name. The original
+        // snake_case key is intentionally dropped.
         if (rawData[camelKey] === undefined) {
-          normalizedData[camelKey] = rawData[key];
+          normalizedEntries.set(camelKey, rawData[key]);
+        } else if (!normalizedEntries.has(camelKey)) {
+          normalizedEntries.set(camelKey, rawData[camelKey]);
         }
-        delete normalizedData[key];
       }
+      const normalizedData: Record<string, unknown> = Object.fromEntries(normalizedEntries);
 
       // Build update data using camelCase attribute names (Sequelize maps to DB columns via field:)
       const dbUpdateData: Record<string, unknown> = {};
