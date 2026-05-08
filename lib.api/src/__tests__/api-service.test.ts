@@ -267,9 +267,10 @@ describe('ApiService', () => {
     });
 
     it('should not set Authorization header when no getAuthToken is configured (tokens are in HttpOnly cookies)', async () => {
-      // Tokens are now in HttpOnly cookies — no localStorage fallback
+      // Tokens are now in HttpOnly cookies — no localStorage fallback.
+      // ApiService without getAuthToken uses the default `() => null` function,
+      // which causes fetchWithAuth to skip the Authorization header entirely.
       apiService = new ApiService({ debug: false });
-      (apiService as any).config.getAuthToken = null;
 
       const mockHeaders = new Headers([['content-type', 'application/json']]);
 
@@ -330,7 +331,7 @@ describe('ApiService', () => {
         json: () => Promise.resolve(apiPetData),
       } as Response);
 
-      const result = (await apiService.get('/pets/123')) as any;
+      const result = await apiService.get<typeof apiPetData>('/pets/123');
 
       // ApiService returns data as-is without transformation
       expect(result).toEqual(apiPetData);
@@ -353,7 +354,7 @@ describe('ApiService', () => {
         json: () => Promise.resolve(apiPetData),
       } as Response);
 
-      const result = (await apiService.get('/pets/123')) as any;
+      const result = await apiService.get<typeof apiPetData>('/pets/123');
 
       // ApiService returns location data as-is without transformation
       expect(result.location).toEqual({
