@@ -561,17 +561,37 @@ const startServer = async () => {
     });
 
     // Graceful shutdown
+    // Without an explicit process.exit(), Socket.IO connections + timers keep
+    // the event loop alive after server.close(), so dumb-init eventually
+    // SIGKILLs the container. We exit cleanly after draining, with a 10s
+    // force-exit fallback for stuck connections. [ADS-395]
+    let shuttingDown = false;
     const gracefulShutdown = (signal: string) => {
+      if (shuttingDown) {
+        return;
+      }
+      shuttingDown = true;
       logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+      const forceExitTimer = setTimeout(() => {
+        logger.error('Graceful shutdown timed out after 10s — forcing exit.');
+        process.exit(1);
+      }, 10_000);
+      forceExitTimer.unref();
+
       server.close(async () => {
         logger.info('HTTP server closed.');
         try {
+          const { messageBroker } = await import('./services/messageBroker.service');
+          await messageBroker.disconnect();
+          logger.info('Message broker disconnected.');
           await sequelize.close();
           logger.info('Database connection closed.');
           logger.info('Graceful shutdown completed.');
+          process.exit(0);
         } catch (error) {
           logger.error('Error during graceful shutdown:', error);
-          throw error;
+          process.exit(1);
         }
       });
     };
