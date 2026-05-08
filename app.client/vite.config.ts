@@ -94,12 +94,28 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           // ADS-475: split heavy vendor deps into stable chunks for cacheability.
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom'],
-            'router-vendor': ['react-router-dom'],
-            'query-vendor': ['react-query'],
-            'styled-components': ['styled-components'],
-            sentry: ['@sentry/react'],
+          // Vite 8 / rolldown rejects the legacy object form — `manualChunks`
+          // must be a function. Match the same boundaries as the previous map.
+          manualChunks(id) {
+            if (!id.includes('node_modules')) {
+              return undefined;
+            }
+            if (id.includes('@sentry/')) {
+              return 'sentry';
+            }
+            if (id.includes('react-query')) {
+              return 'query-vendor';
+            }
+            if (id.includes('react-router')) {
+              return 'router-vendor';
+            }
+            if (id.includes('styled-components')) {
+              return 'styled-components';
+            }
+            if (id.includes('react-dom') || /\/react\//.test(id)) {
+              return 'react-vendor';
+            }
+            return undefined;
           },
         },
       },
