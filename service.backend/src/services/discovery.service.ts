@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto';
 import { Op, fn, literal } from 'sequelize';
+import { cached } from '../cache/redis-cache';
 import Breed from '../models/Breed';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../models/Pet';
 import PetMedia, { PetMediaType } from '../models/PetMedia';
@@ -53,9 +54,33 @@ export interface DiscoveryQueue {
 
 export class DiscoveryService {
   /**
-   * Get discovery queue with smart sorting algorithm
+   * Get discovery queue with smart sorting algorithm.
+   *
+   * ADS-479: cached for 60s. The discovery feed is the hottest read
+   * path on the swipe UI; without caching, every drag triggers a full
+   * smart-sort recompute. Pet writes invalidate the `discovery:queue`
+   * namespace via `pet.service.ts`.
+   *
+   * Note: `sessionId` is per-request (random) and intentionally
+   * excluded from the cache key — only filter/limit/user matters
+   * for the actual pet shortlist.
    */
   async getDiscoveryQueue(
+    filters: DiscoveryFilters,
+    limit: number = 20,
+    userId?: string
+  ): Promise<DiscoveryQueue> {
+    return cached(
+      {
+        namespace: 'discovery:queue',
+        args: { filters, limit, userId: userId ?? null },
+        ttlSeconds: 60,
+      },
+      () => this.getDiscoveryQueueUncached(filters, limit, userId)
+    );
+  }
+
+  private async getDiscoveryQueueUncached(
     filters: DiscoveryFilters,
     limit: number = 20,
     userId?: string

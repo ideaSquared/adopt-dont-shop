@@ -1,4 +1,5 @@
 import { col, fn, literal, Op, WhereOptions } from 'sequelize';
+import { cached, invalidateNamespace } from '../cache/redis-cache';
 import Breed from '../models/Breed';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
 import PetMedia, { PetMediaType } from '../models/PetMedia';
@@ -58,6 +59,23 @@ const PET_RESCUE_LIST_SORT_FIELDS = [
  */
 const getLikeOp = () => {
   return sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
+};
+
+/**
+ * ADS-479: Cache namespaces for pet listings. Centralised so writes
+ * can fan out invalidation across every read path that might surface
+ * the mutated row.
+ */
+const PET_CACHE_NAMESPACES = [
+  'pets:list',
+  'pets:featured',
+  'pets:recent',
+  'pets:rescue-list',
+  'discovery:queue',
+] as const;
+
+const invalidatePetCaches = async (): Promise<void> => {
+  await Promise.all(PET_CACHE_NAMESPACES.map(ns => invalidateNamespace(ns)));
 };
 
 /**
@@ -557,6 +575,10 @@ export class PetService {
         );
       }
 
+      // ADS-479: bust cached pet listings + discovery feed so the
+      // newly-created pet shows up on the next read.
+      await invalidatePetCaches();
+
       return pet;
     } catch (error) {
       logger.error('Pet creation failed:', {
@@ -752,6 +774,9 @@ export class PetService {
         );
       }
 
+      // ADS-479: bust cached listings now that the row has changed.
+      await invalidatePetCaches();
+
       return pet.reload();
     } catch (error) {
       logger.error('Pet update failed:', {
@@ -833,6 +858,9 @@ export class PetService {
         );
       }
 
+      // ADS-479: cached listings filter on status, so invalidate.
+      await invalidatePetCaches();
+
       return pet.reload();
     } catch (error) {
       logger.error('Pet status update failed:', {
@@ -886,6 +914,9 @@ export class PetService {
           deletedBy
         );
       }
+
+      // ADS-479: drop the deleted pet from cached listings.
+      await invalidatePetCaches();
 
       return { message: 'Pet deleted successfully' };
     } catch (error) {
@@ -1084,30 +1115,37 @@ export class PetService {
   }
 
   /**
-   * Get featured pets
+   * Get featured pets.
+   *
+   * ADS-479: cached for 60s. The featured set is small and fanned
+   * out on every home-page render, so this is one of the hottest
+   * read paths. Writes (`createPet` / `updatePet` / `deletePet`)
+   * bump the namespace version to invalidate.
    */
   static async getFeaturedPets(limit: number = 10): Promise<Pet[]> {
-    try {
-      const pets = await Pet.findAll({
-        where: {
-          featured: true,
-          archived: false,
-          status: { [Op.in]: [PetStatus.AVAILABLE, PetStatus.FOSTER] },
-        },
-        order: [
-          ['priorityListing', 'DESC'],
-          ['createdAt', 'DESC'],
-        ],
-        limit,
-      });
+    return cached({ namespace: 'pets:featured', args: { limit }, ttlSeconds: 60 }, async () => {
+      try {
+        const pets = await Pet.findAll({
+          where: {
+            featured: true,
+            archived: false,
+            status: { [Op.in]: [PetStatus.AVAILABLE, PetStatus.FOSTER] },
+          },
+          order: [
+            ['priorityListing', 'DESC'],
+            ['createdAt', 'DESC'],
+          ],
+          limit,
+        });
 
-      logger.info('Featured pets retrieved successfully', { count: pets.length });
+        logger.info('Featured pets retrieved successfully', { count: pets.length });
 
-      return pets;
-    } catch (error) {
-      logger.error('Get featured pets failed:', error);
-      throw new Error('Failed to retrieve featured pets');
-    }
+        return pets;
+      } catch (error) {
+        logger.error('Get featured pets failed:', error);
+        throw new Error('Failed to retrieve featured pets');
+      }
+    });
   }
 
   /**
@@ -1752,32 +1790,36 @@ export class PetService {
   }
 
   /**
-   * Get recent pets (recently added)
+   * Get recent pets (recently added).
+   *
+   * ADS-479: cached for 60s. Same invalidation rules as featured.
    */
   static async getRecentPets(limit: number = 12): Promise<Pet[]> {
-    try {
-      const pets = await Pet.findAll({
-        where: {
-          status: PetStatus.AVAILABLE,
-          archived: false,
-        },
-        include: [
-          {
-            model: Rescue,
-            as: 'Rescue',
-            attributes: ['rescueId', 'name', 'city', 'state'],
+    return cached({ namespace: 'pets:recent', args: { limit }, ttlSeconds: 60 }, async () => {
+      try {
+        const pets = await Pet.findAll({
+          where: {
+            status: PetStatus.AVAILABLE,
+            archived: false,
           },
-        ],
-        order: [['createdAt', 'DESC']],
-        limit,
-      });
+          include: [
+            {
+              model: Rescue,
+              as: 'Rescue',
+              attributes: ['rescueId', 'name', 'city', 'state'],
+            },
+          ],
+          order: [['createdAt', 'DESC']],
+          limit,
+        });
 
-      logger.info(`Retrieved ${pets.length} recent pets`);
-      return pets;
-    } catch (error) {
-      logger.error('Error getting recent pets:', error);
-      throw new Error('Failed to retrieve recent pets');
-    }
+        logger.info(`Retrieved ${pets.length} recent pets`);
+        return pets;
+      } catch (error) {
+        logger.error('Error getting recent pets:', error);
+        throw new Error('Failed to retrieve recent pets');
+      }
+    });
   }
 
   /**
