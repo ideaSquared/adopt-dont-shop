@@ -139,6 +139,10 @@ async function loginAndPersist(roleKey: RoleKey): Promise<void> {
       if (user) {
         window.localStorage.setItem('dev_user', user);
       }
+      // Pre-dismiss the SwipeOnboarding overlay (app.client AppShell shows
+      // it on first load with a 1s delay; it intercepts pointer events on
+      // buttons like "Edit Profile" and causes flaky click timeouts).
+      window.localStorage.setItem('hasSeenSwipeOnboarding', 'true');
     });
 
     const filePath = resolve(import.meta.dirname, AUTH_FILES[roleKey]);
