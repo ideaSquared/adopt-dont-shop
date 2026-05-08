@@ -8,6 +8,7 @@ import {
   registrationIpLimiter,
 } from '../middleware/auth-rate-limit';
 import {
+  authLimiter,
   loginEmailLimiter,
   passwordResetLimiter,
   twoFactorLimiter,
