@@ -29,10 +29,6 @@ export class InvitationsService {
       debug: false,
       ...config,
     };
-
-    if (this.config.debug) {
-      console.log(`${InvitationsService.name} initialized with config:`, this.config);
-    }
   }
 
   /**
@@ -64,10 +60,6 @@ export class InvitationsService {
         `/api/v1/rescues/${rescueId}/invitations`,
         payload
       );
-
-      if (this.config.debug) {
-        console.log(`Invitation sent to ${payload.email}`, response);
-      }
 
       return response;
     } catch (error) {
@@ -112,10 +104,6 @@ export class InvitationsService {
   async cancelInvitation(rescueId: string, invitationId: number): Promise<void> {
     try {
       await this.apiService.delete(`/api/v1/rescues/${rescueId}/invitations/${invitationId}`);
-
-      if (this.config.debug) {
-        console.log(`Invitation ${invitationId} cancelled`);
-      }
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to cancel invitation:', error);
@@ -156,10 +144,6 @@ export class InvitationsService {
         '/api/v1/invitations/accept',
         payload
       );
-
-      if (this.config.debug) {
-        console.log('Invitation accepted', response);
-      }
 
       return response;
     } catch (error) {

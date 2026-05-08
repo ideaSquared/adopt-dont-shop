@@ -102,8 +102,6 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
         rescueService.getInvitations(rescueId),
       ]);
 
-      console.log('Fetched staff:', staffData.data);
-      console.log('Fetched invitations:', invitationsData);
       setStaff(staffData.data);
       setInvitations(invitationsData);
     } catch (err) {
@@ -130,8 +128,7 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
         title: inviteTitle.trim() || undefined,
       };
 
-      const newInvitation = await rescueService.inviteStaff(rescueId, payload);
-      console.log('Invitation sent:', newInvitation);
+      await rescueService.inviteStaff(rescueId, payload);
 
       // Reset form
       setInviteEmail('');
@@ -140,7 +137,6 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
 
       // Refresh staff list (don't show loading, we're already in loading state)
       await fetchStaff(false);
-      console.log('Staff and invitations refreshed');
     } catch (err) {
       setStaffError(err instanceof Error ? err.message : 'Failed to send invitation');
     } finally {

@@ -230,12 +230,6 @@ class PerformanceMonitor {
         console.warn('Analytics callback failed:', error);
       }
     }
-
-    // Log important metrics in development
-    if (import.meta.env.DEV && this.shouldLogMetric(name)) {
-      // eslint-disable-next-line no-console
-      console.log(`[Performance] ${name}:`, value, metadata);
-    }
   }
 
   // Determine which metrics to log in development

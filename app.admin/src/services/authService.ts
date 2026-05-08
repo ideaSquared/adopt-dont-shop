@@ -17,9 +17,6 @@ class AuthService {
 
   // Login admin user
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    // eslint-disable-next-line no-console
-    console.log('🔐 AuthService: Attempting admin login for:', credentials.email);
-
     const response = await apiService.post<AuthResponse>('/api/v1/auth/admin/login', credentials);
 
     // Store only non-sensitive user data; tokens are in HttpOnly cookies

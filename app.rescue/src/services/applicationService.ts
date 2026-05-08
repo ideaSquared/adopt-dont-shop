@@ -209,9 +209,6 @@ export class RescueApplicationService {
 
         // Check for redundant transition
         if (currentStatus === targetStatus) {
-          console.log(
-            `Application ${id} is already in status ${currentApp.status}, skipping redundant update`
-          );
           return { success: true, message: `Application is already ${currentApp.status}` };
         }
 
@@ -386,7 +383,6 @@ export class RescueApplicationService {
               application.decision_at || application.reviewed_at || new Date().toISOString(),
           };
 
-          console.log(`Found legacy home visit notes for application ${applicationId}:`, homeVisit);
           return [homeVisit];
         }
 
@@ -522,8 +518,6 @@ export class RescueApplicationService {
       const response = await this.apiService.get<any>(
         `/api/v1/applications/${applicationId}/timeline`
       );
-
-      console.log('Timeline API response:', response); // Debug log
 
       // Handle different possible response formats
       let timelineArray = [];

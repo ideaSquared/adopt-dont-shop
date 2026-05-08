@@ -138,8 +138,6 @@ const Events: React.FC = () => {
       const newEvent = await eventsService.createEvent(eventData);
       setEvents(prev => [newEvent, ...prev]);
       setShowCreateModal(false);
-      // Show success message (you could add a toast notification here)
-      console.log('Event created successfully:', newEvent);
     } catch (err) {
       console.error('Failed to create event:', err);
       alert('Failed to create event. Please try again.');
@@ -170,8 +168,6 @@ const Events: React.FC = () => {
       if (selectedEvent?.id === updatedEvent.id) {
         setSelectedEvent(updatedEvent);
       }
-
-      console.log('Event updated successfully:', updatedEvent);
     } catch (err) {
       console.error('Failed to update event:', err);
       alert('Failed to update event. Please try again.');
@@ -197,7 +193,6 @@ const Events: React.FC = () => {
       setEvents(prev => prev.filter(event => event.id !== eventId));
       setShowDetailsModal(false);
       setSelectedEvent(null);
-      console.log('Event deleted successfully');
     } catch (err) {
       console.error('Failed to delete event:', err);
       alert('Failed to delete event. Please try again.');
@@ -218,8 +213,6 @@ const Events: React.FC = () => {
       if (selectedEvent?.id === updatedEvent.id) {
         setSelectedEvent(updatedEvent);
       }
-
-      console.log('Event status updated:', status);
     } catch (err) {
       console.error('Failed to update event status:', err);
       alert('Failed to update event status. Please try again.');
@@ -269,7 +262,6 @@ const Events: React.FC = () => {
       // Refresh attendees list
       const updatedAttendees = await eventsService.getEventAttendees(selectedEvent.id);
       setEventAttendees(updatedAttendees);
-      console.log('Attendee checked in successfully');
     } catch (err) {
       console.error('Failed to check in attendee:', err);
       alert('Failed to check in attendee. Please try again.');

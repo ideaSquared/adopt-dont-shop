@@ -39,8 +39,8 @@ export default [
       // Security: disallow unsanitized dangerouslySetInnerHTML
       'react/no-danger': 'error',
 
-      // Override base config for React apps
-      'no-console': 'off',
+      // Override base config for React apps — allow only warn/error
+      'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
 ];
