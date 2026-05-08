@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 # Enable BuildKit features: cache mounts, bind mounts, and advanced layer caching
 
-ARG NODE_VERSION=20.19.0
+ARG NODE_VERSION=22.15.1
 
 # ============================================================================
 # BASE STAGE - Shared foundation for all stages

@@ -8,7 +8,7 @@
 # Builds libraries once, references via npm workspace
 # Usage: docker build --build-arg APP_NAME=app.client -f Dockerfile.app.optimized .
 
-ARG NODE_VERSION=20.19.0
+ARG NODE_VERSION=22.15.1
 FROM node:${NODE_VERSION}-alpine AS base
 
 WORKDIR /app
