@@ -19,7 +19,7 @@ export class AuditLog extends Model {
 
 /**
  * ADS-508: tamper-resistance fallback. The Postgres trigger installed by
- * migration 10-audit-log-tamper-resistance is the primary defence, but
+ * migration 11-add-audit-log-immutable-trigger is the primary defence, but
  * SQLite (used by the test suite) can't run pl/pgSQL, so we mirror the
  * same constraint here. Retention cleanup is the only legitimate caller
  * that mutates audit rows; it opts in via `withAuditMutationAllowed(...)`

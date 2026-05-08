@@ -9,7 +9,7 @@ import { logger } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import FileUpload from '../models/FileUpload';
 import { UserType } from '../models/User';
-import { fromFile as fileTypeFromFile } from 'file-type';
+import { fileTypeFromFile } from '../utils/file-type-wrapper';
 import DOMPurify from 'isomorphic-dompurify';
 
 // File upload configuration

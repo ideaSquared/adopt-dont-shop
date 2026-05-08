@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
 
-// Mock file-type so we can drive the sniffed MIME without touching disk.
-// (Global setup-tests.ts mocks `fs`, which would interfere with reading bytes.)
+// Mock the file-type wrapper so we can drive the sniffed MIME without
+// touching disk (global setup-tests.ts mocks `fs`, which would interfere
+// with reading bytes). We mock the wrapper rather than 'file-type' itself
+// because the wrapper uses dynamic import — see ADS-491.
 const fromFileMock = vi.fn();
-vi.mock('file-type', () => ({
-  fromFile: (...args: unknown[]) => fromFileMock(...args),
+vi.mock('../../utils/file-type-wrapper', () => ({
+  fileTypeFromFile: (...args: unknown[]) => fromFileMock(...args),
 }));
 
 vi.mock('../../utils/logger', () => ({
