@@ -232,10 +232,20 @@ jobs:
       - name: Build and start backend
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d service-backend
+
           # 180s ceiling: cold ts-node-dev start + 5×5s DB retry loop + 3s PostGIS settle +
           # citext + immutable-created-at + iso-check trigger DDL + Express listen.
           # The previous 90s figure was tight even before the audit added Sentry,
           # prom-client, audit-log triggers, and the retention worker init.
+          #
+          # Inline-stream the backend's stdout/stderr in the background so a
+          # crash-loop or missing-env failure is visible in the CI step output
+          # itself (WebFetch on the run page can't read the post-failure
+          # `docker compose logs` step). Tail keeps running until curl wins,
+          # at which point the script exits and the tail is cleaned up.
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --follow service-backend &
+          tail_pid=$!
+          trap "kill $tail_pid 2>/dev/null || true" EXIT
           timeout 180 bash -c 'until curl -sf http://localhost:5000/health; do sleep 3; done'
 
       - name: Verify backend health endpoint
