@@ -82,18 +82,33 @@ app.set('trust proxy', 1);
 
 const server = createServer(app);
 
+// ADS-474: explicit CORS allowlists. Without an `allowedHeaders`
+// list, the `cors` middleware reflects whatever Access-Control-
+// Request-Headers the browser advertises — fine in dev, but it makes
+// the surface area opaque in production. Pin both the methods and
+// the headers we actually accept.
+const ALLOWED_CORS_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+const ALLOWED_CORS_HEADERS = ['Content-Type', 'Authorization', 'X-CSRF-Token', 'Idempotency-Key'];
+
 // Initialize Socket.IO
 const io = new SocketIOServer(server, {
   cors: {
     origin: config.cors.origin,
-    methods: ['GET', 'POST'],
+    methods: ALLOWED_CORS_METHODS,
+    allowedHeaders: ALLOWED_CORS_HEADERS,
     credentials: true,
   },
   transports: config.nodeEnv === 'production' ? ['websocket'] : ['websocket', 'polling'],
 });
 
 // Apply middleware
-app.use(cors(config.cors));
+app.use(
+  cors({
+    ...config.cors,
+    methods: ALLOWED_CORS_METHODS,
+    allowedHeaders: ALLOWED_CORS_HEADERS,
+  })
+);
 
 // Sentry instrumentation - automatically instruments Express
 // Note: In Sentry v8+, instrumentation is automatic with setupExpressErrorHandler
@@ -154,9 +169,23 @@ app.use(
     },
   })
 );
-app.use(express.json({ limit: '10mb' }));
+
+// ADS-514: Permissions-Policy header. Helmet doesn't ship a
+// permissionsPolicy directive in this version, so set it directly.
+// Empty allowlists deny these powerful APIs everywhere — the app
+// doesn't use geolocation/camera/microphone/payment.
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=(), payment=()');
+  next();
+});
+// ADS-457: 10 MB body limits were a DoS amplifier on auth/search/chat
+// endpoints that only need a few KB of JSON. Multipart file uploads go
+// through multer (not body-parser), so this lower limit doesn't affect
+// uploads. Override via MAX_JSON_BODY_BYTES if a specific deployment
+// needs a larger ceiling for one route.
+app.use(express.json({ limit: '1mb' }));
 app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Establish AsyncLocalStorage context per-request so model hooks can read
 // the authenticated userId for created_by / updated_by stamping. Must come

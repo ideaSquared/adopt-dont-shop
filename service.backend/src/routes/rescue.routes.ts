@@ -17,6 +17,11 @@ import { RescueController } from '../controllers/rescue.controller';
 import { QuestionController } from '../controllers/question.controller';
 import { authenticateToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
+import {
+  invitationSendLimiter,
+  searchLimiter,
+  sensitiveWriteLimiter,
+} from '../middleware/rate-limiter';
 import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { requirePermission } from '../middleware/rbac';
 
@@ -269,7 +274,13 @@ const validateSendEmail = validateBody(
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.get('/', validateSearchQuery, fieldMask('rescues'), rescueController.searchRescues);
+router.get(
+  '/',
+  searchLimiter,
+  validateSearchQuery,
+  fieldMask('rescues'),
+  rescueController.searchRescues
+);
 
 /**
  * @swagger
@@ -835,6 +846,7 @@ router.delete(
 // Staff invitation management (rescue admin)
 router.post(
   '/:rescueId/invitations',
+  invitationSendLimiter,
   validateRescueId,
   validateInviteStaff,
   requirePermission('staff.create'),
@@ -892,6 +904,7 @@ router.post(
 
 router.delete(
   '/:rescueId',
+  sensitiveWriteLimiter,
   validateRescueId,
   validateDeletion,
   requirePermission('rescues.delete'),
@@ -910,6 +923,7 @@ router.post(
 // Bulk update rescues (admin only)
 router.post(
   '/bulk-update',
+  sensitiveWriteLimiter,
   authenticateToken,
   validateBulkUpdate,
   requirePermission('rescues.verify'),

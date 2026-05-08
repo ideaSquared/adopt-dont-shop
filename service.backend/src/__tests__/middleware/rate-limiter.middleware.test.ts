@@ -64,7 +64,10 @@ describe('Rate Limiter Middleware', () => {
 
   describe('Rate limiter initialization', () => {
     it('should create multiple rate limiters', () => {
-      expect(rateLimitConfigs.length).toBe(7); // API, Auth, Password Reset, Upload, 2FA, Login Email, Email Resend
+      // API, Auth, Password Reset, Upload, 2FA, Login Email, Email Resend
+      // + ADS-458 (account-deletion, invitation-send, sensitive-write)
+      // + ADS-517 (search, report)
+      expect(rateLimitConfigs.length).toBe(12);
     });
 
     it('should configure all limiters with standard headers', () => {
