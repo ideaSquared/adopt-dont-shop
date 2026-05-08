@@ -110,3 +110,9 @@ export const errorStack = style({
   whiteSpace: 'pre-wrap',
   marginTop: '0.25rem',
 });
+
+// ADS-522: replaces an inline style={{ marginBottom: '0.5rem' }} on the error
+// detail row so the page can ship under a strict style-src CSP.
+export const errorDetailRow = style({
+  marginBottom: '0.5rem',
+});

@@ -32,6 +32,7 @@
     "@adopt-dont-shop/lib.feature-flags": "*",
     "@adopt-dont-shop/lib.invitations": "*",
     "@adopt-dont-shop/lib.notifications": "*",
+    "@adopt-dont-shop/lib.observability": "*",
     "@adopt-dont-shop/lib.permissions": "*",
     "@adopt-dont-shop/lib.pets": "*",
     "@adopt-dont-shop/lib.rescue": "*",

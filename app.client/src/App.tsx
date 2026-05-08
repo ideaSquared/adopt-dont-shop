@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { ReactNode, lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
@@ -9,6 +9,8 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppShell } from './components/layout/AppShell';
 import { PublicAuthLayout } from './components/layout/PublicAuthLayout';
+import ErrorBoundary from './components/ErrorBoundary';
+import * as styles from './App.css';
 
 const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));
 const DiscoveryPage = lazy(() =>
@@ -66,18 +68,20 @@ const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.H
 const HelpArticlePage = lazy(() =>
   import('@/pages/HelpArticlePage').then(m => ({ default: m.HelpArticlePage }))
 );
+const NotFoundPage = lazy(() =>
+  import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage }))
+);
 
 const PageLoader = () => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '60vh',
-    }}
-  >
+  <div className={styles.pageLoader}>
     <Spinner size='lg' label='Loading page' />
   </div>
+);
+
+// ADS-482: route-level ErrorBoundary so a crash in one risky route (chat,
+// discovery, application form, etc.) doesn't blank the whole app.
+const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }) => (
+  <ErrorBoundary boundary={name}>{children}</ErrorBoundary>
 );
 
 function App() {
@@ -101,22 +105,52 @@ function App() {
 
                   <Route element={<AppShell />}>
                     <Route path='/' element={<HomePage />} />
-                    <Route path='/discover' element={<DiscoveryPage />} />
+                    <Route
+                      path='/discover'
+                      element={
+                        <RouteBoundary name='discovery'>
+                          <DiscoveryPage />
+                        </RouteBoundary>
+                      }
+                    />
                     <Route path='/search' element={<SearchPage />} />
                     <Route path='/pets/:id' element={<PetDetailsPage />} />
                     <Route path='/rescues/:id' element={<RescueDetailsPage />} />
-                    <Route path='/apply/:petId' element={<ApplicationPage />} />
+                    <Route
+                      path='/apply/:petId'
+                      element={
+                        <RouteBoundary name='application-form'>
+                          <ApplicationPage />
+                        </RouteBoundary>
+                      }
+                    />
                     <Route path='/applications' element={<ApplicationDashboard />} />
                     <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
                     <Route path='/profile' element={<ProfilePage />} />
                     <Route path='/favorites' element={<FavoritesPage />} />
                     <Route path='/notifications' element={<NotificationsPage />} />
-                    <Route path='/chat' element={<ChatPage />} />
-                    <Route path='/chat/:conversationId' element={<ChatPage />} />
+                    <Route
+                      path='/chat'
+                      element={
+                        <RouteBoundary name='chat'>
+                          <ChatPage />
+                        </RouteBoundary>
+                      }
+                    />
+                    <Route
+                      path='/chat/:conversationId'
+                      element={
+                        <RouteBoundary name='chat'>
+                          <ChatPage />
+                        </RouteBoundary>
+                      }
+                    />
                     <Route path='/blog' element={<BlogPage />} />
                     <Route path='/blog/:slug' element={<BlogPostPage />} />
                     <Route path='/help' element={<HelpPage />} />
                     <Route path='/help/:slug' element={<HelpArticlePage />} />
+                    {/* ADS-480: 404 catch-all */}
+                    <Route path='*' element={<NotFoundPage />} />
                   </Route>
                 </Routes>
               </Suspense>

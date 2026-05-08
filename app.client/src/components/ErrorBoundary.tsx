@@ -1,15 +1,20 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { captureException } from '@adopt-dont-shop/lib.observability';
 import * as styles from './ErrorBoundary.css';
 
-interface Props {
+type Props = {
   children: ReactNode;
-}
+  /** Optional custom fallback for per-route boundaries (ADS-482). */
+  fallback?: ReactNode;
+  /** Tag forwarded to Sentry so route-level boundaries can be distinguished. */
+  boundary?: string;
+};
 
-interface State {
+type State = {
   hasError: boolean;
   error?: Error;
   errorInfo?: ErrorInfo;
-}
+};
 
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -22,7 +27,15 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    // ADS-406 / ADS-426: forward to Sentry. captureException no-ops when DSN absent.
+    captureException(error, {
+      app: 'client',
+      boundary: this.props.boundary ?? 'root',
+      componentStack: errorInfo.componentStack,
+    });
+    if (import.meta.env.DEV) {
+      console.error('Error caught by boundary:', error, errorInfo);
+    }
     this.setState({ error, errorInfo });
   }
 
@@ -37,6 +50,9 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
       return (
         <div className={styles.errorContainer}>
           <div className={styles.errorCard}>
@@ -71,11 +87,12 @@ class ErrorBoundary extends Component<Props, State> {
               </button>
             </div>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {/* ADS-423: import.meta.env.DEV is statically replaced by Vite. */}
+            {import.meta.env.DEV && this.state.error && (
               <details className={styles.errorDetails}>
                 <summary className={styles.errorSummary}>Show Error Details</summary>
                 <div className={styles.errorContent}>
-                  <div style={{ marginBottom: '0.5rem' }}>
+                  <div className={styles.errorDetailRow}>
                     <strong>Error:</strong> {this.state.error.message}
                   </div>
                   {this.state.error.stack && (

@@ -1,4 +1,5 @@
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
+import { captureException, initSentry, reportWebVitals } from '@adopt-dont-shop/lib.observability';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -9,6 +10,25 @@ import { ChatProvider } from '@/contexts/ChatContext';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
 import { StatsigWrapper } from '@/contexts/StatsigContext';
 import ErrorBoundary from './components/ErrorBoundary';
+
+// ADS-406: initialise Sentry as early as possible so any synchronous module-load
+// error is captured. No-ops when VITE_SENTRY_DSN is unset.
+initSentry({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  appName: 'rescue',
+  environment: import.meta.env.MODE,
+  release: import.meta.env.VITE_APP_RELEASE,
+});
+
+// ADS-507: report Core Web Vitals via Sentry until /api/v1/web-vitals exists.
+reportWebVitals(metric => {
+  captureException(`web-vital:${metric.name}`, {
+    name: metric.name,
+    value: metric.value,
+    rating: metric.rating,
+    id: metric.id,
+  });
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -2,15 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- ADS-521: project-branded favicon (replaces default Vite logo) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rescue App</title>
+    <!--
+      ADS-481: stop blocking first paint on Google Fonts.
+      We keep preconnect (cheap, just opens the TCP/TLS handshake) but switch
+      the stylesheet itself to a non-blocking media-print swap. Browsers
+      download it asynchronously and apply it once it arrives. The <noscript>
+      fallback ensures users with JS disabled still get the fonts.
+    -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Fredoka:wght@300..700&family=Playfair+Display:wght@400..900&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Fredoka:wght@300..700&family=Playfair+Display:wght@400..900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Fredoka:wght@300..700&family=Playfair+Display:wght@400..900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

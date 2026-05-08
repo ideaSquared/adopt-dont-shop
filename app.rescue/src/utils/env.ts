@@ -4,25 +4,16 @@
  */
 
 export const isDevelopment = (): boolean => {
-  try {
-    return import.meta.env.DEV === true;
-  } catch {
-    return process.env.NODE_ENV === 'development';
-  }
+  // ADS-423: rely on Vite's static replacement of import.meta.env.* at build time.
+  // The previous fallback to process.env was always undefined in browser bundles
+  // because vite.config defined `'process.env': '{}'`.
+  return import.meta.env.DEV === true;
 };
 
 export const getApiBaseUrl = (): string => {
-  try {
-    return import.meta.env.VITE_API_BASE_URL ?? '';
-  } catch {
-    return process.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
-  }
+  return import.meta.env.VITE_API_BASE_URL ?? '';
 };
 
 export const getEnvironmentVariable = (key: string, defaultValue?: string): string | undefined => {
-  try {
-    return import.meta.env[key] || defaultValue;
-  } catch {
-    return process.env[key] || defaultValue;
-  }
+  return import.meta.env[key] || defaultValue;
 };

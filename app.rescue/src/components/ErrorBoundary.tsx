@@ -1,15 +1,20 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { captureException } from '@adopt-dont-shop/lib.observability';
 import * as styles from './ErrorBoundary.css';
 
-interface Props {
+type Props = {
   children: ReactNode;
-}
+  /** Optional custom fallback for per-route boundaries (ADS-482). */
+  fallback?: ReactNode;
+  /** Tag forwarded to Sentry so route-level boundaries can be distinguished. */
+  boundary?: string;
+};
 
-interface State {
+type State = {
   hasError: boolean;
   error?: Error;
   errorInfo?: ErrorInfo;
-}
+};
 
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -18,37 +23,36 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    // Update state so the next render will show the fallback UI
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log the error to console and potentially to error reporting service
-    console.error('Error caught by boundary:', error, errorInfo);
-
-    this.setState({
-      error,
-      errorInfo,
+    // ADS-406 / ADS-426: forward to Sentry. captureException no-ops when DSN absent.
+    captureException(error, {
+      app: 'rescue',
+      boundary: this.props.boundary ?? 'root',
+      componentStack: errorInfo.componentStack,
     });
-
-    // Here you could also send the error to an error reporting service
-    // Example: errorReportingService.captureException(error, { extra: errorInfo });
+    if (import.meta.env.DEV) {
+      console.error('Error caught by boundary:', error, errorInfo);
+    }
+    this.setState({ error, errorInfo });
   }
 
   handleReload = () => {
-    // Reset the error boundary state
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
-    // Optionally reload the page
     window.location.reload();
   };
 
   handleReset = () => {
-    // Just reset the error boundary state without reloading
     this.setState({ hasError: false, error: undefined, errorInfo: undefined });
   };
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
       return (
         <div className={styles.errorContainer}>
           <div className={styles.errorCard}>
@@ -85,11 +89,12 @@ class ErrorBoundary extends Component<Props, State> {
               </button>
             </div>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {/* ADS-423: import.meta.env.DEV is statically replaced by Vite. */}
+            {import.meta.env.DEV && this.state.error && (
               <details className={styles.errorDetails}>
                 <summary className={styles.errorSummary}>Show Error Details</summary>
                 <div className={styles.errorContent}>
-                  <div style={{ marginBottom: '0.5rem' }}>
+                  <div className={styles.errorDetailRow}>
                     <strong>Error:</strong> {this.state.error.message}
                   </div>
                   {this.state.error.stack && (
