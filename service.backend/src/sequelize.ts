@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 import { Sequelize, DataTypes } from 'sequelize';
 import { env, getDatabaseName } from './config/env';
+import { logger } from './utils/logger';
 
 dotenv.config();
 
@@ -93,10 +94,13 @@ const sequelize = isTestEnvironment
         paranoid: true,
       },
       logging:
-        process.env.NODE_ENV === 'development' && process.env.DB_LOGGING === 'true'
+        process.env.DB_LOGGING === 'true'
           ? (sql: string) => {
-              // eslint-disable-next-line no-console
-              console.log(sql);
+              // ADS-509: route through Winston so DB queries are structured,
+              // correlation-stamped, and gated by the logger's level (debug)
+              // rather than printing raw plaintext to stdout if accidentally
+              // toggled in production.
+              logger.debug('sequelize.query', { sql });
             }
           : false,
     });
