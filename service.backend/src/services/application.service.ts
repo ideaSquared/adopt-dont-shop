@@ -335,6 +335,11 @@ export class ApplicationService {
             documents: [],
             notes: applicationData.notes,
             tags: applicationData.tags || [],
+            // ADS-535: thread the reference-consent flag from the request.
+            // The Application.beforeValidate hook refuses SUBMITTED rows
+            // without it; clients that don't send it still get the same
+            // rejection they got before this thread was wired up.
+            referencesConsented: applicationData.referencesConsented ?? false,
           },
           { transaction: t }
         );

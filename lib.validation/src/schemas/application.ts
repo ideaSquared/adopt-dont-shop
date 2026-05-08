@@ -145,6 +145,11 @@ export const CreateApplicationRequestSchema = z.object({
   priority: ApplicationPrioritySchema.optional(),
   notes: NotesSchema.optional(),
   tags: z.array(TagSchema).max(20).optional(),
+  // ADS-535: applicant must confirm references have consented to contact
+  // before SUBMITTED applications are accepted. The Application.beforeValidate
+  // hook enforces this on the model, so the API has to thread the flag in
+  // — without it, every real submission fails with a 500.
+  referencesConsented: z.boolean().optional(),
 });
 export type CreateApplicationRequest = z.infer<typeof CreateApplicationRequestSchema>;
 

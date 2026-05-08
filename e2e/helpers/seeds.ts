@@ -318,6 +318,8 @@ export async function createAdopterApplication(
   const createRes = await postWithCsrf(adopterApi.context, '/api/v1/applications', {
     petId: pet.petId,
     answers: COMPLETE_APPLICATION_ANSWERS,
+    // ADS-535: SUBMITTED applications require the references-consent flag.
+    referencesConsented: true,
   });
   if (!createRes.ok()) {
     throw new Error(
