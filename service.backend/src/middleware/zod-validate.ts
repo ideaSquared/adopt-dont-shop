@@ -1,26 +1,44 @@
 import { NextFunction, Request, Response } from 'express';
-import { ZodError, ZodSchema } from 'zod';
+import { ZodError, ZodObject, ZodSchema } from 'zod';
+
+/**
+ * ADS-456: enforce that unknown keys are stripped before the parsed
+ * value reaches services / Sequelize models. Zod's default for
+ * `z.object` is `.strip()`, but a future schema that switches to
+ * `.passthrough()` would silently forward arbitrary keys (prototype-
+ * pollution / unexpected-write risk). Calling `.strip()` here makes
+ * the validator authoritative regardless of the schema author's
+ * choice.
+ */
+const stripIfObject = <T>(schema: ZodSchema<T>): ZodSchema<T> => {
+  if (schema instanceof ZodObject) {
+    return schema.strip() as unknown as ZodSchema<T>;
+  }
+  return schema;
+};
 
 /**
  * Validate `req.body` against a Zod schema, replacing the parsed value
  * back onto the request so downstream handlers see the canonical shape
  * (lowercase email, normalized phone, coerced dates, etc.).
  *
- * Error response matches the existing express-validator middleware
- * (see ./validation.ts) so the API contract for malformed requests
- * doesn't change as we migrate per-route.
+ * ADS-455: returns 422 for schema-validation failures (well-formed
+ * JSON but semantically invalid per RFC 9110); 400 stays reserved for
+ * unparseable JSON (Express body-parser handles those before the
+ * route runs).
  */
-export const validateBody =
-  <T>(schema: ZodSchema<T>) =>
-  (req: Request, res: Response, next: NextFunction): void => {
-    const result = schema.safeParse(req.body);
+export const validateBody = <T>(schema: ZodSchema<T>) => {
+  const stripped = stripIfObject(schema);
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const result = stripped.safeParse(req.body);
     if (!result.success) {
-      res.status(400).json(zodErrorPayload(result.error));
+      res.status(422).json(zodErrorPayload(result.error));
       return;
     }
     req.body = result.data;
     next();
   };
+};
 
 /**
  * Validate `req.query` and re-assign the parsed (coerced) value.
@@ -29,12 +47,12 @@ export const validateBody =
  * happens via `z.coerce.*` in the schema, which lets the same schema
  * also serve JSON-body callers.
  */
-export const validateQuery =
-  <T>(schema: ZodSchema<T>) =>
-  (req: Request, res: Response, next: NextFunction): void => {
-    const result = schema.safeParse(req.query);
+export const validateQuery = <T>(schema: ZodSchema<T>) => {
+  const stripped = stripIfObject(schema);
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const result = stripped.safeParse(req.query);
     if (!result.success) {
-      res.status(400).json(zodErrorPayload(result.error));
+      res.status(422).json(zodErrorPayload(result.error));
       return;
     }
     // Express types `req.query` as a ParsedQs; we knowingly replace it
@@ -43,22 +61,24 @@ export const validateQuery =
     (req as unknown as { query: T }).query = result.data;
     next();
   };
+};
 
 /**
  * Validate `req.params` (route parameters). Schemas are typically tiny
  * (e.g. a UUID-shaped string).
  */
-export const validateParams =
-  <T>(schema: ZodSchema<T>) =>
-  (req: Request, res: Response, next: NextFunction): void => {
-    const result = schema.safeParse(req.params);
+export const validateParams = <T>(schema: ZodSchema<T>) => {
+  const stripped = stripIfObject(schema);
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const result = stripped.safeParse(req.params);
     if (!result.success) {
-      res.status(400).json(zodErrorPayload(result.error));
+      res.status(422).json(zodErrorPayload(result.error));
       return;
     }
     (req as unknown as { params: T }).params = result.data;
     next();
   };
+};
 
 /** Same shape as handleValidationErrors's response. */
 const zodErrorPayload = (error: ZodError) => ({

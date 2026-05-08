@@ -9,6 +9,7 @@ vi.mock('../../utils/logger', () => ({
 }));
 
 import { Request, Response, NextFunction } from 'express';
+import { DatabaseError } from 'sequelize';
 import { errorHandler, ApiError } from '../../middleware/error-handler';
 import { logger } from '../../utils/logger';
 
@@ -196,6 +197,29 @@ describe('Error Handler Middleware', () => {
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('errorHandler - SequelizeDatabaseError (ADS-413)', () => {
+    it('returns sanitised 500 instead of leaking SQL details', () => {
+      process.env.NODE_ENV = 'development';
+      const sqlError = new DatabaseError(
+        new Error(
+          'relation "users" does not exist — column "secret_internal_col" referenced in WHERE clause'
+        ),
+        // sequelize types this loosely; we just need a real DatabaseError instance
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {} as any
+      );
+
+      errorHandler(sqlError, mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      const jsonCall = (mockResponse.json as vi.Mock).mock.calls[0][0];
+      expect(jsonCall.message).toBe('A database error occurred');
+      // None of the offending SQL fragments should reach the client.
+      expect(JSON.stringify(jsonCall)).not.toContain('secret_internal_col');
+      expect(JSON.stringify(jsonCall)).not.toContain('relation');
     });
   });
 
