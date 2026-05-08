@@ -12,6 +12,7 @@ import {
   CardTitle,
   CardContent,
 } from '../components/ui';
+import * as styles from './Reports.css';
 
 /**
  * ADS-105: Admin Reports list page.
@@ -34,7 +35,7 @@ const Reports: React.FC = () => {
         </HeaderLeft>
         <Link to='/reports/new'>
           <Button variant='primary'>
-            <FiPlus style={{ marginRight: '0.5rem' }} />
+            <FiPlus className={styles.buttonIcon} />
             New report
           </Button>
         </Link>
@@ -52,28 +53,20 @@ const Reports: React.FC = () => {
           ) : (reportsQuery.data ?? []).length === 0 ? (
             <Text>You haven&apos;t saved any reports yet. Start with a template below.</Text>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className={styles.reportList}>
               {(reportsQuery.data ?? []).map(report => (
                 <Link
                   key={report.saved_report_id}
                   to={`/reports/${report.saved_report_id}`}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '12px',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                  }}
+                  className={styles.reportRow}
                 >
                   <div>
                     <strong>{report.name}</strong>
                     {report.description ? (
-                      <div style={{ color: '#6b7280', fontSize: '13px' }}>{report.description}</div>
+                      <div className={styles.subtleSmall}>{report.description}</div>
                     ) : null}
                   </div>
-                  <div style={{ color: '#6b7280', fontSize: '12px' }}>
+                  <div className={styles.subtleScope}>
                     {report.rescue_id ? 'Rescue scope' : 'Platform scope'}
                   </div>
                 </Link>
@@ -83,7 +76,7 @@ const Reports: React.FC = () => {
         </CardContent>
       </Card>
 
-      <Card style={{ marginTop: '16px' }}>
+      <Card className={styles.templatesCard}>
         <CardHeader>
           <CardTitle>Report templates</CardTitle>
         </CardHeader>
@@ -91,28 +84,15 @@ const Reports: React.FC = () => {
           {templatesQuery.isLoading ? (
             <Text>Loading…</Text>
           ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                gap: '12px',
-              }}
-            >
+            <div className={styles.templatesGrid}>
               {(templatesQuery.data ?? []).map(template => (
                 <Link
                   key={template.template_id}
                   to={`/reports/new?template=${template.template_id}`}
-                  style={{
-                    display: 'block',
-                    padding: '14px',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                  }}
+                  className={styles.templateCard}
                 >
                   <strong>{template.name}</strong>
-                  <div style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>
+                  <div className={styles.templateDescription}>
                     {template.description ?? `${template.category} report`}
                   </div>
                 </Link>

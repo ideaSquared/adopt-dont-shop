@@ -243,3 +243,9 @@ export const footerText = recipe({
     },
   },
 });
+
+export const collapsedToggleRow = style({
+  padding: '1rem 0',
+  display: 'flex',
+  justifyContent: 'center',
+});

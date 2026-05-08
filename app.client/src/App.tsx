@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import styled from 'styled-components';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
@@ -67,17 +68,17 @@ const HelpArticlePage = lazy(() =>
   import('@/pages/HelpArticlePage').then(m => ({ default: m.HelpArticlePage }))
 );
 
+const PageLoaderContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+`;
+
 const PageLoader = () => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '60vh',
-    }}
-  >
+  <PageLoaderContainer>
     <Spinner size='lg' label='Loading page' />
-  </div>
+  </PageLoaderContainer>
 );
 
 function App() {

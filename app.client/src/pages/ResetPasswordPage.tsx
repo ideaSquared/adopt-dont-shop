@@ -136,7 +136,8 @@ export const ResetPasswordPage: React.FC = () => {
               size='lg'
               variant='primary'
               onClick={() => navigate('/login')}
-              style={{ width: '100%', marginTop: '1rem' }}
+              isFullWidth
+              className={styles.fullWidthTopGap}
             >
               Go to Login Now
             </Button>
@@ -199,7 +200,7 @@ export const ResetPasswordPage: React.FC = () => {
             size='lg'
             variant='primary'
             disabled={isLoading || !token}
-            style={{ width: '100%' }}
+            isFullWidth
           >
             {isLoading ? 'Resetting Password...' : 'Reset Password'}
           </Button>

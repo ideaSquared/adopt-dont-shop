@@ -170,3 +170,13 @@ export const modalFooter = style({
   padding: '1.25rem 1.5rem',
   borderTop: '1px solid #e5e7eb',
 });
+
+export const resultIcon = style({
+  marginRight: '0.375rem',
+  verticalAlign: 'middle',
+});
+
+export const requiredMark = style({
+  color: '#ef4444',
+  marginLeft: '0.25rem',
+});

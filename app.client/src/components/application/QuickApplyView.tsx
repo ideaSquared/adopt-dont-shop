@@ -147,7 +147,7 @@ export const QuickApplyView: React.FC<Props> = ({
       />
 
       {validationError && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div className={styles.validationAlert}>
           <Alert variant='warning' title='Almost there' onClose={() => setValidationError(null)}>
             {validationError}
           </Alert>

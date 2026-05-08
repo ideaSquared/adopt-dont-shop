@@ -54,3 +54,7 @@ export const switchLink = style({
     color: vars.colors.primary['700'],
   },
 });
+
+export const validationAlert = style({
+  marginBottom: '1rem',
+});

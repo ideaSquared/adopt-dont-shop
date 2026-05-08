@@ -192,3 +192,11 @@ export const pageButton = recipe({
     },
   },
 });
+
+export const checkboxColumn = style({
+  width: '48px',
+});
+
+export const sortIconInactive = style({
+  opacity: 0.3,
+});

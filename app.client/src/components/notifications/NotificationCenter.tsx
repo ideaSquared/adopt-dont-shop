@@ -141,7 +141,7 @@ export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({
     <div className={styles.notificationCenter}>
       <div className={styles.header}>
         <h2>Notifications {unreadCount > 0 && `(${unreadCount} unread)`}</h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className={styles.headerActions}>
           {unreadCount > 0 && (
             <Button variant='secondary' size='sm' onClick={handleMarkAllAsRead}>
               Mark All Read

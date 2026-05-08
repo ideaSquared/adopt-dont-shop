@@ -177,7 +177,7 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
               <div className={styles.eventMetadata}>
                 {Object.entries(event.metadata).map(([key, value]) => (
                   <div key={key} className={styles.metadataItem}>
-                    <span style={{ fontWeight: 500 }}>{key}:</span>
+                    <span className={styles.metadataKey}>{key}:</span>
                     <span>{String(value)}</span>
                   </div>
                 ))}
@@ -189,7 +189,7 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
 
       {onAddNote && (
         <div className={styles.addNoteSection}>
-          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', fontWeight: 600 }}>Add Note</h4>
+          <h4 className={styles.addNoteHeading}>Add Note</h4>
           <form className={styles.noteForm} onSubmit={handleSubmitNote}>
             <select
               className={styles.noteTypeSelect}

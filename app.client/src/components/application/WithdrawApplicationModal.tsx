@@ -71,20 +71,11 @@ export const WithdrawApplicationModal: React.FC<WithdrawApplicationModalProps> =
             disabled={isLoading}
             maxLength={500}
           />
-          <div
-            style={{
-              fontSize: '0.8rem',
-              color: '#666',
-              textAlign: 'right',
-              marginTop: '0.25rem',
-            }}
-          >
-            {reason.length}/500
-          </div>
+          <div className={styles.charCounter}>{reason.length}/500</div>
         </div>
 
         {error && (
-          <div style={{ marginBottom: '1rem' }}>
+          <div className={styles.errorAlert}>
             <Alert variant='error' title='Error'>
               {error}
             </Alert>
@@ -99,15 +90,11 @@ export const WithdrawApplicationModal: React.FC<WithdrawApplicationModalProps> =
             variant='primary'
             onClick={handleConfirm}
             disabled={isLoading}
-            style={{
-              backgroundColor: '#dc2626',
-              borderColor: '#dc2626',
-              color: 'white',
-            }}
+            className={styles.dangerButton}
           >
             {isLoading ? (
               <>
-                <Spinner size='sm' style={{ marginRight: '0.5rem' }} />
+                <Spinner size='sm' className={styles.buttonSpinner} />
                 Withdrawing...
               </>
             ) : (

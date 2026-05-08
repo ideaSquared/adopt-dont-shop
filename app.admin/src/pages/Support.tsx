@@ -203,7 +203,7 @@ const Support: React.FC = () => {
       id: 'messages',
       header: 'Replies',
       accessor: row => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280' }}>
+        <div className={styles.replyCount}>
           <FiMessageSquare />
           {row.responses?.length || 0}
         </div>
@@ -231,19 +231,7 @@ const Support: React.FC = () => {
 
       <div className={styles.statsBar}>
         <div className={styles.statCard}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#ef444420',
-              color: '#ef4444',
-              fontSize: '1.5rem',
-            }}
-          >
+          <div className={styles.statIconRed}>
             <FiAlertCircle />
           </div>
           <div className={styles.statDetails}>
@@ -253,19 +241,7 @@ const Support: React.FC = () => {
         </div>
 
         <div className={styles.statCard}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#3b82f620',
-              color: '#3b82f6',
-              fontSize: '1.5rem',
-            }}
-          >
+          <div className={styles.statIconBlue}>
             <FiClock />
           </div>
           <div className={styles.statDetails}>
@@ -275,19 +251,7 @@ const Support: React.FC = () => {
         </div>
 
         <div className={styles.statCard}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#f59e0b20',
-              color: '#f59e0b',
-              fontSize: '1.5rem',
-            }}
-          >
+          <div className={styles.statIconAmber}>
             <FiMessageSquare />
           </div>
           <div className={styles.statDetails}>
@@ -297,19 +261,7 @@ const Support: React.FC = () => {
         </div>
 
         <div className={styles.statCard}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#10b98120',
-              color: '#10b981',
-              fontSize: '1.5rem',
-            }}
-          >
+          <div className={styles.statIconGreen}>
             <FiCheckCircle />
           </div>
           <div className={styles.statDetails}>
@@ -395,9 +347,7 @@ const Support: React.FC = () => {
       </div>
 
       {ticketsError && (
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
-          Error loading tickets: {ticketsError.message}
-        </div>
+        <div className={styles.errorState}>Error loading tickets: {ticketsError.message}</div>
       )}
 
       <DataTable

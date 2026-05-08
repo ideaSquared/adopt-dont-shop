@@ -182,3 +182,24 @@ export const loadingContainer = style({
   alignItems: 'center',
   minHeight: '200px',
 });
+
+export const sectionGap = style({
+  marginBottom: '1rem',
+});
+
+export const sectionTopGap = style({
+  marginTop: '2rem',
+});
+
+export const smallTopGap = style({
+  marginTop: '0.5rem',
+});
+
+export const buttonTopGap = style({
+  marginTop: '1rem',
+});
+
+export const centeredEmpty = style({
+  textAlign: 'center',
+  padding: '2rem',
+});

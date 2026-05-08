@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import styled from 'styled-components';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 
@@ -25,17 +26,17 @@ const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
 
 import './App.css';
 
+const PageLoaderContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+`;
+
 const PageLoader = () => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '60vh',
-    }}
-  >
+  <PageLoaderContainer>
     <Spinner size="lg" label="Loading page" />
-  </div>
+  </PageLoaderContainer>
 );
 
 function App() {

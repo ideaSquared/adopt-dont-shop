@@ -281,3 +281,52 @@ export const contentTypeTagDefault = style({
   background: '#f3f4f6',
   color: '#374151',
 });
+
+export const reportTitle = style({
+  fontWeight: 600,
+  marginBottom: '0.25rem',
+});
+
+export const reportSummary = style({
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  marginBottom: '0.25rem',
+});
+
+export const reportTagRow = style({
+  marginTop: '0.5rem',
+});
+
+export const reportedAt = style({
+  fontSize: '0.875rem',
+  color: '#6b7280',
+});
+
+export const errorBanner = style({
+  padding: '2rem',
+  textAlign: 'center',
+  color: '#dc2626',
+});
+
+const statIconBase = style({
+  width: '48px',
+  height: '48px',
+  borderRadius: '10px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '1.5rem',
+});
+
+export const statIconRed = style([statIconBase, { background: '#dc262620', color: '#dc2626' }]);
+
+export const statIconBlue = style([statIconBase, { background: '#3b82f620', color: '#3b82f6' }]);
+
+export const statIconOrange = style([statIconBase, { background: '#ea580c20', color: '#ea580c' }]);
+
+export const statIconGreen = style([statIconBase, { background: '#16a34a20', color: '#16a34a' }]);
+
+export const searchInputPadded = style({
+  paddingLeft: '2.75rem',
+  width: '100%',
+});

@@ -44,3 +44,7 @@ export const buttonGroup = style({
   paddingTop: '1.5rem',
   borderTop: '1px solid #e5e7eb',
 });
+
+export const formGroupFullWidth = style({
+  gridColumn: '1 / -1',
+});

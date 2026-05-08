@@ -181,12 +181,10 @@ const Moderation: React.FC = () => {
       sortable: true,
       accessor: (report: Report) => (
         <div>
-          <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{report.title}</div>
-          <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
-            {report.description.substring(0, 80)}...
-          </div>
+          <div className={styles.reportTitle}>{report.title}</div>
+          <div className={styles.reportSummary}>{report.description.substring(0, 80)}...</div>
 
-          <div style={{ marginTop: '0.5rem' }}>
+          <div className={styles.reportTagRow}>
             <span className={getContentTypeTagClass(report.reportedEntityType)}>
               {report.reportedEntityType}
             </span>
@@ -215,9 +213,7 @@ const Moderation: React.FC = () => {
       header: 'Reported',
       sortable: true,
       accessor: (report: Report) => (
-        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-          {formatRelativeTime(report.createdAt)}
-        </div>
+        <div className={styles.reportedAt}>{formatRelativeTime(report.createdAt)}</div>
       ),
     },
     {
@@ -250,9 +246,7 @@ const Moderation: React.FC = () => {
   if (error) {
     return (
       <div className={styles.pageContainer}>
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-          Error loading reports: {error.message}
-        </div>
+        <div className={styles.errorBanner}>Error loading reports: {error.message}</div>
       </div>
     );
   }
@@ -268,19 +262,7 @@ const Moderation: React.FC = () => {
 
       <div className={styles.statsBar}>
         <div className={styles.statCard}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#dc262620',
-              color: '#dc2626',
-              fontSize: '1.5rem',
-            }}
-          >
+          <div className={styles.statIconRed}>
             <FiAlertTriangle />
           </div>
           <div className={styles.statDetails}>
@@ -290,19 +272,7 @@ const Moderation: React.FC = () => {
         </div>
 
         <div className={styles.statCard}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#3b82f620',
-              color: '#3b82f6',
-              fontSize: '1.5rem',
-            }}
-          >
+          <div className={styles.statIconBlue}>
             <FiShield />
           </div>
           <div className={styles.statDetails}>
@@ -312,19 +282,7 @@ const Moderation: React.FC = () => {
         </div>
 
         <div className={styles.statCard}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#ea580c20',
-              color: '#ea580c',
-              fontSize: '1.5rem',
-            }}
-          >
+          <div className={styles.statIconOrange}>
             <FiAlertTriangle />
           </div>
           <div className={styles.statDetails}>
@@ -334,19 +292,7 @@ const Moderation: React.FC = () => {
         </div>
 
         <div className={styles.statCard}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: '#16a34a20',
-              color: '#16a34a',
-              fontSize: '1.5rem',
-            }}
-          >
+          <div className={styles.statIconGreen}>
             <FiCheckCircle />
           </div>
           <div className={styles.statDetails}>
@@ -362,7 +308,7 @@ const Moderation: React.FC = () => {
             <FiSearch />
           </div>
           <Input
-            style={{ paddingLeft: '2.75rem', width: '100%' }}
+            className={styles.searchInputPadded}
             placeholder='Search reports...'
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}

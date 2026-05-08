@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import styled from 'styled-components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
@@ -30,17 +31,17 @@ const SecurityCenter = lazy(() => import('./pages/SecurityCenter'));
 const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
 const ContentManagement = lazy(() => import('./pages/ContentManagement'));
 
+const PageLoaderContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+`;
+
 const PageLoader = () => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-    }}
-  >
+  <PageLoaderContainer>
     <Spinner size='lg' label='Loading page' />
-  </div>
+  </PageLoaderContainer>
 );
 
 const AdminApp: React.FC = () => {

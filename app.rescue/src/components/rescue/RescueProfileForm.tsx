@@ -224,7 +224,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
           </div>
 
           <div className={styles.formRow}>
-            <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
+            <div className={`${styles.formGroup} ${styles.formGroupFullWidth}`}>
               <LibTextArea
                 label="Description"
                 value={formData.description || ''}
@@ -241,7 +241,7 @@ const RescueProfileForm: React.FC<RescueProfileFormProps> = ({
         <div className={styles.formSection}>
           <h3 className={styles.sectionTitle}>Location</h3>
           <div className={styles.formRow}>
-            <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
+            <div className={`${styles.formGroup} ${styles.formGroupFullWidth}`}>
               <TextInput
                 label="Street Address *"
                 value={formData.address?.street || ''}

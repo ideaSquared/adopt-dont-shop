@@ -120,12 +120,14 @@ export const loadingIconPlaceholder = style({
 
 export const loadingTextPlaceholder = style({
   height: '1rem',
+  width: '4rem',
   background: '#d1d5db',
   borderRadius: '0.25rem',
 });
 
 export const loadingValuePlaceholder = style({
   height: '1.5rem',
+  width: '3rem',
   background: '#d1d5db',
   borderRadius: '0.25rem',
   marginTop: '0.5rem',

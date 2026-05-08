@@ -114,7 +114,7 @@ export const AdopterProfileSummary: React.FC = () => {
               {section.icon}
             </span>
             <span>{section.label}</span>
-            <span style={{ marginLeft: 'auto' }} aria-hidden='true'>
+            <span className={styles.statusMark} aria-hidden='true'>
               {section.known ? '✅' : '—'}
             </span>
           </span>

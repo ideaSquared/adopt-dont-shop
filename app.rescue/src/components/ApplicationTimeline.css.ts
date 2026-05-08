@@ -171,3 +171,13 @@ export const submitButton = style({
     cursor: 'not-allowed',
   },
 });
+
+export const metadataKey = style({
+  fontWeight: 500,
+});
+
+export const addNoteHeading = style({
+  margin: '0 0 0.75rem 0',
+  fontSize: '0.9rem',
+  fontWeight: 600,
+});

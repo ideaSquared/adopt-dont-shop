@@ -75,7 +75,7 @@ class ErrorBoundary extends Component<Props, State> {
               <details className={styles.errorDetails}>
                 <summary className={styles.errorSummary}>Show Error Details</summary>
                 <div className={styles.errorContent}>
-                  <div style={{ marginBottom: '0.5rem' }}>
+                  <div className={styles.errorMessageRow}>
                     <strong>Error:</strong> {this.state.error.message}
                   </div>
                   {this.state.error.stack && (

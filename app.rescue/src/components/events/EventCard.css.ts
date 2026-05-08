@@ -102,3 +102,7 @@ export const attendanceInfo = style({
 globalStyle(`${attendanceInfo} strong`, {
   color: '#111827',
 });
+
+export const eventTitleColumn = style({
+  flex: 1,
+});

@@ -110,3 +110,7 @@ export const errorStack = style({
   whiteSpace: 'pre-wrap',
   marginTop: '0.25rem',
 });
+
+export const errorMessageRow = style({
+  marginBottom: '0.5rem',
+});

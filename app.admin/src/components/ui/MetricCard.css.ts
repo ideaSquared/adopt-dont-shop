@@ -86,3 +86,19 @@ export const loadingSkeleton = style({
   height: '1.5rem',
   width: '100%',
 });
+
+export const loadingValueSkeleton = style([
+  loadingSkeleton,
+  {
+    height: '2.25rem',
+    marginBottom: '0.5rem',
+  },
+]);
+
+export const loadingLabelSkeleton = style([
+  loadingSkeleton,
+  {
+    height: '0.875rem',
+    width: '60%',
+  },
+]);

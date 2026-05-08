@@ -57,3 +57,7 @@ globalStyle(`${resendSection} p`, {
   marginBottom: '1rem',
   fontSize: '0.95rem',
 });
+
+export const resendAlert = style({
+  marginTop: '1rem',
+});

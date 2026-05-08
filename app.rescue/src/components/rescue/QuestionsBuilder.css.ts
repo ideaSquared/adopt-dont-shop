@@ -301,3 +301,9 @@ export const errorText = style({
   color: '#dc2626',
   margin: '0.25rem 0 0 0',
 });
+
+export const loadingState = style({
+  textAlign: 'center',
+  padding: '3rem',
+  color: '#6b7280',
+});
