@@ -3,6 +3,11 @@ import AuthController, { authValidation } from '../controllers/auth.controller';
 import { authenticateToken } from '../middleware/auth';
 import { enforceIpRules } from '../middleware/ip-rules';
 import {
+  loginIpLimiter,
+  registrationEmailLimiter,
+  registrationIpLimiter,
+} from '../middleware/auth-rate-limit';
+import {
   authLimiter,
   loginEmailLimiter,
   passwordResetLimiter,
@@ -80,7 +85,13 @@ const router = Router();
  *       429:
  *         description: Rate limit exceeded
  */
-router.post('/register', authLimiter, authValidation.register, AuthController.register);
+router.post(
+  '/register',
+  registrationIpLimiter,
+  registrationEmailLimiter,
+  authValidation.register,
+  AuthController.register
+);
 
 /**
  * @swagger
@@ -162,7 +173,7 @@ router.post('/register', authLimiter, authValidation.register, AuthController.re
 router.post(
   '/login',
   enforceIpRules,
-  authLimiter,
+  loginIpLimiter,
   loginEmailLimiter,
   authValidation.login,
   AuthController.login

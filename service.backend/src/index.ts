@@ -14,6 +14,7 @@ import { errorHandler } from './middleware/error-handler';
 import { csrfProtection, csrfErrorHandler, getCsrfToken } from './middleware/csrf';
 import { apiLimiter } from './middleware/rate-limiter';
 import { requestContextMiddleware } from './middleware/request-context';
+import { verifyEmailDeliveryWebhook } from './middleware/webhook-signature';
 import sequelize from './sequelize';
 import { initializeMessageBroker } from './services/messageBroker.service';
 import { SocketHandlers } from './socket/socket-handlers';
@@ -181,6 +182,17 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=(), payment=()');
   next();
 });
+
+// ADS-397: verify provider HMAC on the email-delivery webhook BEFORE the global
+// JSON parser consumes the stream. We need the raw bytes for signature
+// verification; once verified, the middleware re-parses and replaces req.body
+// with the JSON object so downstream validators behave normally.
+app.post(
+  '/api/v1/email/webhook/delivery',
+  express.raw({ type: '*/*', limit: '5mb' }),
+  verifyEmailDeliveryWebhook
+);
+
 // ADS-457: 10 MB body limits were a DoS amplifier on auth/search/chat
 // endpoints that only need a few KB of JSON. Multipart file uploads go
 // through multer (not body-parser), so this lower limit doesn't affect
@@ -209,7 +221,9 @@ app.get('/api/v1/csrf-token', getCsrfToken);
 app.use('/api', (req, res, next) => {
   // Within app.use('/api', ...) req.path is relative to the /api mount point,
   // so paths here start with /v1/... not /api/v1/...
-  const skipPaths = ['/v1/csrf-token', '/v1/health'];
+  // ADS-397: webhook endpoint authenticates via provider HMAC signature,
+  // not CSRF — external webhooks have no session/cookie to attach a token to.
+  const skipPaths = ['/v1/csrf-token', '/v1/health', '/v1/email/webhook/delivery'];
   if (skipPaths.some(path => req.path.startsWith(path)) || req.method === 'GET') {
     return next();
   }
