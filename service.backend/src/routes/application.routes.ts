@@ -5,6 +5,7 @@ import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { idempotency } from '../middleware/idempotency';
 import { requireRole } from '../middleware/rbac';
 import { uploadLimiter } from '../middleware/rate-limiter';
+import { enforceUploadMime } from '../middleware/upload-mime-guard';
 import { handleValidationErrors } from '../middleware/validation';
 import { UserType } from '../models/User';
 import { applicationDocumentUpload } from '../services/file-upload.service';
@@ -657,6 +658,7 @@ router.post(
   '/:applicationId/documents',
   uploadLimiter,
   applicationDocumentUpload.single('file'),
+  enforceUploadMime,
   ApplicationController.validateDocumentUpload,
   applicationController.addDocument
 );

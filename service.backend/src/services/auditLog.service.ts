@@ -1,6 +1,7 @@
 import { Op, WhereOptions } from 'sequelize';
-import { AuditLog } from '../models/AuditLog';
+import { AuditLog, withAuditMutationAllowed } from '../models/AuditLog';
 import User from '../models/User';
+import sequelize from '../sequelize';
 import { JsonObject } from '../types/common';
 import { logger } from '../utils/logger';
 
@@ -133,19 +134,32 @@ export class AuditLogService {
   }
 
   /**
-   * Clean up old logs (data retention)
+   * Clean up old logs (data retention).
+   *
+   * ADS-508: audit_logs is append-only at both the database and Sequelize
+   * layers. Retention is the sole legitimate mutator, so it executes
+   * inside a transaction that flips the Postgres allow-mutation GUC and
+   * opens the Sequelize hook bypass for the duration of the DELETE.
    */
   static async cleanupOldLogs(daysToKeep = 365) {
     try {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-      const deletedCount = await AuditLog.destroy({
-        where: {
-          timestamp: {
-            [Op.lt]: cutoffDate,
-          },
-        },
+      const deletedCount = await sequelize.transaction(async transaction => {
+        if (sequelize.getDialect() === 'postgres') {
+          await sequelize.query("SET LOCAL audit_logs.allow_mutation = 'on'", { transaction });
+        }
+        return withAuditMutationAllowed(() =>
+          AuditLog.destroy({
+            where: {
+              timestamp: {
+                [Op.lt]: cutoffDate,
+              },
+            },
+            transaction,
+          })
+        );
       });
 
       logger.info(`Cleaned up ${deletedCount} old audit logs`);

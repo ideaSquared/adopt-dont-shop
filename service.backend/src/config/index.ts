@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import { env } from './env';
+import { env, getDatabaseName } from './env';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') });
@@ -14,6 +14,19 @@ const createDatabaseLogger = () => {
   return false;
 };
 
+// ADS-452/465: resolve the database name through the same canonical lookup
+// `sequelize.ts` uses (DEV_DB_NAME / TEST_DB_NAME / PROD_DB_NAME) so we don't
+// introduce a fourth variable. Resolved lazily so importing this module never
+// throws when the env-specific name is missing in non-runtime contexts (tests
+// stub `getDatabaseName` directly).
+const resolveDatabaseName = (): string => {
+  try {
+    return getDatabaseName(process.env.NODE_ENV || 'development');
+  } catch {
+    return 'adopt_dont_shop';
+  }
+};
+
 // Configuration object
 export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -25,7 +38,7 @@ export const config = {
     port: parseInt(process.env.DB_PORT || '5432', 10),
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'adopt_dont_shop',
+    database: resolveDatabaseName(),
     dialect: 'postgres',
     logging: createDatabaseLogger(),
   },

@@ -666,6 +666,19 @@ export class AdminController {
 
       const user = await AdminService.updateUserStatus(userId, status, adminId);
 
+      // ADS-450 / ADS-464: capture request-level metadata (IP, user-agent)
+      // alongside the service-layer audit row so admin actions are
+      // forensically reconstructible.
+      await AuditLogService.log({
+        userId: adminId,
+        action: 'ADMIN_UPDATE_USER_STATUS',
+        entity: 'User',
+        entityId: userId,
+        details: { status },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || '',
+      });
+
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
       res.json({
@@ -696,6 +709,17 @@ export class AdminController {
 
       const user = await AdminService.suspendUser(userId, adminId, reason);
 
+      // ADS-450 / ADS-464: durable audit trail with request metadata.
+      await AuditLogService.log({
+        userId: adminId,
+        action: 'ADMIN_SUSPEND_USER',
+        entity: 'User',
+        entityId: userId,
+        details: { reason: reason ?? null },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || '',
+      });
+
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
       res.json({
@@ -724,6 +748,16 @@ export class AdminController {
       const adminId = (req as AuthenticatedRequest).user?.userId || 'system';
 
       const user = await AdminService.unsuspendUser(userId, adminId);
+
+      // ADS-450 / ADS-464: durable audit trail with request metadata.
+      await AuditLogService.log({
+        userId: adminId,
+        action: 'ADMIN_UNSUSPEND_USER',
+        entity: 'User',
+        entityId: userId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || '',
+      });
 
       loggerHelpers.logRequest(req, res, Date.now() - startTime);
 

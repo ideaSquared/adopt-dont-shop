@@ -12,12 +12,13 @@ import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
-// Forward declarations to avoid circular imports
+// Forward declarations to avoid circular imports. Keep these in sync with
+// the real models in `./Permission.ts` and `./Role.ts` — TS will not warn
+// when they drift, but middleware that does `role.Permissions[].permissionName`
+// will fail to compile against a stale shape.
 interface Permission {
-  permissionId: string;
-  name: string;
-  resource: string;
-  action: string;
+  permissionId: number;
+  permissionName: string;
 }
 
 interface Role {

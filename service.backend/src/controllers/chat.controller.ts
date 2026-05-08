@@ -66,15 +66,13 @@ type SerializedMessage = {
  * both shapes so a single field rename in the model can't silently
  * regress every chat timestamp.
  */
-const readTimestamp = (
-  obj: Record<string, unknown> | null | undefined,
-  ...keys: string[]
-): string | undefined => {
-  if (!obj) {
+const readTimestamp = (obj: unknown, ...keys: string[]): string | undefined => {
+  if (!obj || typeof obj !== 'object') {
     return undefined;
   }
+  const record = obj as Record<string, unknown>;
   for (const key of keys) {
-    const value = obj[key];
+    const value = record[key];
     if (value instanceof Date) {
       return value.toISOString();
     }
@@ -85,10 +83,10 @@ const readTimestamp = (
   return undefined;
 };
 
-const readCreatedAt = (obj: Record<string, unknown> | null | undefined): string | undefined =>
+const readCreatedAt = (obj: unknown): string | undefined =>
   readTimestamp(obj, 'createdAt', 'created_at');
 
-const readUpdatedAt = (obj: Record<string, unknown> | null | undefined): string | undefined =>
+const readUpdatedAt = (obj: unknown): string | undefined =>
   readTimestamp(obj, 'updatedAt', 'updated_at');
 
 /**
@@ -181,7 +179,7 @@ export const toFrontendMessage = (
     senderRole: isRescueStaff ? 'rescue_staff' : 'adopter',
     senderRescueName: isRescueStaff ? (context.rescueName ?? null) : null,
     content: msg.content || '',
-    timestamp: readCreatedAt(msg as unknown as Record<string, unknown>) ?? '',
+    timestamp: readCreatedAt(msg) ?? '',
     type: msg.content_format || 'text',
     status: 'sent',
     attachments: msg.attachments || [],
@@ -208,15 +206,11 @@ export class ChatController {
       if (rescueId && rescueId !== createdBy) {
         try {
           // Find users who belong to this rescue (limit to 50 to avoid unbounded queries)
-          const rescueUsers = await User.findAll({
-            where: { rescueId: rescueId },
-            attributes: ['userId'],
-            limit: 50,
-          });
+          const rescueUserIds = await ChatService.getRescueParticipantUserIds(rescueId);
 
           // Add rescue staff user IDs to participants (use Set for O(1) dedup)
           const participantSet = new Set(participantIds);
-          rescueUsers.forEach(user => participantSet.add(user.userId));
+          rescueUserIds.forEach(uid => participantSet.add(uid));
           participantIds.length = 0;
           participantIds.push(...Array.from(participantSet));
         } catch (error) {
@@ -251,15 +245,15 @@ export class ChatController {
         participants: [], // Will be populated by frontend when needed
         unreadCount: 0, // New conversation starts with 0 unread
         isTyping: [], // Empty initially
-        createdAt: readCreatedAt(chat as unknown as Record<string, unknown>),
-        updatedAt: readUpdatedAt(chat as unknown as Record<string, unknown>),
+        createdAt: readCreatedAt(chat),
+        updatedAt: readUpdatedAt(chat),
         // Keep backward compatibility fields
         chat_id: chat.chat_id,
         rescue_id: chat.rescue_id,
         pet_id: chat.pet_id,
         application_id: chat.application_id,
-        created_at: readCreatedAt(chat as unknown as Record<string, unknown>),
-        updated_at: readUpdatedAt(chat as unknown as Record<string, unknown>),
+        created_at: readCreatedAt(chat),
+        updated_at: readUpdatedAt(chat),
       };
 
       res.json({
@@ -347,8 +341,8 @@ export class ChatController {
         chat_id: chatObj.chat_id,
         participants,
         unreadCount,
-        updatedAt: readUpdatedAt(chatObj as unknown as Record<string, unknown>),
-        createdAt: readCreatedAt(chatObj as unknown as Record<string, unknown>),
+        updatedAt: readUpdatedAt(chatObj),
+        createdAt: readCreatedAt(chatObj),
         isActive: chatObj.status === 'active',
         petId: chatObj.pet_id,
         rescueId: chatObj.rescue_id,
@@ -433,7 +427,7 @@ export class ChatController {
                   ? msg.content.slice(0, 120) + '...'
                   : msg.content,
               senderId: msg.sender_id,
-              createdAt: readCreatedAt(msg as unknown as Record<string, unknown>),
+              createdAt: readCreatedAt(msg),
             };
           }
 
@@ -469,8 +463,8 @@ export class ChatController {
             participants,
             unreadCount,
             isTyping: [],
-            createdAt: readCreatedAt(chatObj as unknown as Record<string, unknown>),
-            updatedAt: readUpdatedAt(chatObj as unknown as Record<string, unknown>),
+            createdAt: readCreatedAt(chatObj),
+            updatedAt: readUpdatedAt(chatObj),
             rescueName: chat.rescue?.name || null,
             lastMessage,
           };
@@ -536,7 +530,7 @@ export class ChatController {
                 ? msg.content.slice(0, 120) + '...'
                 : msg.content,
             senderId: msg.sender_id,
-            createdAt: readCreatedAt(msg as unknown as Record<string, unknown>),
+            createdAt: readCreatedAt(msg),
           };
         }
         return {

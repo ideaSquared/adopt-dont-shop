@@ -1,11 +1,54 @@
 import { randomBytes } from 'crypto';
 import { Op, fn, literal } from 'sequelize';
+import { cached } from '../cache/redis-cache';
 import Breed from '../models/Breed';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../models/Pet';
 import PetMedia, { PetMediaType } from '../models/PetMedia';
 import Rescue from '../models/Rescue';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
+
+/**
+ * ADS-516: In-process cache for the breed catalogue.
+ *
+ * Discovery's breed-filter path was firing a second `Breed.findAll`
+ * on every breed-filter request before the main pet query. Breed
+ * data is effectively static (admins rarely add new breeds), so we
+ * hold the catalogue in memory per process for an hour and resolve
+ * the LIKE-style filter against the cached array.
+ */
+type CachedBreed = { breed_id: string; name: string };
+
+let breedCache: { rows: CachedBreed[]; expiresAt: number } | null = null;
+const BREED_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+const getCachedBreeds = async (): Promise<CachedBreed[]> => {
+  if (breedCache && breedCache.expiresAt > Date.now()) {
+    return breedCache.rows;
+  }
+  const rows = await Breed.findAll({ attributes: ['breed_id', 'name'] });
+  const flattened: CachedBreed[] = rows
+    .map(b => ({ breed_id: b.breed_id, name: b.name }))
+    .filter(b => Boolean(b.breed_id) && Boolean(b.name));
+  breedCache = { rows: flattened, expiresAt: Date.now() + BREED_CACHE_TTL_MS };
+  return flattened;
+};
+
+/**
+ * Resolve a free-form breed name to a list of breed IDs using the
+ * cached catalogue. Case-insensitive substring match — equivalent
+ * to the previous `iLike` SQL filter.
+ */
+const resolveBreedIdsFromCache = async (name: string): Promise<string[]> => {
+  const breeds = await getCachedBreeds();
+  const needle = name.toLowerCase();
+  return breeds.filter(b => b.name.toLowerCase().includes(needle)).map(b => b.breed_id);
+};
+
+/** Test seam — drop the in-process cache so a test can exercise the fetch path. */
+export const __resetBreedCacheForTests = (): void => {
+  breedCache = null;
+};
 
 // Pet.images / Pet.videos are no longer JSONB on the pet row (plan
 // 2.1) — they're rows in pet_media. Inside discovery we only ever look
@@ -53,9 +96,33 @@ export interface DiscoveryQueue {
 
 export class DiscoveryService {
   /**
-   * Get discovery queue with smart sorting algorithm
+   * Get discovery queue with smart sorting algorithm.
+   *
+   * ADS-479: cached for 60s. The discovery feed is the hottest read
+   * path on the swipe UI; without caching, every drag triggers a full
+   * smart-sort recompute. Pet writes invalidate the `discovery:queue`
+   * namespace via `pet.service.ts`.
+   *
+   * Note: `sessionId` is per-request (random) and intentionally
+   * excluded from the cache key — only filter/limit/user matters
+   * for the actual pet shortlist.
    */
   async getDiscoveryQueue(
+    filters: DiscoveryFilters,
+    limit: number = 20,
+    userId?: string
+  ): Promise<DiscoveryQueue> {
+    return cached(
+      {
+        namespace: 'discovery:queue',
+        args: { filters, limit, userId: userId ?? null },
+        ttlSeconds: 60,
+      },
+      () => this.getDiscoveryQueueUncached(filters, limit, userId)
+    );
+  }
+
+  private async getDiscoveryQueueUncached(
     filters: DiscoveryFilters,
     limit: number = 20,
     userId?: string
@@ -160,13 +227,10 @@ export class DiscoveryService {
       }
       // Plan 2.4 — breed is an FK; resolve free-form name to ids and
       // filter on the FK columns instead of a string LIKE on the pet row.
+      // ADS-516 — resolve via the in-process breed cache so we don't
+      // double-fetch on every discovery request.
       if (filters.breed) {
-        const likeOp = sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
-        const breedRows = await Breed.findAll({
-          where: { name: { [likeOp]: `%${filters.breed}%` } },
-          attributes: ['breed_id'],
-        });
-        const breedIds = breedRows.map(b => b.breed_id);
+        const breedIds = await resolveBreedIdsFromCache(filters.breed);
         if (breedIds.length === 0) {
           whereConditions.breedId = '__never_matches__';
         } else {

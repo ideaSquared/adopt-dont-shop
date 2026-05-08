@@ -86,21 +86,26 @@
     "@vitest/coverage-v8": "^4.0.8",
     "@vitest/ui": "^4.1.5",
     "concurrently": "^9.2.1",
+    "esbuild": "^0.27.7",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jsx-a11y": "^6.10.0",
     "eslint-plugin-prettier": "^5.1.3",
     "eslint-plugin-react": "^7.37.0",
     "eslint-plugin-react-hooks": "^5.0.0",
-    "typescript-eslint": "^8.0.0",
     "happy-dom": "^20.0.10",
     "husky": "^9.1.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.2.5",
     "turbo": "^2.9.8",
     "typescript": "^5.4.5",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^4.0.8",
     "whatwg-fetch": "^3.6.20"
+  },
+  "overridesDocumentation": {
+    "lodash": "Force lodash to >=4.17.21 to mitigate the prototype-pollution vulnerability tracked by CVE-2019-10744 / CVE-2020-8203 (GHSA-jf85-cpcp-j695, GHSA-p6mc-m468-83gw). The constraint is intentionally permissive (^4.18.1) so npm resolves the latest patched 4.x release across all transitive consumers. Do not remove without first verifying every transitive lodash dependency satisfies >=4.17.21.",
+    "esbuild": "Pinned as a root devDependency (^0.27.0) — npm's workspace deduper uses the root version for every transitive consumer (notably @vanilla-extract/vite-plugin and @vanilla-extract/integration), which mitigates the dev-server CORS bypass tracked by GHSA-67mh-4wv8-2f99. Adding a separate `overrides` entry conflicts with the direct devDependency under npm 10/11; the devDep is enough on its own. Do not downgrade below 0.25.0."
   },
   "overrides": {
     "lodash": "^4.18.1"

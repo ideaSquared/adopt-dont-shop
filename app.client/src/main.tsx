@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { StatsigWrapper } from './contexts/StatsigContext';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // ADS-406: initialise Sentry as early as possible so any synchronous module-load
 // error is captured. No-ops when VITE_SENTRY_DSN is unset.

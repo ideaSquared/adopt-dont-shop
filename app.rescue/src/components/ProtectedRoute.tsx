@@ -1,6 +1,6 @@
 import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import LoginPage from '../pages/LoginPage';
 import { Text, Card } from '@adopt-dont-shop/lib.components';
 import * as styles from './ProtectedRoute.css';
 
@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -23,9 +24,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Show auth page if not authenticated
+  // Redirect to login if not authenticated, preserving the attempted
+  // location so the login page can return the user there after sign-in.
   if (!isAuthenticated || !user) {
-    return <LoginPage />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Render protected content
