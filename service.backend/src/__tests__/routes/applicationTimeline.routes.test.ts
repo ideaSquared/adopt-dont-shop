@@ -159,6 +159,8 @@ describe('Application timeline routes', () => {
 
   describe('POST /api/applications/timeline/bulk-stats', () => {
     it('returns 400 when applicationIds is missing', async () => {
+      // Controller does hand-rolled validation here and returns 400 directly,
+      // so the ADS-455/469 422-for-schema convention doesn't apply.
       const res = await request(buildApp()).post('/api/applications/timeline/bulk-stats').send({});
       expect(res.status).toBe(400);
       expect(mockBulkStats).not.toHaveBeenCalled();

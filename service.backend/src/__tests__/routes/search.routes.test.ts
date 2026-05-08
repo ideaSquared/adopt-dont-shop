@@ -28,6 +28,13 @@ vi.mock('../../middleware/rate-limiter', () => ({
   apiLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   authLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   generalLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  // ADS-517 added a dedicated searchLimiter for /search routes; test mock
+  // exposes a no-op so the route file can import it.
+  searchLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  reportLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  sensitiveWriteLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  accountDeletionLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  invitationSendLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
 const authenticateTokenMock = vi.fn();
@@ -71,6 +78,9 @@ describe('Search routes', () => {
 
   describe('GET /api/v1/search/messages', () => {
     it('returns 400 when q query parameter is missing', async () => {
+      // Controller hand-rolls validation and returns 400 directly, so the
+      // ADS-455/469 422-for-schema convention (which targets the Zod /
+      // express-validator middleware paths) doesn't apply here.
       const res = await request(app).get('/api/v1/search/messages');
       expect(res.status).toBe(400);
       expect(mockSearchMessages).not.toHaveBeenCalled();
@@ -116,6 +126,7 @@ describe('Search routes', () => {
 
   describe('GET /api/v1/search/suggestions', () => {
     it('returns 400 when q query parameter is missing', async () => {
+      // Controller hand-rolls validation and returns 400 directly.
       const res = await request(app).get('/api/v1/search/suggestions');
       expect(res.status).toBe(400);
       expect(mockGetSuggestions).not.toHaveBeenCalled();

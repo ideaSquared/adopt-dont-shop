@@ -130,9 +130,12 @@ describe('CMS routes', () => {
       expect(res.status).toBe(403);
     });
 
-    it('returns 400 when the title query param is missing', async () => {
+    it('returns 422 when the title query param is missing', async () => {
+      // ADS-455 / ADS-469 changed validation failures to 422 (schema violation),
+      // reserving 400 for unparseable bodies. The missing required query param
+      // is a schema violation.
       const res = await request(buildApp()).get('/api/v1/cms/slug');
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
     });
 
     it('returns the generated slug when admin provides a title', async () => {
