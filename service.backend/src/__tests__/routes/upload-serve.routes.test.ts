@@ -71,14 +71,7 @@ vi.mock('../../middleware/rate-limiter', () => ({
 vi.mock('../../config', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const nodePath = require('path') as typeof import('path');
-  const uploadDir = nodePath.resolve(
-    __dirname,
-    '..',
-    '..',
-    '..',
-    '..',
-    'test-uploads-tmp'
-  );
+  const uploadDir = nodePath.resolve(__dirname, '..', '..', '..', '..', 'test-uploads-tmp');
   return {
     config: {
       storage: {
