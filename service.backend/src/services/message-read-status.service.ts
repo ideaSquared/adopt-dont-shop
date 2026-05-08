@@ -472,14 +472,9 @@ export class MessageReadStatusService {
       // For now, we'll just log it
       logger.info('Read status update ready to emit', update);
 
-      // Example integration:
-      // const socketService = SocketService.getInstance();
-      // await socketService.emitReadStatusUpdate(update.chat_id, update);
-
       // Also send push notification if needed
       if (update.unread_count === 0) {
         // User has read all messages, might want to notify other participants
-        // await NotificationService.sendChatReadNotification(update);
         logger.info('All messages read - notification would be sent here', update);
       }
     } catch (error) {
