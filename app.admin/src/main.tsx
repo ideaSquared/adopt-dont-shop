@@ -8,7 +8,19 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { StatsigWrapper } from './contexts/StatsigContext';
 
-const queryClient = new QueryClient();
+// Defaults copied from app.rescue (ADS-476). Without these, react-query v3 uses
+// staleTime: 0 and retry: 3, causing every component remount to re-fetch and
+// auth/404 errors to retry 3x before surfacing.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
