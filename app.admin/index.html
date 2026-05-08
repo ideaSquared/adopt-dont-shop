@@ -11,10 +11,28 @@
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      ADS-481: Non-blocking Google Fonts load. The `media="print"` + onload swap
+      keeps the stylesheet off the critical path until after first paint, then
+      promotes it to all media. <noscript> fallback preserves no-JS UX.
+    -->
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Fredoka:wght@300..700&family=Playfair+Display:wght@400..900&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Fredoka:wght@300..700&family=Playfair+Display:wght@400..900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Fredoka:wght@300..700&family=Playfair+Display:wght@400..900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>
