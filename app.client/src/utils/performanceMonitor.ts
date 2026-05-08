@@ -232,17 +232,6 @@ class PerformanceMonitor {
     }
   }
 
-  // Determine which metrics to log in development
-  private shouldLogMetric(name: string): boolean {
-    const importantMetrics = [
-      'message_delivery_time',
-      'socket_connection_time',
-      'api_response_time',
-      'message_retry',
-    ];
-    return importantMetrics.includes(name);
-  }
-
   // Get performance statistics
   getStats(): {
     totalMetrics: number;
