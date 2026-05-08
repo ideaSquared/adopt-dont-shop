@@ -72,11 +72,18 @@ export class ApplicationController extends BaseController {
   static validateBulkUpdate = [validateBody(ApplicationBulkUpdateRequestSchema)];
 
   /**
-   * Transform database Application model to frontend-compatible format
+   * Transform database Application model to frontend-compatible format.
+   *
+   * Accepts \`unknown\` so callers can pass in either a Sequelize model
+   * instance or the result of \`.toJSON()\` without sprinkling
+   * \`as unknown as Record<string, unknown>\` at every call site. The body
+   * narrows once and reads via the established Record-shape pattern.
    */
-  protected transformApplicationModel(
-    applicationModel: Record<string, unknown>
-  ): FrontendApplication {
+  protected transformApplicationModel(applicationModelInput: unknown): FrontendApplication {
+    const applicationModel: Record<string, unknown> =
+      applicationModelInput && typeof applicationModelInput === 'object'
+        ? (applicationModelInput as Record<string, unknown>)
+        : {};
     const User = applicationModel.User as Record<string, unknown> | undefined;
     const Pet = applicationModel.Pet as Record<string, unknown> | undefined;
 
@@ -260,7 +267,7 @@ export class ApplicationController extends BaseController {
 
       // Transform the applications to frontend format
       const transformedApplications = result.applications.map(app =>
-        this.transformApplicationModel(app as unknown as Record<string, unknown>)
+        this.transformApplicationModel(app)
       );
 
       return this.sendPaginatedSuccess(res, transformedApplications, {
@@ -377,9 +384,7 @@ export class ApplicationController extends BaseController {
       }
 
       // Transform the raw application data to frontend format
-      const transformedApplication = this.transformApplicationModel(
-        application as unknown as Record<string, unknown>
-      );
+      const transformedApplication = this.transformApplicationModel(application);
 
       res.status(200).json({
         success: true,
