@@ -11,6 +11,7 @@ import {
   PetUpdateRequestSchema,
   ReportPetRequestSchema,
 } from '@adopt-dont-shop/lib.validation';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { PetType, Size, Gender, PetStatus, AgeGroup } from '../models/Pet';
 import PetService, { PetSearchFilters } from '../services/pet.service';
 import type { BulkPetOperation } from '../types/pet';
@@ -142,8 +143,8 @@ export class PetController {
       const options = {
         page: parsePage(req.query.page as string | undefined),
         limit: parsePaginationLimit(req.query.limit as string | undefined, {
-          default: 20,
-          max: 100,
+          default: DEFAULT_PAGE_SIZE,
+          max: MAX_PAGE_SIZE,
         }),
         sortBy: ((req.query.sortBy as string) || 'createdAt')
           .replace('created_at', 'createdAt')
@@ -490,8 +491,8 @@ export class PetController {
     try {
       const page = parsePage(req.query.page as string | undefined);
       const limit = parsePaginationLimit(req.query.limit as string | undefined, {
-        default: 20,
-        max: 100,
+        default: DEFAULT_PAGE_SIZE,
+        max: MAX_PAGE_SIZE,
       });
 
       const result = await this.petService.getPetsByRescue(req.params.rescueId, page, limit);
@@ -549,8 +550,8 @@ export class PetController {
 
       const page = parsePage(req.query.page as string | undefined);
       const limit = parsePaginationLimit(req.query.limit as string | undefined, {
-        default: 20,
-        max: 100,
+        default: DEFAULT_PAGE_SIZE,
+        max: MAX_PAGE_SIZE,
       });
       const status = req.query.status as string;
       const search = req.query.search as string;
@@ -779,8 +780,8 @@ export class PetController {
       const userId = req.user!.userId;
       const page = parsePage(req.query.page as string | undefined);
       const limit = parsePaginationLimit(req.query.limit as string | undefined, {
-        default: 20,
-        max: 100,
+        default: DEFAULT_PAGE_SIZE,
+        max: MAX_PAGE_SIZE,
       });
 
       const favorites = await this.petService.getUserFavorites(userId, { page, limit });

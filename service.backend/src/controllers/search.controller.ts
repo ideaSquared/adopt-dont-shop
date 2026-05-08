@@ -5,6 +5,7 @@
  */
 
 import { Request, Response } from 'express';
+import { LARGE_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { MessageSearchService } from '../services/messageSearch.service';
 import { logger } from '../utils/logger';
 
@@ -31,7 +32,7 @@ export class SearchController {
         endDate,
         messageType,
         page = 1,
-        limit = 50,
+        limit = LARGE_PAGE_SIZE,
         sortBy = 'relevance',
         sortOrder = 'DESC',
       } = req.query;
@@ -51,7 +52,7 @@ export class SearchController {
         endDate: endDate ? new Date(endDate as string) : undefined,
         messageType: messageType as string,
         page: parseInt(page as string, 10),
-        limit: Math.min(parseInt(limit as string, 10), 100), // Max 100 results per page
+        limit: Math.min(parseInt(limit as string, 10), MAX_PAGE_SIZE),
         sortBy: sortBy as 'relevance' | 'date' | 'sender',
         sortOrder: sortOrder as 'ASC' | 'DESC',
       };

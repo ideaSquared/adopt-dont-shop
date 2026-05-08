@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import { ChatParticipant } from '../models/ChatParticipant';
 import User, { UserType } from '../models/User';
 import { ChatService } from '../services/chat.service';
@@ -387,7 +388,7 @@ export class ChatController {
         petId,
         type,
         page = 1,
-        limit = 20,
+        limit = DEFAULT_PAGE_SIZE,
         sortBy = 'updated_at',
         sortOrder = 'DESC',
       } = req.query;
@@ -501,7 +502,7 @@ export class ChatController {
         query,
         type,
         page = 1,
-        limit = 20,
+        limit = DEFAULT_PAGE_SIZE,
         sortBy = 'updated_at',
         sortOrder = 'DESC',
       } = req.query;
@@ -651,7 +652,7 @@ export class ChatController {
 
     try {
       const { chatId } = req.params;
-      const { page = 1, limit = 50 } = req.query;
+      const { page = 1, limit = LARGE_PAGE_SIZE } = req.query;
 
       const parsedPage = parseInt(page as string);
       const parsedLimit = parseInt(limit as string);
