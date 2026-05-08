@@ -97,7 +97,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/marked": "^6.0.0",
     "@types/morgan": "^1.9.4",
-    "@types/multer": "^1.4.7",
+    "@types/multer": "^2.1.0",
     "@types/node": "^20.19.0",
     "@types/nodemailer": "^6.4.17",
     "@types/papaparse": "^5.3.14",
