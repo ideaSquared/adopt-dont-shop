@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { validationResult } from 'express-validator';
+import { DEFAULT_PAGE_SIZE } from '../constants/pagination';
 import { NotificationService } from '../services/notification.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
@@ -22,7 +23,7 @@ export class NotificationController {
 
       const {
         page = 1,
-        limit = 20,
+        limit = DEFAULT_PAGE_SIZE,
         status,
         type,
         sortBy = 'createdAt',
@@ -31,7 +32,7 @@ export class NotificationController {
 
       const options = {
         page: parseInt(page as string) || 1,
-        limit: parseInt(limit as string) || 20,
+        limit: parseInt(limit as string) || DEFAULT_PAGE_SIZE,
         status: status as 'unread' | 'read',
         type: type as string,
         sortBy: (sortBy === 'readAt'

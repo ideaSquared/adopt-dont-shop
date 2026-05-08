@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { DiscoveryService, DiscoveryFilters } from '../services/discovery.service';
 import { SwipeService } from '../services/swipe.service';
 import { logger } from '../utils/logger';
@@ -82,8 +83,8 @@ export class DiscoveryController {
     };
 
     const limit = parsePaginationLimit(req.query.limit as string | undefined, {
-      default: 20,
-      max: 100,
+      default: DEFAULT_PAGE_SIZE,
+      max: MAX_PAGE_SIZE,
     });
     const userId = req.query.userId as string;
 

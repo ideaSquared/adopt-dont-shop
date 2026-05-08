@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { config } from './config';
+import { HSTS_MAX_AGE_ONE_YEAR_SECONDS } from './constants/security';
 import { errorHandler } from './middleware/error-handler';
 import { csrfProtection, csrfErrorHandler, getCsrfToken } from './middleware/csrf';
 import { metricsMiddleware } from './middleware/metrics';
@@ -150,7 +151,7 @@ app.use(
     },
     // HTTP Strict Transport Security - force HTTPS
     hsts: {
-      maxAge: 31536000, // 1 year
+      maxAge: HSTS_MAX_AGE_ONE_YEAR_SECONDS,
       includeSubDomains: true,
       preload: true,
     },

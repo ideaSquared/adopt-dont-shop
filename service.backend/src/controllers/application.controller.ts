@@ -10,6 +10,7 @@ import {
   ReferenceUpdateRequestSchema,
   UpdateApplicationRequestSchema,
 } from '@adopt-dont-shop/lib.validation';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
@@ -247,8 +248,8 @@ export class ApplicationController extends BaseController {
       const options: ApplicationSearchOptions = {
         page: parsePage(req.query.page as string | undefined),
         limit: parsePaginationLimit(req.query.limit as string | undefined, {
-          default: 20,
-          max: 100,
+          default: DEFAULT_PAGE_SIZE,
+          max: MAX_PAGE_SIZE,
         }),
         sortBy: (req.query.sortBy as string) || 'createdAt',
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',

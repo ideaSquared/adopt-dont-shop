@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import User, { UserStatus, UserType } from '../models/User';
 import AdminService from '../services/admin.service';
 import { logger, loggerHelpers } from '../utils/logger';
@@ -58,7 +59,7 @@ export class AdminController {
         status,
         verificationStatus,
         page = 1,
-        limit = 20,
+        limit = DEFAULT_PAGE_SIZE,
         sortBy = 'createdAt',
         sortOrder = 'DESC',
       } = req.query;
@@ -209,7 +210,7 @@ export class AdminController {
     try {
       const {
         page = 1,
-        limit = 50,
+        limit = LARGE_PAGE_SIZE,
         action,
         userId,
         entity,
@@ -263,7 +264,7 @@ export class AdminController {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 20, status } = req.query;
+      const { page = 1, limit = DEFAULT_PAGE_SIZE, status } = req.query;
 
       const result = await AdminService.getRescues({
         status: status as string,
@@ -600,7 +601,7 @@ export class AdminController {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 20, status, userType, search } = req.query;
+      const { page = 1, limit = DEFAULT_PAGE_SIZE, status, userType, search } = req.query;
 
       const result = await AdminService.getUsers({
         status: status as UserStatus,
@@ -812,7 +813,7 @@ export class AdminController {
     const startTime = Date.now();
 
     try {
-      const { page = 1, limit = 20, status, search } = req.query;
+      const { page = 1, limit = DEFAULT_PAGE_SIZE, status, search } = req.query;
 
       const result = await AdminService.getRescues({
         status: status as string,
@@ -921,7 +922,7 @@ export class AdminController {
         status,
         _verificationStatus, // Prefix with underscore to indicate intentionally unused
         page = 1,
-        limit = 20,
+        limit = DEFAULT_PAGE_SIZE,
         sortBy = 'createdAt',
         sortOrder = 'DESC',
       } = req.query;
