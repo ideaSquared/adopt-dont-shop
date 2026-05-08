@@ -644,6 +644,7 @@ const startServer = async () => {
 
       const forceExitTimer = setTimeout(() => {
         logger.error('Graceful shutdown timed out after 10s — forcing exit.');
+        // eslint-disable-next-line no-process-exit -- shutdown handler must terminate the process; throwing would just bubble back into the same handler
         process.exit(1);
       }, 10_000);
       forceExitTimer.unref();
@@ -657,9 +658,11 @@ const startServer = async () => {
           await sequelize.close();
           logger.info('Database connection closed.');
           logger.info('Graceful shutdown completed.');
+          // eslint-disable-next-line no-process-exit -- shutdown completed cleanly; exit 0 so the orchestrator records success
           process.exit(0);
         } catch (error) {
           logger.error('Error during graceful shutdown:', error);
+          // eslint-disable-next-line no-process-exit -- shutdown failure must terminate non-zero; throwing here would only re-enter the handler
           process.exit(1);
         }
       });
