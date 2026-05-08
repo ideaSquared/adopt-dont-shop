@@ -172,15 +172,20 @@ async function initializeTestDatabase(): Promise<void> {
  */
 async function cleanDatabase(): Promise<void> {
   try {
-    const models = Object.keys(sequelize.models);
-    for (const modelName of models) {
-      await sequelize.models[modelName].destroy({
-        where: {},
-        truncate: true,
-        cascade: true,
-        restartIdentity: true,
-      });
-    }
+    // ADS-508: AuditLog rejects UPDATE/DELETE outside the retention bypass.
+    // For test cleanup we open the bypass for the duration of the wipe.
+    const { withAuditMutationAllowed } = await import('./models/AuditLog');
+    await withAuditMutationAllowed(async () => {
+      const models = Object.keys(sequelize.models);
+      for (const modelName of models) {
+        await sequelize.models[modelName].destroy({
+          where: {},
+          truncate: true,
+          cascade: true,
+          restartIdentity: true,
+        });
+      }
+    });
   } catch (error) {
     // Silently ignore errors if tables don't exist yet
     // (happens on first test before models are loaded)

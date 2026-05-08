@@ -1,4 +1,4 @@
-import { Op, Transaction, WhereOptions } from 'sequelize';
+import { Op, Transaction, WhereOptions, literal } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/ModerationEvidence';
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
@@ -968,15 +968,17 @@ class ModerationService {
   }
 
   async getActiveActionsForUser(userId: string): Promise<ModeratorAction[]> {
-    // Split the query to avoid complex Op.or with null handling
-    // Type assertion needed: Sequelize doesn't allow null in where clause correctly
-    // This is a valid runtime pattern - checking for records where expiresAt is null
+    // Split the query to avoid complex Op.or with null handling.
+    // `[Op.is]: null` emits `IS NULL`, which is the SQL semantics we want
+    // for "never expires" and avoids casting null into a Date-shaped attribute.
     const [neverExpiringActions, futureExpiringActions] = await Promise.all([
       ModeratorAction.findAll({
         where: {
           targetUserId: userId,
           isActive: true,
-          expiresAt: null as unknown as undefined,
+          // Sequelize types `[Op.is]` as `Literal | undefined`; `literal('NULL')`
+          // emits `IS NULL` without the implicit-null cast escape.
+          expiresAt: { [Op.is]: literal('NULL') },
         },
         order: [['createdAt', 'DESC']],
       }),

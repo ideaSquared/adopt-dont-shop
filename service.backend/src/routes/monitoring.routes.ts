@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { Op } from 'sequelize';
 import { config } from '../config';
 import { authenticateToken } from '../middleware/auth';
-import { authLimiter, uploadLimiter } from '../middleware/rate-limiter';
+import { apiLimiter, authLimiter, uploadLimiter } from '../middleware/rate-limiter';
 import { requireAdmin } from '../middleware/rbac';
 import { HealthCheckService } from '../services/health-check.service';
 import { logger } from '../utils/logger';
@@ -22,6 +22,10 @@ const monitoringGuard = (req: Request, res: Response, next: NextFunction): void 
 };
 
 router.use(monitoringGuard);
+// Rate-limit before auth so an unauthenticated flood doesn't pin DB lookups
+// inside `authenticateToken`. Once we're past the rate gate the standard
+// admin-auth chain runs.
+router.use(apiLimiter);
 router.use(authenticateToken);
 router.use(requireAdmin);
 

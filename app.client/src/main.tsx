@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { StatsigWrapper } from './contexts/StatsigContext';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Defaults copied from app.rescue (ADS-476). Without these, react-query v3 uses
 // staleTime: 0 and retry: 3, causing every component remount to re-fetch and

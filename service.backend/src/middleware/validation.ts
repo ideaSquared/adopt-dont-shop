@@ -8,7 +8,11 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    res.status(400).json({
+    // ADS-455: schema/semantic violations are 422 per RFC 9110.
+    // Express's body-parser already converts unparseable JSON to a
+    // 400, so by the time this middleware runs the body is well-
+    // formed but semantically invalid.
+    res.status(422).json({
       success: false,
       error: 'Validation Error',
       details: errors.array().map(error => ({

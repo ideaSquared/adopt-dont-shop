@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { BaseError as SequelizeBaseError } from 'sequelize';
 import { logger } from '../utils/logger';
 
 // Custom error class for API errors
@@ -51,6 +52,18 @@ export const errorHandler = (
         message: e.message,
       })),
       code: 400,
+    });
+  }
+
+  // ADS-413: catch all other Sequelize errors (DatabaseError,
+  // ForeignKeyConstraintError, ConnectionError, etc.) so they don't
+  // fall through to the generic 500 path that echoes `err.message` —
+  // raw DB error text leaks table/column names and SQL fragments.
+  if (err instanceof SequelizeBaseError) {
+    return res.status(500).json({
+      status: 'error',
+      message: 'A database error occurred',
+      code: 500,
     });
   }
 

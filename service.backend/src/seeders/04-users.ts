@@ -1,5 +1,29 @@
+import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import User, { UserStatus, UserType } from '../models/User';
+
+/**
+ * ADS-536: per-seed-run password.
+ *
+ * Generates a cryptographically random password every time the seeder
+ * runs and prints it once to stdout. Override with `SEED_PASSWORD` for
+ * deterministic local fixtures (tests, CI). Never commit a literal.
+ *
+ * The password satisfies the User-model password validator:
+ *   8+ chars, lowercase, uppercase, digit, one of @$!%*?&.
+ */
+const generateSeedPassword = (): string => {
+  const override = process.env.SEED_PASSWORD;
+  if (override !== undefined && override.length >= 8) {
+    return override;
+  }
+  // 12 random bytes → 16 base64url chars (lowercase + uppercase + digits).
+  // We splice in the required special character + a guaranteed digit so
+  // the password always satisfies the validator regardless of random
+  // luck.
+  const random = crypto.randomBytes(12).toString('base64url').slice(0, 12);
+  return `S!${random}9a`;
+};
 
 const testUsers = [
   {
@@ -187,7 +211,8 @@ const testUsers = [
 
 export async function seedUsers() {
   // No need to pre-hash - the User model hooks will handle it
-  const plainPassword = 'DevPassword123!';
+  // ADS-536: per-run random password; never a literal in code.
+  const plainPassword = generateSeedPassword();
 
   for (const userData of testUsers) {
     await User.findOrCreate({
@@ -302,7 +327,6 @@ export async function seedUsers() {
   }
 
   if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line no-console
-    console.log(`✅ Created ${testUsers.length} test users (password: DevPassword123!)`);
+    console.log(`✅ Created ${testUsers.length} test users (password: ${plainPassword})`);
   }
 }

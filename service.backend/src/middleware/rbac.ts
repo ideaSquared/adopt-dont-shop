@@ -1,6 +1,5 @@
 import { NextFunction, Response } from 'express';
 import { UserType } from '../models/User';
-import Permission from '../models/Permission';
 import { AuthenticatedRequest, PERMISSIONS } from '../types';
 import { logger } from '../utils/logger';
 // Import the actual model types instead of defining local interfaces
@@ -50,12 +49,8 @@ export const requirePermission = (requiredPermission: string) => {
     }
 
     // Check if user has the required permission through roles
-    // Type assertion justified: Sequelize associations don't always properly infer Permission type
     const hasPermission = req.user.Roles?.some(role =>
-      role.Permissions?.some(permission => {
-        const perm = permission as unknown as Permission;
-        return perm.permissionName === requiredPermission;
-      })
+      role.Permissions?.some(permission => permission.permissionName === requiredPermission)
     );
 
     if (!hasPermission) {
@@ -128,12 +123,8 @@ export const requirePermissionOrOwnership = (
     }
 
     // Check if user has the required permission
-    // Type assertion justified: Sequelize associations don't always properly infer Permission type
     const hasPermission = req.user.Roles?.some(role =>
-      role.Permissions?.some(permission_obj => {
-        const perm = permission_obj as unknown as Permission;
-        return perm.permissionName === permission;
-      })
+      role.Permissions?.some(permission_obj => permission_obj.permissionName === permission)
     );
 
     if (hasPermission) {

@@ -69,6 +69,18 @@ interface ApplicationAttributes {
     uploadedAt: Date;
     verified: boolean;
   }>;
+  // ADS-534: COPPA gate — set true when household answers include any
+  // child <13. Submission is blocked unless parental_consent_given_at
+  // is also set (i.e. an adult applicant has affirmatively confirmed
+  // consent on behalf of those children).
+  requiresCoppaConsent?: boolean;
+  parentalConsentGivenAt?: Date | null;
+  // ADS-535: applicant must affirm they have informed third-party
+  // reference contacts that their details will be shared. Without this,
+  // the application cannot be submitted. Captured at the
+  // applicant-not-the-rescue layer so the consent attestation lives
+  // alongside the data it covers.
+  referencesConsented?: boolean;
   interviewNotes?: string | null;
   homeVisitNotes?: string | null;
   score?: number | null;
@@ -86,7 +98,16 @@ interface ApplicationAttributes {
 
 interface ApplicationCreationAttributes extends Optional<
   ApplicationAttributes,
-  'applicationId' | 'status' | 'priority' | 'stage' | 'createdAt' | 'updatedAt' | 'deletedAt'
+  | 'applicationId'
+  | 'status'
+  | 'priority'
+  | 'stage'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'deletedAt'
+  | 'requiresCoppaConsent'
+  | 'parentalConsentGivenAt'
+  | 'referencesConsented'
 > {}
 
 class Application
@@ -123,6 +144,12 @@ class Application
     uploadedAt: Date;
     verified: boolean;
   }>;
+  // ADS-534: see UserAttributes notes; default false so existing rows
+  // keep working without backfill.
+  public requiresCoppaConsent!: boolean;
+  public parentalConsentGivenAt!: Date | null;
+  // ADS-535: third-party reference consent attestation.
+  public referencesConsented!: boolean;
   public interviewNotes!: string | null;
   public homeVisitNotes!: string | null;
   public score!: number | null;
@@ -320,6 +347,23 @@ Application.init(
         },
       },
     },
+    requiresCoppaConsent: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'requires_coppa_consent',
+    },
+    parentalConsentGivenAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'parental_consent_given_at',
+    },
+    referencesConsented: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'references_consented',
+    },
     interviewNotes: {
       type: DataTypes.TEXT,
       allowNull: true,
@@ -478,6 +522,28 @@ Application.init(
           !application.decisionAt
         ) {
           application.decisionAt = new Date();
+        }
+
+        // ADS-534 / ADS-535: privacy gates — enforced when the caller
+        // is creating or submitting a real application row.
+        // Sequelize's Model.update({ ... }, { where }) bulk path
+        // synthesises a validation-only instance whose required FKs
+        // (userId, petId, rescueId) are unset; the gate is skipped in
+        // that case so unrelated bulk updates (e.g. soft-deletes) are
+        // not hijacked. A real submit always has all three FKs.
+        const isRealApplicationRow =
+          Boolean(application.userId) &&
+          Boolean(application.petId) &&
+          Boolean(application.rescueId);
+        if (isRealApplicationRow && application.status === ApplicationStatus.SUBMITTED) {
+          if (application.requiresCoppaConsent && !application.parentalConsentGivenAt) {
+            throw new Error(
+              'Parental consent is required for households containing children under 13'
+            );
+          }
+          if (!application.referencesConsented) {
+            throw new Error('You must confirm that your references have consented to be contacted');
+          }
         }
       },
       beforeSave: (application: Application) => {

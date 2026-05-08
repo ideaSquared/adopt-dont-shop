@@ -6,7 +6,6 @@ import Application from '../models/Application';
 import { AuditLog } from '../models/AuditLog';
 import Chat from '../models/Chat';
 import ChatParticipant from '../models/ChatParticipant';
-import Permission from '../models/Permission';
 import User, { UserStatus, UserType } from '../models/User';
 import UserFavorite from '../models/UserFavorite';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
@@ -1434,9 +1433,7 @@ export class UserService {
         for (const role of user.Roles) {
           if (role.Permissions) {
             for (const permission of role.Permissions) {
-              // Type assertion needed: Sequelize associations don't always infer correctly
-              const perm = permission as unknown as Permission;
-              permissions.add(perm.permissionName);
+              permissions.add(permission.permissionName);
             }
           }
         }
@@ -1497,9 +1494,7 @@ export class UserService {
         for (const role of user.Roles) {
           if (role.Permissions) {
             for (const permission of role.Permissions) {
-              // Type assertion needed: Sequelize associations don't always infer correctly
-              const perm = permission as unknown as Permission;
-              permissions.add(perm.permissionName);
+              permissions.add(permission.permissionName);
             }
           }
         }

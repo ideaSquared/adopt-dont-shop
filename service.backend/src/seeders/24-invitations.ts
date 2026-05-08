@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import Invitation from '../models/Invitation';
 import Rescue from '../models/Rescue';
 import User from '../models/User';
+import { bulkInsert } from './lib/bulk-insert';
 
 export async function seedInvitations() {
   console.log('🔑 Seeding invitations...');
@@ -87,8 +88,9 @@ export async function seedInvitations() {
       return;
     }
 
-    // Create invitations
-    await Invitation.bulkCreate(invitations);
+    // Create invitations idempotently — re-runs (e.g. after a partial seed
+    // failure) must not throw on the unique `token` constraint (ADS-441).
+    await bulkInsert(Invitation, invitations);
 
     const count = await Invitation.count();
     console.log(`✅ Successfully seeded ${count} invitations`);

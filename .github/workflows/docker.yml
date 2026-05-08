@@ -197,15 +197,31 @@ jobs:
         run: |
           {
             echo "NODE_ENV=development"
+            # Postgres container vars (consumed by the database image itself)
             echo "POSTGRES_USER=postgres"
             echo "POSTGRES_PASSWORD=${{ steps.secrets.outputs.POSTGRES_PASSWORD }}"
             echo "POSTGRES_DB=adopt_dont_shop_dev"
+            # Backend-side DB vars (consumed by service.backend config schema —
+            # ADS-409/452 required these to be distinct from the generic
+            # POSTGRES_* family the postgres image uses).
+            echo "DB_USERNAME=postgres"
+            echo "DB_PASSWORD=${{ steps.secrets.outputs.POSTGRES_PASSWORD }}"
+            echo "DB_HOST=database"
+            echo "DB_PORT=5432"
+            echo "DEV_DB_NAME=adopt_dont_shop_dev"
+            echo "TEST_DB_NAME=adopt_dont_shop_test"
+            echo "PROD_DB_NAME=adopt_dont_shop_prod"
+            # Auth / session secrets
             echo "JWT_SECRET=${{ steps.secrets.outputs.JWT_SECRET }}"
             echo "JWT_REFRESH_SECRET=${{ steps.secrets.outputs.JWT_REFRESH_SECRET }}"
             echo "SESSION_SECRET=${{ steps.secrets.outputs.SESSION_SECRET }}"
             echo "CSRF_SECRET=${{ steps.secrets.outputs.CSRF_SECRET }}"
             echo "ENCRYPTION_KEY=${{ steps.secrets.outputs.ENCRYPTION_KEY }}"
+            # CORS / public URLs
             echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
+            echo "FRONTEND_URL=http://localhost:3000"
+            echo "RESCUE_FRONTEND_URL=http://localhost:3002"
+            echo "API_URL=http://localhost:5000"
           } > .env
 
       - name: Start database and cache
@@ -216,7 +232,21 @@ jobs:
       - name: Build and start backend
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d service-backend
-          timeout 90 bash -c 'until curl -sf http://localhost:5000/health; do sleep 3; done'
+
+          # 180s ceiling: cold ts-node-dev start + 5×5s DB retry loop + 3s PostGIS settle +
+          # citext + immutable-created-at + iso-check trigger DDL + Express listen.
+          # The previous 90s figure was tight even before the audit added Sentry,
+          # prom-client, audit-log triggers, and the retention worker init.
+          #
+          # Inline-stream the backend's stdout/stderr in the background so a
+          # crash-loop or missing-env failure is visible in the CI step output
+          # itself (WebFetch on the run page can't read the post-failure
+          # `docker compose logs` step). Tail keeps running until curl wins,
+          # at which point the script exits and the tail is cleaned up.
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --follow service-backend &
+          tail_pid=$!
+          trap "kill $tail_pid 2>/dev/null || true" EXIT
+          timeout 180 bash -c 'until curl -sf http://localhost:5000/health; do sleep 3; done'
 
       - name: Verify backend health endpoint
         run: curl -sf http://localhost:5000/health

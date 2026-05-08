@@ -18,6 +18,7 @@ const RescueSettings = lazy(() => import('./pages/RescueSettings'));
 const Communication = lazy(() => import('./pages/Communication'));
 const Events = lazy(() => import('./pages/Events'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 // Reports (ADS-105)
 const Reports = lazy(() => import('./pages/Reports'));
@@ -48,6 +49,7 @@ function App() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/accept-invitation" element={<AcceptInvitation />} />
+          <Route path="/login" element={<LoginPage />} />
 
           {/* Protected Routes */}
           <Route

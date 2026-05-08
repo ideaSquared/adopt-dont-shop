@@ -17,6 +17,38 @@ export class AuditLog extends Model {
   public user_agent!: string | null;
 }
 
+/**
+ * ADS-508: tamper-resistance fallback. The Postgres trigger installed by
+ * migration 10-audit-log-tamper-resistance is the primary defence, but
+ * SQLite (used by the test suite) can't run pl/pgSQL, so we mirror the
+ * same constraint here. Retention cleanup is the only legitimate caller
+ * that mutates audit rows; it opts in via `withAuditMutationAllowed(...)`
+ * which sets a per-fiber flag the hooks check.
+ */
+const ImmutableAuditError = (op: string) =>
+  new Error(`audit_logs is append-only (ADS-508); ${op} rejected`);
+
+let allowMutationStack = 0;
+
+/**
+ * Run `fn` with the audit-log mutation guard temporarily disabled. Use
+ * only from controlled retention/cleanup code paths.
+ */
+export const withAuditMutationAllowed = async <T>(fn: () => Promise<T>): Promise<T> => {
+  allowMutationStack += 1;
+  try {
+    return await fn();
+  } finally {
+    allowMutationStack -= 1;
+  }
+};
+
+const guard = (op: string): void => {
+  if (allowMutationStack === 0) {
+    throw ImmutableAuditError(op);
+  }
+};
+
 AuditLog.init(
   {
     id: {
@@ -105,6 +137,12 @@ AuditLog.init(
         fields: ['user'],
       },
     ],
+    hooks: {
+      beforeUpdate: () => guard('UPDATE'),
+      beforeDestroy: () => guard('DELETE'),
+      beforeBulkUpdate: () => guard('UPDATE'),
+      beforeBulkDestroy: () => guard('DELETE'),
+    },
   }
 );
 

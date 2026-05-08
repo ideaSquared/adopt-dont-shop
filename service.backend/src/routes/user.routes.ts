@@ -3,6 +3,11 @@ import UserController, { userValidation } from '../controllers/user.controller';
 import { authenticateToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { requirePermission, requirePermissionOrOwnership } from '../middleware/rbac';
+import {
+  accountDeletionLimiter,
+  searchLimiter,
+  sensitiveWriteLimiter,
+} from '../middleware/rate-limiter';
 import { PERMISSIONS } from '../types';
 
 const router = Router();
@@ -702,7 +707,7 @@ router.post('/preferences/reset', UserController.resetUserPreferences);
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
-router.delete('/account', UserController.deleteAccount);
+router.delete('/account', accountDeletionLimiter, UserController.deleteAccount);
 
 /**
  * @swagger
@@ -854,6 +859,7 @@ router.delete('/account', UserController.deleteAccount);
  */
 router.get(
   '/search',
+  searchLimiter,
   requirePermission(PERMISSIONS.ADMIN_USER_SEARCH),
   fieldMask('users', { audit: true }),
   userValidation.searchUsers,
@@ -1436,6 +1442,7 @@ router.get(
  */
 router.put(
   '/:userId/role',
+  sensitiveWriteLimiter,
   requirePermission(PERMISSIONS.ADMIN_USER_ROLE_UPDATE),
   userValidation.updateRole,
   UserController.updateUserRole
@@ -1790,6 +1797,7 @@ router.post(
  */
 router.post(
   '/bulk-update',
+  sensitiveWriteLimiter,
   requirePermission(PERMISSIONS.ADMIN_USER_BULK_UPDATE),
   userValidation.bulkUpdate,
   UserController.bulkUpdateUsers
