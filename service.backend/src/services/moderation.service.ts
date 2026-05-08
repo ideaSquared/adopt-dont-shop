@@ -1,4 +1,4 @@
-import { Op, Transaction, WhereOptions } from 'sequelize';
+import { Op, Transaction, WhereOptions, literal } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/ModerationEvidence';
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
@@ -976,7 +976,9 @@ class ModerationService {
         where: {
           targetUserId: userId,
           isActive: true,
-          expiresAt: { [Op.is]: null },
+          // Sequelize types `[Op.is]` as `Literal | undefined`; `literal('NULL')`
+          // emits `IS NULL` without the implicit-null cast escape.
+          expiresAt: { [Op.is]: literal('NULL') },
         },
         order: [['createdAt', 'DESC']],
       }),

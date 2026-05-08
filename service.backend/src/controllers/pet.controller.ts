@@ -159,7 +159,9 @@ export class PetController {
       };
       const petsData = result.pets.map(pet => {
         const distance = readDistance(pet);
-        const petJson: Record<string, unknown> = pet.toJSON() as Record<string, unknown>;
+        // PetAttributes has typed fields, not an index signature; cast through
+        // `unknown` for the spread-into-record below.
+        const petJson = pet.toJSON() as unknown as Record<string, unknown>;
         return distance !== undefined ? { ...petJson, distance } : petJson;
       });
 
