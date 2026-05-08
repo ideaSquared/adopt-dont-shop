@@ -178,6 +178,7 @@ COPY lib.feature-flags/ ./lib.feature-flags/
 COPY lib.invitations/ ./lib.invitations/
 COPY lib.moderation/ ./lib.moderation/
 COPY lib.notifications/ ./lib.notifications/
+COPY lib.observability/ ./lib.observability/
 COPY lib.permissions/ ./lib.permissions/
 COPY lib.pets/ ./lib.pets/
 COPY lib.rescue/ ./lib.rescue/
