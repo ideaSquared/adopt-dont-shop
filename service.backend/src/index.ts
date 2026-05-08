@@ -49,6 +49,9 @@ import userRoutes from './routes/user.routes';
 import fieldPermissionsRoutes from './routes/field-permissions.routes';
 import cmsRoutes from './routes/cms.routes';
 import reportsRoutes from './routes/reports.routes';
+import legalRoutes from './routes/legal.routes';
+import privacyRoutes from './routes/privacy.routes';
+import uploadServeRoutes from './routes/upload-serve.routes';
 import { authenticateToken } from './middleware/auth';
 import { requireRole } from './middleware/rbac';
 import { UserType } from './models/User';
@@ -184,12 +187,16 @@ app.use('/api', (req, res, next) => {
   return csrfProtection(req, res, next);
 });
 
-// Serve uploaded files in development
-if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
+// ADS-429: /uploads is now auth-gated. The express.static mount that
+// previously served local files unauthenticated has been replaced by
+// upload-serve.routes — every request requires a valid session/JWT
+// before the file is streamed from disk. Signed-URL escape hatch for
+// email/render contexts lives in the same router (/uploads-signed/...).
+// nginx-direct serving is tracked as the ADS-422 follow-up.
+if (config.storage.provider === 'local') {
   const projectRoot = path.resolve(__dirname, '..', '..');
   const uploadDir = path.resolve(config.storage.local.directory);
 
-  // Prevent directory traversal: reject any path that escapes the project root
   if (!uploadDir.startsWith(projectRoot + path.sep) && uploadDir !== projectRoot) {
     throw new Error(
       `Unsafe upload directory: "${uploadDir}" is outside project root "${projectRoot}". ` +
@@ -197,46 +204,8 @@ if (config.nodeEnv === 'development' && config.storage.provider === 'local') {
     );
   }
 
-  // Configure static file serving with proper CORS headers
-  app.use(
-    '/uploads',
-    (req, res, next) => {
-      // Set CORS headers for uploaded files - restrict to configured allowed origins
-      const origin = req.headers.origin;
-      const allowedOrigins = Array.isArray(config.cors.origin)
-        ? config.cors.origin
-        : [config.cors.origin];
-
-      if (origin !== undefined && allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      }
-
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-      res.setHeader(
-        'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept'
-      );
-
-      // Set cache headers for better performance
-      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year
-
-      // Set proper content types
-      if (req.path.endsWith('.jpg') || req.path.endsWith('.jpeg')) {
-        res.setHeader('Content-Type', 'image/jpeg');
-      } else if (req.path.endsWith('.png')) {
-        res.setHeader('Content-Type', 'image/png');
-      } else if (req.path.endsWith('.pdf')) {
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline'); // Show PDFs in browser instead of downloading
-      }
-
-      next();
-    },
-    express.static(uploadDir, { dotfiles: 'deny', index: false, redirect: false })
-  );
-
-  logger.info(`Serving static files from: ${uploadDir} with CORS enabled`);
+  app.use('/', uploadServeRoutes);
+  logger.info(`Auth-gated upload serving enabled for directory: ${uploadDir}`);
 }
 
 // Setup Swagger UI for API documentation
@@ -270,6 +239,8 @@ app.use('/api/v1/config', configRoutes);
 app.use('/api/v1/field-permissions', fieldPermissionsRoutes);
 app.use('/api/v1/cms', cmsRoutes);
 app.use('/api/v1/reports', reportsRoutes); // ADS-105: custom analytics reports
+app.use('/api/v1/legal', legalRoutes); // ADS-495: public terms / privacy
+app.use('/api/v1/privacy', privacyRoutes); // ADS-427/496/497: GDPR delete + export + consent
 
 // Simple health check (no dependencies)
 app.get('/api/v1/health/simple', (req, res) => {
@@ -433,6 +404,22 @@ const startServer = async () => {
         }
       } catch (err) {
         logger.warn('Reports worker failed to start (continuing without scheduling)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
+      // ADS-428: schedule + start the retention enforcement job. Both
+      // calls are no-ops without REDIS_URL so dev/test boots aren't
+      // forced to bring up Redis.
+      try {
+        const { scheduleRetentionJob, startRetentionWorker } = await import('./jobs/retention.job');
+        await scheduleRetentionJob();
+        const w = startRetentionWorker();
+        if (w) {
+          logger.info('Retention worker started');
+        }
+      } catch (err) {
+        logger.warn('Retention job failed to start (continuing without scheduling)', {
           error: err instanceof Error ? err.message : String(err),
         });
       }
