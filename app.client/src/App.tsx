@@ -9,7 +9,7 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppShell } from './components/layout/AppShell';
 import { PublicAuthLayout } from './components/layout/PublicAuthLayout';
-import ErrorBoundary from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import * as styles from './App.css';
 
 const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));

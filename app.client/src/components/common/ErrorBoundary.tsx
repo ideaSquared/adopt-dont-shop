@@ -5,6 +5,10 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  // ADS-482: optional name passed by per-route boundaries so Sentry breadcrumb
+  // context can attribute a crash to the route that crashed (chat / discovery
+  // / application form / etc.).
+  boundary?: string;
 }
 
 interface State {
