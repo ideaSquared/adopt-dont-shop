@@ -43,14 +43,14 @@
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
-    "@types/react": "^18.2.0",
+    "@types/react": "^19.2.14",
     "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.59.1",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-prettier": "^5.1.3",
     "prettier": "^3.2.5",
-    "react": "^18.2.0",
+    "react": "^19.2.6",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.0.0",
     "vitest": "^4.0.8"
