@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 // Extend Request interface to include rateLimit property
 interface RateLimitRequest extends Request {
   rateLimit: {
-    current: number;
+    used: number;
     limit: number;
     remaining: number;
     resetTime: Date;
@@ -33,7 +33,7 @@ const createDevLimiter = (windowMs: number, max: number, name: string) => {
       const req = request as RateLimitRequest;
 
       // Check if this would have been the first request to exceed the limit
-      if (req.rateLimit.current === req.rateLimit.limit + 1) {
+      if (req.rateLimit.used === req.rateLimit.limit + 1) {
         // This is the equivalent of onLimitReached
         logger.warn(
           `🚨 RATE LIMIT WARNING (${name}): Would have been blocked in production! IP: ${req.ip}, Path: ${req.path}, Limit: ${max} per ${
@@ -43,7 +43,7 @@ const createDevLimiter = (windowMs: number, max: number, name: string) => {
       }
       // In development, log but don't block - continue processing
       logger.warn(
-        `🚨 RATE LIMIT WARNING (${name}): Request would be blocked in production! IP: ${req.ip}, Path: ${req.path} (${req.rateLimit.current}/${req.rateLimit.limit})`
+        `🚨 RATE LIMIT WARNING (${name}): Request would be blocked in production! IP: ${req.ip}, Path: ${req.path} (${req.rateLimit.used}/${req.rateLimit.limit})`
       );
       next(); // Continue processing the request instead of blocking
     },
