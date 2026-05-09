@@ -123,10 +123,6 @@ export function getEnvironmentConfig(): EnvironmentConfig {
     ...urls,
   };
 
-  if (debug) {
-    console.log('🌍 Environment configuration loaded:', config);
-  }
-
   return config;
 }
 

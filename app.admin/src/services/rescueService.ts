@@ -238,8 +238,6 @@ class AdminRescueService {
       data: StaffInvitation[];
     }>(`${this.baseUrl}/${rescueId}/invitations`);
 
-    console.log('getInvitations response:', response);
-
     if (!response.success) {
       throw new Error('Failed to fetch invitations');
     }
@@ -256,8 +254,6 @@ class AdminRescueService {
       message: string;
       data: StaffInvitation;
     }>(`${this.baseUrl}/${rescueId}/invitations`, payload);
-
-    console.log('inviteStaff response:', response);
 
     if (!response.success) {
       throw new Error(response.message || 'Failed to send invitation');

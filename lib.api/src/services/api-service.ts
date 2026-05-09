@@ -30,10 +30,6 @@ export class ApiService {
 
     this.interceptors = new InterceptorManager();
     this.setupDefaultInterceptors();
-
-    if (this.config.debug) {
-      console.log(`${ApiService.name} initialized with config:`, this.config);
-    }
   }
 
   private setupDefaultInterceptors(): void {
@@ -148,11 +144,6 @@ export class ApiService {
       this.baseURL = config.apiUrl;
       this.config.apiUrl = config.apiUrl;
     }
-
-    if (this.config.debug) {
-      console.log(`${ApiService.name} config updated:`, this.config);
-      console.log(`${ApiService.name} baseURL updated to:`, this.baseURL);
-    }
   }
 
   /**
@@ -167,10 +158,6 @@ export class ApiService {
    */
   clearCache(): void {
     this.cache.clear();
-
-    if (this.config.debug) {
-      console.log(`${ApiService.name} cache cleared`);
-    }
   }
 
   // Auth token management (delegated to external auth service)
@@ -222,10 +209,6 @@ export class ApiService {
   private async fetchCsrfToken(): Promise<string> {
     const url = `${this.baseURL}/api/v1/csrf-token`;
 
-    if (this.config.debug) {
-      console.log('🔒 Fetching CSRF token from:', url);
-    }
-
     try {
       const response = await fetch(url, {
         method: 'GET',
@@ -245,10 +228,6 @@ export class ApiService {
         throw new Error('CSRF token not found in response');
       }
 
-      if (this.config.debug) {
-        console.log('🔒 CSRF token received');
-      }
-
       return data.csrfToken;
     } catch (error) {
       if (this.config.debug) {
@@ -264,10 +243,6 @@ export class ApiService {
   public clearCsrfToken(): void {
     this.csrfToken = null;
     this.csrfTokenPromise = null;
-
-    if (this.config.debug) {
-      console.log('🔒 CSRF token cleared');
-    }
   }
 
   // Core request method.
@@ -312,13 +287,6 @@ export class ApiService {
 
     // Build full URL
     const fullUrl = url.startsWith('http') ? url : `${this.baseURL}${url}`;
-
-    if (this.config.debug) {
-      console.log(`🌐 API: ${method} ${fullUrl}`);
-      if (body && this.config.debug) {
-        console.log('📤 API: Request body:', body);
-      }
-    }
 
     // Prepare headers
     let requestHeaders: Record<string, string> = {

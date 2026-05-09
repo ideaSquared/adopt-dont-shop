@@ -129,8 +129,7 @@ export class DiscoveryService {
       await this.apiService.post(`${this.API_BASE_URL}/swipe/action`, action);
     } catch (error) {
       if (this.config.debug) {
-        console.warn('Failed to record swipe action to backend, logging locally:', error);
-        console.info('Swipe action recorded (mock):', action);
+        console.warn('Failed to record swipe action to backend:', error);
       }
     }
   }

@@ -38,10 +38,6 @@ export class AnalyticsService {
     this.apiService = apiService || new ApiService();
     this.sessionId = this.generateSessionId();
 
-    if (this.config.debug) {
-      console.log(`${AnalyticsService.name} initialized with config:`, this.config);
-    }
-
     this.initializeAnalytics();
   }
 
@@ -153,10 +149,6 @@ export class AnalyticsService {
         events,
         sessionId: this.sessionId,
       });
-
-      if (this.config.debug) {
-        console.log(`${AnalyticsService.name} flushed ${events.length} events`);
-      }
     } catch (error) {
       // Re-queue events on failure
       this.eventQueue.unshift(...events);
@@ -186,10 +178,6 @@ export class AnalyticsService {
    */
   public updateConfig(updates: Partial<AnalyticsServiceConfig>): void {
     this.config = { ...this.config, ...updates };
-
-    if (this.config.debug) {
-      console.log(`${AnalyticsService.name} config updated:`, this.config);
-    }
   }
 
   /**
@@ -218,10 +206,6 @@ export class AnalyticsService {
     if (event.category === 'critical' || event.action === 'error') {
       await this.flushEventQueue();
     }
-
-    if (this.config.debug) {
-      console.log(`${AnalyticsService.name} tracked event:`, fullEvent);
-    }
   }
 
   /**
@@ -242,10 +226,6 @@ export class AnalyticsService {
 
     try {
       await this.apiService.post('/api/v1/analytics/pageviews', fullPageView);
-
-      if (this.config.debug) {
-        console.log(`${AnalyticsService.name} tracked page view:`, fullPageView);
-      }
     } catch (error) {
       if (this.config.debug) {
         console.error(`${AnalyticsService.name} failed to track page view:`, error);
@@ -259,10 +239,6 @@ export class AnalyticsService {
   public async trackUserJourney(journey: UserJourney): Promise<void> {
     try {
       await this.apiService.post('/api/v1/analytics/journeys', journey);
-
-      if (this.config.debug) {
-        console.log(`${AnalyticsService.name} tracked user journey:`, journey.journeyId);
-      }
     } catch (error) {
       if (this.config.debug) {
         console.error(`${AnalyticsService.name} failed to track user journey:`, error);
@@ -291,10 +267,6 @@ export class AnalyticsService {
         `/api/v1/analytics/engagement?${params}`
       )) as EngagementMetrics;
 
-      if (this.config.debug) {
-        console.log(`${AnalyticsService.name} retrieved engagement metrics for period:`, timeRange);
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -322,13 +294,6 @@ export class AnalyticsService {
       const response = (await this.apiService.get(
         `/api/v1/analytics/performance?${params}`
       )) as SystemPerformanceMetrics;
-
-      if (this.config.debug) {
-        console.log(
-          `${AnalyticsService.name} retrieved performance metrics for period:`,
-          timeRange
-        );
-      }
 
       return response;
     } catch (error) {
@@ -359,10 +324,6 @@ export class AnalyticsService {
         requestData
       )) as AnalyticsReport;
 
-      if (this.config.debug) {
-        console.log(`${AnalyticsService.name} generated ${type} report:`, response.id);
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -391,10 +352,6 @@ export class AnalyticsService {
         `/api/v1/analytics/funnels?${params}`
       )) as ConversionFunnel;
 
-      if (this.config.debug) {
-        console.log(`${AnalyticsService.name} retrieved funnel analysis:`, funnelName);
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -412,10 +369,6 @@ export class AnalyticsService {
       const response = (await this.apiService.get(
         `/api/v1/analytics/ab-tests/${testId}`
       )) as ABTestResults;
-
-      if (this.config.debug) {
-        console.log(`${AnalyticsService.name} retrieved A/B test results:`, testId);
-      }
 
       return response;
     } catch (error) {
@@ -495,10 +448,6 @@ export class AnalyticsService {
    */
   public startNewSession(): void {
     this.sessionId = this.generateSessionId();
-
-    if (this.config.debug) {
-      console.log(`${AnalyticsService.name} started new session:`, this.sessionId);
-    }
   }
 
   /**
@@ -527,9 +476,5 @@ export class AnalyticsService {
 
     // Flush any remaining events
     this.flushEventQueue();
-
-    if (this.config.debug) {
-      console.log(`${AnalyticsService.name} destroyed`);
-    }
   }
 }

@@ -78,10 +78,6 @@ export class ChatService {
       csrfToken: config.csrfToken,
       ...config,
     };
-
-    if (this.config.debug) {
-      console.log(`${ChatService.name} initialized with config:`, this.config);
-    }
   }
 
   /**
@@ -133,12 +129,6 @@ export class ChatService {
       });
 
       this.setupSocketEventHandlers();
-
-      if (this.config.debug) {
-        console.log(
-          `${ChatService.name} connecting to ${this.config.socketUrl} for user ${userId}`
-        );
-      }
     } catch (error) {
       this.handleConnectionError(error as Error);
     }
@@ -277,10 +267,6 @@ export class ChatService {
     this.updateConnectionStatus('connected');
     this.reconnectionAttempts = 0;
 
-    if (this.config.debug) {
-      console.log(`${ChatService.name} connected successfully`);
-    }
-
     // Process queued messages
     this.processMessageQueue();
   }
@@ -290,10 +276,6 @@ export class ChatService {
    */
   private handleDisconnect(reason: string): void {
     this.updateConnectionStatus('disconnected');
-
-    if (this.config.debug) {
-      console.log(`${ChatService.name} disconnected: ${reason}`);
-    }
 
     // Attempt reconnection if enabled and not a manual disconnect
     if (
@@ -334,9 +316,6 @@ export class ChatService {
     };
 
     if (this.reconnectionAttempts >= reconnectionConfig.maxAttempts) {
-      if (this.config.debug) {
-        console.log(`${ChatService.name} max reconnection attempts reached`);
-      }
       return;
     }
 
@@ -349,12 +328,6 @@ export class ChatService {
         Math.pow(reconnectionConfig.backoffMultiplier, this.reconnectionAttempts - 1),
       reconnectionConfig.maxDelay
     );
-
-    if (this.config.debug) {
-      console.log(
-        `${ChatService.name} attempting reconnection ${this.reconnectionAttempts}/${reconnectionConfig.maxAttempts} in ${delay}ms`
-      );
-    }
 
     this.reconnectionTimer = setTimeout(() => {
       if (this.currentUserId && this.currentToken) {
@@ -597,10 +570,6 @@ export class ChatService {
           timestamp: new Date().toISOString(),
           retryCount: 0,
         });
-
-        if (this.config.debug) {
-          console.log(`${ChatService.name} message queued (disconnected)`);
-        }
       } else if (this.config.debug) {
         console.warn(`${ChatService.name} message queue full, dropping message`);
       }
@@ -873,10 +842,6 @@ export class ChatService {
    */
   updateConfig(config: Partial<ChatServiceConfig>): void {
     this.config = { ...this.config, ...config };
-
-    if (this.config.debug) {
-      console.log(`${ChatService.name} config updated:`, this.config);
-    }
   }
 
   /**
@@ -891,10 +856,6 @@ export class ChatService {
    */
   clearCache(): void {
     this.cache.clear();
-
-    if (this.config.debug) {
-      console.log(`${ChatService.name} cache cleared`);
-    }
   }
 
   // Test helper methods (for testing only)

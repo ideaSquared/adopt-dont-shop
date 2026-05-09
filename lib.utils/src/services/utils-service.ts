@@ -28,10 +28,6 @@ export class UtilsService {
       currency: 'USD',
       ...config,
     };
-
-    if (this.config.debug) {
-      console.log(`${UtilsService.name} initialized with config:`, this.config);
-    }
   }
 
   /**
@@ -46,10 +42,6 @@ export class UtilsService {
    */
   public updateConfig(updates: Partial<UtilsServiceConfig>): void {
     this.config = { ...this.config, ...updates };
-
-    if (this.config.debug) {
-      console.log(`${UtilsService.name} config updated:`, this.config);
-    }
   }
 
   // ===== DATE & TIME UTILITIES =====

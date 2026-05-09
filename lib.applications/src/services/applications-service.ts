@@ -360,11 +360,6 @@ export class ApplicationsService {
         };
       }>(url);
 
-      if (this.config.debug) {
-        console.log('Rescue applications retrieved:', response.data?.length || 0);
-        console.log('Response meta:', response.meta);
-      }
-
       // Return the applications array from the standardized response
       return response.data || [];
     } catch (error) {

@@ -27,9 +27,9 @@ export default tseslint.config(
 
       // General JavaScript/TypeScript rules
       'no-console': [
-        'warn',
+        'error',
         {
-          allow: ['warn', 'error', 'info'],
+          allow: ['warn', 'error'],
         },
       ],
       'no-debugger': 'warn',

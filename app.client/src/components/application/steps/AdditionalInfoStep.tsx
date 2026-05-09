@@ -43,10 +43,6 @@ export const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   }, [watch, onChange]);
 
   const onSubmit = (formData: AdditionalInfoFormData) => {
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.log('AdditionalInfoStep onSubmit called with:', formData);
-    }
     onComplete(formData as ApplicationData['additionalInfo']);
   };
 

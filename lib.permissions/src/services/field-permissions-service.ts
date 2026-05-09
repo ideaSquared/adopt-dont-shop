@@ -221,11 +221,6 @@ export class FieldPermissionsService {
       await this.apiService.post('/api/v1/field-permissions', request);
       this.clearCache(request.resource, request.role);
 
-      if (this.config.debug) {
-        console.log(
-          `Updated field permission: ${request.resource}.${request.field_name} = ${request.access_level} for ${request.role}`
-        );
-      }
       return true;
     } catch (error) {
       if (this.config.debug) {

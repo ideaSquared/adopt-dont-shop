@@ -28,10 +28,6 @@ export class NotificationsService {
     };
 
     this.apiService = apiService || new ApiService();
-
-    if (this.config.debug) {
-      console.log(`${NotificationsService.name} initialized with config:`, this.config);
-    }
   }
 
   /**
@@ -46,10 +42,6 @@ export class NotificationsService {
    */
   public updateConfig(updates: Partial<NotificationsServiceConfig>): void {
     this.config = { ...this.config, ...updates };
-
-    if (this.config.debug) {
-      console.log(`${NotificationsService.name} config updated:`, this.config);
-    }
   }
 
   // ===== NOTIFICATION DELIVERY =====
@@ -65,10 +57,6 @@ export class NotificationsService {
         '/api/v1/notifications',
         notification
       );
-
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} notification sent to user:`, notification.userId);
-      }
 
       return response;
     } catch (error) {
@@ -90,12 +78,6 @@ export class NotificationsService {
         '/api/v1/notifications/bulk',
         notification
       );
-
-      if (this.config.debug) {
-        console.log(
-          `${NotificationsService.name} bulk notification sent to ${notification.userIds.length} users`
-        );
-      }
 
       return response;
     } catch (error) {
@@ -123,10 +105,6 @@ export class NotificationsService {
         '/api/v1/notifications/schedule',
         scheduledNotification
       );
-
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} notification scheduled for:`, scheduledFor);
-      }
 
       return response;
     } catch (error) {
@@ -161,10 +139,6 @@ export class NotificationsService {
 
       const response = await this.apiService.get<PaginatedResponse<Notification>>(url);
 
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} retrieved notifications for user:`, userId);
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -182,10 +156,6 @@ export class NotificationsService {
       const response = await this.apiService.get<BaseResponse<Notification>>(
         `/api/v1/notifications/${notificationId}`
       );
-
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} retrieved notification:`, notificationId);
-      }
 
       return response;
     } catch (error) {
@@ -208,12 +178,6 @@ export class NotificationsService {
         }
       );
 
-      if (this.config.debug) {
-        console.log(
-          `${NotificationsService.name} marked ${notificationIds.length} notifications as read`
-        );
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -231,13 +195,6 @@ export class NotificationsService {
       const response = await this.apiService.patch<BaseResponse<{ updated: number }>>(
         `/api/v1/notifications/user/${userId}/mark-all-read`
       );
-
-      if (this.config.debug) {
-        console.log(
-          `${NotificationsService.name} marked all notifications as read for user:`,
-          userId
-        );
-      }
 
       return response;
     } catch (error) {
@@ -259,10 +216,6 @@ export class NotificationsService {
         `/api/v1/notifications/${notificationId}`
       );
 
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} deleted notification:`, notificationId);
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -282,10 +235,6 @@ export class NotificationsService {
       const response = await this.apiService.get<BaseResponse<NotificationPreferences>>(
         `/api/v1/notifications/preferences/${userId}`
       );
-
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} retrieved preferences for user:`, userId);
-      }
 
       return response;
     } catch (error) {
@@ -308,10 +257,6 @@ export class NotificationsService {
         `/api/v1/notifications/preferences/${userId}`,
         preferences
       );
-
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} updated preferences for user:`, userId);
-      }
 
       return response;
     } catch (error) {
@@ -342,12 +287,6 @@ export class NotificationsService {
         }
       );
 
-      if (this.config.debug) {
-        console.log(
-          `${NotificationsService.name} set DND for user ${userId}: ${startTime} - ${endTime}`
-        );
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -367,10 +306,6 @@ export class NotificationsService {
       const response = await this.apiService.get<BaseResponse<NotificationTemplate[]>>(
         '/api/v1/notifications/templates'
       );
-
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} retrieved notification templates`);
-      }
 
       return response;
     } catch (error) {
@@ -396,10 +331,6 @@ export class NotificationsService {
         }
       );
 
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} processed template:`, templateId);
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -423,10 +354,6 @@ export class NotificationsService {
         sampleData,
       });
 
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} previewed template:`, templateId);
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -449,10 +376,6 @@ export class NotificationsService {
 
       const response = await this.apiService.get<BaseResponse<NotificationStats>>(url);
 
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} retrieved notification stats`);
-      }
-
       return response;
     } catch (error) {
       if (this.config.debug) {
@@ -470,10 +393,6 @@ export class NotificationsService {
       const response = await this.apiService.get<BaseResponse<{ count: number }>>(
         `/api/v1/notifications/user/${userId}/unread-count`
       );
-
-      if (this.config.debug) {
-        console.log(`${NotificationsService.name} retrieved unread count for user:`, userId);
-      }
 
       return response;
     } catch (error) {

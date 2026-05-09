@@ -301,9 +301,6 @@ export class SearchService {
    */
   clearCache(): void {
     this.cache.clear();
-    if (this.config.debug) {
-      console.log('Search cache cleared');
-    }
   }
 
   /**
@@ -432,10 +429,6 @@ export class SearchService {
         .map(([key]) => key);
 
       expiredKeys.forEach((key) => this.cache.delete(key));
-
-      if (this.config.debug && expiredKeys.length > 0) {
-        console.log(`Cleaned up ${expiredKeys.length} expired cache entries`);
-      }
     }, 60000); // Run every minute
   }
 }

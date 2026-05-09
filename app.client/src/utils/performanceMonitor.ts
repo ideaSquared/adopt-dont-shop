@@ -230,23 +230,6 @@ class PerformanceMonitor {
         console.warn('Analytics callback failed:', error);
       }
     }
-
-    // Log important metrics in development
-    if (import.meta.env.DEV && this.shouldLogMetric(name)) {
-      // eslint-disable-next-line no-console
-      console.log(`[Performance] ${name}:`, value, metadata);
-    }
-  }
-
-  // Determine which metrics to log in development
-  private shouldLogMetric(name: string): boolean {
-    const importantMetrics = [
-      'message_delivery_time',
-      'socket_connection_time',
-      'api_response_time',
-      'message_retry',
-    ];
-    return importantMetrics.includes(name);
   }
 
   // Get performance statistics

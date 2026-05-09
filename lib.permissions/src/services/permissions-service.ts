@@ -30,10 +30,6 @@ export class PermissionsService {
     };
 
     this.apiService = apiService || new ApiService();
-
-    if (this.config.debug) {
-      console.log(`${PermissionsService.name} initialized with config:`, this.config);
-    }
   }
 
   /**
@@ -48,10 +44,6 @@ export class PermissionsService {
    */
   public updateConfig(updates: Partial<PermissionsServiceConfig>): void {
     this.config = { ...this.config, ...updates };
-
-    if (this.config.debug) {
-      console.log(`${PermissionsService.name} config updated:`, this.config);
-    }
   }
 
   /**
@@ -73,10 +65,6 @@ export class PermissionsService {
         '/api/v1/permissions/check',
         request
       )) as PermissionCheckResponse;
-
-      if (this.config.debug) {
-        console.log(`Permission check for ${userId}: ${permission} = ${response.hasPermission}`);
-      }
 
       return response.hasPermission;
     } catch (error) {
@@ -139,9 +127,6 @@ export class PermissionsService {
     if (useCache) {
       const cached = this.permissionsCache.get(userId);
       if (cached && Date.now() < cached.expires) {
-        if (this.config.debug) {
-          console.log(`Retrieved cached permissions for ${userId}`);
-        }
         return cached.permissions;
       }
     }
@@ -158,10 +143,6 @@ export class PermissionsService {
           permissions,
           expires: Date.now() + this.cacheTimeout,
         });
-      }
-
-      if (this.config.debug) {
-        console.log(`Retrieved ${permissions.length} permissions for ${userId}`);
       }
 
       return permissions;
@@ -181,10 +162,6 @@ export class PermissionsService {
       const response = (await this.apiService.get(
         `/api/v1/users/${userId}/with-permissions`
       )) as UserWithPermissions;
-
-      if (this.config.debug) {
-        console.log(`Retrieved user with permissions: ${userId}`);
-      }
 
       return response;
     } catch (error) {
@@ -235,10 +212,6 @@ export class PermissionsService {
       // Clear cache for the user
       this.permissionsCache.delete(request.userId);
 
-      if (this.config.debug) {
-        console.log(`Role ${request.role} assigned to user ${request.userId}`);
-      }
-
       return true;
     } catch (error) {
       if (this.config.debug) {
@@ -257,10 +230,6 @@ export class PermissionsService {
 
       // Clear cache for the user
       this.permissionsCache.delete(request.userId);
-
-      if (this.config.debug) {
-        console.log(`Granted ${request.permissions.length} permissions to user ${request.userId}`);
-      }
 
       return true;
     } catch (error) {
@@ -290,10 +259,6 @@ export class PermissionsService {
 
       // Clear cache for the user
       this.permissionsCache.delete(userId);
-
-      if (this.config.debug) {
-        console.log(`Revoked ${permissions.length} permissions from user ${userId}`);
-      }
 
       return true;
     } catch (error) {
@@ -326,10 +291,6 @@ export class PermissionsService {
         `/api/v1/permissions/audit-logs?${params}`
       )) as AuditLogsResponse;
 
-      if (this.config.debug) {
-        console.log(`Retrieved ${response.logs?.length || 0} audit log entries`);
-      }
-
       return response.logs || [];
     } catch (error) {
       if (this.config.debug) {
@@ -345,14 +306,8 @@ export class PermissionsService {
   public clearCache(userId?: string): void {
     if (userId) {
       this.permissionsCache.delete(userId);
-      if (this.config.debug) {
-        console.log(`Cleared permissions cache for user ${userId}`);
-      }
     } else {
       this.permissionsCache.clear();
-      if (this.config.debug) {
-        console.log('Cleared all permissions cache');
-      }
     }
   }
 
@@ -364,10 +319,6 @@ export class PermissionsService {
       const response = (await this.apiService.get(
         '/api/v1/permissions/list'
       )) as SystemPermissionsResponse;
-
-      if (this.config.debug) {
-        console.log(`Retrieved ${response.permissions?.length || 0} system permissions`);
-      }
 
       return response.permissions || [];
     } catch (error) {
