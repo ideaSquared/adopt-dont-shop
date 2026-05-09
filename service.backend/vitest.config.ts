@@ -47,11 +47,12 @@ export default defineConfig({
       // PR that adds tests should ratchet these UP — never down.
       // Run via `npm run test:coverage`; the default `npm test` skips
       // coverage to keep watch-mode fast.
+      // Re-baselined post-ADS-417/490 to L=41/S=41/F=49/B=34
       thresholds: {
-        lines: 40,
-        statements: 40,
-        functions: 47,
-        branches: 33,
+        lines: 41,
+        statements: 41,
+        functions: 49,
+        branches: 34,
       },
     },
 
