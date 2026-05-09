@@ -55,7 +55,10 @@ describe('legal content service — getPendingReacceptance', () => {
     mockFindOne.mockReset();
   });
 
-  const buildAuditRow = (details: Record<string, unknown>, timestamp = new Date('2026-01-01T00:00:00Z')) => ({
+  const buildAuditRow = (
+    details: Record<string, unknown>,
+    timestamp = new Date('2026-01-01T00:00:00Z')
+  ) => ({
     metadata: { details },
     timestamp,
   });

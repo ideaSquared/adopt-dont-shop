@@ -92,9 +92,7 @@ const ConsentDetailsSchema = z.object({
   acceptedAt: z.string().optional(),
 });
 
-const extractConsentDetails = (
-  metadata: unknown
-): z.infer<typeof ConsentDetailsSchema> => {
+const extractConsentDetails = (metadata: unknown): z.infer<typeof ConsentDetailsSchema> => {
   if (!metadata || typeof metadata !== 'object') {
     return {};
   }
@@ -103,9 +101,7 @@ const extractConsentDetails = (
   return parsed.success ? parsed.data : {};
 };
 
-export const getPendingReacceptance = async (
-  userId: string
-): Promise<PendingReacceptance> => {
+export const getPendingReacceptance = async (userId: string): Promise<PendingReacceptance> => {
   const latest = await AuditLog.findOne({
     where: { user: userId, action: 'CONSENT_RECORDED' },
     order: [['timestamp', 'DESC']],
