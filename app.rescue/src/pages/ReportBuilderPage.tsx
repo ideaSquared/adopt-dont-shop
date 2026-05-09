@@ -98,7 +98,7 @@ const ReportBuilderPage: React.FC = () => {
     }
   };
 
-  const isSaving = saveMutation.isLoading || updateMutation.isLoading;
+  const isSaving = saveMutation.isPending || updateMutation.isPending;
   const previewError = useMemo(
     () => (previewMutation.error as Error | null) ?? null,
     [previewMutation.error]
@@ -112,7 +112,7 @@ const ReportBuilderPage: React.FC = () => {
           <Text>Build a custom report. Click Preview to run it.</Text>
         </div>
         <button type="button" onClick={runPreview} disabled={config.widgets.length === 0}>
-          {previewMutation.isLoading ? 'Running…' : 'Preview'}
+          {previewMutation.isPending ? 'Running…' : 'Preview'}
         </button>
       </div>
 
@@ -160,7 +160,7 @@ const ReportBuilderPage: React.FC = () => {
         config={config}
         onChange={setConfig}
         previewData={previewData}
-        isPreviewing={previewMutation.isLoading}
+        isPreviewing={previewMutation.isPending}
         previewError={previewError}
         onSave={handleSave}
         isSaving={isSaving}

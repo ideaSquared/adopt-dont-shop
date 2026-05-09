@@ -3,7 +3,7 @@ import { AuthProvider } from '@adopt-dont-shop/lib.auth';
 import { captureException, initSentry, reportWebVitals } from '@adopt-dont-shop/lib.observability';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -32,13 +32,13 @@ reportWebVitals(metric => {
 
 // ADS-476: explicit defaults so every component remount doesn't refetch and
 // auth/404 errors don't retry 3× before failing. Defaults copied from app.rescue;
-// without these, react-query v3 uses staleTime: 0 and retry: 3.
+// without these, @tanstack/react-query uses staleTime: 0 and retry: 3.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 10 * 60 * 1000, // 10 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
       refetchOnWindowFocus: false,
     },
   },

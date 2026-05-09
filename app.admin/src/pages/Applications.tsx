@@ -210,7 +210,7 @@ const Applications: React.FC = () => {
         requireReason={bulkAction === 'reject'}
         reasonLabel='Rejection reason'
         reasonPlaceholder='Explain why these applications are being rejected...'
-        isLoading={bulkUpdateApplications.isLoading}
+        isLoading={bulkUpdateApplications.isPending}
         resultSummary={bulkResult}
       />
     </div>

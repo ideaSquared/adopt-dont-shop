@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
@@ -69,9 +69,9 @@ const Audit: React.FC = () => {
 
   const now = useMemo(() => new Date().toISOString(), []);
 
-  const { data, isLoading, isError, error, refetch } = useQuery(
-    ['auditLogs', page, actionFilter, resourceFilter, statusFilter],
-    () =>
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['auditLogs', page, actionFilter, resourceFilter, statusFilter],
+    queryFn: () =>
       AuditLogsService.getAuditLogs({
         action: actionFilter !== 'all' ? actionFilter : undefined,
         entity: resourceFilter !== 'all' ? resourceFilter : undefined,
@@ -86,11 +86,9 @@ const Audit: React.FC = () => {
         startDate: sevenDaysAgo,
         endDate: now,
       }),
-    {
-      keepPreviousData: true,
-      refetchOnWindowFocus: false,
-    }
-  );
+    placeholderData: keepPreviousData,
+    refetchOnWindowFocus: false,
+  });
 
   const logs = data?.data || [];
   const totalPages = data?.pagination?.pages ?? 1;

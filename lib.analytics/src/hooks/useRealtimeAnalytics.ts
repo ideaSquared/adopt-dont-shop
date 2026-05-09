@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQueryClient } from 'react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { io, type Socket } from 'socket.io-client';
 
 /**
@@ -14,7 +14,7 @@ import { io, type Socket } from 'socket.io-client';
  * `useAnalyticsInvalidator` is the common case: invalidate React
  * Query caches when the backend says metrics changed.
  *
- * Targets `react-query` ^3.39 to match the existing apps.
+ * Targets `@tanstack/react-query` ^5 to match the existing apps.
  */
 
 let socket: Socket | null = null;
@@ -110,9 +110,9 @@ export const useAnalyticsInvalidator = (): void => {
     }
     const handler = (payload: AnalyticsInvalidatePayload): void => {
       for (const cat of payload.categories) {
-        qc.invalidateQueries(['analytics', cat]);
+        qc.invalidateQueries({ queryKey: ['analytics', cat] });
       }
-      qc.invalidateQueries('reports');
+      qc.invalidateQueries({ queryKey: ['reports'] });
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const untyped = s as unknown as {
