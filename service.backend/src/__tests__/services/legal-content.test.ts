@@ -18,6 +18,8 @@ vi.mock('../../models/AuditLog', () => ({
 
 import AuditLog from '../../models/AuditLog';
 import {
+  COOKIES_VERSION,
+  getCookiesDocument,
   getPendingReacceptance,
   getPrivacyDocument,
   getTermsDocument,
@@ -44,9 +46,25 @@ describe('legal content service', () => {
     expect(doc.content).toContain('Privacy Policy');
   });
 
+  it('returns cookies with version + markdown content', () => {
+    const doc = getCookiesDocument();
+    expect(doc.version).toBe(COOKIES_VERSION);
+    expect(doc.contentType).toBe('text/markdown');
+    expect(doc.content.length).toBeGreaterThan(0);
+    expect(doc.content).toContain('Cookies Policy');
+  });
+
+  it('flags the cookies version as a placeholder so it is obvious in audit/pending output', () => {
+    // The cookies markdown is a stand-in awaiting legal review. The
+    // version constant carries that signal so any consent record or
+    // pending-reacceptance row that surfaces it is easy to spot.
+    expect(COOKIES_VERSION).toContain('PLACEHOLDER');
+  });
+
   it('versions follow a date-based identifier so consent records can be replayed', () => {
     expect(TERMS_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}/);
     expect(PRIVACY_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}/);
+    expect(COOKIES_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}/);
   });
 });
 
@@ -63,25 +81,26 @@ describe('legal content service — getPendingReacceptance', () => {
     timestamp,
   });
 
-  it('returns both terms and privacy as pending when the user has never recorded consent', async () => {
+  it('returns terms, privacy, and cookies as pending when the user has never recorded consent', async () => {
     mockFindOne.mockResolvedValue(null);
 
     const result = await getPendingReacceptance('user-without-history');
 
-    expect(result.pending).toHaveLength(2);
+    expect(result.pending).toHaveLength(3);
     const types = result.pending.map(p => p.documentType).sort();
-    expect(types).toEqual(['privacy', 'terms']);
+    expect(types).toEqual(['cookies', 'privacy', 'terms']);
     result.pending.forEach(item => {
       expect(item.lastAcceptedVersion).toBeNull();
       expect(item.lastAcceptedAt).toBeNull();
     });
   });
 
-  it('returns an empty list when the user accepted the exact current versions', async () => {
+  it('returns an empty list when the user accepted the exact current versions for every tracked document', async () => {
     mockFindOne.mockResolvedValue(
       buildAuditRow({
         tosVersion: TERMS_VERSION,
         privacyVersion: PRIVACY_VERSION,
+        cookiesVersion: COOKIES_VERSION,
         acceptedAt: '2026-04-01T12:00:00Z',
       })
     );
@@ -96,6 +115,7 @@ describe('legal content service — getPendingReacceptance', () => {
       buildAuditRow({
         tosVersion: '2025-01-01-v1',
         privacyVersion: PRIVACY_VERSION,
+        cookiesVersion: COOKIES_VERSION,
         acceptedAt: '2025-02-01T00:00:00Z',
       })
     );
@@ -111,6 +131,51 @@ describe('legal content service — getPendingReacceptance', () => {
     });
   });
 
+  it('flags cookies as pending when the user accepted an older cookies version', async () => {
+    mockFindOne.mockResolvedValue(
+      buildAuditRow({
+        tosVersion: TERMS_VERSION,
+        privacyVersion: PRIVACY_VERSION,
+        cookiesVersion: '2025-01-01-cookies-v1',
+        acceptedAt: '2025-02-01T00:00:00Z',
+      })
+    );
+
+    const result = await getPendingReacceptance('user-stale-cookies');
+
+    expect(result.pending).toHaveLength(1);
+    expect(result.pending[0]).toEqual({
+      documentType: 'cookies',
+      currentVersion: COOKIES_VERSION,
+      lastAcceptedVersion: '2025-01-01-cookies-v1',
+      lastAcceptedAt: '2025-02-01T00:00:00Z',
+    });
+  });
+
+  it('flags cookies as pending when consent was recorded without any cookiesVersion at all', async () => {
+    // Today's consent.service writes only tosVersion + privacyVersion.
+    // Until that gap is closed, every existing user will surface
+    // cookies as pending — this test pins that behaviour so the
+    // shape is stable for the frontend modal.
+    mockFindOne.mockResolvedValue(
+      buildAuditRow({
+        tosVersion: TERMS_VERSION,
+        privacyVersion: PRIVACY_VERSION,
+        acceptedAt: '2026-04-01T12:00:00Z',
+      })
+    );
+
+    const result = await getPendingReacceptance('user-pre-cookies-capture');
+
+    expect(result.pending).toHaveLength(1);
+    expect(result.pending[0]).toEqual({
+      documentType: 'cookies',
+      currentVersion: COOKIES_VERSION,
+      lastAcceptedVersion: null,
+      lastAcceptedAt: null,
+    });
+  });
+
   it('falls back to the audit row timestamp when acceptedAt is missing from the details', async () => {
     const ts = new Date('2025-06-15T10:30:00Z');
     mockFindOne.mockResolvedValue(
@@ -118,6 +183,7 @@ describe('legal content service — getPendingReacceptance', () => {
         {
           tosVersion: '2025-01-01-v1',
           privacyVersion: PRIVACY_VERSION,
+          cookiesVersion: COOKIES_VERSION,
         },
         ts
       )
@@ -134,7 +200,7 @@ describe('legal content service — getPendingReacceptance', () => {
 
     const result = await getPendingReacceptance('user-broken-metadata');
 
-    expect(result.pending).toHaveLength(2);
+    expect(result.pending).toHaveLength(3);
     result.pending.forEach(item => {
       expect(item.lastAcceptedVersion).toBeNull();
     });

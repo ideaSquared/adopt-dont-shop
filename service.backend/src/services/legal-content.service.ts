@@ -19,6 +19,12 @@ import AuditLog from '../models/AuditLog';
 
 export const TERMS_VERSION = '2026-05-08-v1';
 export const PRIVACY_VERSION = '2026-05-08-v1';
+// The `-PLACEHOLDER` suffix is intentional and load-bearing: any cookies
+// row surfaced by `getPendingReacceptance` (or written into an audit log)
+// is obviously not-yet-legally-reviewed. Replace this constant — and the
+// version line in `docs/legal/cookies.md` — when the real cookies policy
+// lands.
+export const COOKIES_VERSION = '2026-05-09-v0-PLACEHOLDER';
 
 const DOCS_DIR = path.resolve(__dirname, '..', '..', '..', 'docs', 'legal');
 
@@ -47,6 +53,12 @@ export const getPrivacyDocument = (): LegalDocument => ({
   content: readMarkdown('privacy.md'),
 });
 
+export const getCookiesDocument = (): LegalDocument => ({
+  version: COOKIES_VERSION,
+  contentType: 'text/markdown',
+  content: readMarkdown('cookies.md'),
+});
+
 /**
  * ADS-497 (slice 1): pending re-acceptance detection.
  *
@@ -61,19 +73,23 @@ export const getPrivacyDocument = (): LegalDocument => ({
  * per pending doc.
  *
  * Notes:
- *   - Only `terms` and `privacy` are tracked today; the `cookies`
- *     document type from the broader ADS-497 spec does not yet exist
- *     in `legal-content.service` and is intentionally out of scope for
- *     this slice.
+ *   - `terms`, `privacy`, and `cookies` are tracked. The cookies copy
+ *     and version are currently a clearly-marked placeholder
+ *     (`COOKIES_VERSION` ends in `-PLACEHOLDER`) and the consent service
+ *     does not yet capture a `cookiesVersion`, so until both land
+ *     `getPendingReacceptance` will always return `cookies` as pending
+ *     for every user. That is intentional for the wiring slice and
+ *     should be addressed before the cookies type is shown in the
+ *     re-acceptance modal.
  *   - Consent capture writes to `audit_logs` (see
  *     `consent.service.ts`), so this read also goes there. Migrating
  *     to a dedicated consent-acceptance table is a separate decision.
  */
 
-export type LegalDocumentType = 'terms' | 'privacy';
+export type LegalDocumentType = 'terms' | 'privacy' | 'cookies';
 
 const PendingReacceptanceItemSchema = z.object({
-  documentType: z.enum(['terms', 'privacy']),
+  documentType: z.enum(['terms', 'privacy', 'cookies']),
   currentVersion: z.string(),
   lastAcceptedVersion: z.string().nullable(),
   lastAcceptedAt: z.string().nullable(),
@@ -89,6 +105,11 @@ export type PendingReacceptance = z.infer<typeof PendingReacceptanceSchema>;
 const ConsentDetailsSchema = z.object({
   tosVersion: z.string().optional(),
   privacyVersion: z.string().optional(),
+  // Forward-compatible: consent.service does not write this field today,
+  // so it will always be undefined and the cookies row will surface as
+  // pending. Once consent capture starts persisting it, this read picks
+  // it up automatically.
+  cookiesVersion: z.string().optional(),
   acceptedAt: z.string().optional(),
 });
 
@@ -124,6 +145,11 @@ export const getPendingReacceptance = async (userId: string): Promise<PendingRea
       documentType: 'privacy',
       currentVersion: PRIVACY_VERSION,
       lastAcceptedVersion: details.privacyVersion ?? null,
+    },
+    {
+      documentType: 'cookies',
+      currentVersion: COOKIES_VERSION,
+      lastAcceptedVersion: details.cookiesVersion ?? null,
     },
   ];
 

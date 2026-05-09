@@ -1,5 +1,6 @@
 import { Response, Router } from 'express';
 import {
+  getCookiesDocument,
   getPendingReacceptance,
   getPrivacyDocument,
   getTermsDocument,
@@ -43,6 +44,23 @@ router.get('/privacy', (_req, res) => {
       error: error instanceof Error ? error.message : String(error),
     });
     res.status(500).json({ error: 'Failed to load privacy policy' });
+  }
+});
+
+// NOTE: the cookies document body is currently a clearly-marked
+// placeholder pending legal review. The endpoint is wired so the
+// version constant + markdown source can be referenced end-to-end, but
+// the response body must not be linked from any user-facing UI until
+// `docs/legal/cookies.md` is replaced with approved copy.
+router.get('/cookies', (_req, res) => {
+  try {
+    const doc = getCookiesDocument();
+    res.json({ data: doc });
+  } catch (error) {
+    logger.error('Failed to read cookies document', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({ error: 'Failed to load cookies policy' });
   }
 });
 
