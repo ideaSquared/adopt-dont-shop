@@ -1,4 +1,4 @@
-import { authenticator } from 'otplib';
+import { generateSync } from 'otplib';
 
 import { test, expect } from '../../fixtures';
 import { postWithCsrf } from '../../helpers/seeds';
@@ -41,7 +41,7 @@ test.describe('admin 2FA enrollment', () => {
     // Confirm we can generate a valid 6-digit code from the secret.
     // This is the contract that actually matters — that the server
     // hands out a secret otplib can drive.
-    const code = authenticator.generate(secret!);
+    const code = generateSync({ secret: secret! });
     expect(code).toMatch(/^\d{6}$/);
 
     // Best-effort enable + disable.  If the server rejects (e.g. the
@@ -55,7 +55,7 @@ test.describe('admin 2FA enrollment', () => {
     if (!enableRes.ok()) {
       return;
     }
-    const disableCode = authenticator.generate(secret!);
+    const disableCode = generateSync({ secret: secret! });
     await postWithCsrf(adminApi.context, '/api/v1/auth/2fa/disable', {
       token: disableCode,
     }).catch(() => undefined);
