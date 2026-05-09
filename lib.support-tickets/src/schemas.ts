@@ -62,7 +62,7 @@ export const SupportTicketSchema = z.object({
   tags: z.array(z.string()).default([]),
   responses: z.array(TicketResponseSchema).default([]),
   attachments: z.array(AttachmentSchema).default([]),
-  metadata: z.record(z.unknown()).default({}),
+  metadata: z.record(z.string(), z.unknown()).default({}),
   firstResponseAt: z.coerce.date().nullable().optional(),
   lastResponseAt: z.coerce.date().nullable().optional(),
   resolvedAt: z.coerce.date().nullable().optional(),
@@ -91,7 +91,7 @@ export const CreateTicketRequestSchema = z.object({
   description: z.string().min(10).max(10000),
   tags: z.array(z.string()).optional(),
   attachments: z.array(AttachmentSchema).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Update ticket request schema

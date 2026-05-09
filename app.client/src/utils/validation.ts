@@ -84,7 +84,7 @@ export const personalInfoSchema = z.object({
 export const livingSituationSchema = z
   .object({
     housingType: z.enum(['house', 'apartment', 'flat', 'farm', 'other'], {
-      errorMap: () => ({ message: 'Please select a housing type' }),
+      error: () => 'Please select a housing type',
     }),
 
     isOwned: z.boolean(),
@@ -104,7 +104,7 @@ export const livingSituationSchema = z
     yardFenced: z.boolean().optional(),
 
     allowsPets: z.boolean({
-      errorMap: () => ({ message: 'Please confirm if pets are allowed' }),
+      error: () => 'Please confirm if pets are allowed',
     }),
 
     landlordContact: z
@@ -144,7 +144,7 @@ export const petExperienceSchema = z.object({
   hasPetsCurrently: z.boolean(),
 
   experienceLevel: z.enum(['beginner', 'some', 'experienced', 'expert'], {
-    errorMap: () => ({ message: 'Please select your experience level' }),
+    error: () => 'Please select your experience level',
   }),
 
   willingToTrain: z.boolean(),
@@ -282,7 +282,7 @@ export function validateStep(
   }
 
   const errors: Record<string, string> = {};
-  result.error.errors.forEach(error => {
+  result.error.issues.forEach(error => {
     const path = error.path.join('.');
     errors[path] = error.message;
   });
@@ -333,7 +333,7 @@ export function validateField(
           return { isValid: true };
         }
 
-        const error = result.error.errors[0];
+        const error = result.error.issues[0];
         return { isValid: false, error: error?.message || 'Invalid value' };
       }
     }

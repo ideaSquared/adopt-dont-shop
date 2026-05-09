@@ -137,7 +137,7 @@ const mockAdminUser = {
   ],
 };
 
-const rescueId = '11111111-1111-1111-1111-111111111111';
+const rescueId = '11111111-1111-4111-8111-111111111111';
 
 const buildApp = () => {
   const app = express();

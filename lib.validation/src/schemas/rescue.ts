@@ -202,7 +202,7 @@ export const RescueUpdateRequestSchema = z
     contactTitle: ContactTitleSchema.optional(),
     contactEmail: EmailSchema.optional(),
     contactPhone: UkPhoneNumberSchema.optional(),
-    settings: z.record(z.unknown()).optional(),
+    settings: z.record(z.string(), z.unknown()).optional(),
   })
   .strip();
 export type RescueUpdateRequest = z.infer<typeof RescueUpdateRequestSchema>;
