@@ -7,6 +7,13 @@
 # 3. Use strong, randomly generated passwords and secrets
 # 4. Consider using external secrets management (AWS Secrets Manager, Vault)
 # ============================================================================
+# Pulls pre-built images from GHCR. Deploy via .github/workflows/deploy.yml,
+# which sets DEPLOY_SHA in /opt/ads/production/.env on the host.
+# Public TLS is handled by the gateway stack
+# (deploy/gateway/docker-compose.gateway.yml); per-stack nginx serves /uploads
+# directly via auth_request [ADS-422] and is exposed on the internal network
+# only — the gateway proxies to it.
+# ============================================================================
 
 # Reusable JSON-file log driver with rotation. Without this Docker's default
 # json-file driver retains logs unboundedly and fills the host disk. [ADS-432]
@@ -19,11 +26,20 @@ x-logging: &default-logging
 services:
   # Database - Production configuration
   database:
+    image: postgis/postgis:16-3.4
+    container_name: ads_prod_db
     environment:
       # NO DEFAULTS - Must be explicitly set
-      POSTGRES_USER: ${POSTGRES_USER:?Error: POSTGRES_USER required in production}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required in production}
-      POSTGRES_DB: ${POSTGRES_DB:?Error: POSTGRES_DB required in production}
+      POSTGRES_USER: "${POSTGRES_USER:?Error: POSTGRES_USER required in production}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required in production}"
+      POSTGRES_DB: "${POSTGRES_DB:?Error: POSTGRES_DB required in production}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: always
     # Production: Don't expose database port to host
     ports: []
@@ -44,9 +60,13 @@ services:
 
   # Redis - Production configuration
   redis:
+    image: redis:7-alpine
+    container_name: ads_prod_redis
     restart: always
     ports: []  # Don't expose Redis port to host in production
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required in production}
+    volumes:
+      - redis_data:/data
+    command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required in production}"
     # Healthcheck so dependent services can wait for service_healthy. Without
     # this the backend may start before Redis is ready and crash on first
     # connection. [ADS-431]
@@ -70,10 +90,8 @@ services:
   # before the backend starts. Skipping this leaves the running service hitting
   # a stale schema on every release. [ADS-393]
   service-backend-migrate:
-    build:
-      context: .
-      dockerfile: ./service.backend/Dockerfile
-      target: build
+    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
+    container_name: ads_prod_backend_migrate
     restart: 'no'
     command: ['npx', 'sequelize-cli', 'db:migrate']
     working_dir: /app/service.backend
@@ -81,9 +99,9 @@ services:
       NODE_ENV: production
       DB_HOST: database
       DB_PORT: 5432
-      DB_USERNAME: ${POSTGRES_USER:?Error: POSTGRES_USER required}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}
-      PROD_DB_NAME: ${POSTGRES_DB:?Error: POSTGRES_DB required}
+      DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
     depends_on:
       database:
         condition: service_healthy
@@ -96,10 +114,8 @@ services:
 
   # Backend Service - Production
   service-backend:
-    build:
-      context: .
-      dockerfile: ./service.backend/Dockerfile
-      target: production
+    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
+    container_name: ads_prod_backend
     restart: always
     environment:
       NODE_ENV: production
@@ -107,36 +123,36 @@ services:
       # Database - NO DEFAULTS
       DB_HOST: database
       DB_PORT: 5432
-      DB_USERNAME: ${POSTGRES_USER:?Error: POSTGRES_USER required}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}
-      PROD_DB_NAME: ${POSTGRES_DB:?Error: POSTGRES_DB required}
+      DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
       DB_POOL_MAX: ${DB_POOL_MAX:-20}
       DB_POOL_MIN: ${DB_POOL_MIN:-5}
       # Redis - NO DEFAULTS
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}"
       # Security - REQUIRED
-      JWT_SECRET: ${JWT_SECRET:?Error: JWT_SECRET required}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}
-      SESSION_SECRET: ${SESSION_SECRET:?Error: SESSION_SECRET required}
-      CSRF_SECRET: ${CSRF_SECRET:?Error: CSRF_SECRET required}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Error: ENCRYPTION_KEY required}
+      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET required}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
+      SESSION_SECRET: "${SESSION_SECRET:?Error: SESSION_SECRET required}"
+      CSRF_SECRET: "${CSRF_SECRET:?Error: CSRF_SECRET required}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY:?Error: ENCRYPTION_KEY required}"
       # URLs
-      API_URL: ${API_URL:?Error: API_URL required}
-      CORS_ORIGIN: ${CORS_ORIGIN:?Error: CORS_ORIGIN required}
+      API_URL: "${API_URL:?Error: API_URL required}"
+      CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
       # ADS-410: backend builds password-reset / verification / invitation
       # email links from these. Without them, every email links to localhost.
-      FRONTEND_URL: ${FRONTEND_URL:?Error: FRONTEND_URL required (used to build email links)}
-      RESCUE_FRONTEND_URL: ${RESCUE_FRONTEND_URL:?Error: RESCUE_FRONTEND_URL required (used to build rescue invitation links)}
+      FRONTEND_URL: "${FRONTEND_URL:?Error: FRONTEND_URL required (used to build email links)}"
+      RESCUE_FRONTEND_URL: "${RESCUE_FRONTEND_URL:?Error: RESCUE_FRONTEND_URL required (used to build rescue invitation links)}"
       # Email (required for production)
-      EMAIL_PROVIDER: ${EMAIL_PROVIDER:?Error: EMAIL_PROVIDER required}
-      EMAIL_FROM: ${EMAIL_FROM:?Error: EMAIL_FROM required}
+      EMAIL_PROVIDER: "${EMAIL_PROVIDER:?Error: EMAIL_PROVIDER required}"
+      EMAIL_FROM: "${EMAIL_FROM:?Error: EMAIL_FROM required}"
       DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-${EMAIL_FROM}}
       EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-${EMAIL_FROM}}
       SUPPORT_EMAIL: ${SUPPORT_EMAIL:-${EMAIL_FROM}}
       # ADS-411: feature flags silently default-off without this key.
-      STATSIG_SERVER_SECRET_KEY: ${STATSIG_SERVER_SECRET_KEY:?Error: STATSIG_SERVER_SECRET_KEY required (server-side feature flags silently disabled when missing)}
+      STATSIG_SERVER_SECRET_KEY: "${STATSIG_SERVER_SECRET_KEY:?Error: STATSIG_SERVER_SECRET_KEY required (server-side feature flags silently disabled when missing)}"
       # ADS-451: optional / operational
       WORKER_ENABLED: ${WORKER_ENABLED:-false}
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -144,13 +160,13 @@ services:
       SMS_DEFAULT_COUNTRY_CODE: ${SMS_DEFAULT_COUNTRY_CODE:-GB}
       JWT_REPORT_SHARE_SECRET: ${JWT_REPORT_SHARE_SECRET:-}
       # ADS-422: nginx serves /uploads directly; disable Express fallback.
-      SERVE_LOCAL_UPLOADS: false
+      SERVE_LOCAL_UPLOADS: "false"
       # Disable development features
-      FORCE_SEED: false
-      DB_LOGGING: false
+      FORCE_SEED: "false"
+      DB_LOGGING: "false"
       # ADS-512: never enable raw error responses in production. The startup
       # validator also enforces this, but make the default explicit.
-      DEBUG_ERRORS: false
+      DEBUG_ERRORS: "false"
     volumes:
       # Only mount uploads directory in production
       - uploads:/app/uploads
@@ -193,12 +209,8 @@ services:
 
   # Frontend Apps - Production
   app-admin:
-    build:
-      context: .
-      dockerfile: Dockerfile.app.optimized
-      target: production
-      args:
-        APP_NAME: app.admin
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${DEPLOY_SHA:-latest}
+    container_name: ads_prod_admin
     restart: always
     volumes: []  # No volumes in production
     expose:
@@ -222,12 +234,8 @@ services:
           memory: 64m
 
   app-client:
-    build:
-      context: .
-      dockerfile: Dockerfile.app.optimized
-      target: production
-      args:
-        APP_NAME: app.client
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${DEPLOY_SHA:-latest}
+    container_name: ads_prod_client
     restart: always
     volumes: []  # No volumes in production
     expose:
@@ -251,12 +259,8 @@ services:
           memory: 64m
 
   app-rescue:
-    build:
-      context: .
-      dockerfile: Dockerfile.app.optimized
-      target: production
-      args:
-        APP_NAME: app.rescue
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${DEPLOY_SHA:-latest}
+    container_name: ads_prod_rescue
     restart: always
     volumes: []  # No volumes in production
     expose:
@@ -279,8 +283,13 @@ services:
           cpus: '0.1'
           memory: 64m
 
-  # Nginx - Production with SSL
+  # Per-stack nginx: routes traffic between backend/apps and serves /uploads
+  # via auth_request to the backend. [ADS-422]
+  # Public TLS is handled by the gateway stack — this nginx only listens on
+  # the internal network and is reverse-proxied by the gateway.
   nginx:
+    image: nginx:alpine
+    container_name: ads_prod_nginx
     restart: always
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
@@ -291,9 +300,14 @@ services:
       # files directly after a successful auth_request to the backend.
       # Must match the path used in the nginx `root` directive (/srv/uploads).
       - uploads:/srv/uploads:ro
-    ports:
-      - "80:80"
-      - "443:443"
+    expose:
+      - "80"
+      - "443"
+    depends_on:
+      - service-backend
+      - app-client
+      - app-admin
+      - app-rescue
     logging: *default-logging
     deploy:
       resources:
@@ -308,10 +322,19 @@ services:
 # Production Volumes
 # ============================================================================
 volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
   uploads:
     driver: local
   letsencrypt:
     driver: local
+
+networks:
+  default:
+    name: ads-prod-network
+    external: false
 
 # ============================================================================
 # Docker Secrets (Optional but Recommended)

@@ -1,0 +1,184 @@
+# ============================================================================
+# Staging Docker Compose — pulls pre-built images from GHCR
+# ============================================================================
+# Runs on the same server as production, isolated network + volumes.
+# Nginx/SSL handled by the gateway stack (deploy/gateway/docker-compose.gateway.yml).
+# Deploy via .github/workflows/deploy.yml (sets DEPLOY_SHA in .env).
+# ============================================================================
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  database:
+    image: postgis/postgis:16-3.4
+    container_name: ads_staging_db
+    restart: always
+    ports: []
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      POSTGRES_DB: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+
+  redis:
+    image: redis:7-alpine
+    container_name: ads_staging_redis
+    restart: always
+    ports: []
+    volumes:
+      - redis_data:/data
+    command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}"
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+
+  # One-shot init container: applies pending migrations before the backend
+  # starts. [ADS-393]
+  service-backend-migrate:
+    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
+    container_name: ads_staging_backend_migrate
+    restart: 'no'
+    command: ['npx', 'sequelize-cli', 'db:migrate']
+    working_dir: /app/service.backend
+    environment:
+      NODE_ENV: production
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
+    depends_on:
+      database:
+        condition: service_healthy
+    logging: *default-logging
+
+  service-backend:
+    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
+    container_name: ads_staging_backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      DB_POOL_MIN: ${DB_POOL_MIN:-2}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}"
+      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET required}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
+      SESSION_SECRET: "${SESSION_SECRET:?Error: SESSION_SECRET required}"
+      CSRF_SECRET: "${CSRF_SECRET:?Error: CSRF_SECRET required}"
+      ENCRYPTION_KEY: "${ENCRYPTION_KEY:?Error: ENCRYPTION_KEY required}"
+      API_URL: "${API_URL:?Error: API_URL required}"
+      CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
+      FRONTEND_URL: "${FRONTEND_URL:?Error: FRONTEND_URL required}"
+      RESCUE_FRONTEND_URL: "${RESCUE_FRONTEND_URL:?Error: RESCUE_FRONTEND_URL required}"
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
+      EMAIL_FROM: ${EMAIL_FROM:-staging@adoptdontshop.com}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-${EMAIL_FROM:-staging@adoptdontshop.com}}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-${EMAIL_FROM:-staging@adoptdontshop.com}}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-${EMAIL_FROM:-staging@adoptdontshop.com}}
+      STATSIG_SERVER_SECRET_KEY: ${STATSIG_SERVER_SECRET_KEY:-}
+      WORKER_ENABLED: ${WORKER_ENABLED:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_DIR: ${LOG_DIR:-logs}
+      SMS_DEFAULT_COUNTRY_CODE: ${SMS_DEFAULT_COUNTRY_CODE:-GB}
+      JWT_REPORT_SHARE_SECRET: ${JWT_REPORT_SHARE_SECRET:-}
+      # Staging has no per-stack nginx; backend serves /uploads itself.
+      SERVE_LOCAL_UPLOADS: "true"
+      FORCE_SEED: "false"
+      DB_LOGGING: "false"
+      DEBUG_ERRORS: "false"
+    volumes:
+      - uploads:/app/uploads
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    expose:
+      - "5000"
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:5000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      service-backend-migrate:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  app-client:
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${DEPLOY_SHA:-latest}
+    container_name: ads_staging_client
+    restart: always
+    expose:
+      - "80"
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+  app-admin:
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${DEPLOY_SHA:-latest}
+    container_name: ads_staging_admin
+    restart: always
+    expose:
+      - "80"
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+  app-rescue:
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${DEPLOY_SHA:-latest}
+    container_name: ads_staging_rescue
+    restart: always
+    expose:
+      - "80"
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads:
+
+networks:
+  default:
+    name: ads-staging-network
+    external: false
