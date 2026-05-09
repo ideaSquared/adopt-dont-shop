@@ -50,6 +50,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fire a single post-authentication signal so consuming apps can run
+  // session-scoped setup (e.g. initialize notifications) for both fresh
+  // logins and rehydrated sessions through one hook.
+  const initializeForAuthenticatedUser = (authenticatedUser: User) => {
+    onAuthEvent?.('auth_session_authenticated', {
+      user_id: authenticatedUser.userId,
+      user_type: authenticatedUser.userType,
+      email: authenticatedUser.email,
+    });
+  };
+
   // Initialize auth state from localStorage
   useEffect(() => {
     const initializeAuth = async () => {
@@ -70,6 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             }
 
             setUser(parsedUser);
+            initializeForAuthenticatedUser(parsedUser);
             setIsLoading(false);
             return;
           }
@@ -90,9 +102,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           }
 
           setUser(freshUser);
-
-          // TODO: Initialize notifications for existing authenticated user
-          // Notifications should be initialized by the consuming app if needed
+          if (freshUser) {
+            initializeForAuthenticatedUser(freshUser);
+          }
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
@@ -176,6 +188,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         user_type: response.user.userType,
         email: response.user.email,
       });
+
+      initializeForAuthenticatedUser(response.user);
     } catch (error) {
       console.error('Login error:', error);
       setUser(null);
