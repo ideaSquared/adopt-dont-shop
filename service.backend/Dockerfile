@@ -196,6 +196,9 @@ WORKDIR /app
 COPY --from=build --chown=backend:nodejs /app/service.backend/dist ./service.backend/dist
 COPY --from=build --chown=backend:nodejs /app/service.backend/node_modules ./service.backend/node_modules
 COPY --from=build --chown=backend:nodejs /app/service.backend/package*.json ./service.backend/
+# sequelize-cli config — needed by the migration sidecar in prod/staging compose.
+COPY --from=build --chown=backend:nodejs /app/service.backend/.sequelizerc ./service.backend/
+COPY --from=build --chown=backend:nodejs /app/service.backend/sequelize-config.js ./service.backend/
 
 # Switch to non-root user (security best practice)
 USER backend
