@@ -7,7 +7,7 @@ const mockEmailsSend = vi.fn();
 vi.mock('resend', () => ({
   Resend: class MockResend {
     emails = { send: mockEmailsSend };
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     constructor(_apiKey: string) {}
   },
 }));
@@ -178,8 +178,8 @@ describe('ResendProvider', () => {
 
       await provider.send(
         buildEmail({
-          subject: "Subject\r\nX-Injected: evil",
-          fromName: "Legit Name\nBcc: evil@hacker.com",
+          subject: 'Subject\r\nX-Injected: evil',
+          fromName: 'Legit Name\nBcc: evil@hacker.com',
         })
       );
 

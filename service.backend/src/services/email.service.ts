@@ -59,7 +59,9 @@ class EmailService {
             replyTo: config.email.resend.replyTo,
           });
           if (!resendProvider.validateConfiguration()) {
-            throw new Error('Resend provider misconfigured: RESEND_API_KEY and RESEND_FROM_EMAIL are required');
+            throw new Error(
+              'Resend provider misconfigured: RESEND_API_KEY and RESEND_FROM_EMAIL are required'
+            );
           }
           this.provider = resendProvider;
           break;
