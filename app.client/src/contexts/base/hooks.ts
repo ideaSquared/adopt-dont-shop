@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * Hook for debounced actions
  */
 export function useDebounce<T extends (...args: unknown[]) => void>(callback: T, delay: number): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const callbackRef = useRef(callback);
 
   // Update the callback ref when callback changes
