@@ -38,7 +38,7 @@
   "dependencies": {
     "@adopt-dont-shop/lib.api": "*",
     "@adopt-dont-shop/lib.types": "*",
-    "@types/node": "^20.19.0",
+    "@types/node": "^25.6.2",
     "date-fns": "^3.6.0",
     "react-icons": "^5.2.1",
     "socket.io-client": "^4.8.1"

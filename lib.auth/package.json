@@ -39,7 +39,7 @@
     "@adopt-dont-shop/lib.components": "*",
     "@adopt-dont-shop/lib.api": "*",
     "@adopt-dont-shop/lib.validation": "*",
-    "@types/node": "^20.19.0",
+    "@types/node": "^25.6.2",
     "@vanilla-extract/css": "^1.20.1",
     "@vanilla-extract/recipes": "^0.5.7",
     "react": "^18.3.1",

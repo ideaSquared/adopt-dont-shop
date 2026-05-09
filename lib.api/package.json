@@ -39,7 +39,7 @@
   "license": "MIT",
   "dependencies": {
     "@adopt-dont-shop/lib.types": "*",
-    "@types/node": "^20.19.0"
+    "@types/node": "^25.6.2"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
