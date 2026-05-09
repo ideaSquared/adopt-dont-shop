@@ -245,12 +245,15 @@ app.use('/api', (req, res, next) => {
   return csrfProtection(req, res, next);
 });
 
-// ADS-429: /uploads is now auth-gated. The express.static mount that
-// previously served local files unauthenticated has been replaced by
-// upload-serve.routes — every request requires a valid session/JWT
-// before the file is streamed from disk. Signed-URL escape hatch for
-// email/render contexts lives in the same router (/uploads-signed/...).
-// nginx-direct serving is tracked as the ADS-422 follow-up.
+// ADS-429 / ADS-422: upload serving.
+//
+// The /api/v1/uploads/authorize subrequest endpoint is always mounted so
+// nginx can call it in prod even when the Express file-streaming fallback
+// is disabled. The /uploads/* streaming fallback is only mounted when
+// config.storage.local.serveLocalUploads is true (i.e. dev/test where
+// nginx is not in front). In production, nginx serves the file directly
+// from the shared volume after a successful auth_request to /authorize,
+// so Node never enters the file-streaming path.
 if (config.storage.provider === 'local') {
   const projectRoot = path.resolve(__dirname, '..', '..');
   const uploadDir = path.resolve(config.storage.local.directory);
@@ -262,8 +265,15 @@ if (config.storage.provider === 'local') {
     );
   }
 
+  // Always mount the authorize endpoint — nginx needs it in all envs.
   app.use('/', uploadServeRoutes);
-  logger.info(`Auth-gated upload serving enabled for directory: ${uploadDir}`);
+  logger.info(`Upload authorize endpoint enabled for directory: ${uploadDir}`);
+
+  if (config.storage.local.serveLocalUploads) {
+    logger.info(`Express upload fallback streaming enabled (local dev / no nginx)`);
+  } else {
+    logger.info(`Express upload fallback streaming disabled — nginx serves /uploads directly`);
+  }
 }
 
 // Setup Swagger UI for API documentation
