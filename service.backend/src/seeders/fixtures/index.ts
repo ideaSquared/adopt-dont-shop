@@ -39,11 +39,11 @@ export async function runFixtureSeeders(): Promise<void> {
 
   for (let i = 0; i < FIXTURES.length; i++) {
     const { name, seeder } = FIXTURES[i];
-    // eslint-disable-next-line no-console
+
     console.log(`📦 [${i + 1}/${FIXTURES.length}] Loading fixture: ${name}...`);
     const start = Date.now();
     await seeder();
-    // eslint-disable-next-line no-console
+
     console.log(`✅ ${name} loaded (${Date.now() - start}ms)`);
   }
 }

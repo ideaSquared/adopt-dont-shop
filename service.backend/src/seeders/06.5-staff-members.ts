@@ -50,7 +50,6 @@ const staffMembers = [
 ];
 
 export const seedStaffMembers = async (): Promise<void> => {
-  // eslint-disable-next-line no-console
   console.log('🧑‍💼 Seeding staff members...');
 
   try {
@@ -60,10 +59,8 @@ export const seedStaffMembers = async (): Promise<void> => {
     // Create staff members
     await StaffMember.bulkCreate(staffMembers);
 
-    // eslint-disable-next-line no-console
     console.log(`✅ Successfully seeded ${staffMembers.length} staff members`);
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('❌ Error seeding staff members:', error);
     throw error;
   }
@@ -72,10 +69,9 @@ export const seedStaffMembers = async (): Promise<void> => {
 export const clearStaffMembers = async (): Promise<void> => {
   try {
     await StaffMember.destroy({ where: {}, force: true });
-    // eslint-disable-next-line no-console
+
     console.log('🗑️ Staff members cleared');
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('❌ Error clearing staff members:', error);
     throw error;
   }

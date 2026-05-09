@@ -71,7 +71,7 @@ describe('EmailService.processEmailQueue concurrency [ADS-477]', () => {
     for (let i = 0; i < count; i += 1) {
       // Use sequential creates so emailId / fromEmail defaults populate
       // properly under SQLite (bulkCreate skips some validations).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await EmailQueue.create({
         toEmail: `r${i}@test.com`,
         fromEmail: 'noreply@test.com',
@@ -88,7 +88,6 @@ describe('EmailService.processEmailQueue concurrency [ADS-477]', () => {
         templateData: {},
         attempts: 0,
         maxAttempts: 3,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
     }
   };

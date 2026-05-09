@@ -298,28 +298,16 @@ export async function seedEmilyDogConversation() {
       });
     }
 
-    // eslint-disable-next-line no-console
-
     console.log('✅ Created Emily Davis dog conversation with Happy Tails Senior Dog Rescue');
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Chat ID: ${emilyDogConversationData.chat.chat_id}`);
 
-    // eslint-disable-next-line no-console
-
     console.log(`   - Participants: ${emilyDogConversationData.participants.length}`);
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Messages: ${emilyDogConversationData.messages.length}`);
 
-    // eslint-disable-next-line no-console
-
     console.log(`   - Attachments: ${emilyDogConversationData.attachments.length}`);
   } catch (error) {
-    // eslint-disable-next-line no-console
-
     console.error('❌ Error creating Emily dog conversation:', error);
 
     throw error;
@@ -331,16 +319,12 @@ export async function seedEmilyDogConversation() {
 if (require.main === module) {
   seedEmilyDogConversation()
     .then(() => {
-      // eslint-disable-next-line no-console
-
       console.log('🎉 Emily dog conversation seeding completed successfully!');
 
       throw new Error('Seeding completed - exiting process');
     })
 
     .catch(error => {
-      // eslint-disable-next-line no-console
-
       console.error('💥 Emily dog conversation seeding failed:', error);
 
       throw error;

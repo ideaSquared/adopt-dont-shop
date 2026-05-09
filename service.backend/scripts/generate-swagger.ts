@@ -5,8 +5,6 @@
  * This script helps with automatic generation and validation of OpenAPI documentation
  */
 
-/* eslint-disable no-console */
-
 import fs from 'fs-extra';
 import path from 'path';
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -259,7 +257,7 @@ async function main(): Promise<void> {
 if (require.main === module) {
   main().catch(error => {
     console.error('❌ Script failed:', error);
-    // eslint-disable-next-line no-process-exit
+
     process.exit(1);
   });
 }

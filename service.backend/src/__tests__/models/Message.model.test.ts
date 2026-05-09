@@ -29,7 +29,6 @@ import Message from '../../models/Message';
  */
 describe('Chat-family model defaults', () => {
   describe('Message', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const attrs = Message.rawAttributes as Record<string, any>;
 
     it('message_id has a defaultValue so inserts without an explicit id succeed', () => {
@@ -52,7 +51,6 @@ describe('Chat-family model defaults', () => {
   });
 
   describe('Chat', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const attrs = Chat.rawAttributes as Record<string, any>;
 
     it('chat_id has a defaultValue so new chats don’t need a caller-supplied id', () => {
@@ -62,7 +60,6 @@ describe('Chat-family model defaults', () => {
   });
 
   describe('ChatParticipant', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const attrs = ChatParticipant.rawAttributes as Record<string, any>;
 
     it('chat_participant_id has a defaultValue so createChat participant inserts succeed', () => {

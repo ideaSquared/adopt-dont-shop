@@ -893,6 +893,5 @@ export async function seedApplications() {
     }
   }
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Created ${applicationData.length} adoption applications`);
 }

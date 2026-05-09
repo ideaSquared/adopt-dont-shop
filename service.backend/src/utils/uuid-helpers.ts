@@ -68,7 +68,6 @@ export const prepareBulkDataWithoutUuid = (
   uuidColumn = 'id'
 ): Record<string, unknown>[] => {
   return data.map(row => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [uuidColumn]: _removed, ...rest } = row;
     return rest;
   });

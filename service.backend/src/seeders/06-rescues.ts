@@ -147,6 +147,5 @@ export async function seedRescues() {
     });
   }
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Created ${rescueOrganizations.length} rescue organizations`);
 }

@@ -317,28 +317,16 @@ export async function seedEmilyRabbitConversation() {
       });
     }
 
-    // eslint-disable-next-line no-console
-
     console.log('✅ Created Emily Davis rabbit conversation with Furry Friends Manchester');
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Chat ID: ${emilyRabbitConversationData.chat.chat_id}`);
 
-    // eslint-disable-next-line no-console
-
     console.log(`   - Participants: ${emilyRabbitConversationData.participants.length}`);
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Messages: ${emilyRabbitConversationData.messages.length}`);
 
-    // eslint-disable-next-line no-console
-
     console.log(`   - Attachments: ${emilyRabbitConversationData.attachments.length}`);
   } catch (error) {
-    // eslint-disable-next-line no-console
-
     console.error('❌ Error creating Emily rabbit conversation:', error);
 
     throw error;
@@ -350,16 +338,12 @@ export async function seedEmilyRabbitConversation() {
 if (require.main === module) {
   seedEmilyRabbitConversation()
     .then(() => {
-      // eslint-disable-next-line no-console
-
       console.log('🎉 Emily rabbit conversation seeding completed successfully!');
 
       throw new Error('Seeding completed - exiting process');
     })
 
     .catch(error => {
-      // eslint-disable-next-line no-console
-
       console.error('💥 Emily rabbit conversation seeding failed:', error);
 
       throw error;

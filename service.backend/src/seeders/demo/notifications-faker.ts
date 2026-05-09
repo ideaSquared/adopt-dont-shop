@@ -78,7 +78,6 @@ export async function seedDemoNotifications(): Promise<void> {
 
   const users = await User.findAll({ paranoid: false, attributes: ['userId'] });
   if (users.length === 0) {
-    // eslint-disable-next-line no-console
     console.log('⚠️  No users — skipping notifications');
     return;
   }
@@ -137,6 +136,5 @@ export async function seedDemoNotifications(): Promise<void> {
 
   await bulkInsert(Notification, rows, { chunkSize: 1000 });
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Inserted ${rows.length} faker-generated notifications (target ${target})`);
 }

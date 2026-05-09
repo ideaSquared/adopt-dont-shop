@@ -92,6 +92,5 @@ export async function seedDemoRescues(): Promise<void> {
 
   await bulkInsert(Rescue, rows);
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Inserted ${rows.length} faker-generated rescues (target ${target})`);
 }

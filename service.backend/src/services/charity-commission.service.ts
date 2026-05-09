@@ -88,7 +88,7 @@ const fetchWithRetry = async (
   let attempt = 0;
   // Bail conditions are explicit at the bottom of the loop body. ESLint's
   // no-constant-condition rule is overly cautious here.
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     if (budgetSignal.aborted) {
       throw new TimeoutError();

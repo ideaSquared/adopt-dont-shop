@@ -350,6 +350,5 @@ export async function seedEmilyTestNotifications() {
     });
   }
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Created ${emilyTestNotifications.length} test notifications for Emily Davis`);
 }

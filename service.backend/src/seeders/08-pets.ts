@@ -416,6 +416,5 @@ export async function seedPets() {
     }
   }
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Created ${petProfiles.length} pet profiles`);
 }

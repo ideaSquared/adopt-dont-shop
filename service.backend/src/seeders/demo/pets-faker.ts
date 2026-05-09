@@ -93,7 +93,6 @@ export async function seedDemoPets(): Promise<void> {
 
   const rescues = await Rescue.findAll({ paranoid: false, attributes: ['rescueId'] });
   if (rescues.length === 0) {
-    // eslint-disable-next-line no-console
     console.log('⚠️  No rescues to attach pets to — skipping demo pets');
     return;
   }
@@ -183,6 +182,5 @@ export async function seedDemoPets(): Promise<void> {
 
   await bulkInsert(Pet, rows);
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Inserted ${rows.length} faker-generated pets (target ${target})`);
 }
