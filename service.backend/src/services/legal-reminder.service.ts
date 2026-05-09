@@ -1,0 +1,256 @@
+import { Op } from 'sequelize';
+import { z } from 'zod';
+import AuditLog from '../models/AuditLog';
+import User from '../models/User';
+import { AuditLogService } from './auditLog.service';
+import emailService from './email.service';
+import { PendingReacceptanceItem, getPendingReacceptance } from './legal-content.service';
+import { logger } from '../utils/logger';
+
+/**
+ * ADS-497 (slice 3): admin-triggered re-acceptance reminder email.
+ *
+ * SCOPE — single user, manually triggered. There is intentionally no
+ * cron, no bulk-send, and no UI hook. The only entry point is the
+ * admin route `POST /api/v1/admin/legal/send-reacceptance-reminder`
+ * (see `admin.routes.ts`). Bulk fan-out is deferred to slice 4.
+ *
+ * Behaviour:
+ *   1. Look up which legal documents the user still has to re-accept
+ *      (`legal-content.service#getPendingReacceptance`). If nothing is
+ *      pending, return `{ sent: false, reason: 'no_pending_versions' }`
+ *      without emailing — version bumps shouldn't surprise users who
+ *      already accepted the latest copy.
+ *   2. Per-user-per-version dedupe via the audit log: if a
+ *      `LEGAL_REMINDER_SENT` row exists for this user with the same
+ *      pending-version fingerprint inside the rate-limit window, return
+ *      `{ sent: false, reason: 'rate_limited' }`. No new email, no new
+ *      audit row.
+ *   3. Otherwise, send a transactional email with subject + body that
+ *      lists the docs to review and links back to the app. Append a
+ *      `LEGAL_REMINDER_SENT` audit row capturing the version
+ *      fingerprint so subsequent calls can dedupe.
+ *
+ * Dedupe storage: reusing `audit_logs` (matches consent capture in
+ * `consent.service.ts`). Avoids a new table for what is effectively an
+ * append-only audit trail.
+ */
+
+export const REMINDER_RATE_LIMIT_HOURS = 24;
+export const LEGAL_REMINDER_SENT_ACTION = 'LEGAL_REMINDER_SENT';
+
+export const ReminderResultSchema = z.discriminatedUnion('sent', [
+  z.object({
+    sent: z.literal(true),
+    versions: z.array(
+      z.object({
+        documentType: z.enum(['terms', 'privacy']),
+        currentVersion: z.string(),
+      })
+    ),
+  }),
+  z.object({
+    sent: z.literal(false),
+    reason: z.enum(['no_pending_versions', 'rate_limited']),
+  }),
+]);
+export type ReminderResult = z.infer<typeof ReminderResultSchema>;
+
+const ReminderAuditDetailsSchema = z.object({
+  versionFingerprint: z.string(),
+  versions: z.array(
+    z.object({
+      documentType: z.enum(['terms', 'privacy']),
+      currentVersion: z.string(),
+    })
+  ),
+  triggeredBy: z.string().nullable(),
+});
+export type ReminderAuditDetails = z.infer<typeof ReminderAuditDetailsSchema>;
+
+/**
+ * Stable identifier for "the set of documents this reminder is about".
+ * Sorted so that {terms, privacy} and {privacy, terms} produce the
+ * same fingerprint regardless of upstream ordering.
+ */
+const buildVersionFingerprint = (pending: ReadonlyArray<PendingReacceptanceItem>): string => {
+  return pending
+    .map(p => `${p.documentType}:${p.currentVersion}`)
+    .sort()
+    .join('|');
+};
+
+const wasRecentlyReminded = async (userId: string, fingerprint: string): Promise<boolean> => {
+  const cutoff = new Date(Date.now() - REMINDER_RATE_LIMIT_HOURS * 60 * 60 * 1000);
+  const recent = await AuditLog.findOne({
+    where: {
+      user: userId,
+      action: LEGAL_REMINDER_SENT_ACTION,
+      timestamp: { [Op.gte]: cutoff },
+    },
+    order: [['timestamp', 'DESC']],
+  });
+  if (!recent) {
+    return false;
+  }
+  const parsed = ReminderAuditDetailsSchema.safeParse(
+    (recent.metadata as { details?: unknown } | null | undefined)?.details
+  );
+  if (!parsed.success) {
+    // Malformed metadata — treat as no record, but log so we notice.
+    logger.warn('LEGAL_REMINDER_SENT audit row had unparseable details', {
+      userId,
+    });
+    return false;
+  }
+  return parsed.data.versionFingerprint === fingerprint;
+};
+
+const documentLabel = (documentType: 'terms' | 'privacy'): string =>
+  documentType === 'terms' ? 'Terms of Service' : 'Privacy Policy';
+
+const renderReminderHtml = (
+  firstName: string | null,
+  pending: ReadonlyArray<PendingReacceptanceItem>
+): string => {
+  const baseUrl = process.env.FRONTEND_URL || 'https://adoptdontshop.com';
+  const supportEmail = process.env.SUPPORT_EMAIL || 'support@adoptdontshop.com';
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi there,';
+  const items = pending
+    .map(p => `<li>${documentLabel(p.documentType)} (version ${p.currentVersion})</li>`)
+    .join('\n          ');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Action required: review updated legal documents</title>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2>Please review our updated legal documents</h2>
+  <p>${greeting}</p>
+  <p>We've updated the following document(s) and need you to review and re-accept them the next time you sign in:</p>
+  <ul>
+          ${items}
+  </ul>
+  <p>
+    <a href="${baseUrl}" style="display: inline-block; background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+      Open Adopt Don't Shop
+    </a>
+  </p>
+  <p>You won't be able to continue using your account until you've accepted the latest versions. If you have any questions, contact us at ${supportEmail}.</p>
+  <p>Thanks,<br>The Adopt Don't Shop team</p>
+</body>
+</html>`;
+};
+
+const renderReminderText = (
+  firstName: string | null,
+  pending: ReadonlyArray<PendingReacceptanceItem>
+): string => {
+  const baseUrl = process.env.FRONTEND_URL || 'https://adoptdontshop.com';
+  const supportEmail = process.env.SUPPORT_EMAIL || 'support@adoptdontshop.com';
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi there,';
+  const items = pending
+    .map(p => `- ${documentLabel(p.documentType)} (version ${p.currentVersion})`)
+    .join('\n');
+
+  return `Please review our updated legal documents
+
+${greeting}
+
+We've updated the following document(s) and need you to review and re-accept them the next time you sign in:
+
+${items}
+
+Open Adopt Don't Shop: ${baseUrl}
+
+You won't be able to continue using your account until you've accepted the latest versions. If you have any questions, contact us at ${supportEmail}.
+
+Thanks,
+The Adopt Don't Shop team`;
+};
+
+const buildSubject = (pending: ReadonlyArray<PendingReacceptanceItem>): string => {
+  if (pending.length === 1) {
+    return `Action required: please review our updated ${documentLabel(pending[0].documentType)}`;
+  }
+  return 'Action required: please review our updated legal documents';
+};
+
+export type SendReminderOptions = {
+  userId: string;
+  triggeredBy?: string | null;
+};
+
+/**
+ * Send a legal-reacceptance reminder email to a single user.
+ *
+ * Throws when the user does not exist or has no email on file — the
+ * caller (admin route) translates these into 404 / 422. Returns a
+ * structured `{ sent }` result for the normal cases (already current
+ * or rate-limited) so the admin sees why nothing was sent.
+ */
+export const sendReacceptanceReminder = async (
+  options: SendReminderOptions
+): Promise<ReminderResult> => {
+  const { userId, triggeredBy = null } = options;
+
+  const user = await User.findByPk(userId, {
+    attributes: ['userId', 'email', 'firstName'],
+  });
+  if (!user) {
+    throw new Error('User not found');
+  }
+  if (!user.email) {
+    throw new Error('User has no email address on file');
+  }
+
+  const { pending } = await getPendingReacceptance(userId);
+  if (pending.length === 0) {
+    return { sent: false, reason: 'no_pending_versions' };
+  }
+
+  const fingerprint = buildVersionFingerprint(pending);
+
+  if (await wasRecentlyReminded(userId, fingerprint)) {
+    return { sent: false, reason: 'rate_limited' };
+  }
+
+  const versions = pending.map(p => ({
+    documentType: p.documentType,
+    currentVersion: p.currentVersion,
+  }));
+
+  await emailService.sendEmail({
+    toEmail: user.email,
+    toName: user.firstName ?? undefined,
+    userId,
+    subject: buildSubject(pending),
+    htmlContent: renderReminderHtml(user.firstName ?? null, pending),
+    textContent: renderReminderText(user.firstName ?? null, pending),
+    type: 'transactional',
+    priority: 'normal',
+    metadata: {
+      legalReminder: {
+        versionFingerprint: fingerprint,
+      },
+    },
+  });
+
+  const auditDetails: ReminderAuditDetails = {
+    versionFingerprint: fingerprint,
+    versions,
+    triggeredBy,
+  };
+
+  await AuditLogService.log({
+    userId,
+    action: LEGAL_REMINDER_SENT_ACTION,
+    entity: 'User',
+    entityId: userId,
+    details: auditDetails,
+  });
+
+  return { sent: true, versions };
+};

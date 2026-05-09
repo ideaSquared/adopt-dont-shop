@@ -1,11 +1,16 @@
-import express from 'express';
+import express, { Response } from 'express';
+import { z } from 'zod';
 import { AdminController } from '../controllers/admin.controller';
 import { SecurityController } from '../controllers/security.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requireAdmin, requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
+import { validateBody } from '../middleware/zod-validate';
+import { sendReacceptanceReminder } from '../services/legal-reminder.service';
+import { AuthenticatedRequest } from '../types/api';
 import { PERMISSIONS } from '../types/rbac';
+import { logger } from '../utils/logger';
 import { adminValidation } from '../validation/admin.validation';
 
 const router = express.Router();
@@ -1542,6 +1547,46 @@ router.get(
   requirePermission(PERMISSIONS.ADMIN_SECURITY_READ),
   generalLimiter,
   SecurityController.getSuspiciousActivity
+);
+
+// ADS-497 (slice 3): admin-triggered legal re-acceptance reminder.
+// Single user per request. No bulk-send. Per-user-per-version dedupe
+// is handled inside the service via the audit log; bulk fan-out is
+// deferred to slice 4.
+const SendReacceptanceReminderBodySchema = z.object({
+  userId: z.string().uuid(),
+});
+
+router.post(
+  '/legal/send-reacceptance-reminder',
+  authLimiter,
+  validateBody(SendReacceptanceReminderBodySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { userId } = req.body as z.infer<typeof SendReacceptanceReminderBodySchema>;
+    try {
+      const result = await sendReacceptanceReminder({
+        userId,
+        triggeredBy: req.user?.userId ?? null,
+      });
+      res.status(200).json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (message === 'User not found') {
+        res.status(404).json({ error: message });
+        return;
+      }
+      if (message === 'User has no email address on file') {
+        res.status(422).json({ error: message });
+        return;
+      }
+      logger.error('Failed to send legal re-acceptance reminder', {
+        userId,
+        triggeredBy: req.user?.userId,
+        error: message,
+      });
+      res.status(500).json({ error: 'Failed to send reminder' });
+    }
+  }
 );
 
 export default router;
