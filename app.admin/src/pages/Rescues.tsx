@@ -398,7 +398,7 @@ const Rescues: React.FC = () => {
         selectedCount={selectedRows.size}
         confirmLabel={bulkRescueAction === 'approve' ? 'Approve Rescues' : 'Suspend Rescues'}
         variant={bulkRescueAction === 'suspend' ? 'danger' : 'info'}
-        isLoading={bulkUpdateRescues.isLoading}
+        isLoading={bulkUpdateRescues.isPending}
         resultSummary={bulkResult}
       />
     </div>

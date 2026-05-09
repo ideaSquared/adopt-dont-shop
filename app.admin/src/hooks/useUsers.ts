@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { userManagementService } from '../services/userManagementService';
 
 // Re-export UserFilters type for convenience
@@ -8,8 +8,10 @@ export type { UserFilters } from '../services/userManagementService';
  * Hook to fetch paginated users with filtering
  */
 export const useUsers = (filters: Parameters<typeof userManagementService.getUsers>[0] = {}) => {
-  return useQuery(['users', filters], () => userManagementService.getUsers(filters), {
-    keepPreviousData: true,
+  return useQuery({
+    queryKey: ['users', filters],
+    queryFn: () => userManagementService.getUsers(filters),
+    placeholderData: keepPreviousData,
     staleTime: 30000, // 30 seconds
   });
 };
@@ -18,7 +20,9 @@ export const useUsers = (filters: Parameters<typeof userManagementService.getUse
  * Hook to fetch a single user by ID
  */
 export const useUser = (userId: string) => {
-  return useQuery(['user', userId], () => userManagementService.getUserById(userId), {
+  return useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => userManagementService.getUserById(userId),
     enabled: !!userId,
   });
 };
@@ -29,15 +33,13 @@ export const useUser = (userId: string) => {
 export const useCreateUser = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (userData: Parameters<typeof userManagementService.createUser>[0]) =>
+  return useMutation({
+    mutationFn: (userData: Parameters<typeof userManagementService.createUser>[0]) =>
       userManagementService.createUser(userData),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('users');
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
 };
 
 /**
@@ -46,21 +48,19 @@ export const useCreateUser = () => {
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    ({
+  return useMutation({
+    mutationFn: ({
       userId,
       userData,
     }: {
       userId: string;
       userData: Parameters<typeof userManagementService.updateUser>[1];
     }) => userManagementService.updateUser(userId, userData),
-    {
-      onSuccess: (_data, variables) => {
-        queryClient.invalidateQueries('users');
-        queryClient.invalidateQueries(['user', variables.userId]);
-      },
-    }
-  );
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', variables.userId] });
+    },
+  });
 };
 
 /**
@@ -69,25 +69,25 @@ export const useUpdateUser = () => {
 export const useDeleteUser = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (params: { userId: string; reason?: string } | string) => {
+  return useMutation({
+    mutationFn: (params: { userId: string; reason?: string } | string) => {
       const userId = typeof params === 'string' ? params : params.userId;
       const reason = typeof params === 'string' ? undefined : params.reason;
       return userManagementService.deleteUser(userId, reason);
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('users');
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
 };
 
 /**
  * Hook to reset user password
  */
 export const useResetUserPassword = () => {
-  return useMutation((userId: string) => userManagementService.resetUserPassword(userId));
+  return useMutation({
+    mutationFn: (userId: string) => userManagementService.resetUserPassword(userId),
+  });
 };
 
 /**
@@ -97,13 +97,11 @@ export const useUserActivity = (
   userId: string,
   filters: Parameters<typeof userManagementService.getUserActivity>[1] = {}
 ) => {
-  return useQuery(
-    ['user-activity', userId, filters],
-    () => userManagementService.getUserActivity(userId, filters),
-    {
-      enabled: !!userId,
-    }
-  );
+  return useQuery({
+    queryKey: ['user-activity', userId, filters],
+    queryFn: () => userManagementService.getUserActivity(userId, filters),
+    enabled: !!userId,
+  });
 };
 
 /**
@@ -113,21 +111,21 @@ export const useSearchUsers = (
   query: string,
   filters: Parameters<typeof userManagementService.searchUsers>[1] = {}
 ) => {
-  return useQuery(
-    ['users-search', query, filters],
-    () => userManagementService.searchUsers(query, filters),
-    {
-      enabled: !!query,
-      keepPreviousData: true,
-    }
-  );
+  return useQuery({
+    queryKey: ['users-search', query, filters],
+    queryFn: () => userManagementService.searchUsers(query, filters),
+    enabled: !!query,
+    placeholderData: keepPreviousData,
+  });
 };
 
 /**
  * Hook to fetch user statistics
  */
 export const useUserStats = () => {
-  return useQuery(['user-stats'], () => userManagementService.getUserStats(), {
+  return useQuery({
+    queryKey: ['user-stats'],
+    queryFn: () => userManagementService.getUserStats(),
     staleTime: 60000, // 1 minute
   });
 };
@@ -138,42 +136,42 @@ export const useUserStats = () => {
 export const useBulkUpdateUsers = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    ({
+  return useMutation({
+    mutationFn: ({
       userIds,
       updates,
     }: {
       userIds: string[];
       updates: { userType?: string; is_active?: boolean };
     }) => userManagementService.bulkUpdateUsers(userIds, updates),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('users');
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
 };
 
 /**
  * Hook to send notification to user
  */
 export const useSendUserNotification = () => {
-  return useMutation(
-    ({
+  return useMutation({
+    mutationFn: ({
       userId,
       notification,
     }: {
       userId: string;
       notification: Parameters<typeof userManagementService.sendNotification>[1];
-    }) => userManagementService.sendNotification(userId, notification)
-  );
+    }) => userManagementService.sendNotification(userId, notification),
+  });
 };
 
 /**
  * Hook to fetch user's rescues
  */
 export const useUserRescues = (userId: string) => {
-  return useQuery(['user-rescues', userId], () => userManagementService.getUserRescues(userId), {
+  return useQuery({
+    queryKey: ['user-rescues', userId],
+    queryFn: () => userManagementService.getUserRescues(userId),
     enabled: !!userId,
   });
 };
@@ -182,13 +180,11 @@ export const useUserRescues = (userId: string) => {
  * Hook to fetch user's applications
  */
 export const useUserApplications = (userId: string) => {
-  return useQuery(
-    ['user-applications', userId],
-    () => userManagementService.getUserApplications(userId),
-    {
-      enabled: !!userId,
-    }
-  );
+  return useQuery({
+    queryKey: ['user-applications', userId],
+    queryFn: () => userManagementService.getUserApplications(userId),
+    enabled: !!userId,
+  });
 };
 
 /**
@@ -197,16 +193,14 @@ export const useUserApplications = (userId: string) => {
 export const useSuspendUser = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    (params: { userId: string; reason?: string }) =>
+  return useMutation({
+    mutationFn: (params: { userId: string; reason?: string }) =>
       userManagementService.suspendUser(params.userId, params.reason),
-    {
-      onSuccess: (_data, variables) => {
-        queryClient.invalidateQueries('users');
-        queryClient.invalidateQueries(['user', variables.userId]);
-      },
-    }
-  );
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', variables.userId] });
+    },
+  });
 };
 
 /**
@@ -215,10 +209,11 @@ export const useSuspendUser = () => {
 export const useUnsuspendUser = () => {
   const queryClient = useQueryClient();
 
-  return useMutation((userId: string) => userManagementService.unsuspendUser(userId), {
+  return useMutation({
+    mutationFn: (userId: string) => userManagementService.unsuspendUser(userId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries('users');
-      queryClient.invalidateQueries(['user', variables]);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', variables] });
     },
   });
 };
@@ -229,10 +224,11 @@ export const useUnsuspendUser = () => {
 export const useVerifyUser = () => {
   const queryClient = useQueryClient();
 
-  return useMutation((userId: string) => userManagementService.verifyUser(userId), {
+  return useMutation({
+    mutationFn: (userId: string) => userManagementService.verifyUser(userId),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries('users');
-      queryClient.invalidateQueries(['user', variables]);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', variables] });
     },
   });
 };

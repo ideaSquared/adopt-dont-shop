@@ -1,11 +1,11 @@
-import { useMutation, useQueryClient } from 'react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { rescueService } from '../services/rescueService';
 
 export const useBulkUpdateRescues = () => {
   const queryClient = useQueryClient();
 
-  return useMutation(
-    ({
+  return useMutation({
+    mutationFn: ({
       rescueIds,
       action,
       reason,
@@ -14,10 +14,8 @@ export const useBulkUpdateRescues = () => {
       action: 'approve' | 'suspend' | 'verify';
       reason?: string;
     }) => rescueService.bulkUpdate(rescueIds, action, reason),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries('rescues');
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rescues'] });
+    },
+  });
 };

@@ -244,7 +244,7 @@ const Pets: React.FC = () => {
         variant={
           bulkAction === 'archive' ? 'danger' : bulkAction === 'unpublish' ? 'warning' : 'info'
         }
-        isLoading={bulkUpdatePets.isLoading}
+        isLoading={bulkUpdatePets.isPending}
         resultSummary={bulkResult}
       />
     </div>

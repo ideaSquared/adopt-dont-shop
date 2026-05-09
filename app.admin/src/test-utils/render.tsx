@@ -2,7 +2,7 @@ import { render, RenderOptions } from '@testing-library/react';
 import { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const createTestQueryClient = () =>
   new QueryClient({

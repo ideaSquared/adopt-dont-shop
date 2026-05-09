@@ -103,7 +103,7 @@ export default defineConfig(({ mode }) => {
             if (id.includes('@sentry/')) {
               return 'sentry';
             }
-            if (id.includes('react-query')) {
+            if (id.includes('@tanstack/react-query')) {
               return 'query-vendor';
             }
             if (id.includes('react-router')) {

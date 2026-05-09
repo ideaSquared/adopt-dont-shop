@@ -49,7 +49,7 @@ const TEMPLATES = {
       '@adopt-dont-shop/lib.auth': '*',
       '@adopt-dont-shop/lib.analytics': '*',
       '@adopt-dont-shop/lib.api': '*',
-      'react-query': '^3.39.3',
+      '@tanstack/react-query': '^5.0.0',
       'styled-components': '^6.1.8',
     },
     contexts: ['Auth', 'Analytics'],
@@ -72,7 +72,7 @@ const TEMPLATES = {
       '@adopt-dont-shop/lib.discovery': '*',
       '@adopt-dont-shop/lib.search': '*',
       '@statsig/react-bindings': '^3.18.2',
-      'react-query': '^3.39.3',
+      '@tanstack/react-query': '^5.0.0',
       'styled-components': '^6.1.8',
     },
     contexts: ['Auth', 'Analytics', 'FeatureFlags', 'Notifications', 'Permissions'],
@@ -253,7 +253,7 @@ function generateMain(template) {
   ];
 
   if (template === 'standard' || template === 'enterprise') {
-    imports.push("import { QueryClient, QueryClientProvider } from 'react-query';");
+    imports.push("import { QueryClient, QueryClientProvider } from '@tanstack/react-query';");
 
     queryClientSetup = `const queryClient = new QueryClient({
   defaultOptions: {

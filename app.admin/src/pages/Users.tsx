@@ -594,7 +594,7 @@ const Users: React.FC = () => {
         requireReason={bulkAction === 'delete'}
         reasonLabel='Reason for deletion'
         reasonPlaceholder='Explain why these users are being deleted...'
-        isLoading={bulkUpdateUsers.isLoading || deleteUser.isLoading}
+        isLoading={bulkUpdateUsers.isPending || deleteUser.isPending}
         resultSummary={bulkResult}
       />
 
