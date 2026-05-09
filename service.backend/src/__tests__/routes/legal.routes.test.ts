@@ -24,10 +24,9 @@ vi.mock('../../config/env', () => ({
 }));
 
 vi.mock('../../services/legal-content.service', async () => {
-  const actual =
-    await vi.importActual<typeof import('../../services/legal-content.service')>(
-      '../../services/legal-content.service'
-    );
+  const actual = await vi.importActual<typeof import('../../services/legal-content.service')>(
+    '../../services/legal-content.service'
+  );
   return {
     ...actual,
     getPendingReacceptance: vi.fn(),
