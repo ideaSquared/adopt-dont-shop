@@ -5,6 +5,7 @@
  *   14 — revoked_tokens.updated_at           (ADS-502)
  *   15 — report_shares.token_hash UNIQUE     (ADS-505)
  *   16 — soft-delete partial indexes         (ADS-504)
+ *   17 — file_uploads.url prefix backfill    (PR #415 follow-up)
  *
  * Every test runs `up`, asserts the post-state, runs `down`, and asserts
  * the pre-state is restored. Postgres-only — the migration bodies use
@@ -23,10 +24,12 @@ import {
   Pet,
   Application,
 } from '../../models';
+import FileUpload from '../../models/FileUpload';
 import migration13 from '../../migrations/13-convert-ip-rules-cidr-to-native';
 import migration14 from '../../migrations/14-add-revoked-tokens-updated-at';
 import migration15 from '../../migrations/15-add-report-shares-token-hash-unique-index';
 import migration16 from '../../migrations/16-add-paranoid-partial-indexes';
+import migration17 from '../../migrations/17-fix-fileupload-url-prefix';
 
 // Reference models so they register with the Sequelize instance before
 // `sync()` runs.
@@ -38,6 +41,7 @@ void SavedReport;
 void User;
 void Pet;
 void Application;
+void FileUpload;
 
 const isPostgres = sequelize.getDialect() === 'postgres';
 const describeIfPostgres = isPostgres ? describe : describe.skip;
@@ -208,6 +212,177 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
         const idx = await findIndex(table, name);
         expect(idx).toBeUndefined();
       }
+    });
+  });
+
+  describe('14 — file_uploads.url prefix backfill (PR #415 follow-up)', () => {
+    let uploaderId: string;
+
+    const insertFileUpload = async (overrides: Record<string, unknown>) => {
+      const row = {
+        original_filename: 'photo.jpg',
+        stored_filename: `pets_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`,
+        file_path: 'pets/photo.jpg',
+        mime_type: 'image/jpeg',
+        file_size: 1024,
+        url: '/uploads/pets_1234_uuid.jpg',
+        uploaded_by: uploaderId,
+        metadata: '{}',
+        ...overrides,
+      };
+      const cols = Object.keys(row);
+      const placeholders = cols.map((_, i) => `$${i + 1}`).join(', ');
+      const values = cols.map(c => (row as Record<string, unknown>)[c]);
+      const [rows] = await sequelize.query(
+        `INSERT INTO file_uploads (${cols.join(', ')}, created_at, updated_at)
+           VALUES (${placeholders}, NOW(), NOW())
+           RETURNING upload_id, url, thumbnail_url`,
+        { bind: values as unknown as never }
+      );
+      return (rows as Array<Record<string, unknown>>)[0];
+    };
+
+    const readUrls = async (
+      uploadId: string
+    ): Promise<{ url: string; thumbnail_url: string | null }> => {
+      const [rows] = await sequelize.query(
+        `SELECT url, thumbnail_url FROM file_uploads WHERE upload_id = '${uploadId}'`
+      );
+      return (rows as Array<{ url: string; thumbnail_url: string | null }>)[0];
+    };
+
+    beforeEach(async () => {
+      // Insert a user for the uploaded_by FK. Re-uses sync()'d schema.
+      const [userRows] = await sequelize.query(
+        `INSERT INTO users (email, password, first_name, last_name, user_type, status, email_verified, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+           RETURNING user_id`,
+        {
+          bind: [
+            `uploader-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`,
+            'hashed-password',
+            'Up',
+            'Loader',
+            'adopter',
+            'active',
+            true,
+          ] as unknown as never,
+        }
+      );
+      uploaderId = (userRows as Array<{ user_id: string }>)[0].user_id;
+    });
+
+    it('up() rewrites a broken /uploads/<filename> to /uploads/<prefix>/<filename>', async () => {
+      const inserted = await insertFileUpload({
+        stored_filename: 'pets_1700000000000_abc123.jpg',
+        url: '/uploads/pets_1700000000000_abc123.jpg',
+      });
+
+      await migration17.up(queryInterface);
+
+      const after = await readUrls(inserted.upload_id as string);
+      expect(after.url).toBe('/uploads/pets/pets_1700000000000_abc123.jpg');
+    });
+
+    it('up() rewrites thumbnail_url with the same rule', async () => {
+      const inserted = await insertFileUpload({
+        stored_filename: 'applications_1700000000000_xyz789.pdf',
+        url: '/uploads/applications_1700000000000_xyz789.pdf',
+        thumbnail_url: '/uploads/applications_1700000000000_xyz789.thumb.jpg',
+      });
+
+      await migration17.up(queryInterface);
+
+      const after = await readUrls(inserted.upload_id as string);
+      expect(after.url).toBe('/uploads/applications/applications_1700000000000_xyz789.pdf');
+      expect(after.thumbnail_url).toBe(
+        '/uploads/applications/applications_1700000000000_xyz789.thumb.jpg'
+      );
+    });
+
+    it('up() leaves already-prefixed URLs alone (idempotent on correctly-shaped rows)', async () => {
+      const correctUrl = '/uploads/chat/chat_1700000000000_abc.jpg';
+      const inserted = await insertFileUpload({
+        stored_filename: 'chat_1700000000000_abc.jpg',
+        url: correctUrl,
+      });
+
+      await migration17.up(queryInterface);
+
+      const after = await readUrls(inserted.upload_id as string);
+      expect(after.url).toBe(correctUrl);
+    });
+
+    it('up() is safe to run twice (idempotent)', async () => {
+      const inserted = await insertFileUpload({
+        stored_filename: 'pets_1700000000000_dbl.jpg',
+        url: '/uploads/pets_1700000000000_dbl.jpg',
+      });
+
+      await migration17.up(queryInterface);
+      await migration17.up(queryInterface);
+
+      const after = await readUrls(inserted.upload_id as string);
+      expect(after.url).toBe('/uploads/pets/pets_1700000000000_dbl.jpg');
+    });
+
+    it('up() preserves CDN / external URL overrides', async () => {
+      const cdnUrl = 'https://cdn.example.com/pets/foo.jpg';
+      const inserted = await insertFileUpload({
+        stored_filename: 'pets_1700000000000_cdn.jpg',
+        url: cdnUrl,
+      });
+
+      await migration17.up(queryInterface);
+
+      const after = await readUrls(inserted.upload_id as string);
+      expect(after.url).toBe(cdnUrl);
+    });
+
+    it('up() leaves rows whose stored_filename does not match the writer convention', async () => {
+      // Hand-seeded shape (uses '-' instead of '_'). The seeder URL is
+      // already correctly shaped so there is nothing to fix; we should
+      // not silently rewrite to a wrong prefix.
+      const inserted = await insertFileUpload({
+        stored_filename: 'chat-1700000000000-abc.jpg',
+        url: '/uploads/chat-1700000000000-abc.jpg',
+      });
+
+      await migration17.up(queryInterface);
+
+      const after = await readUrls(inserted.upload_id as string);
+      expect(after.url).toBe('/uploads/chat-1700000000000-abc.jpg');
+    });
+
+    it('down() restores broken-shape URLs for rows up() rewrote', async () => {
+      const inserted = await insertFileUpload({
+        stored_filename: 'pets_1700000000000_round.jpg',
+        url: '/uploads/pets_1700000000000_round.jpg',
+        thumbnail_url: '/uploads/pets_1700000000000_round.thumb.jpg',
+      });
+
+      await migration17.up(queryInterface);
+      await migration17.down(queryInterface);
+
+      const after = await readUrls(inserted.upload_id as string);
+      expect(after.url).toBe('/uploads/pets_1700000000000_round.jpg');
+      expect(after.thumbnail_url).toBe('/uploads/pets_1700000000000_round.thumb.jpg');
+    });
+
+    it('down() leaves correctly-shaped rows it did not insert alone', async () => {
+      // A row where stored_filename does NOT match the URL's filename —
+      // down() must not strip the prefix because this row pre-dated the
+      // migration and was not produced by up().
+      const externalUrl = '/uploads/pets/some-other-name.jpg';
+      const inserted = await insertFileUpload({
+        stored_filename: 'pets_1700000000000_unmatched.jpg',
+        url: externalUrl,
+      });
+
+      await migration17.down(queryInterface);
+
+      const after = await readUrls(inserted.upload_id as string);
+      expect(after.url).toBe(externalUrl);
     });
   });
 });

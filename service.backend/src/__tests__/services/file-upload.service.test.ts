@@ -80,7 +80,7 @@ const makeMockRecord = (overrides: Record<string, unknown> = {}) => ({
   file_path: 'pets/photo_123.jpg',
   mime_type: 'image/jpeg',
   file_size: 1024,
-  url: '/uploads/pets_1234_uuid.jpg',
+  url: '/uploads/pets/pets_1234_uuid.jpg',
   thumbnail_url: undefined,
   uploaded_by: 'user-456',
   entity_id: undefined,
@@ -386,6 +386,39 @@ describe('FileUploadService', () => {
       expect(result.upload).toBeDefined();
       expect(result.file).toBeDefined();
       expect(result.file?.originalName).toBe('dog.jpg');
+    });
+
+    it('produces URLs that include the on-disk prefix segment', async () => {
+      // Regression: the writer used to emit `/uploads/<filename>` while
+      // multer placed the file at `<dir>/<prefix>/<filename>`, so the URL
+      // 404'd when the client followed it. Cover each upload type.
+      const cases: Array<{
+        uploadType: 'pets' | 'applications' | 'chat' | 'profiles' | 'documents';
+        expectedPrefix: string;
+      }> = [
+        { uploadType: 'pets', expectedPrefix: '/uploads/pets/' },
+        { uploadType: 'applications', expectedPrefix: '/uploads/applications/' },
+        { uploadType: 'chat', expectedPrefix: '/uploads/chat/' },
+        { uploadType: 'profiles', expectedPrefix: '/uploads/profiles/' },
+        { uploadType: 'documents', expectedPrefix: '/uploads/documents/' },
+      ];
+
+      for (const { uploadType, expectedPrefix } of cases) {
+        const file = makeFile({
+          originalname: 'doc.pdf',
+          mimetype: 'application/pdf',
+          filename: `${uploadType}_1234_uuid.pdf`,
+          path: `/test-uploads/${uploadType}/${uploadType}_1234_uuid.pdf`,
+        });
+        setupSuccessfulUpload('application/pdf');
+
+        const result = await FileUploadService.uploadFile(file, uploadType, {
+          uploadedBy: 'user-456',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.file?.url).toBe(`${expectedPrefix}${uploadType}_1234_uuid.pdf`);
+      }
     });
   });
 

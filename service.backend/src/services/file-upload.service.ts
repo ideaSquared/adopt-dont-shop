@@ -215,7 +215,7 @@ export class FileUploadService {
       const processedFile = await this.processFile(file, uploadType);
 
       // Generate file metadata
-      const fileMetadata = await this.generateFileMetadata(file, processedFile);
+      const fileMetadata = await this.generateFileMetadata(file, processedFile, uploadType);
 
       // Create database record
       const uploadRecord = await this.createUploadRecord(fileMetadata, metadata);
@@ -705,7 +705,8 @@ export class FileUploadService {
    */
   private static async generateFileMetadata(
     file: Express.Multer.File,
-    processedFile: ProcessedFileInfo
+    processedFile: ProcessedFileInfo,
+    uploadType: keyof typeof UPLOAD_CONFIG.directories
   ): Promise<FileMetadata> {
     const stats = await fs.promises.stat(this.safeResolveUploadPath(file.path));
 
@@ -715,9 +716,9 @@ export class FileUploadService {
       mimeType: file.mimetype,
       size: file.size,
       path: file.path,
-      url: this.generateFileUrl(file.filename),
+      url: this.generateFileUrl(uploadType, file.filename),
       thumbnailUrl: processedFile.thumbnailPath
-        ? this.generateFileUrl(path.basename(processedFile.thumbnailPath))
+        ? this.generateFileUrl(uploadType, path.basename(processedFile.thumbnailPath))
         : undefined,
       metadata: {
         ...processedFile.metadata,
@@ -729,10 +730,22 @@ export class FileUploadService {
   }
 
   /**
-   * Generate file URL
+   * Generate file URL.
+   *
+   * Multer writes uploaded files to `<uploadDir>/<prefix>/<filename>` (see
+   * `createStorage`), and the `/uploads/*` route resolves a request path
+   * relative to `<uploadDir>`. The URL therefore must include the same
+   * prefix segment, otherwise the file is served from the wrong directory
+   * (or 404s outright).
+   *
+   * Historic shape was `/uploads/<filename>` — see migration 17 which
+   * backfills `file_uploads.url` rows that match the broken pattern.
    */
-  private static generateFileUrl(filename: string): string {
-    return `/uploads/${filename}`;
+  private static generateFileUrl(
+    uploadType: keyof typeof UPLOAD_CONFIG.directories,
+    filename: string
+  ): string {
+    return `/uploads/${UPLOAD_CONFIG.directories[uploadType]}/${filename}`;
   }
 
   /**
