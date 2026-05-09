@@ -37,7 +37,7 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^20.19.0",
-    "@statsig/react-bindings": "^3.20.1"
+    "@statsig/react-bindings": "^3.33.0"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
