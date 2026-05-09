@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
+import AuditLog from '../models/AuditLog';
 import User, { UserStatus, UserType } from '../models/User';
+import { PRIVACY_VERSION, TERMS_VERSION } from '../services/legal-content.service';
 
 /**
  * ADS-536: per-seed-run password.
@@ -323,6 +325,38 @@ export async function seedUsers() {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
+    });
+  }
+
+  // Record consent acceptance for each seeded user so the
+  // LegalReacceptanceModal in app.client (PR #420) doesn't fire for them
+  // in dev / E2E. Idempotent: skip if a CONSENT_RECORDED row already
+  // exists for this user. Audit logs are append-only, so we never update.
+  for (const userData of testUsers) {
+    const existing = await AuditLog.findOne({
+      where: { user: userData.userId, action: 'CONSENT_RECORDED' },
+    });
+    if (existing) {
+      continue;
+    }
+    const acceptedAt = userData.termsAcceptedAt ?? new Date();
+    await AuditLog.create({
+      service: 'adopt-dont-shop-backend',
+      user: userData.userId,
+      user_email_snapshot: userData.email,
+      action: 'CONSENT_RECORDED',
+      level: 'INFO',
+      timestamp: acceptedAt,
+      metadata: {
+        entity: 'User',
+        entityId: userData.userId,
+        details: {
+          tosVersion: TERMS_VERSION,
+          privacyVersion: PRIVACY_VERSION,
+          acceptedAt: acceptedAt.toISOString(),
+        },
+      },
+      category: 'User',
     });
   }
 
