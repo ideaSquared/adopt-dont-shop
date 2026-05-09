@@ -361,23 +361,30 @@ describe('AnalyticsService', () => {
 
   describe('sampling and queue management', () => {
     it('should respect sample rate', async () => {
-      // Mock shouldSampleEvent to return false
       const sampledService = new AnalyticsService({
-        sampleRate: 0,
+        sampleRate: 1,
         autoTrackPageViews: false,
       });
 
-      // Mock the shouldSampleEvent method to return false
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Justification: shouldSampleEvent is private and cannot be forced to
+      // return false via the public API — the constructor normalises sampleRate
+      // with `|| 100`, so sampleRate=0 silently becomes 100 (always samples).
+      // Spying is the only way to reliably exercise the "event is dropped" path.
       vi.spyOn(sampledService as any, 'shouldSampleEvent').mockReturnValue(false);
+
+      mockApiService.post.mockResolvedValue({ success: true });
 
       await sampledService.trackEvent({
         category: 'test',
         action: 'test',
       });
 
-      // Check if the event queue is empty (events should be filtered out by sampling)
-      const eventQueue = sampledService['eventQueue'];
-      expect(eventQueue.length).toBe(0);
+      // Advance timers so a flush would fire if there were queued events
+      vi.advanceTimersByTime(5000);
+
+      // No events should have been sent — sampling dropped them before queuing
+      expect(mockApiService.post).not.toHaveBeenCalled();
 
       sampledService.destroy();
     });
@@ -484,12 +491,23 @@ describe('AnalyticsService', () => {
   });
 
   describe('cleanup and lifecycle', () => {
-    it('should clean up resources on destroy', () => {
-      const flushSpy = vi.spyOn(service, 'flushEventQueue' as any);
+    it('should flush queued events to the API when destroyed', async () => {
+      // Given: an event is queued before destroy (flush timer has not fired yet)
+      mockApiService.post.mockResolvedValue({ success: true });
+      await service.trackEvent({ category: 'test', action: 'queued' });
 
+      // When: destroy() is called
       service.destroy();
 
-      expect(flushSpy).toHaveBeenCalled();
+      // Then: the queued event is sent to the API immediately (not dropped)
+      expect(mockApiService.post).toHaveBeenCalledWith(
+        '/api/v1/analytics/events/batch',
+        expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ category: 'test', action: 'queued' }),
+          ]),
+        })
+      );
     });
 
     it('should start new session', () => {
