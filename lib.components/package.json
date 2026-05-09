@@ -54,10 +54,10 @@
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-react": "*",
-    "@storybook/addon-a11y": "^10.0.0",
+    "@storybook/addon-a11y": "^10.3.6",
     "@storybook/global": "^5.0.0",
-    "@storybook/react": "^10.0.0",
-    "@storybook/react-vite": "^10.0.0",
+    "@storybook/react": "^10.3.6",
+    "@storybook/react-vite": "^10.3.6",
     "@testing-library/dom": "^9.3.4",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^16.3.2",
@@ -89,16 +89,16 @@
     "prettier": "^3.2.5",
     "recast": "^0.23.11",
     "rimraf": "^5.0.5",
-    "storybook": "^10.0.0",
+    "storybook": "^10.3.6",
     "styled-components": "^6.1.12",
     "ts-dedent": "^2.2.0",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.0.0",
     "use-sync-external-store": "^1.6.0",
-    "vite": "^8.0.10",
+    "vite": "^8.0.11",
     "vite-plugin-dts": "^5.0.0",
     "vitest": "^4.0.8",
-    "wsl-utils": "^0.1.0"
+    "wsl-utils": "^0.4.0"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
