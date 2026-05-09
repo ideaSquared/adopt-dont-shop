@@ -27,7 +27,7 @@ import type { AuthenticatedRequest } from '../../types';
 // with other test runs.
 const TEST_UPLOAD_DIR = path.resolve(__dirname, '..', '..', '..', '..', 'test-uploads-tmp');
 
-// ── Shared mocks ─────────────────────────────────────────────────────────────
+// ── Shared mocks ────────────────────────────────────────────────────────────────
 
 // setup-tests.ts globally mocks `fs` to prevent file I/O. We need real fs
 // here because we are testing the file-serving route itself. Restore it for
@@ -103,7 +103,7 @@ vi.mock('../../services/upload-acl.service', () => ({
   decideUploadAccess: (...args: unknown[]) => decideUploadAccessMock(...args),
 }));
 
-// ── Test helpers ─────────────────────────────────────────────────────────────
+// ── Test helpers ────────────────────────────────────────────────────────────────
 
 const mockUser = {
   userId: 'user-abc',
@@ -222,7 +222,7 @@ describe('GET /api/v1/uploads/authorize — nginx auth_request subrequest', () =
       expect(response.status).toBe(200);
     });
 
-    // ── per-resource ACL wiring ───────────────────────────────────────────
+    // ── per-resource ACL wiring ────────────────────────────────────────────
     //
     // The route delegates per-resource decisions to decideUploadAccess.
     // These tests assert that:
@@ -324,7 +324,7 @@ describe('GET /api/v1/uploads/authorize — nginx auth_request subrequest', () =
   });
 });
 
-// ── /uploads/:path — Express fallback for local dev ──────────────────────────
+// ── /uploads/:path — Express fallback for local dev ─────────────────────────
 
 describe('GET /uploads/:path — Express fallback streaming route', () => {
   let app: express.Application;
@@ -457,9 +457,11 @@ describe('decideUploadAccess — per-resource ACL', () => {
   // Tests use vi.importActual so the *real* helper runs against the
   // mocked model layer above.
   const loadHelper = async () =>
-    (await vi.importActual<typeof import('../../services/upload-acl.service')>(
-      '../../services/upload-acl.service'
-    )).decideUploadAccess;
+    (
+      await vi.importActual<typeof import('../../services/upload-acl.service')>(
+        '../../services/upload-acl.service'
+      )
+    ).decideUploadAccess;
 
   it('allows the application owner to read their own application document', async () => {
     fileUploadFindOneMock.mockResolvedValue({
@@ -479,7 +481,7 @@ describe('decideUploadAccess — per-resource ACL', () => {
     expect(verdict).toBe(200);
   });
 
-  it('denies an authenticated stranger from reading someone else\'s application document', async () => {
+  it("denies an authenticated stranger from reading someone else's application document", async () => {
     fileUploadFindOneMock.mockResolvedValue({
       upload_id: 'u1',
       uploaded_by: 'owner-1',
@@ -498,7 +500,7 @@ describe('decideUploadAccess — per-resource ACL', () => {
     expect(verdict).toBe(403);
   });
 
-  it('allows verified staff of the application\'s rescue to read the document', async () => {
+  it("allows verified staff of the application's rescue to read the document", async () => {
     fileUploadFindOneMock.mockResolvedValue({
       upload_id: 'u1',
       uploaded_by: 'owner-1',

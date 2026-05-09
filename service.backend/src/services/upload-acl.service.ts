@@ -94,10 +94,7 @@ const decideApplicationAccess = async (
   return 403;
 };
 
-const decideChatAccess = async (
-  upload: FileUpload,
-  user: User
-): Promise<UploadAccessVerdict> => {
+const decideChatAccess = async (upload: FileUpload, user: User): Promise<UploadAccessVerdict> => {
   if (upload.uploaded_by === user.userId) {
     return 200;
   }
