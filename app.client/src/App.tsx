@@ -1,6 +1,7 @@
 import { ReactNode, lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Spinner } from '@adopt-dont-shop/lib.components';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
@@ -85,10 +86,14 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 );
 
 function App() {
+  // ADS: pass the authenticated user's id so NotificationsProvider initialises
+  // for both fresh logins and rehydrated sessions. The provider's useEffect
+  // re-runs whenever userId changes, so no event subscription is needed.
+  const { user } = useAuth();
   return (
     <PermissionsProvider>
       <AnalyticsProvider>
-        <NotificationsProvider>
+        <NotificationsProvider userId={user?.userId}>
           <ChatProvider>
             <FavoritesProvider>
               <DevLoginPanel />
