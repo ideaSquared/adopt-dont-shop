@@ -17,6 +17,15 @@ const APPLICATION_SORT_FIELDS = [
   'actioned_at',
   'submittedAt',
 ] as const;
+
+// The application_references.phone column is NOT NULL + notEmpty validated
+// (see ApplicationReference model). When the legacy reference shim seeds
+// rows from JSONB answers (or extends the list with synthetic placeholder
+// rows for an out-of-bounds index), a non-empty phone string is required.
+// This sentinel lets the rescue staff see at a glance that the value still
+// needs to be filled in. Producer-side only — no consumer code branches on
+// this literal.
+const LEGACY_PHONE_PLACEHOLDER = 'TBD';
 import ApplicationQuestion, { QuestionCategory } from '../models/ApplicationQuestion';
 import ApplicationStatusTransition from '../models/ApplicationStatusTransition';
 import Breed from '../models/Breed';
@@ -1444,7 +1453,7 @@ export class ApplicationService {
             seeds.push({
               name: clientRefs.veterinarian.name,
               relationship: 'Veterinarian',
-              phone: clientRefs.veterinarian.phone || 'TBD',
+              phone: clientRefs.veterinarian.phone || LEGACY_PHONE_PLACEHOLDER,
               email: clientRefs.veterinarian.email || '',
             });
           }
@@ -1454,7 +1463,7 @@ export class ApplicationService {
               seeds.push({
                 name: ref.name,
                 relationship: ref.relationship,
-                phone: ref.phone || 'TBD',
+                phone: ref.phone || LEGACY_PHONE_PLACEHOLDER,
                 email: ref.email || '',
               });
             });
@@ -1472,7 +1481,7 @@ export class ApplicationService {
             seeds.push({
               name: emergency.name,
               relationship: emergency.relationship || 'Emergency Contact',
-              phone: emergency.phone || 'TBD',
+              phone: emergency.phone || LEGACY_PHONE_PLACEHOLDER,
               email: emergency.email || '',
             });
           }
@@ -1512,7 +1521,7 @@ export class ApplicationService {
             legacy_id: `ref-${i}`,
             name: `Reference ${i + 1}`,
             relationship: 'Unknown',
-            phone: 'TBD',
+            phone: LEGACY_PHONE_PLACEHOLDER,
             email: '',
             status: ApplicationReferenceStatus.PENDING,
             contacted_at: null,
