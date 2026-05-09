@@ -60,7 +60,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     const result = loginSchema.safeParse(formData);
     if (!result.success) {
       const errors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
+      result.error.issues.forEach((err) => {
         if (err.path[0]) {
           errors[err.path[0].toString()] = err.message;
         }

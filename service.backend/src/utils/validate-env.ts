@@ -25,7 +25,7 @@ const placeholderMessage = 'must not use the default placeholder value';
 
 const secretField = (name: string) =>
   z
-    .string({ required_error: `${name} is required` })
+    .string({ error: `${name} is required` })
     .min(MIN_SECRET_LENGTH, {
       message: `${name} must be at least ${MIN_SECRET_LENGTH} characters long for security`,
     })
@@ -47,7 +47,7 @@ const numericString = (name: string) =>
 
 const booleanString = (name: string) =>
   z.enum(['true', 'false'], {
-    errorMap: () => ({ message: `${name} must be 'true' or 'false'` }),
+    error: () => `${name} must be 'true' or 'false'`,
   });
 
 const urlField = (name: string) =>
@@ -84,7 +84,7 @@ const baseSchema = z.object({
   SESSION_SECRET: secretField('SESSION_SECRET'),
   CSRF_SECRET: secretField('CSRF_SECRET'),
   ENCRYPTION_KEY: z
-    .string({ required_error: 'ENCRYPTION_KEY is required' })
+    .string({ error: 'ENCRYPTION_KEY is required' })
     .length(ENCRYPTION_KEY_HEX_LEN, {
       message:
         `ENCRYPTION_KEY must be exactly ${ENCRYPTION_KEY_HEX_LEN} hex characters (32 bytes). ` +

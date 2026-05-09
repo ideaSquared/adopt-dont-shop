@@ -78,7 +78,7 @@ export const ReportSchema = z.object({
   title: z.string().min(3).max(255),
   description: z.string().min(10).max(5000),
   evidence: z.array(EvidenceItemSchema).default([]),
-  metadata: z.record(z.unknown()).default({}),
+  metadata: z.record(z.string(), z.unknown()).default({}),
   assignedModerator: z.string().nullable().optional(),
   assignedAt: z.coerce.date().nullable().optional(),
   resolvedBy: z.string().nullable().optional(),
@@ -101,7 +101,7 @@ export const CreateReportRequestSchema = z.object({
   title: z.string().min(3).max(255),
   description: z.string().min(10).max(5000),
   evidence: z.array(EvidenceItemSchema).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Update report status request schema
@@ -142,7 +142,7 @@ export const ModeratorActionSchema = z.object({
   severity: ActionSeveritySchema,
   reason: z.string().min(3).max(500),
   description: z.string().optional(),
-  metadata: z.record(z.unknown()).default({}),
+  metadata: z.record(z.string(), z.unknown()).default({}),
   duration: z.number().int().min(1).max(8760).optional(),
   expiresAt: z.coerce.date().optional(),
   isActive: z.boolean().default(true),
