@@ -1,3 +1,4 @@
+import react from '@vitejs/plugin-react';
 import { defineConfig, mergeConfig } from 'vitest/config';
 import sharedConfig from '../vitest.shared.config';
 import path from 'path';
@@ -5,8 +6,10 @@ import path from 'path';
 export default mergeConfig(
   sharedConfig,
   defineConfig({
+    plugins: [react()],
     test: {
       name: 'lib.auth',
+      setupFiles: ['./src/setupTests.ts'],
     },
     resolve: {
       alias: {
