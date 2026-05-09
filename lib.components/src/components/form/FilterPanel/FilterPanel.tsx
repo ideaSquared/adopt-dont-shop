@@ -1,4 +1,4 @@
-import { ChangeEvent } from 'react';
+import type { ChangeEvent, JSX } from 'react';
 import { Input } from '../../ui/Input';
 import { CheckboxInput } from '../CheckboxInput';
 import { DateInput } from '../DateInput';

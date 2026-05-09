@@ -29,7 +29,7 @@ export interface TextProps extends React.HTMLAttributes<HTMLElement> {
   weight?: TextWeight;
   align?: TextAlign;
   color?: TextColor;
-  as?: keyof JSX.IntrinsicElements;
+  as?: keyof React.JSX.IntrinsicElements;
   truncate?: boolean;
   italic?: boolean;
   underline?: boolean;
@@ -45,7 +45,7 @@ export const Text = React.forwardRef<HTMLElement, TextProps>(
       weight = 'normal',
       align = 'left',
       color = 'body',
-      as = 'span' as keyof JSX.IntrinsicElements,
+      as = 'span' as keyof React.JSX.IntrinsicElements,
       truncate = false,
       italic = false,
       underline = false,
