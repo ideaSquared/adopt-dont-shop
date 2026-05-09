@@ -15,6 +15,7 @@ import { AuditLogService } from './auditLog.service';
 import { EmailProvider } from './email-providers/base-provider';
 import { ConsoleEmailProvider } from './email-providers/console-provider';
 import { EtherealProvider } from './email-providers/ethereal-provider';
+import { ResendProvider } from './email-providers/resend-provider';
 
 // Type for provider info (Ethereal test account)
 type ProviderInfo = {
@@ -48,6 +49,19 @@ class EmailService {
           const etherealProvider = new EtherealProvider();
           await etherealProvider.initialize();
           this.provider = etherealProvider;
+          break;
+        }
+        case 'resend': {
+          const resendProvider = new ResendProvider({
+            apiKey: config.email.resend.apiKey ?? '',
+            fromEmail: config.email.resend.fromEmail ?? config.email.from,
+            fromName: config.email.resend.fromName,
+            replyTo: config.email.resend.replyTo,
+          });
+          if (!resendProvider.validateConfiguration()) {
+            throw new Error('Resend provider misconfigured: RESEND_API_KEY and RESEND_FROM_EMAIL are required');
+          }
+          this.provider = resendProvider;
           break;
         }
         default:
