@@ -47,7 +47,7 @@ const DEFAULT_URLS = {
 function getEnvVar(key: string): string | undefined {
   // Vite environment (browser/build time)
   if (typeof window !== 'undefined' && typeof import.meta !== 'undefined' && import.meta.env) {
-    return (import.meta.env as Record<string, string>)[key];
+    return (import.meta.env as unknown as Record<string, string>)[key];
   }
 
   // Node.js environment (server/build time)

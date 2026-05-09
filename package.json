@@ -108,7 +108,9 @@
     "esbuild": "Pinned as a root devDependency (^0.27.0) — npm's workspace deduper uses the root version for every transitive consumer (notably @vanilla-extract/vite-plugin and @vanilla-extract/integration), which mitigates the dev-server CORS bypass tracked by GHSA-67mh-4wv8-2f99. Adding a separate `overrides` entry conflicts with the direct devDependency under npm 10/11; the devDep is enough on its own. Do not downgrade below 0.25.0."
   },
   "overrides": {
-    "lodash": "^4.18.1"
+    "lodash": "^4.18.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
   },
   "engines": {
     "node": ">=22.0.0 <23.0.0",
