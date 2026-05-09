@@ -6,6 +6,7 @@ import { config } from '../config';
 import { authenticateToken } from '../middleware/auth';
 import { apiLimiter } from '../middleware/rate-limiter';
 import { env } from '../config/env';
+import { decideUploadAccess } from '../services/upload-acl.service';
 import type { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 
@@ -201,7 +202,34 @@ router.get(
         res.status(404).end();
         return;
       }
-      res.status(200).end();
+      // Per-resource ACL: confirm the authenticated user is allowed to
+      // see this specific file (owner / rescue staff / chat participant
+      // / admin). Public path-shapes (pets/, profiles/) short-circuit
+      // to 200 inside the helper.
+      const user = req.user;
+      if (!user) {
+        res.status(401).end();
+        return;
+      }
+      decideUploadAccess({ filePath, user })
+        .then(verdict => {
+          if (verdict !== 200) {
+            logger.warn('Upload authorize: ACL denied', {
+              userId: user.userId,
+              requested: filePath,
+              verdict,
+            });
+          }
+          res.status(verdict).end();
+        })
+        .catch(err => {
+          logger.error('Upload authorize: ACL check failed', {
+            userId: user.userId,
+            requested: filePath,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          res.status(403).end();
+        });
     });
   }
 );
