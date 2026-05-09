@@ -199,7 +199,7 @@ jobs:
         run: npm run validate:env
 
       - name: Download pre-built libraries
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: lib-dist
 
@@ -257,7 +257,7 @@ jobs:
         run: npm ci
 
       - name: Download pre-built libraries
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: lib-dist
 
@@ -313,7 +313,7 @@ jobs:
         run: npm ci
 
       - name: Download pre-built libraries
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: lib-dist
 
