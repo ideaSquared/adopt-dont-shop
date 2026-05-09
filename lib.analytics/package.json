@@ -39,7 +39,7 @@
     "@adopt-dont-shop/lib.api": "*",
     "@adopt-dont-shop/lib.types": "*",
     "@types/node": "^20.19.0",
-    "socket.io-client": "^4.7.5",
+    "socket.io-client": "^4.8.3",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
