@@ -518,6 +518,24 @@ const startServer = async () => {
           error: err instanceof Error ? err.message : String(err),
         });
       }
+
+      // ADS-497 (slice 4): legal re-acceptance reminder cron. Gated
+      // behind LEGAL_REMINDER_CRON_ENABLED (default off) AND
+      // LEGAL_REMINDER_CRON_DRY_RUN (default on) — so the first deploy
+      // is observe-only and operators flip dry-run last.
+      try {
+        const { scheduleLegalReminderCron, startLegalReminderWorker } =
+          await import('./workers/legal-reminder.worker');
+        await scheduleLegalReminderCron();
+        const w = startLegalReminderWorker();
+        if (w) {
+          logger.info('Legal reminder worker started');
+        }
+      } catch (err) {
+        logger.warn('Legal reminder cron failed to start (continuing without scheduling)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
 
     // Test database connection with retry mechanism
