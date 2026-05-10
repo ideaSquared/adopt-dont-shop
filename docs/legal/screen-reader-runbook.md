@@ -24,12 +24,12 @@ Setup:
 
 Checklist:
 
-- [ ] Screen reader announces a region landmark named "Cookie consent" (note: shipped `aria-label` is `Cookie consent`, not "Cookie preferences").
-- [ ] `Tab` into the banner. Each button announces with its visible label, in this order: "Essentials only, button", "Manage preferences, button, collapsed", "Accept all, button".
+- [ ] Screen reader announces a region landmark named "Cookie preferences".
+- [ ] `Tab` into the banner. Each button announces with its visible label, in this order: "Accept all, button", "Essentials only, button", "Manage preferences, button, collapsed".
 - [ ] Press `Enter` on "Manage preferences". Screen reader announces the expanded state ("expanded"). The analytics checkbox becomes reachable on next `Tab`.
-- [ ] `Tab` to the analytics checkbox. Press `Space`. Reader announces the checked-state change.
+- [ ] `Tab` to the analytics checkbox. Reader announces it as "Analytics, Optional, checkbox, not checked" — the visible label provides the accessible name (no separate `aria-label` overrides it). Press `Space`; reader announces the checked-state change.
 - [ ] Re-press `Enter` on the trigger button. The disclosure collapses; reader announces "collapsed".
-- [ ] Press `Esc` while focus is inside the disclosure. **Expected:** disclosure closes and focus returns to the "Manage preferences" trigger. **See Known Limitations §5 — this is currently NOT implemented in the live component, so this step is expected to FAIL today. File the failure rather than skip it.**
+- [ ] Press `Esc` while focus is inside the disclosure. **Expected:** disclosure closes and focus returns to the "Manage preferences" trigger (verified by the keyboard-handler test in `CookieBanner.test.tsx`). If focus does not move back to the trigger, file it.
 
 ## 3. Re-acceptance modal — pending docs smoke (signed-in, stale ToS)
 
@@ -54,7 +54,7 @@ Setup: complete §2 first so a stored consent record exists and the banner is hi
 
 Checklist:
 
-- [ ] `Tab` through the footer until you reach "Manage cookies". Reader announces it as a link/button.
+- [ ] `Tab` through the footer until you reach "Manage cookies". Reader announces it as "Manage cookies, button" (it is a `<button>` styled as an inline link, not an `<a>`, because it triggers in-page UI rather than navigating).
 - [ ] Press `Enter`. The cookie banner re-mounts.
 - [ ] Reader announces the banner region. (It should fire the same announcement as §2 first-visit because the trigger clears `legal-consent-v1` and dispatches `legal-consent-v1:cleared`.)
 - [ ] Focus does not get lost. If the banner appears off-screen of current focus, file it.
@@ -66,9 +66,6 @@ Checklist:
 - `prefers-reduced-motion`: the modal's open animation (from `lib.components/Modal`) should be reduced or skipped.
 - ChromeVox on Linux is a known weaker reader. Discrepancies between ChromeVox and VoiceOver/NVDA should be reported against the reader, not the app, unless reproducible on at least two readers.
 - Live announcements depend on the OS reader's verbosity setting. If a step "doesn't announce" on default verbosity, retry on "high" / "verbose" before filing.
-- **Banner Escape-to-close (§2 last step):** not implemented. The `Manage preferences` disclosure is a plain expanded `div`; pressing Escape does nothing. Tracked as a follow-up — file as a known issue on first run, don't re-file each pass.
-- **Banner accessible-name override (§2):** the analytics checkbox has both an `aria-label="Allow analytics cookies"` and a wrapping `<label>` whose visible text is "Analytics — Optional". The `aria-label` wins, so the announced name does not match the visible label. Track as a follow-up.
-- **Banner disclosure has no `aria-controls`:** the "Manage preferences" trigger sets `aria-expanded` but does not point at the disclosure region. Some readers will not associate the two. Track as a follow-up.
 
 ## 6. Reporting issues
 
