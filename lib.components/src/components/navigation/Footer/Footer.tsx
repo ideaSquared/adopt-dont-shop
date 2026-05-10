@@ -6,9 +6,15 @@ import { footer, footerContainer, footerText, footerLinks, footerLink } from './
 
 export interface FooterProps {
   className?: string;
+  /**
+   * Optional extra elements rendered inline at the end of the link row,
+   * after Contact. Use the exported `footerLink` class on any link-like
+   * element (e.g. a `<button>`) so it inherits the row's typography.
+   */
+  extraLinks?: React.ReactNode;
 }
 
-export const Footer: React.FC<FooterProps> = ({ className }) => {
+export const Footer: React.FC<FooterProps> = ({ className, extraLinks }) => {
   return (
     <footer className={clsx(footer, className)}>
       <div className={footerContainer}>
@@ -31,6 +37,7 @@ export const Footer: React.FC<FooterProps> = ({ className }) => {
           <Link to='/contact' className={footerLink}>
             Contact
           </Link>
+          {extraLinks}
         </div>
         <p className={footerText}>
           © {new Date().getFullYear()} Adopt Don&apos;t Shop. All rights reserved.

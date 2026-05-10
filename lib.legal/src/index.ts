@@ -3,6 +3,7 @@
 // Components
 export { LegalReacceptanceModal } from './components/LegalReacceptanceModal';
 export { CookieBanner, useCookieConsent } from './components/CookieBanner';
+export { ManageCookiesLink } from './components/ManageCookiesLink';
 
 // Service / schemas
 export {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Footer } from '@adopt-dont-shop/lib.components';
+import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AppNavbar } from '@/components/navigation/AppNavbar';
 import { BottomTabBar } from '@/components/navigation/BottomTabBar';
 import { SwipeOnboarding } from '@/components/onboarding/SwipeOnboarding';
@@ -19,7 +20,7 @@ export const AppShell: React.FC = () => {
       <SwipeFloatingButton />
       <BottomTabBar />
       {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
-      <Footer />
+      <Footer extraLinks={<ManageCookiesLink />} />
     </div>
   );
 };
