@@ -5,6 +5,18 @@ import {
   setAnalyticsConsent,
   subscribeToAnalyticsConsent,
 } from './consent';
+import { initSentry } from './sentry';
+
+// Mock @sentry/react so we can observe whether `Sentry.init` was called.
+// vi.spyOn cannot rebind ESM module namespaces; vi.mock must be used and
+// any spy referenced inside the factory has to come from vi.hoisted so
+// it's available at the (hoisted) mock-evaluation time.
+const { sentryInitSpy } = vi.hoisted(() => ({ sentryInitSpy: vi.fn() }));
+vi.mock('@sentry/react', () => ({
+  init: sentryInitSpy,
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}));
 
 const memoryStore = (): Storage => {
   const map = new Map<string, string>();
@@ -68,5 +80,44 @@ describe('analytics consent', () => {
     unsubscribe();
     setAnalyticsConsent('granted');
     expect(listener).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('Sentry init bypasses the analytics consent gate', () => {
+  // Sentry is classified as strictly necessary for service reliability
+  // (cookies policy §5). It must initialise regardless of the analytics
+  // consent state — these tests pin that contract so a future refactor
+  // can't silently re-introduce a consent gate.
+  beforeEach(() => {
+    Object.defineProperty(window, 'localStorage', {
+      value: memoryStore(),
+      configurable: true,
+    });
+    sentryInitSpy.mockReset();
+  });
+
+  it('initialises Sentry when analytics consent has never been granted', () => {
+    expect(hasAnalyticsConsent()).toBe(false);
+
+    initSentry({
+      dsn: 'https://public@sentry.example/1',
+      appName: 'admin',
+      environment: 'production',
+    });
+
+    expect(sentryInitSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('initialises Sentry even when analytics consent is explicitly denied', () => {
+    setAnalyticsConsent('denied');
+    expect(hasAnalyticsConsent()).toBe(false);
+
+    initSentry({
+      dsn: 'https://public@sentry.example/1',
+      appName: 'client',
+      environment: 'production',
+    });
+
+    expect(sentryInitSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -17,9 +17,9 @@ import AuditLog from '../models/AuditLog';
  *      email notification are tracked in follow-up ADS-497 slices.
  */
 
-export const TERMS_VERSION = '2026-05-08-v1';
-export const PRIVACY_VERSION = '2026-05-08-v1';
-export const COOKIES_VERSION = '2026-05-09-v1';
+export const TERMS_VERSION = '2026-05-10-v1';
+export const PRIVACY_VERSION = '2026-05-10-v1';
+export const COOKIES_VERSION = '2026-05-10-v1';
 
 const DOCS_DIR = path.resolve(__dirname, '..', '..', '..', 'docs', 'legal');
 
