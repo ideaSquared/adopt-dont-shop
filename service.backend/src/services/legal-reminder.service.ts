@@ -225,9 +225,7 @@ export const sendReacceptanceReminder = async (
   // documentType union from `'terms' | 'privacy' | 'cookies'` (returned
   // by getPendingReacceptance after PR #419 widened it) back to the
   // `'terms' | 'privacy'` shape this service was designed around.
-  const pending = allPending.filter(
-    (p): p is ReminderableDocument => p.documentType !== 'cookies'
-  );
+  const pending = allPending.filter((p): p is ReminderableDocument => p.documentType !== 'cookies');
   if (pending.length === 0) {
     return { sent: false, reason: 'no_pending_versions' };
   }
