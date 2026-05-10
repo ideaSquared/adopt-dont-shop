@@ -6,6 +6,7 @@
  *   15 — report_shares.token_hash UNIQUE     (ADS-505)
  *   16 — soft-delete partial indexes         (ADS-504)
  *   17 — file_uploads.url prefix backfill    (PR #415 follow-up)
+ *   18 — JSONB url prefix backfill           (PR #421 cleanup)
  *
  * Every test runs `up`, asserts the post-state, runs `down`, and asserts
  * the pre-state is restored. Postgres-only — the migration bodies use
@@ -24,12 +25,15 @@ import {
   Pet,
   Application,
 } from '../../models';
+import Chat from '../../models/Chat';
+import Message from '../../models/Message';
 import FileUpload from '../../models/FileUpload';
 import migration13 from '../../migrations/13-convert-ip-rules-cidr-to-native';
 import migration14 from '../../migrations/14-add-revoked-tokens-updated-at';
 import migration15 from '../../migrations/15-add-report-shares-token-hash-unique-index';
 import migration16 from '../../migrations/16-add-paranoid-partial-indexes';
 import migration17 from '../../migrations/17-fix-fileupload-url-prefix';
+import migration18 from '../../migrations/18-fix-jsonb-url-prefix';
 
 // Reference models so they register with the Sequelize instance before
 // `sync()` runs.
@@ -41,6 +45,8 @@ void SavedReport;
 void User;
 void Pet;
 void Application;
+void Chat;
+void Message;
 void FileUpload;
 
 const isPostgres = sequelize.getDialect() === 'postgres';
@@ -383,6 +389,510 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
 
       const after = await readUrls(inserted.upload_id as string);
       expect(after.url).toBe(externalUrl);
+    });
+  });
+
+  describe('15 — JSONB url prefix backfill (PR #421 cleanup)', () => {
+    /**
+     * Both `messages.attachments` (JSONB array of MessageAttachment) and
+     * `applications.documents` (JSONB array of ApplicationDocument) are
+     * written via Sequelize models that enforce non-URL field shape via
+     * validators. The migration only touches the `url`/`fileUrl` strings
+     * inside each element — we sidestep the model layer with raw SQL for
+     * the test fixtures so we can craft pre-#421 broken-shape rows that
+     * the writer wouldn't accept today.
+     */
+    type JsonValue = unknown;
+
+    let rescueId: string;
+    let userId: string;
+    let petId: string;
+    let chatId: string;
+
+    const insertUser = async (): Promise<string> => {
+      const [rows] = await sequelize.query(
+        `INSERT INTO users (email, password, first_name, last_name, user_type, status, email_verified, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+           RETURNING user_id`,
+        {
+          bind: [
+            `m18-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`,
+            'hashed-password',
+            'M',
+            'Eighteen',
+            'adopter',
+            'active',
+            true,
+          ] as unknown as never,
+        }
+      );
+      return (rows as Array<{ user_id: string }>)[0].user_id;
+    };
+
+    const insertRescue = async (): Promise<string> => {
+      const [rows] = await sequelize.query(
+        `INSERT INTO rescues (name, email, phone, address, city, postcode, country, contact_person, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+           RETURNING rescue_id`,
+        {
+          bind: [
+            `M18 Rescue ${Math.random().toString(36).slice(2, 6)}`,
+            `rescue-m18-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`,
+            '555-0000',
+            '1 Main St',
+            'London',
+            'SW1A 1AA',
+            'GB',
+            'Jane Doe',
+            'pending',
+          ] as unknown as never,
+        }
+      );
+      return (rows as Array<{ rescue_id: string }>)[0].rescue_id;
+    };
+
+    const insertPet = async (rescueIdArg: string): Promise<string> => {
+      const [rows] = await sequelize.query(
+        `INSERT INTO pets (name, rescue_id, type, status, gender, age_group, created_at, updated_at)
+           VALUES ($1, $2, 'dog', 'available', 'unknown', 'adult', NOW(), NOW())
+           RETURNING pet_id`,
+        {
+          bind: [
+            `M18 Pet ${Math.random().toString(36).slice(2, 6)}`,
+            rescueIdArg,
+          ] as unknown as never,
+        }
+      );
+      return (rows as Array<{ pet_id: string }>)[0].pet_id;
+    };
+
+    const insertChat = async (rescueIdArg: string): Promise<string> => {
+      const [rows] = await sequelize.query(
+        `INSERT INTO chats (rescue_id, status, created_at, updated_at)
+           VALUES ($1, 'active', NOW(), NOW())
+           RETURNING chat_id`,
+        { bind: [rescueIdArg] as unknown as never }
+      );
+      return (rows as Array<{ chat_id: string }>)[0].chat_id;
+    };
+
+    const insertMessageWithAttachments = async (attachments: JsonValue): Promise<string> => {
+      const [rows] = await sequelize.query(
+        `INSERT INTO messages (chat_id, sender_id, content, content_format, attachments, is_flagged, created_at, updated_at)
+           VALUES ($1, $2, 'hello', 'plain', $3::jsonb, false, NOW(), NOW())
+           RETURNING message_id`,
+        {
+          bind: [chatId, userId, JSON.stringify(attachments)] as unknown as never,
+        }
+      );
+      return (rows as Array<{ message_id: string }>)[0].message_id;
+    };
+
+    const insertApplicationWithDocuments = async (documents: JsonValue): Promise<string> => {
+      const [rows] = await sequelize.query(
+        `INSERT INTO applications
+           (user_id, pet_id, rescue_id, status, priority, stage, documents, created_at, updated_at)
+           VALUES ($1, $2, $3, 'submitted', 'normal', 'pending', $4::jsonb, NOW(), NOW())
+           RETURNING application_id`,
+        {
+          bind: [userId, petId, rescueId, JSON.stringify(documents)] as unknown as never,
+        }
+      );
+      return (rows as Array<{ application_id: string }>)[0].application_id;
+    };
+
+    const readMessageAttachments = async (messageId: string): Promise<JsonValue> => {
+      const [rows] = await sequelize.query(
+        `SELECT attachments FROM messages WHERE message_id = '${messageId}'`
+      );
+      return (rows as Array<{ attachments: JsonValue }>)[0].attachments;
+    };
+
+    const readApplicationDocuments = async (applicationId: string): Promise<JsonValue> => {
+      const [rows] = await sequelize.query(
+        `SELECT documents FROM applications WHERE application_id = '${applicationId}'`
+      );
+      return (rows as Array<{ documents: JsonValue }>)[0].documents;
+    };
+
+    const countAuditLogEntries = async (): Promise<number> => {
+      const [rows] = await sequelize.query(
+        `SELECT COUNT(*)::int AS n FROM audit_logs
+           WHERE service = 'migration'
+             AND action LIKE 'migration-18-fix-jsonb-url-prefix:%'`
+      );
+      return (rows as Array<{ n: number }>)[0].n;
+    };
+
+    beforeEach(async () => {
+      rescueId = await insertRescue();
+      userId = await insertUser();
+      petId = await insertPet(rescueId);
+      chatId = await insertChat(rescueId);
+    });
+
+    // ---- messages.attachments[].url ----
+
+    describe('messages.attachments[].url', () => {
+      it('up() rewrites broken /uploads/<filename> to /uploads/chat/<filename>', async () => {
+        const id = await insertMessageWithAttachments([
+          {
+            attachment_id: 'a1',
+            filename: 'photo.jpg',
+            originalName: 'photo.jpg',
+            mimeType: 'image/jpeg',
+            size: 1024,
+            url: '/uploads/chat_1700000000000_abc.jpg',
+          },
+        ]);
+
+        await migration18.up(queryInterface);
+
+        const after = await readMessageAttachments(id);
+        expect(after).toEqual([
+          expect.objectContaining({
+            url: '/uploads/chat/chat_1700000000000_abc.jpg',
+          }),
+        ]);
+      });
+
+      it('up() leaves already-prefixed URLs alone', async () => {
+        const correctUrl = '/uploads/chat/chat_1700000000000_already.jpg';
+        const id = await insertMessageWithAttachments([
+          {
+            attachment_id: 'a1',
+            filename: 'photo.jpg',
+            originalName: 'photo.jpg',
+            mimeType: 'image/jpeg',
+            size: 1024,
+            url: correctUrl,
+          },
+        ]);
+
+        await migration18.up(queryInterface);
+
+        const after = await readMessageAttachments(id);
+        expect(after).toEqual([expect.objectContaining({ url: correctUrl })]);
+      });
+
+      it('up() preserves CDN / external URL overrides', async () => {
+        const cdnUrl = 'https://cdn.example.com/foo.jpg';
+        const id = await insertMessageWithAttachments([
+          {
+            attachment_id: 'a1',
+            filename: 'photo.jpg',
+            originalName: 'photo.jpg',
+            mimeType: 'image/jpeg',
+            size: 1024,
+            url: cdnUrl,
+          },
+        ]);
+
+        await migration18.up(queryInterface);
+
+        const after = await readMessageAttachments(id);
+        expect(after).toEqual([expect.objectContaining({ url: cdnUrl })]);
+      });
+
+      it('up() is idempotent — second run is a no-op on rewritten rows', async () => {
+        const id = await insertMessageWithAttachments([
+          {
+            attachment_id: 'a1',
+            filename: 'photo.jpg',
+            originalName: 'photo.jpg',
+            mimeType: 'image/jpeg',
+            size: 1024,
+            url: '/uploads/chat_1700000000000_dbl.jpg',
+          },
+        ]);
+
+        await migration18.up(queryInterface);
+        await migration18.up(queryInterface);
+
+        const after = await readMessageAttachments(id);
+        expect(after).toEqual([
+          expect.objectContaining({
+            url: '/uploads/chat/chat_1700000000000_dbl.jpg',
+          }),
+        ]);
+      });
+
+      it('up() handles empty attachments arrays without error', async () => {
+        const id = await insertMessageWithAttachments([]);
+
+        await migration18.up(queryInterface);
+
+        const after = await readMessageAttachments(id);
+        expect(after).toEqual([]);
+      });
+
+      it('up() rewrites only broken-shape elements when array mixes shapes', async () => {
+        const id = await insertMessageWithAttachments([
+          {
+            attachment_id: 'a1',
+            filename: 'broken.jpg',
+            originalName: 'broken.jpg',
+            mimeType: 'image/jpeg',
+            size: 1,
+            url: '/uploads/chat_111_broken.jpg',
+          },
+          {
+            attachment_id: 'a2',
+            filename: 'cdn.jpg',
+            originalName: 'cdn.jpg',
+            mimeType: 'image/jpeg',
+            size: 1,
+            url: 'https://cdn.example.com/cdn.jpg',
+          },
+          {
+            attachment_id: 'a3',
+            filename: 'ok.jpg',
+            originalName: 'ok.jpg',
+            mimeType: 'image/jpeg',
+            size: 1,
+            url: '/uploads/chat/chat_222_ok.jpg',
+          },
+        ]);
+
+        await migration18.up(queryInterface);
+
+        const after = (await readMessageAttachments(id)) as Array<{
+          attachment_id: string;
+          url: string;
+        }>;
+        expect(after.find(a => a.attachment_id === 'a1')?.url).toBe(
+          '/uploads/chat/chat_111_broken.jpg'
+        );
+        expect(after.find(a => a.attachment_id === 'a2')?.url).toBe(
+          'https://cdn.example.com/cdn.jpg'
+        );
+        expect(after.find(a => a.attachment_id === 'a3')?.url).toBe(
+          '/uploads/chat/chat_222_ok.jpg'
+        );
+      });
+
+      it('down() restores the broken shape on rows up() rewrote', async () => {
+        const id = await insertMessageWithAttachments([
+          {
+            attachment_id: 'a1',
+            filename: 'photo.jpg',
+            originalName: 'photo.jpg',
+            mimeType: 'image/jpeg',
+            size: 1024,
+            url: '/uploads/chat_1700000000000_round.jpg',
+          },
+        ]);
+
+        await migration18.up(queryInterface);
+        await migration18.down(queryInterface);
+
+        const after = await readMessageAttachments(id);
+        expect(after).toEqual([
+          expect.objectContaining({
+            url: '/uploads/chat_1700000000000_round.jpg',
+          }),
+        ]);
+      });
+
+      it('down() leaves URLs with non-chat prefix alone (not produced by up)', async () => {
+        // A pre-existing row whose URL points at a different prefix — e.g.
+        // because someone hand-seeded an attachment record. down() must
+        // not strip its prefix because up() never touched it.
+        const externalUrl = '/uploads/profiles/avatar.jpg';
+        const id = await insertMessageWithAttachments([
+          {
+            attachment_id: 'a1',
+            filename: 'avatar.jpg',
+            originalName: 'avatar.jpg',
+            mimeType: 'image/jpeg',
+            size: 1,
+            url: externalUrl,
+          },
+        ]);
+
+        await migration18.down(queryInterface);
+
+        const after = await readMessageAttachments(id);
+        expect(after).toEqual([expect.objectContaining({ url: externalUrl })]);
+      });
+    });
+
+    // ---- applications.documents[].fileUrl ----
+
+    describe('applications.documents[].fileUrl', () => {
+      const sampleDocument = (overrides: Record<string, unknown>): Record<string, unknown> => ({
+        documentId: `doc-${Math.random().toString(36).slice(2, 6)}`,
+        documentType: 'id',
+        fileName: 'id.pdf',
+        uploadedAt: new Date().toISOString(),
+        verified: false,
+        ...overrides,
+      });
+
+      it('up() rewrites broken /uploads/<filename> to /uploads/applications/<filename>', async () => {
+        const id = await insertApplicationWithDocuments([
+          sampleDocument({ fileUrl: '/uploads/applications_1700_abc.pdf' }),
+        ]);
+
+        await migration18.up(queryInterface);
+
+        const after = (await readApplicationDocuments(id)) as Array<{
+          fileUrl: string;
+        }>;
+        expect(after[0].fileUrl).toBe('/uploads/applications/applications_1700_abc.pdf');
+      });
+
+      it('up() leaves already-prefixed URLs alone', async () => {
+        const correctUrl = '/uploads/applications/applications_1700_ok.pdf';
+        const id = await insertApplicationWithDocuments([sampleDocument({ fileUrl: correctUrl })]);
+
+        await migration18.up(queryInterface);
+
+        const after = (await readApplicationDocuments(id)) as Array<{
+          fileUrl: string;
+        }>;
+        expect(after[0].fileUrl).toBe(correctUrl);
+      });
+
+      it('up() preserves CDN / external URL overrides', async () => {
+        const cdnUrl = 'https://cdn.example.com/applications/foo.pdf';
+        const id = await insertApplicationWithDocuments([sampleDocument({ fileUrl: cdnUrl })]);
+
+        await migration18.up(queryInterface);
+
+        const after = (await readApplicationDocuments(id)) as Array<{
+          fileUrl: string;
+        }>;
+        expect(after[0].fileUrl).toBe(cdnUrl);
+      });
+
+      it('up() is idempotent — second run is a no-op on rewritten rows', async () => {
+        const id = await insertApplicationWithDocuments([
+          sampleDocument({ fileUrl: '/uploads/applications_1700_dbl.pdf' }),
+        ]);
+
+        await migration18.up(queryInterface);
+        await migration18.up(queryInterface);
+
+        const after = (await readApplicationDocuments(id)) as Array<{
+          fileUrl: string;
+        }>;
+        expect(after[0].fileUrl).toBe('/uploads/applications/applications_1700_dbl.pdf');
+      });
+
+      it('up() handles empty documents arrays without error', async () => {
+        const id = await insertApplicationWithDocuments([]);
+
+        await migration18.up(queryInterface);
+
+        const after = await readApplicationDocuments(id);
+        expect(after).toEqual([]);
+      });
+
+      it('up() leaves elements lacking a fileUrl key alone', async () => {
+        // Defensive: even though the model requires fileUrl, raw rows
+        // could lack it (e.g. partially-written legacy fixture). The
+        // migration should not crash on them and should not invent one.
+        const id = await insertApplicationWithDocuments([
+          {
+            documentId: 'doc-no-url',
+            documentType: 'id',
+            fileName: 'id.pdf',
+            uploadedAt: new Date().toISOString(),
+            verified: false,
+          },
+          sampleDocument({ fileUrl: '/uploads/applications_1700_mix.pdf' }),
+        ]);
+
+        await migration18.up(queryInterface);
+
+        const after = (await readApplicationDocuments(id)) as Array<{
+          documentId: string;
+          fileUrl?: string;
+        }>;
+        expect(after.find(d => d.documentId === 'doc-no-url')?.fileUrl).toBeUndefined();
+        expect(after.find(d => d.fileUrl)?.fileUrl).toBe(
+          '/uploads/applications/applications_1700_mix.pdf'
+        );
+      });
+
+      it('down() restores the broken shape on rows up() rewrote', async () => {
+        const id = await insertApplicationWithDocuments([
+          sampleDocument({ fileUrl: '/uploads/applications_1700_round.pdf' }),
+        ]);
+
+        await migration18.up(queryInterface);
+        await migration18.down(queryInterface);
+
+        const after = (await readApplicationDocuments(id)) as Array<{
+          fileUrl: string;
+        }>;
+        expect(after[0].fileUrl).toBe('/uploads/applications_1700_round.pdf');
+      });
+
+      it('down() leaves URLs with non-applications prefix alone (not produced by up)', async () => {
+        // A row whose URL has a different prefix (e.g. seeded via a
+        // legacy `documents/` directory). down() must not strip the
+        // prefix because up() didn't write this shape.
+        const seededUrl = '/uploads/documents/legacy_doc.pdf';
+        const id = await insertApplicationWithDocuments([sampleDocument({ fileUrl: seededUrl })]);
+
+        await migration18.down(queryInterface);
+
+        const after = (await readApplicationDocuments(id)) as Array<{
+          fileUrl: string;
+        }>;
+        expect(after[0].fileUrl).toBe(seededUrl);
+      });
+    });
+
+    // ---- audit log ----
+
+    it('writes a single audit-log entry per direction summarising rows touched', async () => {
+      await insertMessageWithAttachments([
+        {
+          attachment_id: 'a1',
+          filename: 'photo.jpg',
+          originalName: 'photo.jpg',
+          mimeType: 'image/jpeg',
+          size: 1,
+          url: '/uploads/chat_audit.jpg',
+        },
+      ]);
+      await insertApplicationWithDocuments([
+        {
+          documentId: 'doc-1',
+          documentType: 'id',
+          fileName: 'id.pdf',
+          fileUrl: '/uploads/applications_audit.pdf',
+          uploadedAt: new Date().toISOString(),
+          verified: false,
+        },
+      ]);
+
+      await migration18.up(queryInterface);
+      expect(await countAuditLogEntries()).toBe(1);
+
+      await migration18.down(queryInterface);
+      expect(await countAuditLogEntries()).toBe(2);
+
+      const [rows] = await sequelize.query(
+        `SELECT action, metadata FROM audit_logs
+           WHERE service = 'migration'
+             AND action LIKE 'migration-18-fix-jsonb-url-prefix:%'
+           ORDER BY id ASC`
+      );
+      const entries = rows as Array<{ action: string; metadata: Record<string, unknown> }>;
+      expect(entries[0].action).toBe('migration-18-fix-jsonb-url-prefix:up');
+      expect(entries[1].action).toBe('migration-18-fix-jsonb-url-prefix:down');
+      expect(entries[0].metadata).toMatchObject({
+        migration: '18-fix-jsonb-url-prefix',
+        direction: 'up',
+        results: expect.arrayContaining([
+          expect.objectContaining({ table: 'messages' }),
+          expect.objectContaining({ table: 'applications' }),
+        ]),
+      });
     });
   });
 });
