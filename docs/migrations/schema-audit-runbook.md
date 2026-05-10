@@ -31,6 +31,21 @@ NODE_ENV=production DATABASE_URL='postgres://user:pass@host:5432/db' \
   npx ts-node scripts/schema-audit.ts > /tmp/audit-prod.json
 ```
 
+### Via Docker (operator without Node/workspace deps)
+
+For an SRE who has Docker but no Node toolchain or repo checkout, `service.backend/scripts/schema-audit-docker.sh` builds the audit image from the existing backend `Dockerfile` build stage and runs the script with `DATABASE_URL` passed through. The image mounts no volumes; stdout is the JSON report so the operator can pipe to a file, stderr is the human summary. The wrapper exits with the same code the underlying script produces (0 = no drift, 1 = drift, 2 = error).
+
+```bash
+# Run from the monorepo root (the Dockerfile build context needs lib.types/).
+DATABASE_URL='postgres://user:pass@host:5432/db' \
+  ./service.backend/scripts/schema-audit-docker.sh > audit.json
+
+# Reuse a previously-built image:
+SKIP_BUILD=1 IMAGE_TAG=ads-schema-audit:v1 \
+  DATABASE_URL='postgres://...' \
+  ./service.backend/scripts/schema-audit-docker.sh > audit.json
+```
+
 ## Output
 
 - **stdout**: a JSON `AuditReport` (shape defined by the Zod schema in the script).
