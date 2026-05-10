@@ -6,8 +6,9 @@ import AuditLog from '../models/AuditLog';
 import User, { UserStatus } from '../models/User';
 import { getPendingReacceptance } from '../services/legal-content.service';
 import {
-  LEGAL_REMINDER_SENT_ACTION,
-  REMINDER_RATE_LIMIT_HOURS,
+  LEGACY_LEGAL_REMINDER_SENT_ACTION,
+  REMINDER_RATE_LIMIT_DAYS,
+  TERMS_REACCEPTANCE_REMINDER_ACTION,
   sendReacceptanceReminder,
 } from '../services/legal-reminder.service';
 import { logger } from '../utils/logger';
@@ -17,8 +18,10 @@ import { logger } from '../utils/logger';
  *
  * Sequential loop over up to `batchSize` users-with-pending and a single
  * summary audit row at the end. Per-user dedupe is delegated to
- * `legal-reminder.service` (LEGAL_REMINDER_SENT fingerprint window) so
- * this worker only does coarse pre-filtering and aggregation.
+ * `legal-reminder.service` (TERMS_REACCEPTANCE_REMINDER fingerprint
+ * window — also recognising legacy `LEGAL_REMINDER_SENT` rows during
+ * the transition) so this worker only does coarse pre-filtering and
+ * aggregation.
  *
  * Guardrails (also captured in the PR body):
  *   - Hard batch cap (default 100). Bigger backlogs drain over multiple
@@ -65,20 +68,28 @@ export type RunOptions = {
 /**
  * Find users who plausibly need a reminder. We pull active, non-deleted
  * users with an email, then exclude anyone who already received a
- * LEGAL_REMINDER_SENT inside the rate-limit window (regardless of
+ * reacceptance reminder inside the rate-limit window (regardless of
  * fingerprint — the per-fingerprint check still runs inside
  * `sendReacceptanceReminder`).
+ *
+ * The action filter matches both the new `TERMS_REACCEPTANCE_REMINDER`
+ * name and the legacy `LEGAL_REMINDER_SENT` name. Audit rows are
+ * append-only (PR #344's trigger), so legacy rows can't be renamed —
+ * we tolerate both names until every legacy row is older than
+ * `REMINDER_RATE_LIMIT_DAYS`.
  *
  * Returns up to `batchSize` userIds. Ordering is stable (createdAt ASC)
  * so the same backlog drains the same way across runs and rotates
  * deterministically.
  */
 const findCandidateUserIds = async (batchSize: number): Promise<ReadonlyArray<string>> => {
-  const cutoff = new Date(Date.now() - REMINDER_RATE_LIMIT_HOURS * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - REMINDER_RATE_LIMIT_DAYS * 24 * 60 * 60 * 1000);
 
   const recentlyReminded = await AuditLog.findAll({
     where: {
-      action: LEGAL_REMINDER_SENT_ACTION,
+      action: {
+        [Op.in]: [TERMS_REACCEPTANCE_REMINDER_ACTION, LEGACY_LEGAL_REMINDER_SENT_ACTION],
+      },
       timestamp: { [Op.gte]: cutoff },
     },
     attributes: ['user'],

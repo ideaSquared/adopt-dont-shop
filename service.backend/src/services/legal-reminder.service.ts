@@ -22,22 +22,39 @@ import { logger } from '../utils/logger';
  *      without emailing — version bumps shouldn't surprise users who
  *      already accepted the latest copy.
  *   2. Per-user-per-version dedupe via the audit log: if a
- *      `LEGAL_REMINDER_SENT` row exists for this user with the same
- *      pending-version fingerprint inside the rate-limit window, return
- *      `{ sent: false, reason: 'rate_limited' }`. No new email, no new
- *      audit row.
+ *      `TERMS_REACCEPTANCE_REMINDER` row (or a legacy
+ *      `LEGAL_REMINDER_SENT` row, see below) exists for this user with
+ *      the same pending-version fingerprint inside the rate-limit
+ *      window, return `{ sent: false, reason: 'rate_limited' }`. No new
+ *      email, no new audit row.
  *   3. Otherwise, send a transactional email with subject + body that
  *      lists the docs to review and links back to the app. Append a
- *      `LEGAL_REMINDER_SENT` audit row capturing the version
+ *      `TERMS_REACCEPTANCE_REMINDER` audit row capturing the version
  *      fingerprint so subsequent calls can dedupe.
  *
  * Dedupe storage: reusing `audit_logs` (matches consent capture in
  * `consent.service.ts`). Avoids a new table for what is effectively an
  * append-only audit trail.
+ *
+ * Action-name transition: this service originally wrote
+ * `LEGAL_REMINDER_SENT`. It now writes `TERMS_REACCEPTANCE_REMINDER`.
+ * Existing audit rows are immutable (PR #344's trigger), so the dedupe
+ * query has to recognise both names until every legacy row is older
+ * than the rate-limit window.
  */
 
-export const REMINDER_RATE_LIMIT_HOURS = 24;
-export const LEGAL_REMINDER_SENT_ACTION = 'LEGAL_REMINDER_SENT';
+export const REMINDER_RATE_LIMIT_DAYS = 7;
+export const TERMS_REACCEPTANCE_REMINDER_ACTION = 'TERMS_REACCEPTANCE_REMINDER';
+/**
+ * Legacy action name used by writes prior to the rename. NEW writes
+ * MUST use `TERMS_REACCEPTANCE_REMINDER_ACTION`; this constant exists
+ * only so the dedupe read-path can `Op.in` across both names. Audit
+ * rows are immutable, so we cannot backfill — instead we tolerate the
+ * legacy name until every `LEGAL_REMINDER_SENT` row predates the
+ * rate-limit window. After that point this constant and its use in
+ * `wasRecentlyReminded` / the cron candidate query can be removed.
+ */
+export const LEGACY_LEGAL_REMINDER_SENT_ACTION = 'LEGAL_REMINDER_SENT';
 
 export const ReminderResultSchema = z.discriminatedUnion('sent', [
   z.object({
@@ -92,11 +109,18 @@ const buildVersionFingerprint = (pending: ReadonlyArray<ReminderableDocument>): 
 };
 
 const wasRecentlyReminded = async (userId: string, fingerprint: string): Promise<boolean> => {
-  const cutoff = new Date(Date.now() - REMINDER_RATE_LIMIT_HOURS * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - REMINDER_RATE_LIMIT_DAYS * 24 * 60 * 60 * 1000);
+  // Audit rows are append-only (PR #344's trigger), so we can't rename
+  // legacy `LEGAL_REMINDER_SENT` rows in place. Match on either name
+  // until every legacy row is older than `REMINDER_RATE_LIMIT_DAYS`,
+  // at which point `LEGACY_LEGAL_REMINDER_SENT_ACTION` can be dropped
+  // from this query.
   const recent = await AuditLog.findOne({
     where: {
       user: userId,
-      action: LEGAL_REMINDER_SENT_ACTION,
+      action: {
+        [Op.in]: [TERMS_REACCEPTANCE_REMINDER_ACTION, LEGACY_LEGAL_REMINDER_SENT_ACTION],
+      },
       timestamp: { [Op.gte]: cutoff },
     },
     order: [['timestamp', 'DESC']],
@@ -109,7 +133,7 @@ const wasRecentlyReminded = async (userId: string, fingerprint: string): Promise
   );
   if (!parsed.success) {
     // Malformed metadata — treat as no record, but log so we notice.
-    logger.warn('LEGAL_REMINDER_SENT audit row had unparseable details', {
+    logger.warn('Reacceptance reminder audit row had unparseable details', {
       userId,
     });
     return false;
@@ -265,7 +289,7 @@ export const sendReacceptanceReminder = async (
 
   await AuditLogService.log({
     userId,
-    action: LEGAL_REMINDER_SENT_ACTION,
+    action: TERMS_REACCEPTANCE_REMINDER_ACTION,
     entity: 'User',
     entityId: userId,
     details: auditDetails,
