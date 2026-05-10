@@ -27,11 +27,11 @@ export async function runReferenceSeeders(): Promise<void> {
 
   for (let i = 0; i < REFERENCE_SEEDERS.length; i++) {
     const { name, seeder } = REFERENCE_SEEDERS[i];
-    // eslint-disable-next-line no-console
+
     console.log(`📚 [${i + 1}/${REFERENCE_SEEDERS.length}] Reference: ${name}...`);
     const start = Date.now();
     await seeder();
-    // eslint-disable-next-line no-console
+
     console.log(`✅ ${name} ready (${Date.now() - start}ms)`);
   }
 }

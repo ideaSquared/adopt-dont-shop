@@ -270,6 +270,5 @@ export async function seedApplicationTimeline() {
     });
   }
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Created ${timelineData.length} application timeline events`);
 }

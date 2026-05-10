@@ -58,7 +58,6 @@ describe('PetService cache invalidation [ADS-479]', () => {
       postcode: 'TE1 1ST',
       country: 'GB',
       contactPerson: 'Tester',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     await Pet.create({
       name: 'Featured Fido',

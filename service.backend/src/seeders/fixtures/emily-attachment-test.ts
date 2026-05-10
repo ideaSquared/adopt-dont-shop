@@ -409,18 +409,16 @@ export async function seedEmilyAttachmentTest() {
       });
     }
 
-    // eslint-disable-next-line no-console
     console.log('✅ Created Emily Davis attachment test conversation');
-    // eslint-disable-next-line no-console
+
     console.log(`   - Chat ID: ${emilyAttachmentTestData.chat.chat_id}`);
-    // eslint-disable-next-line no-console
+
     console.log(`   - Participants: ${emilyAttachmentTestData.participants.length}`);
-    // eslint-disable-next-line no-console
+
     console.log(`   - Messages: ${emilyAttachmentTestData.messages.length}`);
-    // eslint-disable-next-line no-console
+
     console.log(`   - Attachments: ${emilyAttachmentTestData.attachments.length}`);
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('❌ Error creating Emily attachment test conversation:', error);
     throw error;
   }
@@ -430,12 +428,10 @@ export async function seedEmilyAttachmentTest() {
 if (require.main === module) {
   seedEmilyAttachmentTest()
     .then(() => {
-      // eslint-disable-next-line no-console
       console.log('🎉 Emily attachment test conversation seeding completed successfully!');
       throw new Error('Seeding completed - exiting process');
     })
     .catch(error => {
-      // eslint-disable-next-line no-console
       console.error('💥 Emily attachment test conversation seeding failed:', error);
       throw error;
     });

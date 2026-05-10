@@ -131,6 +131,5 @@ export async function seedE2EFixtures() {
     } as never,
   });
 
-  // eslint-disable-next-line no-console
   console.log('✅ E2E fixtures seeded (pets, favourite, prefs, chat participants)');
 }

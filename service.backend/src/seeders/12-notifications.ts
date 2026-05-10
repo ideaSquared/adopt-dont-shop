@@ -183,6 +183,5 @@ export async function seedNotifications() {
     });
   }
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Created ${notificationData.length} notifications`);
 }

@@ -297,28 +297,16 @@ export async function seedEmilyConversation2() {
       });
     }
 
-    // eslint-disable-next-line no-console
-
     console.log('✅ Created Emily Davis conversation #2 with Happy Tails Dog Rescue');
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Chat ID: ${emilyConversation2Data.chat.chat_id}`);
 
-    // eslint-disable-next-line no-console
-
     console.log(`   - Participants: ${emilyConversation2Data.participants.length}`);
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Messages: ${emilyConversation2Data.messages.length}`);
 
-    // eslint-disable-next-line no-console
-
     console.log(`   - Attachments: ${emilyConversation2Data.attachments.length}`);
   } catch (error) {
-    // eslint-disable-next-line no-console
-
     console.error('❌ Error creating Emily conversation #2:', error);
 
     throw error;
@@ -330,16 +318,12 @@ export async function seedEmilyConversation2() {
 if (require.main === module) {
   seedEmilyConversation2()
     .then(() => {
-      // eslint-disable-next-line no-console
-
       console.log('🎉 Emily conversation #2 seeding completed successfully!');
 
       throw new Error('Seeding completed - exiting process');
     })
 
     .catch(error => {
-      // eslint-disable-next-line no-console
-
       console.error('💥 Emily conversation #2 seeding failed:', error);
 
       throw error;

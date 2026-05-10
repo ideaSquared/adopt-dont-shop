@@ -41,7 +41,6 @@ export async function seedDemoChats(): Promise<void> {
   });
 
   if (applications.length === 0 || staff.length === 0 || adopters.length === 0) {
-    // eslint-disable-next-line no-console
     console.log('⚠️  Need applications + staff + adopters for chats — skipping');
     return;
   }
@@ -125,7 +124,6 @@ export async function seedDemoChats(): Promise<void> {
   await bulkInsert(Chat, chatRows);
   await bulkInsert(ChatParticipant, participantRows);
 
-  // eslint-disable-next-line no-console
   console.log(
     `✅ Inserted ${chatRows.length} faker-generated chats with ${participantRows.length} participants`
   );

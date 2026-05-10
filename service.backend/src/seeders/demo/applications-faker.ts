@@ -92,7 +92,6 @@ export async function seedDemoApplications(): Promise<void> {
   });
 
   if (adopters.length === 0 || pets.length === 0) {
-    // eslint-disable-next-line no-console
     console.log('⚠️  Need adopters and pets before applications — skipping');
     return;
   }
@@ -158,6 +157,5 @@ export async function seedDemoApplications(): Promise<void> {
 
   await bulkInsert(Application, rows);
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Inserted ${rows.length} faker-generated applications (target ${target})`);
 }

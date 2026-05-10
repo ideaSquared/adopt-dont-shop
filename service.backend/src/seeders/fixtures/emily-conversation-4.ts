@@ -263,24 +263,14 @@ export async function seedEmilyConversation4() {
       });
     }
 
-    // eslint-disable-next-line no-console
-
     console.log('✅ Created Emily Davis conversation #4 with Paws Rescue Austin');
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Chat ID: ${emilyConversation4Data.chat.chat_id}`);
 
-    // eslint-disable-next-line no-console
-
     console.log(`   - Participants: ${emilyConversation4Data.participants.length}`);
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Messages: ${emilyConversation4Data.messages.length}`);
   } catch (error) {
-    // eslint-disable-next-line no-console
-
     console.error('❌ Error creating Emily conversation #4:', error);
 
     throw error;
@@ -292,16 +282,12 @@ export async function seedEmilyConversation4() {
 if (require.main === module) {
   seedEmilyConversation4()
     .then(() => {
-      // eslint-disable-next-line no-console
-
       console.log('🎉 Emily conversation #4 seeding completed successfully!');
 
       throw new Error('Seeding completed - exiting process');
     })
 
     .catch(error => {
-      // eslint-disable-next-line no-console
-
       console.error('💥 Emily conversation #4 seeding failed:', error);
 
       throw error;

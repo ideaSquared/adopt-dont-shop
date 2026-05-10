@@ -103,6 +103,5 @@ export async function seedFileUploads() {
     });
   }
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Created ${sampleFileUploads.length} test file uploads`);
 }

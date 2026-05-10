@@ -33,7 +33,6 @@ export async function seedDemoRatings(): Promise<void> {
   const rescues = await Rescue.findAll({ paranoid: false, attributes: ['rescueId'] });
 
   if (adopters.length === 0 || rescues.length === 0) {
-    // eslint-disable-next-line no-console
     console.log('⚠️  Need adopters + rescues for ratings — skipping');
     return;
   }
@@ -86,6 +85,5 @@ export async function seedDemoRatings(): Promise<void> {
 
   await bulkInsert(Rating, rows);
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Inserted ${rows.length} faker-generated ratings (target ${target})`);
 }

@@ -36,18 +36,15 @@ describe('DiscoveryService breed cache [ADS-516]', () => {
       postcode: 'P1',
       country: 'GB',
       contactPerson: 'X',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     await Breed.create({
       name: 'Labrador Retriever',
       species: PetType.DOG,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     await Breed.create({
       name: 'Border Collie',
       species: PetType.DOG,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     await Pet.create({

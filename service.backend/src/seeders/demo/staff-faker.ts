@@ -25,7 +25,6 @@ export async function seedDemoStaff(): Promise<void> {
 
   const rescues = await Rescue.findAll({ paranoid: false, attributes: ['rescueId'] });
   if (rescues.length === 0) {
-    // eslint-disable-next-line no-console
     console.log('⚠️  No rescues to attach staff to — skipping demo staff');
     return;
   }
@@ -43,7 +42,6 @@ export async function seedDemoStaff(): Promise<void> {
   // reference real-but-arbitrary user_ids — pick the first existing user.
   const firstUser = await User.findOne({ paranoid: false, attributes: ['userId'] });
   if (!firstUser) {
-    // eslint-disable-next-line no-console
     console.log('⚠️  No users in DB — skipping demo staff');
     return;
   }
@@ -106,7 +104,6 @@ export async function seedDemoStaff(): Promise<void> {
 
   await bulkInsert(StaffMember, staffRows);
 
-  // eslint-disable-next-line no-console
   console.log(
     `✅ Inserted ${staffRows.length} faker-generated rescue staff (target ${target}) across ${rescues.length} rescues`
   );

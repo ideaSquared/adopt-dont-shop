@@ -32,7 +32,6 @@ export async function seedDemoMessages(): Promise<void> {
 
   const chats = await Chat.findAll({ attributes: ['chat_id', 'createdAt'], limit: 5000 });
   if (chats.length === 0) {
-    // eslint-disable-next-line no-console
     console.log('⚠️  No chats — skipping messages');
     return;
   }
@@ -93,7 +92,6 @@ export async function seedDemoMessages(): Promise<void> {
 
   await bulkInsert(Message, rows, { chunkSize: 1000 });
 
-  // eslint-disable-next-line no-console
   console.log(
     `✅ Inserted ${rows.length} faker-generated messages across ${chats.length} chats (target ${target})`
   );

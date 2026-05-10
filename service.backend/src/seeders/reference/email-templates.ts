@@ -663,6 +663,5 @@ export async function seedEmailTemplates() {
     });
   }
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Created ${emailTemplateData.length} email templates`);
 }

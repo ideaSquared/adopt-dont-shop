@@ -208,7 +208,7 @@ describe('Error Handler Middleware', () => {
           'relation "users" does not exist — column "secret_internal_col" referenced in WHERE clause'
         ),
         // sequelize types this loosely; we just need a real DatabaseError instance
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         {} as any
       );
 

@@ -128,7 +128,13 @@ export const config = {
 
   // Email configuration
   email: {
-    provider: process.env.EMAIL_PROVIDER || 'ethereal', // 'ethereal' | 'sendgrid' | 'ses' | 'smtp'
+    provider: process.env.EMAIL_PROVIDER || 'ethereal', // 'ethereal' | 'console' | 'resend' | 'sendgrid' | 'ses' | 'smtp'
+    resend: {
+      apiKey: process.env.RESEND_API_KEY,
+      fromEmail: process.env.RESEND_FROM_EMAIL,
+      fromName: process.env.RESEND_FROM_NAME || "Adopt Don't Shop",
+      replyTo: process.env.RESEND_REPLY_TO,
+    },
     ethereal: {
       // Ethereal creates test accounts automatically
       createTestAccount: process.env.NODE_ENV === 'development',

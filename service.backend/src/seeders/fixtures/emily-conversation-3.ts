@@ -263,24 +263,14 @@ export async function seedEmilyConversation3() {
       });
     }
 
-    // eslint-disable-next-line no-console
-
     console.log('✅ Created Emily Davis conversation #3 with Austin Animal Center');
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Chat ID: ${emilyConversation3Data.chat.chat_id}`);
 
-    // eslint-disable-next-line no-console
-
     console.log(`   - Participants: ${emilyConversation3Data.participants.length}`);
-
-    // eslint-disable-next-line no-console
 
     console.log(`   - Messages: ${emilyConversation3Data.messages.length}`);
   } catch (error) {
-    // eslint-disable-next-line no-console
-
     console.error('❌ Error creating Emily conversation #3:', error);
 
     throw error;
@@ -292,16 +282,12 @@ export async function seedEmilyConversation3() {
 if (require.main === module) {
   seedEmilyConversation3()
     .then(() => {
-      // eslint-disable-next-line no-console
-
       console.log('🎉 Emily conversation #3 seeding completed successfully!');
 
       throw new Error('Seeding completed - exiting process');
     })
 
     .catch(error => {
-      // eslint-disable-next-line no-console
-
       console.error('💥 Emily conversation #3 seeding failed:', error);
 
       throw error;

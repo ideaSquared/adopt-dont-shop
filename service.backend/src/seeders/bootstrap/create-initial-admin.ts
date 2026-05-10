@@ -40,7 +40,6 @@ export async function createInitialAdmin(): Promise<{ created: boolean }> {
 
   const existingAdminCount = await UserRole.count({ where: { roleId: adminRole.roleId } });
   if (existingAdminCount > 0) {
-    // eslint-disable-next-line no-console
     console.log('Admin already exists — bootstrap skipped (no-op).');
     return { created: false };
   }
@@ -67,7 +66,6 @@ export async function createInitialAdmin(): Promise<{ created: boolean }> {
     roleId: adminRole.roleId,
   } as never);
 
-  // eslint-disable-next-line no-console
   console.log(`Initial admin created (${email}). Password reset required on first login.`);
   return { created: true };
 }

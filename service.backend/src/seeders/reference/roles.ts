@@ -49,6 +49,5 @@ export async function seedRoles() {
     });
   }
 
-  // eslint-disable-next-line no-console
   console.log(`✅ Created ${roles.length} roles`);
 }
