@@ -182,6 +182,8 @@ SELECT COUNT(*) FROM "SequelizeMeta" WHERE name LIKE '00%-baseline%';
 
 And run a schema-equivalence check against a freshly-bootstrapped DB at the same git SHA (e.g. `pg_dump --schema-only` of both, normalised, then `diff`). If they differ, the per-model files do not faithfully reproduce what `sync()` produced and we have a drift problem to fix before declaring success.
 
+This check is automated as a CI gate — see [`schema-equivalence-runbook.md`](./schema-equivalence-runbook.md). It runs on every PR that touches `service.backend/src/migrations/**` or `service.backend/src/models/**`, fails on any drift, and uploads both raw + normalised `pg_dump` outputs as workflow artefacts for offline inspection.
+
 ---
 
 ## 4. Risk register
