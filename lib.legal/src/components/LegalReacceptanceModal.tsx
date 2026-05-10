@@ -30,6 +30,7 @@ import * as styles from './LegalReacceptanceModal.css';
 const LABELS: Record<PendingReacceptanceItem['documentType'], { title: string; href: string }> = {
   terms: { title: 'Terms of Service', href: '/terms' },
   privacy: { title: 'Privacy Policy', href: '/privacy' },
+  cookies: { title: 'Cookies Policy', href: '/cookies' },
 };
 
 type Status = 'idle' | 'submitting' | 'error';

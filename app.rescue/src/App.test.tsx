@@ -12,6 +12,8 @@ import { render, screen } from '@testing-library/react';
 
 vi.mock('@adopt-dont-shop/lib.legal', () => ({
   LegalReacceptanceModal: () => <div data-testid="legal-reacceptance-modal-sentinel" />,
+  CookieBanner: () => <div data-testid="cookie-banner-sentinel" />,
+  attachStoredCookieConsent: vi.fn(),
 }));
 
 vi.mock('@adopt-dont-shop/lib.analytics', () => ({
@@ -42,5 +44,15 @@ describe('rescue App [ADS-497 modal wiring]', () => {
     );
 
     expect(screen.getByTestId('legal-reacceptance-modal-sentinel')).toBeInTheDocument();
+  });
+
+  it('mounts the CookieBanner at the App root (ADS-497 slice 5)', () => {
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('cookie-banner-sentinel')).toBeInTheDocument();
   });
 });

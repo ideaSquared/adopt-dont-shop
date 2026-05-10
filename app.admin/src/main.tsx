@@ -1,5 +1,6 @@
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
 import { AuthProvider } from '@adopt-dont-shop/lib.auth';
+import { attachStoredCookieConsent } from '@adopt-dont-shop/lib.legal';
 import { captureException, initSentry, reportWebVitals } from '@adopt-dont-shop/lib.observability';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -44,11 +45,28 @@ const queryClient = new QueryClient({
   },
 });
 
+// ADS-497 (slice 5): on first sign-in OR rehydrate, replay an anonymous
+// cookie-banner choice (if any) against the user's account. Idempotent
+// per (userId, cookiesVersion).
+const handleAuthEvent = (event: string, data?: Record<string, unknown>) => {
+  if (event !== 'auth_session_authenticated') {
+    return;
+  }
+  const userId = typeof data?.user_id === 'string' ? data.user_id : null;
+  if (userId) {
+    void attachStoredCookieConsent(userId);
+  }
+};
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider allowedUserTypes={['admin', 'moderator']} appType='admin'>
+        <AuthProvider
+          allowedUserTypes={['admin', 'moderator']}
+          appType='admin'
+          onAuthEvent={handleAuthEvent}
+        >
           <StatsigWrapper>
             <ThemeProvider>
               <BrowserRouter>

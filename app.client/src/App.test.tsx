@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
 // Capture the userId prop NotificationsProvider receives, so we can assert
@@ -47,6 +47,14 @@ vi.mock('./components/dev/DevLoginPanel', () => ({
 
 vi.mock('./components/common/ErrorBoundary', () => ({
   ErrorBoundary: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+// ADS-497: replace the legal modal + cookie banner with sentinels so the
+// App-level wiring tests don't pull in their network behaviour.
+vi.mock('@adopt-dont-shop/lib.legal', () => ({
+  LegalReacceptanceModal: () => <div data-testid='legal-reacceptance-modal-sentinel' />,
+  CookieBanner: () => <div data-testid='cookie-banner-sentinel' />,
+  attachStoredCookieConsent: vi.fn(),
 }));
 
 // Stable mock for useAuth that we can reconfigure per test.
@@ -115,5 +123,21 @@ describe('App notifications wiring', () => {
       expect(notificationsProviderUserIdSpy).toHaveBeenCalled();
     });
     expect(notificationsProviderUserIdSpy).toHaveBeenLastCalledWith('user-abc');
+  });
+});
+
+describe('App [ADS-497 slice 5] cookie banner wiring', () => {
+  it('mounts the CookieBanner alongside the LegalReacceptanceModal', async () => {
+    useAuthMock.mockReturnValue({ ...baseAuth, user: null, isAuthenticated: false });
+
+    renderApp();
+
+    // The banner + modal are sibling sentinels of the routed Suspense
+    // boundary, so they're available before the lazy LoginPage finishes
+    // loading. waitFor handles the React 19 act() flush.
+    await waitFor(() => {
+      expect(screen.getByTestId('cookie-banner-sentinel')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('legal-reacceptance-modal-sentinel')).toBeInTheDocument();
   });
 });

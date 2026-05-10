@@ -2,7 +2,7 @@ import React, { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Spinner } from '@adopt-dont-shop/lib.components';
-import { LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
+import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
@@ -70,6 +70,10 @@ const AdminApp: React.FC = () => {
         </Suspense>
 
         <DevLoginPanel />
+
+        {/* ADS-497 (slice 5): cookie banner is shown to anonymous visitors
+            too, so first-time choices are persisted before sign-in. */}
+        <CookieBanner />
       </>
     );
   }
@@ -186,6 +190,10 @@ const AdminApp: React.FC = () => {
 
       {/* Dev Login Panel - only shows in development */}
       <DevLoginPanel />
+
+      {/* ADS-497 (slice 5): on-page cookie banner. Mounted before the
+          re-acceptance modal so the modal stacks on top if both surface. */}
+      <CookieBanner />
 
       {/* ADS-497: hard-block re-acceptance modal for users whose last
           accepted ToS / Privacy version is older than current. Admins are

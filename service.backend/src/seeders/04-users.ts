@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import AuditLog from '../models/AuditLog';
 import User, { UserStatus, UserType } from '../models/User';
-import { PRIVACY_VERSION, TERMS_VERSION } from '../services/legal-content.service';
+import { COOKIES_VERSION, PRIVACY_VERSION, TERMS_VERSION } from '../services/legal-content.service';
 
 /**
  * ADS-536: per-seed-run password.
@@ -330,8 +330,11 @@ export async function seedUsers() {
 
   // Record consent acceptance for each seeded user so the
   // LegalReacceptanceModal in app.client (PR #420) doesn't fire for them
-  // in dev / E2E. Idempotent: skip if a CONSENT_RECORDED row already
-  // exists for this user. Audit logs are append-only, so we never update.
+  // in dev / E2E. Includes cookiesVersion since PR #419 widened the
+  // pending-reacceptance detection to cookies; without it, the modal
+  // would surface cookies for every seeded user and hard-block E2E.
+  // Idempotent: skip if a CONSENT_RECORDED row already exists for this
+  // user. Audit logs are append-only, so we never update.
   for (const userData of testUsers) {
     const existing = await AuditLog.findOne({
       where: { user: userData.userId, action: 'CONSENT_RECORDED' },
@@ -353,6 +356,8 @@ export async function seedUsers() {
         details: {
           tosVersion: TERMS_VERSION,
           privacyVersion: PRIVACY_VERSION,
+          cookiesVersion: COOKIES_VERSION,
+          analyticsConsent: false,
           acceptedAt: acceptedAt.toISOString(),
         },
       },
