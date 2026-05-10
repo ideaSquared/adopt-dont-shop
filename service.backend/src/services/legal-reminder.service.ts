@@ -69,11 +69,22 @@ const ReminderAuditDetailsSchema = z.object({
 export type ReminderAuditDetails = z.infer<typeof ReminderAuditDetailsSchema>;
 
 /**
+ * Documents this email reminder can cover. Narrower than
+ * `PendingReacceptanceItem` (which includes `'cookies'`) because cookies
+ * acceptance is captured via the in-app banner, not email — see the
+ * filter on the `getPendingReacceptance` result inside
+ * `sendReacceptanceReminder`.
+ */
+type ReminderableDocument = Omit<PendingReacceptanceItem, 'documentType'> & {
+  documentType: 'terms' | 'privacy';
+};
+
+/**
  * Stable identifier for "the set of documents this reminder is about".
  * Sorted so that {terms, privacy} and {privacy, terms} produce the
  * same fingerprint regardless of upstream ordering.
  */
-const buildVersionFingerprint = (pending: ReadonlyArray<PendingReacceptanceItem>): string => {
+const buildVersionFingerprint = (pending: ReadonlyArray<ReminderableDocument>): string => {
   return pending
     .map(p => `${p.documentType}:${p.currentVersion}`)
     .sort()
@@ -111,7 +122,7 @@ const documentLabel = (documentType: 'terms' | 'privacy'): string =>
 
 const renderReminderHtml = (
   firstName: string | null,
-  pending: ReadonlyArray<PendingReacceptanceItem>
+  pending: ReadonlyArray<ReminderableDocument>
 ): string => {
   const baseUrl = process.env.FRONTEND_URL || 'https://adoptdontshop.com';
   const supportEmail = process.env.SUPPORT_EMAIL || 'support@adoptdontshop.com';
@@ -146,7 +157,7 @@ const renderReminderHtml = (
 
 const renderReminderText = (
   firstName: string | null,
-  pending: ReadonlyArray<PendingReacceptanceItem>
+  pending: ReadonlyArray<ReminderableDocument>
 ): string => {
   const baseUrl = process.env.FRONTEND_URL || 'https://adoptdontshop.com';
   const supportEmail = process.env.SUPPORT_EMAIL || 'support@adoptdontshop.com';
@@ -171,7 +182,7 @@ Thanks,
 The Adopt Don't Shop team`;
 };
 
-const buildSubject = (pending: ReadonlyArray<PendingReacceptanceItem>): string => {
+const buildSubject = (pending: ReadonlyArray<ReminderableDocument>): string => {
   if (pending.length === 1) {
     return `Action required: please review our updated ${documentLabel(pending[0].documentType)}`;
   }
@@ -206,7 +217,17 @@ export const sendReacceptanceReminder = async (
     throw new Error('User has no email address on file');
   }
 
-  const { pending } = await getPendingReacceptance(userId);
+  const { pending: allPending } = await getPendingReacceptance(userId);
+  // Email reminders cover terms/privacy only. Cookies acceptance is
+  // captured via the in-app banner (anonymous → localStorage → attach
+  // on sign-in), not email — emailing "you need to accept cookies"
+  // doesn't match the banner UX users expect. Filter narrows the
+  // documentType union from `'terms' | 'privacy' | 'cookies'` (returned
+  // by getPendingReacceptance after PR #419 widened it) back to the
+  // `'terms' | 'privacy'` shape this service was designed around.
+  const pending = allPending.filter(
+    (p): p is ReminderableDocument => p.documentType !== 'cookies'
+  );
   if (pending.length === 0) {
     return { sent: false, reason: 'no_pending_versions' };
   }
