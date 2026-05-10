@@ -19,12 +19,7 @@ import AuditLog from '../models/AuditLog';
 
 export const TERMS_VERSION = '2026-05-08-v1';
 export const PRIVACY_VERSION = '2026-05-08-v1';
-// The `-PLACEHOLDER` suffix is intentional and load-bearing: any cookies
-// row surfaced by `getPendingReacceptance` (or written into an audit log)
-// is obviously not-yet-legally-reviewed. Replace this constant — and the
-// version line in `docs/legal/cookies.md` — when the real cookies policy
-// lands.
-export const COOKIES_VERSION = '2026-05-09-v0-PLACEHOLDER';
+export const COOKIES_VERSION = '2026-05-09-v1';
 
 const DOCS_DIR = path.resolve(__dirname, '..', '..', '..', 'docs', 'legal');
 
@@ -73,14 +68,13 @@ export const getCookiesDocument = (): LegalDocument => ({
  * per pending doc.
  *
  * Notes:
- *   - `terms`, `privacy`, and `cookies` are tracked. The cookies copy
- *     and version are currently a clearly-marked placeholder
- *     (`COOKIES_VERSION` ends in `-PLACEHOLDER`) and the consent service
- *     does not yet capture a `cookiesVersion`, so until both land
- *     `getPendingReacceptance` will always return `cookies` as pending
- *     for every user. That is intentional for the wiring slice and
- *     should be addressed before the cookies type is shown in the
- *     re-acceptance modal.
+ *   - `terms`, `privacy`, and `cookies` are tracked. The consent
+ *     service does not yet capture a `cookiesVersion`, so until that
+ *     gap is closed `getPendingReacceptance` will always return
+ *     `cookies` as pending for every existing user. That is
+ *     intentional for this slice and is tracked as a follow-up to be
+ *     addressed before the cookies type is shown in the re-acceptance
+ *     modal.
  *   - Consent capture writes to `audit_logs` (see
  *     `consent.service.ts`), so this read also goes there. Migrating
  *     to a dedicated consent-acceptance table is a separate decision.

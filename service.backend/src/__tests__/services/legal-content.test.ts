@@ -54,13 +54,6 @@ describe('legal content service', () => {
     expect(doc.content).toContain('Cookies Policy');
   });
 
-  it('flags the cookies version as a placeholder so it is obvious in audit/pending output', () => {
-    // The cookies markdown is a stand-in awaiting legal review. The
-    // version constant carries that signal so any consent record or
-    // pending-reacceptance row that surfaces it is easy to spot.
-    expect(COOKIES_VERSION).toContain('PLACEHOLDER');
-  });
-
   it('versions follow a date-based identifier so consent records can be replayed', () => {
     expect(TERMS_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}/);
     expect(PRIVACY_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}/);

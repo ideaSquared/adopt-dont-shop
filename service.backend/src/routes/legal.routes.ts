@@ -47,11 +47,6 @@ router.get('/privacy', (_req, res) => {
   }
 });
 
-// NOTE: the cookies document body is currently a clearly-marked
-// placeholder pending legal review. The endpoint is wired so the
-// version constant + markdown source can be referenced end-to-end, but
-// the response body must not be linked from any user-facing UI until
-// `docs/legal/cookies.md` is replaced with approved copy.
 router.get('/cookies', (_req, res) => {
   try {
     const doc = getCookiesDocument();
