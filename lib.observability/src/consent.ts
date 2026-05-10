@@ -1,12 +1,18 @@
 /**
  * Minimal analytics consent gate. Persists a boolean in localStorage so
- * Statsig session-replay / auto-capture / web-vitals reporting can be
- * gated behind explicit opt-in (PECR / GDPR).
+ * Statsig session-replay / auto-capture can be gated behind explicit
+ * opt-in (PECR / GDPR).
+ *
+ * Scope: this gate is for analytics SDKs only. Sentry is classified as
+ * strictly necessary for service reliability (see docs/legal/cookies.md
+ * §5) and runs unconditionally — callers must NOT consult this gate
+ * before calling `initSentry`.
  *
  * The full consent banner UI is intentionally out of scope here — this
  * module just provides the storage primitive. Callers (apps) own the
  * banner. Until consent is granted, hasAnalyticsConsent() returns false
- * and analytics SDKs should not initialise.
+ * and analytics SDKs (Statsig auto-capture, session replay) should not
+ * initialise.
  */
 export const ANALYTICS_CONSENT_STORAGE_KEY = 'ads:analytics-consent';
 

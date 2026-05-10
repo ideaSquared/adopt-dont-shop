@@ -1,7 +1,7 @@
 # Privacy Policy
 
-**Version:** 2026-05-08-v1
-**Last updated:** 8 May 2026
+**Version:** 2026-05-10-v1
+**Last updated:** 10 May 2026
 
 > Placeholder copy — must be reviewed and approved by legal counsel before
 > production launch. The version string above is the canonical
@@ -11,7 +11,7 @@
 
 Adopt Don't Shop is the data controller for the personal data described
 in this notice. Contact our Data Protection Officer at
-privacy@adoptdontshop.example.
+privacy@adoptdontshop.app.
 
 ## 2. What we collect
 
@@ -36,7 +36,7 @@ You may at any time:
   `POST /api/v1/privacy/me/delete`. Hard deletion follows after a
   30-day grace window in line with our retention policy.
 - **Object** to processing or **restrict** processing by emailing
-  privacy@adoptdontshop.example.
+  privacy@adoptdontshop.app.
 
 ## 5. Retention
 

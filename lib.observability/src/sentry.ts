@@ -21,6 +21,12 @@ export type SentryInitOptions = {
  * Initialise Sentry for a frontend app. Safe to call when DSN is empty —
  * it just logs a warning and skips, so dev/local builds without a DSN
  * don't crash.
+ *
+ * Sentry is strictly necessary for service reliability and is NOT gated
+ * on analytics consent. Do not consult `hasAnalyticsConsent()` before
+ * calling this — see docs/legal/cookies.md §5 and consent.ts for the
+ * scope rules. Replay sample rates default to 0 here so identifiable
+ * session content stays off until callers explicitly opt in.
  */
 export const initSentry = (options: SentryInitOptions): void => {
   const {

@@ -1,7 +1,7 @@
 # Terms of Service
 
-**Version:** 2026-05-08-v1
-**Last updated:** 8 May 2026
+**Version:** 2026-05-10-v1
+**Last updated:** 10 May 2026
 
 > Placeholder copy — must be reviewed and approved by legal counsel before
 > production launch. The version string above is the canonical
@@ -50,4 +50,4 @@ re-acceptance on next sign-in.
 
 ## 8. Contact
 
-Questions about these terms: legal@adoptdontshop.example.
+Questions about these terms: legal@adoptdontshop.app.

@@ -1,7 +1,7 @@
 # Cookies Policy
 
-**Version:** 2026-05-09-v1
-**Last updated:** 9 May 2026
+**Version:** 2026-05-10-v1
+**Last updated:** 10 May 2026
 
 This policy explains how Adopt Don't Shop uses cookies and similar
 technologies on our websites and apps. It sits alongside the
@@ -11,7 +11,7 @@ technologies on our websites and apps. It sits alongside the
 
 Adopt Don't Shop is the data controller for the cookies described in
 this notice. Contact our Data Protection Officer at
-privacy@adoptdontshop.example.
+privacy@adoptdontshop.app.
 
 ## 2. What cookies are
 
@@ -54,20 +54,30 @@ JavaScript and are never sent on cross-site requests.
 
 ## 5. Analytics, performance, and error monitoring
 
-We use **Statsig** for product analytics, feature experimentation, and
-optional session replay, and **Sentry** for error and performance
-monitoring. Both are loaded only after you grant analytics consent
-through the on-site banner.
+We use **Sentry** for error and performance monitoring, and **Statsig**
+for product analytics, feature experimentation, and optional session
+replay.
 
-Statsig stores its identifiers in your browser's `localStorage` rather
-than in a cookie; Sentry transmits events over HTTPS without setting
-cookies. Neither tool runs before consent is granted, and no
-identifiable data is sent to either tool while consent is denied or
-unknown.
+**Sentry is strictly necessary for service reliability** and runs
+unconditionally — it captures unhandled errors and performance traces
+so we can detect and fix outages, regressions, and security issues
+that affect every user of the platform. We rely on this under PECR
+reg. 6(4) (information society service requested by the user) and on
+our legitimate interest in keeping the platform secure and available
+under UK GDPR Art. 6(1)(f). Sentry transmits events over HTTPS without
+setting cookies and we do not send identifiable profile data to it.
 
-If consent is later withdrawn, the third-party SDKs stop on your next
-page load and the local identifiers can be cleared from your browser's
-site-data settings.
+**Statsig is loaded only after you grant analytics consent** through
+the on-site banner. Until consent is granted, Statsig is not
+initialised with auto-capture or session replay and no behavioural
+data leaves your device. Statsig stores its identifiers in your
+browser's `localStorage` rather than in a cookie.
+
+If analytics consent is later withdrawn, Statsig auto-capture and
+session replay stop on your next page load and the local identifiers
+can be cleared from your browser's site-data settings. Sentry
+continues to run because it is not part of the analytics consent
+scope.
 
 ## 6. Marketing and advertising
 
@@ -89,7 +99,7 @@ You can manage cookies in two ways:
 
 The on-site cookie banner is being rolled out; until it is live in
 your app, withdraw analytics consent by clearing site data for
-`adoptdontshop.example` in your browser's settings. The strictly
+`adoptdontshop.app` in your browser's settings. The strictly
 necessary cookies are unaffected by analytics consent.
 
 ## 8. Your rights
@@ -108,4 +118,4 @@ notified through the in-app re-acceptance flow on next sign-in.
 
 ## 10. Contact
 
-Questions about cookies or this policy: privacy@adoptdontshop.example.
+Questions about cookies or this policy: privacy@adoptdontshop.app.
