@@ -18,7 +18,7 @@ import { z } from 'zod';
  */
 
 export const PendingReacceptanceItemSchema = z.object({
-  documentType: z.enum(['terms', 'privacy']),
+  documentType: z.enum(['terms', 'privacy', 'cookies']),
   currentVersion: z.string(),
   lastAcceptedVersion: z.string().nullable(),
   lastAcceptedAt: z.string().nullable(),
@@ -46,8 +46,32 @@ export type RecordReacceptanceInput = {
    */
   tosVersion?: string;
   privacyVersion?: string;
+  /**
+   * ADS-497 (slice 5): cookies + analytics consent posted by the on-page
+   * cookie banner. `cookiesVersion` defaults to the backend's current
+   * COOKIES_VERSION when omitted; `analyticsConsent` is opt-in only.
+   */
+  cookiesVersion?: string;
+  analyticsConsent?: boolean;
 };
 
 export const recordReacceptance = async (input: RecordReacceptanceInput): Promise<void> => {
   await api.post('/api/v1/privacy/consent', input);
+};
+
+/**
+ * ADS-497 (slice 5): cookies-policy version snapshot for the on-page
+ * banner. Returns just the version string so a banner mount can be
+ * cheap; the full policy markdown is rendered on /cookies for users who
+ * click through.
+ */
+const CookiesDocumentResponseSchema = z.object({
+  data: z.object({
+    version: z.string().min(1),
+  }),
+});
+
+export const fetchCookiesVersion = async (): Promise<string> => {
+  const raw = await api.get<unknown>('/api/v1/legal/cookies');
+  return CookiesDocumentResponseSchema.parse(raw).data.version;
 };

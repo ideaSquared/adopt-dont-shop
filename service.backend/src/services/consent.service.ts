@@ -1,13 +1,14 @@
 import { z } from 'zod';
 import EmailPreference, { EmailFrequency, NotificationType } from '../models/EmailPreference';
 import { AuditLogService } from './auditLog.service';
-import { PRIVACY_VERSION, TERMS_VERSION } from './legal-content.service';
+import { COOKIES_VERSION, PRIVACY_VERSION, TERMS_VERSION } from './legal-content.service';
 import { logger } from '../utils/logger';
 
 /**
  * ADS-496 / ADS-497: consent capture.
  *
- * Records two distinct consent decisions taken at registration:
+ * Records the consent decisions taken at registration and through the
+ * on-page cookie banner (slice 5):
  *
  *   1. ToS + Privacy Policy acceptance — required to create the account.
  *      Persisted as an immutable `CONSENT_RECORDED` AuditLog row capturing
@@ -21,8 +22,14 @@ import { logger } from '../utils/logger';
  *      preference rows are touched — the User.afterCreate hook leaves
  *      both types disabled by absence.
  *
- * The ToS/Privacy versions are pulled from `legal-content.service` so a
- * version bump in one place propagates to consent records, the public
+ *   3. Cookies / analytics — the on-page cookie banner posts the user's
+ *      `cookiesVersion` + `analyticsConsent` choice here. The cookies
+ *      version is recorded in the same audit row so `getPendingReacceptance`
+ *      can compare it to the currently published COOKIES_VERSION. Analytics
+ *      consent is opt-in only (default false).
+ *
+ * The ToS/Privacy/Cookies versions are pulled from `legal-content.service`
+ * so a version bump in one place propagates to consent records, the public
  * /legal endpoints, and the user-facing copy in lockstep.
  */
 
@@ -30,6 +37,12 @@ export const ConsentInputSchema = z.object({
   tosAccepted: z.boolean(),
   privacyAccepted: z.boolean(),
   marketingConsent: z.boolean().default(false),
+  // ADS-497 (slice 5): cookies + analytics consent captured by the
+  // on-page cookie banner. `cookiesVersion` defaults to the currently
+  // published COOKIES_VERSION when omitted (the normal path from the
+  // banner). `analyticsConsent` defaults to false — opt-in only.
+  cookiesVersion: z.string().optional(),
+  analyticsConsent: z.boolean().optional(),
   // Versions are normally inferred from the active legal-content
   // service; callers may override only when replaying historical
   // consent (e.g. data backfill scripts). Optional in the schema for
@@ -48,7 +61,9 @@ export type ConsentContext = {
 export type ConsentRecord = {
   tosVersion: string;
   privacyVersion: string;
+  cookiesVersion: string;
   marketingConsent: boolean;
+  analyticsConsent: boolean;
   acceptedAt: string;
 };
 
@@ -88,6 +103,8 @@ export const recordConsent = async (
 
   const tosVersion = input.tosVersion ?? TERMS_VERSION;
   const privacyVersion = input.privacyVersion ?? PRIVACY_VERSION;
+  const cookiesVersion = input.cookiesVersion ?? COOKIES_VERSION;
+  const analyticsConsent = input.analyticsConsent ?? false;
   const acceptedAt = new Date();
 
   await AuditLogService.log({
@@ -98,7 +115,9 @@ export const recordConsent = async (
     details: {
       tosVersion,
       privacyVersion,
+      cookiesVersion,
       marketingConsent: input.marketingConsent,
+      analyticsConsent,
       acceptedAt: acceptedAt.toISOString(),
     },
     ipAddress: context.ip ?? undefined,
@@ -110,7 +129,9 @@ export const recordConsent = async (
   return {
     tosVersion,
     privacyVersion,
+    cookiesVersion,
     marketingConsent: input.marketingConsent,
+    analyticsConsent,
     acceptedAt: acceptedAt.toISOString(),
   };
 };

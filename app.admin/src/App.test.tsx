@@ -16,10 +16,12 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => useAuthMock(),
 }));
 
-// Replace the modal with a sentinel so the test asserts wiring without
-// pulling in the modal's full network behaviour.
+// Replace the modal + banner with sentinels so the test asserts wiring
+// without pulling in their full network behaviour.
 vi.mock('@adopt-dont-shop/lib.legal', () => ({
   LegalReacceptanceModal: () => <div data-testid='legal-reacceptance-modal-sentinel' />,
+  CookieBanner: () => <div data-testid='cookie-banner-sentinel' />,
+  attachStoredCookieConsent: vi.fn(),
 }));
 
 vi.mock('@adopt-dont-shop/lib.analytics', () => ({
@@ -63,5 +65,23 @@ describe('AdminApp [ADS-497 modal wiring]', () => {
     renderApp();
 
     expect(screen.queryByTestId('legal-reacceptance-modal-sentinel')).not.toBeInTheDocument();
+  });
+});
+
+describe('AdminApp [ADS-497 cookie banner wiring]', () => {
+  it('mounts the CookieBanner on the authenticated branch', () => {
+    useAuthMock.mockReturnValue({ isAuthenticated: true, isLoading: false });
+
+    renderApp();
+
+    expect(screen.getByTestId('cookie-banner-sentinel')).toBeInTheDocument();
+  });
+
+  it('mounts the CookieBanner on the public/login branch (anonymous visitors decide too)', () => {
+    useAuthMock.mockReturnValue({ isAuthenticated: false, isLoading: false });
+
+    renderApp();
+
+    expect(screen.getByTestId('cookie-banner-sentinel')).toBeInTheDocument();
   });
 });

@@ -11,7 +11,7 @@ import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppShell } from './components/layout/AppShell';
 import { PublicAuthLayout } from './components/layout/PublicAuthLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
+import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import * as styles from './App.css';
 
 const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -98,6 +98,10 @@ function App() {
           <ChatProvider>
             <FavoritesProvider>
               <DevLoginPanel />
+              {/* ADS-497 (slice 5): on-page cookie banner. Bottom-anchored, does
+                  not block the page. Mounted before the modal so the modal
+                  renders on top if both ever surface together. */}
+              <CookieBanner />
               {/* ADS-497 (slice 2): hard-block modal for users whose last
                   accepted ToS / Privacy version is older than current. */}
               <LegalReacceptanceModal />

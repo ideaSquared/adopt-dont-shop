@@ -67,6 +67,10 @@ export default mergeConfig(
           __dirname,
           '../lib.components/src/theme.ts'
         ),
+        '@adopt-dont-shop/lib.observability': path.resolve(
+          __dirname,
+          '../lib.observability/src/index.ts'
+        ),
       },
     },
   })

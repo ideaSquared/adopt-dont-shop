@@ -27,7 +27,11 @@ vi.mock('../../models/EmailPreference', () => ({
 
 import { recordConsent } from '../../services/consent.service';
 import { captureRegistrationConsent } from '../../services/registration.service';
-import { PRIVACY_VERSION, TERMS_VERSION } from '../../services/legal-content.service';
+import {
+  COOKIES_VERSION,
+  PRIVACY_VERSION,
+  TERMS_VERSION,
+} from '../../services/legal-content.service';
 import { AuditLogService } from '../../services/auditLog.service';
 
 const ctx = { userId: 'user-abc', ip: '1.2.3.4', userAgent: 'test-agent/1.0' };
@@ -124,6 +128,61 @@ describe('consent.service — recordConsent', () => {
     );
 
     expect(result.tosVersion).toBeDefined();
+  });
+
+  it('records the active COOKIES_VERSION in the audit row by default', async () => {
+    const result = await recordConsent(
+      { tosAccepted: true, privacyAccepted: true, marketingConsent: false },
+      ctx
+    );
+
+    expect(result.cookiesVersion).toBe(COOKIES_VERSION);
+    const callArgs = (AuditLogService.log as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0];
+    expect(callArgs.details.cookiesVersion).toBe(COOKIES_VERSION);
+  });
+
+  it('embeds analyticsConsent=false in the audit row when omitted (opt-in default)', async () => {
+    const result = await recordConsent(
+      { tosAccepted: true, privacyAccepted: true, marketingConsent: false },
+      ctx
+    );
+
+    expect(result.analyticsConsent).toBe(false);
+    const callArgs = (AuditLogService.log as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0];
+    expect(callArgs.details.analyticsConsent).toBe(false);
+  });
+
+  it('embeds analyticsConsent=true in the audit row when explicitly granted', async () => {
+    const result = await recordConsent(
+      {
+        tosAccepted: true,
+        privacyAccepted: true,
+        marketingConsent: false,
+        analyticsConsent: true,
+      },
+      ctx
+    );
+
+    expect(result.analyticsConsent).toBe(true);
+    const callArgs = (AuditLogService.log as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0];
+    expect(callArgs.details.analyticsConsent).toBe(true);
+  });
+
+  it('allows callers to override cookiesVersion (banner replays a prior choice)', async () => {
+    const result = await recordConsent(
+      {
+        tosAccepted: true,
+        privacyAccepted: true,
+        marketingConsent: false,
+        cookiesVersion: '2026-01-01-cookies-legacy',
+        analyticsConsent: true,
+      },
+      ctx
+    );
+
+    expect(result.cookiesVersion).toBe('2026-01-01-cookies-legacy');
+    const callArgs = (AuditLogService.log as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0];
+    expect(callArgs.details.cookiesVersion).toBe('2026-01-01-cookies-legacy');
   });
 });
 
