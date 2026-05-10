@@ -73,10 +73,18 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Install Postgres client tools
-        # Need pg_dump + psql at the same major version as the service for
-        # consistent dump output.
+      - name: Install Postgres 15 client tools
+        # Ubuntu runners ship with postgresql-client-14 in the default repos;
+        # we need version-15 client tools to match the service container so
+        # pg_dump output is consistent. Install via the official PostgreSQL
+        # apt repository (PGDG).
         run: |
+          set -euo pipefail
+          sudo install -d /usr/share/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
           sudo apt-get install -y postgresql-client-15
 
