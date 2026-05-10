@@ -2,11 +2,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import AuditLog from '../models/AuditLog';
 import User, { UserStatus, UserType } from '../models/User';
-import {
-  COOKIES_VERSION,
-  PRIVACY_VERSION,
-  TERMS_VERSION,
-} from '../services/legal-content.service';
+import { COOKIES_VERSION, PRIVACY_VERSION, TERMS_VERSION } from '../services/legal-content.service';
 
 /**
  * ADS-536: per-seed-run password.
