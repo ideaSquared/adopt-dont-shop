@@ -1,7 +1,7 @@
 import { Button } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { setAnalyticsConsent } from '@adopt-dont-shop/lib.observability';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { fetchCookiesVersion, recordReacceptance } from '../services/legal-service';
 import {
   readStoredConsent,
@@ -55,6 +55,9 @@ export const CookieBanner = () => {
   const [hasDecided, setHasDecided] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [analyticsToggle, setAnalyticsToggle] = useState(false);
+  const detailsId = useId();
+  const analyticsLabelId = useId();
+  const manageButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,10 +132,22 @@ export const CookieBanner = () => {
     return null;
   }
 
+  // Escape inside the expanded "Manage preferences" disclosure closes it
+  // and returns focus to the trigger. Banner is otherwise non-blocking, so
+  // Escape outside the disclosure does nothing.
+  const handleDisclosureKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key !== 'Escape') {
+      return;
+    }
+    event.stopPropagation();
+    setShowDetails(false);
+    manageButtonRef.current?.focus();
+  };
+
   return (
     <div
       role='region'
-      aria-label='Cookie consent'
+      aria-label='Cookie preferences'
       className={styles.banner}
       data-testid='cookie-banner'
     >
@@ -149,8 +164,38 @@ export const CookieBanner = () => {
         </p>
       </div>
 
+      <div className={styles.actionRow}>
+        <Button
+          variant='primary'
+          onClick={() => void persistChoice(true)}
+          disabled={status === 'submitting'}
+          data-testid='cookie-banner-accept-all'
+        >
+          Accept all
+        </Button>
+        <Button
+          variant='secondary'
+          onClick={() => void persistChoice(false)}
+          disabled={status === 'submitting'}
+          data-testid='cookie-banner-essentials-only'
+        >
+          Essentials only
+        </Button>
+        <Button
+          ref={manageButtonRef}
+          variant='outline'
+          onClick={() => setShowDetails(prev => !prev)}
+          disabled={status === 'submitting'}
+          aria-expanded={showDetails}
+          aria-controls={detailsId}
+          data-testid='cookie-banner-manage-preferences'
+        >
+          {showDetails ? 'Hide preferences' : 'Manage preferences'}
+        </Button>
+      </div>
+
       {showDetails && (
-        <div className={styles.detailsBlock}>
+        <div id={detailsId} className={styles.detailsBlock} onKeyDown={handleDisclosureKeyDown}>
           <div className={styles.categoryRow}>
             <span className={styles.categoryLabel}>
               Strictly necessary
@@ -170,11 +215,13 @@ export const CookieBanner = () => {
                 checked={analyticsToggle}
                 onChange={e => setAnalyticsToggle(e.target.checked)}
                 disabled={status === 'submitting'}
-                aria-label='Allow analytics cookies'
+                aria-labelledby={analyticsLabelId}
                 data-testid='cookie-banner-analytics-toggle'
               />
-              Analytics
-              <span className={styles.categoryMeta}>Optional</span>
+              <span id={analyticsLabelId}>
+                Analytics
+                <span className={styles.categoryMeta}>Optional</span>
+              </span>
             </label>
             <p className={styles.categoryDescription}>
               Helps us understand how the site is used so we can fix problems and improve features.
@@ -194,34 +241,6 @@ export const CookieBanner = () => {
           </div>
         </div>
       )}
-
-      <div className={styles.actionRow}>
-        <Button
-          variant='secondary'
-          onClick={() => void persistChoice(false)}
-          disabled={status === 'submitting'}
-          data-testid='cookie-banner-essentials-only'
-        >
-          Essentials only
-        </Button>
-        <Button
-          variant='outline'
-          onClick={() => setShowDetails(prev => !prev)}
-          disabled={status === 'submitting'}
-          aria-expanded={showDetails}
-          data-testid='cookie-banner-manage-preferences'
-        >
-          {showDetails ? 'Hide preferences' : 'Manage preferences'}
-        </Button>
-        <Button
-          variant='primary'
-          onClick={() => void persistChoice(true)}
-          disabled={status === 'submitting'}
-          data-testid='cookie-banner-accept-all'
-        >
-          Accept all
-        </Button>
-      </div>
     </div>
   );
 };

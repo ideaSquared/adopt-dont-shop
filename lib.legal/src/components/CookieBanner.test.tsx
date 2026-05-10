@@ -223,4 +223,119 @@ describe('CookieBanner [ADS-497 slice 5]', () => {
     expect(screen.queryByTestId('cookie-banner')).not.toBeInTheDocument();
     expect(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBeNull();
   });
+
+  describe('accessibility', () => {
+    it('exposes the banner as a landmark region with an accessible name', async () => {
+      render(<CookieBanner />);
+
+      const region = await screen.findByRole('region', { name: /cookie preferences/i });
+      expect(region).toBe(screen.getByTestId('cookie-banner'));
+    });
+
+    it('gives every action button a non-empty accessible name', async () => {
+      render(<CookieBanner />);
+
+      expect(await screen.findByRole('button', { name: /accept all/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /essentials only/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /manage preferences/i })).toBeInTheDocument();
+    });
+
+    it('does not auto-focus the banner on mount (page underneath stays usable)', async () => {
+      render(<CookieBanner />);
+
+      const banner = await screen.findByTestId('cookie-banner');
+      expect(banner).not.toContainElement(document.activeElement);
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it('tabs through Accept all → Essentials only → Manage preferences (collapsed state)', async () => {
+      const user = userEvent.setup();
+      render(<CookieBanner />);
+
+      // Seed focus on the first action so we can deterministically Tab forward
+      // past it (the description contains a focusable cookies-policy link that
+      // sits earlier in DOM order).
+      const acceptAll = await screen.findByRole('button', { name: /accept all/i });
+      acceptAll.focus();
+      expect(acceptAll).toHaveFocus();
+
+      await user.tab();
+      expect(screen.getByRole('button', { name: /essentials only/i })).toHaveFocus();
+
+      await user.tab();
+      expect(screen.getByRole('button', { name: /manage preferences/i })).toHaveFocus();
+    });
+
+    it('extends tab order into Analytics toggle → Save preferences when disclosure is expanded', async () => {
+      const user = userEvent.setup();
+      render(<CookieBanner />);
+
+      const manage = await screen.findByRole('button', { name: /manage preferences/i });
+      await user.click(manage);
+      // Seed focus at the disclosure trigger so we can step forward into the
+      // newly-visible disclosure controls deterministically.
+      const trigger = screen.getByRole('button', { name: /hide preferences/i });
+      trigger.focus();
+
+      await user.tab(); // → Analytics toggle
+      expect(screen.getByTestId('cookie-banner-analytics-toggle')).toHaveFocus();
+
+      await user.tab(); // → Save preferences
+      expect(screen.getByRole('button', { name: /save preferences/i })).toHaveFocus();
+    });
+
+    it('exposes aria-expanded + aria-controls on the disclosure trigger and toggles them', async () => {
+      const user = userEvent.setup();
+      render(<CookieBanner />);
+
+      const manage = await screen.findByRole('button', { name: /manage preferences/i });
+      expect(manage).toHaveAttribute('aria-expanded', 'false');
+      const controlsId = manage.getAttribute('aria-controls');
+      expect(controlsId).toBeTruthy();
+
+      await user.click(manage);
+      expect(manage).toHaveAttribute('aria-expanded', 'true');
+      expect(controlsId !== null && document.getElementById(controlsId)).toBeTruthy();
+    });
+
+    it('toggles the analytics checkbox via Space when keyboard-focused', async () => {
+      const user = userEvent.setup();
+      render(<CookieBanner />);
+
+      await user.click(await screen.findByRole('button', { name: /manage preferences/i }));
+      const toggle = await screen.findByTestId('cookie-banner-analytics-toggle');
+      toggle.focus();
+      expect(toggle).not.toBeChecked();
+
+      await user.keyboard(' ');
+      expect(toggle).toBeChecked();
+
+      await user.keyboard(' ');
+      expect(toggle).not.toBeChecked();
+    });
+
+    it('uses an associated label so the analytics toggle has an accessible name', async () => {
+      const user = userEvent.setup();
+      render(<CookieBanner />);
+
+      await user.click(await screen.findByRole('button', { name: /manage preferences/i }));
+      const toggle = await screen.findByRole('checkbox', { name: /analytics/i });
+      expect(toggle).toBe(screen.getByTestId('cookie-banner-analytics-toggle'));
+    });
+
+    it('closes the disclosure on Escape and returns focus to the trigger', async () => {
+      const user = userEvent.setup();
+      render(<CookieBanner />);
+
+      const manage = await screen.findByRole('button', { name: /manage preferences/i });
+      await user.click(manage);
+      const toggle = await screen.findByTestId('cookie-banner-analytics-toggle');
+      toggle.focus();
+
+      await user.keyboard('{Escape}');
+
+      expect(screen.queryByTestId('cookie-banner-analytics-toggle')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /manage preferences/i })).toHaveFocus();
+    });
+  });
 });
