@@ -10,6 +10,7 @@ import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppShell } from './components/layout/AppShell';
 import { PublicAuthLayout } from './components/layout/PublicAuthLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { LegalReacceptanceModal } from './components/modals/LegalReacceptanceModal';
 import * as styles from './App.css';
 
 const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -92,6 +93,9 @@ function App() {
           <ChatProvider>
             <FavoritesProvider>
               <DevLoginPanel />
+              {/* ADS-497 (slice 2): hard-block modal for users whose last
+                  accepted ToS / Privacy version is older than current. */}
+              <LegalReacceptanceModal />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route element={<PublicAuthLayout />}>
