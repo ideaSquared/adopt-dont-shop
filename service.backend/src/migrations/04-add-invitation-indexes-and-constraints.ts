@@ -1,28 +1,62 @@
 import { QueryInterface, DataTypes } from 'sequelize';
 
+/**
+ * Idempotency note (per-model rebaseline coexistence):
+ *
+ * The new `00-baseline-011-invitations.ts` baseline freezes today's
+ * `sync()` output, which already declares the same indexes and unique
+ * constraint that this migration adds (token unique, rescue_id, user_id,
+ * email). On fresh DBs the baseline runs first, so the bare `addIndex` /
+ * `addConstraint` calls below would fail with a duplicate-name error.
+ *
+ * The original index/constraint additions are therefore expressed as raw
+ * SQL with `IF NOT EXISTS` (and a `pg_constraint` precheck for the unique
+ * constraint, since Postgres has no `ADD CONSTRAINT IF NOT EXISTS`). On
+ * existing DBs created by the legacy monolithic `00-baseline.ts`, the
+ * objects don't exist yet and these statements still create them.
+ *
+ * The FK swap below (`removeConstraint` + `addConstraint`) is unchanged —
+ * it has always been idempotent via the `.catch(() => {})` on the
+ * removeConstraint, and the per-model baseline does not declare those FKs
+ * (they live in `00-baseline-zzz-foreign-keys.ts`).
+ *
+ * `down()` is intentionally unchanged. Per the design doc, rollback for
+ * the rebaseline-coexistent migrations is via DB backup, not
+ * `db:migrate:undo`.
+ */
 export default {
   up: async (queryInterface: QueryInterface) => {
-    // Add unique constraint on invitations.token
-    await queryInterface.addConstraint('invitations', {
-      fields: ['token'],
-      type: 'unique',
-      name: 'invitations_token_unique',
-    });
+    const sequelize = queryInterface.sequelize;
+
+    // Add unique constraint on invitations.token (skip if already present;
+    // the per-model baseline declares it on `token` via `unique: true`,
+    // which Postgres represents as a unique constraint with the matching
+    // name).
+    const [existing] = await sequelize.query(
+      `SELECT 1 FROM pg_constraint WHERE conname = 'invitations_token_unique'`
+    );
+    if ((existing as unknown[]).length === 0) {
+      await queryInterface.addConstraint('invitations', {
+        fields: ['token'],
+        type: 'unique',
+        name: 'invitations_token_unique',
+      });
+    }
 
     // Add index on rescue_id (FK performance)
-    await queryInterface.addIndex('invitations', ['rescue_id'], {
-      name: 'invitations_rescue_id_idx',
-    });
+    await sequelize.query(
+      `CREATE INDEX IF NOT EXISTS "invitations_rescue_id_idx" ON "invitations" ("rescue_id")`
+    );
 
     // Add index on user_id (FK performance)
-    await queryInterface.addIndex('invitations', ['user_id'], {
-      name: 'invitations_user_id_idx',
-    });
+    await sequelize.query(
+      `CREATE INDEX IF NOT EXISTS "invitations_user_id_idx" ON "invitations" ("user_id")`
+    );
 
     // Add index on email (lookup by invitee email)
-    await queryInterface.addIndex('invitations', ['email'], {
-      name: 'invitations_email_idx',
-    });
+    await sequelize.query(
+      `CREATE INDEX IF NOT EXISTS "invitations_email_idx" ON "invitations" ("email")`
+    );
 
     // Fix FK onDelete for rescue_id: CASCADE (invitation is meaningless without rescue)
     await queryInterface.removeConstraint('invitations', 'invitations_rescue_id_fkey').catch(() => {
