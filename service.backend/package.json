@@ -32,6 +32,7 @@
     "docs:generate": "ts-node scripts/generate-swagger.ts generate",
     "docs:validate": "ts-node scripts/generate-swagger.ts validate",
     "docs:watch": "ts-node scripts/generate-swagger.ts watch",
+    "legal-reminder:run": "ts-node src/workers/legal-reminder.cli.ts",
     "prestart": "npm run security:validate",
     "predeploy": "npm run lint && npm run test && npm run security:validate && npm run build"
   },
