@@ -1,31 +1,25 @@
-/**
- * ApplicationsService - Handles applications operations
- */
 import { ApiService } from '@adopt-dont-shop/lib.api';
 import {
-  Application,
-  ApplicationData,
-  ApplicationStatus,
-  ApplicationWithPetInfo,
-  DocumentUpload,
-  Document,
-  ApplicationsServiceConfig,
-} from '../types';
+  ApplicationSchema,
+  ApplicationWithPetInfoSchema,
+  ApplicationFlatResponseSchema,
+  ApplicationListResponseSchema,
+  ApplicationByPetResponseSchema,
+  RescueApplicationsResponseSchema,
+  ApplicationStatsSchema,
+  DocumentUploadSchema,
+  DocumentSchema,
+  DocumentsResponseSchema,
+  type Application,
+  type ApplicationData,
+  type ApplicationStatus,
+  type ApplicationWithPetInfo,
+  type DocumentUpload,
+  type Document,
+  type ApplicationStats,
+} from '../schemas';
+import { type ApplicationsServiceConfig } from '../types';
 
-/**
- * Applications Service
- *
- * Provides complete adoption application workflow and document management
- * capabilities. Handles multi-step form processing, document uploads,
- * and application status tracking.
- *
- * Features:
- * - Multi-step application form handling
- * - Document upload with file validation
- * - Application status tracking
- * - Pet-specific application logic
- * - Data transformation for API compatibility
- */
 export class ApplicationsService {
   private apiService: ApiService;
   private config: ApplicationsServiceConfig;
@@ -39,9 +33,6 @@ export class ApplicationsService {
     };
   }
 
-  /**
-   * Update service configuration
-   */
   updateConfig(config: Partial<ApplicationsServiceConfig>): void {
     this.config = { ...this.config, ...config };
     if (config.apiUrl) {
@@ -49,15 +40,13 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Submit a new adoption application
-   */
   async submitApplication(applicationData: ApplicationData): Promise<Application> {
     try {
-      const response = (await this.apiService.post(this.baseUrl, applicationData)) as {
-        data: Application;
-      };
-      return response.data;
+      const response = await this.apiService.post<{ data: unknown }>(
+        this.baseUrl,
+        applicationData
+      );
+      return ApplicationSchema.parse(response.data);
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to submit application:', error);
@@ -66,19 +55,16 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Update an existing application
-   */
   async updateApplication(
     applicationId: string,
     applicationData: Partial<ApplicationData>
   ): Promise<Application> {
     try {
-      const response = (await this.apiService.put(
+      const response = await this.apiService.put<{ data: unknown }>(
         `${this.baseUrl}/${applicationId}`,
         applicationData
-      )) as { data: Application };
-      return response.data;
+      );
+      return ApplicationSchema.parse(response.data);
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to update application:', error);
@@ -87,72 +73,64 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Get application by ID
-   */
-  async getApplicationById(applicationId: string): Promise<Application> {
+  async getApplicationById(applicationId: string): Promise<ApplicationWithPetInfo> {
     try {
-      const response = (await this.apiService.get(`${this.baseUrl}/${applicationId}`)) as unknown;
+      const response = await this.apiService.get<{ data: unknown }>(
+        `${this.baseUrl}/${applicationId}`
+      );
+      // Backend returns a flat structure: personalInfo, livingsituation, petExperience
+      // are at the root of the data object rather than nested under a `data` sub-key.
+      const flat = ApplicationFlatResponseSchema.parse(response.data);
 
-      // Handle different response formats
-      let applicationData: Record<string, unknown>;
-      if (response && typeof response === 'object' && 'data' in response) {
-        applicationData = (response as { data: Record<string, unknown> }).data;
-      } else {
-        applicationData = response as Record<string, unknown>;
-      }
-
-      // Transform the response to match the frontend Application interface
-      // The backend returns personalInfo, livingsituation, and petExperience at the root level
-      // but the frontend expects them nested under a 'data' property
-      const application: ApplicationWithPetInfo = {
-        id: applicationData.id as string,
-        petId: applicationData.petId as string,
-        userId: applicationData.userId as string,
-        rescueId: applicationData.rescueId as string,
-        status: applicationData.status as ApplicationStatus,
-        submittedAt: applicationData.submittedAt as string,
-        reviewedAt: applicationData.reviewedAt as string,
-        reviewedBy: applicationData.reviewedBy as string,
-        reviewNotes: applicationData.reviewNotes as string,
-        createdAt: applicationData.createdAt as string,
-        updatedAt: applicationData.updatedAt as string,
+      const application: ApplicationWithPetInfo = ApplicationWithPetInfoSchema.parse({
+        id: flat.id,
+        petId: flat.petId,
+        userId: flat.userId,
+        rescueId: flat.rescueId,
+        status: flat.status,
+        submittedAt: flat.submittedAt,
+        reviewedAt: flat.reviewedAt,
+        reviewedBy: flat.reviewedBy,
+        reviewNotes: flat.reviewNotes,
+        createdAt: flat.createdAt,
+        updatedAt: flat.updatedAt,
+        documents: flat.documents,
+        petName: flat.petName,
+        petType: flat.petType,
+        petBreed: flat.petBreed,
         data: {
-          petId: applicationData.petId as string,
-          userId: applicationData.userId as string,
-          rescueId: applicationData.rescueId as string,
-          personalInfo:
-            (applicationData.personalInfo as ApplicationData['personalInfo']) ??
-            ({} as ApplicationData['personalInfo']),
-          livingsituation:
-            (applicationData.livingsituation as ApplicationData['livingsituation']) ??
-            ({} as ApplicationData['livingsituation']),
-          petExperience:
-            (applicationData.petExperience as ApplicationData['petExperience']) ??
-            ({} as ApplicationData['petExperience']),
-          references: (applicationData.references as ApplicationData['references']) ?? {
-            personal: [],
+          petId: flat.petId,
+          userId: flat.userId,
+          rescueId: flat.rescueId,
+          personalInfo: flat.personalInfo ?? {
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
+            address: '',
+            city: '',
+            state: '',
+            zipCode: '',
           },
-          additionalInfo:
-            (applicationData.additionalInfo as ApplicationData['additionalInfo']) ??
-            ({} as ApplicationData['additionalInfo']),
+          livingsituation: flat.livingsituation ?? {
+            housingType: 'house',
+            isOwned: false,
+            hasYard: false,
+            allowsPets: false,
+            householdSize: 0,
+            hasAllergies: false,
+          },
+          petExperience: flat.petExperience ?? {
+            hasPetsCurrently: false,
+            experienceLevel: 'beginner',
+            willingToTrain: false,
+            hoursAloneDaily: 0,
+            exercisePlans: '',
+          },
+          references: flat.references ?? { personal: [] },
+          additionalInfo: flat.additionalInfo,
         },
-        documents:
-          (applicationData.documents as Array<{
-            id: string;
-            type: string;
-            filename: string;
-            url: string;
-            uploadedAt: string;
-          }>) || [],
-      };
-
-      // Add pet information if available (backend already provides these)
-      if (applicationData.petName) {
-        application.petName = applicationData.petName as string;
-        application.petType = applicationData.petType as string;
-        application.petBreed = applicationData.petBreed as string;
-      }
+      });
 
       return application;
     } catch (error) {
@@ -163,22 +141,13 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Get user's applications
-   */
   async getUserApplications(userId?: string): Promise<Application[]> {
     try {
       const queryParams = userId ? { user_id: userId } : {};
-      const response = (await this.apiService.get(this.baseUrl, queryParams)) as {
-        data?: { applications?: Application[] } | Application[];
-      };
-
-      // Handle nested response structure
-      const applications =
-        (response.data as { applications?: Application[] })?.applications ||
-        (response.data as Application[]) ||
-        [];
-      return applications;
+      const response = await this.apiService.get<unknown>(this.baseUrl, queryParams);
+      const parsed = ApplicationListResponseSchema.parse(response);
+      if (!parsed.data) return [];
+      return Array.isArray(parsed.data) ? parsed.data : (parsed.data.applications ?? []);
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to get user applications:', error);
@@ -187,32 +156,12 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Get application by pet ID
-   */
   async getApplicationByPetId(petId: string): Promise<Application | null> {
     try {
-      const response = (await this.apiService.get(this.baseUrl, { pet_id: petId })) as {
-        data: {
-          success: boolean;
-          data: {
-            applications: Application[];
-            total: number;
-            page: number;
-            totalPages: number;
-          };
-        };
-      };
-
-      // Extract applications from nested structure
-      const applications = response?.data?.data?.applications || [];
-
-      if (applications.length === 0) {
-        return null;
-      }
-
-      // Return the first (most recent) application for this pet
-      return applications[0];
+      const response = await this.apiService.get<unknown>(this.baseUrl, { pet_id: petId });
+      const parsed = ApplicationByPetResponseSchema.parse(response);
+      const applications = parsed.data?.data?.applications ?? [];
+      return applications.length > 0 ? applications[0] : null;
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to get application by pet ID:', error);
@@ -221,20 +170,17 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Update application status
-   */
   async updateApplicationStatus(
     id: string,
     status: ApplicationStatus,
     notes?: string
   ): Promise<Application> {
     try {
-      const response = (await this.apiService.patch(`${this.baseUrl}/${id}/status`, {
-        status,
-        notes,
-      })) as { data: Application };
-      return response.data;
+      const response = await this.apiService.patch<{ data: unknown }>(
+        `${this.baseUrl}/${id}/status`,
+        { status, notes }
+      );
+      return ApplicationSchema.parse(response.data);
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to update application status:', error);
@@ -243,14 +189,9 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Withdraw application
-   */
   async withdrawApplication(id: string, reason?: string): Promise<void> {
     try {
-      await this.apiService.put(`${this.baseUrl}/${id}/withdraw`, {
-        reason,
-      });
+      await this.apiService.put(`${this.baseUrl}/${id}/withdraw`, { reason });
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to withdraw application:', error);
@@ -259,20 +200,16 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Upload document for application
-   */
   async uploadDocument(applicationId: string, file: File, type: string): Promise<DocumentUpload> {
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('type', type);
-
-      const response = (await this.apiService.post(
+      const response = await this.apiService.post<{ data: unknown }>(
         `${this.baseUrl}/${applicationId}/documents`,
         formData
-      )) as { data: DocumentUpload };
-      return response.data;
+      );
+      return DocumentUploadSchema.parse(response.data);
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to upload document:', error);
@@ -281,9 +218,6 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Remove document from application
-   */
   async removeDocument(applicationId: string, documentId: string): Promise<void> {
     try {
       await this.apiService.delete(`${this.baseUrl}/${applicationId}/documents/${documentId}`);
@@ -295,16 +229,13 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Get documents for application
-   */
   async getDocuments(applicationId: string): Promise<Document[]> {
     try {
-      const response = (await this.apiService.get(`${this.baseUrl}/${applicationId}/documents`)) as
-        | { data?: Document[] }
-        | Document[];
-
-      return (response as { data?: Document[] }).data || [];
+      const response = await this.apiService.get<unknown>(
+        `${this.baseUrl}/${applicationId}/documents`
+      );
+      const parsed = DocumentsResponseSchema.parse(response);
+      return parsed.data ?? [];
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to get documents:', error);
@@ -313,10 +244,6 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Get all applications for a rescue organization
-   * For use in rescue management dashboard
-   */
   async getRescueApplications(
     rescueId?: string,
     options?: {
@@ -328,40 +255,18 @@ export class ApplicationsService {
   ): Promise<Application[]> {
     try {
       const params = new URLSearchParams();
-
-      if (rescueId) {
-        params.append('rescueId', rescueId);
-      }
-      if (options?.status) {
-        params.append('status', options.status);
-      }
-      if (options?.search) {
-        params.append('search', options.search);
-      }
-      if (options?.limit) {
-        params.append('limit', options.limit.toString());
-      }
-      if (options?.offset) {
-        params.append('offset', options.offset.toString());
-      }
+      if (rescueId) params.append('rescueId', rescueId);
+      if (options?.status) params.append('status', options.status);
+      if (options?.search) params.append('search', options.search);
+      if (options?.limit) params.append('limit', options.limit.toString());
+      if (options?.offset) params.append('offset', options.offset.toString());
 
       const queryString = params.toString();
       const url = `${this.baseUrl}${queryString ? `?${queryString}` : ''}`;
 
-      const response = await this.apiService.get<{
-        success: boolean;
-        data: Application[];
-        meta: {
-          total: number;
-          page: number;
-          totalPages: number;
-          hasNext: boolean;
-          hasPrev: boolean;
-        };
-      }>(url);
-
-      // Return the applications array from the standardized response
-      return response.data || [];
+      const response = await this.apiService.get<unknown>(url);
+      const parsed = RescueApplicationsResponseSchema.parse(response);
+      return parsed.data;
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to get rescue applications:', error);
@@ -370,31 +275,13 @@ export class ApplicationsService {
     }
   }
 
-  /**
-   * Get application statistics for rescue dashboard
-   */
-  async getApplicationStats(rescueId?: string): Promise<{
-    total: number;
-    submitted: number;
-    underReview: number;
-    approved: number;
-    rejected: number;
-    pendingReferences: number;
-  }> {
+  async getApplicationStats(rescueId?: string): Promise<ApplicationStats> {
     try {
       const params = rescueId ? `?rescueId=${rescueId}` : '';
-      const response = await this.apiService.get<any>(`${this.baseUrl}/stats${params}`);
-
-      return (
-        response.data || {
-          total: 0,
-          submitted: 0,
-          underReview: 0,
-          approved: 0,
-          rejected: 0,
-          pendingReferences: 0,
-        }
+      const response = await this.apiService.get<{ data: unknown }>(
+        `${this.baseUrl}/stats${params}`
       );
+      return ApplicationStatsSchema.parse(response.data ?? {});
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to get application stats:', error);
