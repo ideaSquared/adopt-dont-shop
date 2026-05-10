@@ -8,7 +8,6 @@ import {
   RescueApplicationsResponseSchema,
   ApplicationStatsSchema,
   DocumentUploadSchema,
-  DocumentSchema,
   DocumentsResponseSchema,
   type Application,
   type ApplicationData,
