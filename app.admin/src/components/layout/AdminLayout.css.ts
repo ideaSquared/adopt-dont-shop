@@ -32,3 +32,15 @@ export const contentWrapper = style({
     },
   },
 });
+
+// ADS-497 (slice 5b): minimal footer strip carrying the "Manage cookies"
+// link. Admin has no public legal-link footer today; this is the
+// smallest surface that keeps the cookies-policy promise of an on-page
+// withdrawal control.
+export const layoutFooter = style({
+  borderTop: '1px solid #e5e7eb',
+  padding: '0.75rem 2rem',
+  display: 'flex',
+  justifyContent: 'flex-end',
+  background: '#ffffff',
+});

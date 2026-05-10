@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
 import * as styles from './AdminLayout.css';
@@ -20,6 +21,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       <main className={styles.mainContent({ sidebarCollapsed })}>
         <AdminHeader sidebarCollapsed={sidebarCollapsed} />
         <div className={styles.contentWrapper}>{children}</div>
+        <footer className={styles.layoutFooter}>
+          <ManageCookiesLink />
+        </footer>
       </main>
     </div>
   );

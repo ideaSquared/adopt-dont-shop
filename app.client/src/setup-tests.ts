@@ -125,8 +125,12 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         onFilesSelect?.(files);
       },
     }),
-  Footer: ({ children, ...props }: React.ComponentPropsWithoutRef<'footer'>) =>
-    React.createElement('footer', props, children),
+  Footer: ({
+    children,
+    extraLinks,
+    ...props
+  }: React.ComponentPropsWithoutRef<'footer'> & { extraLinks?: React.ReactNode }) =>
+    React.createElement('footer', props, children, extraLinks),
   TextInput: ({
     label,
     id,
