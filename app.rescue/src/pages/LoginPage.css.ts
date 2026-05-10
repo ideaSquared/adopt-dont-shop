@@ -10,3 +10,10 @@ export const helperText = style({
 globalStyle(`${helperText} strong`, {
   color: '#374151',
 });
+
+export const manageCookies = style({
+  textAlign: 'center',
+  marginTop: '1rem',
+  paddingTop: '1rem',
+  borderTop: '1px solid #e5e7eb',
+});
