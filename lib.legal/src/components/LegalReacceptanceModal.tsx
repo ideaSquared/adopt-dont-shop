@@ -5,7 +5,7 @@ import {
   fetchPendingReacceptance,
   recordReacceptance,
   type PendingReacceptanceItem,
-} from '@/services/legalService';
+} from '../services/legal-service';
 import * as styles from './LegalReacceptanceModal.css';
 
 /**
@@ -20,6 +20,11 @@ import * as styles from './LegalReacceptanceModal.css';
  * no logout/decline path here: that's an explicit out-of-scope decision
  * for this slice (see PR body). Closing the tab and reloading just shows
  * the modal again.
+ *
+ * The same component is mounted in app.client, app.admin, and app.rescue
+ * — admins and rescue staff are bound by the same ToS / Privacy as
+ * adopters, so the hard block applies universally. Wording is deliberately
+ * universal (no "as an admin" / "as rescue staff" copy).
  */
 
 const LABELS: Record<PendingReacceptanceItem['documentType'], { title: string; href: string }> = {

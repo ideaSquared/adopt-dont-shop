@@ -31,6 +31,7 @@
     "@adopt-dont-shop/lib.discovery": "*",
     "@adopt-dont-shop/lib.feature-flags": "*",
     "@adopt-dont-shop/lib.invitations": "*",
+    "@adopt-dont-shop/lib.legal": "*",
     "@adopt-dont-shop/lib.notifications": "*",
     "@adopt-dont-shop/lib.observability": "*",
     "@adopt-dont-shop/lib.permissions": "*",

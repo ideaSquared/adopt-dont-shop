@@ -107,6 +107,7 @@ export default defineConfig({
         __dirname,
         '../lib.feature-flags/src/index.ts'
       ),
+      '@adopt-dont-shop/lib.legal': path.resolve(__dirname, '../lib.legal/src/index.ts'),
       '@adopt-dont-shop/lib.permissions': path.resolve(
         __dirname,
         '../lib.permissions/src/index.ts'
