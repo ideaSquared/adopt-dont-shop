@@ -48,11 +48,12 @@ export default defineConfig({
       // Run via `npm run test:coverage`; the default `npm test` skips
       // coverage to keep watch-mode fast.
       // Re-baselined post-ADS-417/490 to L=41/S=41/F=49/B=34
+      // Re-ratcheted post-ADS-497 slices 3-5 to L=43/S=43/F=52/B=35
       thresholds: {
-        lines: 41,
-        statements: 41,
-        functions: 49,
-        branches: 34,
+        lines: 43,
+        statements: 43,
+        functions: 52,
+        branches: 35,
       },
     },
 
