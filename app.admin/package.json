@@ -28,6 +28,7 @@
     "@adopt-dont-shop/lib.components": "*",
     "@adopt-dont-shop/lib.dev-tools": "*",
     "@adopt-dont-shop/lib.feature-flags": "*",
+    "@adopt-dont-shop/lib.legal": "*",
     "@adopt-dont-shop/lib.moderation": "*",
     "@adopt-dont-shop/lib.observability": "*",
     "@adopt-dont-shop/lib.permissions": "*",

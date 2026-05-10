@@ -55,6 +55,7 @@ COPY --chown=viteuser:nodejs lib.dev-tools/package.json ./lib.dev-tools/
 COPY --chown=viteuser:nodejs lib.discovery/package.json ./lib.discovery/
 COPY --chown=viteuser:nodejs lib.feature-flags/package.json ./lib.feature-flags/
 COPY --chown=viteuser:nodejs lib.invitations/package.json ./lib.invitations/
+COPY --chown=viteuser:nodejs lib.legal/package.json ./lib.legal/
 COPY --chown=viteuser:nodejs lib.moderation/package.json ./lib.moderation/
 COPY --chown=viteuser:nodejs lib.notifications/package.json ./lib.notifications/
 COPY --chown=viteuser:nodejs lib.observability/package.json ./lib.observability/
@@ -86,6 +87,7 @@ COPY --chown=viteuser:nodejs lib.dev-tools/ ./lib.dev-tools/
 COPY --chown=viteuser:nodejs lib.discovery/ ./lib.discovery/
 COPY --chown=viteuser:nodejs lib.feature-flags/ ./lib.feature-flags/
 COPY --chown=viteuser:nodejs lib.invitations/ ./lib.invitations/
+COPY --chown=viteuser:nodejs lib.legal/ ./lib.legal/
 COPY --chown=viteuser:nodejs lib.moderation/ ./lib.moderation/
 COPY --chown=viteuser:nodejs lib.notifications/ ./lib.notifications/
 COPY --chown=viteuser:nodejs lib.observability/ ./lib.observability/
@@ -147,6 +149,7 @@ COPY lib.dev-tools/package.json ./lib.dev-tools/
 COPY lib.discovery/package.json ./lib.discovery/
 COPY lib.feature-flags/package.json ./lib.feature-flags/
 COPY lib.invitations/package.json ./lib.invitations/
+COPY lib.legal/package.json ./lib.legal/
 COPY lib.moderation/package.json ./lib.moderation/
 COPY lib.notifications/package.json ./lib.notifications/
 COPY lib.observability/package.json ./lib.observability/
@@ -183,6 +186,7 @@ COPY lib.dev-tools/ ./lib.dev-tools/
 COPY lib.discovery/ ./lib.discovery/
 COPY lib.feature-flags/ ./lib.feature-flags/
 COPY lib.invitations/ ./lib.invitations/
+COPY lib.legal/ ./lib.legal/
 COPY lib.moderation/ ./lib.moderation/
 COPY lib.notifications/ ./lib.notifications/
 COPY lib.observability/ ./lib.observability/

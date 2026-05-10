@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@/test-utils/render';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { LegalReacceptanceModal } from './LegalReacceptanceModal';
 import type { User } from '@adopt-dont-shop/lib.auth';
+import { LegalReacceptanceModal } from './LegalReacceptanceModal';
 
 type AuthState = { user: User | null; isAuthenticated: boolean };
 
@@ -21,7 +21,7 @@ const baseUser: User = {
 const fetchPendingMock = vi.fn();
 const recordReacceptanceMock = vi.fn();
 
-vi.mock('@/services/legalService', () => ({
+vi.mock('../services/legal-service', () => ({
   fetchPendingReacceptance: () => fetchPendingMock(),
   recordReacceptance: (input: unknown) => recordReacceptanceMock(input),
 }));

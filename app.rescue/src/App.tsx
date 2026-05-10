@@ -1,6 +1,7 @@
 import { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Spinner } from '@adopt-dont-shop/lib.components';
+import { LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 
 // Components
@@ -99,6 +100,11 @@ function App() {
 
       {/* Dev Login Panel - only shows in development */}
       <DevLoginPanel />
+
+      {/* ADS-497: hard-block re-acceptance modal for users whose last
+          accepted ToS / Privacy version is older than current. Rescue
+          staff are bound by the same documents as adopters. */}
+      <LegalReacceptanceModal />
     </>
   );
 }

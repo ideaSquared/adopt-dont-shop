@@ -2,6 +2,7 @@ import React, { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { Spinner } from '@adopt-dont-shop/lib.components';
+import { LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
@@ -185,6 +186,11 @@ const AdminApp: React.FC = () => {
 
       {/* Dev Login Panel - only shows in development */}
       <DevLoginPanel />
+
+      {/* ADS-497: hard-block re-acceptance modal for users whose last
+          accepted ToS / Privacy version is older than current. Admins are
+          bound by the same documents as adopters. */}
+      <LegalReacceptanceModal />
     </>
   );
 };

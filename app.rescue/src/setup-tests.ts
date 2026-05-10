@@ -126,6 +126,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Heading: ({ children, ...props }: any) => React.createElement('h1', props, children),
   Alert: ({ children, ...props }: any) =>
     React.createElement('div', { role: 'alert', ...props }, children),
+  Spinner: (props: any) => React.createElement('div', { 'aria-label': props?.label ?? 'loading' }),
   CheckboxInput: ({ children, ...props }: any) =>
     React.createElement('input', { type: 'checkbox', ...props }, children),
   SelectInput: ({ children, ...props }: any) => React.createElement('select', props, children),
