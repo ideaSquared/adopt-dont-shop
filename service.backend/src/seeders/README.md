@@ -179,6 +179,10 @@ If you get foreign key constraint errors:
 
 The seeders use `findOrCreate` to avoid duplicates, so they're safe to run multiple times. Initial seeding typically takes 10-30 seconds depending on your database.
 
+### Stale `CONSENT_RECORDED` rows after pulling main
+
+The user seeder writes a `CONSENT_RECORDED` audit row per seeded account, and that row now carries `cookiesVersion` and `analyticsConsent` fields (added with the cookies banner work). Because the seeder is idempotent — it skips users whose audit row already exists — running the demo/fixture seeders again is **not** enough to backfill those fields on a dev DB seeded before that change. The visible symptom is the cookies banner / re-acceptance modal showing for every seeded login. Wipe and re-seed the dev DB (`npm run db:reset`) to pick up the current consent fields.
+
 ## Production Safety
 
 ⚠️ **Important**: These seeders are designed for development only. Do not run in production environments. The clear function truncates tables and should never be used with production data.
