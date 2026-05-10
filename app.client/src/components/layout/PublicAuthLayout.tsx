@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import * as styles from './PublicAuthLayout.css';
 
 export const PublicAuthLayout: React.FC = () => {
@@ -24,6 +25,9 @@ export const PublicAuthLayout: React.FC = () => {
       <main className={styles.main}>
         <Outlet />
       </main>
+      <footer className={styles.footer}>
+        <ManageCookiesLink />
+      </footer>
     </div>
   );
 };

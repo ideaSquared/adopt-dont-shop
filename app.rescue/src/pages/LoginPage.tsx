@@ -1,4 +1,5 @@
 import { AuthLayout, LoginForm } from '@adopt-dont-shop/lib.auth';
+import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { useLocation, useNavigate } from 'react-router-dom';
 import * as styles from './LoginPage.css';
 
@@ -20,6 +21,11 @@ const LoginPage = () => {
     <AuthLayout
       title="Rescue Staff Sign In"
       subtitle="Welcome back to the Rescue Management System"
+      footer={
+        <div className={styles.manageCookies}>
+          <ManageCookiesLink />
+        </div>
+      }
     >
       <LoginForm
         onSuccess={handleSuccess}

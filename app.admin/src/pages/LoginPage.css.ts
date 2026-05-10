@@ -22,6 +22,11 @@ globalStyle(`${registerPrompt} a:hover`, {
   textDecoration: 'underline',
 });
 
+export const manageCookies = style({
+  textAlign: 'center',
+  marginTop: '1rem',
+});
+
 export const helperText = style({
   fontSize: '0.875rem',
   color: '#6b7280',

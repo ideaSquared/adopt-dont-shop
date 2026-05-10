@@ -40,8 +40,9 @@ import User from '../../models/User';
 import { AuditLogService } from '../../services/auditLog.service';
 import emailService from '../../services/email.service';
 import {
-  LEGAL_REMINDER_SENT_ACTION,
-  REMINDER_RATE_LIMIT_HOURS,
+  LEGACY_LEGAL_REMINDER_SENT_ACTION,
+  REMINDER_RATE_LIMIT_DAYS,
+  TERMS_REACCEPTANCE_REMINDER_ACTION,
   sendReacceptanceReminder,
 } from '../../services/legal-reminder.service';
 import { getPendingReacceptance } from '../../services/legal-content.service';
@@ -107,7 +108,7 @@ describe('legal-reminder service - sendReacceptanceReminder', () => {
 
     expect(mockAuditLog).toHaveBeenCalledTimes(1);
     const auditArgs = mockAuditLog.mock.calls[0][0];
-    expect(auditArgs.action).toBe(LEGAL_REMINDER_SENT_ACTION);
+    expect(auditArgs.action).toBe(TERMS_REACCEPTANCE_REMINDER_ACTION);
     expect(auditArgs.entity).toBe('User');
     expect(auditArgs.entityId).toBe('user-1');
     expect(auditArgs.userId).toBe('user-1');
@@ -143,6 +144,41 @@ describe('legal-reminder service - sendReacceptanceReminder', () => {
             { documentType: 'terms', currentVersion: '2026-05-08-v1' },
             { documentType: 'privacy', currentVersion: '2026-05-08-v1' },
           ],
+          triggeredBy: 'admin-7',
+        },
+      },
+      timestamp: new Date(),
+    } as never);
+
+    const result = await sendReacceptanceReminder({ userId: 'user-1' });
+
+    expect(result).toEqual({ sent: false, reason: 'rate_limited' });
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockAuditLog).not.toHaveBeenCalled();
+  });
+
+  it('rate-limits on a legacy LEGAL_REMINDER_SENT audit row with a matching fingerprint (transition window)', async () => {
+    // Audit rows are append-only, so legacy `LEGAL_REMINDER_SENT` rows
+    // written before the rename can't be relabelled. The dedupe query
+    // must still recognise them so we don't double-send a user whose
+    // most recent reminder happened to be written under the old name.
+    mockGetPending.mockResolvedValue({
+      pending: [
+        {
+          documentType: 'terms',
+          currentVersion: '2026-05-08-v1',
+          lastAcceptedVersion: null,
+          lastAcceptedAt: null,
+        },
+      ],
+    });
+    // Simulate a row a real legacy writer would have produced.
+    mockAuditFindOne.mockResolvedValue({
+      action: LEGACY_LEGAL_REMINDER_SENT_ACTION,
+      metadata: {
+        details: {
+          versionFingerprint: 'terms:2026-05-08-v1',
+          versions: [{ documentType: 'terms', currentVersion: '2026-05-08-v1' }],
           triggeredBy: 'admin-7',
         },
       },
@@ -203,14 +239,22 @@ describe('legal-reminder service - sendReacceptanceReminder', () => {
     expect(mockAuditFindOne).toHaveBeenCalledTimes(1);
     const where = mockAuditFindOne.mock.calls[0][0]?.where as Record<string, unknown>;
     expect(where.user).toBe('user-1');
-    expect(where.action).toBe(LEGAL_REMINDER_SENT_ACTION);
+    // Dedupe must recognise both the new action name and the legacy
+    // name (audit rows are immutable, so legacy rows can't be renamed).
+    const actionClause = where.action as Record<symbol, ReadonlyArray<string>>;
+    const actionSymbols = Object.getOwnPropertySymbols(actionClause);
+    expect(actionSymbols).toHaveLength(1);
+    expect(actionClause[actionSymbols[0]]).toEqual([
+      TERMS_REACCEPTANCE_REMINDER_ACTION,
+      LEGACY_LEGAL_REMINDER_SENT_ACTION,
+    ]);
 
     const tsClause = where.timestamp as Record<symbol, Date>;
     const symbols = Object.getOwnPropertySymbols(tsClause);
     expect(symbols).toHaveLength(1);
     const cutoff = tsClause[symbols[0]] as Date;
-    const expectedMin = before - REMINDER_RATE_LIMIT_HOURS * 60 * 60 * 1000;
-    const expectedMax = after - REMINDER_RATE_LIMIT_HOURS * 60 * 60 * 1000;
+    const expectedMin = before - REMINDER_RATE_LIMIT_DAYS * 24 * 60 * 60 * 1000;
+    const expectedMax = after - REMINDER_RATE_LIMIT_DAYS * 24 * 60 * 60 * 1000;
     expect(cutoff.getTime()).toBeGreaterThanOrEqual(expectedMin);
     expect(cutoff.getTime()).toBeLessThanOrEqual(expectedMax);
   });

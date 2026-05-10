@@ -59,3 +59,10 @@ export const main = style({
   justifyContent: 'center',
   padding: `${vars.spacing['8']} ${vars.spacing['4']}`,
 });
+
+export const footer = style({
+  display: 'flex',
+  justifyContent: 'center',
+  padding: `${vars.spacing['4']} ${vars.spacing['4']}`,
+  borderTop: `1px solid ${vars.border.color.primary}`,
+});
