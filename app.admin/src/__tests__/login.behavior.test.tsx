@@ -13,6 +13,7 @@
 import { vi, describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { renderWithProviders, screen } from '../test-utils';
 import userEvent from '@testing-library/user-event';
+import { COOKIE_CONSENT_STORAGE_KEY } from '@adopt-dont-shop/lib.legal';
 import { LoginPage } from '../pages/LoginPage';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
@@ -142,6 +143,25 @@ describe('Login page', () => {
       await user.click(screen.getByRole('button', { name: /forgot password/i }));
 
       expect(mockNavigate).toHaveBeenCalledWith('/forgot-password');
+    });
+  });
+
+  describe('cookie preferences', () => {
+    it('clears the stored consent record when the "Manage cookies" link is clicked', async () => {
+      window.localStorage.setItem(
+        COOKIE_CONSENT_STORAGE_KEY,
+        JSON.stringify({
+          cookiesVersion: '2026-05-09-v1',
+          analyticsConsent: true,
+          acceptedAt: '2026-05-10T00:00:00.000Z',
+        })
+      );
+
+      renderWithProviders(<LoginPage />);
+
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Manage cookies' }));
+
+      expect(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBeNull();
     });
   });
 });

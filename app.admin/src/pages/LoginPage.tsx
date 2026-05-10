@@ -1,4 +1,5 @@
 import { AuthLayout, LoginForm } from '@adopt-dont-shop/lib.auth';
+import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import * as styles from './LoginPage.css';
 
@@ -21,10 +22,15 @@ export const LoginPage = () => {
       title='Admin Portal'
       subtitle='System administration and management'
       footer={
-        <div className={styles.registerPrompt}>
-          <p>Need an admin account?</p>
-          <Link to='/register'>Request access</Link>
-        </div>
+        <>
+          <div className={styles.registerPrompt}>
+            <p>Need an admin account?</p>
+            <Link to='/register'>Request access</Link>
+          </div>
+          <div className={styles.manageCookies}>
+            <ManageCookiesLink />
+          </div>
+        </>
       }
     >
       <LoginForm
