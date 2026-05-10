@@ -46,8 +46,9 @@ vi.mock('../../models/User', () => ({
 
 vi.mock('../../services/legal-reminder.service', () => ({
   sendReacceptanceReminder: vi.fn(),
-  REMINDER_RATE_LIMIT_HOURS: 24,
-  LEGAL_REMINDER_SENT_ACTION: 'LEGAL_REMINDER_SENT',
+  REMINDER_RATE_LIMIT_DAYS: 7,
+  TERMS_REACCEPTANCE_REMINDER_ACTION: 'TERMS_REACCEPTANCE_REMINDER',
+  LEGACY_LEGAL_REMINDER_SENT_ACTION: 'LEGAL_REMINDER_SENT',
 }));
 
 vi.mock('../../services/legal-content.service', () => ({
