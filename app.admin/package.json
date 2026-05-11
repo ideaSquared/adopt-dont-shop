@@ -86,10 +86,10 @@
     "typescript-eslint": "^8.0.0",
     "happy-dom": "^20.0.10",
     "jsdom": "^29.1.1",
-    "msw": "^2.14.5",
+    "msw": "^2.14.6",
     "prettier": "^3.2.5",
     "typescript": "^5.4.5",
-    "vite": "^8.0.11",
+    "vite": "^8.0.12",
     "vitest": "^4.0.8"
   }
 }
