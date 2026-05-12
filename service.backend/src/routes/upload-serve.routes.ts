@@ -239,6 +239,11 @@ router.get(
   apiLimiter,
   authenticateToken,
   (req: AuthenticatedRequest, res: Response) => {
+    if (!config.storage.local.serveLocalUploads) {
+      res.status(404).end();
+      return;
+    }
+
     const filePath = (req.params as Record<string, string>)['0'] ?? '';
     const resolved = safeResolve(filePath);
     if (!resolved) {
@@ -249,7 +254,34 @@ router.get(
       res.status(400).json({ error: 'Invalid file path' });
       return;
     }
-    streamFile(resolved, res);
+
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ error: 'Unauthorised' });
+      return;
+    }
+
+    decideUploadAccess({ filePath, user })
+      .then(verdict => {
+        if (verdict !== 200) {
+          logger.warn('Upload serve: ACL denied', {
+            userId: user.userId,
+            requested: filePath,
+            verdict,
+          });
+          res.status(verdict).end();
+          return;
+        }
+        streamFile(resolved, res);
+      })
+      .catch(err => {
+        logger.error('Upload serve: ACL check failed', {
+          userId: user.userId,
+          requested: filePath,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        res.status(403).end();
+      });
   }
 );
 

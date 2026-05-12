@@ -331,6 +331,8 @@ describe('GET /uploads/:path — Express fallback streaming route', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // Default: authenticated user allowed by ACL.
+    decideUploadAccessMock.mockResolvedValue(200);
     fs.mkdirSync(TEST_UPLOAD_DIR, { recursive: true });
     app = await buildApp();
   });
@@ -392,6 +394,81 @@ describe('GET /uploads/:path — Express fallback streaming route', () => {
 
     const response = await request(app).get('/uploads/../etc/passwd');
     expect(response.status).toBe(400);
+  });
+
+  // ── per-resource ACL wiring ────────────────────────────────────────────────
+  //
+  // The streaming route must invoke decideUploadAccess and honour its verdict,
+  // closing the IDOR that existed when the route only required authenticateToken.
+
+  describe('per-resource ACL', () => {
+    beforeEach(() => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+    });
+
+    it('returns 403 and does not stream when a non-owner requests an application document', async () => {
+      fs.mkdirSync(path.join(TEST_UPLOAD_DIR, 'applications'), { recursive: true });
+      fs.writeFileSync(path.join(TEST_UPLOAD_DIR, 'applications', 'other-user.pdf'), 'data');
+      decideUploadAccessMock.mockResolvedValue(403);
+
+      const response = await request(app).get('/uploads/applications/other-user.pdf');
+
+      expect(response.status).toBe(403);
+      expect(decideUploadAccessMock).toHaveBeenCalledWith({
+        filePath: 'applications/other-user.pdf',
+        user: expect.objectContaining({ userId: mockUser.userId }),
+      });
+    });
+
+    it('returns 403 and does not stream when a non-participant requests a chat attachment', async () => {
+      fs.mkdirSync(path.join(TEST_UPLOAD_DIR, 'chat'), { recursive: true });
+      fs.writeFileSync(path.join(TEST_UPLOAD_DIR, 'chat', 'attachment.png'), 'data');
+      decideUploadAccessMock.mockResolvedValue(403);
+
+      const response = await request(app).get('/uploads/chat/attachment.png');
+
+      expect(response.status).toBe(403);
+    });
+
+    it('streams the file when the ACL helper permits access', async () => {
+      fs.mkdirSync(path.join(TEST_UPLOAD_DIR, 'applications'), { recursive: true });
+      fs.writeFileSync(path.join(TEST_UPLOAD_DIR, 'applications', 'my-doc.pdf'), 'pdf data');
+      decideUploadAccessMock.mockResolvedValue(200);
+
+      const response = await request(app).get('/uploads/applications/my-doc.pdf');
+
+      expect(response.status).toBe(200);
+    });
+
+    it('fails closed with 403 when the ACL helper throws unexpectedly', async () => {
+      fs.mkdirSync(path.join(TEST_UPLOAD_DIR, 'applications'), { recursive: true });
+      fs.writeFileSync(path.join(TEST_UPLOAD_DIR, 'applications', 'explode.pdf'), 'data');
+      decideUploadAccessMock.mockRejectedValue(new Error('db down'));
+
+      const response = await request(app).get('/uploads/applications/explode.pdf');
+
+      expect(response.status).toBe(403);
+    });
+
+    it('returns 401 when authenticateToken sets no user (defensive guard)', async () => {
+      // authenticateToken calls next() without setting req.user — should not
+      // happen in production but the route must not crash or stream blindly.
+      authenticateTokenMock.mockImplementation(
+        (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
+      );
+
+      fs.mkdirSync(path.join(TEST_UPLOAD_DIR, 'applications'), { recursive: true });
+      fs.writeFileSync(path.join(TEST_UPLOAD_DIR, 'applications', 'doc.pdf'), 'data');
+
+      const response = await request(app).get('/uploads/applications/doc.pdf');
+
+      expect(response.status).toBe(401);
+    });
   });
 });
 
