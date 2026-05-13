@@ -96,16 +96,33 @@ jobs:
         # compiled dist/ must exist before ts-node can resolve them.
         run: npm run build:libs
 
-      - name: Create the two empty target databases
+      - name: Create the two empty target databases (with required extensions)
+        # `citext` (case-insensitive email columns) and `postgis` (Address
+        # GEOMETRY) are required for both bootstrap paths. In production they
+        # are installed by `src/index.ts` at boot, but neither
+        # `sequelize-cli db:migrate` nor the inline `sync()` script below run
+        # that code path — so the workflow installs them here.
         run: |
-          createdb -U postgres -h localhost -p 5432 schema_equiv_a
-          createdb -U postgres -h localhost -p 5432 schema_equiv_b
+          set -euo pipefail
+          for db in schema_equiv_a schema_equiv_b; do
+            createdb -U postgres -h localhost -p 5432 "$db"
+            psql -U postgres -h localhost -p 5432 -d "$db" \
+              -c "CREATE EXTENSION IF NOT EXISTS citext;" \
+              -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+          done
 
       - name: Bootstrap DB-A via db:migrate
         working-directory: service.backend
+        # Test-env env-vars required by validate-env at `00-baseline.ts`
+        # import time. Deterministic test-only values.
         env:
           NODE_ENV: test
           TEST_DB_NAME: schema_equiv_a
+          JWT_SECRET: test-jwt-secret-min-32-characters-long
+          JWT_REFRESH_SECRET: test-jwt-refresh-secret-min-32-characters-long
+          SESSION_SECRET: test-session-secret-min-32-characters-long
+          CSRF_SECRET: test-csrf-secret-min-32-characters-long
+          ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000001'
         run: npm run db:migrate
 
       - name: Bootstrap DB-B via sequelize.sync()
@@ -113,6 +130,11 @@ jobs:
         env:
           NODE_ENV: test
           TEST_DB_NAME: schema_equiv_b
+          JWT_SECRET: test-jwt-secret-min-32-characters-long
+          JWT_REFRESH_SECRET: test-jwt-refresh-secret-min-32-characters-long
+          SESSION_SECRET: test-session-secret-min-32-characters-long
+          CSRF_SECRET: test-csrf-secret-min-32-characters-long
+          ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000001'
         # Inline ts-node script keeps this self-contained — no runtime
         # dependency on a pre-existing helper file. Loads every model so
         # any side-effecting `installXyz` calls run.

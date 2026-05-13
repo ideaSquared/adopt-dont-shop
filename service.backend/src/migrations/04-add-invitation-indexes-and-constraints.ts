@@ -28,14 +28,23 @@ export default {
   up: async (queryInterface: QueryInterface) => {
     const sequelize = queryInterface.sequelize;
 
-    // Add unique constraint on invitations.token (skip if already present;
-    // the per-model baseline declares it on `token` via `unique: true`,
-    // which Postgres represents as a unique constraint with the matching
-    // name).
-    const [existing] = await sequelize.query(
+    // Add unique constraint on invitations.token (skip if already present).
+    // The per-model baseline declares the unique via `token: { unique: true }`
+    // on the column, which Sequelize emits as a `CREATE UNIQUE INDEX` (visible
+    // in `pg_indexes`) rather than `ADD CONSTRAINT UNIQUE` (visible in
+    // `pg_constraint`). Check BOTH catalogs so the precheck skips either
+    // shape — otherwise `addConstraint` would error with
+    // "relation invitations_token_unique already exists".
+    const [existingConstraint] = await sequelize.query(
       `SELECT 1 FROM pg_constraint WHERE conname = 'invitations_token_unique'`
     );
-    if ((existing as unknown[]).length === 0) {
+    const [existingIndex] = await sequelize.query(
+      `SELECT 1 FROM pg_indexes WHERE indexname = 'invitations_token_unique'`
+    );
+    if (
+      (existingConstraint as unknown[]).length === 0 &&
+      (existingIndex as unknown[]).length === 0
+    ) {
       await queryInterface.addConstraint('invitations', {
         fields: ['token'],
         type: 'unique',
