@@ -51,8 +51,13 @@ jobs:
       DB_PORT: '5432'
 
     services:
+      # Postgres + PostGIS — matches docker-compose.{,prod,staging}.yml so the
+      # CI environment is reproducible against production. The default
+      # `postgres:N` image does not ship the postgis extension; `CREATE
+      # EXTENSION postgis` would fail with "could not open extension control
+      # file" otherwise.
       postgres:
-        image: postgres:15
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -73,11 +78,11 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Install Postgres 15 client tools
+      - name: Install Postgres 16 client tools
         # Ubuntu runners ship with postgresql-client-14 in the default repos;
-        # we need version-15 client tools to match the service container so
-        # pg_dump output is consistent. Install via the official PostgreSQL
-        # apt repository (PGDG).
+        # we need version-16 client tools to match the service container so
+        # pg_dump output is consistent with what postgis/postgis:16-3.4 emits.
+        # Install via the official PostgreSQL apt repository (PGDG).
         run: |
           set -euo pipefail
           sudo install -d /usr/share/keyrings
@@ -86,7 +91,7 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
-          sudo apt-get install -y postgresql-client-15
+          sudo apt-get install -y postgresql-client-16
 
       - name: Install workspace dependencies
         run: npm ci
