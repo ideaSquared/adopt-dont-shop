@@ -11,7 +11,7 @@ import {
  *
  * Freezes the `pet_status_transitions` append-only event-log table shape
  * produced by `sequelize.sync()`. Cross-table FK (pet_id → pets) is
- * deferred to `00-baseline-zzz-foreign-keys.ts`. The trigger that
+ * deferred to `00-baseline-999-foreign-keys.ts`. The trigger that
  * denormalises to_status onto pets.status (installStatusTransitionTrigger)
  * is installed via the model's afterSync hook and is not part of the
  * baseline schema — it lives with the model definition, not here.

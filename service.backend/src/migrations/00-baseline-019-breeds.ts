@@ -11,7 +11,7 @@ import {
  *
  * Freezes the `breeds` lookup table shape produced by `sequelize.sync()`.
  * Cross-table FKs (created_by / updated_by → users) are deferred to
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * The Breed model opts out of the global `paranoid: true` default (a
  * soft-deleted breed leaves a deleted_at row that still collides on the

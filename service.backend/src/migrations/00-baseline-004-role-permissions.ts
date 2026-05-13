@@ -6,7 +6,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  *
  * Junction table for the role/permission many-to-many. Composite primary key
  * (role_id, permission_id). The cross-table FKs to `roles.role_id` and
- * `permissions.permission_id` are added in `00-baseline-zzz-foreign-keys.ts`.
+ * `permissions.permission_id` are added in `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-004-role-permissions';
 

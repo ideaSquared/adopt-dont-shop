@@ -7,7 +7,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  * The model declares a single-column `replaced_by_token_id` with no
  * `references:` block — it's a soft pointer to another row in this same
  * table, but Sequelize doesn't emit a DB-level FK for it. The cross-table FK
- * to `users.user_id` is added in `00-baseline-zzz-foreign-keys.ts`.
+ * to `users.user_id` is added in `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-006-refresh-tokens';
 

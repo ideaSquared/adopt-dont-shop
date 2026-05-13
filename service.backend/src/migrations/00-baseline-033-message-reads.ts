@@ -6,7 +6,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  *
  * Frozen snapshot of `MessageRead`'s sync() output. FKs (message_id,
  * user_id, created_by, updated_by) land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  */
 export default {
   up: async (queryInterface: QueryInterface) => {

@@ -14,7 +14,7 @@ import {
  * polymorphic FK has no DB-level constraint to defer.
  *
  * Audit FK constraints (`created_by`/`updated_by` → users) are deferred
- * to `00-baseline-zzz-foreign-keys.ts`.
+ * to `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-014-addresses';
 
@@ -70,7 +70,7 @@ export default {
             allowNull: false,
             defaultValue: false,
           },
-          // Audit columns (FK constraints added in 00-baseline-zzz-foreign-keys.ts).
+          // Audit columns (FK constraints added in 00-baseline-999-foreign-keys.ts).
           created_by: {
             type: DataTypes.UUID,
             allowNull: true,

@@ -11,7 +11,7 @@ import {
  * Frozen snapshot of `UserSanction`'s sync() output. Cross-table FKs
  * (user_id, issued_by, report_id, moderator_action_id, appeal_resolved_by,
  * revoked_by, created_by, updated_by) land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * `paranoid: false` — append-only sanction history. Lifting a sanction is
  * a new row, not a soft-delete on the original. No `deleted_at` column.

@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `SupportTicket`'s sync() output. Cross-table FKs
  * (user_id, assigned_to, escalated_to, created_by, updated_by) land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * No `paranoid: true` on the model — no `deleted_at` column.
  * `tags` is `ARRAY(STRING)` indexed with GIN. `attachments` and

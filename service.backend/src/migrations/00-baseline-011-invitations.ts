@@ -7,7 +7,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  * Uses `withAuditHooks` (adds `version`, `created_by`, `updated_by`). The
  * model is NOT paranoid (no `deleted_at`). Cross-table FKs (`rescue_id`,
  * `user_id`, `invited_by`, `created_by`, `updated_by`) live in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * Note: the legacy `04-add-invitation-indexes-and-constraints.ts`
  * migration adds the same `invitations_token_unique`,

@@ -6,7 +6,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  *
  * Frozen snapshot of `SavedReport`'s sync() output. Cross-table FKs
  * (user_id, rescue_id, template_id, created_by, updated_by) land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * Paranoid: deleted_at column included. withAuditHooks contributes
  * created_by / updated_by / version + matching FK indexes.

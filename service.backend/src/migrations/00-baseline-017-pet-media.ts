@@ -12,7 +12,7 @@ import {
  * Freezes the `pet_media` table shape produced by `sequelize.sync()`
  * against the PetMedia model at the time of the rebaseline. Cross-table
  * FKs (pet_id → pets, created_by / updated_by → users) are deferred to
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  */
 
 const MIGRATION_KEY = '00-baseline-017-pet-media';

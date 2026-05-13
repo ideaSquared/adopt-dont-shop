@@ -9,7 +9,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  * row exists.
  *
  * Cross-table FKs (`rescue_id` → rescues, `created_by`/`updated_by` → users)
- * are intentionally omitted; they live in `00-baseline-zzz-foreign-keys.ts`.
+ * are intentionally omitted; they live in `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-013-rescue-settings';
 
@@ -19,7 +19,7 @@ export default {
       await queryInterface.createTable(
         'rescue_settings',
         {
-          // FK to rescues.rescue_id deferred to 00-baseline-zzz-foreign-keys.ts.
+          // FK to rescues.rescue_id deferred to 00-baseline-999-foreign-keys.ts.
           rescue_id: {
             type: DataTypes.UUID,
             primaryKey: true,
@@ -55,7 +55,7 @@ export default {
             allowNull: false,
             defaultValue: 30,
           },
-          // Audit columns (FK constraints added in 00-baseline-zzz-foreign-keys.ts).
+          // Audit columns (FK constraints added in 00-baseline-999-foreign-keys.ts).
           created_by: {
             type: DataTypes.UUID,
             allowNull: true,

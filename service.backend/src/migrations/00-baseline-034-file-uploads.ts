@@ -9,7 +9,7 @@ import {
  * Per-model baseline — file_uploads (rebaseline 5/10).
  *
  * Frozen snapshot of `FileUpload`'s sync() output. FK (uploaded_by,
- * created_by, updated_by) lands in `00-baseline-zzz-foreign-keys.ts`.
+ * created_by, updated_by) lands in `00-baseline-999-foreign-keys.ts`.
  *
  * `url` and `thumbnail_url` are declared as STRING(1000) only — the
  * `/uploads/<prefix>/<filename>` shape was fixed by migration 17 and is

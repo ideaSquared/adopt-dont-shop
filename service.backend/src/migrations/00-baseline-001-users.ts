@@ -11,7 +11,7 @@ import {
  * Mirrors what `sequelize.sync()` produces from `service.backend/src/models/User.ts`
  * today — column types, nullability, defaults, single-table indexes. Cross-table
  * foreign keys (`created_by`, `updated_by`) are intentionally omitted; they live
- * in `00-baseline-zzz-foreign-keys.ts` so each per-model file is independently
+ * in `00-baseline-999-foreign-keys.ts` so each per-model file is independently
  * reorderable.
  *
  * `down` drops the table and the ENUM types created inline (`enum_users_status`,
@@ -195,7 +195,7 @@ export default {
               last_updated: null,
             },
           },
-          // Audit columns (FK constraints added in 00-baseline-zzz-foreign-keys.ts).
+          // Audit columns (FK constraints added in 00-baseline-999-foreign-keys.ts).
           created_by: {
             type: DataTypes.UUID,
             allowNull: true,

@@ -23,7 +23,7 @@ import {
  * trigger DDL would belong with the FK-batch file or a follow-up
  * migration.
  *
- * Cross-table FK constraints land in `00-baseline-zzz-foreign-keys.ts`.
+ * Cross-table FK constraints land in `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-024-application-status-transitions';
 

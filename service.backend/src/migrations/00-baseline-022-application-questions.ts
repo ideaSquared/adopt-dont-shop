@@ -12,7 +12,7 @@ import {
  * Three ENUM columns (scope, category, question_type); their dialect-private
  * types are dropped in `down()` to avoid leaking into pg_type.
  *
- * Cross-table FK constraints are added in `00-baseline-zzz-foreign-keys.ts`.
+ * Cross-table FK constraints are added in `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-022-application-questions';
 

@@ -9,7 +9,7 @@ import {
  * Per-model baseline — device_tokens (rebaseline 5/10).
  *
  * Frozen snapshot of `DeviceToken`'s sync() output. FK (user_id) lands in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * `DeviceToken` does NOT use `withAuditHooks` — no `created_by`,
  * `updated_by`, or `version` columns / indexes. Paranoid (deleted_at) is

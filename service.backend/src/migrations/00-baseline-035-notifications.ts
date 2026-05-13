@@ -9,7 +9,7 @@ import {
  * Per-model baseline — notifications (rebaseline 5/10).
  *
  * Frozen snapshot of `Notification`'s sync() output. FK (user_id,
- * created_by, updated_by) lands in `00-baseline-zzz-foreign-keys.ts`.
+ * created_by, updated_by) lands in `00-baseline-999-foreign-keys.ts`.
  *
  * Several columns use Postgres ENUMs (type / channel / priority / status /
  * related_entity_type) — declared with the same value lists the model

@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `ReportShare`'s sync() output. Cross-table FKs
  * (saved_report_id, shared_with_user_id, created_by, updated_by) land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * `report_shares_token_hash_idx` (plain B-tree on `token_hash`) IS in the
  * model's index list and IS therefore part of `sync()` output, so it is

@@ -9,7 +9,7 @@ import {
  * Per-model baseline — user_privacy_prefs (rebaseline 9/10).
  *
  * Frozen snapshot of `UserPrivacyPrefs`'s sync() output. FKs (user_id,
- * created_by, updated_by) land in `00-baseline-zzz-foreign-keys.ts`.
+ * created_by, updated_by) land in `00-baseline-999-foreign-keys.ts`.
  *
  * 1:1 with users — `user_id` is both the primary key and the FK to
  * `users.user_id`. A row is auto-created by `User.afterCreate` so consumers

@@ -10,7 +10,7 @@ import {
  *
  * Frozen `createTable` body extracted from `models/HomeVisit.ts`. Two
  * ENUM columns (status, outcome). Cross-table FK constraints land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-027-home-visits';
 

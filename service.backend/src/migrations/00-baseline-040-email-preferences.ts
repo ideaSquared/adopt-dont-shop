@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `EmailPreference`'s sync() output. FKs (user_id →
  * users with CASCADE, created_by/updated_by → users) live in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * Two Postgres ENUMs declared inline (email_format / digest_frequency).
  * The `preferences` JSONB column stores an array of NotificationPreference
@@ -120,7 +120,7 @@ export default {
             allowNull: false,
             defaultValue: DataTypes.NOW,
           },
-          // Audit columns (FKs in 00-baseline-zzz-foreign-keys.ts).
+          // Audit columns (FKs in 00-baseline-999-foreign-keys.ts).
           created_by: {
             type: DataTypes.UUID,
             allowNull: true,

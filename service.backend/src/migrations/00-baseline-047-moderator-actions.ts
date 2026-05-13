@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `ModeratorAction`'s sync() output. Cross-table FKs
  * (moderator_id, report_id, target_user_id, reversed_by, created_by,
- * updated_by) land in `00-baseline-zzz-foreign-keys.ts`.
+ * updated_by) land in `00-baseline-999-foreign-keys.ts`.
  *
  * `paranoid: false` — append-only history of moderator decisions; no
  * `deleted_at` column. `evidence` was moved to the `moderation_evidence`

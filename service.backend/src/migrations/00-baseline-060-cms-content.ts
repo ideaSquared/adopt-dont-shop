@@ -14,7 +14,7 @@ import {
  *
  * Cross-table foreign keys (`author_id`, `last_modified_by`, `created_by`,
  * `updated_by` → users) are intentionally omitted — they land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * `metaKeywords` is a Postgres TEXT[] (array of strings); `versions` is
  * JSONB with the version-history shape documented on the model.

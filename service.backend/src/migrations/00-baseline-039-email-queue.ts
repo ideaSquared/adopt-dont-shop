@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `EmailQueue`'s sync() output. FKs (template_id →
  * email_templates, user_id → users, created_by/updated_by → users) live in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * Append-only delivery queue with its own `status` ENUM column —
  * `paranoid: false` on the model, so no `deleted_at`. The retention job
@@ -182,7 +182,7 @@ export default {
             allowNull: false,
             defaultValue: DataTypes.NOW,
           },
-          // Audit columns (FKs in 00-baseline-zzz-foreign-keys.ts).
+          // Audit columns (FKs in 00-baseline-999-foreign-keys.ts).
           created_by: {
             type: DataTypes.UUID,
             allowNull: true,

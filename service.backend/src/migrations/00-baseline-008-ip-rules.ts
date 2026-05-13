@@ -18,7 +18,7 @@ import {
  * against a fresh DB after this baseline.
  *
  * Cross-table FK to `users.user_id` (`created_by`) lives in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-008-ip-rules';
 

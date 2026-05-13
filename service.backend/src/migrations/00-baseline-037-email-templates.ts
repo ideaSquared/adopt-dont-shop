@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `EmailTemplate`'s sync() output. Cross-table foreign
  * keys (parent_template_id self-reference, last_modified_by → users,
- * created_by/updated_by → users) live in `00-baseline-zzz-foreign-keys.ts`.
+ * created_by/updated_by → users) live in `00-baseline-999-foreign-keys.ts`.
  * Column types still carry the right shape (UUID), but no REFERENCES
  * clause until the FK file lands.
  *
@@ -156,7 +156,7 @@ export default {
             type: DataTypes.DATE,
             allowNull: true,
           },
-          // Audit columns (FKs in 00-baseline-zzz-foreign-keys.ts).
+          // Audit columns (FKs in 00-baseline-999-foreign-keys.ts).
           created_by: {
             type: DataTypes.UUID,
             allowNull: true,

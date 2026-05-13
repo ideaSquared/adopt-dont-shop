@@ -11,7 +11,7 @@ import {
  * Cross-table FKs (`reviewer_id`/`reviewee_id` → users, `pet_id` → pets,
  * `rescue_id` → rescues, `application_id` → applications,
  * `created_by`/`updated_by` → users) are intentionally omitted; they live
- * in `00-baseline-zzz-foreign-keys.ts`.
+ * in `00-baseline-999-foreign-keys.ts`.
  *
  * `down` drops the table and the ENUM types created inline
  * (`enum_ratings_rating_type`, `enum_ratings_category`).
@@ -29,7 +29,7 @@ export default {
             primaryKey: true,
             allowNull: false,
           },
-          // FK columns; constraints deferred to 00-baseline-zzz-foreign-keys.ts.
+          // FK columns; constraints deferred to 00-baseline-999-foreign-keys.ts.
           reviewer_id: {
             type: DataTypes.UUID,
             allowNull: false,
@@ -128,7 +128,7 @@ export default {
             type: DataTypes.DATE,
             allowNull: true,
           },
-          // Audit columns (FK constraints added in 00-baseline-zzz-foreign-keys.ts).
+          // Audit columns (FK constraints added in 00-baseline-999-foreign-keys.ts).
           created_by: {
             type: DataTypes.UUID,
             allowNull: true,

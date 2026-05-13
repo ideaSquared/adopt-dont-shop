@@ -16,7 +16,7 @@ import {
  * Sequelize-level FK constraint on `transitioned_by` — the association
  * uses `constraints: false` so the actor reference is preserved when
  * the user is deleted (forensic). Cross-table FK to `home_visits` lives
- * in `00-baseline-zzz-foreign-keys.ts`.
+ * in `00-baseline-999-foreign-keys.ts`.
  *
  * The AFTER INSERT trigger that propagates `to_status` onto
  * `home_visits.status` is installed by the model's `afterSync` hook
