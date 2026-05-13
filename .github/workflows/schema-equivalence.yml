@@ -1,0 +1,179 @@
+name: Schema Equivalence
+
+# Per-model rebaseline §3.4 safety gate. Bootstraps two DBs against the same
+# model code:
+#
+#   DB-A : sequelize-cli db:migrate (00-baseline + per-domain baselines + any
+#          post-baseline forward migrations)
+#   DB-B : sequelize.sync() (one-shot, source of truth for what models declare)
+#
+# Then diffs the normalised pg_dump outputs. Any drift fails the job.
+#
+# Today, before any per-domain PRs land, the gate passes by construction:
+# 00-baseline.up calls sequelize.sync(), so DB-A and DB-B come out byte-equal
+# after normalisation. As per-domain baselines land, DB-A's bootstrap shifts
+# to explicit createTable calls; the gate then has teeth.
+#
+# Expensive (Postgres + 2x bootstrap + dump). Therefore PR-only and
+# path-filtered to migrations/models. Add as a separate required check in
+# branch protection settings rather than embedding it in `ci.yml`.
+
+on:
+  pull_request:
+    paths:
+      - 'service.backend/src/migrations/**'
+      - 'service.backend/src/models/**'
+      - 'service.backend/scripts/normalise-pg-dump.sh'
+      - 'service.backend/scripts/schema-equivalence.sh'
+      - '.github/workflows/schema-equivalence.yml'
+
+concurrency:
+  group: schema-equivalence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schema-equivalence:
+    name: Schema Equivalence (migrate vs sync)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # Credentials are CI-local — both DBs live in the same Postgres service
+      # and are dropped at the end of the job. No production secrets touch
+      # this workflow.
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGHOST: localhost
+      PGPORT: '5432'
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: '5432'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install Postgres 15 client tools
+        # Ubuntu runners ship with postgresql-client-14 in the default repos;
+        # we need version-15 client tools to match the service container so
+        # pg_dump output is consistent. Install via the official PostgreSQL
+        # apt repository (PGDG).
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-15
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build shared libraries
+        # service.backend imports from lib.types / lib.validation. Their
+        # compiled dist/ must exist before ts-node can resolve them.
+        run: npm run build:libs
+
+      - name: Create the two empty target databases
+        run: |
+          createdb -U postgres -h localhost -p 5432 schema_equiv_a
+          createdb -U postgres -h localhost -p 5432 schema_equiv_b
+
+      - name: Bootstrap DB-A via db:migrate
+        working-directory: service.backend
+        env:
+          NODE_ENV: test
+          TEST_DB_NAME: schema_equiv_a
+        run: npm run db:migrate
+
+      - name: Bootstrap DB-B via sequelize.sync()
+        working-directory: service.backend
+        env:
+          NODE_ENV: test
+          TEST_DB_NAME: schema_equiv_b
+        # Inline ts-node script keeps this self-contained — no runtime
+        # dependency on a pre-existing helper file. Loads every model so
+        # any side-effecting `installXyz` calls run.
+        run: |
+          npx ts-node --transpile-only -e '
+            (async () => {
+              const sequelize = (await import("./src/sequelize")).default;
+              await import("./src/models/index");
+              await sequelize.sync();
+              await sequelize.close();
+            })().catch((err) => { console.error(err); process.exit(1); });
+          '
+
+      - name: Dump DB-A
+        run: |
+          mkdir -p schema-equivalence-out
+          pg_dump --schema-only --no-owner --no-privileges \
+            --exclude-table='SequelizeMeta' \
+            "postgresql://postgres:postgres@localhost:5432/schema_equiv_a" \
+            > schema-equivalence-out/dump-a.sql
+
+      - name: Dump DB-B
+        run: |
+          pg_dump --schema-only --no-owner --no-privileges \
+            --exclude-table='SequelizeMeta' \
+            "postgresql://postgres:postgres@localhost:5432/schema_equiv_b" \
+            > schema-equivalence-out/dump-b.sql
+
+      - name: Normalise both dumps
+        run: |
+          ./service.backend/scripts/normalise-pg-dump.sh \
+            < schema-equivalence-out/dump-a.sql \
+            > schema-equivalence-out/dump-a.normalised.sql
+          ./service.backend/scripts/normalise-pg-dump.sh \
+            < schema-equivalence-out/dump-b.sql \
+            > schema-equivalence-out/dump-b.normalised.sql
+
+      - name: Diff the normalised dumps
+        id: diff
+        run: |
+          if diff -u \
+              schema-equivalence-out/dump-a.normalised.sql \
+              schema-equivalence-out/dump-b.normalised.sql \
+              > schema-equivalence-out/schema.diff; then
+            echo "Schemas equivalent." >&2
+            exit 0
+          fi
+          echo "DRIFT detected between db:migrate and sync() schemas." >&2
+          echo "::group::schema.diff (first 200 lines)"
+          head -n 200 schema-equivalence-out/schema.diff
+          echo "::endgroup::"
+          echo "Full diff and both dumps are uploaded as the 'schema-equivalence-artifacts' workflow artifact." >&2
+          exit 1
+
+      - name: Upload dumps and diff
+        # `if: always()` so the artifact is uploaded on failure too — that's
+        # the path operators care about most.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: schema-equivalence-artifacts
+          path: schema-equivalence-out/
+          retention-days: 14
+          if-no-files-found: warn
