@@ -72,9 +72,7 @@ export type RecordCookiesConsentInput = {
   analyticsConsent?: boolean;
 };
 
-export const recordCookiesConsent = async (
-  input: RecordCookiesConsentInput
-): Promise<void> => {
+export const recordCookiesConsent = async (input: RecordCookiesConsentInput): Promise<void> => {
   await api.post('/api/v1/privacy/cookies-consent', input);
 };
 

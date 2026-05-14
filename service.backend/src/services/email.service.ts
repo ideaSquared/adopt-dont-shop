@@ -46,7 +46,7 @@ class EmailService {
     this.initializeProvider().catch(error => {
       logger.error('Failed to initialize email provider:', error);
       if (process.env.NODE_ENV === 'production') {
-        // eslint-disable-next-line n/no-process-exit
+        // eslint-disable-next-line no-process-exit -- prod must crash so the orchestrator surfaces the misconfig; throwing here is swallowed because we're inside an async catch
         process.exit(1);
       }
     });

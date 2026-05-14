@@ -95,7 +95,7 @@ describe('legal content service — getPendingReacceptance', () => {
         privacyVersion: PRIVACY_VERSION,
         cookiesVersion: COOKIES_VERSION,
         acceptedAt: '2026-04-01T12:00:00Z',
-      })
+      }),
     ]);
 
     const result = await getPendingReacceptance('user-up-to-date');
@@ -110,7 +110,7 @@ describe('legal content service — getPendingReacceptance', () => {
         privacyVersion: PRIVACY_VERSION,
         cookiesVersion: COOKIES_VERSION,
         acceptedAt: '2025-02-01T00:00:00Z',
-      })
+      }),
     ]);
 
     const result = await getPendingReacceptance('user-stale-tos');
@@ -131,7 +131,7 @@ describe('legal content service — getPendingReacceptance', () => {
         privacyVersion: PRIVACY_VERSION,
         cookiesVersion: '2025-01-01-cookies-v1',
         acceptedAt: '2025-02-01T00:00:00Z',
-      })
+      }),
     ]);
 
     const result = await getPendingReacceptance('user-stale-cookies');
@@ -155,7 +155,7 @@ describe('legal content service — getPendingReacceptance', () => {
         tosVersion: TERMS_VERSION,
         privacyVersion: PRIVACY_VERSION,
         acceptedAt: '2026-04-01T12:00:00Z',
-      })
+      }),
     ]);
 
     const result = await getPendingReacceptance('user-pre-cookies-capture');
@@ -179,7 +179,7 @@ describe('legal content service — getPendingReacceptance', () => {
           cookiesVersion: COOKIES_VERSION,
         },
         ts
-      )
+      ),
     ]);
 
     const result = await getPendingReacceptance('user-no-acceptedAt');
