@@ -79,7 +79,8 @@ export const resolveDbSslMode = (
       `Invalid DB_SSL_MODE: "${rawMode}". Expected one of: ${DB_SSL_MODES.join(', ')}.`
     );
   }
-  const mode = (trimmed as DbSslMode | undefined) ?? (nodeEnv === 'production' ? 'require' : 'disable');
+  const mode =
+    (trimmed as DbSslMode | undefined) ?? (nodeEnv === 'production' ? 'require' : 'disable');
 
   if (nodeEnv === 'production' && mode === 'disable' && allowInsecure !== 'true') {
     throw new Error(

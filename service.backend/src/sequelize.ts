@@ -63,7 +63,9 @@ export const buildTimeoutConfig = (): TimeoutConfig => ({
  * bundle into the container and set `DB_SSL_ROOT_CERT` to its path, then
  * use `verify-full`.
  */
-export const buildSslConfig = (mode: DbSslMode): false | { rejectUnauthorized: boolean; ca?: string } => {
+export const buildSslConfig = (
+  mode: DbSslMode
+): false | { rejectUnauthorized: boolean; ca?: string } => {
   if (mode === 'disable') {
     return false;
   }

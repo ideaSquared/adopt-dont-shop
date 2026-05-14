@@ -29,9 +29,7 @@ export class AuthService {
   private static readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
   private static readonly JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '3d';
 
-  static async register(
-    userData: RegisterData
-  ): Promise<{ user: Partial<User>; message: string }> {
+  static async register(userData: RegisterData): Promise<{ user: Partial<User>; message: string }> {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({ where: { email: userData.email.toLowerCase() } });
