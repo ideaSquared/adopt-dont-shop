@@ -110,3 +110,19 @@ export function assertDestructiveDownAcknowledged(migrationKey: string): void {
     );
   }
 }
+
+/**
+ * Phantom no-op default export. sequelize-cli 6.x's umzug adapter pattern is
+ * `/^(?!.*\.d\.ts$).*\.(cjs|js|cts|ts)$/` — it picks up EVERY `.ts` file in
+ * the migrations directory (including this helper) and tries to call its
+ * `up` method. Without these no-ops `db:migrate` errors with "Could not find
+ * migration method: up" the moment it iterates here.
+ *
+ * The helpers above remain importable via named exports; the default below
+ * just keeps sequelize-cli happy. SequelizeMeta records `_helpers.ts` once,
+ * so subsequent runs skip it without firing the no-op again.
+ */
+export default {
+  up: async (): Promise<void> => undefined,
+  down: async (): Promise<void> => undefined,
+};

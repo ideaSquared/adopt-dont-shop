@@ -28,6 +28,20 @@ import { QueryInterface, DataTypes } from 'sequelize';
  */
 export default {
   up: async (queryInterface: QueryInterface) => {
+    // Idempotency (follow-up to #451 / #454): the per-model rebaseline ships
+    // `00-baseline-043…046-*.ts` which create these 4 tables for fresh DBs.
+    // On a fresh DB the baselines run first, so `createTable` collides with
+    // "relation already exists". Single early-return precheck on the first
+    // table — the per-domain baselines create all 4 together, so a partial
+    // state is not a normal outcome. Same pattern PR #451 used for mig 12
+    // (`user_consents`). `down()` is intentionally unchanged.
+    const [existing] = await queryInterface.sequelize.query(
+      `SELECT 1 FROM information_schema.tables WHERE table_name = 'report_templates'`
+    );
+    if ((existing as unknown[]).length > 0) {
+      return;
+    }
+
     // 1. report_templates
     await queryInterface.createTable('report_templates', {
       template_id: {
