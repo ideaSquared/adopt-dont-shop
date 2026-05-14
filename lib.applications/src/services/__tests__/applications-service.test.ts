@@ -255,6 +255,41 @@ describe('ApplicationsService', () => {
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/applications', {});
       expect(result).toEqual([mockApplication]);
     });
+
+    // Regression: the backend's transformApplicationModel surfaces nullable
+    // columns (submittedAt / reviewedAt / actionedBy / notes) as JSON `null`,
+    // not as absent keys. A `.optional()` schema would reject these and the
+    // adopter dashboard would show "Error loading applications" instead of
+    // the My Applications heading.
+    it('parses applications whose nullable date and reviewer columns come back as null', async () => {
+      const applicationWithNulls = {
+        id: 'app-456',
+        petId: 'pet-456',
+        userId: 'user-123',
+        rescueId: 'rescue-123',
+        status: 'submitted',
+        submittedAt: null,
+        reviewedAt: null,
+        reviewedBy: null,
+        reviewNotes: null,
+        data: {
+          personalInfo: {
+            firstName: 'New',
+            lastName: 'Adopter',
+            email: 'new@example.com',
+          },
+        },
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      };
+
+      mockApiService.get.mockResolvedValue({ data: [applicationWithNulls] });
+
+      const result = await applicationsService.getUserApplications();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('app-456');
+    });
   });
 
   describe('getApplicationByPetId', () => {

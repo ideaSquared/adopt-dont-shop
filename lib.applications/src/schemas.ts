@@ -169,10 +169,14 @@ export const ApplicationSchema = z.object({
   rescueId: z.string(),
   status: ApplicationStatusSchema,
   priority: ApplicationPrioritySchema.optional(),
-  submittedAt: z.string().optional(),
-  reviewedAt: z.string().optional(),
-  reviewedBy: z.string().optional(),
-  reviewNotes: z.string().optional(),
+  // These four columns are nullable in the database, so the JSON wire shape
+  // can be `null` (not just absent). Use `.nullish()` to accept both null
+  // and undefined; `.optional()` alone would reject null and the parse would
+  // throw, surfacing as an "Error loading applications" page.
+  submittedAt: z.string().nullish(),
+  reviewedAt: z.string().nullish(),
+  reviewedBy: z.string().nullish(),
+  reviewNotes: z.string().nullish(),
   // `data` is best-effort projection from application_answers; it can be
   // absent on freshly-created applications before any answers are saved.
   data: ApplicationDataSchema.optional(),
