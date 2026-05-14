@@ -57,6 +57,7 @@ export type {
   PasswordStrength,
   RefreshTokenRequest,
   RegisterData,
+  RegisterResponse,
   TokenValidationResult,
   TwoFactorAuth,
   TwoFactorBackupCode,

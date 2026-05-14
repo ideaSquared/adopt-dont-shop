@@ -128,17 +128,34 @@ describe('Auth routes', () => {
       userType: 'ADOPTER',
     };
 
-    it('returns 201 on successful registration', async () => {
+    it('returns 201 with a generic message on successful registration', async () => {
       mockRegister.mockResolvedValue({
-        message: 'Registration successful. Please check your email for verification.',
-        userId: 'new-uuid',
-        token: 'access-token',
-        refreshToken: 'refresh-token',
+        message: 'Registration request received. Check your email to continue.',
       });
 
       const res = await request(buildApp()).post('/api/v1/auth/register').send(validBody);
 
       expect(res.status).toBe(201);
+      expect(res.body).toEqual({
+        message: 'Registration request received. Check your email to continue.',
+      });
+      expect(res.body).not.toHaveProperty('token');
+      expect(res.body).not.toHaveProperty('refreshToken');
+      expect(res.body).not.toHaveProperty('user');
+    });
+
+    it('returns 201 with the same generic message when email is already registered', async () => {
+      // The service resolves (not rejects) with the same message — no enumeration possible.
+      mockRegister.mockResolvedValue({
+        message: 'Registration request received. Check your email to continue.',
+      });
+
+      const res = await request(buildApp()).post('/api/v1/auth/register').send(validBody);
+
+      expect(res.status).toBe(201);
+      expect(res.body).toEqual({
+        message: 'Registration request received. Check your email to continue.',
+      });
     });
 
     it('returns 422 when required fields are missing', async () => {

@@ -110,33 +110,24 @@ describe('AuthService', () => {
       phoneNumber: '+1234567890',
     };
 
-    it('should register user successfully', async () => {
-      const hashedPassword = `hashed_${userData.password}`;
-      const mockUser = {
-        userId: 'user-123',
-        email: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        userType: UserType.ADOPTER,
-        status: UserStatus.PENDING_VERIFICATION,
-        emailVerified: false,
-        toJSON: vi.fn().mockReturnValue({
-          userId: 'user-123',
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          userType: UserType.ADOPTER,
-          status: UserStatus.PENDING_VERIFICATION,
-          emailVerified: false,
-        }),
-        save: vi.fn(),
-        increment: vi.fn(),
-        reload: vi.fn(),
-      };
+    const buildMockUser = (overrides: Record<string, unknown> = {}) => ({
+      userId: 'user-123',
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      userType: UserType.ADOPTER,
+      status: UserStatus.PENDING_VERIFICATION,
+      emailVerified: false,
+      toJSON: vi.fn().mockReturnValue({}),
+      save: vi.fn(),
+      increment: vi.fn(),
+      reload: vi.fn(),
+      ...overrides,
+    });
 
+    it('returns a generic message on successful registration (no tokens exposed)', async () => {
       MockedUser.findOne = vi.fn().mockResolvedValue(null);
-      MockedUser.create = vi.fn().mockResolvedValue(mockUser as unknown);
-      mockedJwt.sign = vi.fn().mockReturnValue('access-token' as unknown);
+      MockedUser.create = vi.fn().mockResolvedValue(buildMockUser() as unknown);
       MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
 
       const result = await AuthService.register(userData);
@@ -147,7 +138,6 @@ describe('AuthService', () => {
       expect(MockedUser.create).toHaveBeenCalledWith(
         expect.objectContaining({
           email: userData.email.toLowerCase(),
-          password: expect.any(String),
           firstName: userData.firstName,
           lastName: userData.lastName,
           phoneNumber: userData.phoneNumber,
@@ -158,67 +148,76 @@ describe('AuthService', () => {
           emailVerified: false,
         })
       );
-      expect(result.user).toBeDefined();
-      expect(result.token).toBe('mocked-access-token');
+      expect(result).toEqual({ message: expect.any(String) });
+      expect(result).not.toHaveProperty('token');
+      expect(result).not.toHaveProperty('user');
     });
 
-    it('should throw error if user already exists', async () => {
-      const existingUser = { userId: 'existing-user' };
+    it('returns the same generic message when the email is already registered (no enumeration)', async () => {
+      const existingUser = { userId: 'existing-user', email: userData.email };
       MockedUser.findOne = vi.fn().mockResolvedValue(existingUser as unknown);
 
-      await expect(AuthService.register(userData)).rejects.toThrow(
-        'User already exists with this email'
-      );
+      // Spy on the private sendAccountExistsEmail so we can assert it fires
+      // without needing to wire up the full email service.
+      const sendAccountExistsSpy = vi
+        .spyOn(
+          AuthService as unknown as { sendAccountExistsEmail: (e: string) => Promise<void> },
+          'sendAccountExistsEmail'
+        )
+        .mockResolvedValue(undefined);
+
+      const result = await AuthService.register(userData);
+
+      // Response is identical in shape to a fresh registration — no enumeration possible.
+      expect(result).toEqual({ message: expect.any(String) });
+      expect(result).not.toHaveProperty('token');
+      expect(result).not.toHaveProperty('user');
+
+      // No user was created for the duplicate email.
+      expect(MockedUser.create).not.toHaveBeenCalled();
+
+      // The existing user receives an out-of-band "account exists" email.
+      expect(sendAccountExistsSpy).toHaveBeenCalledWith(userData.email);
     });
 
-    it('should register user successfully without phone number', async () => {
+    it('new registration and duplicate-email responses have identical shapes', async () => {
+      // Fresh registration
+      MockedUser.findOne = vi.fn().mockResolvedValue(null);
+      MockedUser.create = vi.fn().mockResolvedValue(buildMockUser() as unknown);
+      MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
+      const freshResult = await AuthService.register(userData);
+
+      // Duplicate-email registration
+      const existingUser = { userId: 'existing-user', email: userData.email };
+      MockedUser.findOne = vi.fn().mockResolvedValue(existingUser as unknown);
+      vi.spyOn(
+        AuthService as unknown as { sendAccountExistsEmail: (e: string) => Promise<void> },
+        'sendAccountExistsEmail'
+      ).mockResolvedValue(undefined);
+      const duplicateResult = await AuthService.register(userData);
+
+      expect(Object.keys(freshResult).sort()).toEqual(Object.keys(duplicateResult).sort());
+    });
+
+    it('creates user with undefined phoneNumber when not provided', async () => {
       const userDataWithoutPhone: RegisterData = {
         email: 'test@example.com',
         password: 'Password123!',
         firstName: 'John',
         lastName: 'Doe',
       };
-
-      const mockUser = {
-        userId: 'user-456',
-        email: userDataWithoutPhone.email,
-        firstName: userDataWithoutPhone.firstName,
-        lastName: userDataWithoutPhone.lastName,
-        userType: UserType.ADOPTER,
-        status: UserStatus.PENDING_VERIFICATION,
-        emailVerified: false,
-        toJSON: vi.fn().mockReturnValue({
-          userId: 'user-456',
-          email: userDataWithoutPhone.email,
-          firstName: userDataWithoutPhone.firstName,
-          lastName: userDataWithoutPhone.lastName,
-          userType: UserType.ADOPTER,
-          status: UserStatus.PENDING_VERIFICATION,
-          emailVerified: false,
-        }),
-        save: vi.fn(),
-        increment: vi.fn(),
-        reload: vi.fn(),
-      };
-
       MockedUser.findOne = vi.fn().mockResolvedValue(null);
-      MockedUser.create = vi.fn().mockResolvedValue(mockUser as unknown);
-      mockedJwt.sign = vi.fn().mockReturnValue('access-token' as unknown);
+      MockedUser.create = vi.fn().mockResolvedValue(buildMockUser() as unknown);
       MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
 
-      const result = await AuthService.register(userDataWithoutPhone);
+      await AuthService.register(userDataWithoutPhone);
 
       expect(MockedUser.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: userDataWithoutPhone.email.toLowerCase(),
-          phoneNumber: undefined,
-        })
+        expect.objectContaining({ phoneNumber: undefined })
       );
-      expect(result.user).toBeDefined();
-      expect(result.token).toBe('mocked-access-token');
     });
 
-    it('should register user successfully with empty phone number', async () => {
+    it('normalises empty phoneNumber to undefined', async () => {
       const userDataEmptyPhone: RegisterData = {
         email: 'test@example.com',
         password: 'Password123!',
@@ -226,47 +225,18 @@ describe('AuthService', () => {
         lastName: 'Doe',
         phoneNumber: '',
       };
-
-      const mockUser = {
-        userId: 'user-789',
-        email: userDataEmptyPhone.email,
-        firstName: userDataEmptyPhone.firstName,
-        lastName: userDataEmptyPhone.lastName,
-        userType: UserType.ADOPTER,
-        status: UserStatus.PENDING_VERIFICATION,
-        emailVerified: false,
-        toJSON: vi.fn().mockReturnValue({
-          userId: 'user-789',
-          email: userDataEmptyPhone.email,
-          firstName: userDataEmptyPhone.firstName,
-          lastName: userDataEmptyPhone.lastName,
-          userType: UserType.ADOPTER,
-          status: UserStatus.PENDING_VERIFICATION,
-          emailVerified: false,
-        }),
-        save: vi.fn(),
-        increment: vi.fn(),
-        reload: vi.fn(),
-      };
-
       MockedUser.findOne = vi.fn().mockResolvedValue(null);
-      MockedUser.create = vi.fn().mockResolvedValue(mockUser as unknown);
-      mockedJwt.sign = vi.fn().mockReturnValue('access-token' as unknown);
+      MockedUser.create = vi.fn().mockResolvedValue(buildMockUser() as unknown);
       MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
 
-      const result = await AuthService.register(userDataEmptyPhone);
+      await AuthService.register(userDataEmptyPhone);
 
       expect(MockedUser.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: userDataEmptyPhone.email.toLowerCase(),
-          phoneNumber: undefined,
-        })
+        expect.objectContaining({ phoneNumber: undefined })
       );
-      expect(result.user).toBeDefined();
-      expect(result.token).toBe('mocked-access-token');
     });
 
-    it('should throw error for invalid password', async () => {
+    it('throws for an invalid (weak) password', async () => {
       const invalidUserData = { ...userData, password: 'weak' };
       MockedUser.findOne = vi.fn().mockResolvedValue(null);
 
@@ -828,7 +798,7 @@ describe('AuthService', () => {
 
         const result = await AuthService.register(userData);
 
-        expect(result.user).toBeDefined();
+        expect(result).toEqual({ message: expect.any(String) });
         expect(MockedUser.create).toHaveBeenCalledWith(
           expect.objectContaining({
             verificationToken: expect.any(String),
@@ -837,9 +807,6 @@ describe('AuthService', () => {
             status: UserStatus.PENDING_VERIFICATION,
           })
         );
-
-        // Note: This test will fail until we implement email sending in registration
-        // This is intentional for TDD - test first, then implement
       });
 
       it('should set verification token expiry to 24 hours', async () => {

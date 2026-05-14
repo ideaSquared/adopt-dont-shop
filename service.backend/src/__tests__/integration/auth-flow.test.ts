@@ -161,9 +161,9 @@ describe('Authentication Flow Integration Tests', () => {
             emailVerified: false,
           })
         );
-        expect(result.user).toBeDefined();
-        expect(result.token).toBeDefined();
-        expect(result.refreshToken).toBeDefined();
+        expect(result).toEqual({ message: expect.any(String) });
+        expect(result).not.toHaveProperty('token');
+        expect(result).not.toHaveProperty('user');
       });
 
       it('should create user with verification token and expiration', async () => {
@@ -241,12 +241,13 @@ describe('Authentication Flow Integration Tests', () => {
 
         const result = await AuthService.register(registerData);
 
-        expect(result.token).toBeDefined();
-        expect(result.refreshToken).toBeDefined();
-        expect(result.expiresIn).toBeDefined();
+        // register no longer issues tokens — users must verify email then login.
+        expect(result).toEqual({ message: expect.any(String) });
+        expect(result).not.toHaveProperty('token');
+        expect(result).not.toHaveProperty('refreshToken');
       });
 
-      it('should reject registration with existing email', async () => {
+      it('returns the same generic message for an already-registered email (no enumeration)', async () => {
         const existingUser = createMockUser({
           userId: 'existing-user-123',
           email: registerData.email.toLowerCase(),
@@ -254,13 +255,18 @@ describe('Authentication Flow Integration Tests', () => {
 
         MockedUser.findOne = vi.fn().mockResolvedValue(existingUser as never);
 
-        await expect(AuthService.register(registerData)).rejects.toThrow(
-          'User already exists with this email'
-        );
+        vi.spyOn(
+          AuthService as unknown as { sendAccountExistsEmail: (e: string) => Promise<void> },
+          'sendAccountExistsEmail'
+        ).mockResolvedValue(undefined);
+
+        const result = await AuthService.register(registerData);
+
+        expect(result).toEqual({ message: expect.any(String) });
         expect(MockedUser.create).not.toHaveBeenCalled();
       });
 
-      it('should reject registration with email in different case', async () => {
+      it('normalises email case before duplicate check', async () => {
         const existingUser = createMockUser({
           userId: 'existing-user-123',
           email: registerData.email.toLowerCase(),
@@ -268,11 +274,16 @@ describe('Authentication Flow Integration Tests', () => {
 
         MockedUser.findOne = vi.fn().mockResolvedValue(existingUser as never);
 
-        const upperCaseData = { ...registerData, email: registerData.email.toUpperCase() };
+        vi.spyOn(
+          AuthService as unknown as { sendAccountExistsEmail: (e: string) => Promise<void> },
+          'sendAccountExistsEmail'
+        ).mockResolvedValue(undefined);
 
-        await expect(AuthService.register(upperCaseData)).rejects.toThrow(
-          'User already exists with this email'
-        );
+        const upperCaseData = { ...registerData, email: registerData.email.toUpperCase() };
+        const result = await AuthService.register(upperCaseData);
+
+        expect(result).toEqual({ message: expect.any(String) });
+        expect(MockedUser.create).not.toHaveBeenCalled();
       });
     });
 
@@ -1246,8 +1257,7 @@ describe('Authentication Flow Integration Tests', () => {
 
         const registerResult = await AuthService.register(registerData);
 
-        expect(registerResult.user).toBeDefined();
-        expect(registerResult.token).toBeDefined();
+        expect(registerResult).toEqual({ message: expect.any(String) });
 
         // Step 2: Verify Email
         const mockUserAfterVerification = createMockUser({

@@ -21,6 +21,7 @@ import {
   PasswordResetConfirm,
   PasswordResetRequest,
   RegisterData,
+  RegisterResponse,
 } from '../types';
 
 export class AuthService {
@@ -29,12 +30,16 @@ export class AuthService {
   private static readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
   private static readonly JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '3d';
 
-  static async register(userData: RegisterData): Promise<AuthResponse> {
+  static async register(userData: RegisterData): Promise<RegisterResponse> {
+    const genericMessage = 'Registration request received. Check your email to continue.';
     try {
-      // Check if user already exists
       const existingUser = await User.findOne({ where: { email: userData.email.toLowerCase() } });
       if (existingUser) {
-        throw new Error('User already exists with this email');
+        // Send an out-of-band "you already have an account" email so the
+        // legitimate owner can recover, then return the same generic shape as
+        // a fresh registration — this prevents account enumeration (ADS-541).
+        void this.sendAccountExistsEmail(existingUser.email);
+        return { message: genericMessage };
       }
 
       // Validate password
@@ -57,8 +62,6 @@ export class AuthService {
         verificationToken,
         verificationTokenExpiresAt: verificationExpires,
         loginAttempts: 0,
-        // Notification + privacy prefs auto-created by User.afterCreate
-        // hook (plan 5.6) — defaults stand in.
       });
 
       // Log registration with enhanced context
@@ -82,15 +85,9 @@ export class AuthService {
       // Send verification email
       try {
         const emailService = (await import('./email.service')).default;
-        // app.client runs on :3000 in dev (see docker-compose / CORS_ORIGIN).
-        // Set FRONTEND_URL in .env to override (e.g. for staging/prod).
-        // ADS-438: origin is validated against the configured allowlist.
         const frontendUrl = getValidatedFrontendOrigin();
         const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
-        // sendEmail requires either templateId+templateData OR explicit
-        // subject+htmlContent. Resolve the seeded "Email Verification"
-        // template by name so this isn't bound to a hardcoded UUID.
         const template = await emailService.getTemplateByName('Email Verification');
         if (!template) {
           throw new Error("Email template 'Email Verification' not found");
@@ -115,7 +112,6 @@ export class AuthService {
         });
       } catch (emailError) {
         logger.error('Failed to send verification email, queuing for retry:', emailError);
-        // Queue email for retry instead of silently failing
         try {
           await EmailQueue.create({
             fromEmail: process.env.EMAIL_FROM_ADDRESS || 'noreply@adoptdontshop.com',
@@ -148,25 +144,36 @@ export class AuthService {
         }
       }
 
-      // Generate tokens with rotation support
-      const tokenId = crypto.randomUUID();
-      const familyId = crypto.randomUUID();
-      const tokens = await this.generateTokens(
-        { userId: user.userId, email: user.email, userType: UserType.ADOPTER },
-        tokenId
-      );
-      await this.storeRefreshToken(user.userId, tokenId, familyId);
-
-      return {
-        user: this.sanitizeUser(user),
-        ...tokens,
-      };
+      return { message: genericMessage };
     } catch (error) {
       logger.error('Registration failed:', {
         error: error instanceof Error ? error.message : String(error),
         email: redactEmail(userData.email),
       });
       throw error;
+    }
+  }
+
+  private static async sendAccountExistsEmail(email: string): Promise<void> {
+    const frontendUrl = getValidatedFrontendOrigin();
+    const resetUrl = `${frontendUrl}/forgot-password`;
+    try {
+      const emailService = (await import('./email.service')).default;
+      await emailService.sendEmail({
+        toEmail: email,
+        subject: 'You already have an account',
+        htmlContent: `<p>Hi,</p>
+<p>Someone (possibly you) tried to register with this email address, but an account already exists for it.</p>
+<p>If this was you and you have forgotten your password, you can <a href="${resetUrl}">reset it here</a>.</p>
+<p>If this wasn't you, you can safely ignore this email.</p>`,
+        type: 'transactional',
+        priority: 'high',
+      });
+    } catch (err) {
+      logger.warn('Failed to send account-exists email', {
+        email: redactEmail(email),
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 

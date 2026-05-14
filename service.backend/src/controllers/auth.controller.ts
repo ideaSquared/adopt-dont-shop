@@ -61,24 +61,10 @@ export class AuthController {
   async register(req: Request, res: Response): Promise<void> {
     try {
       const result = await AuthService.register(req.body);
-
-      res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
-      res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
-
-      const { refreshToken: _, ...responseBody } = result;
-      res.status(201).json(responseBody);
+      res.status(201).json(result);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Registration failed:', error);
-
-      if (errorMessage.includes('already exists')) {
-        // Return the same 201 response to prevent email enumeration
-        res.status(201).json({
-          message: 'Registration successful. Please check your email for verification.',
-        });
-        return;
-      }
-
       res.status(400).json({ error: errorMessage });
     }
   }
