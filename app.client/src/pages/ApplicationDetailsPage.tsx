@@ -63,7 +63,7 @@ export const ApplicationDetailsPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString?: string) => {
+  const formatDate = (dateString?: string | null) => {
     if (!dateString) {
       return 'Not available';
     }
