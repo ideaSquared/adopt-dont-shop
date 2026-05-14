@@ -116,34 +116,92 @@ const extractConsentDetails = (metadata: unknown): z.infer<typeof ConsentDetails
   return parsed.success ? parsed.data : {};
 };
 
+/**
+ * ADS-550: walk audit rows newest-first and pick up each document's last
+ * accepted version from the most recent row that actually carried it.
+ *
+ * The previous "only look at the latest row" implementation broke when
+ * the cookie banner started writing CONSENT_RECORDED rows alongside the
+ * registration / re-acceptance-modal rows: a cookies-only audit would
+ * silently consume any pending ToS or Privacy re-acceptance because the
+ * latest row's `tosVersion` was stamped with the currently-published
+ * value even though the user never saw the modal.
+ *
+ * After the fix the cookies-only path no longer writes `tosVersion` /
+ * `privacyVersion`, so we just need to read each field from whichever
+ * row last contained it.
+ */
+const findLatestVersions = (
+  rows: ReadonlyArray<{ metadata: unknown; timestamp: Date | null }>
+): {
+  tosVersion: string | null;
+  privacyVersion: string | null;
+  cookiesVersion: string | null;
+  tosAt: Date | null;
+  privacyAt: Date | null;
+  cookiesAt: Date | null;
+} => {
+  let tosVersion: string | null = null;
+  let privacyVersion: string | null = null;
+  let cookiesVersion: string | null = null;
+  let tosAt: Date | null = null;
+  let privacyAt: Date | null = null;
+  let cookiesAt: Date | null = null;
+
+  for (const row of rows) {
+    const details = extractConsentDetails(row.metadata);
+    if (tosVersion === null && details.tosVersion) {
+      tosVersion = details.tosVersion;
+      tosAt = row.timestamp;
+    }
+    if (privacyVersion === null && details.privacyVersion) {
+      privacyVersion = details.privacyVersion;
+      privacyAt = row.timestamp;
+    }
+    if (cookiesVersion === null && details.cookiesVersion) {
+      cookiesVersion = details.cookiesVersion;
+      cookiesAt = row.timestamp;
+    }
+    if (tosVersion && privacyVersion && cookiesVersion) {
+      break;
+    }
+  }
+
+  return { tosVersion, privacyVersion, cookiesVersion, tosAt, privacyAt, cookiesAt };
+};
+
 export const getPendingReacceptance = async (userId: string): Promise<PendingReacceptance> => {
-  const latest = await AuditLog.findOne({
+  const rows = await AuditLog.findAll({
     where: { user: userId, action: 'CONSENT_RECORDED' },
     order: [['timestamp', 'DESC']],
+    attributes: ['metadata', 'timestamp'],
   });
 
-  const details = latest ? extractConsentDetails(latest.metadata) : {};
-  const lastAcceptedAt = details.acceptedAt ?? latest?.timestamp?.toISOString() ?? null;
+  const versions = findLatestVersions(rows);
 
   const candidates: ReadonlyArray<{
     documentType: LegalDocumentType;
     currentVersion: string;
     lastAcceptedVersion: string | null;
+    lastAcceptedAt: Date | null;
   }> = [
     {
       documentType: 'terms',
       currentVersion: TERMS_VERSION,
-      lastAcceptedVersion: details.tosVersion ?? null,
+      lastAcceptedVersion: versions.tosVersion,
+      lastAcceptedAt: versions.tosAt,
     },
     {
       documentType: 'privacy',
       currentVersion: PRIVACY_VERSION,
-      lastAcceptedVersion: details.privacyVersion ?? null,
+      lastAcceptedVersion: versions.privacyVersion,
+      lastAcceptedAt: versions.privacyAt,
     },
     {
       documentType: 'cookies',
       currentVersion: COOKIES_VERSION,
-      lastAcceptedVersion: details.cookiesVersion ?? null,
+      lastAcceptedVersion: versions.cookiesVersion,
+      lastAcceptedAt: versions.cookiesAt,
     },
   ];
 
@@ -153,7 +211,7 @@ export const getPendingReacceptance = async (userId: string): Promise<PendingRea
       documentType: c.documentType,
       currentVersion: c.currentVersion,
       lastAcceptedVersion: c.lastAcceptedVersion,
-      lastAcceptedAt: c.lastAcceptedVersion ? lastAcceptedAt : null,
+      lastAcceptedAt: c.lastAcceptedVersion ? (c.lastAcceptedAt?.toISOString() ?? null) : null,
     }));
 
   return { pending };
