@@ -12,7 +12,7 @@ import {
  * Append-only event log; the model opts out of paranoid soft-delete so
  * there is no `deleted_at` column. One ENUM column (event_type).
  *
- * Cross-table FK constraints land in `00-baseline-zzz-foreign-keys.ts`.
+ * Cross-table FK constraints land in `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-025-application-timeline';
 

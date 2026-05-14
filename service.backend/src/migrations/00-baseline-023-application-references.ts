@@ -10,7 +10,7 @@ import {
  *
  * Frozen `createTable` body extracted from `models/ApplicationReference.ts`.
  * One ENUM column (status). Cross-table FK constraints land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-023-application-references';
 

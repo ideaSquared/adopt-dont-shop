@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `Chat`'s sync() output. Cross-table foreign keys
  * (application_id, rescue_id, pet_id, created_by, updated_by) live in
- * `00-baseline-zzz-foreign-keys.ts` so each per-model file is independently
+ * `00-baseline-999-foreign-keys.ts` so each per-model file is independently
  * orderable. The columns themselves carry the right shape (UUID), but no
  * REFERENCES clause until the FK file lands.
  */

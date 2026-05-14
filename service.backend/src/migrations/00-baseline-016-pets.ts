@@ -13,7 +13,7 @@ import {
  * the Pet model at the time of the rebaseline. Cross-table FKs
  * (rescue_id → rescues, breed_id / secondary_breed_id → breeds,
  * created_by / updated_by → users) are deferred to
- * `00-baseline-zzz-foreign-keys.ts` so each per-model file is
+ * `00-baseline-999-foreign-keys.ts` so each per-model file is
  * independently reorderable without dependency cycles.
  *
  * `search_vector` is created as a plain TSVECTOR column here — the
@@ -345,7 +345,7 @@ export default {
 
       // Single-column / direction-of-access indexes that the model declares.
       // FK columns are indexed here to satisfy the standards check; the
-      // referenced FK constraints land in 00-baseline-zzz-foreign-keys.ts.
+      // referenced FK constraints land in 00-baseline-999-foreign-keys.ts.
       await queryInterface.addIndex('pets', ['rescue_id'], {
         name: 'pets_rescue_id_idx',
         transaction: t,

@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `ChatParticipant`'s sync() output. FKs (chat_id,
  * participant_id, rescue_id, created_by, updated_by) land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  */
 export default {
   up: async (queryInterface: QueryInterface) => {

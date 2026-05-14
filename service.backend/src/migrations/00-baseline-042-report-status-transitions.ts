@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `ReportStatusTransition`'s sync() output. FKs
  * (report_id with CASCADE; transitioned_by has no FK by design — see
- * the model comment) are deferred to `00-baseline-zzz-foreign-keys.ts`.
+ * the model comment) are deferred to `00-baseline-999-foreign-keys.ts`.
  *
  * `timestamps: false` on the model — only `transitioned_at` tracks event
  * time. No `created_at` / `updated_at` / `deleted_at` / audit columns.

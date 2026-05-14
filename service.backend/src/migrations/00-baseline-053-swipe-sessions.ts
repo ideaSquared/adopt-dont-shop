@@ -9,7 +9,7 @@ import {
  * Per-model baseline — swipe_sessions (rebaseline 8/10).
  *
  * Frozen snapshot of `SwipeSession`'s sync() output. Cross-table foreign key
- * (user_id) lives in `00-baseline-zzz-foreign-keys.ts` so each per-model
+ * (user_id) lives in `00-baseline-999-foreign-keys.ts` so each per-model
  * file is independently orderable. The column itself carries the right
  * shape (UUID), but no REFERENCES clause until the FK file lands.
  *

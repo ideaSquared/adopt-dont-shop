@@ -13,7 +13,7 @@ import {
  * concurrency). No paranoid soft-delete.
  *
  * Cross-table FKs (`created_by`, `updated_by` → users) land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * `items` is JSONB carrying the `NavigationItem[]` tree (label / url /
  * order / children) defined on the model.

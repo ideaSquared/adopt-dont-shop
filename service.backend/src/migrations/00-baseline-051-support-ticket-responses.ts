@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `SupportTicketResponse`'s sync() output. Cross-table
  * FKs (ticket_id with CASCADE, responder_id, created_by, updated_by)
- * land in `00-baseline-zzz-foreign-keys.ts`.
+ * land in `00-baseline-999-foreign-keys.ts`.
  *
  * Paranoid: deleted_at column included; the model declares an explicit
  * deleted_at field plus a `support_ticket_responses_deleted_at_idx`.

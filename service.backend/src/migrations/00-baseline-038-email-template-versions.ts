@@ -6,7 +6,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  *
  * Frozen snapshot of `EmailTemplateVersion`'s sync() output. FKs (template_id
  * → email_templates with CASCADE, created_by/updated_by → users) live in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * Append-only history of template revisions (plan 5.4) — no soft-delete
  * (paranoid not set), so no `deleted_at` column. No ENUMs on this table.
@@ -54,7 +54,7 @@ export default {
             type: DataTypes.DATE,
             allowNull: false,
           },
-          // Audit columns (FKs in 00-baseline-zzz-foreign-keys.ts).
+          // Audit columns (FKs in 00-baseline-999-foreign-keys.ts).
           // NOTE: the model declares a `version` column (template revision
           // number) AND opts into optimistic locking via `withAuditHooks`,
           // which also wants a `version` column. Sequelize collapses the

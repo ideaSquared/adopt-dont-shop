@@ -9,7 +9,7 @@ import {
  * Per-model baseline — user_consents (rebaseline 9/10).
  *
  * Frozen snapshot of `UserConsent`'s sync() output. FKs (user_id,
- * created_by, updated_by) land in `00-baseline-zzz-foreign-keys.ts`.
+ * created_by, updated_by) land in `00-baseline-999-foreign-keys.ts`.
  *
  * GDPR Art. 7 — append-only consent event log. Each grant / withdrawal
  * is a new row; latest row per (user_id, purpose) is the user's current

@@ -8,7 +8,7 @@ import { runInTransaction, assertDestructiveDownAcknowledged } from './_helpers'
  * Frozen `createTable` body extracted from `models/UserApplicationPrefs.ts`.
  * 1:1 with `users` (user_id is the PK, no separate row id). No ENUM
  * columns. Cross-table FK constraints land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-026-user-application-prefs';
 

@@ -8,7 +8,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  * standard `created_by`/`updated_by` audit columns. `paranoid: true` adds
  * `deleted_at`. Cross-table FKs (`rescue_id`, `user_id`, `verified_by`,
  * `added_by`, `created_by`, `updated_by`) live in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  */
 const MIGRATION_KEY = '00-baseline-010-staff-members';
 

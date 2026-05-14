@@ -9,7 +9,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  * with hard cleanup; no soft-delete, no audit columns, no `version`.
  *
  * The `user_id` foreign key declared on the model lands in
- * `00-baseline-zzz-foreign-keys.ts`; the column itself is created here so
+ * `00-baseline-999-foreign-keys.ts`; the column itself is created here so
  * the table is functionally usable before the FK file runs.
  *
  * No ENUMs to drop on `down`.

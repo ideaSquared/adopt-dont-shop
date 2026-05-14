@@ -15,7 +15,7 @@ import {
  * the implicit `sync()` call in `00-baseline.ts`.
  *
  * Cross-table foreign-key constraints are NOT declared here — they are
- * batched into `00-baseline-zzz-foreign-keys.ts` so per-model files are
+ * batched into `00-baseline-999-foreign-keys.ts` so per-model files are
  * independently reorderable. Indexes covering FK columns ARE created
  * here (they are plain B-tree indexes, not constraints).
  *

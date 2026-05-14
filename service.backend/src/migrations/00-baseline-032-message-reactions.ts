@@ -6,7 +6,7 @@ import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers'
  *
  * Frozen snapshot of `MessageReaction`'s sync() output. FKs (message_id,
  * user_id, created_by, updated_by) land in
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * `paranoid: false` on the model — no `deleted_at` column. Reactions are
  * deleted hard.

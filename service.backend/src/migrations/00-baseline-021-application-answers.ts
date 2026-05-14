@@ -6,7 +6,7 @@ import { runInTransaction, assertDestructiveDownAcknowledged } from './_helpers'
  *
  * Frozen `createTable` body extracted from `models/ApplicationAnswer.ts`.
  * No ENUM columns. Cross-table FK constraints are batched into the
- * separate `00-baseline-zzz-foreign-keys.ts` file; FK-column indexes
+ * separate `00-baseline-999-foreign-keys.ts` file; FK-column indexes
  * (plain B-tree) are created here because they accelerate joins
  * regardless of whether the FK is enforced at the DB layer.
  */

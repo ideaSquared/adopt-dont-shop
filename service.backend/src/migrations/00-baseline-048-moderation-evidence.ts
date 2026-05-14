@@ -10,7 +10,7 @@ import {
  *
  * Frozen snapshot of `ModerationEvidence`'s sync() output. The audit FK
  * columns (created_by, updated_by) carry shape only — REFERENCES are
- * deferred to `00-baseline-zzz-foreign-keys.ts`.
+ * deferred to `00-baseline-999-foreign-keys.ts`.
  *
  * Polymorphic via (parent_type, parent_id). The parent_type ENUM is the
  * discriminator; there is no DB-level FK to a single parent table by

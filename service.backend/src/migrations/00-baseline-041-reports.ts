@@ -11,7 +11,7 @@ import {
  * Frozen snapshot of `Report`'s sync() output. Cross-table foreign keys
  * (reporter_id, reported_user_id, assigned_moderator, resolved_by,
  * escalated_to, created_by, updated_by) live in
- * `00-baseline-zzz-foreign-keys.ts`. Columns carry the right shape (UUID)
+ * `00-baseline-999-foreign-keys.ts`. Columns carry the right shape (UUID)
  * but no REFERENCES clause until the FK file lands.
  *
  * `evidence` was moved to the `moderation_evidence` polymorphic table

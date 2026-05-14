@@ -11,7 +11,7 @@ import {
  * Mirrors what `sequelize.sync()` produces from `service.backend/src/models/Rescue.ts`
  * today — column types, nullability, defaults, single-table indexes. Cross-table
  * foreign keys (`verified_by`, `created_by`, `updated_by`) are intentionally
- * omitted; they live in `00-baseline-zzz-foreign-keys.ts` so each per-model file
+ * omitted; they live in `00-baseline-999-foreign-keys.ts` so each per-model file
  * is independently reorderable.
  *
  * `down` drops the table and the ENUM types created inline (`enum_rescues_status`,
@@ -114,7 +114,7 @@ export default {
             type: DataTypes.DATE,
             allowNull: true,
           },
-          // FK to users.user_id deferred to 00-baseline-zzz-foreign-keys.ts.
+          // FK to users.user_id deferred to 00-baseline-999-foreign-keys.ts.
           verified_by: {
             type: DataTypes.UUID,
             allowNull: true,
@@ -136,7 +136,7 @@ export default {
             allowNull: true,
             defaultValue: {},
           },
-          // Audit columns (FK constraints added in 00-baseline-zzz-foreign-keys.ts).
+          // Audit columns (FK constraints added in 00-baseline-999-foreign-keys.ts).
           created_by: {
             type: DataTypes.UUID,
             allowNull: true,

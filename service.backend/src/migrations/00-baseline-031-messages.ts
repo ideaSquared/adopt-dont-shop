@@ -9,7 +9,7 @@ import {
  * Per-model baseline — messages (rebaseline 5/10).
  *
  * Frozen snapshot of `Message`'s sync() output. FKs (chat_id, sender_id,
- * created_by, updated_by) land in `00-baseline-zzz-foreign-keys.ts`.
+ * created_by, updated_by) land in `00-baseline-999-foreign-keys.ts`.
  *
  * Two model concerns NOT replicated as DDL here:
  *
