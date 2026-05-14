@@ -1,94 +1,36 @@
-/**
- * Socket.IO connection status
- */
-export type ConnectionStatus =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'error';
+// Re-export all domain types from schemas (source of truth)
+export type {
+  ConnectionStatus,
+  MessageDeliveryStatus,
+  MessageAttachment,
+  MessageReaction,
+  MessageReadReceipt,
+  Participant,
+  Message,
+  Conversation,
+  TypingIndicator,
+  ReconnectionConfig,
+} from '../schemas';
 
-/**
- * Socket.IO reconnection configuration
- */
-export interface ReconnectionConfig {
-  /**
-   * Enable automatic reconnection
-   */
-  enabled: boolean;
+import type { ReconnectionConfig } from '../schemas';
 
-  /**
-   * Initial delay in milliseconds
-   */
-  initialDelay: number;
-
-  /**
-   * Maximum delay in milliseconds
-   */
-  maxDelay: number;
-
-  /**
-   * Maximum number of reconnection attempts
-   */
-  maxAttempts: number;
-
-  /**
-   * Exponential backoff multiplier
-   */
-  backoffMultiplier: number;
-}
-
-/**
- * Queued message for sending when connection is restored
- */
-export interface QueuedMessage {
+// QueuedMessage contains File[] (browser API) which cannot be represented in Zod
+export type QueuedMessage = {
   conversationId: string;
   content: string;
   attachments?: File[];
   timestamp: string;
   retryCount: number;
-}
+};
 
-/**
- * Configuration options for ChatService
- */
-export interface ChatServiceConfig {
-  /**
-   * API base URL
-   */
+export type ChatServiceConfig = {
   apiUrl?: string;
-
-  /**
-   * WebSocket URL (defaults to apiUrl if not provided)
-   */
   socketUrl?: string;
-
-  /**
-   * Enable debug logging
-   */
   debug?: boolean;
-
-  /**
-   * Custom headers to include with requests
-   * Can be static strings or dynamic functions/objects for auth tokens
-   */
   headers?: Record<string, string | (() => string) | { Authorization?: string }>;
-
-  /**
-   * Reconnection configuration
-   */
   reconnection?: Partial<ReconnectionConfig>;
-
-  /**
-   * Enable message queuing during disconnection
-   */
   enableMessageQueue?: boolean;
-
-  /**
-   * Maximum number of messages to queue
-   */
   maxQueueSize?: number;
-
   /**
    * Async provider that returns the current CSRF token for the session.
    * Required by the backend's double-submit-cookie CSRF middleware on
@@ -97,142 +39,13 @@ export interface ChatServiceConfig {
    * one cached token.
    */
   csrfToken?: () => Promise<string | null>;
-}
+};
 
-/**
- * Options for ChatService operations
- */
-export interface ChatServiceOptions {
-  /**
-   * Timeout in milliseconds
-   */
+export type ChatServiceOptions = {
   timeout?: number;
-
-  /**
-   * Whether to use caching
-   */
   useCache?: boolean;
-
-  /**
-   * Custom metadata
-   */
   metadata?: Record<string, unknown>;
-}
-
-/**
- * Participant in a conversation
- */
-export interface Participant {
-  id: string;
-  name: string;
-  type: 'user' | 'rescue' | 'admin';
-  avatarUrl?: string;
-  isOnline?: boolean;
-}
-
-/**
- * Message attachment
- */
-export interface MessageAttachment {
-  id: string;
-  filename: string;
-  url: string;
-  size: number;
-  mimeType: string;
-  uploadedAt?: string;
-}
-
-/**
- * Reaction on a message
- */
-export interface MessageReaction {
-  userId: string;
-  emoji: string;
-  createdAt: string;
-}
-
-/**
- * Read receipt for a message
- */
-export interface MessageReadReceipt {
-  userId: string;
-  readAt: string;
-}
-
-/**
- * Delivery status for read receipt tracking
- */
-export type MessageDeliveryStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
-
-/**
- * Chat message
- */
-export interface Message {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  senderName: string;
-  /**
-   * Whether the sender was acting on behalf of the rescue. Backend
-   * derives this from the StaffMember table; the UI uses it to show a
-   * "Staff" badge to other rescue staff and to swap in the rescue's
-   * name (`senderRescueName`) when the viewer is an adopter.
-   */
-  senderRole?: 'rescue_staff' | 'adopter';
-  /**
-   * Display name of the rescue when `senderRole` is `rescue_staff`.
-   * Adopters see this as the sender; staff still see the real name.
-   */
-  senderRescueName?: string | null;
-  content: string;
-  timestamp: string;
-  type: 'text' | 'image' | 'file' | 'system';
-  status: MessageDeliveryStatus;
-  attachments?: MessageAttachment[];
-  reactions?: MessageReaction[];
-  readBy?: MessageReadReceipt[];
-  isEdited?: boolean;
-  editedAt?: string;
-  replyToId?: string;
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * Conversation/Chat interface
- */
-export interface Conversation {
-  id: string;
-  chat_id?: string; // Backend compatibility
-  participants: Participant[];
-  lastMessage?: Message;
-  unreadCount: number;
-  updatedAt: string;
-  createdAt: string;
-  isActive: boolean;
-
-  // Pet adoption specific fields
-  petId?: string;
-  rescueId?: string;
-  rescueName?: string; // Computed field for easy display
-
-  // Conversation metadata
-  title?: string;
-  description?: string;
-  tags?: string[];
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
-  status?: 'active' | 'archived' | 'blocked' | 'closed';
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * Typing indicator
- */
-export interface TypingIndicator {
-  conversationId: string;
-  userId: string;
-  userName: string;
-  startedAt: string;
-}
+};
 
 // ADS-262: response envelopes are owned by @adopt-dont-shop/lib.types.
 export type { BaseResponse, ErrorResponse, PaginatedResponse } from '@adopt-dont-shop/lib.types';
