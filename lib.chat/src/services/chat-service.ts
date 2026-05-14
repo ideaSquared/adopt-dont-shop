@@ -461,7 +461,7 @@ export class ChatService {
         } else if (typeof value === 'object' && value !== null) {
           // Handle getter properties for Authorization
           try {
-            const authValue = (value as any).Authorization;
+            const authValue = value.Authorization;
             if (typeof authValue === 'string' && authValue) {
               headers.Authorization = authValue;
             }

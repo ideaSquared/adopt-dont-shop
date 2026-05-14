@@ -8,14 +8,20 @@ import {
   RescueServiceConfig,
   AdoptionPolicy,
 } from '../types';
+import {
+  RescueAPIResponseSchema,
+  AdoptionPolicySchema,
+  FeaturedRescuesResponseSchema,
+  AdoptionPolicyResponseSchema,
+} from '../schemas';
 
 /**
  * Transform rescue data from API format to frontend format
  */
 const transformRescueFromAPI = (rescue: RescueAPIResponse): Rescue => {
-  if (!rescue) {
-    return rescue as unknown as Rescue;
-  }
+  const adoptionPoliciesRaw = rescue.settings?.adoptionPolicies;
+  const adoptionPoliciesParsed = AdoptionPolicySchema.safeParse(adoptionPoliciesRaw);
+  const adoptionPolicies = adoptionPoliciesParsed.success ? adoptionPoliciesParsed.data : undefined;
 
   return {
     // Map all backend fields
@@ -47,7 +53,7 @@ const transformRescueFromAPI = (rescue: RescueAPIResponse): Rescue => {
     manualVerificationRequestedAt:
       rescue.manual_verification_requested_at || rescue.manualVerificationRequestedAt,
     settings: rescue.settings,
-    adoptionPolicies: rescue.settings?.adoptionPolicies as AdoptionPolicy | undefined,
+    adoptionPolicies,
     isDeleted: rescue.is_deleted || rescue.isDeleted || false,
     deletedAt: rescue.deleted_at || rescue.deletedAt,
     deletedBy: rescue.deleted_by || rescue.deletedBy,
@@ -115,14 +121,14 @@ export class RescueService {
    */
   async getRescue(rescueId: string): Promise<Rescue> {
     try {
-      const response = (await this.apiService.get(`${this.baseUrl}/${rescueId}`)) as {
+      const response = await this.apiService.get<{
         success: boolean;
-        data: RescueAPIResponse;
+        data: unknown;
         message?: string;
-      };
+      }>(`${this.baseUrl}/${rescueId}`);
 
       if (response.success && response.data) {
-        return transformRescueFromAPI(response.data);
+        return transformRescueFromAPI(RescueAPIResponseSchema.parse(response.data));
       } else {
         throw new Error(response.message || 'Invalid API response structure');
       }
@@ -143,10 +149,7 @@ export class RescueService {
     limit: number = 20
   ): Promise<PaginatedResponse<Pet>> {
     try {
-      const response = (await this.apiService.get(`/api/v1/pets/rescue/${rescueId}`, {
-        page: page.toString(),
-        limit: limit.toString(),
-      })) as {
+      const response = await this.apiService.get<{
         success: boolean;
         data: Pet[];
         meta: {
@@ -156,7 +159,10 @@ export class RescueService {
           hasNext?: boolean;
           hasPrev?: boolean;
         };
-      };
+      }>(`/api/v1/pets/rescue/${rescueId}`, {
+        page: page.toString(),
+        limit: limit.toString(),
+      });
 
       // Handle the API response structure
       if (response.success && response.data && response.meta) {
@@ -205,9 +211,9 @@ export class RescueService {
         }
       });
 
-      const response = (await this.apiService.get(this.baseUrl, queryParams)) as {
+      const response = await this.apiService.get<{
         success: boolean;
-        data: RescueAPIResponse[];
+        data: unknown[];
         pagination: {
           page?: number;
           limit?: number;
@@ -215,7 +221,7 @@ export class RescueService {
           pages?: number;
         };
         message?: string;
-      };
+      }>(this.baseUrl, queryParams);
 
       if (!response.success) {
         throw new Error(response.message || 'Search failed');
@@ -224,7 +230,7 @@ export class RescueService {
       // Handle the API response structure
       if (response.success && response.data && response.pagination) {
         return {
-          data: response.data.map(transformRescueFromAPI),
+          data: response.data.map((r) => transformRescueFromAPI(RescueAPIResponseSchema.parse(r))),
           pagination: {
             page: response.pagination.page || 1,
             limit: response.pagination.limit || 20,
@@ -268,14 +274,12 @@ export class RescueService {
    */
   async getFeaturedRescues(limit: number = 10): Promise<Rescue[]> {
     try {
-      const response = (await this.apiService.get(`${this.baseUrl}/featured`, {
+      const raw = await this.apiService.get<unknown>(`${this.baseUrl}/featured`, {
         limit: limit.toString(),
-      })) as RescueAPIResponse[] | { data: RescueAPIResponse[] };
+      });
 
-      // Handle different response formats
-      const rescueData = Array.isArray(response)
-        ? response
-        : (response as { data: RescueAPIResponse[] }).data || [];
+      const parsed = FeaturedRescuesResponseSchema.parse(raw);
+      const rescueData = Array.isArray(parsed) ? parsed : parsed.data;
       return rescueData.map(transformRescueFromAPI);
     } catch (error) {
       if (this.config.debug) {
@@ -294,17 +298,14 @@ export class RescueService {
     adoptionPolicies: AdoptionPolicy
   ): Promise<AdoptionPolicy> {
     try {
-      const response = (await this.apiService.put(
-        `${this.baseUrl}/${rescueId}/adoption-policies`,
-        adoptionPolicies
-      )) as {
+      const response = await this.apiService.put<{
         success: boolean;
-        data: AdoptionPolicy;
+        data: unknown;
         message?: string;
-      };
+      }>(`${this.baseUrl}/${rescueId}/adoption-policies`, adoptionPolicies);
 
       if (response.success && response.data) {
-        return response.data;
+        return AdoptionPolicySchema.parse(response.data);
       } else {
         throw new Error(response.message || 'Failed to update adoption policies');
       }
@@ -321,18 +322,17 @@ export class RescueService {
    */
   async getAdoptionPolicies(rescueId: string): Promise<AdoptionPolicy | null> {
     try {
-      const response = (await this.apiService.get(
-        `${this.baseUrl}/${rescueId}/adoption-policies`
-      )) as {
+      const response = await this.apiService.get<{
         success: boolean;
-        data: AdoptionPolicy | null;
+        data: unknown;
         message?: string;
-      };
+      }>(`${this.baseUrl}/${rescueId}/adoption-policies`);
 
-      if (response.success) {
-        return response.data;
+      const parsed = AdoptionPolicyResponseSchema.parse(response);
+      if (parsed.success) {
+        return parsed.data ?? null;
       } else {
-        throw new Error(response.message || 'Failed to fetch adoption policies');
+        throw new Error(parsed.message || 'Failed to fetch adoption policies');
       }
     } catch (error) {
       if (this.config.debug) {

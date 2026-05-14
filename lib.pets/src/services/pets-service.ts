@@ -1,15 +1,18 @@
+import { z } from 'zod';
 import { ApiService, ApiResponse } from '@adopt-dont-shop/lib.api';
-import { Pet, PetSearchFilters, PaginatedResponse, PetStats, PetsServiceConfig } from '../types';
+import { Pet, PetSearchFilters, PaginatedResponse, PetsServiceConfig } from '../types';
+import { PetSchema, PetStatsSchema, type PetStats } from '../schemas';
 import { PETS_ENDPOINTS } from '../constants/endpoints';
 
 const camelToSnake = (key: string): string => key.replace(/([A-Z])/g, (m) => `_${m.toLowerCase()}`);
 
-const normalisePet = (raw: Record<string, unknown>): Pet => {
+const normalisePet = (raw: unknown): Pet => {
+  const rawRecord = z.record(z.string(), z.unknown()).parse(raw);
   const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(raw)) {
+  for (const [key, value] of Object.entries(rawRecord)) {
     result[camelToSnake(key)] = value;
   }
-  return result as unknown as Pet;
+  return PetSchema.parse(result);
 };
 
 /**
@@ -55,10 +58,10 @@ export class PetsService {
     // Map frontend filter format to backend API format
     const apiFilters: Record<string, string | number | boolean | undefined> = {};
 
-    // Only include non-empty values
+    // Only include non-empty primitive values (objects like age are handled separately below)
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        apiFilters[key] = value;
+      if (value !== undefined && value !== null && value !== '' && typeof value !== 'object') {
+        apiFilters[key] = value as string | number | boolean;
       }
     });
 
@@ -117,7 +120,7 @@ export class PetsService {
     try {
       const response = await this.apiService.get<{
         success: boolean;
-        data: Pet[];
+        data: unknown[];
         meta: {
           page: number;
           total: number;
@@ -130,7 +133,7 @@ export class PetsService {
       // Transform according to the actual API response structure
       if (response.success && response.data && response.meta) {
         return {
-          data: response.data.map((p) => normalisePet(p as unknown as Record<string, unknown>)),
+          data: response.data.map((p) => normalisePet(p)),
           pagination: {
             page: response.meta.page || 1,
             limit: typeof apiFilters.limit === 'number' ? apiFilters.limit : 12,
@@ -169,10 +172,12 @@ export class PetsService {
    */
   async getPetById(id: string): Promise<Pet> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet>>(PETS_ENDPOINTS.PET_BY_ID(id));
+      const response = await this.apiService.get<ApiResponse<unknown>>(
+        PETS_ENDPOINTS.PET_BY_ID(id)
+      );
 
       if (response.success && response.data) {
-        return normalisePet(response.data as unknown as Record<string, unknown>);
+        return normalisePet(response.data);
       } else {
         throw new Error('Invalid API response structure');
       }
@@ -189,12 +194,11 @@ export class PetsService {
    */
   async getFeaturedPets(limit: number = 12): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet[]>>(PETS_ENDPOINTS.FEATURED_PETS, {
-        limit,
-      });
-      return (response.data || []).map((p) =>
-        normalisePet(p as unknown as Record<string, unknown>)
+      const response = await this.apiService.get<ApiResponse<unknown[]>>(
+        PETS_ENDPOINTS.FEATURED_PETS,
+        { limit }
       );
+      return (response.data || []).map((p) => normalisePet(p));
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to fetch featured pets:', error);
@@ -208,12 +212,11 @@ export class PetsService {
    */
   async getRecentPets(limit: number = 12): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet[]>>(PETS_ENDPOINTS.RECENT_PETS, {
-        limit,
-      });
-      return (response.data || []).map((p) =>
-        normalisePet(p as unknown as Record<string, unknown>)
+      const response = await this.apiService.get<ApiResponse<unknown[]>>(
+        PETS_ENDPOINTS.RECENT_PETS,
+        { limit }
       );
+      return (response.data || []).map((p) => normalisePet(p));
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to fetch recent pets:', error);
@@ -229,7 +232,7 @@ export class PetsService {
     try {
       const response = await this.apiService.get<{
         success: boolean;
-        data: Pet[];
+        data: unknown[];
         meta: {
           page: number;
           total: number;
@@ -243,9 +246,7 @@ export class PetsService {
       });
 
       return {
-        data: (response.data || []).map((p) =>
-          normalisePet(p as unknown as Record<string, unknown>)
-        ),
+        data: (response.data || []).map((p) => normalisePet(p)),
         pagination: {
           page: response.meta?.page || page,
           limit: 20,
@@ -313,40 +314,35 @@ export class PetsService {
    */
   async getFavorites(): Promise<Pet[]> {
     try {
-      interface BackendPetWithRescue extends Omit<Pet, 'rescue'> {
-        Rescue?: {
-          rescueId: string;
-          name: string;
-          city: string;
-          state: string;
-        };
-      }
-
       const response = await this.apiService.get<
         ApiResponse<{
-          pets: BackendPetWithRescue[];
+          pets: unknown[];
           total: number;
           page: number;
           totalPages: number;
         }>
       >(PETS_ENDPOINTS.USER_FAVORITES);
 
-      // Transform the response to match the Pet interface
-      const pets = (response.data?.pets || []).map((pet: BackendPetWithRescue): Pet => {
-        const normalised = normalisePet(pet as unknown as Record<string, unknown>);
-        return {
-          ...normalised,
-          // Transform Rescue object to rescue format expected by frontend
-          rescue: pet.Rescue
-            ? {
-                name: pet.Rescue.name,
-                location: `${pet.Rescue.city}, ${pet.Rescue.state}`,
-              }
-            : undefined,
-        };
+      const rawPets = response.data?.pets || [];
+      return rawPets.map((pet): Pet => {
+        const rawRecord = z.record(z.string(), z.unknown()).parse(pet);
+        const normalised = normalisePet(rawRecord);
+        const rescue = rawRecord['Rescue'];
+        if (rescue && typeof rescue === 'object' && rescue !== null) {
+          const r = rescue as Record<string, unknown>;
+          return {
+            ...normalised,
+            rescue: {
+              name: typeof r['name'] === 'string' ? r['name'] : '',
+              location:
+                typeof r['city'] === 'string' && typeof r['state'] === 'string'
+                  ? `${r['city']}, ${r['state']}`
+                  : undefined,
+            },
+          };
+        }
+        return normalised;
       });
-
-      return pets;
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to fetch favorites:', error);
@@ -375,15 +371,11 @@ export class PetsService {
    */
   async getSimilarPets(petId: string, limit: number = 6): Promise<Pet[]> {
     try {
-      const response = await this.apiService.get<ApiResponse<Pet[]>>(
+      const response = await this.apiService.get<ApiResponse<unknown[]>>(
         PETS_ENDPOINTS.SIMILAR_PETS(petId),
-        {
-          limit,
-        }
+        { limit }
       );
-      return (response.data || []).map((p) =>
-        normalisePet(p as unknown as Record<string, unknown>)
-      );
+      return (response.data || []).map((p) => normalisePet(p));
     } catch (error) {
       if (this.config.debug) {
         console.error(`Failed to fetch similar pets for ${petId}:`, error);
@@ -421,10 +413,8 @@ export class PetsService {
    */
   async getPetStats(): Promise<PetStats> {
     try {
-      const response = await this.apiService.get<ApiResponse<PetStats>>(
-        PETS_ENDPOINTS.PET_STATISTICS
-      );
-      return response.data!;
+      const response = await this.apiService.get<{ data: unknown }>(PETS_ENDPOINTS.PET_STATISTICS);
+      return PetStatsSchema.parse(response.data ?? {});
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to fetch pet statistics:', error);
