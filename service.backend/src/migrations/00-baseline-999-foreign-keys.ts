@@ -1,4 +1,4 @@
-import { type QueryInterface } from 'sequelize';
+import { type AddConstraintOptions, type QueryInterface } from 'sequelize';
 import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers';
 
 /**
@@ -1331,15 +1331,19 @@ export default {
   up: async (queryInterface: QueryInterface) => {
     await runInTransaction(queryInterface, async t => {
       for (const fk of FK_CONSTRAINTS) {
-        await queryInterface.addConstraint(fk.table, {
-          type: 'foreign key',
+        // Sequelize's AddForeignKeyConstraintOptions types onDelete/onUpdate as required strings,
+        // but the runtime emits the clauses only when truthy — omitting onUpdate is how we let
+        // Postgres apply its NO ACTION default to match sync()'s output for non-belongsTo FKs.
+        const options = {
+          type: 'foreign key' as const,
           fields: fk.fields,
           name: fk.name,
           references: fk.references,
           ...(fk.onDelete ? { onDelete: fk.onDelete } : {}),
           ...(fk.onUpdate ? { onUpdate: fk.onUpdate } : {}),
           transaction: t,
-        });
+        } as AddConstraintOptions;
+        await queryInterface.addConstraint(fk.table, options);
       }
     });
   },

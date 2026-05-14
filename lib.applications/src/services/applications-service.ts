@@ -41,10 +41,7 @@ export class ApplicationsService {
 
   async submitApplication(applicationData: ApplicationData): Promise<Application> {
     try {
-      const response = await this.apiService.post<{ data: unknown }>(
-        this.baseUrl,
-        applicationData
-      );
+      const response = await this.apiService.post<{ data: unknown }>(this.baseUrl, applicationData);
       return ApplicationSchema.parse(response.data);
     } catch (error) {
       if (this.config.debug) {
