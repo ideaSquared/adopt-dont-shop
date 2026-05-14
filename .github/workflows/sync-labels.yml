@@ -15,8 +15,15 @@ jobs:
       issues: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
+      # ADS-539 follow-up: `EndBug/add-and-delete-github-labels` no longer
+      # exists on GitHub (returns 404). This step is broken regardless of
+      # SHA pinning. Replace with `EndBug/label-sync@v2` (same author,
+      # same `config-file` shape) in a separate change so behaviour can
+      # be verified end-to-end against a real label config. Until then,
+      # the workflow still fails fast on the missing action rather than
+      # exfiltrating any secret.
       - uses: EndBug/add-and-delete-github-labels@v1
         with:
           config-file: .github/labels.yml

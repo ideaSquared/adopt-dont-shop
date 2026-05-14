@@ -130,7 +130,7 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('should register successfully and store access token in sessionStorage', async () => {
+    it('returns user + message and stores no auth tokens (ADS-538)', async () => {
       const userData: RegisterRequest = {
         email: 'test@example.com',
         password: 'password123',
@@ -138,18 +138,19 @@ describe('AuthService', () => {
         lastName: 'Doe',
       };
 
-      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockAuthResponse);
+      const registerResponse = {
+        user: mockUser,
+        message: 'Registration successful. Please check your email to verify your account.',
+      };
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(registerResponse);
 
       const result = await authService.register(userData);
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/register', userData);
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEYS.AUTH_TOKEN,
-        'mock-token'
-      );
-      // Refresh token NOT stored locally
-      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith('refreshToken', expect.any(String));
-      expect(result).toEqual({ ...mockAuthResponse, accessToken: 'mock-token' });
+      // No tokens — user must verify email + log in to get a session.
+      expect(mockSessionStorage.setItem).not.toHaveBeenCalled();
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+      expect(result).toEqual(registerResponse);
     });
   });
 

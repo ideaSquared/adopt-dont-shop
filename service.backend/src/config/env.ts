@@ -26,6 +26,8 @@ type RequiredEnvVars = {
   REDIS_URL?: string;
   JWT_REPORT_SHARE_SECRET?: string;
   WORKER_ENABLED?: string;
+  DB_SSL_MODE?: string;
+  ALLOW_INSECURE_DB?: string;
 };
 
 type ValidatedEnv = {
@@ -49,6 +51,44 @@ type ValidatedEnv = {
   REDIS_URL?: string;
   JWT_REPORT_SHARE_SECRET?: string;
   WORKER_ENABLED?: string;
+  DB_SSL_MODE?: string;
+  ALLOW_INSECURE_DB?: string;
+};
+
+export type DbSslMode = 'disable' | 'require' | 'verify-ca' | 'verify-full';
+
+const DB_SSL_MODES: readonly DbSslMode[] = ['disable', 'require', 'verify-ca', 'verify-full'];
+
+/**
+ * Resolve the effective DB SSL mode for the current process.
+ *
+ * Production defaults to `require` so a plaintext link to the database is
+ * never the silent path of least resistance. To opt out of TLS in
+ * production (e.g. for an in-cluster Postgres on a trusted bridge), set
+ * BOTH `DB_SSL_MODE=disable` AND `ALLOW_INSECURE_DB=true`. Either alone
+ * fails boot — mirrors the DEBUG_ERRORS gate in `index.ts`.
+ */
+export const resolveDbSslMode = (
+  nodeEnv: string | undefined,
+  rawMode: string | undefined,
+  allowInsecure: string | undefined
+): DbSslMode => {
+  const trimmed = rawMode?.trim().toLowerCase();
+  if (trimmed && !DB_SSL_MODES.includes(trimmed as DbSslMode)) {
+    throw new Error(
+      `Invalid DB_SSL_MODE: "${rawMode}". Expected one of: ${DB_SSL_MODES.join(', ')}.`
+    );
+  }
+  const mode = (trimmed as DbSslMode | undefined) ?? (nodeEnv === 'production' ? 'require' : 'disable');
+
+  if (nodeEnv === 'production' && mode === 'disable' && allowInsecure !== 'true') {
+    throw new Error(
+      'DB_SSL_MODE=disable is not allowed in production. Set DB_SSL_MODE to require/verify-ca/verify-full, ' +
+        'or explicitly opt out by setting ALLOW_INSECURE_DB=true (only safe on a fully trusted network).'
+    );
+  }
+
+  return mode;
 };
 
 /**
@@ -215,7 +255,14 @@ const validateEnv = (): ValidatedEnv => {
     REDIS_URL: process.env.REDIS_URL,
     JWT_REPORT_SHARE_SECRET: process.env.JWT_REPORT_SHARE_SECRET,
     WORKER_ENABLED: process.env.WORKER_ENABLED,
+    DB_SSL_MODE: process.env.DB_SSL_MODE,
+    ALLOW_INSECURE_DB: process.env.ALLOW_INSECURE_DB,
   };
+
+  // ADS-540: refuse to boot in production with no TLS to the database
+  // unless explicitly opted-out. Runs after the secret validation so the
+  // error ordering matches operator expectations.
+  resolveDbSslMode(validated.NODE_ENV, validated.DB_SSL_MODE, validated.ALLOW_INSECURE_DB);
 
   return validated;
 };
