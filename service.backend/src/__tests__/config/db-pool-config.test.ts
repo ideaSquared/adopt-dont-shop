@@ -7,7 +7,13 @@
  * functions rather than introspecting the live connection.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildPoolConfig, buildTimeoutConfig, logEffectiveDbConfig } from '../../sequelize';
+import {
+  buildPoolConfig,
+  buildSslConfig,
+  buildTimeoutConfig,
+  logEffectiveDbConfig,
+} from '../../sequelize';
+import { resolveDbSslMode } from '../../config/env';
 
 const POOL_VARS = ['DB_POOL_MAX', 'DB_POOL_MIN', 'DB_POOL_ACQUIRE_MS', 'DB_POOL_IDLE_MS'] as const;
 
@@ -90,6 +96,7 @@ describe('database pool + timeout config [ADS-401]', () => {
         lockTimeoutMs: 10000,
         idleInTransactionSessionTimeoutMs: 60000,
       },
+      'require',
       log
     );
 
@@ -99,5 +106,53 @@ describe('database pool + timeout config [ADS-401]', () => {
     expect(message).toContain('statementTimeoutMs=30000');
     expect(message).toContain('lockTimeoutMs=10000');
     expect(message).toContain('idleInTransactionSessionTimeoutMs=60000');
+    expect(message).toContain('sslMode=require');
+  });
+});
+
+describe('database TLS config [ADS-540]', () => {
+  afterEach(() => {
+    delete process.env.DB_SSL_ROOT_CERT;
+  });
+
+  it('defaults to disable in non-production', () => {
+    expect(resolveDbSslMode('development', undefined, undefined)).toBe('disable');
+    expect(resolveDbSslMode('test', undefined, undefined)).toBe('disable');
+  });
+
+  it('defaults to require in production', () => {
+    expect(resolveDbSslMode('production', undefined, undefined)).toBe('require');
+  });
+
+  it('refuses to boot in production with DB_SSL_MODE=disable unless explicitly allowed', () => {
+    expect(() => resolveDbSslMode('production', 'disable', undefined)).toThrow(
+      /DB_SSL_MODE=disable is not allowed in production/
+    );
+    expect(resolveDbSslMode('production', 'disable', 'true')).toBe('disable');
+  });
+
+  it('rejects unknown DB_SSL_MODE values', () => {
+    expect(() => resolveDbSslMode('production', 'totally-secure', undefined)).toThrow(
+      /Invalid DB_SSL_MODE/
+    );
+  });
+
+  it('builds a pg-shaped ssl config that maps onto libpq sslmode', () => {
+    expect(buildSslConfig('disable')).toBe(false);
+    expect(buildSslConfig('require')).toEqual({ rejectUnauthorized: false });
+    expect(buildSslConfig('verify-ca')).toEqual({ rejectUnauthorized: true });
+    expect(buildSslConfig('verify-full')).toEqual({ rejectUnauthorized: true });
+  });
+
+  it('attaches DB_SSL_ROOT_CERT when verify modes are used', () => {
+    process.env.DB_SSL_ROOT_CERT = '/etc/ssl/certs/rds-ca-bundle.pem';
+    expect(buildSslConfig('verify-full')).toEqual({
+      rejectUnauthorized: true,
+      ca: '/etc/ssl/certs/rds-ca-bundle.pem',
+    });
+    expect(buildSslConfig('verify-ca')).toEqual({
+      rejectUnauthorized: true,
+      ca: '/etc/ssl/certs/rds-ca-bundle.pem',
+    });
   });
 });

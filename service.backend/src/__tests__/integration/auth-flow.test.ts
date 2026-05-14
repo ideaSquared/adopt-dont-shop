@@ -162,8 +162,11 @@ describe('Authentication Flow Integration Tests', () => {
           })
         );
         expect(result.user).toBeDefined();
-        expect(result.token).toBeDefined();
-        expect(result.refreshToken).toBeDefined();
+        // ADS-538: register no longer returns auth tokens — user must
+        // verify email + log in before they have a session.
+        expect(result).not.toHaveProperty('token');
+        expect(result).not.toHaveProperty('refreshToken');
+        expect(result.message).toMatch(/verify your account/i);
       });
 
       it('should create user with verification token and expiration', async () => {
@@ -230,7 +233,7 @@ describe('Authentication Flow Integration Tests', () => {
         );
       });
 
-      it('should generate JWT tokens for new user', async () => {
+      it('should NOT generate JWT tokens at registration (ADS-538)', async () => {
         const mockUser = createMockUser({
           userId: 'user-new-123',
           email: registerData.email.toLowerCase(),
@@ -241,9 +244,9 @@ describe('Authentication Flow Integration Tests', () => {
 
         const result = await AuthService.register(registerData);
 
-        expect(result.token).toBeDefined();
-        expect(result.refreshToken).toBeDefined();
-        expect(result.expiresIn).toBeDefined();
+        expect(result).not.toHaveProperty('token');
+        expect(result).not.toHaveProperty('refreshToken');
+        expect(result).not.toHaveProperty('expiresIn');
       });
 
       it('should reject registration with existing email', async () => {

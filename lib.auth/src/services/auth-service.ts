@@ -63,19 +63,17 @@ export class AuthService {
   }
 
   /**
-   * Register new user
+   * Register a new user.
+   *
+   * ADS-538: the backend no longer issues tokens on `/register`. The user
+   * must verify their email and log in normally before they have a
+   * session. This method therefore returns just the user record and a
+   * server-supplied message — clients should route to a
+   * "check your email" screen rather than treating the response as a
+   * successful login.
    */
-  async register(userData: RegisterRequest): Promise<AuthResponse> {
-    const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.REGISTER, userData);
-
-    // Store access token in sessionStorage; refresh token is in httpOnly cookie
-    this.setToken(response.token);
-    this.setUser(response.user);
-
-    return {
-      ...response,
-      accessToken: response.token, // Map backend 'token' to frontend 'accessToken'
-    };
+  async register(userData: RegisterRequest): Promise<{ user: User; message: string }> {
+    return apiService.post<{ user: User; message: string }>(AUTH_ENDPOINTS.REGISTER, userData);
   }
 
   /**

@@ -159,7 +159,11 @@ describe('AuthService', () => {
         })
       );
       expect(result.user).toBeDefined();
-      expect(result.token).toBe('mocked-access-token');
+      // ADS-538: register no longer returns tokens — the user must
+      // verify their email and log in normally first.
+      expect(result).not.toHaveProperty('token');
+      expect(result).not.toHaveProperty('refreshToken');
+      expect(result.message).toMatch(/verify your account/i);
     });
 
     it('should throw error if user already exists', async () => {
@@ -215,7 +219,7 @@ describe('AuthService', () => {
         })
       );
       expect(result.user).toBeDefined();
-      expect(result.token).toBe('mocked-access-token');
+      expect(result).not.toHaveProperty('token');
     });
 
     it('should register user successfully with empty phone number', async () => {
@@ -263,7 +267,7 @@ describe('AuthService', () => {
         })
       );
       expect(result.user).toBeDefined();
-      expect(result.token).toBe('mocked-access-token');
+      expect(result).not.toHaveProperty('token');
     });
 
     it('should throw error for invalid password', async () => {
