@@ -123,9 +123,6 @@ export const ApplicationDataSchema = z.object({
   userId: z.string().optional(),
   rescueId: z.string().optional(),
   personalInfo: PersonalInfoSchema.optional(),
-  // Backend uses `livingConditions`; the original schema used `livingsituation`.
-  // Accept either so both production responses and existing form payloads pass.
-  livingsituation: LivingSituationSchema.optional(),
   livingConditions: LivingSituationSchema.optional(),
   petExperience: PetExperienceSchema.optional(),
   references: ReferencesSchema.optional(),
@@ -185,32 +182,6 @@ export const ApplicationSchema = z.object({
 });
 
 export const ApplicationWithPetInfoSchema = ApplicationSchema.extend({
-  petName: z.string().optional(),
-  petType: z.string().optional(),
-  petBreed: z.string().optional(),
-});
-
-// Backend getApplicationById returns a flat structure: personalInfo, livingsituation,
-// petExperience at root level rather than nested under `data`.
-export const ApplicationFlatResponseSchema = z.object({
-  id: z.string(),
-  petId: z.string(),
-  userId: z.string(),
-  rescueId: z.string(),
-  status: ApplicationStatusSchema,
-  submittedAt: z.string().optional(),
-  reviewedAt: z.string().optional(),
-  reviewedBy: z.string().optional(),
-  reviewNotes: z.string().optional(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  personalInfo: PersonalInfoSchema.optional(),
-  livingsituation: LivingSituationSchema.optional(),
-  livingConditions: LivingSituationSchema.optional(),
-  petExperience: PetExperienceSchema.optional(),
-  references: ReferencesSchema.optional(),
-  additionalInfo: AdditionalInfoSchema.optional(),
-  documents: z.array(ApplicationDocumentSchema).optional().default([]),
   petName: z.string().optional(),
   petType: z.string().optional(),
   petBreed: z.string().optional(),

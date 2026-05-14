@@ -2,7 +2,6 @@ import { ApiService } from '@adopt-dont-shop/lib.api';
 import {
   ApplicationSchema,
   ApplicationWithPetInfoSchema,
-  ApplicationFlatResponseSchema,
   ApplicationListResponseSchema,
   ApplicationByPetResponseSchema,
   RescueApplicationsResponseSchema,
@@ -74,61 +73,7 @@ export class ApplicationsService {
       const response = await this.apiService.get<{ data: unknown }>(
         `${this.baseUrl}/${applicationId}`
       );
-      // Backend returns a flat structure: personalInfo, livingsituation, petExperience
-      // are at the root of the data object rather than nested under a `data` sub-key.
-      const flat = ApplicationFlatResponseSchema.parse(response.data);
-
-      const application: ApplicationWithPetInfo = ApplicationWithPetInfoSchema.parse({
-        id: flat.id,
-        petId: flat.petId,
-        userId: flat.userId,
-        rescueId: flat.rescueId,
-        status: flat.status,
-        submittedAt: flat.submittedAt,
-        reviewedAt: flat.reviewedAt,
-        reviewedBy: flat.reviewedBy,
-        reviewNotes: flat.reviewNotes,
-        createdAt: flat.createdAt,
-        updatedAt: flat.updatedAt,
-        documents: flat.documents,
-        petName: flat.petName,
-        petType: flat.petType,
-        petBreed: flat.petBreed,
-        data: {
-          petId: flat.petId,
-          userId: flat.userId,
-          rescueId: flat.rescueId,
-          personalInfo: flat.personalInfo ?? {
-            firstName: '',
-            lastName: '',
-            email: '',
-            phone: '',
-            address: '',
-            city: '',
-            state: '',
-            zipCode: '',
-          },
-          livingsituation: flat.livingsituation ?? {
-            housingType: 'house',
-            isOwned: false,
-            hasYard: false,
-            allowsPets: false,
-            householdSize: 0,
-            hasAllergies: false,
-          },
-          petExperience: flat.petExperience ?? {
-            hasPetsCurrently: false,
-            experienceLevel: 'beginner',
-            willingToTrain: false,
-            hoursAloneDaily: 0,
-            exercisePlans: '',
-          },
-          references: flat.references ?? { personal: [] },
-          additionalInfo: flat.additionalInfo,
-        },
-      });
-
-      return application;
+      return ApplicationWithPetInfoSchema.parse(response.data);
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to get application:', error);

@@ -1,4 +1,5 @@
-import { ApplicationData, Pet } from '@/services';
+import { ApplicationData } from '@/types';
+import { Pet } from '@/services';
 import React from 'react';
 import * as styles from './ReviewStep.css';
 
@@ -106,69 +107,69 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({ data, pet, onComplete, i
           </div>
         )}
 
-        {data.livingsituation && (
+        {data.livingConditions && (
           <div className={styles.reviewSection}>
             <h3 className={styles.sectionTitle}>Living Situation</h3>
             <div className={styles.reviewItem}>
               <span className={styles.reviewLabel}>Housing Type:</span>
-              <span className={styles.reviewValue}>{data.livingsituation.housingType}</span>
+              <span className={styles.reviewValue}>{data.livingConditions.housingType}</span>
             </div>
             <div className={styles.reviewItem}>
               <span className={styles.reviewLabel}>Owned/Rented:</span>
               <span className={styles.reviewValue}>
-                {data.livingsituation.isOwned ? 'Owned' : 'Rented'}
+                {data.livingConditions.isOwned ? 'Owned' : 'Rented'}
               </span>
             </div>
             <div className={styles.reviewItem}>
               <span className={styles.reviewLabel}>Has Yard:</span>
               <span className={styles.reviewValue}>
-                {data.livingsituation.hasYard ? 'Yes' : 'No'}
+                {data.livingConditions.hasYard ? 'Yes' : 'No'}
               </span>
             </div>
-            {data.livingsituation.hasYard && data.livingsituation.yardSize && (
+            {data.livingConditions.hasYard && data.livingConditions.yardSize && (
               <div className={styles.reviewItem}>
                 <span className={styles.reviewLabel}>Yard Size:</span>
-                <span className={styles.reviewValue}>{data.livingsituation.yardSize}</span>
+                <span className={styles.reviewValue}>{data.livingConditions.yardSize}</span>
               </div>
             )}
-            {data.livingsituation.hasYard && (
+            {data.livingConditions.hasYard && (
               <div className={styles.reviewItem}>
                 <span className={styles.reviewLabel}>Yard Fenced:</span>
                 <span className={styles.reviewValue}>
-                  {data.livingsituation.yardFenced ? 'Yes' : 'No'}
+                  {data.livingConditions.yardFenced ? 'Yes' : 'No'}
                 </span>
               </div>
             )}
             <div className={styles.reviewItem}>
               <span className={styles.reviewLabel}>Pets Allowed:</span>
               <span className={styles.reviewValue}>
-                {data.livingsituation.allowsPets ? 'Yes' : 'No'}
+                {data.livingConditions.allowsPets ? 'Yes' : 'No'}
               </span>
             </div>
-            {data.livingsituation.landlordContact && (
+            {data.livingConditions.landlordContact && (
               <div className={styles.reviewItem}>
                 <span className={styles.reviewLabel}>Landlord Contact:</span>
-                <span className={styles.reviewValue}>{data.livingsituation.landlordContact}</span>
+                <span className={styles.reviewValue}>{data.livingConditions.landlordContact}</span>
               </div>
             )}
-            {data.livingsituation.householdSize && (
+            {data.livingConditions.householdSize && (
               <div className={styles.reviewItem}>
                 <span className={styles.reviewLabel}>Household Size:</span>
                 <span className={styles.reviewValue}>
-                  {data.livingsituation.householdSize} people
+                  {data.livingConditions.householdSize} people
                 </span>
               </div>
             )}
             <div className={styles.reviewItem}>
               <span className={styles.reviewLabel}>Allergies in Household:</span>
               <span className={styles.reviewValue}>
-                {data.livingsituation.hasAllergies ? 'Yes' : 'No'}
+                {data.livingConditions.hasAllergies ? 'Yes' : 'No'}
               </span>
             </div>
-            {data.livingsituation.hasAllergies && data.livingsituation.allergyDetails && (
+            {data.livingConditions.hasAllergies && data.livingConditions.allergyDetails && (
               <div className={styles.longTextReviewItem}>
                 <span className={styles.reviewLabel}>Allergy Details:</span>
-                <div className={styles.longTextValue}>{data.livingsituation.allergyDetails}</div>
+                <div className={styles.longTextValue}>{data.livingConditions.allergyDetails}</div>
               </div>
             )}
           </div>

@@ -31,7 +31,7 @@ describe('ApplicationsService', () => {
       dateOfBirth: '1990-01-01',
       occupation: 'Software Engineer',
     },
-    livingsituation: {
+    livingConditions: {
       housingType: 'house',
       isOwned: true,
       hasYard: true,

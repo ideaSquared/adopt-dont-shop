@@ -256,7 +256,7 @@ export interface ApplicationData {
     dateOfBirth?: string;
     occupation?: string;
   };
-  livingsituation: {
+  livingConditions: {
     housingType: 'house' | 'apartment' | 'condo' | 'other';
     isOwned: boolean;
     hasYard: boolean;

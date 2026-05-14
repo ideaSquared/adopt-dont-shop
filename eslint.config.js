@@ -1,5 +1,6 @@
 import baseConfig from '@adopt-dont-shop/eslint-config-base';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 // Root config used by the pre-commit hook (lint-staged runs from the
 // monorepo root and so picks up THIS file rather than per-app configs).
@@ -14,6 +15,7 @@ export default [
     files: ['**/*.tsx', '**/*.jsx'],
     plugins: {
       'jsx-a11y': jsxA11y,
+      'react-hooks': reactHooks,
     },
   },
   {
