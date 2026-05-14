@@ -1,4 +1,4 @@
-import { ApplicationData } from '@/services';
+import { ApplicationData } from '@/types';
 import React from 'react';
 import * as styles from './PetExperienceStep.css';
 

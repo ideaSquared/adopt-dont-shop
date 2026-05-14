@@ -1,13 +1,13 @@
-import { ApplicationData } from '@/services';
+import { ApplicationData } from '@/types';
 import { Input } from '@adopt-dont-shop/lib.components';
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import * as styles from './LivingSituationStep.css';
 
 interface LivingSituationStepProps {
-  data: Partial<ApplicationData['livingsituation']>;
-  onComplete: (data: ApplicationData['livingsituation']) => void;
-  onChange?: (data: Partial<ApplicationData['livingsituation']>) => void;
+  data: Partial<ApplicationData['livingConditions']>;
+  onComplete: (data: ApplicationData['livingConditions']) => void;
+  onChange?: (data: Partial<ApplicationData['livingConditions']>) => void;
 }
 
 interface LivingSituationFormData {
@@ -50,13 +50,13 @@ export const LivingSituationStep: React.FC<LivingSituationStepProps> = ({
 
   useEffect(() => {
     const { unsubscribe } = watch(value => {
-      onChange?.(value as Partial<ApplicationData['livingsituation']>);
+      onChange?.(value as Partial<ApplicationData['livingConditions']>);
     });
     return () => unsubscribe();
   }, [watch, onChange]);
 
   const onSubmit = (formData: LivingSituationFormData) => {
-    onComplete(formData as ApplicationData['livingsituation']);
+    onComplete(formData as ApplicationData['livingConditions']);
   };
 
   return (

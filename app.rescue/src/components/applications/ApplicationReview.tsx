@@ -846,31 +846,31 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Household Size</span>
                     <span className={styles.fieldValue}>
-                      {getStr('livingsituation.householdSize') || 'N/A'}
+                      {getStr('livingConditions.householdSize') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Housing Type</span>
                     <span className={styles.fieldValue}>
-                      {getStr('livingsituation.housingType') || 'N/A'}
+                      {getStr('livingConditions.housingType') || 'N/A'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Own/Rent</span>
                     <span className={styles.fieldValue}>
-                      {getData('livingsituation.isOwned') ? 'Own' : 'Rent'}
+                      {getData('livingConditions.isOwned') ? 'Own' : 'Rent'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Has Yard</span>
                     <span className={styles.fieldValue}>
-                      {getData('livingsituation.hasYard') ? 'Yes' : 'No'}
+                      {getData('livingConditions.hasYard') ? 'Yes' : 'No'}
                     </span>
                   </div>
                   <div className={styles.field}>
                     <span className={styles.fieldLabel}>Has Allergies</span>
                     <span className={styles.fieldValue}>
-                      {getData('livingsituation.hasAllergies') ? 'Yes' : 'No'}
+                      {getData('livingConditions.hasAllergies') ? 'Yes' : 'No'}
                     </span>
                   </div>
                   <div className={styles.field}>

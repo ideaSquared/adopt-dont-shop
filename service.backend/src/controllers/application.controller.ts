@@ -130,7 +130,7 @@ export class ApplicationController extends BaseController {
     };
 
     // Extract living situation from answers
-    const livingsituation = {
+    const livingConditions = {
       housingType: answers.housing_type as string,
       isOwned: answers.home_ownership === 'owned',
       hasYard: answers.yard_fenced as boolean,
@@ -185,7 +185,7 @@ export class ApplicationController extends BaseController {
       data: {
         personalInfo,
         livingConditions:
-          livingsituation as unknown as FrontendApplication['data']['livingConditions'],
+          livingConditions as unknown as FrontendApplication['data']['livingConditions'],
         petExperience: petExperience as unknown as FrontendApplication['data']['petExperience'],
         references: references as unknown as FrontendApplication['data']['references'],
         answers: answers,

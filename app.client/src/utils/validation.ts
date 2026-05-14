@@ -239,7 +239,7 @@ export const additionalInfoSchema = z.object({
 // Full application schema
 export const applicationSchema = z.object({
   personalInfo: personalInfoSchema,
-  livingsituation: livingSituationSchema,
+  livingConditions: livingSituationSchema,
   petExperience: petExperienceSchema,
   references: referencesSchema,
   additionalInfo: additionalInfoSchema,
@@ -366,8 +366,8 @@ export function sanitizeApplicationData(data: Partial<ApplicationData>): Partial
   }
 
   // Sanitize text fields
-  if (sanitized.livingsituation?.allergyDetails) {
-    sanitized.livingsituation.allergyDetails = sanitized.livingsituation.allergyDetails.trim();
+  if (sanitized.livingConditions?.allergyDetails) {
+    sanitized.livingConditions.allergyDetails = sanitized.livingConditions.allergyDetails.trim();
   }
 
   if (sanitized.petExperience?.exercisePlans) {
