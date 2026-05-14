@@ -6,13 +6,13 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 // before importing it.
 vi.unmock('fs');
 
-// AuditLog is the storage for ToS / Privacy acceptance (see
-// consent.service.ts). The pending-re-acceptance behaviour is purely
-// derived from the latest CONSENT_RECORDED row, so a mocked findOne
-// is sufficient and keeps the test free of DB setup.
+// AuditLog is the storage for ToS / Privacy / cookies acceptance (see
+// consent.service.ts). ADS-550: getPendingReacceptance now walks
+// CONSENT_RECORDED rows newest-first to find each document's last
+// accepted version, so the test mocks `findAll` returning an array.
 vi.mock('../../models/AuditLog', () => ({
-  default: { findOne: vi.fn() },
-  AuditLog: { findOne: vi.fn() },
+  default: { findAll: vi.fn() },
+  AuditLog: { findAll: vi.fn() },
   withAuditMutationAllowed: vi.fn(),
 }));
 
@@ -27,7 +27,7 @@ import {
   TERMS_VERSION,
 } from '../../services/legal-content.service';
 
-const mockFindOne = vi.mocked(AuditLog.findOne);
+const mockFindAll = vi.mocked(AuditLog.findAll);
 
 describe('legal content service', () => {
   it('returns terms with version + markdown content', () => {
@@ -63,7 +63,7 @@ describe('legal content service', () => {
 
 describe('legal content service — getPendingReacceptance', () => {
   beforeEach(() => {
-    mockFindOne.mockReset();
+    mockFindAll.mockReset();
   });
 
   const buildAuditRow = (
@@ -75,7 +75,7 @@ describe('legal content service — getPendingReacceptance', () => {
   });
 
   it('returns terms, privacy, and cookies as pending when the user has never recorded consent', async () => {
-    mockFindOne.mockResolvedValue(null);
+    mockFindAll.mockResolvedValue([]);
 
     const result = await getPendingReacceptance('user-without-history');
 
@@ -89,14 +89,14 @@ describe('legal content service — getPendingReacceptance', () => {
   });
 
   it('returns an empty list when the user accepted the exact current versions for every tracked document', async () => {
-    mockFindOne.mockResolvedValue(
+    mockFindAll.mockResolvedValue([
       buildAuditRow({
         tosVersion: TERMS_VERSION,
         privacyVersion: PRIVACY_VERSION,
         cookiesVersion: COOKIES_VERSION,
         acceptedAt: '2026-04-01T12:00:00Z',
       })
-    );
+    ]);
 
     const result = await getPendingReacceptance('user-up-to-date');
 
@@ -104,14 +104,14 @@ describe('legal content service — getPendingReacceptance', () => {
   });
 
   it('flags only the documents whose accepted version is older than the current version', async () => {
-    mockFindOne.mockResolvedValue(
+    mockFindAll.mockResolvedValue([
       buildAuditRow({
         tosVersion: '2025-01-01-v1',
         privacyVersion: PRIVACY_VERSION,
         cookiesVersion: COOKIES_VERSION,
         acceptedAt: '2025-02-01T00:00:00Z',
       })
-    );
+    ]);
 
     const result = await getPendingReacceptance('user-stale-tos');
 
@@ -125,14 +125,14 @@ describe('legal content service — getPendingReacceptance', () => {
   });
 
   it('flags cookies as pending when the user accepted an older cookies version', async () => {
-    mockFindOne.mockResolvedValue(
+    mockFindAll.mockResolvedValue([
       buildAuditRow({
         tosVersion: TERMS_VERSION,
         privacyVersion: PRIVACY_VERSION,
         cookiesVersion: '2025-01-01-cookies-v1',
         acceptedAt: '2025-02-01T00:00:00Z',
       })
-    );
+    ]);
 
     const result = await getPendingReacceptance('user-stale-cookies');
 
@@ -150,13 +150,13 @@ describe('legal content service — getPendingReacceptance', () => {
     // Until that gap is closed, every existing user will surface
     // cookies as pending — this test pins that behaviour so the
     // shape is stable for the frontend modal.
-    mockFindOne.mockResolvedValue(
+    mockFindAll.mockResolvedValue([
       buildAuditRow({
         tosVersion: TERMS_VERSION,
         privacyVersion: PRIVACY_VERSION,
         acceptedAt: '2026-04-01T12:00:00Z',
       })
-    );
+    ]);
 
     const result = await getPendingReacceptance('user-pre-cookies-capture');
 
@@ -171,7 +171,7 @@ describe('legal content service — getPendingReacceptance', () => {
 
   it('falls back to the audit row timestamp when acceptedAt is missing from the details', async () => {
     const ts = new Date('2025-06-15T10:30:00Z');
-    mockFindOne.mockResolvedValue(
+    mockFindAll.mockResolvedValue([
       buildAuditRow(
         {
           tosVersion: '2025-01-01-v1',
@@ -180,7 +180,7 @@ describe('legal content service — getPendingReacceptance', () => {
         },
         ts
       )
-    );
+    ]);
 
     const result = await getPendingReacceptance('user-no-acceptedAt');
 
@@ -189,7 +189,7 @@ describe('legal content service — getPendingReacceptance', () => {
   });
 
   it('treats malformed audit metadata as no prior acceptance', async () => {
-    mockFindOne.mockResolvedValue({ metadata: 'not-an-object', timestamp: new Date() });
+    mockFindAll.mockResolvedValue([{ metadata: 'not-an-object', timestamp: new Date() }]);
 
     const result = await getPendingReacceptance('user-broken-metadata');
 
