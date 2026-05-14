@@ -2,7 +2,14 @@ import { Router, type Response } from 'express';
 import { z } from 'zod';
 import { authenticateToken } from '../middleware/auth';
 import { validateBody } from '../middleware/zod-validate';
-import { ConsentInputSchema, recordConsent, type ConsentInput } from '../services/consent.service';
+import {
+  ConsentInputSchema,
+  CookiesConsentInputSchema,
+  recordConsent,
+  recordCookiesConsent,
+  type ConsentInput,
+  type CookiesConsentInput,
+} from '../services/consent.service';
 import { exportUserData } from '../services/data-export.service';
 import { requestAccountDeletion } from '../services/data-deletion.service';
 import type { AuthenticatedRequest } from '../types/auth';
@@ -54,6 +61,41 @@ router.post(
       });
       res.status(400).json({
         error: error instanceof Error ? error.message : 'Failed to record consent',
+      });
+    }
+  }
+);
+
+/**
+ * ADS-550: cookies-only consent. Separate from /consent so the audit
+ * row written by the on-page cookie banner does NOT carry the
+ * currently-published ToS / Privacy versions (which would silently
+ * consume any pending re-acceptance for those documents).
+ */
+router.post(
+  '/cookies-consent',
+  validateBody(CookiesConsentInputSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    try {
+      const record = await recordCookiesConsent(req.body as CookiesConsentInput, {
+        userId,
+        ip: req.ip ?? null,
+        userAgent: req.get('User-Agent') ?? null,
+      });
+      res.status(201).json({ data: record });
+    } catch (error) {
+      logger.error('Cookies consent capture failed', {
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      res.status(400).json({
+        error: error instanceof Error ? error.message : 'Failed to record cookies consent',
       });
     }
   }

@@ -60,6 +60,25 @@ export const recordReacceptance = async (input: RecordReacceptanceInput): Promis
 };
 
 /**
+ * ADS-550: cookies-only consent. The cookie banner and the
+ * attach-stored-consent replay must NOT call `recordReacceptance` with
+ * hard-coded `tosAccepted: true, privacyAccepted: true` — that path
+ * silently records a ToS / Privacy re-acceptance the user never gave.
+ * Use this dedicated endpoint instead; the backend writes a
+ * CONSENT_RECORDED audit row that omits `tosVersion`/`privacyVersion`.
+ */
+export type RecordCookiesConsentInput = {
+  cookiesVersion?: string;
+  analyticsConsent?: boolean;
+};
+
+export const recordCookiesConsent = async (
+  input: RecordCookiesConsentInput
+): Promise<void> => {
+  await api.post('/api/v1/privacy/cookies-consent', input);
+};
+
+/**
  * ADS-497 (slice 5): cookies-policy version snapshot for the on-page
  * banner. Returns just the version string so a banner mount can be
  * cheap; the full policy markdown is rendered on /cookies for users who

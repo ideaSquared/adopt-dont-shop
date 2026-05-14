@@ -1,16 +1,10 @@
-import { Op } from 'sequelize';
 import type { Worker } from 'bullmq';
 import { z } from 'zod';
 import { buildWorker, getReportsQueue, isQueueAvailable } from '../lib/queue';
 import AuditLog from '../models/AuditLog';
 import User, { UserStatus } from '../models/User';
 import { getPendingReacceptance } from '../services/legal-content.service';
-import {
-  LEGACY_LEGAL_REMINDER_SENT_ACTION,
-  REMINDER_RATE_LIMIT_DAYS,
-  TERMS_REACCEPTANCE_REMINDER_ACTION,
-  sendReacceptanceReminder,
-} from '../services/legal-reminder.service';
+import { sendReacceptanceReminder } from '../services/legal-reminder.service';
 import { logger } from '../utils/logger';
 
 /**
@@ -66,52 +60,36 @@ export type RunOptions = {
 };
 
 /**
- * Find users who plausibly need a reminder. We pull active, non-deleted
- * users with an email, then exclude anyone who already received a
- * reacceptance reminder inside the rate-limit window (regardless of
- * fingerprint — the per-fingerprint check still runs inside
- * `sendReacceptanceReminder`).
+ * Find users who plausibly need a reminder: active, non-deleted users
+ * with an email. Dedupe against recent reminders is delegated to the
+ * per-user `wasRecentlyReminded` check inside `sendReacceptanceReminder`
+ * — see the ADS-551 comment in the function body for why the
+ * pre-exclusion against `audit_logs` was removed.
  *
- * The action filter matches both the new `TERMS_REACCEPTANCE_REMINDER`
- * name and the legacy `LEGAL_REMINDER_SENT` name. Audit rows are
- * append-only (PR #344's trigger), so legacy rows can't be renamed —
- * we tolerate both names until every legacy row is older than
- * `REMINDER_RATE_LIMIT_DAYS`.
- *
- * Returns up to `batchSize` userIds. Ordering is stable (createdAt ASC)
- * so the same backlog drains the same way across runs and rotates
- * deterministically.
+ * Returns up to `batchSize × overFetch` userIds. Ordering is stable
+ * (createdAt ASC) so the same backlog drains the same way across runs
+ * and rotates deterministically.
  */
 const findCandidateUserIds = async (batchSize: number): Promise<ReadonlyArray<string>> => {
-  const cutoff = new Date(Date.now() - REMINDER_RATE_LIMIT_DAYS * 24 * 60 * 60 * 1000);
-
-  const recentlyReminded = await AuditLog.findAll({
-    where: {
-      action: {
-        [Op.in]: [TERMS_REACCEPTANCE_REMINDER_ACTION, LEGACY_LEGAL_REMINDER_SENT_ACTION],
-      },
-      timestamp: { [Op.gte]: cutoff },
-    },
-    attributes: ['user'],
-  });
-  const excludedUserIds = recentlyReminded
-    .map(row => row.user)
-    .filter((u): u is string => typeof u === 'string' && u.length > 0);
-
-  const where: Record<string, unknown> = {
-    status: UserStatus.ACTIVE,
-  };
-  if (excludedUserIds.length > 0) {
-    where.userId = { [Op.notIn]: excludedUserIds };
-  }
-
-  // Over-fetch slightly so that `sendReacceptanceReminder` returning
-  // `no_pending_versions` (user is already up to date) doesn't shrink
-  // the effective batch below the cap. Keeping the multiplier small —
-  // we don't want to scan the whole user table.
+  // ADS-551: previously we pre-fetched every recently-reminded user from
+  // audit_logs and passed the IDs to `User.findAll` via `Op.notIn`. That
+  // approach loads N rows into memory (one per recent reminder, even with
+  // duplicate fingerprints across the rename transition) and binds N
+  // parameters into the SQL — Postgres caps bind params around 32k and
+  // the planner falls off NOT-IN-scan well before that. After a
+  // platform-wide version bump the audit-log read alone would
+  // OOM the cron process.
+  //
+  // `sendReacceptanceReminder` already calls the properly-indexed
+  // per-user `wasRecentlyReminded` check inside its loop, so the pre-fetch
+  // was redundant — we just slightly over-fetch active users and let the
+  // per-user check filter out the recently-reminded ones. No array
+  // crosses the process boundary; the cron's memory footprint is now
+  // O(batchSize × overFetch), bounded at ~500 rows regardless of the
+  // audit_logs table size.
   const overFetch = Math.min(batchSize * 5, 500);
   const users = await User.findAll({
-    where,
+    where: { status: UserStatus.ACTIVE },
     attributes: ['userId'],
     order: [['createdAt', 'ASC']],
     limit: overFetch,

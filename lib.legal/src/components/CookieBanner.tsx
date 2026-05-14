@@ -2,7 +2,7 @@ import { Button } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { setAnalyticsConsent } from '@adopt-dont-shop/lib.observability';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
-import { fetchCookiesVersion, recordReacceptance } from '../services/legal-service';
+import { fetchCookiesVersion, recordCookiesConsent } from '../services/legal-service';
 import {
   readStoredConsent,
   writeStoredConsent,
@@ -112,9 +112,13 @@ export const CookieBanner = () => {
 
     if (isAuthenticated) {
       try {
-        await recordReacceptance({
-          tosAccepted: true,
-          privacyAccepted: true,
+        // ADS-550: cookies-only path. Previously this called
+        // `recordReacceptance` with hard-coded `tosAccepted: true,
+        // privacyAccepted: true`, which made the backend stamp the
+        // currently-published ToS/Privacy versions onto the audit row
+        // and silently consume pending re-acceptance for documents the
+        // user never saw.
+        await recordCookiesConsent({
           cookiesVersion: record.cookiesVersion,
           analyticsConsent: record.analyticsConsent,
         });
