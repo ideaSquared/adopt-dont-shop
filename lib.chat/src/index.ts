@@ -1,25 +1,19 @@
 // Main exports for @adopt-dont-shop/lib.chat
 export { ChatService } from './services/chat-service';
 export type { ReactionUpdateEvent, ReadStatusUpdateEvent } from './services/chat-service';
+
+// Export schemas for consumers that need runtime validation
+export * from './schemas';
+
+// Re-export non-schema types from types module
 export type {
   ChatServiceConfig,
   ChatServiceOptions,
-  Conversation,
-  Message,
-  MessageReaction,
-  MessageReadReceipt,
-  MessageDeliveryStatus,
-  Participant,
-  MessageAttachment,
-  TypingIndicator,
+  QueuedMessage,
   BaseResponse,
   ErrorResponse,
   PaginatedResponse,
-  ConnectionStatus,
-  ReconnectionConfig,
-  QueuedMessage,
 } from './types';
-export * from './types';
 
 // Hooks
 export { useConnectionStatus } from './hooks';
