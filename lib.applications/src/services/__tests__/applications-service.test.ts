@@ -1,8 +1,7 @@
 import { ApplicationsService } from '../applications-service';
 import { ApiService } from '@adopt-dont-shop/lib.api';
-import {
+import type {
   ApplicationData,
-  ApplicationStatus,
   Application,
   ApplicationWithPetInfo,
   DocumentUpload,
@@ -107,7 +106,7 @@ describe('ApplicationsService', () => {
     petId: 'pet-123',
     userId: 'user-123',
     rescueId: 'rescue-123',
-    status: 'pending' as ApplicationStatus,
+    status: 'submitted',
     submittedAt: '2024-01-01T00:00:00Z',
     reviewedAt: '',
     reviewedBy: '',
@@ -208,7 +207,7 @@ describe('ApplicationsService', () => {
           petId: 'pet-123',
           userId: 'user-123',
           rescueId: 'rescue-123',
-          status: 'pending',
+          status: 'submitted',
           submittedAt: '2024-01-01T00:00:00Z',
           reviewedAt: '',
           reviewedBy: '',
@@ -228,9 +227,9 @@ describe('ApplicationsService', () => {
 
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/applications/app-123');
       expect(result.id).toBe('app-123');
-      expect((result as ApplicationWithPetInfo).petName).toBe('Buddy');
-      expect((result as ApplicationWithPetInfo).petType).toBe('dog');
-      expect((result as ApplicationWithPetInfo).petBreed).toBe('Golden Retriever');
+      expect(result.petName).toBe('Buddy');
+      expect(result.petType).toBe('dog');
+      expect(result.petBreed).toBe('Golden Retriever');
     });
   });
 
@@ -301,12 +300,12 @@ describe('ApplicationsService', () => {
 
   describe('updateApplicationStatus', () => {
     it('should update application status successfully', async () => {
-      const updatedApplication = { ...mockApplication, status: 'approved' as ApplicationStatus };
+      const updatedApplication = { ...mockApplication, status: 'approved' as const };
       mockApiService.patch.mockResolvedValue({ data: updatedApplication });
 
       const result = await applicationsService.updateApplicationStatus(
         'app-123',
-        'approved' as ApplicationStatus,
+        'approved',
         'Application looks good'
       );
 
