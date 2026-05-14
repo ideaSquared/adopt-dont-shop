@@ -5,6 +5,7 @@ import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { idempotency } from '../middleware/idempotency';
 import { sensitiveWriteLimiter } from '../middleware/rate-limiter';
 import { requirePermission } from '../middleware/rbac';
+import { requirePlanFeature } from '../middleware/plan-gate';
 import { handleValidationErrors } from '../middleware/validation';
 import { petValidation } from '../validation/pet.validation';
 
@@ -1429,12 +1430,13 @@ router.post(
   petController.reportPet
 );
 
-// Bulk update pets (admin only)
+// Bulk update pets — gated to professional plan
 router.post(
   '/bulk-update',
   sensitiveWriteLimiter,
   authenticateToken,
   requirePermission('pets.update'),
+  requirePlanFeature('bulk_operations'),
   PetController.validateBulkUpdate,
   petController.bulkUpdatePets
 );

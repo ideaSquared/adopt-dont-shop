@@ -13,6 +13,7 @@ import { verifyCharityRegistrationNumber } from './charity-commission.service';
 const RESCUE_PET_SORT_FIELDS = ['createdAt', 'updatedAt', 'name'] as const;
 import sequelize from '../sequelize';
 import { AdoptionPolicy } from '../types/rescue';
+import { PLAN_LIMITS, type RescuePlan } from '../config/plans';
 
 export type BulkRescueAction = 'approve' | 'suspend' | 'verify';
 
@@ -887,6 +888,33 @@ export class RescueService {
     });
   }
 
+  private static async assertStaffSeatLimit(rescueId: string, transaction?: object): Promise<void> {
+    const rescue = await Rescue.findByPk(rescueId, {
+      attributes: ['plan'],
+      ...(transaction ? { transaction: transaction as never } : {}),
+    });
+    if (!rescue) throw new Error('Rescue not found');
+    const limit = PLAN_LIMITS[rescue.plan as RescuePlan].maxStaffSeats;
+    if (limit === null) return;
+    const active = await StaffMember.count({
+      where: { rescueId, isVerified: true },
+      ...(transaction ? { transaction: transaction as never } : {}),
+    });
+    if (active >= limit) {
+      const err = new Error('Staff seat limit reached for current plan') as Error & {
+        code: string;
+        limit: number;
+        current: number;
+        plan: string;
+      };
+      err.code = 'PLAN_LIMIT_EXCEEDED';
+      err.limit = limit;
+      err.current = active;
+      err.plan = rescue.plan;
+      throw err;
+    }
+  }
+
   /**
    * Add staff member to rescue
    */
@@ -908,6 +936,9 @@ export class RescueService {
       if (!rescue) {
         throw new Error('Rescue not found');
       }
+
+      // Enforce plan staff seat limit before allowing the add.
+      await RescueService.assertStaffSeatLimit(rescueId, transaction);
 
       // Verify user exists
       const user = await User.findByPk(userId, { transaction });

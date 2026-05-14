@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import User, { UserStatus, UserType } from '../models/User';
+import Rescue from '../models/Rescue';
 import AdminService from '../services/admin.service';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
+import type { RescuePlan } from '../config/plans';
 
 type AuthenticatedRequest = Request & {
   user?: {
@@ -1047,6 +1049,46 @@ export class AdminController {
         error: 'Failed to update user profile',
         message: error instanceof Error ? error.message : 'Unknown error',
       });
+    }
+  }
+
+  static async updateRescuePlan(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { rescueId } = req.params;
+      const { plan, planExpiresAt } = req.body as {
+        plan: RescuePlan;
+        planExpiresAt?: string | null;
+      };
+
+      const rescue = await Rescue.findByPk(rescueId);
+      if (!rescue) {
+        res.status(404).json({ error: 'Rescue not found' });
+        return;
+      }
+
+      const previousPlan = rescue.plan;
+      await rescue.update({
+        plan,
+        planExpiresAt: planExpiresAt ? new Date(planExpiresAt) : null,
+      });
+
+      await AuditLogService.log({
+        action: 'UPDATE_PLAN',
+        entity: 'Rescue',
+        entityId: rescueId,
+        details: { previousPlan, newPlan: plan, planExpiresAt: planExpiresAt ?? null },
+        userId: req.user?.userId ?? 'system',
+        ipAddress: req.ip ?? '',
+        userAgent: req.get('user-agent') ?? '',
+      });
+
+      res.json({
+        success: true,
+        data: { rescueId, plan, planExpiresAt: planExpiresAt ?? null },
+      });
+    } catch (error) {
+      logger.error('updateRescuePlan failed', { error });
+      res.status(500).json({ error: 'Failed to update rescue plan' });
     }
   }
 }
