@@ -128,17 +128,26 @@ describe('Auth routes', () => {
       userType: 'ADOPTER',
     };
 
-    it('returns 201 on successful registration', async () => {
+    it('returns 201 on successful registration with no tokens (ADS-538)', async () => {
       mockRegister.mockResolvedValue({
-        message: 'Registration successful. Please check your email for verification.',
-        userId: 'new-uuid',
-        token: 'access-token',
-        refreshToken: 'refresh-token',
+        user: { userId: 'new-uuid', email: validBody.email },
+        message: 'Registration successful. Please check your email to verify your account.',
       });
 
       const res = await request(buildApp()).post('/api/v1/auth/register').send(validBody);
 
       expect(res.status).toBe(201);
+      expect(res.body).not.toHaveProperty('token');
+      expect(res.body).not.toHaveProperty('refreshToken');
+      // No auth cookies set either.
+      const setCookieHeader = res.headers['set-cookie'];
+      const cookies = Array.isArray(setCookieHeader)
+        ? setCookieHeader
+        : setCookieHeader
+          ? [setCookieHeader]
+          : [];
+      expect(cookies.some((c: string) => c.startsWith('accessToken='))).toBe(false);
+      expect(cookies.some((c: string) => c.startsWith('refreshToken='))).toBe(false);
     });
 
     it('returns 422 when required fields are missing', async () => {

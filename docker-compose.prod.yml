@@ -102,6 +102,12 @@ services:
       DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
       DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
       PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
+      # ADS-540: enforce TLS on the DB link. In-cluster Postgres on the
+      # docker network can opt out via ALLOW_INSECURE_DB=true; managed
+      # Postgres should leave DB_SSL_MODE=require (or verify-full + CA).
+      DB_SSL_MODE: ${DB_SSL_MODE:-require}
+      ALLOW_INSECURE_DB: ${ALLOW_INSECURE_DB:-}
+      DB_SSL_ROOT_CERT: ${DB_SSL_ROOT_CERT:-}
     depends_on:
       database:
         condition: service_healthy
@@ -128,6 +134,10 @@ services:
       PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
       DB_POOL_MAX: ${DB_POOL_MAX:-20}
       DB_POOL_MIN: ${DB_POOL_MIN:-5}
+      # ADS-540: enforce TLS on the DB link. See migrate service above.
+      DB_SSL_MODE: ${DB_SSL_MODE:-require}
+      ALLOW_INSECURE_DB: ${ALLOW_INSECURE_DB:-}
+      DB_SSL_ROOT_CERT: ${DB_SSL_ROOT_CERT:-}
       # Redis - NO DEFAULTS
       REDIS_HOST: redis
       REDIS_PORT: 6379
