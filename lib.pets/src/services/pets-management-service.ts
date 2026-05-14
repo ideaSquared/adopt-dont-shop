@@ -316,13 +316,13 @@ export class PetManagementService {
     petIds: string[],
     status: PetStatus,
     notes?: string
-  ): Promise<{ success: boolean; updated: number; errors: any[] }> {
+  ): Promise<{ success: boolean; updated: number; errors: unknown[] }> {
     try {
       const response = await this.apiService.patch<
         ApiResponse<{
           success: boolean;
           updated: number;
-          errors: any[];
+          errors: unknown[];
         }>
       >(`${PETS_ENDPOINTS.PETS}/bulk/status`, { petIds, status, notes });
 
@@ -382,8 +382,8 @@ export class PetManagementService {
   /**
    * Transform pet data from frontend format to backend API format
    */
-  private transformPetDataForAPI(petData: PetCreateData | PetUpdateData): any {
-    const transformed: any = { ...petData };
+  private transformPetDataForAPI(petData: PetCreateData | PetUpdateData): Record<string, unknown> {
+    const transformed: Record<string, unknown> = { ...petData };
 
     // Transform camelCase to snake_case for backend
     const fieldMapping: { [key: string]: string } = {
