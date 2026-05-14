@@ -1,6 +1,11 @@
 // Main exports for @adopt-dont-shop/lib.pets
-export { PetsService } from './services/pets-service';
+export { PetsService, petsService } from './services/pets-service';
 export { PetManagementService, petManagementService } from './services/pets-management-service';
-export type { PetsServiceConfig } from './types';
-export * from './types';
+
+// Export schemas for consumers that need runtime validation
+export * from './schemas';
+
+// Re-export non-schema types from types module
+export type { PaginatedResponse, PetsServiceConfig } from './types';
+
 export * from './constants';
