@@ -7,7 +7,32 @@
  * reminders), so we exercise both the misconfig and the unknown-provider
  * paths against a NODE_ENV=production process.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// The global setup-tests.ts mocks `./services/email.service` for every
+// other test in the suite (only the `default` export, no EmailService
+// class). This test exercises the real class, so unmock it explicitly.
+vi.unmock('../../services/email.service');
+
+// Stub the secret env-vars so `validateEnv` in `config/env.ts` succeeds
+// when the EmailService import pulls config in. Real-shape values
+// (length-validated) so the validator doesn't throw at module load.
+beforeAll(() => {
+  process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'a'.repeat(64);
+  process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'b'.repeat(64);
+  process.env.SESSION_SECRET = process.env.SESSION_SECRET ?? 'c'.repeat(64);
+  process.env.CSRF_SECRET = process.env.CSRF_SECRET ?? 'd'.repeat(64);
+  process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY ?? 'e'.repeat(64);
+  // DB name stubs for whichever NODE_ENV the test resets the modules
+  // under — sequelize.ts checks the matching `<ENV>_DB_NAME`.
+  process.env.DEV_DB_NAME = process.env.DEV_DB_NAME ?? 'ads_dev';
+  process.env.TEST_DB_NAME = process.env.TEST_DB_NAME ?? 'ads_test';
+  process.env.PROD_DB_NAME = process.env.PROD_DB_NAME ?? 'ads_prod';
+  process.env.DB_USERNAME = process.env.DB_USERNAME ?? 'ads';
+  process.env.DB_PASSWORD = process.env.DB_PASSWORD ?? 'ads';
+  process.env.DB_HOST = process.env.DB_HOST ?? 'localhost';
+  process.env.DB_PORT = process.env.DB_PORT ?? '5432';
+});
 
 vi.mock('../../models/AuditLog', () => ({
   AuditLog: {
@@ -43,26 +68,45 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
+// Provider mocks are classes (the production code uses `new X()`).
+class MockResendProvider {
+  validateConfiguration() {
+    return false;
+  }
+  getName() {
+    return 'resend';
+  }
+}
+class MockConsoleProvider {
+  validateConfiguration() {
+    return true;
+  }
+  getName() {
+    return 'console';
+  }
+}
+class MockEtherealProvider {
+  async initialize(): Promise<void> {
+    return undefined;
+  }
+  validateConfiguration() {
+    return true;
+  }
+  getName() {
+    return 'ethereal';
+  }
+}
+
 vi.mock('../../services/email-providers/resend-provider', () => ({
-  ResendProvider: vi.fn().mockImplementation(() => ({
-    validateConfiguration: () => false,
-    getName: () => 'resend',
-  })),
+  ResendProvider: MockResendProvider,
 }));
 
 vi.mock('../../services/email-providers/console-provider', () => ({
-  ConsoleEmailProvider: vi.fn().mockImplementation(() => ({
-    validateConfiguration: () => true,
-    getName: () => 'console',
-  })),
+  ConsoleEmailProvider: MockConsoleProvider,
 }));
 
 vi.mock('../../services/email-providers/ethereal-provider', () => ({
-  EtherealProvider: vi.fn().mockImplementation(() => ({
-    initialize: vi.fn().mockResolvedValue(undefined),
-    validateConfiguration: () => true,
-    getName: () => 'ethereal',
-  })),
+  EtherealProvider: MockEtherealProvider,
 }));
 
 vi.mock('../../config', () => ({
@@ -90,8 +134,10 @@ describe('EmailService provider initialisation [ADS-549]', () => {
   let exitSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => {
-      throw new Error(`process.exit(${code ?? ''}) called`);
+    // No-op exit so the constructor's `.catch` returns cleanly. The
+    // spy still records the call so we can assert on it.
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation(((_code?: number) => {
+      return undefined;
     }) as never);
   });
 

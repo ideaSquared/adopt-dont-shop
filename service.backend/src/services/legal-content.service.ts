@@ -131,36 +131,49 @@ const extractConsentDetails = (metadata: unknown): z.infer<typeof ConsentDetails
  * `privacyVersion`, so we just need to read each field from whichever
  * row last contained it.
  */
+/**
+ * Resolve the effective per-document acceptedAt timestamp from the row
+ * the version came from. Prefer `details.acceptedAt` when the recorder
+ * stamped it (registration / re-acceptance modal both do), and fall
+ * back to the audit row's `timestamp` column when it's missing.
+ */
+const pickAcceptedAt = (
+  details: z.infer<typeof ConsentDetailsSchema>,
+  row: { timestamp: Date | null }
+): string | null => {
+  return details.acceptedAt ?? row.timestamp?.toISOString() ?? null;
+};
+
 const findLatestVersions = (
   rows: ReadonlyArray<{ metadata: unknown; timestamp: Date | null }>
 ): {
   tosVersion: string | null;
   privacyVersion: string | null;
   cookiesVersion: string | null;
-  tosAt: Date | null;
-  privacyAt: Date | null;
-  cookiesAt: Date | null;
+  tosAt: string | null;
+  privacyAt: string | null;
+  cookiesAt: string | null;
 } => {
   let tosVersion: string | null = null;
   let privacyVersion: string | null = null;
   let cookiesVersion: string | null = null;
-  let tosAt: Date | null = null;
-  let privacyAt: Date | null = null;
-  let cookiesAt: Date | null = null;
+  let tosAt: string | null = null;
+  let privacyAt: string | null = null;
+  let cookiesAt: string | null = null;
 
   for (const row of rows) {
     const details = extractConsentDetails(row.metadata);
     if (tosVersion === null && details.tosVersion) {
       tosVersion = details.tosVersion;
-      tosAt = row.timestamp;
+      tosAt = pickAcceptedAt(details, row);
     }
     if (privacyVersion === null && details.privacyVersion) {
       privacyVersion = details.privacyVersion;
-      privacyAt = row.timestamp;
+      privacyAt = pickAcceptedAt(details, row);
     }
     if (cookiesVersion === null && details.cookiesVersion) {
       cookiesVersion = details.cookiesVersion;
-      cookiesAt = row.timestamp;
+      cookiesAt = pickAcceptedAt(details, row);
     }
     if (tosVersion && privacyVersion && cookiesVersion) {
       break;
@@ -183,7 +196,7 @@ export const getPendingReacceptance = async (userId: string): Promise<PendingRea
     documentType: LegalDocumentType;
     currentVersion: string;
     lastAcceptedVersion: string | null;
-    lastAcceptedAt: Date | null;
+    lastAcceptedAt: string | null;
   }> = [
     {
       documentType: 'terms',
@@ -211,7 +224,7 @@ export const getPendingReacceptance = async (userId: string): Promise<PendingRea
       documentType: c.documentType,
       currentVersion: c.currentVersion,
       lastAcceptedVersion: c.lastAcceptedVersion,
-      lastAcceptedAt: c.lastAcceptedVersion ? (c.lastAcceptedAt?.toISOString() ?? null) : null,
+      lastAcceptedAt: c.lastAcceptedVersion ? c.lastAcceptedAt : null,
     }));
 
   return { pending };
