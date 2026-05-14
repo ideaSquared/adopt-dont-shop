@@ -84,6 +84,7 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div className={styles.overlay} onClick={handleOverlayClick}>
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         ref={modalRef}
         className={styles.modal}
