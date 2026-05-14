@@ -125,6 +125,7 @@ export function DataTable<T extends object>({
             <tr>
               {selectable && (
                 <th
+                  scope='col'
                   className={`${styles.th({ align: 'center', sortable: false })} ${styles.checkboxColumn}`}
                 >
                   <input
@@ -132,37 +133,52 @@ export function DataTable<T extends object>({
                     type='checkbox'
                     checked={allSelected}
                     onChange={e => handleSelectAll(e.target.checked)}
+                    aria-label='Select all rows'
                   />
                 </th>
               )}
-              {columns.map(column => (
-                <th
-                  key={column.id}
-                  className={styles.th({
-                    align: column.align ?? 'left',
-                    sortable: column.sortable ?? false,
-                  })}
-                  style={{ width: column.width }}
-                  onClick={() => column.sortable && handleSort(column.id)}
-                >
-                  <div className={styles.thContent}>
-                    {column.header}
-                    {column.sortable && (
-                      <span className={styles.sortIcon}>
-                        {(sortColumn || localSort?.column) === column.id ? (
-                          (sortDirection || localSort?.direction) === 'asc' ? (
-                            <FiChevronUp />
+              {columns.map(column => {
+                const activeColumn = sortColumn || localSort?.column;
+                const activeDirection = sortDirection || localSort?.direction;
+                const isSortActive = activeColumn === column.id;
+                const ariaSort = column.sortable
+                  ? isSortActive
+                    ? activeDirection === 'asc'
+                      ? ('ascending' as const)
+                      : ('descending' as const)
+                    : ('none' as const)
+                  : undefined;
+                return (
+                  <th
+                    key={column.id}
+                    scope='col'
+                    className={styles.th({
+                      align: column.align ?? 'left',
+                      sortable: column.sortable ?? false,
+                    })}
+                    style={{ width: column.width }}
+                    onClick={() => column.sortable && handleSort(column.id)}
+                    aria-sort={ariaSort}
+                  >
+                    <div className={styles.thContent}>
+                      {column.header}
+                      {column.sortable && (
+                        <span className={styles.sortIcon}>
+                          {isSortActive ? (
+                            activeDirection === 'asc' ? (
+                              <FiChevronUp />
+                            ) : (
+                              <FiChevronDown />
+                            )
                           ) : (
-                            <FiChevronDown />
-                          )
-                        ) : (
-                          <FiChevronDown className={styles.sortIconInactive} />
-                        )}
-                      </span>
-                    )}
-                  </div>
-                </th>
-              ))}
+                            <FiChevronDown className={styles.sortIconInactive} />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className={styles.tbody}>
@@ -182,6 +198,17 @@ export function DataTable<T extends object>({
                     key={rowId}
                     className={styles.tr({ clickable: !!onRowClick })}
                     onClick={() => onRowClick && onRowClick(row)}
+                    tabIndex={onRowClick ? 0 : undefined}
+                    onKeyDown={
+                      onRowClick
+                        ? e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onRowClick(row);
+                            }
+                          }
+                        : undefined
+                    }
                   >
                     {selectable && (
                       <td
@@ -193,6 +220,7 @@ export function DataTable<T extends object>({
                           type='checkbox'
                           checked={selectedRows.has(rowId)}
                           onChange={e => handleSelectRow(rowId, e.target.checked)}
+                          aria-label={`Select row ${rowId}`}
                         />
                       </td>
                     )}

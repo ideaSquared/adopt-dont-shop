@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useRef, useEffect, useState } from 'react';
 import * as styles from './BulkConfirmationModal.css';
 import { Button } from '@adopt-dont-shop/lib.components';
 import { FiAlertTriangle, FiCheckCircle, FiInfo, FiX } from 'react-icons/fi';
@@ -43,6 +43,16 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
   resultSummary,
 }) => {
   const [reason, setReason] = useState('');
+  const titleId = useId();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    focusable?.[0]?.focus();
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -62,17 +72,32 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' && !isLoading) {
+      onClose();
+    }
+  };
+
   const confirmButtonVariant =
     variant === 'danger' ? 'danger' : variant === 'warning' ? 'primary' : 'primary';
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div className={styles.overlay} onClick={handleOverlayClick}>
-      <div className={styles.modal}>
+      <div
+        ref={modalRef}
+        className={styles.modal}
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby={titleId}
+        onKeyDown={handleKeyDown}
+      >
         <div className={styles.modalHeader({ variant })}>
           <div className={styles.iconWrap({ variant })}>{variantIcon[variant]}</div>
           <div className={styles.headerText}>
-            <h3 className={styles.modalTitle}>{title}</h3>
+            <h3 id={titleId} className={styles.modalTitle}>
+              {title}
+            </h3>
           </div>
           <button
             className={styles.closeBtn}
