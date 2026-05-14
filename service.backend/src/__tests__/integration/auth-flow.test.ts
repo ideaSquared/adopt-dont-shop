@@ -1250,7 +1250,9 @@ describe('Authentication Flow Integration Tests', () => {
         const registerResult = await AuthService.register(registerData);
 
         expect(registerResult.user).toBeDefined();
-        expect(registerResult.token).toBeDefined();
+        // ADS-538: register no longer returns a token; the session is
+        // established by the subsequent login step below.
+        expect(registerResult).not.toHaveProperty('token');
 
         // Step 2: Verify Email
         const mockUserAfterVerification = createMockUser({
