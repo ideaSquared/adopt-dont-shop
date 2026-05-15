@@ -89,10 +89,71 @@ const PROTECTED_LOG_FIELDS = new Set([
   'service',
 ]);
 
+/**
+ * ADS-543: defence in depth — strip known secret-bearing query parameters
+ * from any URL-shaped log field (`url`, `originalUrl`, `referer`) before
+ * the value is written. Even when a call site forgets to swap
+ * `req.originalUrl` for `req.path`, the query string is scrubbed here so a
+ * `?token=...` / `?signature=...` / `?code=...` never reaches log storage.
+ */
+const URL_LOG_KEYS = new Set(['url', 'originalurl', 'referer', 'referrer']);
+const SECRET_QUERY_PARAMS = ['token', 'signature', 'code'];
+
+const stripSecretQueryParams = (raw: string): string => {
+  const queryStart = raw.indexOf('?');
+  if (queryStart === -1) {
+    return raw;
+  }
+  const [pathPart, queryPart] = [raw.slice(0, queryStart), raw.slice(queryStart + 1)];
+  if (!queryPart) {
+    return raw;
+  }
+  const kept = queryPart
+    .split('&')
+    .map(pair => {
+      const eq = pair.indexOf('=');
+      const key = (eq === -1 ? pair : pair.slice(0, eq)).toLowerCase();
+      if (SECRET_QUERY_PARAMS.includes(key)) {
+        return `${eq === -1 ? pair : pair.slice(0, eq)}=[REDACTED]`;
+      }
+      return pair;
+    })
+    .join('&');
+  return kept ? `${pathPart}?${kept}` : pathPart;
+};
+
+const redactUrlsInValue = (value: unknown): unknown => {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return stripSecretQueryParams(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map(redactUrlsInValue);
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>).map(([k, v]) => {
+      if (URL_LOG_KEYS.has(k.toLowerCase()) && typeof v === 'string') {
+        return [k, stripSecretQueryParams(v)];
+      }
+      return [k, redactUrlsInValue(v)];
+    });
+    return Object.fromEntries(entries);
+  }
+  return value;
+};
+
 const redactionFormat = winston.format(info => {
   for (const key of Object.keys(info)) {
     if (PROTECTED_LOG_FIELDS.has(key)) {
       continue;
+    }
+    // URL-shaped top-level fields get the query-param scrub first.
+    if (URL_LOG_KEYS.has(key.toLowerCase()) && typeof info[key] === 'string') {
+      info[key] = stripSecretQueryParams(info[key] as string);
+    } else {
+      info[key] = redactUrlsInValue(info[key]);
     }
     info[key] = redactLogPayload(info[key]);
   }
