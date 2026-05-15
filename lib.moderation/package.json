@@ -64,11 +64,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ParagonJenko/pet-adoption-react.git",
+    "url": "git+https://github.com/ideaSquared/adopt-dont-shop.git",
     "directory": "lib.moderation"
   },
   "bugs": {
-    "url": "https://github.com/ParagonJenko/pet-adoption-react/issues"
+    "url": "https://github.com/ideaSquared/adopt-dont-shop/issues"
   },
-  "homepage": "https://github.com/ParagonJenko/pet-adoption-react/tree/main/lib.moderation#readme"
+  "homepage": "https://github.com/ideaSquared/adopt-dont-shop/tree/main/lib.moderation#readme"
 }
