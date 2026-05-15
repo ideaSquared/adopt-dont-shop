@@ -209,8 +209,9 @@ WORKDIR /app/service.backend
 EXPOSE 5000
 
 # Health check (CNCF cloud-native best practice)
+# ADS-545: probe /health/simple — cheap and leaks no internal service detail.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
+    CMD curl -f http://localhost:5000/health/simple || exit 1
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]

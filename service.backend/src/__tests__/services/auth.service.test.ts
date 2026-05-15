@@ -873,8 +873,13 @@ describe('AuthService', () => {
         userId: 'user-123',
         exp: Math.floor(Date.now() / 1000) + 900,
       };
-      mockedJwt.verify = vi.fn().mockReturnValue({ jti: 'some-token-id' });
-      (jwt.decode as unknown as Mock) = vi.fn().mockReturnValue(accessTokenPayload);
+      // ADS-544: logout now jwt.verify()s both the refresh token AND the
+      // access token. The first call validates the refresh token, the
+      // second validates the access token.
+      mockedJwt.verify = vi
+        .fn()
+        .mockReturnValueOnce(accessTokenPayload)
+        .mockReturnValueOnce({ jti: 'some-token-id' });
 
       await AuthService.logout('valid.refresh.jwt', 'valid.access.jwt');
 
@@ -891,7 +896,7 @@ describe('AuthService', () => {
         userId: 'user-456',
         exp: Math.floor(Date.now() / 1000) + 900,
       };
-      (jwt.decode as unknown as Mock) = vi.fn().mockReturnValue(accessTokenPayload);
+      mockedJwt.verify = vi.fn().mockReturnValue(accessTokenPayload);
 
       await AuthService.logout(undefined, 'valid.access.jwt');
 
@@ -910,9 +915,35 @@ describe('AuthService', () => {
       await expect(AuthService.logout('expired.token')).resolves.not.toThrow();
     });
 
-    it('should not throw when access token decoding fails', async () => {
-      (jwt.decode as unknown as Mock) = vi.fn().mockReturnValue(null);
-      await expect(AuthService.logout(undefined, 'malformed.token')).resolves.not.toThrow();
+    // ADS-544: a forged/expired access token must NOT produce a RevokedToken
+    // row. Previously logout decoded the token without verifying the
+    // signature, so any caller could poison the blacklist with arbitrary jtis.
+    it('should NOT create a RevokedToken row when access token signature is invalid (ADS-544)', async () => {
+      mockedJwt.verify = vi.fn().mockImplementation(() => {
+        throw new Error('invalid signature');
+      });
+      await expect(AuthService.logout(undefined, 'forged.access.token')).resolves.not.toThrow();
+      expect(MockedRevokedToken.create).not.toHaveBeenCalled();
+    });
+
+    it('should NOT create a RevokedToken row when access token is expired (ADS-544)', async () => {
+      mockedJwt.verify = vi.fn().mockImplementation(() => {
+        throw new Error('jwt expired');
+      });
+      await expect(AuthService.logout(undefined, 'expired.access.token')).resolves.not.toThrow();
+      expect(MockedRevokedToken.create).not.toHaveBeenCalled();
+    });
+
+    it('should NOT blacklist when caller userId does not match token userId (ADS-544)', async () => {
+      const accessTokenPayload = {
+        jti: 'access-jti-789',
+        userId: 'attacker-user-id',
+        exp: Math.floor(Date.now() / 1000) + 900,
+      };
+      mockedJwt.verify = vi.fn().mockReturnValue(accessTokenPayload);
+
+      await AuthService.logout(undefined, 'someone-elses.access.jwt', 'victim-user-id');
+
       expect(MockedRevokedToken.create).not.toHaveBeenCalled();
     });
   });

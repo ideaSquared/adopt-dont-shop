@@ -163,6 +163,9 @@ describe('Authentication Middleware', () => {
       headers: {},
       ip: '127.0.0.1',
       originalUrl: '/api/test',
+      // ADS-543: auth-failure logs use req.path (no query string) so secret
+      // bearing params (token, signature, code) never reach security logs.
+      path: '/api/test',
       get: ((header: string) => {
         if (header === 'User-Agent') {
           return 'test-agent';
@@ -213,6 +216,33 @@ describe('Authentication Middleware', () => {
             userAgent: 'test-agent',
             url: '/api/test',
           }),
+          mockRequest
+        );
+      });
+
+      it('should not include query-string params in the security log (ADS-543)', async () => {
+        mockRequest.headers = {};
+        mockRequest.originalUrl = '/verify-email?token=xyz-very-secret-123';
+        mockRequest.path = '/verify-email';
+
+        await authenticateToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        // The log-data payload (2nd argument) is what's actually shipped to
+        // log storage. The 3rd argument is the raw Request and is consumed
+        // for ip/user-agent enrichment inside loggerHelpers — its
+        // `originalUrl` field is never serialised into the log line because
+        // logger.ts strips secret-bearing query params during winston format.
+        const logCall = (loggerHelpers.logSecurity as vi.Mock).mock.calls[0];
+        const logData = JSON.stringify(logCall[1]);
+        expect(logData).not.toContain('token=xyz');
+        expect(logData).not.toContain('xyz-very-secret-123');
+        expect(loggerHelpers.logSecurity).toHaveBeenCalledWith(
+          'Authentication failed - no token provided',
+          expect.objectContaining({ url: '/verify-email' }),
           mockRequest
         );
       });

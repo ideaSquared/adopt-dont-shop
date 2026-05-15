@@ -28,6 +28,7 @@ import {
   csrfProtection,
   getCsrfToken,
   csrfErrorHandler,
+  resolveCsrfSessionIdentifier,
 } from '../../middleware/csrf';
 import { logger } from '../../utils/logger';
 import { doubleCsrf } from 'csrf-csrf';
@@ -200,6 +201,69 @@ describe('CSRF Middleware', () => {
     it('should export the double CSRF protection middleware', () => {
       expect(csrfProtection).toBeDefined();
       expect(csrfProtection).toBe(mockDoubleCsrfProtection);
+    });
+  });
+
+  // ADS-546: stable per-browser identifier with no 'anonymous' fallback.
+  describe('resolveCsrfSessionIdentifier - session identifier resolution', () => {
+    type FakeRequest = Request & {
+      cookies?: Record<string, string>;
+      user?: { userId?: string };
+      res?: Partial<Response>;
+    };
+
+    const makeReq = (overrides: Partial<FakeRequest> = {}): FakeRequest => {
+      const cookieFn = vi.fn();
+      const res: Partial<Response> = { cookie: cookieFn };
+      return {
+        cookies: undefined,
+        user: undefined,
+        res,
+        ...overrides,
+      } as FakeRequest;
+    };
+
+    it('returns the authenticated user identifier when req.user.userId is set', () => {
+      const req = makeReq({ user: { userId: 'user-abc' } });
+      expect(resolveCsrfSessionIdentifier(req)).toBe('user:user-abc');
+    });
+
+    it('returns the existing session cookie value when present', () => {
+      const req = makeReq({ cookies: { 'csrf-session': 'fixed-uuid-123' } });
+      // The cookie name depends on NODE_ENV — both keys are tried in source,
+      // so we set the dev-name one (NODE_ENV=test).
+      expect(resolveCsrfSessionIdentifier(req)).toBe('anon:fixed-uuid-123');
+      expect((req.res as { cookie: ReturnType<typeof vi.fn> }).cookie).not.toHaveBeenCalled();
+    });
+
+    it('mints and sets a new UUID cookie when neither userId nor cookie is present', () => {
+      const req = makeReq();
+      const identifier = resolveCsrfSessionIdentifier(req);
+      // setup-tests.ts mocks crypto.randomUUID to return `test-uuid-<ts>`, so
+      // we just assert the shape (anon:<value>) rather than a strict UUID regex.
+      expect(identifier).toMatch(/^anon:.+/);
+      const cookieFn = (req.res as { cookie: ReturnType<typeof vi.fn> }).cookie;
+      expect(cookieFn).toHaveBeenCalledTimes(1);
+      const [name, value, options] = cookieFn.mock.calls[0];
+      expect(name).toBe('csrf-session');
+      expect(typeof value).toBe('string');
+      expect(value.length).toBeGreaterThan(0);
+      expect(options).toMatchObject({ httpOnly: true, sameSite: 'strict' });
+    });
+
+    it('throws when no userId, no cookie, and no Response are available (fail closed)', () => {
+      const req = { cookies: undefined, user: undefined } as FakeRequest;
+      expect(() => resolveCsrfSessionIdentifier(req)).toThrow(/unable to resolve a session/);
+    });
+
+    it('does not fall back to a constant anonymous value', () => {
+      const reqA = makeReq();
+      const idA = resolveCsrfSessionIdentifier(reqA);
+      // The mocked randomUUID is timestamp-derived; a constant 'anonymous'
+      // fallback would never produce an `anon:...` shape.
+      expect(idA).toMatch(/^anon:.+/);
+      expect(idA).not.toBe('anon:anonymous');
+      expect(idA).not.toBe('anonymous');
     });
   });
 

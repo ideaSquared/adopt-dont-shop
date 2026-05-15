@@ -16,6 +16,7 @@ export function generateSecretsBlock() {
     `SESSION_SECRET=${b64()}`,
     `CSRF_SECRET=${b64()}`,
     `ENCRYPTION_KEY=${randomBytes(32).toString('hex')}`,
+    `UPLOAD_SIGNING_SECRET=${b64()}`,
   ].join('\n');
 }
 

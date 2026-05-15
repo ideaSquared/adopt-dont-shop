@@ -132,7 +132,7 @@ export const authenticateToken = async (
   if (!token) {
     loggerHelpers.logSecurity(
       'Authentication failed - no token provided',
-      { ip: req.ip, userAgent: req.get('User-Agent'), url: req.originalUrl },
+      { ip: req.ip, userAgent: req.get('User-Agent'), url: req.path },
       req
     );
     res.status(401).json({ error: 'Access token required' });
@@ -163,7 +163,7 @@ export const authenticateToken = async (
         error: error instanceof Error ? error.message : String(error),
         ip: req.ip,
         userAgent: req.get('User-Agent'),
-        url: req.originalUrl,
+        url: req.path,
       },
       req
     );
@@ -239,7 +239,7 @@ export const requireRole = (requiredRoles: string | string[]) => {
           {
             requiredRoles: Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles],
             ip: req.ip,
-            url: req.originalUrl,
+            url: req.path,
           },
           req
         );
@@ -261,7 +261,7 @@ export const requireRole = (requiredRoles: string | string[]) => {
             userRoles,
             requiredRoles: roles,
             ip: req.ip,
-            url: req.originalUrl,
+            url: req.path,
           },
           req
         );
@@ -305,7 +305,7 @@ export const requireEmailVerification = (
         'Email verification check failed - no user',
         {
           ip: req.ip,
-          url: req.originalUrl,
+          url: req.path,
         },
         req
       );
@@ -320,7 +320,7 @@ export const requireEmailVerification = (
           userId: req.user.userId,
           email: req.user.email,
           ip: req.ip,
-          url: req.originalUrl,
+          url: req.path,
         },
         req
       );

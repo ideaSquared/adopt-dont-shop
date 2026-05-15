@@ -92,6 +92,11 @@ const baseSchema = z.object({
     })
     .regex(/^[0-9a-f]+$/i, { message: 'ENCRYPTION_KEY must be hex (0-9, a-f)' }),
 
+  // ADS-542: dedicated HMAC key for signed upload URLs. Optional in
+  // dev/test (boot validator falls back to a derived placeholder); the
+  // production-only check below upgrades the missing case to an error.
+  UPLOAD_SIGNING_SECRET: optionalSecretField('UPLOAD_SIGNING_SECRET'),
+
   // Optional in all envs
   REDIS_URL: z.string().url().optional(),
   JWT_REPORT_SHARE_SECRET: optionalSecretField('JWT_REPORT_SHARE_SECRET'),
@@ -127,6 +132,15 @@ const distinctSecretsCheck = (env: Record<string, string | undefined>): Validati
     ['JWT_REFRESH_SECRET', 'SESSION_SECRET'],
     ['JWT_REFRESH_SECRET', 'CSRF_SECRET'],
     ['SESSION_SECRET', 'CSRF_SECRET'],
+    // ADS-542: UPLOAD_SIGNING_SECRET must be distinct from every other
+    // signing/encryption secret so a single disclosure does not compromise
+    // both upload signatures and JWT/session/CSRF/encryption material.
+    ['UPLOAD_SIGNING_SECRET', 'JWT_SECRET'],
+    ['UPLOAD_SIGNING_SECRET', 'JWT_REFRESH_SECRET'],
+    ['UPLOAD_SIGNING_SECRET', 'SESSION_SECRET'],
+    ['UPLOAD_SIGNING_SECRET', 'CSRF_SECRET'],
+    ['UPLOAD_SIGNING_SECRET', 'ENCRYPTION_KEY'],
+    ['UPLOAD_SIGNING_SECRET', 'JWT_REPORT_SHARE_SECRET'],
   ];
   const issues: ValidationIssue[] = [];
   for (const [a, b] of pairs) {
@@ -213,6 +227,18 @@ const productionOnlyCheck = (env: Record<string, string | undefined>): Validatio
         issues.push({ path: name, message: err.message, level: 'error' });
       }
     }
+  }
+
+  // ADS-542: UPLOAD_SIGNING_SECRET is required in production. The
+  // optionalSecretField above validates length/placeholder when set —
+  // this enforces presence specifically in production.
+  if (!env.UPLOAD_SIGNING_SECRET) {
+    issues.push({
+      path: 'UPLOAD_SIGNING_SECRET',
+      message:
+        'UPLOAD_SIGNING_SECRET is required in production. Generate with: npm run secrets:generate',
+      level: 'error',
+    });
   }
 
   // ADS-411: Statsig server secret. Missing -> feature flags silently
