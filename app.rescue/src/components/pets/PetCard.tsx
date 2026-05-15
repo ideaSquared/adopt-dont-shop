@@ -4,7 +4,10 @@ import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetCard.css';
 
-const getStatusLabel = (status: string) => {
+// Pet schema fields are optional because different API responses return
+// different subsets (lib.pets/src/schemas.ts:55-57). Treat absent
+// status / age / created_at as "Unknown" rather than crashing the card.
+const getStatusLabel = (status: string | undefined) => {
   switch (status) {
     case 'available':
       return 'Available';
@@ -19,12 +22,12 @@ const getStatusLabel = (status: string) => {
     case 'foster':
       return 'Foster';
     default:
-      return status;
+      return status ?? 'Unknown';
   }
 };
 
 const getStatusVariant = (
-  status: string
+  status: string | undefined
 ): 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care' | 'foster' | 'default' => {
   const validStatuses = [
     'available',
@@ -34,19 +37,25 @@ const getStatusVariant = (
     'medical_care',
     'foster',
   ] as const;
-  return (validStatuses as readonly string[]).includes(status)
-    ? (status as 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care' | 'foster')
-    : 'default';
+  if (status && (validStatuses as readonly string[]).includes(status)) {
+    return status as 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care' | 'foster';
+  }
+  return 'default';
 };
 
-const formatAge = (ageYears: number, ageMonths: number) => {
-  if (ageYears === 0) {
-    return ageMonths === 1 ? '1 month' : `${ageMonths} months`;
+const formatAge = (ageYears: number | undefined, ageMonths: number | undefined) => {
+  const years = ageYears ?? 0;
+  const months = ageMonths ?? 0;
+  if (years === 0 && months === 0) {
+    return 'Unknown';
   }
-  if (ageMonths === 0) {
-    return ageYears === 1 ? '1 year' : `${ageYears} years`;
+  if (years === 0) {
+    return months === 1 ? '1 month' : `${months} months`;
   }
-  return `${ageYears}y ${ageMonths}m`;
+  if (months === 0) {
+    return years === 1 ? '1 year' : `${years} years`;
+  }
+  return `${years}y ${months}m`;
 };
 
 interface PetCardProps {
@@ -138,7 +147,9 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
             <div className="detail-item">
               <span className="label">Added:</span>
               <span className="value">
-                {formatRelativeDate(new Date(pet.created_at)).replace(' ago', '')} ago
+                {pet.created_at
+                  ? `${formatRelativeDate(new Date(pet.created_at)).replace(' ago', '')} ago`
+                  : 'Unknown'}
               </span>
             </div>
           </div>
