@@ -1,4 +1,4 @@
-import { ThemeProvider } from '@adopt-dont-shop/lib.components';
+import { ThemeProvider, Toaster, toast } from '@adopt-dont-shop/lib.components';
 import { AuthProvider } from '@adopt-dont-shop/lib.auth';
 import { attachStoredCookieConsent } from '@adopt-dont-shop/lib.legal';
 import { captureException, initSentry, reportWebVitals } from '@adopt-dont-shop/lib.observability';
@@ -42,6 +42,14 @@ const queryClient = new QueryClient({
       gcTime: 10 * 60 * 1000, // 10 minutes
       refetchOnWindowFocus: false,
     },
+    // ADS-125: surface mutation failures as toast notifications. We keep the
+    // message generic so we don't leak server internals; specific mutations
+    // can opt out by providing their own onError.
+    mutations: {
+      onError: () => {
+        toast.error('Something went wrong. Please try again.', { duration: 6000 });
+      },
+    },
   },
 });
 
@@ -72,6 +80,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <BrowserRouter>
                 <App />
               </BrowserRouter>
+              <Toaster />
             </ThemeProvider>
           </StatsigWrapper>
         </AuthProvider>
