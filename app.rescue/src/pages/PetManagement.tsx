@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Container, Button, Text, Heading } from '@adopt-dont-shop/lib.components';
+import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus, petManagementService } from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { apiService } from '@adopt-dont-shop/lib.api';
@@ -484,6 +484,8 @@ const PetManagement: React.FC = () => {
                 await petManagementService.createPet(data as any);
               }
               handlePetSaved();
+              // ADS-125
+              toast.success('Pet saved');
             } catch (error) {
               console.error('Error saving pet:', error);
               throw error;

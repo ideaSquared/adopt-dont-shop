@@ -61,6 +61,10 @@ export * from './components/form/FileUpload';
 export { Toast, ToastContainer } from './components/ui/Toast';
 export type { ToastContainerProps, ToastPosition, ToastProps } from './components/ui/Toast';
 
+// ADS-125: sonner-based toast notification system
+export { Toaster, toast } from './components/ui/Toaster';
+export type { ToasterProps } from './components/ui/Toaster';
+
 // Types - only export working ones
 export type {
   AlertProps,

@@ -1,7 +1,7 @@
 import { AdopterProfileSummary, ProfileEditForm, SettingsForm } from '@/components/profile';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, authService, Application, User } from '@/services';
-import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
+import { Alert, Button, Spinner, toast } from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as styles from './ProfilePage.css';
@@ -96,6 +96,8 @@ export const ProfilePage: React.FC = () => {
 
       setIsEditingProfile(false);
       setSuccessMessage('Profile updated successfully!');
+      // ADS-125
+      toast.success('Profile updated');
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
