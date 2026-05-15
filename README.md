@@ -39,9 +39,10 @@ npm run docker:down         # stop
 
 ### Run (native — no Docker)
 
-You'll need Postgres + Redis running locally yourself.
+You'll need Postgres + Redis running locally. The quickest option is to let Docker run just those two services while the rest of the stack runs natively:
 
 ```bash
+npm run dev:services        # start Postgres + Redis in Docker (detached)
 npm run dev                 # all packages via Turbo
 npm run dev:apps            # frontend apps only
 npm run dev:backend         # backend only
@@ -147,6 +148,19 @@ To replace all JWT / session / CSRF / encryption secrets (e.g. after a suspected
 CORS origins are defined once in the root `.env` (`CORS_ORIGIN`), covering both direct container access and nginx-proxied subdomains. After changing CORS, restart the backend: `docker compose restart service-backend`.
 
 All API endpoints live under `/api/v1/` (e.g. `/api/v1/auth/login`). Swagger UI: http://localhost:5000/api/docs (or http://api.localhost/api/docs via the nginx proxy).
+
+## Deployment
+
+Deploys are driven by the `Makefile` at the repo root, which dispatches the GitHub Actions workflows.
+
+```bash
+make staging               # deploy main to staging (runs immediately)
+make prod                  # deploy main to production (requires approval in the GitHub UI)
+make rollback env=production sha=abc1234   # roll the named environment back to a specific commit
+make history               # list recent commits to pick a rollback target
+```
+
+> `make prod` triggers a real production deployment via the `deploy.yml` workflow. Do not confuse it with `npm run prod:up`, which only spins up the production Docker stack locally for a smoke test and does not deploy anywhere.
 
 ## Documentation
 
