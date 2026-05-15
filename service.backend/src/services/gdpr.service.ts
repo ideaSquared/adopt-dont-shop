@@ -8,7 +8,7 @@ import ChatParticipant from '../models/ChatParticipant';
 import DeviceToken from '../models/DeviceToken';
 import Message from '../models/Message';
 import Notification, { NotificationType } from '../models/Notification';
-import Pet from '../models/Pet';
+import Pet, { PetStatus } from '../models/Pet';
 import Rating from '../models/Rating';
 import RefreshToken from '../models/RefreshToken';
 import Rescue from '../models/Rescue';
@@ -370,7 +370,7 @@ export const GdprService = {
       // pet out of discovery — existing pet scopes filter on
       // `archived: false`.
       const [petsArchived] = await Pet.update(
-        { archived: true, status: 'not_available' },
+        { archived: true, status: PetStatus.NOT_AVAILABLE },
         {
           where: { rescueId, archived: false },
           transaction: tx,
