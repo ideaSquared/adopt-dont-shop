@@ -60,7 +60,10 @@ import privacyRoutes from './routes/privacy.routes';
 import uploadServeRoutes from './routes/upload-serve.routes';
 import { authenticateToken } from './middleware/auth';
 import { requireRole } from './middleware/rbac';
+import { handleValidationErrors } from './middleware/validation';
 import { UserType } from './models/User';
+import { emailValidation } from './validation/email.validation';
+import { handleDeliveryWebhook } from './controllers/email.controller';
 
 // Import additional routes for PRD compliance
 import path from 'path';
@@ -188,15 +191,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// ADS-397: verify provider HMAC on the email-delivery webhook BEFORE the global
-// JSON parser consumes the stream. We need the raw bytes for signature
-// verification; once verified, the middleware re-parses and replaces req.body
-// with the JSON object so downstream validators behave normally.
+// ADS-397: email-delivery webhook — fully self-contained handler chain mounted
+// BEFORE cookieParser so the CSRF middleware (applied directly below) is never
+// reached for this path. The route terminates here via handleDeliveryWebhook.
+// Raw body parsing is required for HMAC signature verification; the middleware
+// re-parses and replaces req.body with the JSON object before validation runs.
 app.post(
   '/api/v1/email/webhook/delivery',
   apiLimiter,
   express.raw({ type: '*/*', limit: '5mb' }),
-  verifyEmailDeliveryWebhook
+  verifyEmailDeliveryWebhook,
+  ...emailValidation.deliveryWebhook,
+  handleValidationErrors,
+  handleDeliveryWebhook
 );
 
 // ADS-457: 10 MB body limits were a DoS amplifier on auth/search/chat
@@ -232,18 +239,10 @@ app.use('/api', apiLimiter);
 // Provide CSRF token endpoint (must be before csrfProtection middleware)
 app.get('/api/v1/csrf-token', getCsrfToken);
 
-// Apply CSRF protection to all API routes except token endpoint and health checks
-app.use('/api', (req, res, next) => {
-  // Within app.use('/api', ...) req.path is relative to the /api mount point,
-  // so paths here start with /v1/... not /api/v1/...
-  // ADS-397: webhook endpoint authenticates via provider HMAC signature,
-  // not CSRF — external webhooks have no session/cookie to attach a token to.
-  const skipPaths = ['/v1/csrf-token', '/v1/health', '/v1/email/webhook/delivery'];
-  if (skipPaths.some(path => req.path.startsWith(path)) || req.method === 'GET') {
-    return next();
-  }
-  return csrfProtection(req, res, next);
-});
+// Apply CSRF protection to all /api routes. GET/HEAD/OPTIONS are skipped
+// automatically by csrf-csrf's ignoredMethods config. The email webhook POST
+// is handled by the fully self-contained route above and never reaches here.
+app.use('/api', csrfProtection);
 
 // ADS-429 / ADS-422: upload serving.
 //

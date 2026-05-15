@@ -5,6 +5,7 @@
  */
 
 import type { Rescue, RescueStatus, AdoptionPolicy } from '@adopt-dont-shop/lib.rescue';
+import type { RescuePlan, PlanLimits } from '@adopt-dont-shop/lib.types';
 
 /**
  * Extended rescue type with admin-specific fields
@@ -15,7 +16,12 @@ export interface AdminRescue extends Rescue {
   rejectedAt?: string;
   rejectionReason?: string;
   statistics?: RescueStatistics;
+  plan?: RescuePlan;
+  planExpiresAt?: string | null;
+  planLimits?: PlanLimits;
 }
+
+export type { RescuePlan };
 
 /**
  * Rescue statistics for analytics

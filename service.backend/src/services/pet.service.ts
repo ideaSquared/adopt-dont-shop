@@ -34,6 +34,7 @@ import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import User, { UserType } from '../models/User';
 import StaffMember from '../models/StaffMember';
+import { PLAN_LIMITS, type RescuePlan } from '../config/plans';
 
 const PET_SEARCH_SORT_FIELDS = [
   'createdAt',
@@ -515,6 +516,41 @@ export class PetService {
     }
   }
 
+  private static async assertActivePetLimit(rescueId: string): Promise<void> {
+    const rescue = await Rescue.findByPk(rescueId, { attributes: ['plan'] });
+    if (!rescue) return;
+    const plan: RescuePlan = (rescue.plan as RescuePlan) ?? 'free';
+    const limit = PLAN_LIMITS[plan].maxActivePets;
+    if (limit === null) return;
+    const active = await Pet.count({
+      where: {
+        rescueId,
+        status: {
+          [Op.in]: [
+            PetStatus.AVAILABLE,
+            PetStatus.PENDING,
+            PetStatus.FOSTER,
+            PetStatus.MEDICAL_HOLD,
+            PetStatus.BEHAVIORAL_HOLD,
+          ],
+        },
+      },
+    });
+    if (active >= limit) {
+      const err = new Error('Active pet listing limit reached for current plan') as Error & {
+        code: string;
+        limit: number;
+        current: number;
+        plan: string;
+      };
+      err.code = 'PLAN_LIMIT_EXCEEDED';
+      err.limit = limit;
+      err.current = active;
+      err.plan = plan;
+      throw err;
+    }
+  }
+
   /**
    * Create a new pet
    */
@@ -526,6 +562,8 @@ export class PetService {
     const startTime = Date.now();
 
     try {
+      await PetService.assertActivePetLimit(rescueId);
+
       const { initialImages, initialVideos, ...petAttributes } = petData;
 
       // Create pet first; media rows reference the new pet_id (plan 2.1).

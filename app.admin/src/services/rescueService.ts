@@ -25,7 +25,13 @@ import type {
   PaginatedResponse,
   RescueStatistics,
   GetRescueOptions,
+  RescuePlan,
 } from '@/types/rescue';
+
+type UpdatePlanPayload = {
+  plan: RescuePlan;
+  planExpiresAt?: string | null;
+};
 
 /**
  * Build query parameters from filters
@@ -318,6 +324,20 @@ class AdminRescueService {
     if (!response.success) {
       throw new Error(response.message || 'Failed to delete rescue');
     }
+  }
+
+  async updatePlan(rescueId: string, payload: UpdatePlanPayload): Promise<AdminRescue> {
+    const response = await apiService.patch<{
+      success: boolean;
+      message: string;
+      data: AdminRescue;
+    }>(`/api/v1/admin/rescues/${rescueId}/plan`, payload);
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to update rescue plan');
+    }
+
+    return response.data;
   }
 
   async bulkUpdate(

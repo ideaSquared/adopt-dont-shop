@@ -2,6 +2,7 @@ import express from 'express';
 import { ReportsController } from '../controllers/reports.controller';
 import { authenticateToken } from '../middleware/auth';
 import { requirePermission } from '../middleware/rbac';
+import { requirePlanFeature } from '../middleware/plan-gate';
 import { generalLimiter, reportLimiter } from '../middleware/rate-limiter';
 import { PERMISSIONS } from '../types/rbac';
 
@@ -24,12 +25,23 @@ router.get('/shared/:token', generalLimiter, ReportsController.viewSharedByToken
 // Everything else requires auth.
 router.use(authenticateToken);
 
-router.get('/', requirePermission(PERMISSIONS.REPORTS_READ_OWN), ReportsController.list);
-router.post('/', requirePermission(PERMISSIONS.REPORTS_CREATE), ReportsController.create);
+router.get(
+  '/',
+  requirePermission(PERMISSIONS.REPORTS_READ_OWN),
+  requirePlanFeature('reports'),
+  ReportsController.list
+);
+router.post(
+  '/',
+  requirePermission(PERMISSIONS.REPORTS_CREATE),
+  requirePlanFeature('reports'),
+  ReportsController.create
+);
 
 router.get(
   '/templates',
   requirePermission(PERMISSIONS.REPORTS_READ_OWN),
+  requirePlanFeature('reports'),
   ReportsController.listTemplates
 );
 
@@ -40,23 +52,41 @@ router.post(
   '/execute',
   reportLimiter,
   requirePermission(PERMISSIONS.REPORTS_CREATE),
+  requirePlanFeature('reports'),
   ReportsController.executePreview
 );
 
 router.get('/:id', ReportsController.get); // service-side perm check
-router.put('/:id', requirePermission(PERMISSIONS.REPORTS_UPDATE), ReportsController.update);
-router.delete('/:id', requirePermission(PERMISSIONS.REPORTS_DELETE), ReportsController.remove);
+router.put(
+  '/:id',
+  requirePermission(PERMISSIONS.REPORTS_UPDATE),
+  requirePlanFeature('reports'),
+  ReportsController.update
+);
+router.delete(
+  '/:id',
+  requirePermission(PERMISSIONS.REPORTS_DELETE),
+  requirePlanFeature('reports'),
+  ReportsController.remove
+);
 
-router.post('/:id/execute', reportLimiter, ReportsController.executeSaved);
+router.post(
+  '/:id/execute',
+  reportLimiter,
+  requirePlanFeature('reports'),
+  ReportsController.executeSaved
+);
 
 router.post(
   '/:id/schedule',
   requirePermission(PERMISSIONS.REPORTS_SCHEDULE),
+  requirePlanFeature('scheduled_reports'),
   ReportsController.upsertSchedule
 );
 router.delete(
   '/schedules/:scheduleId',
   requirePermission(PERMISSIONS.REPORTS_SCHEDULE),
+  requirePlanFeature('scheduled_reports'),
   ReportsController.deleteSchedule
 );
 
