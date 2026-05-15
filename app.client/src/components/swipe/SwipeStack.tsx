@@ -1,5 +1,7 @@
+import { useImagePreloader } from '@/hooks/useImagePreloader';
 import { DiscoveryPet, SwipeAction } from '@/services';
-import React, { useCallback, useEffect, useState } from 'react';
+import { resolveFileUrl } from '@/utils/fileUtils';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SwipeCard } from './SwipeCard';
 import * as styles from './SwipeStack.css';
 
@@ -13,6 +15,7 @@ interface SwipeStackProps {
 }
 
 const VISIBLE_CARDS = 3;
+const PRELOAD_AHEAD = 5;
 const CARD_SCALE_STEP = 0.05;
 const CARD_Y_OFFSET = 8;
 
@@ -59,6 +62,18 @@ export const SwipeStack: React.FC<SwipeStackProps> = ({
   }, [pets]);
 
   const visiblePets = pets.slice(currentIndex, currentIndex + VISIBLE_CARDS);
+
+  // Preload primary images for cards just past the visible window so the next
+  // swipe shows the image instantly instead of fetching on-demand.
+  const preloadUrls = useMemo(
+    () =>
+      pets
+        .slice(currentIndex + VISIBLE_CARDS, currentIndex + VISIBLE_CARDS + PRELOAD_AHEAD)
+        .map(pet => resolveFileUrl(pet.images?.[0]))
+        .filter((url): url is string => Boolean(url)),
+    [pets, currentIndex]
+  );
+  useImagePreloader(preloadUrls);
 
   if (pets.length === 0) {
     return (
