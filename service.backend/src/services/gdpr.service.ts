@@ -1,14 +1,18 @@
 import { Transaction } from 'sequelize';
 import sequelize from '../sequelize';
-import Application from '../models/Application';
+import Application, { ApplicationStatus } from '../models/Application';
 import ApplicationAnswer from '../models/ApplicationAnswer';
 import ApplicationReference from '../models/ApplicationReference';
+import ApplicationStatusTransition from '../models/ApplicationStatusTransition';
 import ChatParticipant from '../models/ChatParticipant';
 import DeviceToken from '../models/DeviceToken';
 import Message from '../models/Message';
-import Notification from '../models/Notification';
+import Notification, { NotificationType } from '../models/Notification';
+import Pet, { PetStatus } from '../models/Pet';
 import Rating from '../models/Rating';
 import RefreshToken from '../models/RefreshToken';
+import Rescue from '../models/Rescue';
+import StaffMember from '../models/StaffMember';
 import SupportTicket from '../models/SupportTicket';
 import SupportTicketResponse from '../models/SupportTicketResponse';
 import User, { UserStatus } from '../models/User';
@@ -18,6 +22,7 @@ import UserFavorite from '../models/UserFavorite';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import UserPrivacyPrefs from '../models/UserPrivacyPrefs';
 import { AuditLogService } from './auditLog.service';
+import { NotificationService } from './notification.service';
 import { logger } from '../utils/logger';
 
 /**
@@ -35,12 +40,25 @@ type AnonymizeOptions = {
   actorUserId?: string;
 };
 
+type EraseRescueResult = {
+  rescueId: string;
+  alreadyArchived: boolean;
+  petsArchived: number;
+  applicationsRejected: number;
+  staffDowngraded: number;
+  applicantUserIdsToNotify: string[];
+};
+
 const ANON_EMAIL_DOMAIN = 'redacted.local';
 const ANON_FIRST_NAME = 'Deleted';
 const ANON_LAST_NAME = 'User';
 const ANON_MESSAGE_BODY = '[message removed at user request]';
+const ANON_RESCUE_NAME = 'Deleted Rescue';
+const ANON_CONTACT_PERSON = 'Deleted';
 
 const tombstoneEmail = (userId: string): string => `deleted-${userId}@${ANON_EMAIL_DOMAIN}`;
+const tombstoneRescueEmail = (rescueId: string): string =>
+  `deleted-rescue-${rescueId}@${ANON_EMAIL_DOMAIN}`;
 
 export const GdprService = {
   /**
@@ -276,6 +294,209 @@ export const GdprService = {
       supportTickets,
       ticketResponses,
     };
+  },
+
+  /**
+   * GDPR Art. 17 — rescue account erasure (ADS-87).
+   *
+   * Anonymises the Rescue row in place (PII stripped, status flipped to
+   * `inactive`, paranoid soft-delete applied) while preserving FK
+   * integrity for owned pets, adoption history, applications, chats and
+   * audit logs that reference the rescue.
+   *
+   * Side-effects per the design doc:
+   *   - Owned pets: archived (filtered out of discovery/search by
+   *     existing `archived: false` scopes).
+   *   - Pending applications on owned pets: transitioned to REJECTED
+   *     with reason "rescue account deleted"; applicants get an in-app
+   *     notification fired AFTER commit.
+   *   - StaffMember rows for the rescue: paranoid soft-deleted (the
+   *     rescue-affiliation join used by the auth middleware).
+   *   - User accounts and their UserRole rows are intentionally left
+   *     untouched — staff are downgraded, not deleted.
+   *   - Chat history retained; the rescue-side display name will now
+   *     read "Deleted Rescue" via the anonymised row.
+   *
+   * Idempotent: a second call on an already-archived rescue is a no-op
+   * apart from a fresh audit log row.
+   *
+   * Returns a summary of the action so the caller can surface counts
+   * (and the post-commit notification fan-out can target applicants).
+   */
+  async eraseRescue(rescueId: string, options: AnonymizeOptions = {}): Promise<EraseRescueResult> {
+    const { reason, actorUserId } = options;
+
+    const result = await sequelize.transaction(async (tx: Transaction) => {
+      // SELECT ... FOR UPDATE so concurrent erase attempts serialize
+      // rather than racing. Sequelize maps this to a row-level lock on
+      // dialects that support it; SQLite (test) is single-writer so the
+      // lock is effectively a no-op there.
+      const rescue = await Rescue.findByPk(rescueId, {
+        transaction: tx,
+        lock: tx.LOCK.UPDATE,
+        paranoid: false,
+      });
+      if (!rescue) {
+        throw new Error('Rescue not found');
+      }
+
+      const alreadyArchived =
+        rescue.email.endsWith(`@${ANON_EMAIL_DOMAIN}`) || rescue.deletedAt !== null;
+
+      // Anonymise the rescue row. Keep `name` collision-free by suffixing
+      // with the rescueId — the column has a unique index and a second
+      // erase would otherwise collide on "Deleted Rescue".
+      const rescueTombstone: Record<string, unknown> = {
+        name: `${ANON_RESCUE_NAME} ${rescueId}`,
+        email: tombstoneRescueEmail(rescueId),
+        phone: null,
+        address: 'redacted',
+        city: 'redacted',
+        county: null,
+        postcode: 'redacted',
+        description: null,
+        mission: null,
+        website: null,
+        contactPerson: ANON_CONTACT_PERSON,
+        contactTitle: null,
+        contactEmail: null,
+        contactPhone: null,
+        status: 'inactive',
+      };
+      await rescue.update(rescueTombstone, { transaction: tx });
+
+      // Archive every pet owned by the rescue. `archived: true` keeps
+      // the FK intact (adoption history, applications) but flips the
+      // pet out of discovery — existing pet scopes filter on
+      // `archived: false`.
+      const [petsArchived] = await Pet.update(
+        { archived: true, status: PetStatus.NOT_AVAILABLE },
+        {
+          where: { rescueId, archived: false },
+          transaction: tx,
+        }
+      );
+
+      // Pending applications on this rescue's pets — auto-reject so the
+      // applicants don't sit waiting forever. SUBMITTED is the only
+      // pending status in this codebase; APPROVED / REJECTED /
+      // WITHDRAWN are final.
+      const pendingApps = await Application.findAll({
+        where: { rescueId, status: ApplicationStatus.SUBMITTED },
+        transaction: tx,
+      });
+
+      const applicantUserIdsToNotify: string[] = [];
+      const rejectionReason = 'Rescue account deleted';
+      for (const app of pendingApps) {
+        const fromStatus = app.status;
+        // The status-transition trigger denormalises to_status back onto
+        // the application row (Postgres trigger; SQLite test fallback
+        // is an afterCreate hook on ApplicationStatusTransition). We
+        // still set rejectionReason on the row directly because the
+        // trigger only propagates the status column.
+        await ApplicationStatusTransition.create(
+          {
+            applicationId: app.applicationId,
+            fromStatus,
+            toStatus: ApplicationStatus.REJECTED,
+            transitionedAt: new Date(),
+            transitionedBy: actorUserId ?? null,
+            reason: rejectionReason,
+            metadata: { cause: 'rescue_erasure', rescueId },
+          },
+          { transaction: tx }
+        );
+        await app.update(
+          { rejectionReason, status: ApplicationStatus.REJECTED },
+          { transaction: tx, hooks: false }
+        );
+        applicantUserIdsToNotify.push(app.userId);
+      }
+
+      // Downgrade staff: drop their StaffMember rows for this rescue.
+      // User accounts (and any UserRole grants) are untouched per the
+      // design doc — staff stay as users, they just lose this
+      // affiliation.
+      const staff = await StaffMember.findAll({
+        where: { rescueId },
+        transaction: tx,
+      });
+      let staffDowngraded = 0;
+      for (const member of staff) {
+        await member.destroy({ transaction: tx });
+        staffDowngraded += 1;
+      }
+
+      // Soft-delete the rescue row last so it stops resolving via the
+      // default scope. Anything that needs to reach it (audit logs,
+      // FK joins) can still do so with `paranoid: false`.
+      if (!rescue.deletedAt) {
+        await rescue.destroy({ transaction: tx });
+      }
+
+      await AuditLogService.log({
+        action: 'GDPR_RESCUE_ERASE',
+        entity: 'Rescue',
+        entityId: rescueId,
+        userId: actorUserId ?? rescueId,
+        details: {
+          reason: reason ?? 'GDPR Art. 17 rescue erasure request',
+          alreadyArchived,
+          petsArchived,
+          applicationsRejected: pendingApps.length,
+          staffDowngraded,
+          actorUserId: actorUserId ?? null,
+        },
+      });
+
+      logger.info('Rescue anonymised for GDPR erasure', {
+        rescueId,
+        actorUserId: actorUserId ?? null,
+        alreadyArchived,
+        petsArchived,
+        applicationsRejected: pendingApps.length,
+        staffDowngraded,
+      });
+
+      return {
+        rescueId,
+        alreadyArchived,
+        petsArchived,
+        applicationsRejected: pendingApps.length,
+        staffDowngraded,
+        applicantUserIdsToNotify,
+      };
+    });
+
+    // Post-commit side-effect: notify each applicant that the rescue
+    // they applied to has been deleted and their application was
+    // auto-rejected. Failure to deliver does NOT roll back the erase —
+    // the source-of-truth state is already committed.
+    const uniqueApplicants = [...new Set(result.applicantUserIdsToNotify)];
+    if (uniqueApplicants.length > 0) {
+      try {
+        await NotificationService.createBulkNotifications(
+          uniqueApplicants,
+          {
+            type: NotificationType.APPLICATION_STATUS,
+            title: 'Your application was closed',
+            message:
+              'The rescue you applied to has closed its account. Your application has been automatically rejected. Please browse other rescues for available pets.',
+            data: { rescueId, cause: 'rescue_erasure' },
+          },
+          actorUserId ?? rescueId
+        );
+      } catch (error) {
+        logger.error('Failed to notify applicants after rescue erasure', {
+          rescueId,
+          applicantCount: uniqueApplicants.length,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    return result;
   },
 };
 
