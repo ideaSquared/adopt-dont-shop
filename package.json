@@ -82,6 +82,8 @@
     "generate:attachments": "node scripts/generate-test-attachments.js"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.59.1",
     "@vitest/coverage-v8": "^4.0.8",

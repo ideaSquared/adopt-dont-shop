@@ -27,6 +27,8 @@ test: add edge cases for registration
 docs: update API reference
 ```
 
+A Husky `commit-msg` hook runs [commitlint](https://commitlint.js.org/) with `@commitlint/config-conventional` to enforce this locally — non-conforming messages will be rejected before the commit is created. In an emergency you can bypass the hook with `git commit --no-verify`, but the CI commit-message check will still fail the PR.
+
 ### TDD loop
 
 This project follows strict Test-Driven Development — **no new behaviour without a test first**:
