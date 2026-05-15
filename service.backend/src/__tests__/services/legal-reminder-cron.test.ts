@@ -249,7 +249,13 @@ describe('legal reminder cron - runLegalReminderCron', () => {
     expect(mockSend.mock.calls[99][0].userId).toBe('u99');
   });
 
-  it('excludes users who were reminded inside the rate-limit window from the candidate query', async () => {
+  it('no longer pre-filters by audit_logs (ADS-551 — relies on per-user wasRecentlyReminded)', async () => {
+    // The candidate query MUST not bind a user-id-shaped exclusion list.
+    // Pre-fetching every recently-reminded user from audit_logs and
+    // passing the array to `Op.notIn` OOMs the worker / overflows
+    // Postgres bind-parameter limits at scale — see ADS-551 worker
+    // comment. The per-user wasRecentlyReminded check inside
+    // sendReacceptanceReminder is the only dedupe path now.
     mockAuditFindAll.mockResolvedValue([
       { user: 'recently-reminded-1' } as never,
       { user: 'recently-reminded-2' } as never,
@@ -258,12 +264,14 @@ describe('legal reminder cron - runLegalReminderCron', () => {
 
     await runLegalReminderCron({ dryRun: false });
 
+    // The cron should not have read audit_logs at all during candidate
+    // selection.
+    expect(mockAuditFindAll).not.toHaveBeenCalled();
+
     const userWhereCall = mockUserFindAll.mock.calls[0][0];
     const where = userWhereCall?.where as Record<string, unknown>;
-    const userIdClause = where.userId as Record<symbol, unknown[]>;
-    expect(userIdClause).toBeDefined();
-    const symbols = Object.getOwnPropertySymbols(userIdClause);
-    expect(symbols).toHaveLength(1);
-    expect(userIdClause[symbols[0]]).toEqual(['recently-reminded-1', 'recently-reminded-2']);
+    // No userId clause — only the status filter.
+    expect(where.userId).toBeUndefined();
+    expect(where.status).toBeDefined();
   });
 });

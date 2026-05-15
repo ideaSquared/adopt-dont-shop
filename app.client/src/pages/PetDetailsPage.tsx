@@ -67,10 +67,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
         logEvent('pet_details_viewed', 1, {
           pet_id: id,
           pet_name: petData.name,
-          pet_type: petData.type,
+          pet_type: petData.type ?? 'unknown',
           pet_breed: petData.breed || 'unknown',
           pet_age_years: petData.age_years?.toString() || 'unknown',
-          pet_status: petData.status,
+          pet_status: petData.status ?? 'unknown',
           pet_gender: petData.gender || 'unknown',
           pet_size: petData.size || 'unknown',
           has_images: petData.images && petData.images.length > 0 ? 'true' : 'false',
@@ -281,11 +281,17 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     return `${ageYears} year${ageYears !== 1 ? 's' : ''} ${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
   };
 
-  const formatSize = (size: string) => {
+  // Pet schema fields are optional because different API responses return
+  // different subsets (lib.pets/src/schemas.ts:55-57). Treat absent
+  // size / status as "Unknown" rather than crashing the details page.
+  const formatSize = (size: string | undefined) => {
+    if (!size) {
+      return 'Unknown';
+    }
     return size.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case 'available':
         return 'success';
@@ -302,7 +308,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string | undefined) => {
     switch (status) {
       case 'available':
         return 'Available for Adoption';
@@ -315,7 +321,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
       case 'medical_care':
         return 'In Medical Care';
       default:
-        return status;
+        return status ?? 'Unknown';
     }
   };
 

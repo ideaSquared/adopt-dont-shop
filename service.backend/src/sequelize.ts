@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 import { Sequelize, DataTypes } from 'sequelize';
-import { env, getDatabaseName } from './config/env';
+import { env, getDatabaseName, resolveDbSslMode, DbSslMode } from './config/env';
 import { logger } from './utils/logger';
 
 dotenv.config();
@@ -50,9 +50,37 @@ export const buildTimeoutConfig = (): TimeoutConfig => ({
   idleInTransactionSessionTimeoutMs: parseIntEnv('DB_IDLE_IN_TRANSACTION_TIMEOUT_MS', 60000),
 });
 
+/**
+ * Build the `pg`-shaped SSL config from a DB_SSL_MODE value (ADS-540).
+ *
+ * The `pg` driver accepts `false` (no TLS) or an object that maps onto
+ * libpq sslmode values:
+ *   - require:     TLS, no cert verification
+ *   - verify-ca:   TLS, verify CA but not hostname
+ *   - verify-full: TLS, verify CA + hostname
+ *
+ * For managed providers (RDS / Neon / Supabase) mount the provider's CA
+ * bundle into the container and set `DB_SSL_ROOT_CERT` to its path, then
+ * use `verify-full`.
+ */
+export const buildSslConfig = (
+  mode: DbSslMode
+): false | { rejectUnauthorized: boolean; ca?: string } => {
+  if (mode === 'disable') {
+    return false;
+  }
+  const ca = process.env.DB_SSL_ROOT_CERT;
+  if (mode === 'require') {
+    return { rejectUnauthorized: false };
+  }
+  // verify-ca / verify-full — both require certificate validation.
+  return ca ? { rejectUnauthorized: true, ca } : { rejectUnauthorized: true };
+};
+
 export const logEffectiveDbConfig = (
   pool: PoolConfig,
   timeouts: TimeoutConfig,
+  sslMode: DbSslMode = 'disable',
   log: (message: string) => void = msg => {
     // eslint-disable-next-line no-console
     console.log(msg);
@@ -62,7 +90,8 @@ export const logEffectiveDbConfig = (
     `[db] pool max=${pool.max} min=${pool.min} acquireMs=${pool.acquire} idleMs=${pool.idle} ` +
       `statementTimeoutMs=${timeouts.statementTimeoutMs} ` +
       `lockTimeoutMs=${timeouts.lockTimeoutMs} ` +
-      `idleInTransactionSessionTimeoutMs=${timeouts.idleInTransactionSessionTimeoutMs}`
+      `idleInTransactionSessionTimeoutMs=${timeouts.idleInTransactionSessionTimeoutMs} ` +
+      `sslMode=${sslMode}`
   );
 };
 
@@ -126,6 +155,8 @@ const databaseUrl = isTestEnvironment ? '' : getDatabaseUrl();
 
 const poolConfig = buildPoolConfig();
 const timeoutConfig = buildTimeoutConfig();
+const dbSslMode = resolveDbSslMode(env.NODE_ENV, env.DB_SSL_MODE, env.ALLOW_INSECURE_DB);
+const sslConfig = buildSslConfig(dbSslMode);
 
 const sequelize = isTestEnvironment
   ? new Sequelize('sqlite::memory:', {
@@ -169,6 +200,11 @@ const sequelize = isTestEnvironment
         statement_timeout: timeoutConfig.statementTimeoutMs,
         lock_timeout: timeoutConfig.lockTimeoutMs,
         idle_in_transaction_session_timeout: timeoutConfig.idleInTransactionSessionTimeoutMs,
+        // ADS-540: enforce TLS on the DB link. `disable` returns `false`
+        // so the `pg` driver opens a plaintext socket explicitly — the
+        // env guard in `config/env.ts` blocks that path in production
+        // unless ALLOW_INSECURE_DB=true is also set.
+        ssl: sslConfig,
       },
       logging:
         process.env.DB_LOGGING === 'true'
@@ -183,7 +219,7 @@ const sequelize = isTestEnvironment
     });
 
 if (!isTestEnvironment) {
-  logEffectiveDbConfig(poolConfig, timeoutConfig);
+  logEffectiveDbConfig(poolConfig, timeoutConfig, dbSslMode);
 }
 
 /**

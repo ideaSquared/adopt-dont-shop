@@ -9,7 +9,9 @@ type Props = {
   subheading?: string;
 };
 
-const typeEmoji = (type: string): string => {
+// Pet.type is optional in lib.pets/src/schemas.ts because not every
+// endpoint returns it. Default-to-paws keeps the hero card rendering.
+const typeEmoji = (type: string | undefined): string => {
   switch (type) {
     case 'dog':
       return '🐶';
