@@ -68,7 +68,7 @@ Keep `00-baseline.ts` as the **historical artefact** so DBs that have already ru
 
 - They sort *between* `00-baseline.ts` and `01-create-revoked-tokens.ts` in sequelize-cli's lexicographic ordering.
 - Each is a single `createTable` (plus its FK-free indexes) for one model.
-- Cross-table FKs are added in a final `00zz-baseline-foreign-keys.ts` so per-model files are independently reorderable without dependency cycles.
+- Cross-table FKs are added in a final `00-baseline-999-foreign-keys.ts` so per-model files are independently reorderable without dependency cycles.
 
 Example naming (proposal — exact prefix to be confirmed by maintainer):
 
@@ -85,7 +85,7 @@ Example naming (proposal — exact prefix to be confirmed by maintainer):
 00i-baseline-application-answers.ts
 00j-baseline-application-questions.ts
 ... (one file per model, ~60 files total)
-00zz-baseline-foreign-keys.ts           (cross-table FKs + composite indexes)
+00-baseline-999-foreign-keys.ts           (cross-table FKs + composite indexes)
 01-create-revoked-tokens.ts             (UNCHANGED — already covered by 00a-... if we keep it; see §2.3)
 ```
 
@@ -105,7 +105,7 @@ Group by domain so a reviewer can map a model PR to the right baseline file:
 | Discovery            | `swipe_actions`, `swipe_sessions`, `user_favorites`                                                                                                       | `00az–00bb`                   |
 | Consent & prefs      | `user_consents`, `user_notification_prefs`, `user_privacy_prefs`                                                                                          | `00bc–00be`                   |
 | Platform             | `audit_logs`, `idempotency_keys`, `cms_content`, `cms_navigation_menus`                                                                                   | `00bf–00bi`                   |
-| Cross-table FKs      | (no new tables, only constraints)                                                                                                                         | `00zz-baseline-foreign-keys`  |
+| Cross-table FKs      | (no new tables, only constraints)                                                                                                                         | `00-baseline-999-foreign-keys`  |
 
 **60 tables → ~60 per-model files + 1 FK file.** Final naming/ordering should be decided when the work is scheduled — the table above is illustrative, not prescriptive.
 
@@ -149,7 +149,7 @@ INSERT INTO "SequelizeMeta" (name) VALUES
   ('00a-baseline-users.ts'),
   ('00b-baseline-rescues.ts'),
   -- ... one per new file ...
-  ('00zz-baseline-foreign-keys.ts')
+  ('00-baseline-999-foreign-keys.ts')
 ON CONFLICT (name) DO NOTHING;
 ```
 
@@ -195,7 +195,7 @@ This check is automated as a CI gate — see [`schema-equivalence-runbook.md`](.
 | R3  | **Rollback ambiguity** — `down()` for the new per-model files would `DROP TABLE` and erase production data                      | High     | Mirror the existing `00-baseline.down` guard: refuse to run any per-model `down()` in production. Use `assertDestructiveDownAcknowledged` from `_helpers.ts` with a per-file key. Operators rollback by restoring from backup, not by `db:migrate:undo`. | Backend lead      |
 | R4  | **Partial-failure recovery mid-rebaseline-PR-deploy** — pre-seed succeeds, then `db:migrate` aborts on an unrelated migration, leaving SequelizeMeta with phantom entries for files that were never executed | Medium   | Pre-seed is *idempotent* (the rows describe DDL that already exists in the DB). A subsequent re-run of `db:migrate` will skip them — the desired outcome. Document this explicitly in the runbook. | SRE               |
 | R5  | **Dev-DB vs. prod-DB skew** — long-lived dev DBs may have ad-hoc schema mods (extra columns, missing indexes) that diverge from the sync() output | Medium   | Recommend `npm run docker:reset` for dev DBs as part of the upgrade. For dev DBs that must be preserved, ship a `scripts/rebaseline-diff.ts` that prints the schema diff so the developer can decide. | Each developer    |
-| R6  | **Hidden coupling — model side-effects at import time**: the current baseline imports `../models/index` to register tables. Per-model files will not. Anything that quietly relied on full-model import during `db:migrate` (associations, hooks) breaks silently. | Medium   | Audit `models/index.ts` for top-level side effects. Confirm no model-init code reaches the DB. Keep `import '../models/index'` in the FK file `00zz-baseline-foreign-keys.ts` as a belt-and-braces defence. | Backend lead      |
+| R6  | **Hidden coupling — model side-effects at import time**: the current baseline imports `../models/index` to register tables. Per-model files will not. Anything that quietly relied on full-model import during `db:migrate` (associations, hooks) breaks silently. | Medium   | Audit `models/index.ts` for top-level side effects. Confirm no model-init code reaches the DB. Keep `import '../models/index'` in the FK file `00-baseline-999-foreign-keys.ts` as a belt-and-braces defence. | Backend lead      |
 | R7  | **Sequelize-cli filename ordering bug** — `00aa` < `01` lexicographically, but if anyone uses `sequelize-cli` with the wrong sort order the new files run *after* `01-...`, which expects them to exist | Medium   | Verify the sort ordering with a test: list `migrations/` files in Node's `Array.prototype.sort()` order and assert `00*` precedes `01*`. Pin the sequelize-cli version in package.json. | Backend lead      |
 | R8  | **Increased PR review surface** — ~60 new files in one PR, each individually trivial but collectively unreviewable                | Low      | Land per-domain (auth, rescues, pets, …) — one PR per domain group from §2.2, with the `00aa-rebaseline-bootstrap` arriving in the *last* PR so the SequelizeMeta pre-seed lists the complete set. | Backend lead      |
 | R9  | **CI test pollution** — existing migration round-trip tests use `sync({ force: true })`. After the rebaseline they should arguably load the baseline migrations instead, otherwise the tests still don't cover the new files. | Low      | Out of scope for the rebaseline itself; track a follow-up to migrate the migration tests to load `00*-baseline*` files explicitly. | Backend lead      |

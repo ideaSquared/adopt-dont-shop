@@ -11,36 +11,51 @@ import { readStoredConsent } from './cookie-consent-storage';
  * to /api/v1/privacy/consent so the audit log captures the decision
  * against the account.
  *
- * Idempotency: a second key `legal-consent-v1:attached` records the
- * `userId,cookiesVersion` tuple last attached. Subsequent calls with the
- * same tuple are no-ops, so calling this on every rehydrate (or both
- * fresh login + rehydrate within one tab life) does not produce
- * duplicate audit rows.
+ * Idempotency (ADS-555): a side-table keyed by userId remembers the
+ * cookiesVersion last attached for each user. The previous shape held a
+ * single `<userId>::<cookiesVersion>` tuple, which meant signing in as
+ * A → then B → then back to A would re-attach for A every time. The
+ * map shape caps at 10 user IDs with LRU eviction so the worst case on
+ * a shared kiosk doesn't grow without bound.
  *
  * Failures are swallowed so a transient network error here cannot break
  * sign-in. The next session-authenticated event will retry the attach,
- * because the dedupe key is only written on success.
+ * because the dedupe entry is only written on success.
  */
 
-const ATTACHED_STORAGE_KEY = 'legal-consent-v1:attached';
+const ATTACHED_MAP_STORAGE_KEY = 'legal-consent-v1:attached-map';
+const ATTACHED_MAP_MAX_USERS = 10;
 
-const safeReadAttachKey = (): string | null => {
+type AttachedMap = Record<string, string>;
+
+const safeReadAttachedMap = (): AttachedMap => {
   try {
     if (typeof window === 'undefined' || !window.localStorage) {
-      return null;
+      return {};
     }
-    return window.localStorage.getItem(ATTACHED_STORAGE_KEY);
+    const raw = window.localStorage.getItem(ATTACHED_MAP_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+    const entries = Object.entries(parsed).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string'
+    );
+    return Object.fromEntries(entries);
   } catch {
-    return null;
+    return {};
   }
 };
 
-const safeWriteAttachKey = (value: string): void => {
+const safeWriteAttachedMap = (map: AttachedMap): void => {
   try {
     if (typeof window === 'undefined' || !window.localStorage) {
       return;
     }
-    window.localStorage.setItem(ATTACHED_STORAGE_KEY, value);
+    window.localStorage.setItem(ATTACHED_MAP_STORAGE_KEY, JSON.stringify(map));
   } catch {
     // localStorage unavailable; without persistence we accept that the
     // attach call may run again on the next session event. Better than
@@ -48,8 +63,35 @@ const safeWriteAttachKey = (value: string): void => {
   }
 };
 
-const buildAttachKey = (userId: string, cookiesVersion: string): string =>
-  `${userId}::${cookiesVersion}`;
+/**
+ * Insert/refresh a (userId, cookiesVersion) entry while preserving
+ * insertion order so the oldest entry can be evicted when the map
+ * exceeds the cap. Re-inserting an existing user moves it to the end
+ * (most-recent), implementing LRU promotion on write.
+ */
+const upsertAttachedEntry = (
+  map: AttachedMap,
+  userId: string,
+  cookiesVersion: string
+): AttachedMap => {
+  const next: AttachedMap = {};
+  for (const [key, value] of Object.entries(map)) {
+    if (key === userId) {
+      continue;
+    }
+    next[key] = value;
+  }
+  next[userId] = cookiesVersion;
+  const keys = Object.keys(next);
+  if (keys.length <= ATTACHED_MAP_MAX_USERS) {
+    return next;
+  }
+  const trimmed: AttachedMap = {};
+  for (const key of keys.slice(keys.length - ATTACHED_MAP_MAX_USERS)) {
+    trimmed[key] = next[key];
+  }
+  return trimmed;
+};
 
 export const attachStoredCookieConsent = async (userId: string): Promise<void> => {
   let currentCookiesVersion: string;
@@ -65,8 +107,8 @@ export const attachStoredCookieConsent = async (userId: string): Promise<void> =
   if (!stored) {
     return;
   }
-  const attachKey = buildAttachKey(userId, stored.cookiesVersion);
-  if (safeReadAttachKey() === attachKey) {
+  const attachedMap = safeReadAttachedMap();
+  if (attachedMap[userId] === stored.cookiesVersion) {
     return;
   }
   try {
@@ -78,8 +120,8 @@ export const attachStoredCookieConsent = async (userId: string): Promise<void> =
       cookiesVersion: stored.cookiesVersion,
       analyticsConsent: stored.analyticsConsent,
     });
-    safeWriteAttachKey(attachKey);
+    safeWriteAttachedMap(upsertAttachedEntry(attachedMap, userId, stored.cookiesVersion));
   } catch {
-    // Leave the dedupe key un-set so the next session event retries.
+    // Leave the dedupe entry un-written so the next session event retries.
   }
 };

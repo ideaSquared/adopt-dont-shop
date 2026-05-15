@@ -15,7 +15,15 @@ vi.mock('./legal-service', () => ({
 
 import { attachStoredCookieConsent } from './attach-stored-consent';
 
-const ATTACHED_KEY = 'legal-consent-v1:attached';
+const ATTACHED_MAP_KEY = 'legal-consent-v1:attached-map';
+
+const readAttachedMap = (): Record<string, string> => {
+  const raw = window.localStorage.getItem(ATTACHED_MAP_KEY);
+  if (!raw) {
+    return {};
+  }
+  return JSON.parse(raw) as Record<string, string>;
+};
 
 describe('attachStoredCookieConsent', () => {
   beforeEach(() => {
@@ -81,7 +89,7 @@ describe('attachStoredCookieConsent', () => {
     await attachStoredCookieConsent('user-1');
 
     expect(recordCookiesConsentMock).toHaveBeenCalledTimes(1);
-    expect(window.localStorage.getItem(ATTACHED_KEY)).toBe(`user-1::${CURRENT_VERSION}`);
+    expect(readAttachedMap()).toEqual({ 'user-1': CURRENT_VERSION });
   });
 
   it('attaches once per userId — a different userId on the same browser still gets one call', async () => {
@@ -91,21 +99,61 @@ describe('attachStoredCookieConsent', () => {
     await attachStoredCookieConsent('user-2');
 
     expect(recordCookiesConsentMock).toHaveBeenCalledTimes(2);
-    expect(window.localStorage.getItem(ATTACHED_KEY)).toBe(`user-2::${CURRENT_VERSION}`);
+    expect(readAttachedMap()).toEqual({
+      'user-1': CURRENT_VERSION,
+      'user-2': CURRENT_VERSION,
+    });
   });
 
-  it('retries on the next call when the previous attach failed (no dedupe key written)', async () => {
+  it('does NOT re-attach when alternating between users (ADS-555)', async () => {
+    // The pre-ADS-555 implementation kept a single tuple, so signing in
+    // as A → B → A logged a duplicate audit row for A on the second
+    // visit. The map keeps a per-user entry so subsequent sign-ins for
+    // the same (user, version) pair are no-ops.
+    storeConsent(true);
+
+    await attachStoredCookieConsent('user-A');
+    // simulate logout
+    await attachStoredCookieConsent('user-B');
+    // simulate logout
+    await attachStoredCookieConsent('user-A');
+    // simulate logout
+    await attachStoredCookieConsent('user-A');
+
+    expect(recordCookiesConsentMock).toHaveBeenCalledTimes(2);
+    expect(readAttachedMap()).toEqual({
+      'user-A': CURRENT_VERSION,
+      'user-B': CURRENT_VERSION,
+    });
+  });
+
+  it('caps the attached map at 10 user IDs and evicts the oldest entry', async () => {
+    storeConsent(true);
+
+    // Fill 10 users + 1 more to force eviction.
+    for (let i = 0; i < 11; i += 1) {
+      await attachStoredCookieConsent(`user-${i}`);
+    }
+
+    const map = readAttachedMap();
+    expect(Object.keys(map)).toHaveLength(10);
+    // The first inserted user-0 is the LRU; it should be the one evicted.
+    expect(map['user-0']).toBeUndefined();
+    expect(map['user-10']).toBe(CURRENT_VERSION);
+  });
+
+  it('retries on the next call when the previous attach failed (no dedupe entry written)', async () => {
     storeConsent(true);
     recordCookiesConsentMock.mockRejectedValueOnce(new Error('network'));
 
     await attachStoredCookieConsent('user-1');
-    expect(window.localStorage.getItem(ATTACHED_KEY)).toBeNull();
+    expect(window.localStorage.getItem(ATTACHED_MAP_KEY)).toBeNull();
 
     recordCookiesConsentMock.mockResolvedValueOnce(undefined);
     await attachStoredCookieConsent('user-1');
 
     expect(recordCookiesConsentMock).toHaveBeenCalledTimes(2);
-    expect(window.localStorage.getItem(ATTACHED_KEY)).toBe(`user-1::${CURRENT_VERSION}`);
+    expect(readAttachedMap()).toEqual({ 'user-1': CURRENT_VERSION });
   });
 
   it('skips silently when fetching the cookies version fails', async () => {

@@ -1,10 +1,19 @@
 import { Button } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { setAnalyticsConsent } from '@adopt-dont-shop/lib.observability';
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type KeyboardEvent,
+} from 'react';
 import { fetchCookiesVersion, recordCookiesConsent } from '../services/legal-service';
 import {
+  COOKIE_CONSENT_STORAGE_KEY,
   readStoredConsent,
+  readStoredConsentRaw,
   writeStoredConsent,
   type StoredCookieConsent,
 } from '../services/cookie-consent-storage';
@@ -97,8 +106,8 @@ export const CookieBanner = () => {
       setShowDetails(true);
       setAnalyticsToggle(false);
     };
-    window.addEventListener('legal-consent-v1:cleared', handler);
-    return () => window.removeEventListener('legal-consent-v1:cleared', handler);
+    window.addEventListener(`${COOKIE_CONSENT_STORAGE_KEY}:cleared`, handler);
+    return () => window.removeEventListener(`${COOKIE_CONSENT_STORAGE_KEY}:cleared`, handler);
   }, []);
 
   const persistChoice = async (analyticsConsent: boolean): Promise<void> => {
@@ -251,52 +260,79 @@ export const CookieBanner = () => {
 
 /**
  * Hook for components that need to read or re-open the cookie banner
- * (e.g. a footer "Cookie preferences" link in slice 5b). Internal
- * subscription pattern is intentionally minimal: we re-read localStorage
- * lazily — banner choices are infrequent so polling is fine.
+ * (e.g. a footer "Cookie preferences" link in slice 5b).
+ *
+ * Subscribes via `useSyncExternalStore` so consumers re-render when the
+ * stored choice changes in this tab (banner save / clear) AND when
+ * another tab changes localStorage (the browser fires the `storage`
+ * event on every other tab when one tab writes / removes a key).
+ *
+ * The snapshot is version-agnostic by design: this hook only answers
+ * "has the user ever decided for SOME version". Callers that need
+ * current-version-only behaviour should use the banner itself, which
+ * fetches the published version on mount.
  */
+const CONSENT_CLEARED_EVENT = `${COOKIE_CONSENT_STORAGE_KEY}:cleared`;
+
+const subscribeToConsent = (callback: () => void): (() => void) => {
+  if (typeof window === 'undefined') {
+    return () => undefined;
+  }
+  const handleStorage = (event: StorageEvent): void => {
+    if (event.key === null || event.key === COOKIE_CONSENT_STORAGE_KEY) {
+      callback();
+    }
+  };
+  window.addEventListener(CONSENT_CLEARED_EVENT, callback);
+  window.addEventListener('storage', handleStorage);
+  return () => {
+    window.removeEventListener(CONSENT_CLEARED_EVENT, callback);
+    window.removeEventListener('storage', handleStorage);
+  };
+};
+
+/**
+ * useSyncExternalStore requires a referentially-stable snapshot between
+ * polls when the underlying value hasn't changed — returning a fresh
+ * object every call triggers React's "getSnapshot should be cached"
+ * warning and breaks bailout. We cache the last serialized record and
+ * return the previous parsed instance when the bytes are unchanged.
+ */
+let cachedSnapshotRaw: string | null = null;
+let cachedSnapshot: StoredCookieConsent | null = null;
+
+const getConsentSnapshot = (): StoredCookieConsent | null => {
+  const parsed = readStoredConsentRaw();
+  const serialized = parsed === null ? null : JSON.stringify(parsed);
+  if (serialized === cachedSnapshotRaw) {
+    return cachedSnapshot;
+  }
+  cachedSnapshotRaw = serialized;
+  cachedSnapshot = parsed;
+  return parsed;
+};
+
+const getConsentServerSnapshot = (): StoredCookieConsent | null => null;
+
 export const useCookieConsent = (): {
   analyticsConsent: boolean;
   hasDecided: boolean;
   openPreferences: () => void;
 } => {
-  // The `cookiesVersion` argument to readStoredConsent comes from a
-  // network fetch on banner mount; this hook intentionally only checks
-  // "has the user ever decided for SOME version" so it stays
-  // synchronous. Callers that need the current-version-only view should
-  // use the banner itself.
-  const stored = (() => {
-    try {
-      if (typeof window === 'undefined' || !window.localStorage) {
-        return null;
-      }
-      const raw = window.localStorage.getItem('legal-consent-v1');
-      if (!raw) {
-        return null;
-      }
-      const parsed: unknown = JSON.parse(raw);
-      if (
-        parsed &&
-        typeof parsed === 'object' &&
-        'analyticsConsent' in parsed &&
-        typeof (parsed as { analyticsConsent: unknown }).analyticsConsent === 'boolean'
-      ) {
-        return parsed as StoredCookieConsent;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  })();
+  const stored = useSyncExternalStore(
+    subscribeToConsent,
+    getConsentSnapshot,
+    getConsentServerSnapshot
+  );
 
   const openPreferences = () => {
     try {
       if (typeof window === 'undefined' || !window.localStorage) {
         return;
       }
-      window.localStorage.removeItem('legal-consent-v1');
+      window.localStorage.removeItem(COOKIE_CONSENT_STORAGE_KEY);
       // Force a synthetic event so any mounted CookieBanner re-evaluates.
-      window.dispatchEvent(new Event('legal-consent-v1:cleared'));
+      window.dispatchEvent(new Event(CONSENT_CLEARED_EVENT));
     } catch {
       // localStorage unavailable; nothing to do.
     }

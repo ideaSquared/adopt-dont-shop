@@ -18,7 +18,7 @@ import { QueryInterface, DataTypes } from 'sequelize';
  * The FK swap below (`removeConstraint` + `addConstraint`) is unchanged —
  * it has always been idempotent via the `.catch(() => {})` on the
  * removeConstraint, and the per-model baseline does not declare those FKs
- * (they live in `00-baseline-zzz-foreign-keys.ts`).
+ * (they live in `00-baseline-999-foreign-keys.ts`).
  *
  * `down()` is intentionally unchanged. Per the design doc, rollback for
  * the rebaseline-coexistent migrations is via DB backup, not
