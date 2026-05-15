@@ -7,6 +7,7 @@ import PetGrid from '../components/pets/PetGrid';
 import PetFilters from '../components/pets/PetFilters.tsx';
 import PetFormModal from '../components/pets/PetFormModal.tsx';
 import PetStatusFilter from '../components/pets/PetStatusFilter.tsx';
+import PetCsvImportModal from '../components/pets/PetCsvImportModal.tsx';
 import * as styles from './PetManagement.css';
 
 interface PetStats {
@@ -66,6 +67,7 @@ const PetManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCsvImport, setShowCsvImport] = useState(false);
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
 
   // Filter states
@@ -328,6 +330,13 @@ const PetManagement: React.FC = () => {
             <p>Manage your rescue's pet inventory, medical records, and adoption status.</p>
           </div>
           <div className={styles.headerActions}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCsvImport(true)}
+              disabled={!user?.rescueId}
+            >
+              Import CSV
+            </Button>
             <Button variant="primary" onClick={() => setShowAddModal(true)}>
               Add New Pet
             </Button>
@@ -466,6 +475,19 @@ const PetManagement: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* CSV Import Modal (ADS-133) */}
+      {showCsvImport && user?.rescueId && (
+        <PetCsvImportModal
+          isOpen={showCsvImport}
+          rescueId={user.rescueId}
+          onClose={() => setShowCsvImport(false)}
+          onImported={() => {
+            fetchPets();
+            fetchStats();
+          }}
+        />
+      )}
 
       {/* Add/Edit Pet Modal */}
       {(showAddModal || editingPet) && (

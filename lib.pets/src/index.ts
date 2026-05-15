@@ -8,4 +8,7 @@ export * from './schemas';
 // Re-export non-schema types from types module
 export type { PaginatedResponse, PetsServiceConfig } from './types';
 
+// CSV import helpers (ADS-133)
+export * from './csv-import';
+
 export * from './constants';
