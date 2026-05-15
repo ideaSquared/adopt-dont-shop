@@ -38,17 +38,23 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
 
   useEffect(() => {
     if (pet) {
+      // Pet schema fields are optional because different API responses
+      // return different subsets (lib.pets/src/schemas.ts:55-57). The
+      // PetCreateData form fields that the rescue UI surfaces as
+      // required selects (type / gender / size) need concrete defaults
+      // when the API didn't include them; PetCreateData also requires
+      // string-shaped name / breed / rescueId / color.
       setFormData({
         name: pet.name,
-        type: pet.type,
-        breed: pet.breed,
-        rescueId: pet.rescue_id,
+        type: pet.type ?? 'dog',
+        breed: pet.breed ?? '',
+        rescueId: pet.rescue_id ?? '',
         secondaryBreed: pet.secondary_breed,
         ageYears: pet.age_years,
         ageMonths: pet.age_months,
-        gender: pet.gender,
-        size: pet.size,
-        color: pet.color,
+        gender: pet.gender ?? 'male',
+        size: pet.size ?? 'medium',
+        color: pet.color ?? '',
         markings: pet.markings,
         weightKg: pet.weight_kg,
         adoptionFee: pet.adoption_fee,

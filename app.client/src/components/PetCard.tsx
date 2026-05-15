@@ -41,10 +41,10 @@ export const PetCard: React.FC<PetCardProps> = ({
     logEvent('pet_card_clicked', 1, {
       pet_id: pet.pet_id,
       pet_name: pet.name,
-      pet_type: pet.type,
+      pet_type: pet.type ?? 'unknown',
       pet_breed: pet.breed || 'unknown',
       pet_age_years: pet.age_years?.toString() || 'unknown',
-      pet_status: pet.status,
+      pet_status: pet.status ?? 'unknown',
       has_image: (!!resolvedImageUrl).toString(),
       is_favorite: isFavorite.toString(),
     });
@@ -60,7 +60,7 @@ export const PetCard: React.FC<PetCardProps> = ({
       logEvent('pet_favorite_unauthorized', 1, {
         pet_id: pet.pet_id,
         pet_name: pet.name,
-        pet_type: pet.type,
+        pet_type: pet.type ?? 'unknown',
       });
       return;
     }
@@ -76,7 +76,7 @@ export const PetCard: React.FC<PetCardProps> = ({
         logEvent('pet_unfavorited', 1, {
           pet_id: pet.pet_id,
           pet_name: pet.name,
-          pet_type: pet.type,
+          pet_type: pet.type ?? 'unknown',
           pet_breed: pet.breed || 'unknown',
         });
       } else {
@@ -87,7 +87,7 @@ export const PetCard: React.FC<PetCardProps> = ({
         logEvent('pet_favorited', 1, {
           pet_id: pet.pet_id,
           pet_name: pet.name,
-          pet_type: pet.type,
+          pet_type: pet.type ?? 'unknown',
           pet_breed: pet.breed || 'unknown',
         });
       }
@@ -122,24 +122,32 @@ export const PetCard: React.FC<PetCardProps> = ({
     setShowLoginPrompt(false);
   };
 
-  const formatAge = (ageYears: number, ageMonths: number) => {
-    if (ageYears === 0 && ageMonths === 0) {
+  // Pet schema fields are optional because different API responses return
+  // different subsets (lib.pets/src/schemas.ts:55-57). Treat absent age,
+  // size, and status as "Unknown" rather than crashing the card render.
+  const formatAge = (ageYears: number | undefined, ageMonths: number | undefined) => {
+    const years = ageYears ?? 0;
+    const months = ageMonths ?? 0;
+    if (years === 0 && months === 0) {
       return 'Unknown';
     }
-    if (ageYears === 0) {
-      return `${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
+    if (years === 0) {
+      return `${months} month${months !== 1 ? 's' : ''}`;
     }
-    if (ageMonths === 0) {
-      return `${ageYears} year${ageYears !== 1 ? 's' : ''}`;
+    if (months === 0) {
+      return `${years} year${years !== 1 ? 's' : ''}`;
     }
-    return `${ageYears} year${ageYears !== 1 ? 's' : ''}, ${ageMonths} month${ageMonths !== 1 ? 's' : ''}`;
+    return `${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`;
   };
 
-  const formatSize = (size: string) => {
+  const formatSize = (size: string | undefined) => {
+    if (!size) {
+      return 'Unknown';
+    }
     return size.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case 'available':
         return 'success';
@@ -156,7 +164,7 @@ export const PetCard: React.FC<PetCardProps> = ({
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string | undefined) => {
     switch (status) {
       case 'available':
         return 'Available';
@@ -169,7 +177,7 @@ export const PetCard: React.FC<PetCardProps> = ({
       case 'medical_care':
         return 'Medical Care';
       default:
-        return status;
+        return status ?? 'Unknown';
     }
   };
   return (
