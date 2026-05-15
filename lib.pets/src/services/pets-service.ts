@@ -6,10 +6,29 @@ import { PETS_ENDPOINTS } from '../constants/endpoints';
 
 const camelToSnake = (key: string): string => key.replace(/([A-Z])/g, (m) => `_${m.toLowerCase()}`);
 
+/**
+ * Strict camelCase → snake_case rename + Zod validation for an inbound
+ * pet payload. Two pre-processing steps before `PetSchema.parse`:
+ *
+ *   1. Drop entries whose value is `null` — Sequelize emits `null` for
+ *      every `allowNull: true` column on the model (location, breed,
+ *      adoption_fee, …) but `.optional()` in Zod v3 only accepts
+ *      `undefined`, so a null would otherwise blow up the parse and the
+ *      caller would see `searchPets` reject the whole list. Stripping
+ *      nulls turns each absent column back into the schema's "field
+ *      omitted" branch.
+ *
+ *   2. Rename keys to snake_case so the rest of the codebase can keep
+ *      its `pet.pet_id` / `pet.age_years` shape regardless of which
+ *      casing the API chose.
+ */
 const normalisePet = (raw: unknown): Pet => {
   const rawRecord = z.record(z.string(), z.unknown()).parse(raw);
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(rawRecord)) {
+    if (value === null) {
+      continue;
+    }
     result[camelToSnake(key)] = value;
   }
   return PetSchema.parse(result);
