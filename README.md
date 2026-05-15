@@ -149,6 +149,19 @@ CORS origins are defined once in the root `.env` (`CORS_ORIGIN`), covering both 
 
 All API endpoints live under `/api/v1/` (e.g. `/api/v1/auth/login`). Swagger UI: http://localhost:5000/api/docs (or http://api.localhost/api/docs via the nginx proxy).
 
+## Deployment
+
+Deploys are driven by the `Makefile` at the repo root, which dispatches the GitHub Actions workflows.
+
+```bash
+make staging               # deploy main to staging (runs immediately)
+make prod                  # deploy main to production (requires approval in the GitHub UI)
+make rollback env=production sha=abc1234   # roll the named environment back to a specific commit
+make history               # list recent commits to pick a rollback target
+```
+
+> `make prod` triggers a real production deployment via the `deploy.yml` workflow. Do not confuse it with `npm run prod:up`, which only spins up the production Docker stack locally for a smoke test and does not deploy anywhere.
+
 ## Documentation
 
 - [docs/DOCKER.md](./docs/DOCKER.md) — Docker infrastructure deep dive
