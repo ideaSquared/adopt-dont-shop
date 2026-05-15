@@ -23,6 +23,8 @@ beforeAll(() => {
   process.env.SESSION_SECRET = process.env.SESSION_SECRET ?? 'c'.repeat(64);
   process.env.CSRF_SECRET = process.env.CSRF_SECRET ?? 'd'.repeat(64);
   process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY ?? 'e'.repeat(64);
+  // ADS-542: required in production env validation.
+  process.env.UPLOAD_SIGNING_SECRET = process.env.UPLOAD_SIGNING_SECRET ?? 'f'.repeat(64);
   // DB name stubs for whichever NODE_ENV the test resets the modules
   // under — sequelize.ts checks the matching `<ENV>_DB_NAME`.
   process.env.DEV_DB_NAME = process.env.DEV_DB_NAME ?? 'ads_dev';

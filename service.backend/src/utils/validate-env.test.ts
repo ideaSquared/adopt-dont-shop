@@ -13,6 +13,8 @@ const SECRET_A = 'a'.repeat(32);
 const SECRET_B = 'b'.repeat(32);
 const SECRET_C = 'c'.repeat(32);
 const SECRET_D = 'd'.repeat(32);
+// ADS-542: UPLOAD_SIGNING_SECRET is required in production validation.
+const SECRET_E = 'e'.repeat(32);
 
 const baseProdEnv = (): NodeJS.ProcessEnv => ({
   NODE_ENV: 'production',
@@ -26,6 +28,7 @@ const baseProdEnv = (): NodeJS.ProcessEnv => ({
   JWT_REFRESH_SECRET: SECRET_B,
   SESSION_SECRET: SECRET_C,
   CSRF_SECRET: SECRET_D,
+  UPLOAD_SIGNING_SECRET: SECRET_E,
   ENCRYPTION_KEY: VALID_HEX_KEY,
   CORS_ORIGIN: 'https://example.com',
   FRONTEND_URL: 'https://app.example.com',

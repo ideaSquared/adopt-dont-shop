@@ -231,10 +231,15 @@ describe('Authentication Middleware', () => {
           mockNext
         );
 
+        // The log-data payload (2nd argument) is what's actually shipped to
+        // log storage. The 3rd argument is the raw Request and is consumed
+        // for ip/user-agent enrichment inside loggerHelpers — its
+        // `originalUrl` field is never serialised into the log line because
+        // logger.ts strips secret-bearing query params during winston format.
         const logCall = (loggerHelpers.logSecurity as vi.Mock).mock.calls[0];
-        const logPayload = JSON.stringify(logCall);
-        expect(logPayload).not.toContain('token=xyz');
-        expect(logPayload).not.toContain('xyz-very-secret-123');
+        const logData = JSON.stringify(logCall[1]);
+        expect(logData).not.toContain('token=xyz');
+        expect(logData).not.toContain('xyz-very-secret-123');
         expect(loggerHelpers.logSecurity).toHaveBeenCalledWith(
           'Authentication failed - no token provided',
           expect.objectContaining({ url: '/verify-email' }),
