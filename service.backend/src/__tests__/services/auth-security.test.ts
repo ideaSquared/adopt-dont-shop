@@ -763,17 +763,23 @@ describe('AuthService - Security Business Logic', () => {
       expect(result.user).not.toHaveProperty('verificationToken');
     });
 
-    it('should prevent duplicate email registration', async () => {
-      // Given: Existing user with email
+    it('does not expose whether an email is registered (returns same shape as new registration)', async () => {
       const existingUser = createMockUser();
       MockedUser.findOne = vi.fn().mockResolvedValue(existingUser);
 
-      const registerData = createValidRegisterData();
+      vi.spyOn(
+        AuthService as unknown as { sendAccountExistsEmail: (e: string) => Promise<void> },
+        'sendAccountExistsEmail'
+      ).mockResolvedValue(undefined);
 
-      // When & Then: Registration fails
-      await expect(AuthService.register(registerData)).rejects.toThrow(
-        'User already exists with this email'
-      );
+      const registerData = createValidRegisterData();
+      const result = await AuthService.register(registerData);
+
+      // Resolves (not rejects) with a generic message — indistinguishable from a fresh registration.
+      expect(result).toEqual({ message: expect.any(String) });
+      expect(result).not.toHaveProperty('token');
+      expect(result).not.toHaveProperty('user');
+      expect(MockedUser.create).not.toHaveBeenCalled();
     });
   });
 

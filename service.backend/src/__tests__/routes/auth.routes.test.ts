@@ -128,18 +128,21 @@ describe('Auth routes', () => {
       userType: 'ADOPTER',
     };
 
-    it('returns 201 on successful registration with no tokens (ADS-538)', async () => {
+    it('returns 201 with a generic message on successful registration', async () => {
       mockRegister.mockResolvedValue({
-        user: { userId: 'new-uuid', email: validBody.email },
-        message: 'Registration successful. Please check your email to verify your account.',
+        message: 'Registration request received. Check your email to continue.',
       });
 
       const res = await request(buildApp()).post('/api/v1/auth/register').send(validBody);
 
       expect(res.status).toBe(201);
+      expect(res.body).toEqual({
+        message: 'Registration request received. Check your email to continue.',
+      });
       expect(res.body).not.toHaveProperty('token');
       expect(res.body).not.toHaveProperty('refreshToken');
-      // No auth cookies set either.
+      expect(res.body).not.toHaveProperty('user');
+      // No auth cookies set either (ADS-538).
       const setCookieHeader = res.headers['set-cookie'];
       const cookies = Array.isArray(setCookieHeader)
         ? setCookieHeader
@@ -148,6 +151,20 @@ describe('Auth routes', () => {
           : [];
       expect(cookies.some((c: string) => c.startsWith('accessToken='))).toBe(false);
       expect(cookies.some((c: string) => c.startsWith('refreshToken='))).toBe(false);
+    });
+
+    it('returns 201 with the same generic message when email is already registered', async () => {
+      // The service resolves (not rejects) with the same message — no enumeration possible.
+      mockRegister.mockResolvedValue({
+        message: 'Registration request received. Check your email to continue.',
+      });
+
+      const res = await request(buildApp()).post('/api/v1/auth/register').send(validBody);
+
+      expect(res.status).toBe(201);
+      expect(res.body).toEqual({
+        message: 'Registration request received. Check your email to continue.',
+      });
     });
 
     it('returns 422 when required fields are missing', async () => {

@@ -50,6 +50,12 @@ export interface AuthResponse extends TokenPair {
   user: Partial<User>;
 }
 
+// Registration always returns a generic message regardless of whether the
+// email already exists — this prevents account enumeration (ADS-541).
+export type RegisterResponse = {
+  message: string;
+};
+
 export interface AuthenticatedUser {
   userId: string;
   email: string;

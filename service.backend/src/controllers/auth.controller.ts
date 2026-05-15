@@ -69,15 +69,6 @@ export class AuthController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Registration failed:', error);
-
-      if (errorMessage.includes('already exists')) {
-        // Return the same 201 response to prevent email enumeration
-        res.status(201).json({
-          message: 'Registration successful. Please check your email for verification.',
-        });
-        return;
-      }
-
       res.status(400).json({ error: errorMessage });
     }
   }
