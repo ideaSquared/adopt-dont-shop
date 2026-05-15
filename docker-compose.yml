@@ -134,7 +134,7 @@ services:
   # ============================================================================
 
   lib-types-watcher:
-    image: node:20-alpine
+    image: node:22-alpine
     working_dir: /app/lib.types
     volumes:
       - ./lib.types:/app/lib.types
