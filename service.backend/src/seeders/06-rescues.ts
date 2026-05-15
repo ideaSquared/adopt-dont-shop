@@ -21,6 +21,7 @@ const rescueOrganizations = [
     contactEmail: 'rescue.manager@pawsrescue.dev',
     contactPhone: '(512) 555-0123',
     status: 'verified' as const,
+    plan: 'professional' as const,
     verifiedAt: new Date('2023-01-15'),
     verifiedBy: '0cbbd913-c94c-4254-a028-81b76df89c9f',
     // Toggles like autoApproveApplications, requireHomeVisit live in
@@ -147,5 +148,5 @@ export async function seedRescues() {
     });
   }
 
-  console.log(`✅ Created ${rescueOrganizations.length} rescue organizations`);
+  console.warn(`✅ Created ${rescueOrganizations.length} rescue organizations`);
 }
