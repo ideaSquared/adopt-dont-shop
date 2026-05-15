@@ -274,4 +274,56 @@ describe('PetsService', () => {
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/1/favorite/status');
     });
   });
+
+  describe('backend enum alignment', () => {
+    // The frontend Zod schema validates inbound API payloads. When the
+    // backend grew enum variants (`AgeGroup.BABY`, `PetType.SMALL_MAMMAL`,
+    // `PetStatus.MEDICAL_HOLD`, `Size.EXTRA_SMALL`,
+    // `SpayNeuterStatus.NOT_ALTERED`, `Gender.UNKNOWN`,
+    // `VaccinationStatus.NOT_VACCINATED`) the frontend schema didn't
+    // follow. `normalisePet` then threw on any seeded faker pet that
+    // carried one of those values, and `SearchPage` swallowed the error
+    // → `/search` rendered an empty grid in E2E. Keep these in lockstep
+    // with `service.backend/src/models/Pet.ts`.
+    it('accepts every backend enum variant emitted by faker / seeders', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            petId: 'pet-baby-small-mammal',
+            name: 'Hammie',
+            type: 'small_mammal',
+            ageGroup: 'baby',
+            ageYears: 0,
+            ageMonths: 3,
+            gender: 'unknown',
+            size: 'extra_small',
+            status: 'medical_hold',
+            vaccinationStatus: 'not_vaccinated',
+            spayNeuterStatus: 'not_altered',
+            energyLevel: 'very_high',
+          },
+          {
+            petId: 'pet-deceased-fish',
+            name: 'Bubbles',
+            type: 'fish',
+            ageGroup: 'senior',
+            gender: 'female',
+            size: 'small',
+            status: 'deceased',
+          },
+        ],
+        meta: { page: 1, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+      });
+
+      const result = await service.searchPets();
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].type).toBe('small_mammal');
+      expect(result.data[0].age_group).toBe('baby');
+      expect(result.data[0].size).toBe('extra_small');
+      expect(result.data[0].status).toBe('medical_hold');
+      expect(result.data[1].status).toBe('deceased');
+    });
+  });
 });
