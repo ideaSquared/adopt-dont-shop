@@ -328,25 +328,39 @@ app.get('/api/v1/health/simple', (req, res) => {
   });
 });
 
-// Full health monitoring APIs (available in all environments)
+// ADS-545: public /health returns only the high-level status + timestamp.
+// The richer `services` and `metrics` payloads leak internal infrastructure
+// shape (DB host, Redis URL, queue depths, hostnames) and are now gated
+// behind admin auth via /api/v1/health/metrics below.
 app.get('/api/v1/health', async (req, res) => {
   try {
     const health = await HealthCheckService.getFullHealthCheck();
     const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
-    res.status(statusCode).json(health);
+    res.status(statusCode).json({
+      status: health.status,
+      timestamp: health.timestamp,
+    });
   } catch (error) {
     res.status(503).json({ error: 'Health check failed' });
   }
 });
 
-app.get('/api/v1/health/services', async (req, res) => {
-  try {
-    const health = await HealthCheckService.getFullHealthCheck();
-    res.json(health.services);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to get service health' });
+// ADS-545: per-service detail behind admin auth. Mirrors /api/v1/health/metrics
+// so the previous unauthenticated leak of internal service identifiers is
+// closed without losing the operational signal for admins.
+app.get(
+  '/api/v1/health/services',
+  authenticateToken,
+  requireRole(UserType.ADMIN),
+  async (req, res) => {
+    try {
+      const health = await HealthCheckService.getFullHealthCheck();
+      res.json(health.services);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to get service health' });
+    }
   }
-});
+);
 
 app.get(
   '/api/v1/health/metrics',
@@ -399,7 +413,11 @@ if (config.nodeEnv === 'development') {
   });
 }
 
-// Enhanced health check endpoints
+// ADS-545: /health returns only the high-level status + timestamp. Detailed
+// service / metric payloads are now gated behind admin auth at
+// /api/v1/health/services and /api/v1/health/metrics. Docker HEALTHCHECK
+// and nginx upstream probes should target /health/simple for the cheap
+// liveness check.
 app.get('/health', async (req, res) => {
   try {
     const health = await HealthCheckService.getFullHealthCheck();
@@ -407,7 +425,10 @@ app.get('/health', async (req, res) => {
     // Return appropriate status code
     const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
 
-    res.status(statusCode).json(health);
+    res.status(statusCode).json({
+      status: health.status,
+      timestamp: health.timestamp,
+    });
   } catch (error) {
     logger.error('Health check failed:', error);
     res.status(503).json({
