@@ -23,7 +23,7 @@ export const ApplicationProgress: React.FC<ApplicationProgressProps> = ({
 
   return (
     <div className={styles.progressContainer}>
-      <div className={styles.stepsContainer}>
+      <nav aria-label='Application steps' className={styles.stepsContainer}>
         {steps.map((step, index) => {
           const isActive = step.id === currentStep;
           const isCompleted = step.id < currentStep;
@@ -39,6 +39,8 @@ export const ApplicationProgress: React.FC<ApplicationProgressProps> = ({
                 )}
                 role={isClickable ? 'button' : undefined}
                 tabIndex={isClickable ? 0 : undefined}
+                aria-label={`${step.id}: ${step.title}`}
+                aria-current={isActive ? 'step' : undefined}
                 onClick={() => isClickable && onStepClick(step.id)}
                 onKeyDown={e =>
                   isClickable && (e.key === 'Enter' || e.key === ' ') && onStepClick(step.id)
@@ -92,7 +94,7 @@ export const ApplicationProgress: React.FC<ApplicationProgressProps> = ({
             </React.Fragment>
           );
         })}
-      </div>
+      </nav>
 
       <div className={styles.progressBar}>
         <div className={styles.progressFill} style={{ width: `${progressPercentage}%` }} />
