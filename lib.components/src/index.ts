@@ -2,10 +2,20 @@
 // Testing hot reload functionality - if you see this change, hot reload is working!
 
 // Theme exports
-export { darkTheme, lightTheme } from './styles/theme';
+export { darkTheme, highContrastTheme, lightTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
-export { ThemeProvider, useTheme } from './styles/ThemeProvider';
-export { vars, lightThemeClass, darkThemeClass } from './styles/theme.css';
+export {
+  HIGH_CONTRAST_STORAGE_KEY,
+  THEME_STORAGE_KEY,
+  ThemeProvider,
+  useTheme,
+} from './styles/ThemeProvider';
+export { darkThemeClass, highContrastThemeClass, lightThemeClass, vars } from './styles/theme.css';
+export {
+  HIGH_CONTRAST_SHORTCUT_HINT,
+  HighContrastToggle,
+} from './components/ui/HighContrastToggle/HighContrastToggle';
+export type { HighContrastToggleProps } from './components/ui/HighContrastToggle/HighContrastToggle';
 
 // Hooks
 export { useConfirm } from './hooks/useConfirm';

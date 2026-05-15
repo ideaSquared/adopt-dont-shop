@@ -1,6 +1,7 @@
 import { animations, palette, typography } from './colors';
+import { highContrastPalette } from './highContrastPalette';
 
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light' | 'dark' | 'high-contrast';
 
 export interface Theme {
   mode: ThemeMode;
@@ -542,5 +543,106 @@ export const darkTheme: Theme = {
     focusError: '0 0 0 3px rgb(239 68 68 / 0.2)',
     focusWarning: '0 0 0 3px rgb(245 158 11 / 0.2)',
     focusSuccess: '0 0 0 3px rgb(34 197 94 / 0.2)',
+  },
+};
+
+// ADS-137: High-contrast theme for styled-components consumers. Mirrors the
+// vanilla-extract `highContrastThemeClass` so styled-components reading
+// theme.text.primary etc. resolve to the same tokens.
+export const highContrastTheme: Theme = {
+  ...baseTheme,
+  mode: 'high-contrast',
+  colors: {
+    primary: palette.primary,
+    secondary: palette.secondary,
+    neutral: {
+      50: highContrastPalette.surface.primary,
+      100: highContrastPalette.surface.tertiary,
+      200: '#E0E0E0',
+      300: '#C2C2C2',
+      400: highContrastPalette.foreground.disabled,
+      500: highContrastPalette.foreground.quaternary,
+      600: highContrastPalette.foreground.tertiary,
+      700: highContrastPalette.foreground.secondary,
+      800: highContrastPalette.foreground.primary,
+      900: highContrastPalette.foreground.primary,
+      950: highContrastPalette.foreground.primary,
+    },
+    semantic: {
+      success: palette.success,
+      error: palette.error,
+      warning: palette.warning,
+      info: palette.info,
+    },
+    gradients: palette.gradients,
+    accent: palette.accent,
+  },
+  text: {
+    primary: highContrastPalette.foreground.primary,
+    secondary: highContrastPalette.foreground.secondary,
+    tertiary: highContrastPalette.foreground.tertiary,
+    quaternary: highContrastPalette.foreground.quaternary,
+    inverse: highContrastPalette.foreground.inverse,
+    disabled: highContrastPalette.foreground.disabled,
+    success: highContrastPalette.semantic.success,
+    error: highContrastPalette.semantic.error,
+    warning: highContrastPalette.semantic.warning,
+    info: highContrastPalette.semantic.info,
+    link: highContrastPalette.foreground.link,
+    linkHover: highContrastPalette.foreground.linkHover,
+  },
+  background: {
+    primary: highContrastPalette.surface.primary,
+    secondary: highContrastPalette.surface.secondary,
+    tertiary: highContrastPalette.surface.tertiary,
+    inverse: highContrastPalette.surface.inverse,
+    overlay: highContrastPalette.surface.overlay,
+    disabled: highContrastPalette.surface.disabled,
+    success: highContrastPalette.semanticSurface.success,
+    error: highContrastPalette.semanticSurface.error,
+    warning: highContrastPalette.semanticSurface.warning,
+    info: highContrastPalette.semanticSurface.info,
+  },
+  border: {
+    width: {
+      none: '0',
+      thin: '2px',
+      normal: '3px',
+      thick: '4px',
+      thicker: '8px',
+    },
+    radius: { ...baseTheme.border.radius },
+    color: {
+      primary: highContrastPalette.border.primary,
+      secondary: highContrastPalette.border.secondary,
+      tertiary: highContrastPalette.border.tertiary,
+      quaternary: highContrastPalette.border.quaternary,
+      disabled: highContrastPalette.border.disabled,
+      focus: highContrastPalette.border.focus,
+      success: highContrastPalette.border.success,
+      error: highContrastPalette.border.error,
+      warning: highContrastPalette.border.warning,
+      info: highContrastPalette.border.info,
+    },
+  },
+  shadows: {
+    none: 'none',
+    xs: '0 0 0 1px #000000',
+    sm: '0 0 0 1px #000000',
+    md: '0 0 0 2px #000000',
+    lg: '0 0 0 2px #000000',
+    xl: '0 0 0 3px #000000',
+    '2xl': '0 0 0 3px #000000',
+    '3xl': '0 0 0 4px #000000',
+    inner: 'inset 0 0 0 2px #000000',
+    primary: '0 0 0 2px #000000',
+    secondary: '0 0 0 2px #000000',
+    success: '0 0 0 2px #006400',
+    error: '0 0 0 2px #A30000',
+    focus: '0 0 0 3px #CC4400',
+    focusPrimary: '0 0 0 3px #CC4400',
+    focusError: '0 0 0 3px #CC4400',
+    focusWarning: '0 0 0 3px #CC4400',
+    focusSuccess: '0 0 0 3px #CC4400',
   },
 };
