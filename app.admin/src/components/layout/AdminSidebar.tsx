@@ -17,6 +17,7 @@ import {
   FiLock,
   FiSliders,
   FiLayout,
+  FiSend,
 } from 'react-icons/fi';
 
 interface SidebarProps {
@@ -134,6 +135,15 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           >
             <FiMessageSquare />
             <span className={styles.navLinkSpan({ collapsed })}>Messages</span>
+          </NavLink>
+          <NavLink
+            to='/notifications/broadcast'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiSend />
+            <span className={styles.navLinkSpan({ collapsed })}>Broadcast</span>
           </NavLink>
         </div>
 

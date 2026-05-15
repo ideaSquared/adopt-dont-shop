@@ -139,6 +139,8 @@ const permissions = [
   // Notifications (expanded)
   'notifications.bulk_create',
   'notifications.cleanup',
+  // ADS-107: system-wide broadcasts (admin only).
+  'notifications.broadcast',
 
   // Analytics Reports (ADS-105)
   'reports.create',
@@ -165,5 +167,6 @@ export async function seedPermissions() {
     });
   }
 
+  // eslint-disable-next-line no-console -- existing seeder log; surfaces to dev CLI only.
   console.log(`✅ Created ${permissions.length} permissions`);
 }

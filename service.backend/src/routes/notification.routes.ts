@@ -1,12 +1,31 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
+import { BroadcastController } from '../controllers/broadcast.controller';
 import { NotificationController } from '../controllers/notification.controller';
 import { authenticateToken } from '../middleware/auth';
+import { idempotency } from '../middleware/idempotency';
+import { broadcastLimiter } from '../middleware/rate-limiter';
 import { requirePermission } from '../middleware/rbac';
+import { BROADCAST_AUDIENCES } from '../services/broadcast.service';
 import { PERMISSIONS } from '../types/rbac';
 
 const router = Router();
 const notificationController = new NotificationController();
+const broadcastController = new BroadcastController();
+
+// ADS-107: system-wide broadcast validation.
+const validateBroadcast = [
+  body('audience')
+    .isString()
+    .isIn([...BROADCAST_AUDIENCES])
+    .withMessage('audience must be one of: all, all-rescues, all-adopters, all-staff'),
+  body('title').trim().isLength({ min: 1, max: 200 }).withMessage('Title must be 1-200 characters'),
+  body('body').trim().isLength({ min: 1, max: 2000 }).withMessage('Body must be 1-2000 characters'),
+  body('channels').isArray({ min: 1 }).withMessage('channels must be a non-empty array'),
+  body('channels.*')
+    .isIn(['in_app', 'email', 'push', 'sms'])
+    .withMessage('Invalid notification channel'),
+];
 
 // Validation middleware
 const validateNotificationId = param('notificationId')
@@ -734,6 +753,25 @@ router.post(
   '/cleanup',
   requirePermission(PERMISSIONS.NOTIFICATION_CLEANUP),
   notificationController.cleanupExpiredNotifications
+);
+
+// ADS-107: system-wide broadcast. The Idempotency-Key header replays
+// the cached response inside 24h (see middleware/idempotency.ts), so a
+// retried broadcast doesn't re-fan to every user. The dedicated
+// per-admin rate limiter (10/min) blunts accidental flood loops.
+router.get(
+  '/broadcast/preview',
+  requirePermission(PERMISSIONS.NOTIFICATION_BROADCAST),
+  broadcastController.previewAudience
+);
+
+router.post(
+  '/broadcast',
+  broadcastLimiter,
+  requirePermission(PERMISSIONS.NOTIFICATION_BROADCAST),
+  idempotency,
+  validateBroadcast,
+  broadcastController.broadcast
 );
 
 export default router;

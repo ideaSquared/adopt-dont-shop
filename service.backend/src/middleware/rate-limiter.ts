@@ -248,6 +248,32 @@ export const searchLimiter = buildRouteLimiter(15 * 60 * 1000, 30, 'SEARCH', 900
 // These run pre-aggregations and stream large response bodies.
 export const reportLimiter = buildRouteLimiter(15 * 60 * 1000, 10, 'REPORT', 900);
 
+// ADS-107: per-admin system-wide broadcast limiter. Coarse audiences
+// (all, all-rescues, all-adopters, all-staff) make this disproportionately
+// expensive — 10 / minute / admin keeps an over-eager admin from flooding
+// every user on the platform with notifications in a tight loop.
+export const broadcastLimiter =
+  config.nodeEnv === 'development'
+    ? createDevLimiter(60 * 1000, 10, 'BROADCAST')
+    : rateLimit({
+        windowMs: 60 * 1000,
+        max: 10,
+        keyGenerator: (req: RequestWithMaybeUser) => getUserIdOrIp(req),
+        message: {
+          error: 'Broadcast rate limit exceeded. Please wait before sending another broadcast.',
+          retryAfter: 60,
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        handler: (req: RequestWithMaybeUser, res) => {
+          logger.warn(`Broadcast rate limit exceeded for user: ${req.user?.userId || req.ip}`);
+          res.status(429).json({
+            error: 'Broadcast rate limit exceeded. Please wait before sending another broadcast.',
+            retryAfter: 60,
+          });
+        },
+      });
+
 // Email verification resend limiter — stricter than auth limiter to prevent abuse
 // Keyed on both IP and target email to prevent using endpoint as email relay
 export const emailResendLimiter =

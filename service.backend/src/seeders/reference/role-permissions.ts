@@ -108,6 +108,7 @@ const rolePermissionMappings = {
     'notifications.delete',
     'notifications.bulk_create',
     'notifications.cleanup',
+    'notifications.broadcast',
     'chat.analytics.read',
     // Analytics Reports (ADS-105)
     'reports.create',
@@ -215,6 +216,7 @@ const rolePermissionMappings = {
     'notifications.read',
     'notifications.update',
     'notifications.bulk_create',
+    'notifications.broadcast',
     'chat.analytics.read',
     // Analytics Reports (ADS-105) — admins get full platform read
     'reports.create',
@@ -440,5 +442,6 @@ export async function seedRolePermissions() {
     }
   }
 
+  // eslint-disable-next-line no-console -- existing seeder log; surfaces to dev CLI only.
   console.log(`✅ Created ${assignmentCount} role-permission assignments`);
 }

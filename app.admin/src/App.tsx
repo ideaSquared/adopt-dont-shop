@@ -32,6 +32,7 @@ const AccountSettings = lazy(() => import('./pages/AccountSettings'));
 const SecurityCenter = lazy(() => import('./pages/SecurityCenter'));
 const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
 const ContentManagement = lazy(() => import('./pages/ContentManagement'));
+const BroadcastNotifications = lazy(() => import('./pages/BroadcastNotifications'));
 
 const PageLoader = () => (
   <div className={styles.pageLoader}>
@@ -148,6 +149,14 @@ const AdminApp: React.FC = () => {
                 element={
                   <RouteBoundary name='messages'>
                     <Messages />
+                  </RouteBoundary>
+                }
+              />
+              <Route
+                path='/notifications/broadcast'
+                element={
+                  <RouteBoundary name='broadcast'>
+                    <BroadcastNotifications />
                   </RouteBoundary>
                 }
               />
