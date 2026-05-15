@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Question, QuestionField } from './QuestionField';
 import { shouldShowQuestion } from './questionConditions';
 import * as styles from './QuestionCategoryStep.css';
@@ -24,6 +24,16 @@ const hasAnswer = (value: unknown): boolean => {
   return true;
 };
 
+const buildRevealAnnouncement = (revealedQuestions: Question[]): string => {
+  if (revealedQuestions.length === 0) {
+    return '';
+  }
+  if (revealedQuestions.length === 1) {
+    return `Additional question revealed: ${revealedQuestions[0].questionText}`;
+  }
+  return `${revealedQuestions.length} additional questions revealed.`;
+};
+
 export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
   stepId,
   title,
@@ -36,6 +46,23 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
 }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touchedKeys, setTouchedKeys] = useState<Set<string>>(() => new Set());
+  const [revealAnnouncement, setRevealAnnouncement] = useState<string>('');
+  const previousVisibleKeys = useRef<Set<string> | null>(null);
+
+  const visibleQuestions = questions.filter(q => shouldShowQuestion(q, answers));
+
+  useEffect(() => {
+    const currentKeys = new Set(visibleQuestions.map(q => q.questionKey));
+    const previous = previousVisibleKeys.current;
+    // Only announce on subsequent renders, not the initial mount.
+    if (previous) {
+      const newlyVisible = visibleQuestions.filter(q => !previous.has(q.questionKey));
+      if (newlyVisible.length > 0) {
+        setRevealAnnouncement(buildRevealAnnouncement(newlyVisible));
+      }
+    }
+    previousVisibleKeys.current = currentKeys;
+  }, [visibleQuestions]);
 
   const handleFieldChange = (questionKey: string, value: unknown) => {
     const updated = { ...answers, [questionKey]: value };
@@ -78,7 +105,6 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
     onComplete(answers);
   };
 
-  const visibleQuestions = questions.filter(q => shouldShowQuestion(q, answers));
   const hasRequired = visibleQuestions.some(q => q.isRequired);
 
   return (
@@ -88,22 +114,25 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
       {hasRequired && <p className={styles.requiredNote}>Fields marked with * are required.</p>}
 
       <form id={`step-${stepId}-form`} onSubmit={handleSubmit} noValidate>
-        {visibleQuestions.map(question => {
-          const isPrefilled =
-            !touchedKeys.has(question.questionKey) &&
-            (prefilledKeys?.has(question.questionKey) ?? false);
-          return (
-            <div id={`field-${question.questionKey}`} key={question.questionId}>
-              <QuestionField
-                question={question}
-                value={answers[question.questionKey]}
-                onChange={value => handleFieldChange(question.questionKey, value)}
-                error={errors[question.questionKey]}
-                isPrefilled={isPrefilled}
-              />
-            </div>
-          );
-        })}
+        <div aria-live='polite' aria-relevant='additions'>
+          <span className={styles.visuallyHidden}>{revealAnnouncement}</span>
+          {visibleQuestions.map(question => {
+            const isPrefilled =
+              !touchedKeys.has(question.questionKey) &&
+              (prefilledKeys?.has(question.questionKey) ?? false);
+            return (
+              <div id={`field-${question.questionKey}`} key={question.questionId}>
+                <QuestionField
+                  question={question}
+                  value={answers[question.questionKey]}
+                  onChange={value => handleFieldChange(question.questionKey, value)}
+                  error={errors[question.questionKey]}
+                  isPrefilled={isPrefilled}
+                />
+              </div>
+            );
+          })}
+        </div>
       </form>
     </div>
   );
