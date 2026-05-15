@@ -14,6 +14,7 @@ import {
   StaffInvitationRequestSchema,
 } from '@adopt-dont-shop/lib.validation';
 import { RescueController } from '../controllers/rescue.controller';
+import GdprController, { gdprValidation } from '../controllers/gdpr.controller';
 import { QuestionController } from '../controllers/question.controller';
 import { authenticateToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
@@ -911,6 +912,18 @@ router.delete(
   validateDeletion,
   requirePermission('rescues.delete'),
   rescueController.deleteRescue
+);
+
+// GDPR Art. 17 — rescue account erasure (ADS-87). Anonymises the
+// rescue, archives owned pets, auto-rejects pending applications,
+// notifies applicants, and removes staff affiliations. The controller
+// gates: platform admin OR rescue admin acting on their own rescue.
+router.post(
+  '/:rescueId/erase',
+  sensitiveWriteLimiter,
+  validateRescueId,
+  gdprValidation.anonymize,
+  GdprController.eraseRescue.bind(GdprController)
 );
 
 // Send email to rescue organization (admin only)
