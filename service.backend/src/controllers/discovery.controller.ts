@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { DiscoveryService, DiscoveryFilters } from '../services/discovery.service';
 import { SwipeService } from '../services/swipe.service';
 import { logger } from '../utils/logger';
 import { parsePaginationLimit } from '../utils/pagination';
+import { AuthenticatedRequest } from '../types/auth';
 
 export class DiscoveryController {
   private discoveryService: DiscoveryService;
@@ -62,7 +63,10 @@ export class DiscoveryController {
   /**
    * Get discovery queue of pets based on filters and user preferences
    */
-  getDiscoveryQueue = async (req: Request, res: Response): Promise<Response | void> => {
+  getDiscoveryQueue = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<Response | void> => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -120,7 +124,7 @@ export class DiscoveryController {
   /**
    * Load more pets for infinite scroll
    */
-  loadMorePets = async (req: Request, res: Response): Promise<Response | void> => {
+  loadMorePets = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -155,7 +159,10 @@ export class DiscoveryController {
   /**
    * Record a swipe action
    */
-  recordSwipeAction = async (req: Request, res: Response): Promise<Response | void> => {
+  recordSwipeAction = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<Response | void> => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -196,7 +203,7 @@ export class DiscoveryController {
   /**
    * Get user's swipe statistics
    */
-  getSwipeStats = async (req: Request, res: Response): Promise<Response | void> => {
+  getSwipeStats = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -231,7 +238,7 @@ export class DiscoveryController {
   /**
    * Get session statistics
    */
-  getSessionStats = async (req: Request, res: Response): Promise<Response | void> => {
+  getSessionStats = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -266,7 +273,7 @@ export class DiscoveryController {
   /**
    * Get discovery queue via POST (filters passed in request body)
    */
-  addToQueue = async (req: Request, res: Response): Promise<void> => {
+  addToQueue = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

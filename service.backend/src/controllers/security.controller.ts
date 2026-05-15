@@ -1,11 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import SecurityService from '../services/security.service';
 import { IpRuleType } from '../models/IpRule';
 import { logger } from '../utils/logger';
-
-type AuthenticatedRequest = Request & {
-  user?: { userId: string };
-};
+import { AuthenticatedRequest } from '../types/auth';
 
 export class SecurityController {
   static async listSessions(req: AuthenticatedRequest, res: Response) {

@@ -95,7 +95,7 @@ router.get(
       const { token } = req.params;
 
       // Get invitation details without sensitive information
-      const invitation = await InvitationService.getInvitationDetails(token);
+      const invitation = await InvitationService.getInvitationDetails(token as string);
 
       if (!invitation) {
         return res.status(404).json({

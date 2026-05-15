@@ -19,7 +19,8 @@ const loadRescuePlan = async (req: AuthenticatedRequest): Promise<RescuePlan | n
  */
 export const requirePlan =
   (minTier: RescuePlan): RequestHandler =>
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  async (rawReq, res: Response, next: NextFunction): Promise<void> => {
+    const req = rawReq as AuthenticatedRequest;
     try {
       if (!req.user) {
         res.status(401).json({ error: 'Authentication required' });
@@ -62,7 +63,8 @@ export const requirePlan =
  */
 export const requirePlanFeature =
   (feature: PlanFeature): RequestHandler =>
-  async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  async (rawReq, res: Response, next: NextFunction): Promise<void> => {
+    const req = rawReq as AuthenticatedRequest;
     try {
       if (!req.user) {
         res.status(401).json({ error: 'Authentication required' });

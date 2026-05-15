@@ -1,21 +1,14 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import ApplicationTimelineService from '../services/applicationTimeline.service';
 import { TimelineEventType } from '../models/ApplicationTimeline';
 import { logger } from '../utils/logger';
-
-// Extend Request type to include user
-interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-    [key: string]: unknown;
-  };
-}
+import { AuthenticatedRequest } from '../types/auth';
 
 export class ApplicationTimelineController {
   /**
    * Get timeline for an application
    */
-  static async getApplicationTimeline(req: Request, res: Response): Promise<void> {
+  static async getApplicationTimeline(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { application_id } = req.params;
       const { limit, offset, event_types } = req.query;
@@ -55,7 +48,7 @@ export class ApplicationTimelineController {
   /**
    * Get timeline statistics for an application
    */
-  static async getTimelineStats(req: Request, res: Response): Promise<void> {
+  static async getTimelineStats(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { application_id } = req.params;
 
@@ -159,7 +152,7 @@ export class ApplicationTimelineController {
   /**
    * Get bulk timeline statistics for multiple applications
    */
-  static async getBulkTimelineStats(req: Request, res: Response): Promise<void> {
+  static async getBulkTimelineStats(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { applicationIds } = req.body;
 

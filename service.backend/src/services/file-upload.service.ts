@@ -95,22 +95,14 @@ const createFileFilter = (allowedTypes: string[] = []) => {
 // Enhanced storage configuration
 const createStorage = (uploadType: keyof typeof UPLOAD_CONFIG.directories) => {
   return multer.diskStorage({
-    destination: (
-      req: AuthenticatedRequest,
-      file: Express.Multer.File,
-      cb: (error: Error | null, destination: string) => void
-    ) => {
+    destination: (_req, _file, cb) => {
       const uploadPath = path.join(
         config.storage.local.directory,
         UPLOAD_CONFIG.directories[uploadType]
       );
       cb(null, uploadPath);
     },
-    filename: (
-      req: AuthenticatedRequest,
-      file: Express.Multer.File,
-      cb: (error: Error | null, filename: string) => void
-    ) => {
+    filename: (_req, file, cb) => {
       const uniqueId = uuidv4();
       const extension = path.extname(file.originalname);
       const timestamp = Date.now();

@@ -4,6 +4,7 @@ import winston from 'winston';
 import { JsonValue, JsonObject } from '../types/common';
 import { redactLogPayload } from './redact';
 import { getCorrelationId } from './request-context';
+import { AuthenticatedRequest } from '../types/auth';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -11,14 +12,6 @@ const isProduction = process.env.NODE_ENV === 'production';
 // Type definitions for logger data
 interface LogData {
   [key: string]: unknown;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    userId?: string;
-    user_id?: string;
-  };
-  userId?: string;
 }
 
 // Type for log entry structure
@@ -297,8 +290,8 @@ export const loggerHelpers = {
       statusCode: res.statusCode,
       duration: duration ? `${duration}ms` : undefined,
       userAgent: req.get('User-Agent'),
-      ip: req.ip || req.connection.remoteAddress,
-      userId: req.userId || req.user?.user_id,
+      ip: req.ip || req.socket.remoteAddress,
+      userId: req.user?.userId,
       correlationId: req.get('X-Correlation-ID') || req.get('X-Request-ID') || getCorrelationId(),
       contentLength: res.get('Content-Length'),
       referer: req.get('Referer'),

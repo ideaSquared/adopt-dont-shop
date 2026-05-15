@@ -124,12 +124,15 @@ const streamFile = (resolved: string, res: Response): void => {
 };
 
 router.get(
-  '/uploads-signed/:expiresAt/:signature/*',
+  '/uploads-signed/:expiresAt/:signature/*filepath',
   apiLimiter,
   (req: AuthenticatedRequest, res: Response) => {
     const expiresAt = Number.parseInt(req.params.expiresAt, 10);
     const { signature } = req.params;
-    const filePath = (req.params as Record<string, string>)['0'] ?? '';
+    const filePathSegments = (req.params as Record<string, string | string[]>).filepath;
+    const filePath = Array.isArray(filePathSegments)
+      ? filePathSegments.join('/')
+      : (filePathSegments ?? '');
 
     if (!Number.isFinite(expiresAt) || expiresAt < Math.floor(Date.now() / 1000)) {
       res.status(410).json({ error: 'Signed URL expired' });
@@ -229,7 +232,7 @@ router.get(
 );
 
 router.get(
-  '/uploads/*',
+  '/uploads/*filepath',
   apiLimiter,
   authenticateToken,
   (req: AuthenticatedRequest, res: Response) => {
@@ -238,7 +241,10 @@ router.get(
       return;
     }
 
-    const filePath = (req.params as Record<string, string>)['0'] ?? '';
+    const filePathSegments = (req.params as Record<string, string | string[]>).filepath;
+    const filePath = Array.isArray(filePathSegments)
+      ? filePathSegments.join('/')
+      : (filePathSegments ?? '');
     const resolved = safeResolve(filePath);
     if (!resolved) {
       logger.warn('Upload serve: rejected unsafe path', {

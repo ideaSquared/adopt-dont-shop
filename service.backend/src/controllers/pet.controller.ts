@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import { z } from 'zod';
 import {
@@ -56,7 +56,7 @@ export class PetController {
   ];
 
   // Search pets with filters and pagination
-  searchPets = async (req: Request, res: Response) => {
+  searchPets = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -116,17 +116,14 @@ export class PetController {
 
       // If user is authenticated and is rescue staff, and no specific rescueId is provided,
       // automatically filter by their rescue
-      const authenticatedReq = req as AuthenticatedRequest;
-      if (authenticatedReq.user && !filters.rescueId) {
+      if (req.user && !filters.rescueId) {
         try {
-          const rescueId = await PetService.getVerifiedRescueIdForUser(
-            authenticatedReq.user.userId
-          );
+          const rescueId = await PetService.getVerifiedRescueIdForUser(req.user.userId);
 
           if (rescueId) {
             filters.rescueId = rescueId;
             logger.info('Auto-filtering pets by user rescue:', {
-              userId: authenticatedReq.user.userId,
+              userId: req.user.userId,
               rescueId,
             });
           }
@@ -298,7 +295,7 @@ export class PetController {
   };
 
   // Get pet by ID
-  getPetById = async (req: Request, res: Response) => {
+  getPetById = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -309,7 +306,7 @@ export class PetController {
         });
       }
 
-      const userId = (req as AuthenticatedRequest).user?.userId;
+      const userId = req.user?.userId;
       const pet = await this.petService.getPetById(req.params.petId, userId);
 
       if (!pet) {
@@ -482,7 +479,7 @@ export class PetController {
   };
 
   // Get pets by rescue
-  getPetsByRescue = async (req: Request, res: Response) => {
+  getPetsByRescue = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const page = parsePage(req.query.page as string | undefined);
       const limit = parsePaginationLimit(req.query.limit as string | undefined, {
@@ -633,7 +630,7 @@ export class PetController {
   };
 
   // Get featured pets
-  getFeaturedPets = async (req: Request, res: Response) => {
+  getFeaturedPets = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const limit = parsePaginationLimit(req.query.limit as string | undefined, {
         default: 10,
@@ -656,7 +653,7 @@ export class PetController {
   };
 
   // Get pet statistics
-  getPetStatistics = async (req: Request, res: Response) => {
+  getPetStatistics = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const rescueId = req.query.rescueId as string;
       const stats = await this.petService.getPetStatistics(rescueId);
@@ -676,7 +673,7 @@ export class PetController {
   };
 
   // Get pet activity
-  getPetActivity = async (req: Request, res: Response) => {
+  getPetActivity = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -809,7 +806,7 @@ export class PetController {
   /**
    * Get recent pets
    */
-  getRecentPets = async (req: Request, res: Response) => {
+  getRecentPets = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const limit = parsePaginationLimit(req.query.limit as string | undefined, {
         default: 12,
@@ -844,7 +841,7 @@ export class PetController {
    */
   static validatePetType = [validateParams(PetTypeParamSchema)];
 
-  getPetBreedsByType = async (req: Request, res: Response) => {
+  getPetBreedsByType = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -875,7 +872,7 @@ export class PetController {
   /**
    * Get all pet types
    */
-  getPetTypes = async (req: Request, res: Response) => {
+  getPetTypes = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const types = await this.petService.getPetTypes();
 
@@ -896,7 +893,7 @@ export class PetController {
   /**
    * Get similar pets
    */
-  getSimilarPets = async (req: Request, res: Response) => {
+  getSimilarPets = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
