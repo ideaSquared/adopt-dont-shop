@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
+import { Alert, Button, Spinner, toast } from '@adopt-dont-shop/lib.components';
 import * as styles from './ApplicationPage.css';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { ApplicationForm, ApplicationProgress, QuickApplyView } from '@/components/application';
@@ -297,6 +297,14 @@ export const ApplicationPage: React.FC = () => {
         `You're in! 🎉 We've sent your application to ${pet.name}'s rescue — taking you to your application details now.`
       );
       window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // ADS-125: toast confirmation with a quick action to jump straight there.
+      toast.success('Application submitted', {
+        action: {
+          label: 'View',
+          onClick: () => navigate(`/applications/${result.data.applicationId}`),
+        },
+      });
 
       setTimeout(() => {
         navigate(`/applications/${result.data.applicationId}`, {
