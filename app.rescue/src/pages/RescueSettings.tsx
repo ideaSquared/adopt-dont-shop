@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useAuth, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
+import { toast } from '@adopt-dont-shop/lib.components';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
@@ -68,6 +69,8 @@ const RescueSettings: React.FC = () => {
     await apiService.put(`/api/v1/rescues/${rescue.rescueId}`, profileData);
 
     await loadRescueData();
+    // ADS-125
+    toast.success('Rescue details saved');
   };
 
   const handleSavePolicies = async (policies: AdoptionPolicy) => {
