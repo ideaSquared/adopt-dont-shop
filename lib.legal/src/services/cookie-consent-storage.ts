@@ -45,6 +45,25 @@ const safeReadRaw = (): string | null => {
  * banner re-prompts.
  */
 export const readStoredConsent = (currentCookiesVersion: string): StoredCookieConsent | null => {
+  const parsed = readStoredConsentRaw();
+  if (!parsed) {
+    return null;
+  }
+  if (parsed.cookiesVersion !== currentCookiesVersion) {
+    return null;
+  }
+  return parsed;
+};
+
+/**
+ * Version-agnostic read: returns the stored record whenever it parses
+ * cleanly, regardless of `cookiesVersion`. Used by `useCookieConsent`,
+ * which only needs to know "has the user ever decided for SOME version"
+ * (e.g. to render a "Cookie preferences" footer link). Callers that
+ * must enforce the current-version-only view should use
+ * `readStoredConsent`.
+ */
+export const readStoredConsentRaw = (): StoredCookieConsent | null => {
   const raw = safeReadRaw();
   if (!raw) {
     return null;
@@ -59,9 +78,6 @@ export const readStoredConsent = (currentCookiesVersion: string): StoredCookieCo
 
   const result = StoredCookieConsentSchema.safeParse(parsedJson);
   if (!result.success) {
-    return null;
-  }
-  if (result.data.cookiesVersion !== currentCookiesVersion) {
     return null;
   }
   return result.data;

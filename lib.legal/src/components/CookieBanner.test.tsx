@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { User } from '@adopt-dont-shop/lib.auth';
-import { CookieBanner } from './CookieBanner';
+import { CookieBanner, useCookieConsent } from './CookieBanner';
 import {
   COOKIE_CONSENT_STORAGE_KEY,
   type StoredCookieConsent,
@@ -337,5 +337,111 @@ describe('CookieBanner [ADS-497 slice 5]', () => {
       expect(screen.queryByTestId('cookie-banner-analytics-toggle')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /manage preferences/i })).toHaveFocus();
     });
+  });
+});
+
+describe('useCookieConsent [ADS-553]', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  const writeRecord = (record: StoredCookieConsent): void => {
+    window.localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify(record));
+  };
+
+  it('returns the initial stored choice on mount', () => {
+    writeRecord({
+      cookiesVersion: '2026-05-09-v1',
+      analyticsConsent: true,
+      acceptedAt: '2026-05-10T08:00:00.000Z',
+    });
+
+    const { result } = renderHook(() => useCookieConsent());
+
+    expect(result.current.hasDecided).toBe(true);
+    expect(result.current.analyticsConsent).toBe(true);
+  });
+
+  it('re-renders when the banner records a fresh choice (cleared event)', () => {
+    const { result } = renderHook(() => useCookieConsent());
+    expect(result.current.hasDecided).toBe(false);
+
+    act(() => {
+      writeRecord({
+        cookiesVersion: '2026-05-09-v1',
+        analyticsConsent: false,
+        acceptedAt: '2026-05-10T08:00:00.000Z',
+      });
+      window.dispatchEvent(new Event(`${COOKIE_CONSENT_STORAGE_KEY}:cleared`));
+    });
+
+    expect(result.current.hasDecided).toBe(true);
+    expect(result.current.analyticsConsent).toBe(false);
+  });
+
+  it('re-renders when another tab writes the storage key (cross-tab propagation)', () => {
+    const { result } = renderHook(() => useCookieConsent());
+    expect(result.current.hasDecided).toBe(false);
+
+    act(() => {
+      writeRecord({
+        cookiesVersion: '2026-05-09-v1',
+        analyticsConsent: true,
+        acceptedAt: '2026-05-10T08:00:00.000Z',
+      });
+      // Browsers fire `storage` on other tabs when one tab writes. We
+      // simulate the cross-tab event directly so we don't depend on a
+      // BroadcastChannel-driven shim.
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: COOKIE_CONSENT_STORAGE_KEY,
+          newValue: window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY),
+        })
+      );
+    });
+
+    expect(result.current.hasDecided).toBe(true);
+    expect(result.current.analyticsConsent).toBe(true);
+  });
+
+  it('ignores `storage` events for unrelated keys', () => {
+    writeRecord({
+      cookiesVersion: '2026-05-09-v1',
+      analyticsConsent: true,
+      acceptedAt: '2026-05-10T08:00:00.000Z',
+    });
+    const { result, rerender } = renderHook(() => useCookieConsent());
+    const before = result.current;
+
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: 'other-key', newValue: 'whatever' }));
+    });
+    rerender();
+
+    // No identity change — the snapshot cache returns the same record
+    // when the bytes haven't changed.
+    expect(result.current.hasDecided).toBe(before.hasDecided);
+    expect(result.current.analyticsConsent).toBe(before.analyticsConsent);
+  });
+
+  it('openPreferences clears storage and dispatches the cleared event', () => {
+    writeRecord({
+      cookiesVersion: '2026-05-09-v1',
+      analyticsConsent: true,
+      acceptedAt: '2026-05-10T08:00:00.000Z',
+    });
+    const { result } = renderHook(() => useCookieConsent());
+    expect(result.current.hasDecided).toBe(true);
+
+    act(() => {
+      result.current.openPreferences();
+    });
+
+    expect(window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBeNull();
+    expect(result.current.hasDecided).toBe(false);
   });
 });
