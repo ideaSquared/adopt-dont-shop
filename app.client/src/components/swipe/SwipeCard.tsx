@@ -6,6 +6,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { MdCheckCircle, MdPets, MdRefresh, MdStar } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { resolveFileUrl } from '../../utils/fileUtils';
+import { ProgressiveImage } from '../ui/ProgressiveImage';
 import * as styles from './SwipeCard.css';
 
 interface SwipeCardProps {
@@ -61,8 +62,6 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   disabled = false,
 }) => {
   const [overlayAction, setOverlayAction] = useState<string>('');
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { logEvent } = useStatsig();
@@ -80,23 +79,6 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
       });
     }
   }, [isTop, pet, logEvent]);
-
-  // Image loading handlers
-  const handleImageLoad = useCallback(() => {
-    setImageLoaded(true);
-    setImageError(false);
-  }, []);
-
-  const handleImageError = useCallback(() => {
-    setImageLoaded(false);
-    setImageError(true);
-  }, []);
-
-  // Reset image state when pet changes
-  React.useEffect(() => {
-    setImageLoaded(false);
-    setImageError(false);
-  }, [pet.petId]);
 
   // Keyboard navigation handler
   const handleKeyDown = useCallback(
@@ -359,38 +341,33 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     >
       <div className={styles.imageContainer}>
         {imageUrl ? (
-          <>
-            <img
-              src={imageUrl}
-              alt={`${pet.name} - ${pet.breed || 'pet'}`}
-              draggable={false}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-              style={{
-                opacity: imageLoaded && !imageError ? 1 : 0,
-                transition: 'opacity 0.3s ease-in-out',
-              }}
-            />
-            {(!imageLoaded || imageError) && (
+          <ProgressiveImage
+            src={imageUrl}
+            alt={`${pet.name} - ${pet.breed || 'pet'}`}
+            eager={isTop}
+            placeholder={
               <div
                 className={styles.placeholderImage}
                 style={{ background: placeholderBackground }}
               >
-                <PlaceholderIcon isLoading={!imageError && !imageLoaded} petType={pet.type} />
-                {!imageLoaded && !imageError ? (
-                  <>
-                    <div className={styles.placeholderText}>Loading...</div>
-                    <div className={styles.placeholderSubtext}>{pet.name}</div>
-                  </>
-                ) : (
-                  <>
-                    <div className={styles.placeholderText}>{pet.name}</div>
-                    <div className={styles.placeholderSubtext}>{pet.breed || pet.type}</div>
-                  </>
-                )}
+                <PlaceholderIcon isLoading petType={pet.type} />
+                <div className={styles.placeholderText}>Loading...</div>
+                <div className={styles.placeholderSubtext}>{pet.name}</div>
               </div>
-            )}
-          </>
+            }
+            errorFallback={
+              <div
+                className={styles.placeholderImage}
+                style={{ background: placeholderBackground }}
+                role='img'
+                aria-label={`${pet.name} image unavailable`}
+              >
+                <PlaceholderIcon petType={pet.type} />
+                <div className={styles.placeholderText}>{pet.name}</div>
+                <div className={styles.placeholderSubtext}>{pet.breed || pet.type}</div>
+              </div>
+            }
+          />
         ) : (
           <div className={styles.placeholderImage} style={{ background: placeholderBackground }}>
             <PlaceholderIcon petType={pet.type} />

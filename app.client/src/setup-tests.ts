@@ -36,7 +36,32 @@ global.Image = class MockImage {
   onload: ((ev: Event) => void) | null = null;
   onerror: ((ev: Event) => void) | null = null;
   src: string = '';
+  decoding: string = 'auto';
 } as any;
+
+// Mock IntersectionObserver. The default behaviour is to fire intersection
+// immediately so lazy-loaded components reveal their content in tests.
+class MockIntersectionObserver {
+  callback: IntersectionObserverCallback;
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+  observe(target: Element) {
+    this.callback(
+      [{ isIntersecting: true, target } as IntersectionObserverEntry],
+      this as unknown as IntersectionObserver
+    );
+  }
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+  root = null;
+  rootMargin = '';
+  thresholds: ReadonlyArray<number> = [];
+}
+global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 vi.mock('@adopt-dont-shop/lib.components', () => ({
   lightTheme: {},
