@@ -129,6 +129,12 @@ export const PERMISSIONS = {
   NOTIFICATION_CREATE: 'notifications.create',
   NOTIFICATION_BULK_CREATE: 'notifications.bulk_create',
   NOTIFICATION_CLEANUP: 'notifications.cleanup',
+  // ADS-107: system-wide broadcast to coarse audience cohorts (all,
+  // all-rescues, all-adopters, all-staff). Distinct from
+  // NOTIFICATION_BULK_CREATE so we can grant it only to platform admins
+  // without also enabling generic targeted bulk creation for any role
+  // that happens to need bulk_create.
+  NOTIFICATION_BROADCAST: 'notifications.broadcast',
 
   // System
   AUDIT_LOG_READ: 'audit.read',
