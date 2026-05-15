@@ -1,9 +1,18 @@
 import type { QueryInterface } from 'sequelize';
-import { runInTransaction } from './_helpers';
+import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers';
 
 /**
  * Follow-up to ADS-422 (PR #415): align `file_uploads.url` with the
  * on-disk prefix.
+ *
+ * Post-writer-fix corruption risk: this migration is a data backfill whose
+ * down() rewrites `file_uploads.url` / `thumbnail_url` back to the
+ * pre-#421 broken `/uploads/<filename>` shape. Once writers downstream
+ * (e.g. chat / application uploaders that COPY the URL into JSONB on
+ * write) have stamped the corrected URL into other tables, reverting the
+ * file_uploads source alone leaves those copies pointing at a URL whose
+ * canonical form no longer matches. Operators must acknowledge the
+ * destructive-down guard before running this rollback.
  *
  * The writer in `services/file-upload.service.ts` historically generated
  * URLs as `/uploads/<filename>` while multer placed the file at
@@ -45,6 +54,8 @@ import { runInTransaction } from './_helpers';
  * didn't.
  */
 
+const MIGRATION_KEY = '17-fix-fileupload-url-prefix';
+
 // Keep this list in lock-step with `UPLOAD_CONFIG.directories` in
 // `services/file-upload.service.ts`. New entries there require a new
 // migration to backfill any rows written via that prefix.
@@ -85,6 +96,7 @@ export default {
   },
 
   down: async (queryInterface: QueryInterface) => {
+    assertDestructiveDownAcknowledged(MIGRATION_KEY);
     await runInTransaction(queryInterface, async t => {
       await queryInterface.sequelize.query(REVERT_URL_SQL('thumbnail_url'), { transaction: t });
       await queryInterface.sequelize.query(REVERT_URL_SQL('url'), { transaction: t });

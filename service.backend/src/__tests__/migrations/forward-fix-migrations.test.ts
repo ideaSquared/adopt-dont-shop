@@ -13,7 +13,7 @@
  * dialect-specific features (CIDR cast, partial unique with predicate,
  * `CREATE INDEX CONCURRENTLY`) that have no SQLite equivalent.
  */
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import sequelize from '../../sequelize';
 import {
   Rescue,
@@ -72,6 +72,16 @@ const findIndex = async (table: string, name: string): Promise<IndexInfo | undef
 };
 
 const queryInterface = sequelize.getQueryInterface();
+
+const ackDestructiveDown = (key: string): void => {
+  process.env.MIGRATION_ALLOW_DESTRUCTIVE_DOWN = '1';
+  process.env.MIGRATION_DESTRUCTIVE_DOWN_KEY = key;
+};
+
+const clearDestructiveDownAck = (): void => {
+  delete process.env.MIGRATION_ALLOW_DESTRUCTIVE_DOWN;
+  delete process.env.MIGRATION_DESTRUCTIVE_DOWN_KEY;
+};
 
 describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', () => {
   beforeEach(async () => {
@@ -223,6 +233,14 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
 
   describe('14 — file_uploads.url prefix backfill (PR #415 follow-up)', () => {
     let uploaderId: string;
+
+    beforeEach(() => {
+      ackDestructiveDown('17-fix-fileupload-url-prefix');
+    });
+
+    afterEach(() => {
+      clearDestructiveDownAck();
+    });
 
     const insertFileUpload = async (overrides: Record<string, unknown>) => {
       const row = {
@@ -393,6 +411,14 @@ describeIfPostgres('forward-fix migrations — up/down round trip (ADS-484)', ()
   });
 
   describe('15 — JSONB url prefix backfill (PR #421 cleanup)', () => {
+    beforeEach(() => {
+      ackDestructiveDown('18-fix-jsonb-url-prefix');
+    });
+
+    afterEach(() => {
+      clearDestructiveDownAck();
+    });
+
     /**
      * Both `messages.attachments` (JSONB array of MessageAttachment) and
      * `applications.documents` (JSONB array of ApplicationDocument) are

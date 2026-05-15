@@ -1,9 +1,15 @@
 import type { QueryInterface, Transaction } from 'sequelize';
-import { runInTransaction } from './_helpers';
+import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers';
 
 /**
  * Follow-up to ADS-422 (PR #421): backfill the broken `/uploads/<filename>`
  * URL shape that the pre-#421 file-upload writer left in two JSONB columns:
+ *
+ * Post-writer-fix corruption risk: down() reverts these JSONB rows back to
+ * the pre-#421 broken shape. Once consumers (web/mobile clients, link
+ * generation in emails) have re-rendered against the corrected URLs, the
+ * rollback re-introduces 404-prone links. Operators must acknowledge the
+ * destructive-down guard before running this rollback.
  *
  *   - `messages.attachments[].url`         (chat attachments)
  *   - `applications.documents[].fileUrl`   (application documents)
@@ -66,6 +72,8 @@ import { runInTransaction } from './_helpers';
  * Postgres-only. Uses `jsonb_array_elements`, `jsonb_agg`, and `jsonb_set`,
  * which have no SQLite equivalent. Tests skip on non-postgres dialects.
  */
+
+const MIGRATION_KEY = '18-fix-jsonb-url-prefix';
 
 type JsonbTarget = {
   /** Table containing the JSONB column. */
@@ -209,6 +217,7 @@ export default {
   },
 
   down: async (queryInterface: QueryInterface) => {
+    assertDestructiveDownAcknowledged(MIGRATION_KEY);
     await runInTransaction(queryInterface, async t => {
       const results = [];
       for (const target of TARGETS) {
