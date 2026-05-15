@@ -6,7 +6,7 @@ A monorepo containing three React frontends, a Node.js/Express backend, and shar
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v22+ (the exact version is pinned in [`.nvmrc`](./.nvmrc); install via `nvm use`)
+- [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=22 <23`
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose v2)
 - [Git](https://git-scm.com/)
 
@@ -19,7 +19,7 @@ npm run setup
 ```
 
 That's it. `npm run setup` is the one-shot bootstrap and it will:
-1. Verify Node.js v22+
+1. Verify Node.js v22
 2. Create `.env` from `.env.example` (if missing)
 3. **Generate fresh JWT / session / CSRF / encryption secrets straight into `.env`** (won't overwrite existing values)
 4. Install all dependencies (`npm ci`)
@@ -119,7 +119,7 @@ The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 
 ## Tech Stack
 
-**Frontend:** React 18, TypeScript, Vite, styled-components, React Router, React Query, Socket.io
+**Frontend:** React 19, TypeScript, Vite, styled-components, React Router, React Query, Socket.io
 **Backend:** Node.js 22, Express, TypeScript, Sequelize, PostgreSQL 16 + PostGIS, Redis 7, Socket.io, JWT
 **Tooling:** Turborepo, Docker (BuildKit), Nginx, GitHub Actions
 

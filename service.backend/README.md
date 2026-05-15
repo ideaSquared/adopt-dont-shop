@@ -202,7 +202,7 @@ npm run lint
 
 ## Testing
 
-Tests run under Vitest (not Jest — despite the `Jest` library being listed in root devDependencies for lib.* packages).
+Tests run under Vitest. Every workspace package (this service, `lib.*`, and the React apps) is on Vitest — Jest is not used anywhere in this monorepo.
 
 ```bash
 npm run test           # Vitest run mode

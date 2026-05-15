@@ -63,7 +63,7 @@ All libraries follow these standards:
 
 - **Module System**: ES Modules first; a few libraries (`lib.api`, `lib.permissions`, `lib.types`, `lib.validation`) also emit a CJS bundle for backend consumers
 - **Build Tool**: TypeScript Compiler (`tsc`) for most libs; `lib.components` uses Vite to bundle assets and styles
-- **Testing**: Jest for Node libs, Vitest for libs co-located with apps and `service.backend`
+- **Testing**: Vitest in every package (`lib.*`, `service.backend`, and the React apps). Each library ships its own `vitest.config.ts` and an `npm test` script that runs `vitest run`.
 - **Code Quality**: ESLint + Prettier
 - **Documentation**: Each library has its own README next to the source
 

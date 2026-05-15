@@ -126,13 +126,13 @@ async function setup() {
       nodeVersion = execSync('node --version', { encoding: 'utf-8' }).trim();
     } catch {
       logError('Node.js is not installed');
-      log('Please install Node.js v20 or higher from https://nodejs.org/', YELLOW);
+      log('Please install Node.js v22 (see .nvmrc) from https://nodejs.org/', YELLOW);
       process.exit(1);
     }
 
     const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0], 10);
-    if (majorVersion < 20) {
-      logError(`Node.js v${majorVersion} detected, but v20+ is required`);
+    if (majorVersion < 22) {
+      logError(`Node.js v${majorVersion} detected, but v22+ is required (see package.json engines)`);
       log(`Current version: ${nodeVersion}`, YELLOW);
       log('Please upgrade Node.js from https://nodejs.org/', YELLOW);
       process.exit(1);
