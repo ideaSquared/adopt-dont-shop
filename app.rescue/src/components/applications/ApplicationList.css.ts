@@ -51,11 +51,6 @@ export const title = style({
   margin: 0,
 });
 
-export const selectionCount = style({
-  fontSize: '0.875rem',
-  color: '#6b7280',
-});
-
 export const sortSelect = style({
   fontSize: '0.875rem',
   border: '1px solid #d1d5db',
@@ -147,17 +142,6 @@ export const tableCell = style({
       textAlign: 'right',
     },
   },
-});
-
-export const checkboxCell = style({
-  padding: '1rem 1.5rem',
-  whiteSpace: 'nowrap',
-  borderBottom: '1px solid #e5e7eb',
-});
-
-export const checkbox = style({
-  borderRadius: '0.25rem',
-  border: '1px solid #d1d5db',
 });
 
 export const applicantInfo = style({
