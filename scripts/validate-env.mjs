@@ -134,6 +134,13 @@ function checkDistinctSecrets(env, errors) {
     ['JWT_REFRESH_SECRET', 'SESSION_SECRET'],
     ['JWT_REFRESH_SECRET', 'CSRF_SECRET'],
     ['SESSION_SECRET', 'CSRF_SECRET'],
+    // ADS-542: UPLOAD_SIGNING_SECRET must be distinct from every other secret.
+    ['UPLOAD_SIGNING_SECRET', 'JWT_SECRET'],
+    ['UPLOAD_SIGNING_SECRET', 'JWT_REFRESH_SECRET'],
+    ['UPLOAD_SIGNING_SECRET', 'SESSION_SECRET'],
+    ['UPLOAD_SIGNING_SECRET', 'CSRF_SECRET'],
+    ['UPLOAD_SIGNING_SECRET', 'ENCRYPTION_KEY'],
+    ['UPLOAD_SIGNING_SECRET', 'JWT_REPORT_SHARE_SECRET'],
   ];
   for (const [a, b] of pairs) {
     if (env[a] && env[b] && env[a] === env[b]) {
@@ -177,6 +184,11 @@ function validate(env) {
       required: false,
     });
   }
+
+  // ADS-542: UPLOAD_SIGNING_SECRET required in production, optional in dev/test.
+  checkSecret('UPLOAD_SIGNING_SECRET', env.UPLOAD_SIGNING_SECRET, errors, {
+    required: isProduction,
+  });
 
   checkDistinctSecrets(env, errors);
 

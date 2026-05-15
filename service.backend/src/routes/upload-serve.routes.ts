@@ -36,13 +36,7 @@ const router = Router();
 
 const SIGNED_TOKEN_TTL_SECONDS = 5 * 60; // 5 minutes — long enough for an inline <img> render, short enough that a leaked URL has near-zero replay window.
 
-const signingKey = (): string => {
-  // Reuse JWT_SECRET so we don't introduce a new secret to manage. The
-  // signed URL is HMAC-SHA256 over "<filePath>:<expiresAt>" — the
-  // payload is short and side-effect-free, so this isn't doing JWT
-  // duty proper.
-  return env.JWT_SECRET;
-};
+const signingKey = (): string => env.UPLOAD_SIGNING_SECRET;
 
 const safeResolve = (relativePath: string): string | null => {
   const projectRoot = path.resolve(__dirname, '..', '..', '..');

@@ -9,6 +9,7 @@ type RequiredEnvVars = {
   SESSION_SECRET: string;
   CSRF_SECRET: string;
   ENCRYPTION_KEY: string;
+  UPLOAD_SIGNING_SECRET: string;
   DEV_DB_NAME?: string;
   TEST_DB_NAME?: string;
   PROD_DB_NAME?: string;
@@ -36,6 +37,7 @@ type ValidatedEnv = {
   SESSION_SECRET: string;
   CSRF_SECRET: string;
   ENCRYPTION_KEY: string;
+  UPLOAD_SIGNING_SECRET: string;
   DEV_DB_NAME?: string;
   TEST_DB_NAME?: string;
   PROD_DB_NAME?: string;
@@ -105,6 +107,8 @@ const validateEnv = (): ValidatedEnv => {
   const sessionSecret = process.env.SESSION_SECRET;
   const csrfSecret = process.env.CSRF_SECRET;
   const encryptionKey = process.env.ENCRYPTION_KEY;
+  const uploadSigningSecret = process.env.UPLOAD_SIGNING_SECRET;
+  const jwtReportShareSecret = process.env.JWT_REPORT_SHARE_SECRET;
 
   const MIN_SECRET_LENGTH = 32;
   // ENCRYPTION_KEY is exactly 32 bytes, hex-encoded = 64 chars, because
@@ -133,6 +137,15 @@ const validateEnv = (): ValidatedEnv => {
     missing.push('ENCRYPTION_KEY');
   }
 
+  // ADS-542: dedicated secret for signing short-lived upload URLs. Required
+  // in production so a JWT_SECRET disclosure cannot be used to forge signed
+  // upload URLs (and vice versa). In dev/test we fall back to a deterministic
+  // placeholder if unset, so existing local setups still boot.
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (!uploadSigningSecret && isProduction) {
+    missing.push('UPLOAD_SIGNING_SECRET');
+  }
+
   // Validate secret lengths (only if they exist)
   if (jwtSecret && jwtSecret.length < MIN_SECRET_LENGTH) {
     invalid.push(
@@ -155,6 +168,12 @@ const validateEnv = (): ValidatedEnv => {
   if (csrfSecret && csrfSecret.length < MIN_SECRET_LENGTH) {
     invalid.push(
       `CSRF_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${csrfSecret.length})`
+    );
+  }
+
+  if (uploadSigningSecret && uploadSigningSecret.length < MIN_SECRET_LENGTH) {
+    invalid.push(
+      `UPLOAD_SIGNING_SECRET (minimum ${MIN_SECRET_LENGTH} characters required, got ${uploadSigningSecret.length})`
     );
   }
 
@@ -233,6 +252,38 @@ const validateEnv = (): ValidatedEnv => {
     );
   }
 
+  // ADS-542: UPLOAD_SIGNING_SECRET must differ from every other secret in
+  // the system. Reusing JWT_SECRET (the previous behaviour) meant an HMAC
+  // verification oracle in the signed-upload endpoint shared a key with the
+  // JWT signing material, expanding the blast radius of a single
+  // compromise. Pairwise checks below mirror the pattern above.
+  if (uploadSigningSecret) {
+    const otherSecrets: Array<[string, string | undefined]> = [
+      ['JWT_SECRET', jwtSecret],
+      ['JWT_REFRESH_SECRET', jwtRefreshSecret],
+      ['SESSION_SECRET', sessionSecret],
+      ['CSRF_SECRET', csrfSecret],
+      ['ENCRYPTION_KEY', encryptionKey],
+      ['JWT_REPORT_SHARE_SECRET', jwtReportShareSecret],
+    ];
+    for (const [name, value] of otherSecrets) {
+      if (value && value === uploadSigningSecret) {
+        throw new Error(
+          `UPLOAD_SIGNING_SECRET and ${name} must be distinct. ` +
+            'Reusing secrets increases compromise blast radius. ' +
+            'Generate new secrets with: npm run secrets:generate'
+        );
+      }
+    }
+  }
+
+  // ADS-542: dev/test fallback — derive a distinct, deterministic secret from
+  // JWT_SECRET so existing dev setups boot without an extra .env entry. In
+  // production a missing UPLOAD_SIGNING_SECRET is rejected above; this
+  // fallback is only ever reached in development or test.
+  const effectiveUploadSigningSecret =
+    uploadSigningSecret ?? `dev-upload-signing-secret::${jwtSecret ?? ''}`;
+
   // After validation, we know all secrets are defined and valid
   // Type assertion is safe here because we've validated above
   const validated: ValidatedEnv = {
@@ -241,6 +292,7 @@ const validateEnv = (): ValidatedEnv => {
     SESSION_SECRET: sessionSecret as string,
     CSRF_SECRET: csrfSecret as string,
     ENCRYPTION_KEY: encryptionKey as string,
+    UPLOAD_SIGNING_SECRET: effectiveUploadSigningSecret,
     DEV_DB_NAME: process.env.DEV_DB_NAME,
     TEST_DB_NAME: process.env.TEST_DB_NAME,
     PROD_DB_NAME: process.env.PROD_DB_NAME,
