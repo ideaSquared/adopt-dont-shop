@@ -66,7 +66,20 @@ global.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 vi.mock('@adopt-dont-shop/lib.components', () => ({
   lightTheme: {},
   darkTheme: {},
+  highContrastTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  // ADS-137: keep mocks of high-contrast exports in sync with lib.components.
+  HIGH_CONTRAST_SHORTCUT_HINT: 'Alt + Shift + H',
+  HighContrastToggle: () =>
+    React.createElement('button', { type: 'button', 'aria-pressed': 'false' }, 'High contrast'),
+  useTheme: () => ({
+    theme: {},
+    themeMode: 'light',
+    setThemeMode: () => {},
+    highContrast: false,
+    setHighContrast: () => {},
+    toggleHighContrast: () => {},
+  }),
   Container: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
