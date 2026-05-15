@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import User, { UserStatus, UserType } from '../models/User';
 import Rescue from '../models/Rescue';
@@ -6,14 +6,7 @@ import AdminService from '../services/admin.service';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
 import type { RescuePlan } from '../config/plans';
-
-type AuthenticatedRequest = Request & {
-  user?: {
-    userId: string;
-    role: string;
-    rescueId?: string;
-  };
-};
+import { AuthenticatedRequest } from '../types/auth';
 
 export class AdminController {
   /**
@@ -599,7 +592,7 @@ export class AdminController {
     }
   }
 
-  static async getUsers(req: Request, res: Response) {
+  static async getUsers(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
     try {
@@ -632,7 +625,7 @@ export class AdminController {
     }
   }
 
-  static async getUserById(req: Request, res: Response) {
+  static async getUserById(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
     try {
@@ -659,13 +652,13 @@ export class AdminController {
     }
   }
 
-  static async updateUserStatus(req: Request, res: Response) {
+  static async updateUserStatus(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
     try {
       const { userId } = req.params;
       const { status } = req.body;
-      const adminId = (req as AuthenticatedRequest).user?.userId || 'system';
+      const adminId = req.user?.userId || 'system';
 
       const user = await AdminService.updateUserStatus(userId, status, adminId);
 
@@ -702,13 +695,13 @@ export class AdminController {
     }
   }
 
-  static async suspendUser(req: Request, res: Response) {
+  static async suspendUser(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
     try {
       const { userId } = req.params;
       const { reason } = req.body;
-      const adminId = (req as AuthenticatedRequest).user?.userId || 'system';
+      const adminId = req.user?.userId || 'system';
 
       const user = await AdminService.suspendUser(userId, adminId, reason);
 
@@ -743,12 +736,12 @@ export class AdminController {
     }
   }
 
-  static async unsuspendUser(req: Request, res: Response) {
+  static async unsuspendUser(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
     try {
       const { userId } = req.params;
-      const adminId = (req as AuthenticatedRequest).user?.userId || 'system';
+      const adminId = req.user?.userId || 'system';
 
       const user = await AdminService.unsuspendUser(userId, adminId);
 
@@ -781,13 +774,13 @@ export class AdminController {
     }
   }
 
-  static async deleteUser(req: Request, res: Response) {
+  static async deleteUser(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
     try {
       const { userId } = req.params;
       const { reason } = req.body;
-      const adminId = (req as AuthenticatedRequest).user?.userId || 'system';
+      const adminId = req.user?.userId || 'system';
 
       await AdminService.deleteUser(userId, adminId, reason);
 
@@ -811,7 +804,7 @@ export class AdminController {
     }
   }
 
-  static async getRescues(req: Request, res: Response) {
+  static async getRescues(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
     try {
@@ -843,12 +836,12 @@ export class AdminController {
     }
   }
 
-  static async verifyRescue(req: Request, res: Response) {
+  static async verifyRescue(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
     try {
       const { rescueId } = req.params;
-      const adminId = (req as AuthenticatedRequest).user?.userId || 'system';
+      const adminId = req.user?.userId || 'system';
 
       const rescue = await AdminService.verifyRescue(rescueId, adminId);
 
@@ -871,7 +864,7 @@ export class AdminController {
     }
   }
 
-  static async getSystemStatistics(req: Request, res: Response) {
+  static async getSystemStatistics(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
     try {

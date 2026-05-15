@@ -407,7 +407,7 @@ export const unsubscribeUser = async (req: Request, res: Response): Promise<void
     const { token } = req.params;
     const { type } = req.query;
 
-    await emailService.unsubscribeUser(token, type as NotificationType);
+    await emailService.unsubscribeUser(token as string, type as NotificationType);
 
     res.json({
       message: 'Successfully unsubscribed',

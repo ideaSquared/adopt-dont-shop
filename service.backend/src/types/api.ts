@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
-import User from '../models/User';
 import { JsonObject, JsonValue } from './common';
+import { AuthenticatedRequest } from './auth';
+
+export { AuthenticatedRequest };
 
 // Base API Response Types
 export interface ApiResponse<T = JsonValue> {
@@ -36,17 +38,6 @@ export interface PaginationOptions {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'ASC' | 'DESC';
-}
-
-// Request Types
-export interface AuthenticatedRequest extends Request {
-  user?: User;
-  userId?: string;
-  resourceId?: string;
-}
-
-export interface RequestWithResourceId extends AuthenticatedRequest {
-  resourceId: string;
 }
 
 // Query Parameter Types

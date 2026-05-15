@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { RescueService, BulkRescueAction } from '../services/rescue.service';
@@ -17,7 +17,7 @@ export class RescueController {
   /**
    * Search rescues with filters and pagination
    */
-  searchRescues = async (req: Request, res: Response) => {
+  searchRescues = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -68,7 +68,7 @@ export class RescueController {
   /**
    * Get rescue by ID
    */
-  getRescueById = async (req: Request, res: Response) => {
+  getRescueById = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -327,7 +327,7 @@ export class RescueController {
   /**
    * Get rescue staff with pagination
    */
-  getRescueStaff = async (req: Request, res: Response) => {
+  getRescueStaff = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -545,7 +545,7 @@ export class RescueController {
   /**
    * Get rescue pets with pagination
    */
-  getRescuePets = async (req: Request, res: Response) => {
+  getRescuePets = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -829,7 +829,7 @@ export class RescueController {
   /**
    * Get adoption policies for a rescue
    */
-  getAdoptionPolicies = async (req: Request, res: Response) => {
+  getAdoptionPolicies = async (req: AuthenticatedRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

@@ -4,18 +4,11 @@
  * Part of Phase 3 - Message Search Implementation
  */
 
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { LARGE_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { MessageSearchService } from '../services/messageSearch.service';
 import { logger } from '../utils/logger';
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-    email: string;
-    userType: string;
-  };
-}
+import { AuthenticatedRequest } from '../types/auth';
 
 export class SearchController {
   /**

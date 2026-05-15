@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import SupportTicketService from '../services/supportTicket.service';
 import SupportTicket, {
   TicketStatus,
@@ -104,7 +104,7 @@ export class SupportTicketController {
    * GET /api/v1/admin/support/tickets
    * Get all support tickets with filtering and pagination
    */
-  static async getTickets(req: Request, res: Response) {
+  static async getTickets(req: AuthenticatedRequest, res: Response) {
     try {
       const {
         status,
@@ -208,7 +208,7 @@ export class SupportTicketController {
    * GET /api/v1/admin/support/tickets/:ticketId
    * Get a single support ticket by ID
    */
-  static async getTicketById(req: Request, res: Response) {
+  static async getTicketById(req: AuthenticatedRequest, res: Response) {
     try {
       const { ticketId } = req.params;
 
@@ -238,7 +238,7 @@ export class SupportTicketController {
    * POST /api/v1/admin/support/tickets
    * Create a new support ticket
    */
-  static async createTicket(req: Request, res: Response) {
+  static async createTicket(req: AuthenticatedRequest, res: Response) {
     try {
       const {
         userId,
@@ -289,7 +289,7 @@ export class SupportTicketController {
    * PATCH /api/v1/admin/support/tickets/:ticketId
    * Update a support ticket
    */
-  static async updateTicket(req: Request, res: Response) {
+  static async updateTicket(req: AuthenticatedRequest, res: Response) {
     try {
       const { ticketId } = req.params;
       const updates = req.body;
@@ -320,7 +320,7 @@ export class SupportTicketController {
    * POST /api/v1/admin/support/tickets/:ticketId/assign
    * Assign a ticket to an agent
    */
-  static async assignTicket(req: Request, res: Response) {
+  static async assignTicket(req: AuthenticatedRequest, res: Response) {
     try {
       const { ticketId } = req.params;
       const { assignedTo } = req.body;
@@ -405,7 +405,7 @@ export class SupportTicketController {
    * POST /api/v1/admin/support/tickets/:ticketId/escalate
    * Escalate a ticket
    */
-  static async escalateTicket(req: Request, res: Response) {
+  static async escalateTicket(req: AuthenticatedRequest, res: Response) {
     try {
       const { ticketId } = req.params;
       const { escalatedTo, reason } = req.body;
@@ -444,7 +444,7 @@ export class SupportTicketController {
    * GET /api/v1/admin/support/tickets/:ticketId/messages
    * Get all messages/responses for a ticket
    */
-  static async getTicketMessages(req: Request, res: Response) {
+  static async getTicketMessages(req: AuthenticatedRequest, res: Response) {
     try {
       const { ticketId } = req.params;
 
@@ -477,7 +477,7 @@ export class SupportTicketController {
    * GET /api/v1/admin/support/stats
    * Get support ticket statistics
    */
-  static async getTicketStats(req: Request, res: Response) {
+  static async getTicketStats(req: AuthenticatedRequest, res: Response) {
     try {
       const stats = await SupportTicketService.getTicketStats();
 

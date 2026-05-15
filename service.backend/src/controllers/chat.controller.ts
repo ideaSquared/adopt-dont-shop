@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import { ChatParticipant } from '../models/ChatParticipant';
 import User, { UserType } from '../models/User';
@@ -7,10 +7,7 @@ import { FileUploadService } from '../services/file-upload.service';
 import { broadcastNewMessage, isUserOnline } from '../socket/socket-handlers';
 import { ChatMessage } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
-
-interface AuthenticatedRequest extends Request {
-  user?: User;
-}
+import { AuthenticatedRequest } from '../types/auth';
 
 // Type for participant with User association
 type ParticipantWithUser = ChatParticipant & {
