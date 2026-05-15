@@ -43,6 +43,7 @@
     "dev": "turbo run dev --parallel",
     "dev:apps": "turbo run dev --filter='@adopt-dont-shop/app.*' --parallel",
     "dev:backend": "turbo run dev --filter=@adopt-dont-shop/service-backend",
+    "dev:services": "docker compose up -d database redis",
     "docker:dev": "docker compose up",
     "docker:dev:build": "docker compose up --build",
     "docker:dev:detach": "docker compose up -d",

@@ -39,9 +39,10 @@ npm run docker:down         # stop
 
 ### Run (native — no Docker)
 
-You'll need Postgres + Redis running locally yourself.
+You'll need Postgres + Redis running locally. The quickest option is to let Docker run just those two services while the rest of the stack runs natively:
 
 ```bash
+npm run dev:services        # start Postgres + Redis in Docker (detached)
 npm run dev                 # all packages via Turbo
 npm run dev:apps            # frontend apps only
 npm run dev:backend         # backend only
