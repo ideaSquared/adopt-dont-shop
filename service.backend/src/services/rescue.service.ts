@@ -893,8 +893,9 @@ export class RescueService {
       attributes: ['plan'],
       ...(transaction ? { transaction: transaction as never } : {}),
     });
-    if (!rescue) throw new Error('Rescue not found');
-    const limit = PLAN_LIMITS[rescue.plan as RescuePlan].maxStaffSeats;
+    if (!rescue) return;
+    const plan: RescuePlan = (rescue.plan as RescuePlan) ?? 'free';
+    const limit = PLAN_LIMITS[plan].maxStaffSeats;
     if (limit === null) return;
     const active = await StaffMember.count({
       where: { rescueId, isVerified: true },
@@ -910,7 +911,7 @@ export class RescueService {
       err.code = 'PLAN_LIMIT_EXCEEDED';
       err.limit = limit;
       err.current = active;
-      err.plan = rescue.plan;
+      err.plan = plan;
       throw err;
     }
   }

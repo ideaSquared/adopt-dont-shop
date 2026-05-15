@@ -518,8 +518,9 @@ export class PetService {
 
   private static async assertActivePetLimit(rescueId: string): Promise<void> {
     const rescue = await Rescue.findByPk(rescueId, { attributes: ['plan'] });
-    if (!rescue) throw new Error('Rescue not found');
-    const limit = PLAN_LIMITS[rescue.plan as RescuePlan].maxActivePets;
+    if (!rescue) return;
+    const plan: RescuePlan = (rescue.plan as RescuePlan) ?? 'free';
+    const limit = PLAN_LIMITS[plan].maxActivePets;
     if (limit === null) return;
     const active = await Pet.count({
       where: {
@@ -545,7 +546,7 @@ export class PetService {
       err.code = 'PLAN_LIMIT_EXCEEDED';
       err.limit = limit;
       err.current = active;
-      err.plan = rescue.plan;
+      err.plan = plan;
       throw err;
     }
   }

@@ -1,10 +1,28 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
+const shared = vi.hoisted(() => {
+  const fakeTx = {
+    commit: () => Promise.resolve(),
+    rollback: () => Promise.resolve(),
+    LOCK: { UPDATE: 'UPDATE' },
+  };
+  return {
+    fakeTx,
+    rescueFindByPk: vi.fn(),
+    staffCount: vi.fn(),
+    staffFindOne: vi.fn(),
+    staffCreate: vi.fn(),
+    petCount: vi.fn(),
+    petCreate: vi.fn(),
+    userFindByPk: vi.fn(),
+  };
+});
+
 vi.mock('../../models/Rescue', () => ({
   __esModule: true,
   default: {
-    findByPk: vi.fn(),
-    sequelize: { transaction: vi.fn() },
+    findByPk: shared.rescueFindByPk,
+    sequelize: { transaction: () => Promise.resolve(shared.fakeTx) },
   },
 }));
 
@@ -21,8 +39,8 @@ vi.mock('../../models/Pet', () => ({
     DECEASED: 'deceased',
   },
   default: {
-    count: vi.fn(),
-    create: vi.fn(),
+    count: shared.petCount,
+    create: shared.petCreate,
     findByPk: vi.fn(),
   },
 }));
@@ -30,9 +48,9 @@ vi.mock('../../models/Pet', () => ({
 vi.mock('../../models/StaffMember', () => ({
   __esModule: true,
   default: {
-    count: vi.fn(),
-    findOne: vi.fn(),
-    create: vi.fn(),
+    count: shared.staffCount,
+    findOne: shared.staffFindOne,
+    create: shared.staffCreate,
   },
 }));
 
@@ -62,16 +80,23 @@ vi.mock('../../models/User', () => ({
     ADOPTER: 'adopter',
     MODERATOR: 'moderator',
   },
-  default: { findByPk: vi.fn() },
+  default: { findByPk: shared.userFindByPk },
 }));
 vi.mock('../../models', () => ({
   Application: {},
-  Pet: {},
-  Rescue: { findByPk: vi.fn(), sequelize: { transaction: vi.fn() } },
-  StaffMember: { count: vi.fn(), findOne: vi.fn(), create: vi.fn() },
-  User: { findByPk: vi.fn() },
-  Role: {},
-  UserRole: {},
+  Pet: { count: shared.petCount, create: shared.petCreate },
+  Rescue: {
+    findByPk: shared.rescueFindByPk,
+    sequelize: { transaction: () => Promise.resolve(shared.fakeTx) },
+  },
+  StaffMember: {
+    count: shared.staffCount,
+    findOne: shared.staffFindOne,
+    create: shared.staffCreate,
+  },
+  User: { findByPk: shared.userFindByPk },
+  Role: { findOne: vi.fn() },
+  UserRole: { findOne: vi.fn(), create: vi.fn() },
 }));
 vi.mock('../../sequelize', () => ({
   __esModule: true,
@@ -107,16 +132,11 @@ vi.mock('../../services/charity-commission.service', () => ({
 }));
 vi.mock('../../lib/auth-cache', () => ({ invalidateAuthCache: vi.fn() }));
 
-import Rescue from '../../models/Rescue';
-import Pet, { PetStatus } from '../../models/Pet';
-import StaffMember from '../../models/StaffMember';
+import { PetStatus } from '../../models/Pet';
 
-const mockRescue = Rescue as unknown as { findByPk: ReturnType<typeof vi.fn> };
-const mockPet = Pet as unknown as {
-  count: ReturnType<typeof vi.fn>;
-  create: ReturnType<typeof vi.fn>;
-};
-const mockStaff = StaffMember as unknown as { count: ReturnType<typeof vi.fn> };
+const mockRescue = { findByPk: shared.rescueFindByPk };
+const mockPet = { count: shared.petCount, create: shared.petCreate };
+const mockStaff = { count: shared.staffCount };
 
 describe('Plan limit enforcement', () => {
   beforeEach(() => {
