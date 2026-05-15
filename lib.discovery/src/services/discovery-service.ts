@@ -285,6 +285,7 @@ export class DiscoveryService {
    * @param pets - Array of pets whose images should be preloaded
    */
   private preloadImages(pets: DiscoveryPet[]): void {
+    if (typeof Image === 'undefined') return;
     pets.forEach((pet) => {
       if (pet.images && pet.images.length > 0) {
         // Preload first image immediately, others in background
@@ -295,6 +296,7 @@ export class DiscoveryService {
         pet.images.slice(1, 3).forEach((imageUrl, index) => {
           setTimeout(
             () => {
+              if (typeof Image === 'undefined') return;
               const additionalImg = new Image();
               additionalImg.src = imageUrl;
             },
