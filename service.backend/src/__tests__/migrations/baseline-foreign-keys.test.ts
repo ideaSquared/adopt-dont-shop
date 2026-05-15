@@ -1,6 +1,6 @@
 /**
  * Round-trip + behaviour tests for the FK baseline file
- * `00-baseline-zzz-foreign-keys.ts`.
+ * `00-baseline-999-foreign-keys.ts`.
  *
  * Strategy:
  *   1. `sequelize.sync({ force: true })` to bootstrap all tables (sync
@@ -23,7 +23,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import sequelize from '../../sequelize';
 import * as models from '../../models';
-import fkBaseline from '../../migrations/00-baseline-zzz-foreign-keys';
+import fkBaseline from '../../migrations/00-baseline-999-foreign-keys';
 
 // Force every model file to register with sequelize so sync() has the
 // full table set.
@@ -197,7 +197,7 @@ describeIfPostgres('per-model baseline — cross-table foreign keys', () => {
 
     it('drops every constraint when acknowledged', async () => {
       await fkBaseline.up(queryInterface);
-      ackKey('00-baseline-zzz-foreign-keys');
+      ackKey('00-baseline-999-foreign-keys');
 
       await fkBaseline.down(queryInterface);
 
