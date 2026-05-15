@@ -106,6 +106,49 @@ export class GdprController {
     }
   }
 
+  /**
+   * GDPR Art. 17 — rescue erasure (ADS-87). Gated: platform admin OR
+   * rescue admin / staff acting on their own rescue. Mirrors the same
+   * controller-side auth pattern as eraseByAdmin so failures funnel
+   * through one audited path.
+   */
+  async eraseRescue(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { rescueId } = req.params;
+      const actor = req.user!;
+      const isPlatformAdmin = isAdmin(req);
+      const isOwnRescue = actor.userType === UserType.RESCUE_STAFF && actor.rescueId === rescueId;
+
+      if (!isPlatformAdmin && !isOwnRescue) {
+        res.status(403).json({ error: 'You do not have permission to erase this rescue' });
+        return;
+      }
+
+      const { reason } = req.body as { reason?: string };
+      const result = await GdprService.eraseRescue(rescueId, {
+        reason,
+        actorUserId: actor.userId,
+      });
+      res.json({
+        success: true,
+        message: 'Rescue anonymised',
+        summary: {
+          petsArchived: result.petsArchived,
+          applicationsRejected: result.applicationsRejected,
+          staffDowngraded: result.staffDowngraded,
+          alreadyArchived: result.alreadyArchived,
+        },
+      });
+    } catch (error) {
+      logger.error('GDPR rescue erase failed', { error });
+      if (error instanceof Error && error.message === 'Rescue not found') {
+        res.status(404).json({ error: 'Rescue not found' });
+        return;
+      }
+      res.status(500).json({ error: 'Failed to erase rescue' });
+    }
+  }
+
   async recordConsent(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.userId;
