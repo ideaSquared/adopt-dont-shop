@@ -61,13 +61,7 @@ Full guidelines are in [.claude/CLAUDE.md](./.claude/CLAUDE.md). Key rules:
 
 ## Test requirements
 
-| Package scope | Test runner |
-|---|---|
-| `lib.*` shared libraries | Jest |
-| `app.*` React apps | Vitest + React Testing Library |
-| `service.backend` | Vitest |
-
-> Note: ADS-385 will consolidate all packages onto Vitest. Until then, use the runner already configured in the package.
+Every package uses **Vitest** (`vitest run`). The React apps and `lib.components` add React Testing Library on top. Use the `npm test` / `npm run test:watch` / `npm run test:coverage` scripts defined in each package.
 
 Tests must cover **behaviour**, not implementation. 100% coverage is expected but tests must always be grounded in business requirements, not internal structure.
 
