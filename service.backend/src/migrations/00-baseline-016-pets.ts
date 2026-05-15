@@ -439,12 +439,12 @@ export default {
 
   down: async (queryInterface: QueryInterface) => {
     assertDestructiveDownAcknowledged(MIGRATION_KEY);
-    // Pass an explicit options object — sequelize's PostgresQueryInterface
-    // mutates `options` to drop the per-column ENUM types when a model is
-    // registered, which throws if `options` is undefined.
-    await queryInterface.dropTable('pets', {});
-    // Each ENUM was the only consumer of its type; drop them so they don't
-    // leak into pg_type.
+    await runInTransaction(queryInterface, async t => {
+      await queryInterface.dropTable('pets', { transaction: t });
+    });
+    // ENUM type drops run AFTER the dropTable transaction commits so the
+    // type drops never sit in a still-open tx with the table reference
+    // (matches the pattern in 00-baseline-001-users.ts).
     const sequelize = queryInterface.sequelize;
     await dropEnumTypeIfExists(sequelize, 'enum_pets_age_group');
     await dropEnumTypeIfExists(sequelize, 'enum_pets_gender');
