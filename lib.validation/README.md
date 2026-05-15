@@ -49,7 +49,7 @@ if (!parsed.success) {
 ```bash
 npm run build           # tsc
 npm run dev             # tsc --watch
-npm test                # jest
+npm test                # vitest run
 npm run test:watch
 npm run test:coverage
 npm run lint

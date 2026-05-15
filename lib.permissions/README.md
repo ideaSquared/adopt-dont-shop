@@ -367,8 +367,9 @@ lib.permissions/
     config/
       __tests__/
         field-permission-defaults.test.ts
-  jest.config.cjs
+  vitest.config.ts
   tsconfig.json
+  tsconfig.cjs.json
   package.json
 ```
 
@@ -376,13 +377,13 @@ lib.permissions/
 
 ```bash
 # From lib.permissions directory
-npx jest --config jest.config.cjs
+npm test                                                            # vitest run
 
 # Run a specific test file
-npx jest --config jest.config.cjs src/config/__tests__/field-permission-defaults.test.ts
+npx vitest run src/config/__tests__/field-permission-defaults.test.ts
 
 # With coverage
-npx jest --config jest.config.cjs --coverage
+npm run test:coverage                                               # vitest run --coverage
 ```
 
 ## Development

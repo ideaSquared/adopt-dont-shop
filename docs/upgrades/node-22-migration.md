@@ -46,7 +46,7 @@ Highlights that may bite us:
 | **`fetch`/`Headers`/`Request` stable** | Low | Current code uses axios; future code may switch but nothing forces it. |
 | **`--watch` mode default behaviour tweaks** | None | Not used in production, only in scripts. |
 | **OpenSSL 3.x stricter defaults** (already in 20) | None | Already vetted on Node 20. |
-| **`node:test` runner improvements** | None | We use Vitest/Jest. |
+| **`node:test` runner improvements** | None | We use Vitest. |
 | **GLIBC bump** (alpine: needs 3.18+) | Medium | `node:22-alpine` ships on Alpine 3.20; our base image moves with the upstream tag. Verify glibc-linked native deps (`bcrypt`, `pg-native` if added) still link. |
 
 ## 3. Risk inventory
@@ -188,8 +188,9 @@ release-blockers, but we should track them):
 - **DEP0166** `Invalid URL escape characters in import specifiers` — fires
   only if a dep ships malformed URLs in package.json `exports`. Should be
   zero hits for us.
-- Generic `ExperimentalWarning` for `--experimental-vm-modules` if Jest tests
-  in any lib opt into it (Vitest does not require it).
+- (Was previously a risk only for Jest-based suites opting into
+  `--experimental-vm-modules`; every package is on Vitest now, which does
+  not require that flag, so this is no longer a concern.)
 
 ## 11. Linear follow-up sub-issues to file (titles only)
 
