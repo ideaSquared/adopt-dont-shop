@@ -683,24 +683,44 @@ Need help? Contact us at support@adoptdontshop.com
     }
   }
 
-  static async logout(refreshToken?: string, accessToken?: string): Promise<void> {
+  static async logout(
+    refreshToken?: string,
+    accessToken?: string,
+    callerUserId?: string
+  ): Promise<void> {
     if (accessToken) {
       try {
-        const decoded = jwt.decode(accessToken) as {
-          jti?: string;
-          userId?: string;
-          exp?: number;
-        } | null;
+        // ADS-544: verify the access token rather than blindly decoding it.
+        // An expired / malformed / signature-failed token must NOT result in
+        // a RevokedToken row — anyone could otherwise poison the blacklist
+        // with arbitrary `jti` values and exhaust the table.
+        const decoded = jwt.verify(accessToken, env.JWT_SECRET, {
+          algorithms: ['HS256'],
+        }) as { jti?: string; userId?: string; exp?: number };
         if (decoded?.jti && decoded?.userId && decoded?.exp) {
-          await RevokedToken.create({
-            jti: decoded.jti,
-            user_id: decoded.userId,
-            expires_at: new Date(decoded.exp * 1000),
-          });
-          logger.info('Access token blacklisted on logout', { jti: decoded.jti });
+          // ADS-544: defence in depth — if the controller passed the
+          // authenticated user's id, the access token's `userId` claim must
+          // match. A mismatch means the caller is trying to revoke a token
+          // they don't own; log loudly and skip the insert.
+          if (callerUserId && decoded.userId !== callerUserId) {
+            loggerHelpers.logSecurity('Logout token user mismatch', {
+              callerUserId,
+              tokenUserId: decoded.userId,
+              jti: decoded.jti,
+            });
+          } else {
+            await RevokedToken.create({
+              jti: decoded.jti,
+              user_id: decoded.userId,
+              expires_at: new Date(decoded.exp * 1000),
+            });
+            logger.info('Access token blacklisted on logout', { jti: decoded.jti });
+          }
         }
       } catch {
-        logger.warn('Failed to blacklist access token on logout');
+        // Expired / malformed / bad signature — nothing to revoke. We
+        // deliberately do NOT create a RevokedToken row here.
+        logger.info('Logout with invalid or expired access token, skipping revocation');
       }
     }
 

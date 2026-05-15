@@ -518,6 +518,23 @@ const startServer = async () => {
         });
       }
 
+      // ADS-544: daily purge of expired RevokedToken rows. Without this
+      // the blacklist table grows unbounded since every logout writes a
+      // row that's only useful until the token's `exp`.
+      try {
+        const { scheduleRevokedTokensPurgeJob, startRevokedTokensPurgeWorker } =
+          await import('./jobs/revoked-tokens-purge.job');
+        await scheduleRevokedTokensPurgeJob();
+        const w = startRevokedTokensPurgeWorker();
+        if (w) {
+          logger.info('Revoked-tokens purge worker started');
+        }
+      } catch (err) {
+        logger.warn('Revoked-tokens purge job failed to start (continuing without scheduling)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
       // ADS-497 (slice 4): legal re-acceptance reminder cron. Gated
       // behind LEGAL_REMINDER_CRON_ENABLED (default off) AND
       // LEGAL_REMINDER_CRON_DRY_RUN (default on) — so the first deploy

@@ -110,7 +110,7 @@ export class AuthController {
       const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? req.body.refreshToken;
       const accessToken = req.headers.authorization?.split(' ')[1];
 
-      await AuthService.logout(refreshToken, accessToken);
+      await AuthService.logout(refreshToken, accessToken, req.user?.userId);
 
       res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
       res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
