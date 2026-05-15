@@ -24,6 +24,7 @@ import {
 } from '../middleware/rate-limiter';
 import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { requirePermission } from '../middleware/rbac';
+import { requirePlanFeature } from '../middleware/plan-gate';
 
 const router = Router();
 const rescueController = new RescueController();
@@ -868,11 +869,12 @@ router.delete(
   rescueController.cancelInvitation
 );
 
-// Analytics (rescue admin/staff)
+// Analytics (rescue admin/staff) — gated to growth+ plans
 router.get(
   '/:rescueId/analytics',
   validateRescueId,
   requirePermission('admin.reports'),
+  requirePlanFeature('analytics'),
   rescueController.getRescueAnalytics
 );
 
@@ -943,6 +945,7 @@ router.post(
   validateRescueId,
   QuestionController.validateCreateQuestion,
   requirePermission('rescues.update'),
+  requirePlanFeature('custom_questions'),
   questionController.createQuestion.bind(questionController)
 );
 
@@ -952,6 +955,7 @@ router.put(
   QuestionController.validateQuestionId,
   QuestionController.validateUpdateQuestion,
   requirePermission('rescues.update'),
+  requirePlanFeature('custom_questions'),
   questionController.updateQuestion.bind(questionController)
 );
 
@@ -960,6 +964,7 @@ router.delete(
   validateRescueId,
   QuestionController.validateQuestionId,
   requirePermission('rescues.update'),
+  requirePlanFeature('custom_questions'),
   questionController.deleteQuestion.bind(questionController)
 );
 
@@ -968,6 +973,7 @@ router.patch(
   validateRescueId,
   QuestionController.validateReorderQuestions,
   requirePermission('rescues.update'),
+  requirePlanFeature('custom_questions'),
   questionController.reorderQuestions.bind(questionController)
 );
 

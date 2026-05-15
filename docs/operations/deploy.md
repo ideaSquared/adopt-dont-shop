@@ -109,6 +109,37 @@ docker compose -f docker-compose.prod.yml run --rm service-backend-migrate \
   npx sequelize-cli db:migrate:undo
 ```
 
+## Database TLS (ADS-540)
+
+`docker-compose.prod.yml` defaults `DB_SSL_MODE=require`, which makes the
+Sequelize/`pg` driver open the link to Postgres over TLS. Three modes are
+supported:
+
+| `DB_SSL_MODE` | Behaviour |
+|---------------|-----------|
+| `require`     | TLS, no certificate verification (default) |
+| `verify-ca`   | TLS, verify CA chain |
+| `verify-full` | TLS, verify CA chain + hostname (recommended for managed providers) |
+
+The backend refuses to boot in production with `DB_SSL_MODE=disable` unless
+`ALLOW_INSECURE_DB=true` is also set — only safe on a fully trusted bridge
+such as the in-cluster docker network on the same host.
+
+### Managed Postgres (RDS / Neon / Supabase)
+
+1. Download the provider's CA bundle (e.g. `rds-combined-ca-bundle.pem`).
+2. Mount it into the backend container: add a `volumes:` entry to the
+   `service-backend` / `service-backend-migrate` services pointing to a
+   read-only path inside the container.
+3. Set the env vars in `.env`:
+   ```
+   DB_SSL_MODE=verify-full
+   DB_SSL_ROOT_CERT=/etc/ssl/certs/rds-combined-ca-bundle.pem
+   ```
+
+Boot logs print `sslMode=<mode>` so the effective setting is observable
+without exec'ing into the container.
+
 ## Backup / snapshot
 
 See [`snapshot-policy.md`](./snapshot-policy.md). [ADS-500]

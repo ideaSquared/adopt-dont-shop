@@ -76,6 +76,7 @@ export default defineConfig({
       ),
       '@adopt-dont-shop/lib.legal': path.resolve(__dirname, '../lib.legal/src/index.ts'),
       '@adopt-dont-shop/lib.dev-tools': path.resolve(__dirname, '../lib.dev-tools/src/index.ts'),
+      '@adopt-dont-shop/lib.types': path.resolve(__dirname, '../lib.types/src/index.ts'),
     },
   },
 });

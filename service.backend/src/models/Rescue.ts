@@ -8,6 +8,7 @@ import sequelize, {
 } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
+import type { RescuePlan } from '@adopt-dont-shop/lib.types';
 
 interface RescueAttributes {
   rescueId: string;
@@ -35,6 +36,8 @@ interface RescueAttributes {
   verificationFailureReason?: string | null;
   manualVerificationRequestedAt?: Date | null;
   settings?: object;
+  plan: RescuePlan;
+  planExpiresAt?: Date | null;
   /** Managed by Sequelize paranoid; null when the row is live. */
   deletedAt?: Date | null;
   createdAt: Date;
@@ -43,7 +46,14 @@ interface RescueAttributes {
 
 export interface RescueCreationAttributes extends Optional<
   RescueAttributes,
-  'rescueId' | 'verifiedAt' | 'verifiedBy' | 'deletedAt' | 'createdAt' | 'updatedAt'
+  | 'rescueId'
+  | 'plan'
+  | 'verifiedAt'
+  | 'verifiedBy'
+  | 'planExpiresAt'
+  | 'deletedAt'
+  | 'createdAt'
+  | 'updatedAt'
 > {}
 
 class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implements RescueAttributes {
@@ -72,6 +82,8 @@ class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implement
   public verificationFailureReason?: string | null;
   public manualVerificationRequestedAt?: Date | null;
   public settings?: object;
+  public plan!: RescuePlan;
+  public planExpiresAt?: Date | null;
   public deletedAt?: Date | null;
   public createdAt!: Date;
   public updatedAt!: Date;
@@ -231,6 +243,16 @@ Rescue.init(
       type: getJsonType(),
       allowNull: true,
       defaultValue: {},
+    },
+    plan: {
+      type: DataTypes.ENUM('free', 'growth', 'professional'),
+      allowNull: false,
+      defaultValue: 'free',
+    },
+    planExpiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'plan_expires_at',
     },
     createdAt: {
       type: DataTypes.DATE,

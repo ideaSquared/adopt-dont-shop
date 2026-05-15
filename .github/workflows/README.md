@@ -218,3 +218,55 @@ git push origin v1.0.0
 ---
 
 _This workflow structure follows GitHub's recommended practices and industry standards for CI/CD pipelines._
+
+---
+
+## Action pinning policy (ADS-539)
+
+Every `uses:` entry in this directory MUST reference a 40-character commit
+SHA, not a floating tag like `@v4`. A human-readable comment with the
+release version goes next to the SHA so the line is greppable:
+
+```yaml
+- uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+```
+
+### Why
+
+GitHub Actions tags are mutable. A malicious force-push to a third-party
+tag — or upstream account compromise (tj-actions/changed-files, 2025) —
+immediately exfiltrates every secret available to the job. SHA pinning
+makes the action contents tamper-evident and surfaces upstream changes
+through Dependabot rather than via silent re-resolution at run time.
+
+### Highest-risk actions
+
+These actions see production secrets and must be reviewed especially
+carefully on every bump:
+
+| Action                          | Where used        | Secrets exposed |
+| ------------------------------- | ----------------- | --------------- |
+| `appleboy/ssh-action`           | `deploy.yml`, `rollback.yml` | `HETZNER_SSH_KEY`, `HETZNER_HOST` |
+| `docker/login-action`           | `deploy.yml`, `docker.yml`    | `GHCR_TOKEN`     |
+| `github/codeql-action/*`        | `codeql.yml`, `docker.yml`    | `GITHUB_TOKEN` (security-events: write) |
+| `dorny/paths-filter`            | `ci.yml`                       | `GITHUB_TOKEN`   |
+
+### Updating an action
+
+1. Open the Dependabot PR for the action bump.
+2. Verify the proposed SHA matches the tag on
+   `https://github.com/<owner>/<repo>/releases/tag/v<version>`.
+3. If the action is on the highest-risk table above, also read the
+   release notes for any new entry-point/permission surface.
+4. Merge.
+
+### Adding a new action
+
+Look up the SHA from the release page, then write:
+
+```yaml
+- uses: owner/repo@<full-40-char-SHA>  # v<x.y.z>
+```
+
+Never copy a `@vN` reference from a Stack Overflow snippet without
+resolving to a SHA first.

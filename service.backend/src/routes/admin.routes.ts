@@ -1348,6 +1348,19 @@ router.patch(
   AdminController.moderateRescue
 );
 
+router.patch(
+  '/rescues/:rescueId/plan',
+  requirePermission(PERMISSIONS.ADMIN_RESCUE_MANAGEMENT),
+  generalLimiter,
+  validateBody(
+    z.object({
+      plan: z.enum(['free', 'growth', 'professional']),
+      planExpiresAt: z.string().datetime().nullable().optional(),
+    })
+  ),
+  AdminController.updateRescuePlan
+);
+
 // Audit logs and monitoring
 
 /**

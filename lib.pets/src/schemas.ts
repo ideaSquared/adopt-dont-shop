@@ -1,15 +1,59 @@
 import { z } from 'zod';
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
+//
+// Schemas mirror the backend's Sequelize enum definitions in
+// `service.backend/src/models/Pet.ts`. Keep them in sync — any value the
+// backend can emit but the schema rejects will throw inside `normalisePet`
+// and surface as "empty pet list" in the UI (no card renders, search
+// looks broken). When the backend grows a new variant, add it here in
+// the same commit.
 
 export const PetStatusSchema = z.enum([
   'available',
   'pending',
   'adopted',
+  'foster',
+  'medical_hold',
+  'behavioral_hold',
   'on_hold',
   'medical_care',
-  'foster',
   'not_available',
+  'deceased',
+]);
+
+export const PetTypeSchema = z.enum([
+  'dog',
+  'cat',
+  'rabbit',
+  'bird',
+  'reptile',
+  'small_mammal',
+  'fish',
+  'other',
+]);
+
+export const PetGenderSchema = z.enum(['male', 'female', 'unknown']);
+
+export const PetSizeSchema = z.enum(['extra_small', 'small', 'medium', 'large', 'extra_large']);
+
+export const PetAgeGroupSchema = z.enum(['baby', 'young', 'adult', 'senior']);
+
+export const PetEnergyLevelSchema = z.enum(['low', 'medium', 'high', 'very_high']);
+
+export const PetVaccinationStatusSchema = z.enum([
+  'up_to_date',
+  'partial',
+  'not_vaccinated',
+  'unknown',
+]);
+
+export const PetSpayNeuterStatusSchema = z.enum([
+  'spayed',
+  'neutered',
+  'not_altered',
+  'intact',
+  'unknown',
 ]);
 
 // ── Sub-schemas ───────────────────────────────────────────────────────────────
@@ -63,14 +107,14 @@ export const PetSchema = z.object({
   long_description: z.string().optional(),
   age_years: z.number().optional(),
   age_months: z.number().optional(),
-  age_group: z.enum(['young', 'adult', 'senior']).optional(),
-  gender: z.enum(['male', 'female']).optional(),
+  age_group: PetAgeGroupSchema.optional(),
+  gender: PetGenderSchema.optional(),
   status: PetStatusSchema.optional(),
-  type: z.enum(['dog', 'cat', 'rabbit', 'bird', 'other']).optional(),
+  type: PetTypeSchema.optional(),
   breed: z.string().optional(),
   secondary_breed: z.string().optional(),
   weight_kg: z.string().optional(),
-  size: z.enum(['small', 'medium', 'large', 'extra_large']).optional(),
+  size: PetSizeSchema.optional(),
   color: z.string().optional(),
   markings: z.string().optional(),
   microchip_id: z.string().optional(),
@@ -85,7 +129,7 @@ export const PetSchema = z.object({
   good_with_dogs: z.boolean().optional(),
   good_with_cats: z.boolean().optional(),
   good_with_small_animals: z.boolean().optional(),
-  energy_level: z.enum(['low', 'medium', 'high', 'very_high']).optional(),
+  energy_level: PetEnergyLevelSchema.optional(),
   exercise_needs: z.string().optional(),
   grooming_needs: z.string().optional(),
   training_notes: z.string().optional(),
@@ -94,9 +138,9 @@ export const PetSchema = z.object({
   behavioral_notes: z.string().optional(),
   surrender_reason: z.string().optional(),
   intake_date: z.string().optional(),
-  vaccination_status: z.enum(['unknown', 'partial', 'up_to_date']).optional(),
+  vaccination_status: PetVaccinationStatusSchema.optional(),
   vaccination_date: z.string().optional(),
-  spay_neuter_status: z.enum(['unknown', 'intact', 'spayed', 'neutered']).optional(),
+  spay_neuter_status: PetSpayNeuterStatusSchema.optional(),
   spay_neuter_date: z.string().optional(),
   last_vet_checkup: z.string().optional(),
   images: z.array(PetImageSchema).optional(),
@@ -183,14 +227,14 @@ export const PetStatsSchema = z.object({
 
 export const PetCreateDataSchema = z.object({
   name: z.string(),
-  type: z.enum(['dog', 'cat', 'rabbit', 'bird', 'other']),
+  type: PetTypeSchema,
   breed: z.string(),
   secondaryBreed: z.string().optional(),
   ageYears: z.number().optional(),
   ageMonths: z.number().optional(),
-  ageGroup: z.enum(['young', 'adult', 'senior']).optional(),
-  gender: z.enum(['male', 'female']),
-  size: z.enum(['small', 'medium', 'large', 'extra_large']),
+  ageGroup: PetAgeGroupSchema.optional(),
+  gender: PetGenderSchema,
+  size: PetSizeSchema,
   color: z.string(),
   markings: z.string().optional(),
   weightKg: z.string().optional(),
@@ -198,7 +242,7 @@ export const PetCreateDataSchema = z.object({
   shortDescription: z.string().optional(),
   longDescription: z.string().optional(),
   adoptionFee: z.string().optional(),
-  energyLevel: z.enum(['low', 'medium', 'high', 'very_high']).optional(),
+  energyLevel: PetEnergyLevelSchema.optional(),
   exerciseNeeds: z.string().optional(),
   groomingNeeds: z.string().optional(),
   temperament: z.array(z.string()).optional(),
@@ -213,9 +257,9 @@ export const PetCreateDataSchema = z.object({
   goodWithDogs: z.boolean().optional(),
   goodWithCats: z.boolean().optional(),
   goodWithSmallAnimals: z.boolean().optional(),
-  vaccinationStatus: z.enum(['unknown', 'partial', 'up_to_date']).optional(),
+  vaccinationStatus: PetVaccinationStatusSchema.optional(),
   vaccinationDate: z.string().optional(),
-  spayNeuterStatus: z.enum(['unknown', 'intact', 'spayed', 'neutered']).optional(),
+  spayNeuterStatus: PetSpayNeuterStatusSchema.optional(),
   spayNeuterDate: z.string().optional(),
   lastVetCheckup: z.string().optional(),
   intakeDate: z.string().optional(),
@@ -232,14 +276,14 @@ export const PetCreateDataSchema = z.object({
 
 export const PetUpdateDataSchema = z.object({
   name: z.string().optional(),
-  type: z.enum(['dog', 'cat', 'rabbit', 'bird', 'other']).optional(),
+  type: PetTypeSchema.optional(),
   breed: z.string().optional(),
   secondaryBreed: z.string().optional(),
   ageYears: z.number().optional(),
   ageMonths: z.number().optional(),
-  ageGroup: z.enum(['young', 'adult', 'senior']).optional(),
-  gender: z.enum(['male', 'female']).optional(),
-  size: z.enum(['small', 'medium', 'large', 'extra_large']).optional(),
+  ageGroup: PetAgeGroupSchema.optional(),
+  gender: PetGenderSchema.optional(),
+  size: PetSizeSchema.optional(),
   color: z.string().optional(),
   markings: z.string().optional(),
   weightKg: z.string().optional(),
@@ -247,7 +291,7 @@ export const PetUpdateDataSchema = z.object({
   shortDescription: z.string().optional(),
   longDescription: z.string().optional(),
   adoptionFee: z.string().optional(),
-  energyLevel: z.enum(['low', 'medium', 'high', 'very_high']).optional(),
+  energyLevel: PetEnergyLevelSchema.optional(),
   exerciseNeeds: z.string().optional(),
   groomingNeeds: z.string().optional(),
   temperament: z.array(z.string()).optional(),
@@ -262,9 +306,9 @@ export const PetUpdateDataSchema = z.object({
   goodWithDogs: z.boolean().optional(),
   goodWithCats: z.boolean().optional(),
   goodWithSmallAnimals: z.boolean().optional(),
-  vaccinationStatus: z.enum(['unknown', 'partial', 'up_to_date']).optional(),
+  vaccinationStatus: PetVaccinationStatusSchema.optional(),
   vaccinationDate: z.string().optional(),
-  spayNeuterStatus: z.enum(['unknown', 'intact', 'spayed', 'neutered']).optional(),
+  spayNeuterStatus: PetSpayNeuterStatusSchema.optional(),
   spayNeuterDate: z.string().optional(),
   lastVetCheckup: z.string().optional(),
   intakeDate: z.string().optional(),

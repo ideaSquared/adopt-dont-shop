@@ -142,6 +142,15 @@ describe('Auth routes', () => {
       expect(res.body).not.toHaveProperty('token');
       expect(res.body).not.toHaveProperty('refreshToken');
       expect(res.body).not.toHaveProperty('user');
+      // No auth cookies set either (ADS-538).
+      const setCookieHeader = res.headers['set-cookie'];
+      const cookies = Array.isArray(setCookieHeader)
+        ? setCookieHeader
+        : setCookieHeader
+          ? [setCookieHeader]
+          : [];
+      expect(cookies.some((c: string) => c.startsWith('accessToken='))).toBe(false);
+      expect(cookies.some((c: string) => c.startsWith('refreshToken='))).toBe(false);
     });
 
     it('returns 201 with the same generic message when email is already registered', async () => {

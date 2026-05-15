@@ -218,8 +218,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         userType: userData.userType || allowedUserTypes[0],
       };
 
+      // ADS-538: register no longer returns auth tokens — the user must
+      // verify their email and log in normally before the session
+      // becomes valid. Deliberately do NOT call setUser() here.
       const response = await authService.register(registerData);
-      setUser(response.user);
 
       onAuthEvent?.('auth_registration_successful', {
         user_id: response.user.userId,

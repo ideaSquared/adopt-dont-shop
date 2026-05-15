@@ -11,6 +11,7 @@ import EmailService from '../services/email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { UserType } from '../models/User';
 import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
+import { PLAN_LIMITS, type RescuePlan } from '../config/plans';
 
 export class RescueController {
   /**
@@ -83,9 +84,17 @@ export class RescueController {
 
       const rescue = await RescueService.getRescueById(rescueId, includeStats);
 
+      const rescueData =
+        rescue && typeof rescue === 'object' && 'plan' in rescue
+          ? {
+              ...(rescue as object),
+              planLimits: PLAN_LIMITS[(rescue as { plan: RescuePlan }).plan],
+            }
+          : rescue;
+
       res.status(200).json({
         success: true,
-        data: rescue,
+        data: rescueData,
       });
     } catch (error) {
       logger.error('Get rescue by ID failed:', error);

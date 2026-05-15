@@ -24,12 +24,12 @@ const baseUser: User = {
 };
 
 const fetchCookiesVersionMock = vi.fn();
-const recordReacceptanceMock = vi.fn();
+const recordCookiesConsentMock = vi.fn();
 const setAnalyticsConsentMock = vi.fn();
 
 vi.mock('../services/legal-service', () => ({
   fetchCookiesVersion: () => fetchCookiesVersionMock(),
-  recordReacceptance: (input: unknown) => recordReacceptanceMock(input),
+  recordCookiesConsent: (input: unknown) => recordCookiesConsentMock(input),
   // The banner imports these too — keep the mock surface complete to
   // avoid undefined-call traps during partial imports.
   fetchPendingReacceptance: vi.fn(),
@@ -76,7 +76,7 @@ describe('CookieBanner [ADS-497 slice 5]', () => {
     authState.isAuthenticated = false;
     window.localStorage.clear();
     fetchCookiesVersionMock.mockReset();
-    recordReacceptanceMock.mockReset();
+    recordCookiesConsentMock.mockReset();
     setAnalyticsConsentMock.mockReset();
     fetchCookiesVersionMock.mockResolvedValue(CURRENT_VERSION);
   });
@@ -187,13 +187,13 @@ describe('CookieBanner [ADS-497 slice 5]', () => {
     await waitFor(() => {
       expect(setAnalyticsConsentMock).toHaveBeenCalled();
     });
-    expect(recordReacceptanceMock).not.toHaveBeenCalled();
+    expect(recordCookiesConsentMock).not.toHaveBeenCalled();
   });
 
   it('calls the consent API for authenticated users with the captured cookies version + analytics flag', async () => {
     authState.user = baseUser;
     authState.isAuthenticated = true;
-    recordReacceptanceMock.mockResolvedValue(undefined);
+    recordCookiesConsentMock.mockResolvedValue(undefined);
 
     const user = userEvent.setup();
     render(<CookieBanner />);
@@ -201,11 +201,11 @@ describe('CookieBanner [ADS-497 slice 5]', () => {
     await user.click(await screen.findByTestId('cookie-banner-accept-all'));
 
     await waitFor(() => {
-      expect(recordReacceptanceMock).toHaveBeenCalledTimes(1);
+      expect(recordCookiesConsentMock).toHaveBeenCalledTimes(1);
     });
-    expect(recordReacceptanceMock).toHaveBeenCalledWith({
-      tosAccepted: true,
-      privacyAccepted: true,
+    // ADS-550: cookies-only path — the payload must NOT carry
+    // tosAccepted/privacyAccepted.
+    expect(recordCookiesConsentMock).toHaveBeenCalledWith({
       cookiesVersion: CURRENT_VERSION,
       analyticsConsent: true,
     });

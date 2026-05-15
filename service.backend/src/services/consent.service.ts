@@ -135,3 +135,59 @@ export const recordConsent = async (
     acceptedAt: acceptedAt.toISOString(),
   };
 };
+
+/**
+ * ADS-550: cookies-only consent capture.
+ *
+ * The cookie banner triggers acceptance of the cookies policy (and an
+ * optional analytics opt-in) without the user touching ToS or Privacy.
+ * Routing this through `recordConsent` would write a CONSENT_RECORDED
+ * audit row with the currently-published `tosVersion`/`privacyVersion`,
+ * silently consuming any pending re-acceptance for those documents.
+ *
+ * This dedicated path writes a `CONSENT_RECORDED` row containing only
+ * `cookiesVersion` + `analyticsConsent` in the details. `tosVersion` and
+ * `privacyVersion` are deliberately absent so
+ * `getPendingReacceptance` picks them up from the last row that
+ * actually contained them.
+ */
+export const CookiesConsentInputSchema = z.object({
+  cookiesVersion: z.string().optional(),
+  analyticsConsent: z.boolean().optional(),
+});
+export type CookiesConsentInput = z.infer<typeof CookiesConsentInputSchema>;
+
+export type CookiesConsentRecord = {
+  cookiesVersion: string;
+  analyticsConsent: boolean;
+  acceptedAt: string;
+};
+
+export const recordCookiesConsent = async (
+  input: CookiesConsentInput,
+  context: ConsentContext
+): Promise<CookiesConsentRecord> => {
+  const cookiesVersion = input.cookiesVersion ?? COOKIES_VERSION;
+  const analyticsConsent = input.analyticsConsent ?? false;
+  const acceptedAt = new Date();
+
+  await AuditLogService.log({
+    userId: context.userId,
+    action: 'CONSENT_RECORDED',
+    entity: 'User',
+    entityId: context.userId,
+    details: {
+      cookiesVersion,
+      analyticsConsent,
+      acceptedAt: acceptedAt.toISOString(),
+    },
+    ipAddress: context.ip ?? undefined,
+    userAgent: context.userAgent ?? undefined,
+  });
+
+  return {
+    cookiesVersion,
+    analyticsConsent,
+    acceptedAt: acceptedAt.toISOString(),
+  };
+};

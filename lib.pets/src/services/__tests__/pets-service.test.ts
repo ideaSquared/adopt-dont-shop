@@ -274,4 +274,100 @@ describe('PetsService', () => {
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/1/favorite/status');
     });
   });
+
+  describe('backend enum alignment', () => {
+    // The frontend Zod schema validates inbound API payloads. When the
+    // backend grew enum variants (`AgeGroup.BABY`, `PetType.SMALL_MAMMAL`,
+    // `PetStatus.MEDICAL_HOLD`, `Size.EXTRA_SMALL`,
+    // `SpayNeuterStatus.NOT_ALTERED`, `Gender.UNKNOWN`,
+    // `VaccinationStatus.NOT_VACCINATED`) the frontend schema didn't
+    // follow. `normalisePet` then threw on any seeded faker pet that
+    // carried one of those values, and `SearchPage` swallowed the error
+    // → `/search` rendered an empty grid in E2E. Keep these in lockstep
+    // with `service.backend/src/models/Pet.ts`.
+    it('strips null fields so allowNull DB columns parse cleanly', async () => {
+      // Sequelize emits `null` for every nullable column on the model
+      // (location, breed, adoption_fee, weight_kg, vaccination_status,
+      // images …). Zod's `.optional()` rejects `null`, so without
+      // pre-stripping we'd throw on the first faker-generated pet that
+      // skipped one of those fields and the entire search list would
+      // disappear.
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            petId: 'pet-with-nulls',
+            name: 'Nullable',
+            type: 'dog',
+            breed: null,
+            secondaryBreed: null,
+            weightKg: null,
+            adoptionFee: null,
+            location: null,
+            shortDescription: null,
+            longDescription: null,
+            vaccinationStatus: null,
+            spayNeuterStatus: null,
+            ageGroup: null,
+            gender: null,
+            size: null,
+            status: null,
+            energyLevel: null,
+            createdAt: '2026-01-01',
+            updatedAt: '2026-01-01',
+          },
+        ],
+        meta: { page: 1, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+      });
+
+      const result = await service.searchPets();
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].pet_id).toBe('pet-with-nulls');
+      // Stripped — not present rather than null.
+      expect(result.data[0]).not.toHaveProperty('breed');
+      expect(result.data[0]).not.toHaveProperty('location');
+    });
+
+    it('accepts every backend enum variant emitted by faker / seeders', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            petId: 'pet-baby-small-mammal',
+            name: 'Hammie',
+            type: 'small_mammal',
+            ageGroup: 'baby',
+            ageYears: 0,
+            ageMonths: 3,
+            gender: 'unknown',
+            size: 'extra_small',
+            status: 'medical_hold',
+            vaccinationStatus: 'not_vaccinated',
+            spayNeuterStatus: 'not_altered',
+            energyLevel: 'very_high',
+          },
+          {
+            petId: 'pet-deceased-fish',
+            name: 'Bubbles',
+            type: 'fish',
+            ageGroup: 'senior',
+            gender: 'female',
+            size: 'small',
+            status: 'deceased',
+          },
+        ],
+        meta: { page: 1, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+      });
+
+      const result = await service.searchPets();
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].type).toBe('small_mammal');
+      expect(result.data[0].age_group).toBe('baby');
+      expect(result.data[0].size).toBe('extra_small');
+      expect(result.data[0].status).toBe('medical_hold');
+      expect(result.data[1].status).toBe('deceased');
+    });
+  });
 });

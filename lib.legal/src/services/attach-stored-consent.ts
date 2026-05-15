@@ -1,4 +1,4 @@
-import { fetchCookiesVersion, recordReacceptance } from './legal-service';
+import { fetchCookiesVersion, recordCookiesConsent } from './legal-service';
 import { readStoredConsent } from './cookie-consent-storage';
 
 /**
@@ -70,9 +70,11 @@ export const attachStoredCookieConsent = async (userId: string): Promise<void> =
     return;
   }
   try {
-    await recordReacceptance({
-      tosAccepted: true,
-      privacyAccepted: true,
+    // ADS-550: cookies-only path. The previous implementation called
+    // `recordReacceptance` with hard-coded `tosAccepted: true,
+    // privacyAccepted: true` on every first-sign-in replay, silently
+    // recording ToS / Privacy re-acceptance the user never gave.
+    await recordCookiesConsent({
       cookiesVersion: stored.cookiesVersion,
       analyticsConsent: stored.analyticsConsent,
     });

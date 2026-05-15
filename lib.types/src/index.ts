@@ -7,6 +7,9 @@ export * from './types/rescue-permissions';
 // Field-level permission types
 export * from './types/field-permissions';
 
+// Plan tier types and limits
+export * from './types/plans';
+
 // Field permission default configurations
 export {
   defaultFieldPermissions,

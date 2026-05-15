@@ -56,7 +56,11 @@ export const authValidation = {
 
 export class AuthController {
   /**
-   * Register a new user
+   * Register a new user.
+   *
+   * ADS-538: returns 201 with no auth tokens / cookies. The user must
+   * verify their email and then log in normally before they can call
+   * authenticated endpoints.
    */
   async register(req: Request, res: Response): Promise<void> {
     try {

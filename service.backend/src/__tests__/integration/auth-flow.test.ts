@@ -230,7 +230,7 @@ describe('Authentication Flow Integration Tests', () => {
         );
       });
 
-      it('should generate JWT tokens for new user', async () => {
+      it('should NOT generate JWT tokens at registration (ADS-538)', async () => {
         const mockUser = createMockUser({
           userId: 'user-new-123',
           email: registerData.email.toLowerCase(),
@@ -245,6 +245,7 @@ describe('Authentication Flow Integration Tests', () => {
         expect(result).toEqual({ message: expect.any(String) });
         expect(result).not.toHaveProperty('token');
         expect(result).not.toHaveProperty('refreshToken');
+        expect(result).not.toHaveProperty('expiresIn');
       });
 
       it('returns the same generic message for an already-registered email (no enumeration)', async () => {
@@ -1258,6 +1259,7 @@ describe('Authentication Flow Integration Tests', () => {
         const registerResult = await AuthService.register(registerData);
 
         expect(registerResult).toEqual({ message: expect.any(String) });
+        expect(registerResult).not.toHaveProperty('token');
 
         // Step 2: Verify Email
         const mockUserAfterVerification = createMockUser({

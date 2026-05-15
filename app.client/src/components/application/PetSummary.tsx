@@ -9,12 +9,16 @@ interface PetSummaryProps {
 
 export const PetSummary: React.FC<PetSummaryProps> = ({ pet }) => {
   const primaryImageUrl = resolveFileUrl(pet.images?.[0]?.url);
+  // Pet schema fields are optional because different API responses return
+  // different subsets (lib.pets/src/schemas.ts:55-57). Coerce age fields
+  // to 0 before formatting so the summary degrades to "0 months" rather
+  // than crashing.
+  const years = pet.age_years ?? 0;
+  const months = pet.age_months ?? 0;
   const ageDisplay =
-    pet.age_years > 0
-      ? `${pet.age_years} year${pet.age_years > 1 ? 's' : ''}${
-          pet.age_months > 0 ? `, ${pet.age_months} month${pet.age_months > 1 ? 's' : ''}` : ''
-        }`
-      : `${pet.age_months} month${pet.age_months > 1 ? 's' : ''}`;
+    years > 0
+      ? `${years} year${years > 1 ? 's' : ''}${months > 0 ? `, ${months} month${months > 1 ? 's' : ''}` : ''}`
+      : `${months} month${months > 1 ? 's' : ''}`;
 
   return (
     <div className={styles.summaryCard}>
