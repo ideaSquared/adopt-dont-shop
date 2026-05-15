@@ -9,6 +9,7 @@ Comprehensive guide to the Docker setup for this monorepo. Pairs with [the root 
 - [Best Practices](#best-practices)
 - [Development Workflow](#development-workflow)
 - [Production Deployment](#production-deployment)
+- [CI overlay (docker-compose.ci.yml)](#ci-overlay-docker-composeciyml)
 - [Troubleshooting](#troubleshooting)
 
 ## Quick Start
@@ -224,6 +225,42 @@ CI uses BuildKit cache for 40-60% faster builds:
     path: /tmp/.buildx-cache
     key: ${{ runner.os }}-buildx-${{ github.sha }}
 ```
+
+## CI overlay (docker-compose.ci.yml)
+
+### Why it exists
+
+The dev stack in `docker-compose.yml` is optimised for inner-loop development: it bind-mounts source code, overrides the backend `entrypoint`/`command` to wire up a runtime `lib.types` symlink, and mounts a writable `./uploads` directory from the host. None of that is appropriate for CI:
+
+- Bind-mounted source shadows the built artifacts baked into the image, so we'd be testing the host's working tree instead of the image we just built.
+- The host `./uploads` mount masks the image's `appuser`-owned uploads directory and causes `EACCES` when the backend tries to `mkdirSync` inside it.
+- The dev `entrypoint`/`command` reference paths that only resolve when bind mounts are active — in CI they don't exist.
+
+`docker-compose.ci.yml` is a minimal overlay applied on top of `docker-compose.yml` to undo exactly those dev-only behaviours.
+
+### What it changes
+
+For the `service-backend` service:
+
+- `volumes: !reset []` — the `!reset` tag *replaces* the base volume list rather than appending to it (the default Compose merge for sequences). This is what removes the dev bind mounts, including the `./uploads` mount that breaks permissions.
+- `entrypoint: ["/usr/bin/dumb-init", "--"]` — restores the Dockerfile ENTRYPOINT. The compose override entrypoint uses relative paths (`./service.backend/…`) that only resolve under bind mounts.
+- `command: ["npm", "run", "dev"]` — restores the Dockerfile CMD. The compose command override creates a runtime symlink for bind-mounted `lib.types`, which is irrelevant when the image already contains a copy of the built library in `node_modules`.
+
+### Reproducing a CI E2E run locally
+
+```bash
+# Build images the same way CI does, then bring the stack up with the overlay
+docker compose -f docker-compose.yml -f docker-compose.ci.yml build
+docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+
+# Tail logs / run the same smoke checks CI runs
+docker compose -f docker-compose.yml -f docker-compose.ci.yml logs -f service-backend
+
+# Tear down (always include both files so the project name matches)
+docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
+```
+
+If you skip the overlay, you'll either hit the `uploads` `EACCES` error or end up testing your local working tree rather than the built image.
 
 ## Troubleshooting
 

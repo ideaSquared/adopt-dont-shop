@@ -1,5 +1,9 @@
 # CI override - removes dev volume mounts that shadow built artifacts
 # Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+#
+# Why this overlay exists, what it changes, and how to reproduce a CI E2E run
+# locally are documented in docs/DOCKER.md:
+#   https://github.com/ideaSquared/adopt-dont-shop/blob/main/docs/DOCKER.md#ci-overlay-docker-composeciyml
 
 services:
   service-backend:
