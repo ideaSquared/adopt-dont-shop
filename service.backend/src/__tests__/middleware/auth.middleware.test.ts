@@ -329,6 +329,7 @@ describe('Authentication Middleware', () => {
           userId: 'user-123',
           email: 'test@example.com',
           status: 'active',
+          emailVerified: true,
           Roles: [],
         };
 
@@ -497,6 +498,7 @@ describe('Authentication Middleware', () => {
           userId: 'user-123',
           email: 'test@example.com',
           status: 'active',
+          emailVerified: true,
           Roles: [{ name: 'user' }],
         };
 
@@ -533,6 +535,7 @@ describe('Authentication Middleware', () => {
           userId: 'user-123',
           email: 'test@example.com',
           status: 'active',
+          emailVerified: true,
           Roles: [],
         };
 
@@ -560,6 +563,7 @@ describe('Authentication Middleware', () => {
           userId: 'user-123',
           email: 'test@example.com',
           status: 'active',
+          emailVerified: true,
           Roles: [],
         };
 
@@ -588,6 +592,7 @@ describe('Authentication Middleware', () => {
           userId: 'user-123',
           email: 'test@example.com',
           status: 'active',
+          emailVerified: true,
           Roles: [{ name: 'admin' }, { name: 'moderator' }],
         };
 
@@ -735,6 +740,7 @@ describe('Authentication Middleware', () => {
           userId: 'user-123',
           email: 'test@example.com',
           status: 'active',
+          emailVerified: true,
           Roles: [],
         };
 
@@ -882,6 +888,7 @@ describe('Authentication Middleware', () => {
           email: 'test@example.com',
           userType: 'adopter',
           status: 'active',
+          emailVerified: true,
           Roles: [],
         };
 

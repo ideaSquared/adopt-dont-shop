@@ -109,6 +109,16 @@ const authenticateRequest = async (token: string): Promise<User> => {
     throw new AuthError(401, 'ACCOUNT_INACTIVE', 'Account is not active');
   }
 
+  // ADS-538: defence in depth. Even if a future code path activates a
+  // user pre-verification, an unverified-email account must not be able
+  // to ride an auth token through this middleware. The status check
+  // above already blocks `PENDING_VERIFICATION`, but coupling the
+  // security invariant to `emailVerified` directly makes the intent
+  // explicit and survives status-enum changes.
+  if (!user.emailVerified) {
+    throw new AuthError(401, 'EMAIL_NOT_VERIFIED', 'Email not verified');
+  }
+
   await attachRescueAffiliation(user);
   return user;
 };

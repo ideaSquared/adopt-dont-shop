@@ -10,6 +10,7 @@ import EmailTemplate, {
 } from '../models/EmailTemplate';
 import { JsonObject, JsonValue, TemplateData, TemplateVariable } from '../types/common';
 import { BulkEmailOptions, EmailAnalytics, SendEmailOptions } from '../types/email';
+import { AuditLog } from '../models/AuditLog';
 import logger, { loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { EmailProvider } from './email-providers/base-provider';
@@ -34,51 +35,111 @@ class EmailService {
     // Initialize with console provider as default
     this.provider = new ConsoleEmailProvider();
 
-    // Initialize the appropriate provider asynchronously
+    // Initialize the appropriate provider asynchronously.
+    //
+    // ADS-549: in production we must NOT silently fall back to the console
+    // provider — every transactional email (password resets, verification
+    // links, legal re-acceptance reminders) would disappear into stdout
+    // with no alert. The orchestrator can only see the failure if the
+    // process exits, so we exit non-zero here and let the deploy roll
+    // back / surface a CrashLoopBackoff instead.
     this.initializeProvider().catch(error => {
       logger.error('Failed to initialize email provider:', error);
+      if (process.env.NODE_ENV === 'production') {
+        // eslint-disable-next-line no-process-exit -- prod must crash so the orchestrator surfaces the misconfig; throwing here is swallowed because we're inside an async catch
+        process.exit(1);
+      }
     });
 
     // Don't start queue processor in constructor - wait for database to be ready
   }
 
   private async initializeProvider(): Promise<void> {
-    try {
-      switch (config.email.provider) {
-        case 'ethereal': {
-          const etherealProvider = new EtherealProvider();
-          await etherealProvider.initialize();
-          this.provider = etherealProvider;
-          break;
-        }
-        case 'resend': {
-          const resendProvider = new ResendProvider({
-            apiKey: config.email.resend.apiKey ?? '',
-            fromEmail: config.email.resend.fromEmail ?? config.email.from,
-            fromName: config.email.resend.fromName,
-            replyTo: config.email.resend.replyTo,
-          });
-          if (!resendProvider.validateConfiguration()) {
-            throw new Error(
-              'Resend provider misconfigured: RESEND_API_KEY and RESEND_FROM_EMAIL are required'
-            );
-          }
-          this.provider = resendProvider;
-          break;
-        }
-        default:
-          // Fallback to console provider
-          this.provider = new ConsoleEmailProvider();
-      }
+    const requestedProvider = config.email.provider;
+    const isProduction = process.env.NODE_ENV === 'production';
 
-      loggerHelpers.logExternalService('Email Provider', 'Provider Initialized', {
-        provider: config.email.provider,
-        environment: process.env.NODE_ENV,
-      });
-    } catch (error) {
-      logger.error('Failed to initialize email provider, falling back to console:', error);
+    // ADS-549: validate the requested provider up front. An unknown value
+    // (typo, retired provider, mis-rendered template) must not silently
+    // fall through to the console provider in production.
+    const knownProviders = new Set(['console', 'ethereal', 'resend']);
+    if (!knownProviders.has(requestedProvider)) {
+      const message =
+        `Unknown EMAIL_PROVIDER value: "${requestedProvider}". ` +
+        `Expected one of: ${[...knownProviders].join(', ')}.`;
+      if (isProduction) {
+        throw new Error(message);
+      }
+      logger.warn(`${message} Falling back to console provider for non-production.`);
       this.provider = new ConsoleEmailProvider();
+      this.logProviderInitialized('console');
+      return;
     }
+
+    // ADS-549: per-provider initialisation. Misconfiguration of the
+    // selected provider re-throws so the constructor's catch can exit
+    // the process in production — see comment there.
+    switch (requestedProvider) {
+      case 'ethereal': {
+        const etherealProvider = new EtherealProvider();
+        await etherealProvider.initialize();
+        this.provider = etherealProvider;
+        break;
+      }
+      case 'resend': {
+        const resendProvider = new ResendProvider({
+          apiKey: config.email.resend.apiKey ?? '',
+          fromEmail: config.email.resend.fromEmail ?? config.email.from,
+          fromName: config.email.resend.fromName,
+          replyTo: config.email.resend.replyTo,
+        });
+        if (!resendProvider.validateConfiguration()) {
+          throw new Error(
+            'Resend provider misconfigured: RESEND_API_KEY and RESEND_FROM_EMAIL are required'
+          );
+        }
+        this.provider = resendProvider;
+        break;
+      }
+      case 'console':
+      default:
+        this.provider = new ConsoleEmailProvider();
+        break;
+    }
+
+    this.logProviderInitialized(requestedProvider);
+  }
+
+  /**
+   * Record the active email provider in both logs and the audit trail so
+   * the running configuration is observable post-boot — not just on the
+   * stdout line that scrolled past during startup. Best-effort: an
+   * AuditLog failure here must not block the constructor.
+   */
+  private logProviderInitialized(provider: string): void {
+    loggerHelpers.logExternalService('Email Provider', 'Provider Initialized', {
+      provider,
+      environment: process.env.NODE_ENV,
+    });
+    // System-level audit row (no user actor) — mirror the pattern used by
+    // the legal-reminder worker so the immutable-trigger doesn't reject
+    // the write and so the operator can answer "which provider was
+    // active at deploy time?" by querying audit_logs.
+    AuditLog.create({
+      service: 'adopt-dont-shop-backend',
+      user: null,
+      user_email_snapshot: null,
+      action: 'EMAIL_PROVIDER_INITIALIZED',
+      level: 'INFO',
+      timestamp: new Date(),
+      metadata: {
+        entity: 'EmailService',
+        entityId: 'boot',
+        details: { provider, environment: process.env.NODE_ENV ?? 'unknown' },
+      },
+      category: 'System',
+    }).catch(error => {
+      logger.warn('Failed to write EMAIL_PROVIDER_INITIALIZED audit row', { error });
+    });
   }
 
   // Provider Management

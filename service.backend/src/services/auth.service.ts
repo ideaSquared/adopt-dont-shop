@@ -29,7 +29,7 @@ export class AuthService {
   private static readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
   private static readonly JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '3d';
 
-  static async register(userData: RegisterData): Promise<AuthResponse> {
+  static async register(userData: RegisterData): Promise<{ user: Partial<User>; message: string }> {
     try {
       // Check if user already exists
       const existingUser = await User.findOne({ where: { email: userData.email.toLowerCase() } });
@@ -148,18 +148,16 @@ export class AuthService {
         }
       }
 
-      // Generate tokens with rotation support
-      const tokenId = crypto.randomUUID();
-      const familyId = crypto.randomUUID();
-      const tokens = await this.generateTokens(
-        { userId: user.userId, email: user.email, userType: UserType.ADOPTER },
-        tokenId
-      );
-      await this.storeRefreshToken(user.userId, tokenId, familyId);
-
+      // ADS-538: registration MUST NOT return tokens. The verification
+      // email is the only out-of-band channel proving the user owns the
+      // address — issuing a session here makes "verify email" a polite
+      // suggestion rather than an enrolment gate, and lets account-creation
+      // bots get a working session against authenticated endpoints
+      // without ever owning the email. Clients must direct the user to
+      // `/verify-email`, then log in normally once verified.
       return {
         user: this.sanitizeUser(user),
-        ...tokens,
+        message: 'Registration successful. Please check your email to verify your account.',
       };
     } catch (error) {
       logger.error('Registration failed:', {

@@ -4,11 +4,11 @@ import { COOKIE_CONSENT_STORAGE_KEY } from './cookie-consent-storage';
 const CURRENT_VERSION = '2026-05-09-v1';
 
 const fetchCookiesVersionMock = vi.fn();
-const recordReacceptanceMock = vi.fn();
+const recordCookiesConsentMock = vi.fn();
 
 vi.mock('./legal-service', () => ({
   fetchCookiesVersion: () => fetchCookiesVersionMock(),
-  recordReacceptance: (input: unknown) => recordReacceptanceMock(input),
+  recordCookiesConsent: (input: unknown) => recordCookiesConsentMock(input),
   // Round out the partial mock so other importers stay safe.
   fetchPendingReacceptance: vi.fn(),
 }));
@@ -21,9 +21,9 @@ describe('attachStoredCookieConsent', () => {
   beforeEach(() => {
     window.localStorage.clear();
     fetchCookiesVersionMock.mockReset();
-    recordReacceptanceMock.mockReset();
+    recordCookiesConsentMock.mockReset();
     fetchCookiesVersionMock.mockResolvedValue(CURRENT_VERSION);
-    recordReacceptanceMock.mockResolvedValue(undefined);
+    recordCookiesConsentMock.mockResolvedValue(undefined);
   });
 
   const storeConsent = (analyticsConsent: boolean): void => {
@@ -40,7 +40,7 @@ describe('attachStoredCookieConsent', () => {
   it('does nothing when no anonymous choice is stored', async () => {
     await attachStoredCookieConsent('user-1');
 
-    expect(recordReacceptanceMock).not.toHaveBeenCalled();
+    expect(recordCookiesConsentMock).not.toHaveBeenCalled();
   });
 
   it('does nothing when the stored choice is for an older cookies version', async () => {
@@ -55,7 +55,7 @@ describe('attachStoredCookieConsent', () => {
 
     await attachStoredCookieConsent('user-1');
 
-    expect(recordReacceptanceMock).not.toHaveBeenCalled();
+    expect(recordCookiesConsentMock).not.toHaveBeenCalled();
   });
 
   it('replays the stored choice to the consent endpoint on first attach', async () => {
@@ -63,10 +63,11 @@ describe('attachStoredCookieConsent', () => {
 
     await attachStoredCookieConsent('user-1');
 
-    expect(recordReacceptanceMock).toHaveBeenCalledTimes(1);
-    expect(recordReacceptanceMock).toHaveBeenCalledWith({
-      tosAccepted: true,
-      privacyAccepted: true,
+    expect(recordCookiesConsentMock).toHaveBeenCalledTimes(1);
+    // ADS-550: the payload must NOT carry tosAccepted/privacyAccepted —
+    // the dedicated cookies-consent endpoint is the only consent path
+    // that doesn't represent explicit ToS/Privacy action.
+    expect(recordCookiesConsentMock).toHaveBeenCalledWith({
       cookiesVersion: CURRENT_VERSION,
       analyticsConsent: true,
     });
@@ -79,7 +80,7 @@ describe('attachStoredCookieConsent', () => {
     await attachStoredCookieConsent('user-1');
     await attachStoredCookieConsent('user-1');
 
-    expect(recordReacceptanceMock).toHaveBeenCalledTimes(1);
+    expect(recordCookiesConsentMock).toHaveBeenCalledTimes(1);
     expect(window.localStorage.getItem(ATTACHED_KEY)).toBe(`user-1::${CURRENT_VERSION}`);
   });
 
@@ -89,21 +90,21 @@ describe('attachStoredCookieConsent', () => {
     await attachStoredCookieConsent('user-1');
     await attachStoredCookieConsent('user-2');
 
-    expect(recordReacceptanceMock).toHaveBeenCalledTimes(2);
+    expect(recordCookiesConsentMock).toHaveBeenCalledTimes(2);
     expect(window.localStorage.getItem(ATTACHED_KEY)).toBe(`user-2::${CURRENT_VERSION}`);
   });
 
   it('retries on the next call when the previous attach failed (no dedupe key written)', async () => {
     storeConsent(true);
-    recordReacceptanceMock.mockRejectedValueOnce(new Error('network'));
+    recordCookiesConsentMock.mockRejectedValueOnce(new Error('network'));
 
     await attachStoredCookieConsent('user-1');
     expect(window.localStorage.getItem(ATTACHED_KEY)).toBeNull();
 
-    recordReacceptanceMock.mockResolvedValueOnce(undefined);
+    recordCookiesConsentMock.mockResolvedValueOnce(undefined);
     await attachStoredCookieConsent('user-1');
 
-    expect(recordReacceptanceMock).toHaveBeenCalledTimes(2);
+    expect(recordCookiesConsentMock).toHaveBeenCalledTimes(2);
     expect(window.localStorage.getItem(ATTACHED_KEY)).toBe(`user-1::${CURRENT_VERSION}`);
   });
 
@@ -113,6 +114,6 @@ describe('attachStoredCookieConsent', () => {
 
     await attachStoredCookieConsent('user-1');
 
-    expect(recordReacceptanceMock).not.toHaveBeenCalled();
+    expect(recordCookiesConsentMock).not.toHaveBeenCalled();
   });
 });
