@@ -6,7 +6,6 @@ import type { ApplicationListItem } from '../types/applications';
 
 const Applications: React.FC = () => {
   const [selectedApplication, setSelectedApplication] = useState<ApplicationListItem | null>(null);
-  const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
 
   // Main applications data
   const {
@@ -82,8 +81,6 @@ const Applications: React.FC = () => {
         onFilterChange={updateFilter}
         onSortChange={updateSort}
         onApplicationSelect={handleApplicationSelect}
-        selectedApplications={selectedApplications}
-        onSelectionChange={setSelectedApplications}
       />
 
       {/* Application Review Modal */}

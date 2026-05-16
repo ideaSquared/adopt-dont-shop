@@ -130,8 +130,6 @@ interface ApplicationListProps {
   onFilterChange: (filter: ApplicationFilter) => void;
   onSortChange: (sort: ApplicationSort) => void;
   onApplicationSelect: (application: ApplicationListItem) => void;
-  selectedApplications: string[];
-  onSelectionChange: (selected: string[]) => void;
 }
 
 const ApplicationList: React.FC<ApplicationListProps> = ({
@@ -144,8 +142,6 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
   onFilterChange,
   onSortChange,
   onApplicationSelect,
-  selectedApplications,
-  onSelectionChange,
 }) => {
   // Convert complex ApplicationFilter to simple string-based filters for UI
   const getDateRangeValue = () => {
@@ -243,22 +239,6 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
     onFilterChange(newFilter);
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      onSelectionChange(applications.map(app => app.id));
-    } else {
-      onSelectionChange([]);
-    }
-  };
-
-  const handleSelectApplication = (id: string, checked: boolean) => {
-    if (checked) {
-      onSelectionChange([...selectedApplications, id]);
-    } else {
-      onSelectionChange(selectedApplications.filter(appId => appId !== id));
-    }
-  };
-
   if (error) {
     return (
       <div className={styles.errorContainer}>
@@ -295,10 +275,6 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
         </div>
 
         <div className={styles.headerRight}>
-          {selectedApplications.length > 0 && (
-            <span className={styles.selectionCount}>{selectedApplications.length} selected</span>
-          )}
-
           <select
             className={styles.sortSelect}
             value={`${sort.field}-${sort.direction}`}
@@ -335,17 +311,6 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
             <table className={styles.table}>
               <thead className={styles.tableHead}>
                 <tr>
-                  <th className={styles.tableHeader}>
-                    <input
-                      className={styles.checkbox}
-                      type="checkbox"
-                      checked={
-                        applications.length > 0 &&
-                        applications.every(app => selectedApplications.includes(app.id))
-                      }
-                      onChange={e => handleSelectAll(e.target.checked)}
-                    />
-                  </th>
                   <th className={styles.tableHeader}>Applicant</th>
                   <th className={styles.tableHeader}>Pet</th>
                   <th className={styles.tableHeader}>Status</th>
@@ -362,14 +327,6 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                     className={styles.tableRow}
                     onClick={() => onApplicationSelect(application)}
                   >
-                    <td className={styles.checkboxCell} onClick={e => e.stopPropagation()}>
-                      <input
-                        className={styles.checkbox}
-                        type="checkbox"
-                        checked={selectedApplications.includes(application.id)}
-                        onChange={e => handleSelectApplication(application.id, e.target.checked)}
-                      />
-                    </td>
                     <td className={styles.tableCell}>
                       <div className={styles.applicantInfo}>
                         <div className={styles.applicantName}>{application.applicantName}</div>
