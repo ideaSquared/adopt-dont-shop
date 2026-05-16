@@ -118,8 +118,12 @@ export const csrfTokenGenerator = (req: Request, res: Response, next: NextFuncti
 
     next();
   } catch (error) {
+    // Express 5 auto-catches throws from async handlers; for sync
+    // middleware we still need to log + throw so the central error
+    // handler picks it up. Plan: drop `next(error)` in favour of
+    // throws once on Express 5 (ADS-531).
     logger.error('Failed to generate CSRF token', { error });
-    next(error);
+    throw error;
   }
 };
 
@@ -133,7 +137,7 @@ export const csrfProtection = doubleCsrfProtection;
  * Route handler to provide CSRF token to clients
  * Clients should call this endpoint to get a token before making state-changing requests
  */
-export const getCsrfToken = (req: Request, res: Response, next: NextFunction): void => {
+export const getCsrfToken = (req: Request, res: Response): void => {
   try {
     // overwrite: true ensures a fresh token+cookie pair is always issued when
     // this endpoint is called explicitly, preventing stale tokens from being
@@ -144,7 +148,7 @@ export const getCsrfToken = (req: Request, res: Response, next: NextFunction): v
     });
   } catch (error) {
     logger.error('Failed to generate CSRF token', { error });
-    next(error);
+    throw error;
   }
 };
 
