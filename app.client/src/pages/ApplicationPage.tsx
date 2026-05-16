@@ -16,7 +16,10 @@ import {
   canQuickApply,
   splitAnswersForPersistence,
 } from '@/utils/applicationFieldMapping';
-import { applyConditionalDefaults } from '@/components/application/questionConditions';
+import {
+  applyConditionalDefaults,
+  shouldShowQuestion,
+} from '@/components/application/questionConditions';
 import type { ApplicationDefaults } from '@/types';
 
 type MacroStepDef = {
@@ -68,6 +71,26 @@ const CATEGORY_ORDER = [
   'references_verification',
   'final_acknowledgments',
 ];
+
+const hasAnswer = (value: unknown): boolean => {
+  if (value === null || value === undefined || value === '') {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  return true;
+};
+
+const findMissingRequiredLabels = (
+  questions: Question[],
+  answers: Record<string, unknown>
+): string[] =>
+  questions
+    .filter(
+      q => q.isRequired && shouldShowQuestion(q, answers) && !hasAnswer(answers[q.questionKey])
+    )
+    .map(q => q.questionText);
 
 const groupQuestionsByMacroStep = (questions: Question[], petName?: string): CategoryGroup[] => {
   const byCategory = new Map<string, Question[]>();
@@ -321,11 +344,18 @@ export const ApplicationPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to submit application:', err);
       const message = err instanceof Error ? err.message : null;
-      setError(
-        message?.includes('validation failed')
-          ? `A few required answers are still missing — pop back through and double-check each section.`
-          : (message ?? 'Something went wrong sending your application. Mind giving it another go?')
-      );
+      if (message?.includes('validation failed')) {
+        const missing = findMissingRequiredLabels(allQuestions, answers);
+        const intro =
+          missing.length > 0
+            ? `${missing.length} required ${missing.length === 1 ? 'answer is' : 'answers are'} still missing: ${missing.join(', ')}.`
+            : 'A few required answers are still missing.';
+        setError(`${intro} Pop back through and double-check each section.`);
+      } else {
+        setError(
+          message ?? 'Something went wrong sending your application. Mind giving it another go?'
+        );
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
