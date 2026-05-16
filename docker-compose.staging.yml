@@ -53,7 +53,7 @@ services:
     image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
     container_name: ads_staging_backend_migrate
     restart: 'no'
-    command: ['npx', 'sequelize-cli', 'db:migrate']
+    command: ['node', 'dist/migrations/runner.js', 'up']
     working_dir: /app/service.backend
     environment:
       NODE_ENV: production
