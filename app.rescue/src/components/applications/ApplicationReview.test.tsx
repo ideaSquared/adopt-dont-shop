@@ -195,7 +195,18 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
     );
   };
 
-  return { useConfirm, ConfirmDialog };
+  // ADS-586: `toast` is consumed by ApplicationReview for error feedback.
+  const toast = Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    message: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  });
+
+  return { useConfirm, ConfirmDialog, toast };
 });
 
 import ApplicationReview from './ApplicationReview';

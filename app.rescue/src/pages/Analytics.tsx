@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Heading } from '@adopt-dont-shop/lib.components';
+import { Card, Heading, toast } from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
   FiUsers,
@@ -106,7 +106,9 @@ const Analytics: React.FC = () => {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Export CSV failed:', err);
-      alert('Failed to export CSV. Please try again.');
+      toast.error('Failed to export CSV. Please try again.', {
+        action: { label: 'Retry', onClick: handleExportCSV },
+      });
     }
   };
 
@@ -128,7 +130,9 @@ const Analytics: React.FC = () => {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Export PDF failed:', err);
-      alert('Failed to export PDF. Please try again.');
+      toast.error('Failed to export PDF. Please try again.', {
+        action: { label: 'Retry', onClick: handleExportPDF },
+      });
     }
   };
 
@@ -149,10 +153,12 @@ const Analytics: React.FC = () => {
         [email]
       );
 
-      alert('Report sent successfully!');
+      toast.success('Report sent successfully!');
     } catch (err) {
       console.error('Email report failed:', err);
-      alert('Failed to send report. Please try again.');
+      toast.error('Failed to send report. Please try again.', {
+        action: { label: 'Retry', onClick: handleEmailReport },
+      });
     }
   };
 

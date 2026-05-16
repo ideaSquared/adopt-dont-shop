@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Card, Alert } from '@adopt-dont-shop/lib.components';
+import { Alert, Button, Card, ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
 import { apiService } from '../../services/libraryServices';
 import { getApiBaseUrl } from '../../utils/env';
 import * as styles from './QuestionsBuilder.css';
@@ -230,6 +230,9 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof QuestionFormData, string>>>({});
   const [submitting, setSubmitting] = useState(false);
 
+  // ADS-586: confirm dialog for destructive question deletion.
+  const { confirm, confirmProps } = useConfirm();
+
   const apiBase = getApiBaseUrl();
 
   const loadQuestions = useCallback(async () => {
@@ -379,11 +382,14 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
   };
 
   const handleDelete = async (question: Question) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete the question "${question.questionText}"? This cannot be undone.`
-      )
-    ) {
+    const confirmed = await confirm({
+      title: 'Delete question?',
+      message: `Are you sure you want to delete the question "${question.questionText}"? This cannot be undone.`,
+      confirmText: 'Delete question',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -810,6 +816,8 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
           </div>
         );
       })}
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };
