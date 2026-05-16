@@ -60,7 +60,11 @@ type Harness2 = {
 const buildHarness = (initialConversations: Conversation[] = [buildConversation()]): Harness2 => {
   const chatService = new ChatService();
   const connectSpy = vi.spyOn(chatService, 'connect').mockImplementation(() => {
-    // Don't actually open a socket; the provider just needs the listeners to be registered.
+    // Don't actually open a socket — but synchronously fire the
+    // 'connected' status so the provider's reconnect-queue gate (which
+    // holds sends while the socket isn't connected, ADS-582) lets sends
+    // flow straight through in the default test setup.
+    chatService.simulateConnectEvent();
   });
   vi.spyOn(chatService, 'disconnect').mockImplementation(() => {});
 
@@ -468,6 +472,234 @@ describe('ChatProvider', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('marks a message as failed and shows a retry path when send fails repeatedly', async () => {
+    // User journey: I send a message on a flaky connection, the send
+    // fails. The bounded auto-retry exhausts its attempts and the bubble
+    // ends up in a `failed` state so the UI can show a manual Retry
+    // button. The optimistic bubble's id stays stable across retries so
+    // we never double-post.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const conv = buildConversation({ id: 'chat-1' });
+      const { chatService, tokenProvider } = buildHarness([conv]);
+
+      const sendSpy = vi
+        .spyOn(chatService, 'sendMessage')
+        .mockRejectedValue(new Error('network down'));
+      vi.spyOn(chatService, 'getMessages').mockResolvedValue({
+        data: [],
+        success: true,
+        timestamp: '2026-01-01T00:00:00Z',
+        pagination: { page: 1, limit: 50, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+      });
+      vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
+
+      let latest: Harness | null = null;
+      const Caller = () => {
+        const ctx = useChat();
+        const triggeredRef = useRef(false);
+        useEffect(() => {
+          if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+            ctx.setActiveConversation(ctx.conversations[0]);
+          }
+        }, [ctx]);
+        useEffect(() => {
+          if (ctx.activeConversation && !triggeredRef.current) {
+            triggeredRef.current = true;
+            void ctx.sendMessage('flaky hello');
+          }
+        }, [ctx]);
+        return null;
+      };
+
+      render(
+        <ChatProvider
+          chatService={chatService}
+          user={{ userId: 'user-1', firstName: 'Alice' }}
+          isAuthenticated
+          tokenProvider={tokenProvider}
+        >
+          <Caller />
+          <TestConsumer onRender={(h) => (latest = h)} />
+        </ChatProvider>
+      );
+
+      // Wait for the first send attempt to land.
+      await waitFor(() => expect(sendSpy).toHaveBeenCalledTimes(1));
+
+      // Drive the backoff to completion: 3 attempts total (1s, 2s gaps).
+      // The provider keeps retrying until 3 failures, then gives up.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+
+      await waitFor(() => expect(sendSpy).toHaveBeenCalledTimes(3));
+
+      // The optimistic message should remain (single bubble) with status `failed`.
+      await waitFor(() => expect(latest?.messages).toHaveLength(1));
+      expect(latest?.messages[0].status).toBe('failed');
+
+      // No further auto retries fire beyond the bound.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30_000);
+      });
+      expect(sendSpy).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retries the same client message id when retryMessage is called manually', async () => {
+    // User journey: my send failed and I tap the inline Retry button.
+    // The retry must reuse the original optimistic bubble's id so a
+    // late-arriving success from the original attempt cannot create a
+    // duplicate bubble.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const conv = buildConversation({ id: 'chat-1' });
+      const { chatService, tokenProvider } = buildHarness([conv]);
+
+      const sendSpy = vi
+        .spyOn(chatService, 'sendMessage')
+        .mockRejectedValue(new Error('network down'));
+      vi.spyOn(chatService, 'getMessages').mockResolvedValue({
+        data: [],
+        success: true,
+        timestamp: '2026-01-01T00:00:00Z',
+        pagination: { page: 1, limit: 50, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+      });
+      vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
+
+      let latest: Harness | null = null;
+      let retryFn: ((messageId: string) => Promise<void>) | null = null;
+      const Caller = () => {
+        const ctx = useChat();
+        const triggeredRef = useRef(false);
+        retryFn = ctx.retryMessage;
+        useEffect(() => {
+          if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+            ctx.setActiveConversation(ctx.conversations[0]);
+          }
+        }, [ctx]);
+        useEffect(() => {
+          if (ctx.activeConversation && !triggeredRef.current) {
+            triggeredRef.current = true;
+            void ctx.sendMessage('retryable');
+          }
+        }, [ctx]);
+        return null;
+      };
+
+      render(
+        <ChatProvider
+          chatService={chatService}
+          user={{ userId: 'user-1', firstName: 'Alice' }}
+          isAuthenticated
+          tokenProvider={tokenProvider}
+        >
+          <Caller />
+          <TestConsumer onRender={(h) => (latest = h)} />
+        </ChatProvider>
+      );
+
+      // Wait for the first send attempt, then drive backoff to completion.
+      await waitFor(() => expect(sendSpy).toHaveBeenCalledTimes(1));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+      await waitFor(() => expect(sendSpy).toHaveBeenCalledTimes(3));
+      await waitFor(() => expect(latest?.messages[0]?.status).toBe('failed'));
+
+      const failedId = latest?.messages[0].id;
+      expect(failedId).toBeTruthy();
+
+      // Manual retry — same optimistic bubble, no duplicate added.
+      await act(async () => {
+        await retryFn!(failedId!);
+      });
+      await waitFor(() => expect(sendSpy).toHaveBeenCalledTimes(4));
+      expect(latest?.messages).toHaveLength(1);
+      expect(latest?.messages[0].id).toBe(failedId);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('queues sends issued while disconnected and flushes them on reconnect', async () => {
+    // User journey: the socket is mid-reconnect when I hit send. The
+    // provider holds the message locally, surfaces it as `sending`, then
+    // flushes through to the server once the socket reaches `connected`.
+    const conv = buildConversation({ id: 'chat-1' });
+    const { chatService, connectSpy, tokenProvider } = buildHarness([conv]);
+
+    // Override the default harness behaviour: keep the socket
+    // disconnected on connect() so the send queues into the reconnect
+    // buffer. The test drives reconnect manually below.
+    connectSpy.mockImplementation(() => {
+      // no-op — leave status at 'disconnected'.
+    });
+
+    const sent = buildMessage({
+      id: 'srv-1',
+      senderId: 'user-1',
+      senderName: 'Alice',
+      content: 'queued',
+    });
+    const sendSpy = vi.spyOn(chatService, 'sendMessage').mockResolvedValue(sent);
+    vi.spyOn(chatService, 'getMessages').mockResolvedValue({
+      data: [],
+      success: true,
+      timestamp: '2026-01-01T00:00:00Z',
+      pagination: { page: 1, limit: 50, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+    vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
+
+    let latest: Harness | null = null;
+    const Caller = () => {
+      const ctx = useChat();
+      const triggeredRef = useRef(false);
+      useEffect(() => {
+        if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+          ctx.setActiveConversation(ctx.conversations[0]);
+        }
+      }, [ctx]);
+      useEffect(() => {
+        if (ctx.activeConversation && !triggeredRef.current && !ctx.isConnected) {
+          triggeredRef.current = true;
+          void ctx.sendMessage('queued');
+        }
+      }, [ctx]);
+      return null;
+    };
+
+    render(
+      <ChatProvider
+        chatService={chatService}
+        user={{ userId: 'user-1', firstName: 'Alice' }}
+        isAuthenticated
+        tokenProvider={tokenProvider}
+      >
+        <Caller />
+        <TestConsumer onRender={(h) => (latest = h)} />
+      </ChatProvider>
+    );
+
+    // The send fired while disconnected — provider must NOT have called
+    // through to chatService.sendMessage yet, and the optimistic bubble
+    // is visible as sending.
+    await waitFor(() => expect(latest?.messages).toHaveLength(1));
+    expect(latest?.messages[0].status).toBe('sending');
+    expect(sendSpy).not.toHaveBeenCalled();
+
+    // Reconnect — provider should flush the queue.
+    await act(async () => {
+      chatService.simulateConnectEvent();
+    });
+
+    await waitFor(() => expect(sendSpy).toHaveBeenCalledWith('chat-1', 'queued'));
+    await waitFor(() => expect(latest?.messages.find((m) => m.id === 'srv-1')).toBeDefined());
   });
 
   it('prepends older messages to the stream when loadMoreMessages is called', async () => {

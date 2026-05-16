@@ -18,6 +18,27 @@ import type {
 const MESSAGES_PAGE_SIZE = 50;
 const TYPING_INDICATOR_CLEAR_MS = 3000;
 
+// Bounded exponential backoff for failed sends. After 3 total attempts
+// (initial + 2 retries) we surface a `failed` status and stop auto-retry
+// so the UI can show a manual Retry button. Delays grow 1s → 2s.
+const SEND_MAX_ATTEMPTS = 3;
+const SEND_RETRY_INITIAL_DELAY_MS = 1000;
+const SEND_RETRY_BACKOFF_MULTIPLIER = 2;
+
+type PendingSend = {
+  clientId: string;
+  conversationId: string;
+  content: string;
+  attachments?: File[];
+};
+
+const generateClientId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `client-${crypto.randomUUID()}`;
+  }
+  return `client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 type ConversationApiResponse = Conversation & { chat_id?: string };
 
 const mapConversationIds = (list: ReadonlyArray<ConversationApiResponse>): Conversation[] =>
@@ -98,7 +119,6 @@ export function ChatProvider({
       // ChatService has no offConnectionError helper; clearing is not
       // critical because the listener body is a stable setState.
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatService]);
 
   const isConnected = connectionStatus === 'connected';
@@ -230,7 +250,9 @@ export function ChatProvider({
       // inside loadConversations already ran — but the socket disconnect in the
       // cleanup will reset conversations on the next mount anyway.
     };
-    if (!cancelled) void doLoad();
+    if (!cancelled) {
+      void doLoad();
+    }
 
     return () => {
       cancelled = true;
@@ -298,6 +320,75 @@ export function ChatProvider({
     }
   }, [activeConversation, chatService, currentPage, hasMoreMessages, isLoadingMoreMessages]);
 
+  // Tracks the optimistic bubbles awaiting a server response. Lives in a
+  // ref because the retry timers + queue flush need to read the latest
+  // value without re-creating the callback identities on every send.
+  const reconnectQueueRef = useRef<PendingSend[]>([]);
+  const retryTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const buildOptimisticMessage = useCallback(
+    (clientId: string, conversationId: string, content: string): Message => ({
+      id: clientId,
+      conversationId,
+      senderId: user?.userId ?? '',
+      senderName: user?.firstName ?? '',
+      content,
+      timestamp: new Date().toISOString(),
+      type: 'text',
+      status: 'sending',
+    }),
+    [user]
+  );
+
+  const attemptSendWithRetry = useCallback(
+    async (pending: PendingSend, attempt: number): Promise<void> => {
+      try {
+        setError(null);
+        if (pending.attachments && pending.attachments.length > 0) {
+          for (const file of pending.attachments) {
+            await chatService.uploadAttachment(pending.conversationId, file);
+          }
+        }
+        const sent = await chatService.sendMessage(pending.conversationId, pending.content);
+        // Dedupe by clientId: replace the optimistic bubble. If a late
+        // success from an earlier attempt arrives after a manual retry
+        // already swapped the bubble, the filter below still leaves a
+        // single bubble with the server id.
+        setMessages((prev) => {
+          const withoutOptimistic = prev.filter((m) => m.id !== pending.clientId);
+          if (withoutOptimistic.some((m) => m.id === sent.id)) {
+            return withoutOptimistic;
+          }
+          return [...withoutOptimistic, sent];
+        });
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === pending.conversationId
+              ? { ...conv, lastMessage: sent, updatedAt: sent.timestamp }
+              : conv
+          )
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to send message';
+        if (attempt >= SEND_MAX_ATTEMPTS) {
+          setError(msg);
+          setMessages((prev) =>
+            prev.map((m) => (m.id === pending.clientId ? { ...m, status: 'failed' } : m))
+          );
+          return;
+        }
+        const delay =
+          SEND_RETRY_INITIAL_DELAY_MS * Math.pow(SEND_RETRY_BACKOFF_MULTIPLIER, attempt - 1);
+        const timer = setTimeout(() => {
+          retryTimersRef.current.delete(pending.clientId);
+          void attemptSendWithRetry(pending, attempt + 1);
+        }, delay);
+        retryTimersRef.current.set(pending.clientId, timer);
+      }
+    },
+    [chatService]
+  );
+
   const sendMessage = useCallback(
     async (content: string, attachments?: File[]) => {
       if (!activeConversation || !user) {
@@ -321,29 +412,91 @@ export function ChatProvider({
         return;
       }
 
-      try {
-        setError(null);
-        if (attachments && attachments.length > 0) {
-          for (const file of attachments) {
-            await chatService.uploadAttachment(activeConversation.id, file);
-          }
-        }
-        const sent = await chatService.sendMessage(activeConversation.id, content);
-        setMessages((prev) => (prev.some((m) => m.id === sent.id) ? prev : [...prev, sent]));
-        setConversations((prev) =>
-          prev.map((conv) =>
-            conv.id === activeConversation.id
-              ? { ...conv, lastMessage: sent, updatedAt: sent.timestamp }
-              : conv
-          )
-        );
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to send message';
-        setError(msg);
+      const clientId = generateClientId();
+      const optimistic = buildOptimisticMessage(clientId, activeConversation.id, content);
+      setMessages((prev) => [...prev, optimistic]);
+
+      // Socket not yet connected (initial connect / mid-reconnect): hold
+      // the send locally and let the connection-status effect flush it
+      // when we reach `connected`. This guards the reconnect window —
+      // firing chatService.sendMessage here would hit the service's own
+      // disconnected-queue and return a placeholder we'd then have to
+      // reconcile out of band.
+      if (connectionStatus !== 'connected') {
+        reconnectQueueRef.current = [
+          ...reconnectQueueRef.current,
+          { clientId, conversationId: activeConversation.id, content, attachments },
+        ];
+        return;
       }
+
+      await attemptSendWithRetry(
+        { clientId, conversationId: activeConversation.id, content, attachments },
+        1
+      );
     },
-    [activeConversation, chatService, isOnline, offlineAdapter, user]
+    [
+      activeConversation,
+      attemptSendWithRetry,
+      buildOptimisticMessage,
+      connectionStatus,
+      isOnline,
+      offlineAdapter,
+      user,
+    ]
   );
+
+  const retryMessage = useCallback(
+    async (messageId: string) => {
+      const target = messages.find((m) => m.id === messageId);
+      if (!target || target.status !== 'failed') {
+        return;
+      }
+      // Clear any pending auto-retry timer for this id and re-arm the
+      // bubble's status to `sending` before kicking off attempt #1.
+      const timer = retryTimersRef.current.get(messageId);
+      if (timer) {
+        clearTimeout(timer);
+        retryTimersRef.current.delete(messageId);
+      }
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, status: 'sending' } : m))
+      );
+      await attemptSendWithRetry(
+        { clientId: messageId, conversationId: target.conversationId, content: target.content },
+        1
+      );
+    },
+    [attemptSendWithRetry, messages]
+  );
+
+  // Flush the reconnect queue when the socket transitions to connected.
+  // Each queued send re-enters the same retry/backoff path as a fresh
+  // send so transient failures during the flush still surface a Retry
+  // button on the bubble.
+  useEffect(() => {
+    if (connectionStatus !== 'connected') {
+      return;
+    }
+    const queued = reconnectQueueRef.current;
+    if (queued.length === 0) {
+      return;
+    }
+    reconnectQueueRef.current = [];
+    queued.forEach((pending) => {
+      void attemptSendWithRetry(pending, 1);
+    });
+  }, [attemptSendWithRetry, connectionStatus]);
+
+  // Clean up any in-flight retry timers on unmount to avoid setState
+  // on an unmounted provider.
+  useEffect(() => {
+    const timers = retryTimersRef.current;
+    return () => {
+      timers.forEach((t) => clearTimeout(t));
+      timers.clear();
+    };
+  }, []);
 
   const markAsRead = useCallback(
     async (conversationId: string) => {
@@ -546,6 +699,7 @@ export function ChatProvider({
     unreadMessageCount,
     setActiveConversation: handleSetActiveConversation,
     sendMessage,
+    retryMessage,
     markAsRead,
     loadConversations,
     loadMessages,

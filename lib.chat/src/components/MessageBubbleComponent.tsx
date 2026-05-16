@@ -56,7 +56,7 @@ export function MessageBubbleComponent({
   onToggleReaction,
   position = 'single',
 }: MessageBubbleProps) {
-  const { featureFlags, resolveFileUrl } = useChat();
+  const { featureFlags, resolveFileUrl, retryMessage } = useChat();
   const { logEvent } = featureFlags;
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -111,13 +111,20 @@ export function MessageBubbleComponent({
   const bubbleClass = isOwn
     ? styles.messageBubbleOwn[position]
     : styles.messageBubbleOther[position];
+
+  // Incoming bubbles get a richer aria-label so AT users can navigate
+  // the message list (Tab / arrow) and hear who said what without
+  // first reading the preceding sender row.
+  const previewSource = message.content?.trim() || '';
+  const preview = previewSource.length > 80 ? `${previewSource.slice(0, 77)}…` : previewSource;
+  const bubbleAriaLabel = isOwn ? 'Your message' : `Message from ${message.senderName}: ${preview}`;
   const metaClass = isOwn ? styles.messageMetaOwn : styles.messageMetaOther;
   const metaVisibilityClass = showMeta ? styles.messageMetaVisible : styles.messageMetaHidden;
 
   return (
     <div className={wrapperClass}>
       <div className={bubbleRowClass}>
-        <article className={bubbleClass} aria-label={isOwn ? 'Your message' : 'Received message'}>
+        <article className={bubbleClass} aria-label={bubbleAriaLabel}>
           <div className={styles.messageContent}>{message.content}</div>
 
           {message.attachments && message.attachments.length > 0 && (
@@ -222,6 +229,28 @@ export function MessageBubbleComponent({
           isOwn={isOwn}
           readCount={message.readBy?.length}
         />
+        {isOwn && message.status === 'failed' && (
+          <button
+            type="button"
+            onClick={() => {
+              void retryMessage(message.id);
+            }}
+            aria-label="Retry sending message"
+            data-testid={`retry-message-${message.id}`}
+            style={{
+              marginLeft: '0.5rem',
+              background: 'transparent',
+              border: 'none',
+              color: 'inherit',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              font: 'inherit',
+              padding: 0,
+            }}
+          >
+            Retry
+          </button>
+        )}
       </div>
 
       {message.reactions && message.reactions.length > 0 && currentUserId && (
