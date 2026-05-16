@@ -1,18 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as styles from './ProgressiveImage.css';
 
-type ProgressiveImageProps = {
+export type ProgressiveImageProps = {
   src: string;
   alt: string;
   /** Optional WebP variant URL. When provided, served via <picture> to browsers that support it. */
   webpSrc?: string;
-  /** When true, image fetch starts immediately. When false, it waits until the element scrolls into view. */
+  /** When true, image fetch starts immediately. When false, waits until element scrolls into view. */
   eager?: boolean;
-  /** Margin around the viewport used by IntersectionObserver. Defaults to '200px' so images start loading slightly before they appear. */
+  /** Margin around the viewport used by IntersectionObserver. Defaults to '200px'. */
   rootMargin?: string;
   className?: string;
   draggable?: boolean;
-  /** Renders behind the image. Visible while the image is loading or has failed. */
+  /** Renders behind the image while loading or on failure. */
   placeholder?: React.ReactNode;
   /** Renders in place of the placeholder when the image fails to load. */
   errorFallback?: React.ReactNode;
@@ -43,7 +43,6 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
   const [errored, setErrored] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Reset state when src changes so the placeholder reappears for the new image.
   useEffect(() => {
     setLoaded(false);
     setErrored(false);

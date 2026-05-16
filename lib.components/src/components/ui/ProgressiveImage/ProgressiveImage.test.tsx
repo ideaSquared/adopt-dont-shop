@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { ProgressiveImage } from './ProgressiveImage';
 
@@ -41,7 +42,6 @@ describe('ProgressiveImage', () => {
 
       render(<ProgressiveImage src='https://cdn.example/dog.jpg' alt='A dog' />);
 
-      // Image should not be in the DOM yet — waiting for intersection
       expect(screen.queryByAltText('A dog')).not.toBeInTheDocument();
       expect(observers.length).toBe(1);
     });
@@ -68,7 +68,6 @@ describe('ProgressiveImage', () => {
       render(<ProgressiveImage src='https://cdn.example/dog.jpg' alt='A dog' />);
       expect(screen.queryByAltText('A dog')).not.toBeInTheDocument();
 
-      // Simulate viewport intersection
       const { cb, target } = observers[0];
       act(() => {
         cb(
@@ -143,32 +142,29 @@ describe('ProgressiveImage', () => {
   });
 
   describe('callbacks', () => {
-    it('invokes onLoad and onError when the image fires the corresponding event', () => {
+    it('invokes onLoad when the image fires the load event', () => {
       const onLoad = vi.fn();
-      const onError = vi.fn();
 
-      const { rerender } = render(
-        <ProgressiveImage
-          src='https://cdn.example/cat.jpg'
-          alt='A cat'
-          eager
-          onLoad={onLoad}
-          onError={onError}
-        />
+      render(
+        <ProgressiveImage src='https://cdn.example/cat.jpg' alt='A cat' eager onLoad={onLoad} />
       );
 
       fireEvent.load(screen.getByAltText('A cat'));
       expect(onLoad).toHaveBeenCalledTimes(1);
+    });
 
-      rerender(
+    it('invokes onError when the image fires the error event', () => {
+      const onError = vi.fn();
+
+      render(
         <ProgressiveImage
           src='https://cdn.example/broken.jpg'
           alt='A cat'
           eager
-          onLoad={onLoad}
           onError={onError}
         />
       );
+
       fireEvent.error(screen.getByAltText('A cat'));
       expect(onError).toHaveBeenCalledTimes(1);
     });
