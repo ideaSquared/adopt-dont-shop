@@ -63,10 +63,29 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   DateTime: ({ value }: { value: string }) => React.createElement('span', null, value),
   ConfirmDialog: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  // ADS-585: useConfirm mock returns both `confirm` and `confirmProps` so tests
+  // covering pages that spread `confirmProps` into ConfirmDialog don't crash.
   useConfirm: () => ({
+    isOpen: false,
     confirm: vi.fn().mockResolvedValue(true),
-    ConfirmDialog: () => null,
+    confirmProps: {
+      isOpen: false,
+      onClose: () => {},
+      onConfirm: () => {},
+      message: '',
+    },
   }),
+  // ADS-585: toast.* is the replacement for native window.alert in app.admin.
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    message: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
   useToast: () => {
     const [toasts, setToasts] = React.useState<
       Array<{ id: string; message: string; type: string }>

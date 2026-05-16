@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiArchive, FiSearch, FiMenu } from 'react-icons/fi';
+import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
 import {
   cmsService,
   type Content,
@@ -90,6 +91,7 @@ const ContentManagement: React.FC = () => {
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [editingMenu, setEditingMenu] = useState<NavigationMenu | null>(null);
   const [menuForm, setMenuForm] = useState<MenuFormState>(emptyMenuForm());
+  const { confirm, confirmProps } = useConfirm();
 
   const fetchContent = useCallback(async () => {
     setContentLoading(true);
@@ -240,7 +242,14 @@ const ContentManagement: React.FC = () => {
   };
 
   const handleArchive = async (item: Content) => {
-    if (!window.confirm(`Archive "${item.title}"?`)) {
+    const confirmed = await confirm({
+      title: 'Archive content?',
+      message: `Archive "${item.title}"? It will be hidden from the site but kept for restoration.`,
+      confirmText: 'Archive',
+      cancelText: 'Cancel',
+      variant: 'warning',
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -252,7 +261,14 @@ const ContentManagement: React.FC = () => {
   };
 
   const handleDeleteContent = async (item: Content) => {
-    if (!window.confirm(`Permanently delete "${item.title}"?`)) {
+    const confirmed = await confirm({
+      title: 'Delete content?',
+      message: `Permanently delete "${item.title}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -300,7 +316,14 @@ const ContentManagement: React.FC = () => {
   };
 
   const handleDeleteMenu = async (menu: NavigationMenu) => {
-    if (!window.confirm(`Delete menu "${menu.name}"?`)) {
+    const confirmed = await confirm({
+      title: 'Delete menu?',
+      message: `Delete menu "${menu.name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -832,6 +855,8 @@ const ContentManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };

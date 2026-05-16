@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
+import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
 import {
   securityService,
   type IpRule,
@@ -80,6 +81,7 @@ const SessionsTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { confirm, confirmProps } = useConfirm();
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +110,15 @@ const SessionsTab: React.FC = () => {
   }, [userIdFilter, refreshKey]);
 
   const handleRevoke = async (sessionId: string) => {
-    if (!window.confirm('Revoke this session? The user will need to sign in again.')) {
+    const confirmed = await confirm({
+      title: 'Revoke session?',
+      message:
+        'This will immediately sign the user out of this device. They will need to sign in again to regain access.',
+      confirmText: 'Revoke session',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -123,7 +133,14 @@ const SessionsTab: React.FC = () => {
     if (!userIdFilter) {
       return;
     }
-    if (!window.confirm(`Revoke ALL sessions for user ${userIdFilter}?`)) {
+    const confirmed = await confirm({
+      title: 'Revoke all sessions?',
+      message: `This will immediately sign user ${userIdFilter} out of every device. They will need to sign in again on each one. This action cannot be undone.`,
+      confirmText: 'Revoke all sessions',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -213,6 +230,8 @@ const SessionsTab: React.FC = () => {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };
@@ -229,6 +248,7 @@ const IpRulesTab: React.FC = () => {
   const [cidr, setCidr] = useState('');
   const [label, setLabel] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { confirm, confirmProps } = useConfirm();
 
   useEffect(() => {
     let cancelled = false;
@@ -276,7 +296,15 @@ const IpRulesTab: React.FC = () => {
   };
 
   const handleDelete = async (ipRuleId: string) => {
-    if (!window.confirm('Delete this IP rule?')) {
+    const confirmed = await confirm({
+      title: 'Delete IP rule?',
+      message:
+        'Delete this IP rule? Removing a block rule may re-open access to matching addresses; removing an allow rule may lock out matching addresses. This action cannot be undone.',
+      confirmText: 'Delete rule',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     try {
@@ -372,6 +400,8 @@ const IpRulesTab: React.FC = () => {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };
@@ -595,6 +625,7 @@ const RecoveryTab: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmProps } = useConfirm();
 
   const isUserIdValid = useMemo(() => userId.trim().length > 0, [userId]);
 
@@ -617,7 +648,14 @@ const RecoveryTab: React.FC = () => {
   };
 
   const handleForceLock = async () => {
-    if (!window.confirm(`Force-lock account ${userId.trim()} and revoke all sessions?`)) {
+    const confirmed = await confirm({
+      title: 'Force-lock account?',
+      message: `This will lock account ${userId.trim()} for 24 hours, blocking all sign-ins, and immediately revoke every active session. Only do this for suspected compromise. The user will need to rotate their credentials to regain access.`,
+      confirmText: 'Force-lock & revoke',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     setBusy(true);
@@ -675,6 +713,8 @@ const RecoveryTab: React.FC = () => {
           Force-lock & revoke
         </button>
       </div>
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };

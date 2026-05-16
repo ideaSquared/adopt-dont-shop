@@ -1,5 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Heading, Text, Input, useConfirm, ConfirmDialog } from '@adopt-dont-shop/lib.components';
+import {
+  Heading,
+  Text,
+  Input,
+  useConfirm,
+  ConfirmDialog,
+  toast,
+} from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
   FiMessageSquare,
@@ -141,7 +148,17 @@ const Messages: React.FC = () => {
         await refetch();
       } catch (error) {
         console.error('Failed to delete chat:', error);
-        alert(`Failed to delete chat: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(
+          `Failed to delete chat: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          {
+            action: {
+              label: 'Retry',
+              onClick: () => {
+                void handleDeleteChat(chatId, e);
+              },
+            },
+          }
+        );
       }
     }
   };
