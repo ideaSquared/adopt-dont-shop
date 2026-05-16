@@ -120,3 +120,21 @@ export const submitError = style({
   color: '#ef4444',
   marginBottom: '1rem',
 });
+
+export const currencyInputWrapper = style({
+  position: 'relative',
+});
+
+export const currencyAdornment = style({
+  position: 'absolute',
+  left: '0.75rem',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  color: '#6b7280',
+  fontSize: '0.875rem',
+  pointerEvents: 'none',
+});
+
+globalStyle(`${currencyInputWrapper} input`, {
+  paddingLeft: '1.75rem',
+});
