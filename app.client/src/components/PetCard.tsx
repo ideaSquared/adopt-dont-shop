@@ -23,6 +23,7 @@ export const PetCard: React.FC<PetCardProps> = ({
   onFavoriteToggle,
   isFavorite: propIsFavorite,
 }) => {
+  'use memo';
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { isAuthenticated } = useAuth();

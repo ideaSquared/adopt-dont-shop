@@ -13,6 +13,7 @@ import { SORT_OPTIONS } from './searchOptions';
 import { SearchFilters } from './SearchFilters';
 
 export const SearchPage: React.FC = () => {
+  'use memo';
   const [searchParams, setSearchParams] = useSearchParams();
   const [pets, setPets] = useState<Pet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
