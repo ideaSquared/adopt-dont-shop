@@ -134,6 +134,15 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
       newErrors.age = 'Please enter a valid age';
     }
 
+    // Adoption fee: optional, but if provided must be a non-negative number
+    // with up to 2 decimal places. Mirrors AdoptionFeeStringSchema in
+    // lib.pets so the form rejects "free", "£150", "tbd", etc. (ADS-578).
+    const adoptionFeeRaw = (formData.adoptionFee ?? '').trim();
+    if (adoptionFeeRaw !== '' && !/^\d+(\.\d{1,2})?$/.test(adoptionFeeRaw)) {
+      newErrors.adoptionFee =
+        'Adoption fee must be a non-negative number with up to 2 decimal places';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -288,13 +297,22 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
 
             <div className={styles.formGroup()}>
               <label htmlFor="adoptionFee">Adoption Fee</label>
-              <input
-                id="adoptionFee"
-                type="text"
-                value={formData.adoptionFee || ''}
-                onChange={e => handleInputChange('adoptionFee', e.target.value)}
-                placeholder="Enter adoption fee (e.g., 150.00)"
-              />
+              <div className={styles.currencyInputWrapper}>
+                <span className={styles.currencyAdornment} aria-hidden="true">
+                  £
+                </span>
+                <input
+                  id="adoptionFee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={formData.adoptionFee || ''}
+                  onChange={e => handleInputChange('adoptionFee', e.target.value)}
+                  placeholder="150.00"
+                />
+              </div>
+              {errors.adoptionFee && <div className="error">{errors.adoptionFee}</div>}
             </div>
 
             <div className={styles.formGroup({ fullWidth: true })}>

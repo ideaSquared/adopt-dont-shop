@@ -56,6 +56,17 @@ export const PetSpayNeuterStatusSchema = z.enum([
   'unknown',
 ]);
 
+// ── Adoption fee ──────────────────────────────────────────────────────────────
+//
+// The fee is captured as a string in the create/update payload (the backend
+// further normalises it into `adoption_fee_minor`/`adoption_fee_currency`),
+// but the value must encode a non-negative monetary amount with at most two
+// decimal places. Anything else (`"free"`, `"£150"`, `"tbd"`) should be
+// rejected at the form boundary — see ADS-578.
+export const AdoptionFeeStringSchema = z
+  .string()
+  .regex(/^\d+(\.\d{1,2})?$/, 'Adoption fee must be a non-negative number with up to 2 decimal places');
+
 // ── Sub-schemas ───────────────────────────────────────────────────────────────
 
 export const PetImageSchema = z.object({
@@ -241,7 +252,7 @@ export const PetCreateDataSchema = z.object({
   microchipId: z.string().optional(),
   shortDescription: z.string().optional(),
   longDescription: z.string().optional(),
-  adoptionFee: z.string().optional(),
+  adoptionFee: AdoptionFeeStringSchema.optional(),
   energyLevel: PetEnergyLevelSchema.optional(),
   exerciseNeeds: z.string().optional(),
   groomingNeeds: z.string().optional(),
@@ -290,7 +301,7 @@ export const PetUpdateDataSchema = z.object({
   microchipId: z.string().optional(),
   shortDescription: z.string().optional(),
   longDescription: z.string().optional(),
-  adoptionFee: z.string().optional(),
+  adoptionFee: AdoptionFeeStringSchema.optional(),
   energyLevel: PetEnergyLevelSchema.optional(),
   exerciseNeeds: z.string().optional(),
   groomingNeeds: z.string().optional(),
