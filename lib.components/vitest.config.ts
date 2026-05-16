@@ -51,7 +51,14 @@ const veCssMock: Plugin = {
 export default mergeConfig(
   sharedConfig,
   defineConfig({
-    plugins: [react(), veCssMock],
+    plugins: [
+      react({
+        babel: {
+          plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
+        },
+      }),
+      veCssMock,
+    ],
     test: {
       name: 'lib.components',
       setupFiles: ['./src/setupTests.ts'],

@@ -4,7 +4,14 @@ import path from 'path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [react(), vanillaExtractPlugin()],
+  plugins: [
+    react({
+      babel: {
+        plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
+      },
+    }),
+    vanillaExtractPlugin(),
+  ],
   test: {
     globals: true,
     environment: 'jsdom',
