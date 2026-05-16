@@ -19,6 +19,8 @@ import {
   FiSliders,
   FiLayout,
   FiSend,
+  FiHeart,
+  FiFile,
 } from 'react-icons/fi';
 
 interface SidebarProps {
@@ -99,6 +101,24 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           >
             <FiShield />
             <span className={styles.navLinkSpan({ collapsed })}>Rescues</span>
+          </NavLink>
+          <NavLink
+            to='/pets'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiHeart />
+            <span className={styles.navLinkSpan({ collapsed })}>Pets</span>
+          </NavLink>
+          <NavLink
+            to='/applications'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiFile />
+            <span className={styles.navLinkSpan({ collapsed })}>Applications</span>
           </NavLink>
         </div>
 

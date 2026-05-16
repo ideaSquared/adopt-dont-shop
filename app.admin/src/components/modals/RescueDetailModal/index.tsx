@@ -147,7 +147,7 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
               {activeTab === 'contact' && <ContactTab rescue={rescue} />}
               {activeTab === 'policies' && <PoliciesTab rescue={rescue} />}
               {activeTab === 'staff' && <StaffTab rescueId={rescueId} />}
-              {activeTab === 'listings' && <ListingsTab />}
+              {activeTab === 'listings' && <ListingsTab rescueId={rescueId} />}
               {activeTab === 'plan' && (
                 <PlanTab
                   rescueId={rescueId}
