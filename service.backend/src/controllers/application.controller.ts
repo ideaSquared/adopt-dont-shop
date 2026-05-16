@@ -222,59 +222,72 @@ export class ApplicationController extends BaseController {
 
   // Get applications with filtering and pagination
   getApplications = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return this.sendValidationError(res, errors.array());
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return this.sendValidationError(res, errors.array());
+      }
+
+      const filters: ApplicationSearchFilters = {
+        search: req.query.search as string,
+        userId: req.query.userId as string,
+        petId: req.query.petId as string,
+        rescueId: req.query.rescueId as string,
+        status: req.query.status as ApplicationStatus,
+        priority: req.query.priority as ApplicationPriority,
+        score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
+        score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
+        // ADS-575: pet-type / pet-breed filters from the rescue dashboard.
+        petType: req.query.petType as string,
+        petBreed: req.query.petBreed as string,
+        createdFrom: req.query.createdFrom ? new Date(req.query.createdFrom as string) : undefined,
+        createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
+        submittedFrom: req.query.submittedFrom
+          ? new Date(req.query.submittedFrom as string)
+          : undefined,
+        submittedTo: req.query.submittedTo ? new Date(req.query.submittedTo as string) : undefined,
+      };
+
+      const options: ApplicationSearchOptions = {
+        page: parsePage(req.query.page as string | undefined),
+        limit: parsePaginationLimit(req.query.limit as string | undefined, {
+          default: DEFAULT_PAGE_SIZE,
+          max: MAX_PAGE_SIZE,
+        }),
+        sortBy: (req.query.sortBy as string) || 'createdAt',
+        sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
+        include_user: true,
+        include_pet: true,
+        include_rescue: false,
+      };
+
+      const result = await ApplicationService.searchApplications(
+        filters,
+        options,
+        req.user!.userId,
+        req.user!.userType as UserType
+      );
+
+      // Transform the applications to frontend format
+      const transformedApplications = result.applications.map(app =>
+        this.transformApplicationModel(app)
+      );
+
+      return this.sendPaginatedSuccess(res, transformedApplications, {
+        total: result.total_filtered || 0,
+        page: result.pagination.page,
+        limit: result.pagination.limit,
+        totalPages: result.pagination.totalPages,
+      });
+    } catch (error) {
+      logger.error('Error getting applications:', error);
+      return this.sendError(
+        res,
+        'Failed to retrieve applications',
+        500,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
     }
-
-    const filters: ApplicationSearchFilters = {
-      search: req.query.search as string,
-      userId: req.query.userId as string,
-      petId: req.query.petId as string,
-      rescueId: req.query.rescueId as string,
-      status: req.query.status as ApplicationStatus,
-      priority: req.query.priority as ApplicationPriority,
-      score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
-      score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
-      createdFrom: req.query.createdFrom ? new Date(req.query.createdFrom as string) : undefined,
-      createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
-      submittedFrom: req.query.submittedFrom
-        ? new Date(req.query.submittedFrom as string)
-        : undefined,
-      submittedTo: req.query.submittedTo ? new Date(req.query.submittedTo as string) : undefined,
-    };
-
-    const options: ApplicationSearchOptions = {
-      page: parsePage(req.query.page as string | undefined),
-      limit: parsePaginationLimit(req.query.limit as string | undefined, {
-        default: DEFAULT_PAGE_SIZE,
-        max: MAX_PAGE_SIZE,
-      }),
-      sortBy: (req.query.sortBy as string) || 'createdAt',
-      sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
-      include_user: true,
-      include_pet: true,
-      include_rescue: false,
-    };
-
-    const result = await ApplicationService.searchApplications(
-      filters,
-      options,
-      req.user!.userId,
-      req.user!.userType as UserType
-    );
-
-    // Transform the applications to frontend format
-    const transformedApplications = result.applications.map(app =>
-      this.transformApplicationModel(app)
-    );
-
-    return this.sendPaginatedSuccess(res, transformedApplications, {
-      total: result.total_filtered || 0,
-      page: result.pagination.page,
-      limit: result.pagination.limit,
-      totalPages: result.pagination.totalPages,
-    });
   };
 
   // Create new application

@@ -705,6 +705,21 @@ export class ApplicationService {
           : { [Op.is]: null };
       }
 
+      // ADS-575: pet-type / pet-breed filters. Both are matched
+      // case-insensitively against the eager-loaded Pet association so
+      // the rescue dashboard's "Dog" dropdown matches the lowercase
+      // enum value stored on Pet.type.
+      if (filters.petType) {
+        (whereConditions as Record<string, unknown>)['$Pet.type$'] = {
+          [Op.iLike]: filters.petType,
+        };
+      }
+      if (filters.petBreed) {
+        (whereConditions as Record<string, unknown>)['$Pet->Breed.name$'] = {
+          [Op.iLike]: `%${filters.petBreed}%`,
+        };
+      }
+
       // Text search
       if (filters.search) {
         const searchConditions = [
