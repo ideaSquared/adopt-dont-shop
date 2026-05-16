@@ -75,9 +75,10 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ data, onComplete, 
           />
 
           <Input
-            label='Phone Number'
+            label='UK Mobile Phone Number'
             type='tel'
             placeholder='07123 456789'
+            helperText='We can only accept UK mobile numbers (e.g. 07123 456789 or +44 7123 456789)'
             {...register('phone', {
               required: 'Phone number is required',
               pattern: {
