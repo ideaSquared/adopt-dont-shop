@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button, Heading, ReportRenderer, Text } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  ConfirmDialog,
+  Heading,
+  ReportRenderer,
+  Text,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import {
   useDeleteReport,
   useExecuteSavedReport,
@@ -30,6 +37,7 @@ const ReportViewPage: React.FC = () => {
   const [cron, setCron] = useState('0 9 * * 1');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const { confirm, confirmProps } = useConfirm();
 
   if (!id) {
     return (
@@ -54,7 +62,14 @@ const ReportViewPage: React.FC = () => {
   }
 
   const handleDelete = async (): Promise<void> => {
-    if (!confirm('Delete this report?')) {
+    const confirmed = await confirm({
+      title: 'Delete report?',
+      message: 'Delete this saved report? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     await deleteMutation.mutateAsync(id);
@@ -169,6 +184,8 @@ const ReportViewPage: React.FC = () => {
           error={(executeQuery.error as Error | null) ?? null}
         />
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </PageContainer>
   );
 };

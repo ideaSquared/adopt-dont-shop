@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FiX } from 'react-icons/fi';
 import clsx from 'clsx';
+import { toast } from '@adopt-dont-shop/lib.components';
 import * as styles from './ActionSelectionModal.css';
 
 export type ActionType =
@@ -63,7 +64,7 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
     e.preventDefault();
 
     if (!reason.trim()) {
-      alert('Please provide a reason for this action');
+      toast.error('Please provide a reason for this action');
       return;
     }
 

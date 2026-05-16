@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { Button, Heading, Text, DateTime } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  Heading,
+  Text,
+  DateTime,
+  ConfirmDialog,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import { Skeleton, SkeletonText } from '../ui/Skeleton';
 import {
   FiX,
@@ -60,6 +67,7 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteTitle, setInviteTitle] = useState('');
+  const { confirm, confirmProps } = useConfirm();
 
   useEffect(() => {
     const fetchRescueDetails = async () => {
@@ -155,7 +163,15 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   };
 
   const handleRemoveStaff = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this staff member?')) {
+    const confirmed = await confirm({
+      title: 'Remove staff member?',
+      message:
+        'Are you sure you want to remove this staff member? They will lose access to this rescue immediately.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -820,6 +836,8 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
           )}
         </div>
       </div>
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };

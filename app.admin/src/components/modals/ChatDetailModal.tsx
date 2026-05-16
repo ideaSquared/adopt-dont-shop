@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as styles from './ChatDetailModal.css';
-import { Modal, Button, useConfirm, ConfirmDialog } from '@adopt-dont-shop/lib.components';
+import { Modal, Button, useConfirm, ConfirmDialog, toast } from '@adopt-dont-shop/lib.components';
 import {
   useAdminChatById,
   useAdminChatMessages,
@@ -95,10 +95,17 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
         description: 'Flagged from admin chat management interface for moderator review',
       });
       await fetchReports();
-      alert('Conversation flagged successfully');
+      toast.success('Conversation flagged successfully');
     } catch (error) {
       console.error('Failed to flag conversation:', error);
-      alert('Failed to flag conversation. Please try again.');
+      toast.error('Failed to flag conversation. Please try again.', {
+        action: {
+          label: 'Retry',
+          onClick: () => {
+            void handleFlagConversation();
+          },
+        },
+      });
     } finally {
       setFlaggingConversation(false);
     }
@@ -146,7 +153,14 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       }
     } catch (error) {
       console.error('Failed to delete message:', error);
-      alert('Failed to delete message. Please try again.');
+      toast.error('Failed to delete message. Please try again.', {
+        action: {
+          label: 'Retry',
+          onClick: () => {
+            void handleDeleteMessage();
+          },
+        },
+      });
     }
   };
 
@@ -177,7 +191,14 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Failed to archive chat:', error);
-      alert('Failed to archive conversation. Please try again.');
+      toast.error('Failed to archive conversation. Please try again.', {
+        action: {
+          label: 'Retry',
+          onClick: () => {
+            void handleArchiveChat();
+          },
+        },
+      });
     }
   };
 
@@ -202,7 +223,14 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Failed to delete chat:', error);
-      alert('Failed to delete conversation. Please try again.');
+      toast.error('Failed to delete conversation. Please try again.', {
+        action: {
+          label: 'Retry',
+          onClick: () => {
+            void handleDeleteChat();
+          },
+        },
+      });
     }
   };
 
