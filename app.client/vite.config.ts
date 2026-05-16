@@ -35,7 +35,14 @@ export default defineConfig(({ mode }) => {
       : {};
 
   return {
-    plugins: [react(), vanillaExtractPlugin()],
+    plugins: [
+      react({
+        babel: {
+          plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
+        },
+      }),
+      vanillaExtractPlugin(),
+    ],
     envDir: resolve(__dirname, '..'), // Load .env from monorepo root
     cacheDir: '/tmp/.vite-app-client',
     resolve: {

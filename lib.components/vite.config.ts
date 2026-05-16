@@ -5,7 +5,15 @@ import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), vanillaExtractPlugin(), dts()],
+  plugins: [
+    react({
+      babel: {
+        plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
+      },
+    }),
+    vanillaExtractPlugin(),
+    dts(),
+  ],
 
   // Development server setup for standalone component development
   server: {
