@@ -24,11 +24,10 @@ export const adminValidation = {
       .optional()
       .isIn(['active', 'inactive', 'suspended', 'banned'])
       .withMessage('Status must be one of: active, inactive, suspended, banned'),
-    query('role')
+    query('userType')
       .optional()
-      .isString()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('Role must be a string of 1-50 characters'),
+      .isIn(['adopter', 'rescue_staff', 'admin', 'moderator'])
+      .withMessage('userType must be one of: adopter, rescue_staff, admin, moderator'),
   ],
 
   getUserDetails: [param('userId').isString().notEmpty().withMessage('User ID is required')],

@@ -41,7 +41,7 @@ export class AdminController {
 
     const {
       search,
-      role,
+      userType,
       status,
       verificationStatus,
       page = 1,
@@ -60,7 +60,7 @@ export class AdminController {
     const result = await AdminService.getUsers({
       search: search as string,
       status: status as UserStatus,
-      userType: role as UserType,
+      userType: userType as UserType,
       page: parseInt(page as string),
       limit: parsedLimit,
       sortBy: safeSortBy,
