@@ -29,6 +29,7 @@ export const buildChatContextValue = (
   pendingMessageCount: 0,
   unreadMessageCount: 0,
   setActiveConversation: () => {},
+  updateConversationStatus: async () => {},
   sendMessage: async () => {},
   retryMessage: async () => {},
   markAsRead: async () => {},

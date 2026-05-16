@@ -5,6 +5,7 @@ import { ChatContext } from './chat-context';
 import type {
   ChatContextValue,
   ChatProviderProps,
+  ConversationStatus,
   FeatureFlagsAdapter,
   ResolveFileUrl,
 } from './chat-context-types';
@@ -185,11 +186,20 @@ export function ChatProvider({
             return conv;
           }
           const isActive = activeConversationIdRef.current === conv.id;
+          // ADS-583: auto-reopen a resolved/archived conversation when
+          // another participant sends a new message so the rescue sees it
+          // back under "Active". Self-sent messages don't flip the status,
+          // otherwise replying inside a resolved thread would silently
+          // reopen it for the resolver.
+          const shouldReopen =
+            (conv.status === 'archived' || conv.status === 'closed') &&
+            message.senderId !== user.userId;
           return {
             ...conv,
             lastMessage: message,
             updatedAt: message.timestamp,
             unreadCount: isActive ? conv.unreadCount : (conv.unreadCount ?? 0) + 1,
+            status: shouldReopen ? 'active' : conv.status,
           };
         })
       );
@@ -521,6 +531,29 @@ export function ChatProvider({
     [chatService]
   );
 
+  const updateConversationStatus = useCallback(
+    async (conversationId: string, status: ConversationStatus) => {
+      // Optimistic update so the conversation immediately moves between
+      // Active/Resolved filters without waiting on the PATCH round-trip.
+      const previousConversations = conversations;
+      setConversations((prev) =>
+        prev.map((conv) => (conv.id === conversationId ? { ...conv, status } : conv))
+      );
+      setActiveConversation((prev) =>
+        prev && prev.id === conversationId ? { ...prev, status } : prev
+      );
+      try {
+        await chatService.updateConversationStatus(conversationId, status);
+      } catch (err) {
+        setConversations(previousConversations);
+        const msg = err instanceof Error ? err.message : 'Failed to update conversation';
+        setError(msg);
+        throw err;
+      }
+    },
+    [chatService, conversations]
+  );
+
   const startConversation = useCallback(
     async (rescueId: string, petId?: string): Promise<Conversation> => {
       setError(null);
@@ -698,6 +731,7 @@ export function ChatProvider({
     pendingMessageCount,
     unreadMessageCount,
     setActiveConversation: handleSetActiveConversation,
+    updateConversationStatus,
     sendMessage,
     retryMessage,
     markAsRead,

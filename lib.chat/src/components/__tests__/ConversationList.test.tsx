@@ -82,4 +82,41 @@ describe('ConversationList', () => {
 
     expect(screen.getByText('99+')).toBeInTheDocument();
   });
+
+  // ADS-583: support an Active/Resolved filter so rescue staff can hide
+  // archived adoption threads from their working inbox.
+  describe('filter prop', () => {
+    const buildPair = () => [
+      buildTestConversation({ id: 'c1', rescueName: 'Active Rescue', status: 'active' }),
+      buildTestConversation({ id: 'c2', rescueName: 'Resolved Rescue', status: 'archived' }),
+    ];
+
+    it('shows only active conversations when filter="active"', () => {
+      renderWithChatContext(<ConversationList filter="active" />, {
+        value: buildChatContextValue({ conversations: buildPair() }),
+      });
+
+      expect(screen.getByText('Active Rescue')).toBeInTheDocument();
+      expect(screen.queryByText('Resolved Rescue')).not.toBeInTheDocument();
+    });
+
+    it('shows only resolved conversations when filter="resolved"', () => {
+      renderWithChatContext(<ConversationList filter="resolved" />, {
+        value: buildChatContextValue({ conversations: buildPair() }),
+      });
+
+      expect(screen.queryByText('Active Rescue')).not.toBeInTheDocument();
+      expect(screen.getByText('Resolved Rescue')).toBeInTheDocument();
+    });
+
+    it('treats conversations without an explicit status as active', () => {
+      renderWithChatContext(<ConversationList filter="active" />, {
+        value: buildChatContextValue({
+          conversations: [buildTestConversation({ id: 'c1', rescueName: 'Legacy Rescue' })],
+        }),
+      });
+
+      expect(screen.getByText('Legacy Rescue')).toBeInTheDocument();
+    });
+  });
 });

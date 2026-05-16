@@ -90,3 +90,45 @@ globalStyle(`${mobileViewHideChat} > :last-child`, {
     },
   },
 });
+
+export const toolbar = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  marginTop: '1rem',
+  flexWrap: 'wrap',
+});
+
+export const filterTab = style({
+  padding: '0.375rem 0.875rem',
+  borderRadius: '9999px',
+  border: '1px solid #d1d5db',
+  background: '#ffffff',
+  color: '#374151',
+  fontWeight: 500,
+  fontSize: '0.875rem',
+  cursor: 'pointer',
+  selectors: {
+    '&:hover': {
+      background: '#f3f4f6',
+    },
+  },
+});
+
+export const filterTabActive = style({
+  background: '#2563eb',
+  borderColor: '#2563eb',
+  color: '#ffffff',
+  selectors: {
+    '&:hover': {
+      background: '#1d4ed8',
+    },
+  },
+});
+
+export const actionGroup = style({
+  marginLeft: 'auto',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+});
