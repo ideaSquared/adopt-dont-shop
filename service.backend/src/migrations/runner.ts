@@ -24,8 +24,6 @@
  *   };
  */
 
-import path from 'path';
-import { fileURLToPath } from 'url';
 import type { QueryInterface } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
 import sequelize from '../sequelize';
@@ -42,7 +40,15 @@ const migrationsDir = __dirname;
 
 export const umzug = new Umzug({
   migrations: {
-    glob: ['*.ts', { cwd: migrationsDir, ignore: ['runner.ts', '_helpers.ts', '*.test.ts'] }],
+    // Match both .ts (dev/test via ts-node) and .js (prod compiled) so
+    // the same runner works from src/ and dist/ without conditional logic.
+    glob: [
+      '*.{ts,js}',
+      {
+        cwd: migrationsDir,
+        ignore: ['runner.{ts,js}', '_helpers.{ts,js}', '*.test.{ts,js}', '*.d.ts'],
+      },
+    ],
     resolve: ({ name, path: filePath, context }) => {
       if (!filePath) {
         throw new Error(`Migration ${name} has no resolved file path`);
@@ -103,9 +109,9 @@ const main = async () => {
 
 if (require.main === module) {
   main()
-    .then(() => process.exit(0))
     .catch(err => {
       logger.error('[umzug] failed', { err });
-      process.exit(1);
-    });
+      process.exitCode = 1;
+    })
+    .finally(() => sequelize.close());
 }
