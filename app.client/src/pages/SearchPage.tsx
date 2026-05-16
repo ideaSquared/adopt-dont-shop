@@ -153,7 +153,15 @@ export const SearchPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [filterState, nearby.hasLocation, nearby.latitude, nearby.longitude, logEvent, trackEvent]);
+  }, [
+    filterState.filters,
+    filterState.searchQuery,
+    nearby.hasLocation,
+    nearby.latitude,
+    nearby.longitude,
+    logEvent,
+    trackEvent,
+  ]);
 
   useEffect(() => {
     loadPets();
