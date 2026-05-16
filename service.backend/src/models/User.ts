@@ -510,6 +510,19 @@ User.init(
         fields: ['deleted_at'],
         name: 'users_deleted_at_idx',
       },
+      // ADS-504: partial UNIQUE on active rows so the planner can satisfy
+      // the very hot `email = ? AND deleted_at IS NULL` lookup (login,
+      // "is this email taken") with an index-only scan instead of
+      // hitting the full `users_email_unique` and re-checking deleted_at
+      // in the heap. The full unique above stays — it's what stops a
+      // soft-deleted user re-registering with the same address — and the
+      // partial unique is the performance-only sibling.
+      {
+        fields: ['email'],
+        unique: true,
+        name: 'users_email_active_idx',
+        where: { deleted_at: null },
+      },
       ...auditIndexes('users'),
     ],
     hooks: {

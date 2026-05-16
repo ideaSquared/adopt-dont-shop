@@ -780,6 +780,17 @@ Pet.init(
         fields: ['status'],
         name: 'pets_status_idx',
       },
+      // ADS-504: partial index on active rows for the public listings
+      // query ("show me available pets"), which paranoid mode always
+      // rewrites to `... AND deleted_at IS NULL`. Without this the
+      // planner falls back to `pets_status_idx` and re-checks
+      // deleted_at on the heap, which doesn't scale once the
+      // soft-deleted population is non-trivial.
+      {
+        fields: ['status'],
+        name: 'pets_status_active_idx',
+        where: { deleted_at: null },
+      },
       {
         fields: ['type'],
         name: 'pets_type_idx',
