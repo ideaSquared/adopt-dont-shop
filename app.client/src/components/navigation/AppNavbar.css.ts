@@ -43,11 +43,6 @@ export const logo = style({
   },
 });
 
-export const logoIcon = style({
-  fontSize: '1.75rem',
-  lineHeight: 1,
-});
-
 export const primaryLinks = style({
   display: 'inline-flex',
   alignItems: 'center',

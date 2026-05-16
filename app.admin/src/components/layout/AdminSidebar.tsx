@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { Logo } from '@adopt-dont-shop/lib.components';
 import * as styles from './AdminSidebar.css';
 import {
   FiHome,
@@ -30,8 +31,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
     <aside className={styles.sidebarContainer({ collapsed })}>
       <div className={styles.sidebarHeader({ collapsed })}>
         <div className={styles.logo({ collapsed })}>
-          <span>🐾</span>
-          {!collapsed && <span>Admin</span>}
+          <Logo size={32} showWordmark={!collapsed} darkBg />
         </div>
         {!collapsed && (
           <button className={styles.toggleButton} onClick={onToggle} aria-label='Toggle sidebar'>
