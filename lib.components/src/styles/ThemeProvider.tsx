@@ -139,7 +139,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   }, [toggleHighContrast]);
 
   return (
-    <ThemeContext.Provider
+    <ThemeContext
       value={{
         theme,
         themeMode,
@@ -150,6 +150,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       }}
     >
       {children}
-    </ThemeContext.Provider>
+    </ThemeContext>
   );
 };

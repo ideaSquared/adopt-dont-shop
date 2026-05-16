@@ -115,5 +115,5 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     [notificationsService, notifications, unreadCount, isLoading]
   );
 
-  return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
+  return <NotificationsContext value={value}>{children}</NotificationsContext>;
 };

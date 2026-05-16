@@ -262,7 +262,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     refreshCount,
   };
 
-  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+  return <NotificationContext value={value}>{children}</NotificationContext>;
 };
 
 export { useNotifications };
