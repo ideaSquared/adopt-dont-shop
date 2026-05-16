@@ -25,6 +25,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   startIcon?: React.ReactNode;
   endIcon?: React.ReactNode;
   children: React.ReactNode;
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -38,6 +39,7 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   rightIcon?: React.ReactNode;
   startIcon?: React.ReactNode;
   endIcon?: React.ReactNode;
+  ref?: React.Ref<HTMLInputElement>;
 }
 
 // Re-export additional component types from their respective files

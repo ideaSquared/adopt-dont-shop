@@ -1,5 +1,5 @@
 import * as Select from '@radix-ui/react-select';
-import React, { forwardRef, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import countries from '../CountrySelectInput/CountryList.json';
 import {
@@ -55,6 +55,7 @@ export type SelectInputProps = {
   isCountrySelect?: boolean;
   onChange?: (value: string | string[]) => void;
   onSearch?: (query: string) => void;
+  ref?: React.Ref<HTMLButtonElement>;
 };
 
 const ChevronDownIcon = () => (
@@ -78,216 +79,210 @@ const XIcon = () => (
   </svg>
 );
 
-export const SelectInput = forwardRef<HTMLButtonElement, SelectInputProps>(
-  (
-    {
-      options: propOptions,
-      value,
-      defaultValue,
-      label,
-      placeholder: placeholderText = 'Select an option...',
-      size = 'md',
-      state = 'default',
-      disabled = false,
-      required = false,
-      multiple = false,
-      searchable = false,
-      clearable = false,
-      error,
-      helperText: helperTextProp,
-      fullWidth = false,
-      className,
-      'data-testid': dataTestId,
-      isCountrySelect = false,
-      onChange,
-      onSearch,
-    },
-    ref
-  ) => {
-    const [searchQuery, setSearchQuery] = useState('');
+export const SelectInput = ({
+  options: propOptions,
+  value,
+  defaultValue,
+  label,
+  placeholder: placeholderText = 'Select an option...',
+  size = 'md',
+  state = 'default',
+  disabled = false,
+  required = false,
+  multiple = false,
+  searchable = false,
+  clearable = false,
+  error,
+  helperText: helperTextProp,
+  fullWidth = false,
+  className,
+  'data-testid': dataTestId,
+  isCountrySelect = false,
+  onChange,
+  onSearch,
+  ref,
+}: SelectInputProps) => {
+  const [searchQuery, setSearchQuery] = useState('');
 
-    // Use country options if isCountrySelect is true
-    const countryOptions: SelectOption[] = useMemo(() => {
-      return countries.map(country => ({
-        value: country.name,
-        label: country.name,
-      }));
-    }, []);
+  // Use country options if isCountrySelect is true
+  const countryOptions: SelectOption[] = useMemo(() => {
+    return countries.map(country => ({
+      value: country.name,
+      label: country.name,
+    }));
+  }, []);
 
-    const options = isCountrySelect ? countryOptions : propOptions;
+  const options = isCountrySelect ? countryOptions : propOptions;
 
-    // Filter options based on search query and convert empty values for Radix compatibility
-    const filteredOptions = useMemo(() => {
-      const processedOptions = options.map(option => ({
-        ...option,
-        // Convert empty string values to a special value for Radix compatibility
-        value: option.value === '' ? '__all__' : option.value,
-        originalValue: option.value,
-      }));
+  // Filter options based on search query and convert empty values for Radix compatibility
+  const filteredOptions = useMemo(() => {
+    const processedOptions = options.map(option => ({
+      ...option,
+      // Convert empty string values to a special value for Radix compatibility
+      value: option.value === '' ? '__all__' : option.value,
+      originalValue: option.value,
+    }));
 
-      if (!searchable || !searchQuery) {
-        return processedOptions;
-      }
-      return processedOptions.filter(option =>
-        option.label.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }, [options, searchQuery, searchable]);
-
-    // Handle single/multiple values
-    const currentValue = multiple ? (Array.isArray(value) ? value : []) : value;
-    const selectedOptions = multiple
-      ? options.filter(option => (currentValue as string[]).includes(option.value))
-      : options.find(option => option.value === currentValue);
-
-    const handleValueChange = (newValue: string) => {
-      // Convert special "all" value back to empty string
-      const actualValue = newValue === '__all__' ? '' : newValue;
-
-      if (multiple) {
-        const currentArray = Array.isArray(value) ? value : [];
-        const updatedArray = currentArray.includes(actualValue)
-          ? currentArray.filter(v => v !== actualValue)
-          : [...currentArray, actualValue];
-        onChange?.(updatedArray);
-      } else {
-        onChange?.(actualValue);
-      }
-    };
-
-    const handleRemoveValue = (valueToRemove: string) => {
-      if (multiple && Array.isArray(value)) {
-        const updatedArray = value.filter(v => v !== valueToRemove);
-        onChange?.(updatedArray);
-      }
-    };
-
-    const handleClear = () => {
-      onChange?.(multiple ? [] : '');
-    };
-
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const query = e.target.value;
-      setSearchQuery(query);
-      onSearch?.(query);
-    };
-
-    const renderValue = () => {
-      if (multiple && Array.isArray(currentValue) && currentValue.length > 0) {
-        const multipleSelectedOptions = selectedOptions as SelectOption[];
-        return (
-          <div className={valueContainer}>
-            {multipleSelectedOptions.map((option: SelectOption) => (
-              <div className={multiValue} key={option.value}>
-                {option.label}
-                <button
-                  className={multiValueRemove}
-                  onClick={e => {
-                    e.stopPropagation();
-                    handleRemoveValue(option.value);
-                  }}
-                  aria-label={`Remove ${option.label}`}
-                >
-                  <XIcon />
-                </button>
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      if (!multiple && selectedOptions) {
-        const singleSelectedOption = selectedOptions as SelectOption;
-        return <div className={singleValue}>{singleSelectedOption.label}</div>;
-      }
-
-      return <span className={placeholder}>{placeholderText}</span>;
-    };
-
-    const actualState = error ? 'error' : state;
-    const displayText = error || helperTextProp;
-
-    return (
-      <div className={clsx(container({ fullWidth }), className)} data-testid={dataTestId}>
-        {label && (
-          <label className={labelStyle({ required })} htmlFor={dataTestId}>
-            {label}
-          </label>
-        )}
-        <div className={selectContainer({ fullWidth })}>
-          <Select.Root
-            value={
-              multiple
-                ? undefined
-                : (currentValue === '' ? '__all__' : (currentValue as string)) || ''
-            }
-            defaultValue={
-              multiple ? undefined : defaultValue === '' ? '__all__' : (defaultValue as string)
-            }
-            onValueChange={handleValueChange}
-            disabled={disabled}
-          >
-            <Select.Trigger
-              ref={ref}
-              className={trigger({ size, state: actualState, disabled, fullWidth })}
-              aria-label={label}
-            >
-              {renderValue()}
-              <div className={iconRow}>
-                {clearable &&
-                  (currentValue || (Array.isArray(currentValue) && currentValue.length > 0)) && (
-                    <button
-                      className={clearButton}
-                      onClick={e => {
-                        e.stopPropagation();
-                        handleClear();
-                      }}
-                      aria-label='Clear selection'
-                    >
-                      <XIcon />
-                    </button>
-                  )}
-                <Select.Icon>
-                  <ChevronDownIcon />
-                </Select.Icon>
-              </div>
-            </Select.Trigger>
-            <Select.Portal>
-              <Select.Content className={content} position='popper' sideOffset={4}>
-                {searchable && (
-                  <div className={searchContainer}>
-                    <input
-                      className={searchInput}
-                      placeholder='Search options...'
-                      value={searchQuery}
-                      onChange={handleSearchChange}
-                      onClick={e => e.stopPropagation()}
-                    />
-                  </div>
-                )}
-                <Select.Viewport className={viewport}>
-                  {filteredOptions.length === 0 ? (
-                    <div className={emptyMessage}>No options found</div>
-                  ) : (
-                    filteredOptions.map(option => (
-                      <Select.Item
-                        key={option.value}
-                        value={option.value}
-                        disabled={option.disabled}
-                        className={selectItem({ disabled: option.disabled })}
-                      >
-                        <Select.ItemText>{option.label}</Select.ItemText>
-                      </Select.Item>
-                    ))
-                  )}
-                </Select.Viewport>
-              </Select.Content>
-            </Select.Portal>
-          </Select.Root>
-        </div>
-        {displayText && <div className={helperText({ state: actualState })}>{displayText}</div>}
-      </div>
+    if (!searchable || !searchQuery) {
+      return processedOptions;
+    }
+    return processedOptions.filter(option =>
+      option.label.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }
-);
+  }, [options, searchQuery, searchable]);
 
-SelectInput.displayName = 'SelectInput';
+  // Handle single/multiple values
+  const currentValue = multiple ? (Array.isArray(value) ? value : []) : value;
+  const selectedOptions = multiple
+    ? options.filter(option => (currentValue as string[]).includes(option.value))
+    : options.find(option => option.value === currentValue);
+
+  const handleValueChange = (newValue: string) => {
+    // Convert special "all" value back to empty string
+    const actualValue = newValue === '__all__' ? '' : newValue;
+
+    if (multiple) {
+      const currentArray = Array.isArray(value) ? value : [];
+      const updatedArray = currentArray.includes(actualValue)
+        ? currentArray.filter(v => v !== actualValue)
+        : [...currentArray, actualValue];
+      onChange?.(updatedArray);
+    } else {
+      onChange?.(actualValue);
+    }
+  };
+
+  const handleRemoveValue = (valueToRemove: string) => {
+    if (multiple && Array.isArray(value)) {
+      const updatedArray = value.filter(v => v !== valueToRemove);
+      onChange?.(updatedArray);
+    }
+  };
+
+  const handleClear = () => {
+    onChange?.(multiple ? [] : '');
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    onSearch?.(query);
+  };
+
+  const renderValue = () => {
+    if (multiple && Array.isArray(currentValue) && currentValue.length > 0) {
+      const multipleSelectedOptions = selectedOptions as SelectOption[];
+      return (
+        <div className={valueContainer}>
+          {multipleSelectedOptions.map((option: SelectOption) => (
+            <div className={multiValue} key={option.value}>
+              {option.label}
+              <button
+                className={multiValueRemove}
+                onClick={e => {
+                  e.stopPropagation();
+                  handleRemoveValue(option.value);
+                }}
+                aria-label={`Remove ${option.label}`}
+              >
+                <XIcon />
+              </button>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (!multiple && selectedOptions) {
+      const singleSelectedOption = selectedOptions as SelectOption;
+      return <div className={singleValue}>{singleSelectedOption.label}</div>;
+    }
+
+    return <span className={placeholder}>{placeholderText}</span>;
+  };
+
+  const actualState = error ? 'error' : state;
+  const displayText = error || helperTextProp;
+
+  return (
+    <div className={clsx(container({ fullWidth }), className)} data-testid={dataTestId}>
+      {label && (
+        <label className={labelStyle({ required })} htmlFor={dataTestId}>
+          {label}
+        </label>
+      )}
+      <div className={selectContainer({ fullWidth })}>
+        <Select.Root
+          value={
+            multiple
+              ? undefined
+              : (currentValue === '' ? '__all__' : (currentValue as string)) || ''
+          }
+          defaultValue={
+            multiple ? undefined : defaultValue === '' ? '__all__' : (defaultValue as string)
+          }
+          onValueChange={handleValueChange}
+          disabled={disabled}
+        >
+          <Select.Trigger
+            ref={ref}
+            className={trigger({ size, state: actualState, disabled, fullWidth })}
+            aria-label={label}
+          >
+            {renderValue()}
+            <div className={iconRow}>
+              {clearable &&
+                (currentValue || (Array.isArray(currentValue) && currentValue.length > 0)) && (
+                  <button
+                    className={clearButton}
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleClear();
+                    }}
+                    aria-label='Clear selection'
+                  >
+                    <XIcon />
+                  </button>
+                )}
+              <Select.Icon>
+                <ChevronDownIcon />
+              </Select.Icon>
+            </div>
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Content className={content} position='popper' sideOffset={4}>
+              {searchable && (
+                <div className={searchContainer}>
+                  <input
+                    className={searchInput}
+                    placeholder='Search options...'
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onClick={e => e.stopPropagation()}
+                  />
+                </div>
+              )}
+              <Select.Viewport className={viewport}>
+                {filteredOptions.length === 0 ? (
+                  <div className={emptyMessage}>No options found</div>
+                ) : (
+                  filteredOptions.map(option => (
+                    <Select.Item
+                      key={option.value}
+                      value={option.value}
+                      disabled={option.disabled}
+                      className={selectItem({ disabled: option.disabled })}
+                    >
+                      <Select.ItemText>{option.label}</Select.ItemText>
+                    </Select.Item>
+                  ))
+                )}
+              </Select.Viewport>
+            </Select.Content>
+          </Select.Portal>
+        </Select.Root>
+      </div>
+      {displayText && <div className={helperText({ state: actualState })}>{displayText}</div>}
+    </div>
+  );
+};
