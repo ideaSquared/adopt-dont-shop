@@ -39,6 +39,24 @@ export const errorHandler = (
     });
   }
 
+  // Handle body-parser JSON parse failures. Express 5 propagates the
+  // body-parser SyntaxError through the standard async-catch path
+  // (Express 4 collapsed it inside the parser). Without an explicit
+  // branch the error falls through to the generic 500, but the user
+  // contract is "malformed JSON → 400" per ADS-531 §3.2.
+  if (
+    err instanceof SyntaxError &&
+    'status' in err &&
+    (err as SyntaxError & { status: number }).status === 400 &&
+    'body' in err
+  ) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Malformed JSON in request body',
+      code: 400,
+    });
+  }
+
   // Handle Sequelize validation errors
   if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
     type SequelizeError = { path?: string; message: string };
