@@ -326,9 +326,13 @@ export class PetService {
         whereConditions.availableSince = dateFilter;
       }
 
-      // Tags filter (PostgreSQL only - SQLite doesn't support overlap)
+      // Tags filter (PostgreSQL only - SQLite doesn't support overlap).
+      // Sequelize 7 narrows `Op.overlap` to `Rangable` (2-element tuple)
+      // for range types; PG arrays still accept `string[]` at runtime.
       if (tags && tags.length > 0 && sequelize.getDialect() === 'postgres') {
-        whereConditions.tags = { [Op.overlap]: tags };
+        whereConditions.tags = {
+          [Op.overlap]: tags as unknown as readonly [string, string],
+        };
       }
 
       // Plan 2.4 — breed filter and the text-search OR may both want
@@ -368,7 +372,9 @@ export class PetService {
 
         // Only add tags search for PostgreSQL (SQLite doesn't support overlap operator)
         if (sequelize.getDialect() === 'postgres') {
-          searchConditions.push({ tags: { [Op.overlap]: [search] } });
+          searchConditions.push({
+            tags: { [Op.overlap]: [search] as unknown as readonly [string, string] },
+          });
         }
 
         andClauses.push({ [Op.or]: searchConditions });

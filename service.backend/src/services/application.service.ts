@@ -664,9 +664,13 @@ export class ApplicationService {
         whereConditions.score = scoreFilter;
       }
 
-      // Tags filtering
+      // Tags filtering — Sequelize 7 narrows `Op.overlap` to `Rangable`
+      // (a 2-element tuple for range types), but PG's array && operator
+      // works with arbitrary-length string[] at runtime, so we cast.
       if (filters.tags && filters.tags.length > 0) {
-        whereConditions.tags = { [Op.overlap]: filters.tags };
+        whereConditions.tags = {
+          [Op.overlap]: filters.tags as unknown as readonly [string, string],
+        };
       }
 
       // Date range filtering

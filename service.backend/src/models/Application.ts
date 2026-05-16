@@ -490,7 +490,7 @@ Application.init(
         where: {
           deleted_at: null,
           status: {
-            [Op.not]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
+            [Op.notIn]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
           },
         },
       },
@@ -559,7 +559,7 @@ Application.init(
       active: {
         where: {
           status: {
-            [Op.not]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
+            [Op.notIn]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
           },
         },
       },
@@ -579,7 +579,7 @@ Application.init(
             [Op.between]: [new Date(), new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)],
           },
           status: {
-            [Op.not]: [
+            [Op.notIn]: [
               ApplicationStatus.APPROVED,
               ApplicationStatus.REJECTED,
               ApplicationStatus.WITHDRAWN,

@@ -1,39 +1,47 @@
-import {
-  Association,
-  BelongsToGetAssociationMixin,
-  CreationOptional,
-  DataTypes,
-  ForeignKey,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  NonAttribute,
-} from 'sequelize';
+import { Association, BelongsToGetAssociationMixin, DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
 import Pet from './Pet';
 import User from './User';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
-class UserFavorite extends Model<
-  InferAttributes<UserFavorite>,
-  InferCreationAttributes<UserFavorite>
-> {
-  declare id: CreationOptional<string>;
-  declare userId: ForeignKey<User['userId']>;
-  declare petId: ForeignKey<Pet['petId']>;
-  declare createdAt: CreationOptional<Date>;
-  declare updatedAt: CreationOptional<Date>;
-  declare deletedAt: CreationOptional<Date>;
+interface UserFavoriteAttributes {
+  id: string;
+  userId: string;
+  petId: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
+}
+
+// Sequelize 7's alpha.9 `ForeignKey<T>` brand is missing, and using
+// `InferAttributes` on a model with `BelongsToGetAssociationMixin`
+// triggers TS2589 deep instantiation. Fall back to the explicit
+// attributes interface pattern the rest of the project already uses.
+interface UserFavoriteCreationAttributes extends Optional<
+  UserFavoriteAttributes,
+  'id' | 'createdAt' | 'updatedAt' | 'deletedAt'
+> {}
+
+class UserFavorite
+  extends Model<UserFavoriteAttributes, UserFavoriteCreationAttributes>
+  implements UserFavoriteAttributes
+{
+  public id!: string;
+  public userId!: string;
+  public petId!: string;
+  public createdAt!: Date;
+  public updatedAt!: Date;
+  public deletedAt!: Date | null;
 
   // Associations
-  declare getUser: BelongsToGetAssociationMixin<User>;
-  declare getPet: BelongsToGetAssociationMixin<Pet>;
+  public getUser!: BelongsToGetAssociationMixin<User>;
+  public getPet!: BelongsToGetAssociationMixin<Pet>;
 
-  declare user?: NonAttribute<User>;
-  declare pet?: NonAttribute<Pet>;
+  public user?: User;
+  public pet?: Pet;
 
-  declare static associations: {
+  public static associations: {
     user: Association<UserFavorite, User>;
     pet: Association<UserFavorite, Pet>;
   };

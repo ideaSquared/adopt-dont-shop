@@ -1,4 +1,4 @@
-import { DataTypes, Model, Op, Optional, QueryTypes } from 'sequelize';
+import { DataTypes, Model, Op, Optional, QueryTypes, WhereAttributeHash } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getTsVectorType, TsVector } from '../sequelize';
 import { MessageContentFormat } from '../types/chat';
 import { ScanSeverity, MessageModerationStatus } from '../services/content-moderation.service';
@@ -259,7 +259,7 @@ Message.searchMessages = async function (
   limit = 50,
   offset = 0
 ): Promise<Message[]> {
-  const whereClause: Record<string, unknown> = {
+  const whereClause: WhereAttributeHash = {
     search_vector: {
       [Op.match]: sequelize.fn('plainto_tsquery', 'english', query),
     },
