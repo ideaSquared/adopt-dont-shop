@@ -3,7 +3,7 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { petService, Pet } from '@/services';
-import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { Badge, Button, Card, toast } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { LoginPromptModal } from '../components/modals/LoginPromptModal';
@@ -190,8 +190,14 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
         user_authenticated: isAuthenticated.toString(),
       });
 
-      // Add user-visible error handling
-      alert('Failed to start conversation. Please try again.');
+      // Add user-visible error handling. Chat init failures are usually
+      // transient, so offer a Retry action on the toast.
+      toast.error('Failed to start conversation. Please try again.', {
+        action: {
+          label: 'Retry',
+          onClick: handleContactRescue,
+        },
+      });
     }
   };
 
