@@ -17,6 +17,6 @@
     "@playwright/test": "^1.49.0",
     "@types/node": "^20.19.0",
     "otplib": "^13.4.0",
-    "typescript": "^5.4.5"
+    "typescript": "^6.0.3"
   }
 }
