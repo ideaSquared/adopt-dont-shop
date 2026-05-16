@@ -13,7 +13,6 @@ import {
 import { exportUserData } from '../services/data-export.service';
 import { requestAccountDeletion } from '../services/data-deletion.service';
 import type { AuthenticatedRequest } from '../types/auth';
-import { logger } from '../utils/logger';
 
 /**
  * ADS-427 / ADS-496 / ADS-497: user-facing privacy endpoints.
@@ -47,22 +46,12 @@ router.post(
       return;
     }
 
-    try {
-      const record = await recordConsent(req.body as ConsentInput, {
-        userId,
-        ip: req.ip ?? null,
-        userAgent: req.get('User-Agent') ?? null,
-      });
-      res.status(201).json({ data: record });
-    } catch (error) {
-      logger.error('Consent capture failed', {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      res.status(400).json({
-        error: error instanceof Error ? error.message : 'Failed to record consent',
-      });
-    }
+    const record = await recordConsent(req.body as ConsentInput, {
+      userId,
+      ip: req.ip ?? null,
+      userAgent: req.get('User-Agent') ?? null,
+    });
+    res.status(201).json({ data: record });
   }
 );
 
@@ -82,22 +71,12 @@ router.post(
       return;
     }
 
-    try {
-      const record = await recordCookiesConsent(req.body as CookiesConsentInput, {
-        userId,
-        ip: req.ip ?? null,
-        userAgent: req.get('User-Agent') ?? null,
-      });
-      res.status(201).json({ data: record });
-    } catch (error) {
-      logger.error('Cookies consent capture failed', {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      res.status(400).json({
-        error: error instanceof Error ? error.message : 'Failed to record cookies consent',
-      });
-    }
+    const record = await recordCookiesConsent(req.body as CookiesConsentInput, {
+      userId,
+      ip: req.ip ?? null,
+      userAgent: req.get('User-Agent') ?? null,
+    });
+    res.status(201).json({ data: record });
   }
 );
 
@@ -108,20 +87,12 @@ router.get('/me/export', async (req: AuthenticatedRequest, res: Response) => {
     return;
   }
 
-  try {
-    const bundle = await exportUserData(userId);
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="adopt-dont-shop-export-${userId}.json"`
-    );
-    res.json(bundle);
-  } catch (error) {
-    logger.error('Data export failed', {
-      userId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    res.status(500).json({ error: 'Failed to export user data' });
-  }
+  const bundle = await exportUserData(userId);
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="adopt-dont-shop-export-${userId}.json"`
+  );
+  res.json(bundle);
 });
 
 const DeleteAccountSchema = z.object({
@@ -138,27 +109,19 @@ router.post(
       return;
     }
 
-    try {
-      const body = req.body as z.infer<typeof DeleteAccountSchema>;
-      const result = await requestAccountDeletion(userId, body.reason);
-      // Clear auth cookies so the now-deactivated session can't keep
-      // making requests until access-token expiry.
-      res.clearCookie('refreshToken');
-      res.clearCookie('accessToken');
-      res.status(202).json({
-        data: {
-          ...result,
-          message:
-            'Account scheduled for deletion. Your data will be permanently anonymised after a 30-day grace window.',
-        },
-      });
-    } catch (error) {
-      logger.error('Account deletion request failed', {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      res.status(500).json({ error: 'Failed to process deletion request' });
-    }
+    const body = req.body as z.infer<typeof DeleteAccountSchema>;
+    const result = await requestAccountDeletion(userId, body.reason);
+    // Clear auth cookies so the now-deactivated session can't keep
+    // making requests until access-token expiry.
+    res.clearCookie('refreshToken');
+    res.clearCookie('accessToken');
+    res.status(202).json({
+      data: {
+        ...result,
+        message:
+          'Account scheduled for deletion. Your data will be permanently anonymised after a 30-day grace window.',
+      },
+    });
   }
 );
 

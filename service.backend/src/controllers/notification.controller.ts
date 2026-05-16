@@ -11,53 +11,42 @@ export class NotificationController {
    * Get user notifications with pagination and filtering
    */
   getUserNotifications = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const {
-        page = 1,
-        limit = DEFAULT_PAGE_SIZE,
-        status,
-        type,
-        sortBy = 'createdAt',
-        sortOrder = 'DESC',
-      } = req.query;
-
-      const options = {
-        page: parseInt(page as string) || 1,
-        limit: parseInt(limit as string) || DEFAULT_PAGE_SIZE,
-        status: status as 'unread' | 'read',
-        type: type as string,
-        sortBy: (sortBy === 'readAt'
-          ? 'read_at'
-          : sortBy === 'createdAt'
-            ? 'created_at'
-            : sortBy) as 'created_at' | 'read_at',
-        sortOrder: sortOrder as 'ASC' | 'DESC',
-      };
-
-      const result = await NotificationService.getUserNotifications(req.user!.userId, options);
-
-      res.status(200).json({
-        success: true,
-        data: result.notifications,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      logger.error('Get user notifications failed:', error);
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to retrieve notifications',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const {
+      page = 1,
+      limit = DEFAULT_PAGE_SIZE,
+      status,
+      type,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = req.query;
+
+    const options = {
+      page: parseInt(page as string) || 1,
+      limit: parseInt(limit as string) || DEFAULT_PAGE_SIZE,
+      status: status as 'unread' | 'read',
+      type: type as string,
+      sortBy: (sortBy === 'readAt' ? 'read_at' : sortBy === 'createdAt' ? 'created_at' : sortBy) as
+        | 'created_at'
+        | 'read_at',
+      sortOrder: sortOrder as 'ASC' | 'DESC',
+    };
+
+    const result = await NotificationService.getUserNotifications(req.user!.userId, options);
+
+    res.status(200).json({
+      success: true,
+      data: result.notifications,
+      pagination: result.pagination,
+    });
   };
 
   /**
@@ -205,22 +194,13 @@ export class NotificationController {
    * Mark all notifications as read
    */
   markAllNotificationsAsRead = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const result = await NotificationService.markAllAsRead(req.user!.userId);
+    const result = await NotificationService.markAllAsRead(req.user!.userId);
 
-      res.status(200).json({
-        success: true,
-        message: `Marked ${result.affectedCount} notifications as read`,
-        data: result,
-      });
-    } catch (error) {
-      logger.error('Mark all notifications as read failed:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to mark all notifications as read',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.status(200).json({
+      success: true,
+      message: `Marked ${result.affectedCount} notifications as read`,
+      data: result,
+    });
   };
 
   /**
@@ -268,21 +248,12 @@ export class NotificationController {
    * Get unread notification count
    */
   getUnreadCount = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const result = await NotificationService.getUnreadCount(req.user!.userId);
+    const result = await NotificationService.getUnreadCount(req.user!.userId);
 
-      res.status(200).json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      logger.error('Get unread count failed:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get unread notification count',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
   };
 
   /**
@@ -364,69 +335,51 @@ export class NotificationController {
    * Create bulk notifications (admin only)
    */
   createBulkNotifications = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { userIds, ...notificationData } = req.body;
-
-      if (!Array.isArray(userIds) || userIds.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'userIds must be a non-empty array',
-        });
-      }
-
-      if (typeof notificationData.message === 'string') {
-        notificationData.message = RichTextProcessingService.sanitize(notificationData.message);
-      }
-
-      const result = await NotificationService.createBulkNotifications(
-        userIds,
-        notificationData,
-        req.user!.userId
-      );
-
-      res.status(201).json({
-        success: true,
-        message: `Created ${result.count} notifications successfully`,
-        data: result,
-      });
-    } catch (error) {
-      logger.error('Create bulk notifications failed:', error);
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to create bulk notifications',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { userIds, ...notificationData } = req.body;
+
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'userIds must be a non-empty array',
+      });
+    }
+
+    if (typeof notificationData.message === 'string') {
+      notificationData.message = RichTextProcessingService.sanitize(notificationData.message);
+    }
+
+    const result = await NotificationService.createBulkNotifications(
+      userIds,
+      notificationData,
+      req.user!.userId
+    );
+
+    res.status(201).json({
+      success: true,
+      message: `Created ${result.count} notifications successfully`,
+      data: result,
+    });
   };
 
   /**
    * Clean up expired notifications (admin only)
    */
   cleanupExpiredNotifications = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const result = await NotificationService.cleanupExpiredNotifications();
+    const result = await NotificationService.cleanupExpiredNotifications();
 
-      res.status(200).json({
-        success: true,
-        message: `Cleaned up ${result} expired notifications`,
-        data: result,
-      });
-    } catch (error) {
-      logger.error('Cleanup expired notifications failed:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to cleanup expired notifications',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.status(200).json({
+      success: true,
+      message: `Cleaned up ${result} expired notifications`,
+      data: result,
+    });
   };
 }

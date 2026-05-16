@@ -7,7 +7,6 @@ import {
 } from '../services/broadcast.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
-import { logger } from '../utils/logger';
 
 export class BroadcastController {
   /**
@@ -19,45 +18,36 @@ export class BroadcastController {
    * cached response inside 24h.
    */
   broadcast = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const audience = req.body.audience as BroadcastAudience;
-      const title = req.body.title as string;
-      const body =
-        typeof req.body.body === 'string'
-          ? RichTextProcessingService.sanitize(req.body.body)
-          : req.body.body;
-      const channels = req.body.channels;
-
-      const result = await BroadcastService.broadcast({
-        audience,
-        title,
-        body,
-        channels,
-        initiatedBy: req.user!.userId,
-      });
-
-      res.status(201).json({
-        success: true,
-        message: `Broadcast queued for ${result.targetCount} user(s)`,
-        data: result,
-      });
-    } catch (error) {
-      logger.error('Broadcast failed:', error);
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to send broadcast',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const audience = req.body.audience as BroadcastAudience;
+    const title = req.body.title as string;
+    const body =
+      typeof req.body.body === 'string'
+        ? RichTextProcessingService.sanitize(req.body.body)
+        : req.body.body;
+    const channels = req.body.channels;
+
+    const result = await BroadcastService.broadcast({
+      audience,
+      title,
+      body,
+      channels,
+      initiatedBy: req.user!.userId,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Broadcast queued for ${result.targetCount} user(s)`,
+      data: result,
+    });
   };
 
   /**
@@ -66,30 +56,21 @@ export class BroadcastController {
    * before sending.
    */
   previewAudience = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const audience = req.query.audience;
-      if (
-        typeof audience !== 'string' ||
-        !BROADCAST_AUDIENCES.includes(audience as BroadcastAudience)
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid audience',
-        });
-      }
-
-      const count = await BroadcastService.previewAudienceCount(audience as BroadcastAudience);
-      res.status(200).json({
-        success: true,
-        data: { audience, count },
-      });
-    } catch (error) {
-      logger.error('Broadcast preview failed:', error);
-      res.status(500).json({
+    const audience = req.query.audience;
+    if (
+      typeof audience !== 'string' ||
+      !BROADCAST_AUDIENCES.includes(audience as BroadcastAudience)
+    ) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to preview audience',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Invalid audience',
       });
     }
+
+    const count = await BroadcastService.previewAudienceCount(audience as BroadcastAudience);
+    res.status(200).json({
+      success: true,
+      data: { audience, count },
+    });
   };
 }

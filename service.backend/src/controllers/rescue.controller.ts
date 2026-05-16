@@ -18,51 +18,42 @@ export class RescueController {
    * Search rescues with filters and pagination
    */
   searchRescues = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const {
-        page = 1,
-        limit = DEFAULT_PAGE_SIZE,
-        search,
-        status,
-        location,
-        sortBy = 'createdAt',
-        sortOrder = 'DESC',
-      } = req.query;
-
-      const options = {
-        page: parseInt(page as string),
-        limit: Math.min(parseInt(limit as string), MAX_PAGE_SIZE),
-        search: search as string,
-        status: status as 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected',
-        location: location as string,
-        sortBy: sortBy as 'name' | 'createdAt' | 'verifiedAt',
-        sortOrder: sortOrder as 'ASC' | 'DESC',
-      };
-
-      const result = await RescueService.searchRescues(options);
-
-      res.status(200).json({
-        success: true,
-        data: result.rescues,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      logger.error('Search rescues failed:', error);
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to search rescues',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const {
+      page = 1,
+      limit = DEFAULT_PAGE_SIZE,
+      search,
+      status,
+      location,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = req.query;
+
+    const options = {
+      page: parseInt(page as string),
+      limit: Math.min(parseInt(limit as string), MAX_PAGE_SIZE),
+      search: search as string,
+      status: status as 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected',
+      location: location as string,
+      sortBy: sortBy as 'name' | 'createdAt' | 'verifiedAt',
+      sortOrder: sortOrder as 'ASC' | 'DESC',
+    };
+
+    const result = await RescueService.searchRescues(options);
+
+    res.status(200).json({
+      success: true,
+      data: result.rescues,
+      pagination: result.pagination,
+    });
   };
 
   /**
@@ -328,47 +319,38 @@ export class RescueController {
    * Get rescue staff with pagination
    */
   getRescueStaff = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const { page = 1, limit = DEFAULT_PAGE_SIZE } = req.query;
-
-      // First verify rescue exists
-      const rescue = await RescueService.getRescueById(rescueId);
-      if (!rescue) {
-        return res.status(404).json({
-          success: false,
-          message: 'Rescue not found',
-        });
-      }
-
-      // Get staff members via RescueService
-      const result = await RescueService.getRescueStaff(rescueId, {
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-      });
-
-      res.status(200).json({
-        success: true,
-        data: result.staff,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      logger.error('Get rescue staff failed:', error);
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to retrieve rescue staff',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { rescueId } = req.params;
+    const { page = 1, limit = DEFAULT_PAGE_SIZE } = req.query;
+
+    // First verify rescue exists
+    const rescue = await RescueService.getRescueById(rescueId);
+    if (!rescue) {
+      return res.status(404).json({
+        success: false,
+        message: 'Rescue not found',
+      });
+    }
+
+    // Get staff members via RescueService
+    const result = await RescueService.getRescueStaff(rescueId, {
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result.staff,
+      pagination: result.pagination,
+    });
   };
 
   /**
@@ -546,89 +528,71 @@ export class RescueController {
    * Get rescue pets with pagination
    */
   getRescuePets = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const {
-        page = 1,
-        limit = DEFAULT_PAGE_SIZE,
-        status,
-        sortBy = 'createdAt',
-        sortOrder = 'DESC',
-      } = req.query;
-
-      const options = {
-        page: parseInt(page as string),
-        limit: Math.min(parseInt(limit as string), MAX_PAGE_SIZE),
-        status: status as string,
-        sortBy: sortBy as string,
-        sortOrder: sortOrder as 'ASC' | 'DESC',
-      };
-
-      const result = await RescueService.getRescuePets(rescueId, options);
-
-      res.status(200).json({
-        success: true,
-        data: result.pets,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      logger.error('Get rescue pets failed:', error);
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to retrieve rescue pets',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { rescueId } = req.params;
+    const {
+      page = 1,
+      limit = DEFAULT_PAGE_SIZE,
+      status,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = req.query;
+
+    const options = {
+      page: parseInt(page as string),
+      limit: Math.min(parseInt(limit as string), MAX_PAGE_SIZE),
+      status: status as string,
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as 'ASC' | 'DESC',
+    };
+
+    const result = await RescueService.getRescuePets(rescueId, options);
+
+    res.status(200).json({
+      success: true,
+      data: result.pets,
+      pagination: result.pagination,
+    });
   };
 
   /**
    * Get rescue analytics and statistics
    */
   getRescueAnalytics = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const userType = req.user!.userType as UserType;
-      const userId = req.user!.userId;
-
-      if (userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
-        const isStaff = await RescueService.isUserStaffOfRescue(userId, rescueId);
-        if (!isStaff) {
-          return res.status(403).json({ success: false, message: 'Access denied' });
-        }
-      }
-
-      const statistics = await RescueService.getRescueStatistics(rescueId);
-
-      res.status(200).json({
-        success: true,
-        data: statistics,
-      });
-    } catch (error) {
-      logger.error('Get rescue analytics failed:', error);
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to retrieve rescue analytics',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { rescueId } = req.params;
+    const userType = req.user!.userType as UserType;
+    const userId = req.user!.userId;
+
+    if (userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
+      const isStaff = await RescueService.isUserStaffOfRescue(userId, rescueId);
+      if (!isStaff) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
+      }
+    }
+
+    const statistics = await RescueService.getRescueStatistics(rescueId);
+
+    res.status(200).json({
+      success: true,
+      data: statistics,
+    });
   };
 
   /**
@@ -677,105 +641,63 @@ export class RescueController {
    * Invite a new staff member to join the rescue
    */
   inviteStaffMember = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const { email, title } = req.body;
-      const invitedBy = req.user!.userId;
-
-      const result = await InvitationService.inviteStaffMember(rescueId, email, title, invitedBy);
-
-      res.status(201).json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error inviting staff member:', {
-        error: errorMessage,
-        rescueId: req.params.rescueId,
-      });
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to invite staff member',
-        error: errorMessage,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { rescueId } = req.params;
+    const { email, title } = req.body;
+    const invitedBy = req.user!.userId;
+
+    const result = await InvitationService.inviteStaffMember(rescueId, email, title, invitedBy);
+
+    res.status(201).json(result);
   };
 
   /**
    * Get pending invitations for a rescue
    */
   getPendingInvitations = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-
-      const result = await InvitationService.getPendingInvitations(rescueId);
-
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error getting pending invitations:', {
-        error: errorMessage,
-        rescueId: req.params.rescueId,
-      });
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to get pending invitations',
-        error: errorMessage,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { rescueId } = req.params;
+
+    const result = await InvitationService.getPendingInvitations(rescueId);
+
+    res.json(result);
   };
 
   /**
    * Cancel a pending invitation
    */
   cancelInvitation = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId, invitationId } = req.params;
-      const cancelledBy = req.user!.userId;
-
-      const result = await InvitationService.cancelInvitation(invitationId, cancelledBy);
-
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error cancelling invitation:', {
-        error: errorMessage,
-        invitationId: req.params.invitationId,
-      });
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to cancel invitation',
-        error: errorMessage,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { rescueId, invitationId } = req.params;
+    const cancelledBy = req.user!.userId;
+
+    const result = await InvitationService.cancelInvitation(invitationId, cancelledBy);
+
+    res.json(result);
   };
 
   /**
@@ -970,36 +892,28 @@ export class RescueController {
   };
 
   bulkUpdateRescues = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueIds, action, reason } = req.body as {
-        rescueIds: string[];
-        action: BulkRescueAction;
-        reason?: string;
-      };
-      const performedBy = req.user!.userId;
-
-      const result = await RescueService.bulkUpdateRescues(rescueIds, action, performedBy, reason);
-
-      res.status(200).json({
-        success: true,
-        message: 'Bulk rescue update completed',
-        data: result,
-      });
-    } catch (error) {
-      logger.error('Bulk rescue update failed:', error);
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to perform bulk update',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { rescueIds, action, reason } = req.body as {
+      rescueIds: string[];
+      action: BulkRescueAction;
+      reason?: string;
+    };
+    const performedBy = req.user!.userId;
+
+    const result = await RescueService.bulkUpdateRescues(rescueIds, action, performedBy, reason);
+
+    res.status(200).json({
+      success: true,
+      message: 'Bulk rescue update completed',
+      data: result,
+    });
   };
 }

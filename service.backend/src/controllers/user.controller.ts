@@ -78,14 +78,9 @@ export class UserController {
    * Get current user profile
    */
   async getCurrentUserProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const user = await UserService.getUserById(userId);
-      res.json(user);
-    } catch (error) {
-      logger.error('Get current user profile failed:', error);
-      res.status(500).json({ error: 'Failed to get user profile' });
-    }
+    const userId = req.user!.userId;
+    const user = await UserService.getUserById(userId);
+    res.json(user);
   }
 
   /**
@@ -228,16 +223,11 @@ export class UserController {
    * Search users with filters
    */
   async searchUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const filters = UserService.processSearchFilters(
-        req.query as Record<string, string | undefined>
-      );
-      const result = await UserService.searchUsers(filters);
-      res.json(result);
-    } catch (error) {
-      logger.error('Search users failed:', error);
-      res.status(500).json({ error: 'Failed to search users' });
-    }
+    const filters = UserService.processSearchFilters(
+      req.query as Record<string, string | undefined>
+    );
+    const result = await UserService.searchUsers(filters);
+    res.json(result);
   }
 
   /**
@@ -273,77 +263,48 @@ export class UserController {
    * Get user statistics
    */
   async getUserStats(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const stats = await UserService.getUserStatistics();
-      res.json(stats);
-    } catch (error) {
-      logger.error('Get user stats failed:', error);
-      res.status(500).json({ error: 'Failed to get user statistics' });
-    }
+    const stats = await UserService.getUserStatistics();
+    res.json(stats);
   }
 
   /**
    * Get user preferences
    */
   async getUserPreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const preferences = await UserService.getUserPreferences(userId);
-      res.json({
-        success: true,
-        data: preferences,
-      });
-    } catch (error) {
-      logger.error('Get user preferences failed:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get user preferences',
-      });
-    }
+    const userId = req.user!.userId;
+    const preferences = await UserService.getUserPreferences(userId);
+    res.json({
+      success: true,
+      data: preferences,
+    });
   }
 
   /**
    * Update user preferences
    */
   async updateUserPreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const preferences = req.body;
+    const userId = req.user!.userId;
+    const preferences = req.body;
 
-      const updatedPreferences = await UserService.updateUserPreferences(userId, preferences);
-      res.json({
-        success: true,
-        data: updatedPreferences,
-        message: 'Preferences updated successfully',
-      });
-    } catch (error) {
-      logger.error('Update user preferences failed:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to update user preferences',
-      });
-    }
+    const updatedPreferences = await UserService.updateUserPreferences(userId, preferences);
+    res.json({
+      success: true,
+      data: updatedPreferences,
+      message: 'Preferences updated successfully',
+    });
   }
 
   /**
    * Reset user preferences to defaults
    */
   async resetUserPreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const resetPreferences = await UserService.resetUserPreferences(userId);
-      res.json({
-        success: true,
-        data: resetPreferences,
-        message: 'Preferences reset to defaults',
-      });
-    } catch (error) {
-      logger.error('Reset user preferences failed:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to reset user preferences',
-      });
-    }
+    const userId = req.user!.userId;
+    const resetPreferences = await UserService.resetUserPreferences(userId);
+    res.json({
+      success: true,
+      data: resetPreferences,
+      message: 'Preferences reset to defaults',
+    });
   }
 
   /**
@@ -539,32 +500,20 @@ export class UserController {
     const startTime = Date.now();
     const { userId } = req.params;
 
-    try {
-      const userWithPermissions = await UserService.getUserWithPermissions(userId);
+    const userWithPermissions = await UserService.getUserWithPermissions(userId);
 
-      if (!userWithPermissions) {
-        return res.status(404).json({
-          error: 'User not found',
-        });
-      }
-
-      logger.info('User with permissions retrieved', {
-        userId,
-        duration: Date.now() - startTime,
-      });
-
-      return res.json(userWithPermissions);
-    } catch (error) {
-      logger.error('Error getting user with permissions:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId,
-        duration: Date.now() - startTime,
-      });
-
-      return res.status(500).json({
-        error: 'Failed to get user with permissions',
+    if (!userWithPermissions) {
+      return res.status(404).json({
+        error: 'User not found',
       });
     }
+
+    logger.info('User with permissions retrieved', {
+      userId,
+      duration: Date.now() - startTime,
+    });
+
+    return res.json(userWithPermissions);
   }
 }
 

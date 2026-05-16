@@ -1,6 +1,5 @@
 import { Request, Response, Router } from 'express';
 import { registry } from '../middleware/metrics';
-import { logger } from '../utils/logger';
 
 /**
  * ADS-404: Prometheus scrape endpoint.
@@ -34,13 +33,8 @@ router.get('/', async (req: Request, res: Response) => {
     return;
   }
 
-  try {
-    res.set('Content-Type', registry.contentType);
-    res.send(await registry.metrics());
-  } catch (error) {
-    logger.error('Failed to render metrics', { error });
-    res.status(500).json({ error: 'metrics render failed' });
-  }
+  res.set('Content-Type', registry.contentType);
+  res.send(await registry.metrics());
 });
 
 export default router;

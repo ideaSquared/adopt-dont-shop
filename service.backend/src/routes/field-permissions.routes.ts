@@ -5,7 +5,6 @@ import { requireRole } from '../middleware/rbac';
 import { UserType } from '../models/User';
 import { FieldPermissionService } from '../services/field-permission.service';
 import { AuthenticatedRequest } from '../types/auth';
-import { logger } from '../utils/logger';
 // Model enums are used for service-layer type compatibility within the backend.
 // These enums mirror the canonical types in @adopt-dont-shop/lib.types.
 import { FieldAccessLevel, FieldPermissionResource } from '../models/FieldPermission';
@@ -167,15 +166,10 @@ router.get(
       return;
     }
 
-    try {
-      const overrides = await FieldPermissionService.getByResource(
-        req.params.resource as FieldPermissionResource
-      );
-      res.json({ success: true, data: overrides });
-    } catch (error) {
-      logger.error('Failed to get field permissions', { error });
-      res.status(500).json({ success: false, message: 'Failed to get field permissions' });
-    }
+    const overrides = await FieldPermissionService.getByResource(
+      req.params.resource as FieldPermissionResource
+    );
+    res.json({ success: true, data: overrides });
   }
 );
 
@@ -203,16 +197,11 @@ router.get(
       return;
     }
 
-    try {
-      const overrides = await FieldPermissionService.getByResourceAndRole(
-        req.params.resource as FieldPermissionResource,
-        req.params.role
-      );
-      res.json({ success: true, data: overrides });
-    } catch (error) {
-      logger.error('Failed to get field permissions', { error });
-      res.status(500).json({ success: false, message: 'Failed to get field permissions' });
-    }
+    const overrides = await FieldPermissionService.getByResourceAndRole(
+      req.params.resource as FieldPermissionResource,
+      req.params.role
+    );
+    res.json({ success: true, data: overrides });
   }
 );
 
@@ -249,34 +238,29 @@ router.post(
       return;
     }
 
-    try {
-      const { resource, field_name, role, access_level } = req.body;
+    const { resource, field_name, role, access_level } = req.body;
 
-      const blocked = rejectSensitiveOverrides([{ resource, field_name }]);
-      if (blocked.length > 0) {
-        res.status(400).json({
-          success: false,
-          message: 'Cannot override sensitive fields',
-          blockedFields: blocked,
-        });
-        return;
-      }
-
-      const userId = req.user?.userId ?? 'unknown';
-
-      const record = await FieldPermissionService.upsert(
-        resource as FieldPermissionResource,
-        field_name,
-        role,
-        access_level as FieldAccessLevel,
-        userId
-      );
-
-      res.status(200).json({ success: true, data: record });
-    } catch (error) {
-      logger.error('Failed to upsert field permission', { error });
-      res.status(500).json({ success: false, message: 'Failed to update field permission' });
+    const blocked = rejectSensitiveOverrides([{ resource, field_name }]);
+    if (blocked.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Cannot override sensitive fields',
+        blockedFields: blocked,
+      });
+      return;
     }
+
+    const userId = req.user?.userId ?? 'unknown';
+
+    const record = await FieldPermissionService.upsert(
+      resource as FieldPermissionResource,
+      field_name,
+      role,
+      access_level as FieldAccessLevel,
+      userId
+    );
+
+    res.status(200).json({ success: true, data: record });
   }
 );
 
@@ -314,29 +298,24 @@ router.post(
       return;
     }
 
-    try {
-      const overrides = req.body.overrides as ReadonlyArray<{
-        resource: string;
-        field_name: string;
-      }>;
+    const overrides = req.body.overrides as ReadonlyArray<{
+      resource: string;
+      field_name: string;
+    }>;
 
-      const blocked = rejectSensitiveOverrides(overrides);
-      if (blocked.length > 0) {
-        res.status(400).json({
-          success: false,
-          message: 'Cannot override sensitive fields',
-          blockedFields: blocked,
-        });
-        return;
-      }
-
-      const userId = req.user?.userId ?? 'unknown';
-      const records = await FieldPermissionService.bulkUpsert(req.body.overrides, userId);
-      res.status(200).json({ success: true, data: records });
-    } catch (error) {
-      logger.error('Failed to bulk upsert field permissions', { error });
-      res.status(500).json({ success: false, message: 'Failed to bulk update field permissions' });
+    const blocked = rejectSensitiveOverrides(overrides);
+    if (blocked.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Cannot override sensitive fields',
+        blockedFields: blocked,
+      });
+      return;
     }
+
+    const userId = req.user?.userId ?? 'unknown';
+    const records = await FieldPermissionService.bulkUpsert(req.body.overrides, userId);
+    res.status(200).json({ success: true, data: records });
   }
 );
 
@@ -365,27 +344,22 @@ router.delete(
       return;
     }
 
-    try {
-      const { resource, role, field_name } = req.params;
-      const userId = req.user?.userId ?? 'unknown';
+    const { resource, role, field_name } = req.params;
+    const userId = req.user?.userId ?? 'unknown';
 
-      const deleted = await FieldPermissionService.deleteOverride(
-        resource as FieldPermissionResource,
-        role,
-        field_name,
-        userId
-      );
+    const deleted = await FieldPermissionService.deleteOverride(
+      resource as FieldPermissionResource,
+      role,
+      field_name,
+      userId
+    );
 
-      if (!deleted) {
-        res.status(404).json({ success: false, message: 'Field permission override not found' });
-        return;
-      }
-
-      res.json({ success: true, message: 'Field permission override deleted' });
-    } catch (error) {
-      logger.error('Failed to delete field permission', { error });
-      res.status(500).json({ success: false, message: 'Failed to delete field permission' });
+    if (!deleted) {
+      res.status(404).json({ success: false, message: 'Field permission override not found' });
+      return;
     }
+
+    res.json({ success: true, message: 'Field permission override deleted' });
   }
 );
 

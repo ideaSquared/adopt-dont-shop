@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
 import { AuthenticatedRequest } from '../../types';
+import { errorHandler } from '../../middleware/error-handler';
 
 vi.mock('../../utils/logger', () => ({
   logger: {
@@ -89,6 +90,7 @@ const buildApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/api/v1/admin/moderation', moderationRouter);
+  app.use(errorHandler);
   return app;
 };
 
@@ -163,6 +165,6 @@ describe('GET /api/v1/admin/moderation/metrics', () => {
     const res = await request(app).get('/api/v1/admin/moderation/metrics');
 
     expect(res.status).toBe(500);
-    expect(res.body.success).toBe(false);
+    expect(res.body.status).toBe('error');
   });
 });

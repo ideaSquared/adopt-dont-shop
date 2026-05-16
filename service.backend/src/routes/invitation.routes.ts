@@ -77,7 +77,12 @@ router.post(
   }
 );
 
-// Get invitation details (public route for form pre-population)
+// Get invitation details (public route for form pre-population).
+// The catch wrapper is intentional — `req.originalUrl` contains the
+// invitation token, so we must not let the error propagate to the
+// central error handler (which logs `req.originalUrl`) without
+// scrubbing. The catch logs only `err.message` and emits a generic
+// 500, keeping the raw token out of structured logs.
 router.get(
   '/details/:token',
   [param('token').notEmpty().withMessage('Invitation token is required')],
