@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
 import { formatStatusName } from '../../utils/statusUtils';
 import {
   TimelineEventType,
@@ -95,6 +96,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   // Stage transition state
   const [showStageTransition, setShowStageTransition] = useState(false);
+
+  // ADS-579: confirmation modal for destructive status transitions (rejection)
+  const { confirm, confirmProps } = useConfirm();
 
   // Staff data
   const { staff, loading: staffLoading } = useStaff();
@@ -574,6 +578,23 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   }
 
   const handleStatusUpdate = async () => {
+    // ADS-579: Rejection is irreversible and must notify the applicant.
+    // Require explicit confirmation before committing; other transitions
+    // proceed without a prompt as before.
+    if (newStatus === 'rejected') {
+      const confirmed = await confirm({
+        title: 'Reject this application?',
+        message:
+          'The applicant will be notified by email. This action cannot be undone via the status dropdown.',
+        confirmText: 'Reject application',
+        cancelText: 'Cancel',
+        variant: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+
     try {
       setIsUpdatingStatus(true);
       await onStatusUpdate(newStatus, statusNotes);
@@ -1943,6 +1964,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           onTransition={handleStageTransition}
         />
       )}
+
+      {/* ADS-579: Confirmation dialog for destructive status transitions */}
+      <ConfirmDialog {...confirmProps} data-testid="reject-confirm-dialog" />
     </div>
   );
 };
