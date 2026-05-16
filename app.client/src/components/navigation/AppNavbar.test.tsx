@@ -133,7 +133,7 @@ describe('AppNavbar', () => {
 
   it('points the logo at the home route', () => {
     renderWithProviders(<AppNavbar />);
-    const logo = screen.getByRole('link', { name: /adopt don't shop/i });
+    const logo = screen.getByRole('link', { name: /adoptdontshop/i });
     expect(logo).toHaveAttribute('href', '/');
   });
 });
