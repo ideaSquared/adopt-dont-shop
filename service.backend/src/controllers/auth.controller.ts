@@ -63,14 +63,8 @@ export class AuthController {
    * authenticated endpoints.
    */
   async register(req: Request, res: Response): Promise<void> {
-    try {
-      const result = await AuthService.register(req.body);
-      res.status(201).json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Registration failed:', error);
-      res.status(400).json({ error: errorMessage });
-    }
+    const result = await AuthService.register(req.body);
+    res.status(201).json(result);
   }
 
   /**
@@ -106,34 +100,34 @@ export class AuthController {
    * Logout user
    */
   async logout(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? req.body.refreshToken;
-      const accessToken = req.headers.authorization?.split(' ')[1];
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? req.body.refreshToken;
+    const accessToken = req.headers.authorization?.split(' ')[1];
 
-      await AuthService.logout(refreshToken, accessToken, req.user?.userId);
+    await AuthService.logout(refreshToken, accessToken, req.user?.userId);
 
-      res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
-      res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
+    res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
+    res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
 
-      res.json({ message: 'Logged out successfully' });
-    } catch (error) {
-      logger.error('Logout failed:', error);
-      res.status(500).json({ error: 'Logout failed' });
-    }
+    res.json({ message: 'Logged out successfully' });
   }
 
   /**
    * Refresh access token
    */
   async refreshToken(req: Request, res: Response): Promise<void> {
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? req.body.refreshToken;
+
+    if (!refreshToken) {
+      res.status(400).json({ error: 'Refresh token required' });
+      return;
+    }
+
+    // Catch retained on purpose: any failure of the refresh flow — bad
+    // token, expired token, revoked token, internal error — is collapsed
+    // to a 401 so the client cannot distinguish failure modes (avoids
+    // token-state oracle). Letting this propagate to the central error
+    // handler would surface 500s and leak server-side detail.
     try {
-      const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? req.body.refreshToken;
-
-      if (!refreshToken) {
-        res.status(400).json({ error: 'Refresh token required' });
-        return;
-      }
-
       const result = await AuthService.refreshToken(refreshToken);
 
       res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
@@ -151,15 +145,9 @@ export class AuthController {
    * Request password reset
    */
   async requestPasswordReset(req: Request, res: Response): Promise<void> {
-    try {
-      const authService = new AuthService();
-      const result = await authService.requestPasswordReset(req.body);
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Password reset request failed:', error);
-      res.status(500).json({ error: 'Failed to process password reset request' });
-    }
+    const authService = new AuthService();
+    const result = await authService.requestPasswordReset(req.body);
+    res.json(result);
   }
 
   /**
@@ -213,53 +201,35 @@ export class AuthController {
    * Resend verification email
    */
   async resendVerificationEmail(req: Request, res: Response): Promise<void> {
-    try {
-      const { email } = req.body;
-      const authService = new AuthService();
-      const result = await authService.resendVerificationEmail(email);
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Resend verification email failed:', error);
-      res.status(500).json({ error: 'Failed to resend verification email' });
-    }
+    const { email } = req.body;
+    const authService = new AuthService();
+    const result = await authService.resendVerificationEmail(email);
+    res.json(result);
   }
 
   /**
    * Get current user profile
    */
   async getCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      // Simply return the authenticated user from the request
-      res.json(req.user);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Get current user failed:', error);
-      res.status(500).json({ error: 'Failed to get user profile' });
-    }
+    // Simply return the authenticated user from the request
+    res.json(req.user);
   }
 
   /**
    * Generate 2FA secret and QR code for setup
    */
   async twoFactorSetup(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const user = req.user!;
+    const user = req.user!;
 
-      if (user.twoFactorEnabled) {
-        res.status(400).json({ error: 'Two-factor authentication is already enabled' });
-        return;
-      }
-
-      const { secret, otpauthUrl } = AuthService.generateTwoFactorSecret(user.email);
-      const qrCodeDataUrl = await AuthService.generateQrCodeDataUrl(otpauthUrl);
-
-      res.json({ secret, qrCodeDataUrl });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('2FA setup failed:', error);
-      res.status(500).json({ error: 'Failed to set up two-factor authentication' });
+    if (user.twoFactorEnabled) {
+      res.status(400).json({ error: 'Two-factor authentication is already enabled' });
+      return;
     }
+
+    const { secret, otpauthUrl } = AuthService.generateTwoFactorSecret(user.email);
+    const qrCodeDataUrl = await AuthService.generateQrCodeDataUrl(otpauthUrl);
+
+    res.json({ secret, qrCodeDataUrl });
   }
 
   /**
@@ -289,66 +259,56 @@ export class AuthController {
    * Disable 2FA after verifying current token
    */
   async twoFactorDisable(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const { token } = req.body;
+    const userId = req.user!.userId;
+    const { token } = req.body;
 
-      if (!req.user!.twoFactorEnabled) {
-        res.status(400).json({ error: 'Two-factor authentication is not enabled' });
-        return;
-      }
-
-      // Fetch user with secrets to access twoFactorSecret
-      const userWithSecret = await User.scope('withSecrets').findByPk(userId);
-      if (!userWithSecret || !userWithSecret.twoFactorSecret) {
-        res.status(400).json({ error: 'Two-factor authentication secret not found' });
-        return;
-      }
-
-      // Verify current TOTP before disabling
-      const isValid = AuthService.verifyTwoFactorSetupToken(userWithSecret.twoFactorSecret, token);
-      if (!isValid) {
-        res.status(400).json({ error: 'Invalid verification code' });
-        return;
-      }
-
-      await AuthService.disableTwoFactor(userId);
-      res.json({ success: true, message: 'Two-factor authentication has been disabled' });
-    } catch (error) {
-      logger.error('2FA disable failed:', error);
-      res.status(500).json({ error: 'Failed to disable two-factor authentication' });
+    if (!req.user!.twoFactorEnabled) {
+      res.status(400).json({ error: 'Two-factor authentication is not enabled' });
+      return;
     }
+
+    // Fetch user with secrets to access twoFactorSecret
+    const userWithSecret = await User.scope('withSecrets').findByPk(userId);
+    if (!userWithSecret || !userWithSecret.twoFactorSecret) {
+      res.status(400).json({ error: 'Two-factor authentication secret not found' });
+      return;
+    }
+
+    // Verify current TOTP before disabling
+    const isValid = AuthService.verifyTwoFactorSetupToken(userWithSecret.twoFactorSecret, token);
+    if (!isValid) {
+      res.status(400).json({ error: 'Invalid verification code' });
+      return;
+    }
+
+    await AuthService.disableTwoFactor(userId);
+    res.json({ success: true, message: 'Two-factor authentication has been disabled' });
   }
 
   /**
    * Regenerate backup codes
    */
   async twoFactorRegenerateBackupCodes(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const user = req.user!;
+    const user = req.user!;
 
-      if (!user.twoFactorEnabled) {
-        res.status(400).json({ error: 'Two-factor authentication is not enabled' });
-        return;
-      }
-
-      const backupCodes = AuthService.generateBackupCodes();
-
-      // Need to fetch the user with write access to update
-      const dbUser = await User.findByPk(user.userId);
-      if (!dbUser) {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      dbUser.backupCodes = backupCodes;
-      await dbUser.save();
-
-      res.json({ success: true, backupCodes });
-    } catch (error) {
-      logger.error('Backup codes regeneration failed:', error);
-      res.status(500).json({ error: 'Failed to regenerate backup codes' });
+    if (!user.twoFactorEnabled) {
+      res.status(400).json({ error: 'Two-factor authentication is not enabled' });
+      return;
     }
+
+    const backupCodes = AuthService.generateBackupCodes();
+
+    // Need to fetch the user with write access to update
+    const dbUser = await User.findByPk(user.userId);
+    if (!dbUser) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    dbUser.backupCodes = backupCodes;
+    await dbUser.save();
+
+    res.json({ success: true, backupCodes });
   }
 
   /**

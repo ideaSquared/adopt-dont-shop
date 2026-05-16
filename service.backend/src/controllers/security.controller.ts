@@ -6,30 +6,22 @@ import { AuthenticatedRequest } from '../types/auth';
 
 export class SecurityController {
   static async listSessions(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { userId, page, limit } = req.query;
-      const result = await SecurityService.listSessions({
-        userId: userId as string | undefined,
-        page: page ? parseInt(page as string, 10) : undefined,
-        limit: limit ? parseInt(limit as string, 10) : undefined,
-      });
-      return res.json({
-        success: true,
-        data: result.sessions,
-        pagination: {
-          page: result.page,
-          limit: parseInt((limit as string) || '50', 10),
-          total: result.total,
-          pages: result.totalPages,
-        },
-      });
-    } catch (error) {
-      logger.error('Error listing sessions:', error);
-      return res.status(500).json({
-        error: 'Failed to list sessions',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    const { userId, page, limit } = req.query;
+    const result = await SecurityService.listSessions({
+      userId: userId as string | undefined,
+      page: page ? parseInt(page as string, 10) : undefined,
+      limit: limit ? parseInt(limit as string, 10) : undefined,
+    });
+    return res.json({
+      success: true,
+      data: result.sessions,
+      pagination: {
+        page: result.page,
+        limit: parseInt((limit as string) || '50', 10),
+        total: result.total,
+        pages: result.totalPages,
+      },
+    });
   }
 
   static async revokeSession(req: AuthenticatedRequest, res: Response) {
@@ -50,30 +42,14 @@ export class SecurityController {
   }
 
   static async revokeAllUserSessions(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { userId } = req.params;
-      const count = await SecurityService.revokeAllUserSessions(userId, req.user!.userId);
-      return res.json({ success: true, data: { revokedCount: count } });
-    } catch (error) {
-      logger.error('Error revoking user sessions:', error);
-      return res.status(500).json({
-        error: 'Failed to revoke sessions',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    const { userId } = req.params;
+    const count = await SecurityService.revokeAllUserSessions(userId, req.user!.userId);
+    return res.json({ success: true, data: { revokedCount: count } });
   }
 
   static async listIpRules(_req: AuthenticatedRequest, res: Response) {
-    try {
-      const rules = await SecurityService.listIpRules();
-      return res.json({ success: true, data: rules });
-    } catch (error) {
-      logger.error('Error listing IP rules:', error);
-      return res.status(500).json({
-        error: 'Failed to list IP rules',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    const rules = await SecurityService.listIpRules();
+    return res.json({ success: true, data: rules });
   }
 
   static async createIpRule(req: AuthenticatedRequest, res: Response) {
@@ -163,50 +139,34 @@ export class SecurityController {
   }
 
   static async getLoginHistory(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { userId, status, startDate, endDate, page, limit } = req.query;
-      const result = await SecurityService.getLoginHistory({
-        userId: userId as string | undefined,
-        status: status as 'success' | 'failure' | undefined,
-        startDate: startDate ? new Date(startDate as string) : undefined,
-        endDate: endDate ? new Date(endDate as string) : undefined,
-        page: page ? parseInt(page as string, 10) : undefined,
-        limit: limit ? parseInt(limit as string, 10) : undefined,
-      });
-      return res.json({
-        success: true,
-        data: result.entries,
-        pagination: {
-          page: result.page,
-          limit: parseInt((limit as string) || '50', 10),
-          total: result.total,
-          pages: result.totalPages,
-        },
-      });
-    } catch (error) {
-      logger.error('Error fetching login history:', error);
-      return res.status(500).json({
-        error: 'Failed to fetch login history',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    const { userId, status, startDate, endDate, page, limit } = req.query;
+    const result = await SecurityService.getLoginHistory({
+      userId: userId as string | undefined,
+      status: status as 'success' | 'failure' | undefined,
+      startDate: startDate ? new Date(startDate as string) : undefined,
+      endDate: endDate ? new Date(endDate as string) : undefined,
+      page: page ? parseInt(page as string, 10) : undefined,
+      limit: limit ? parseInt(limit as string, 10) : undefined,
+    });
+    return res.json({
+      success: true,
+      data: result.entries,
+      pagination: {
+        page: result.page,
+        limit: parseInt((limit as string) || '50', 10),
+        total: result.total,
+        pages: result.totalPages,
+      },
+    });
   }
 
   static async getSuspiciousActivity(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { failureThreshold, windowHours } = req.query;
-      const data = await SecurityService.getSuspiciousActivity({
-        failureThreshold: failureThreshold ? parseInt(failureThreshold as string, 10) : undefined,
-        windowHours: windowHours ? parseInt(windowHours as string, 10) : undefined,
-      });
-      return res.json({ success: true, data });
-    } catch (error) {
-      logger.error('Error fetching suspicious activity:', error);
-      return res.status(500).json({
-        error: 'Failed to fetch suspicious activity',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    const { failureThreshold, windowHours } = req.query;
+    const data = await SecurityService.getSuspiciousActivity({
+      failureThreshold: failureThreshold ? parseInt(failureThreshold as string, 10) : undefined,
+      windowHours: windowHours ? parseInt(windowHours as string, 10) : undefined,
+    });
+    return res.json({ success: true, data });
   }
 }
 

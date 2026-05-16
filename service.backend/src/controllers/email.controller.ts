@@ -5,264 +5,175 @@ import { TemplateType, TemplateCategory, TemplateStatus } from '../models/EmailT
 import emailService from '../services/email.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
-import { logger } from '../utils/logger';
 
 // Template Management
 export const getTemplates = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { type, category, status, locale, limit, offset } = req.query;
+  const { type, category, status, locale, limit, offset } = req.query;
 
-    const result = await emailService.getTemplates({
-      type: typeof type === 'string' ? (type as TemplateType) : undefined,
-      category: typeof category === 'string' ? (category as TemplateCategory) : undefined,
-      status: typeof status === 'string' ? (status as TemplateStatus) : undefined,
-      locale: typeof locale === 'string' ? locale : undefined,
-      limit: typeof limit === 'string' ? parseInt(limit, 10) : undefined,
-      offset: typeof offset === 'string' ? parseInt(offset, 10) : undefined,
-    });
+  const result = await emailService.getTemplates({
+    type: typeof type === 'string' ? (type as TemplateType) : undefined,
+    category: typeof category === 'string' ? (category as TemplateCategory) : undefined,
+    status: typeof status === 'string' ? (status as TemplateStatus) : undefined,
+    locale: typeof locale === 'string' ? locale : undefined,
+    limit: typeof limit === 'string' ? parseInt(limit, 10) : undefined,
+    offset: typeof offset === 'string' ? parseInt(offset, 10) : undefined,
+  });
 
-    res.json({
-      message: 'Templates retrieved successfully',
-      data: result,
-    });
-  } catch (error) {
-    logger.error('Failed to get templates:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to get templates',
-    });
-  }
+  res.json({
+    message: 'Templates retrieved successfully',
+    data: result,
+  });
 };
 
 export const getTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { templateId } = req.params;
-    const template = await emailService.getTemplate(templateId);
+  const { templateId } = req.params;
+  const template = await emailService.getTemplate(templateId);
 
-    if (!template) {
-      res.status(404).json({
-        error: 'Template not found',
-      });
-      return;
-    }
-
-    res.json({
-      message: 'Template retrieved successfully',
-      data: template,
+  if (!template) {
+    res.status(404).json({
+      error: 'Template not found',
     });
-  } catch (error) {
-    logger.error('Failed to get template:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to get template',
-    });
+    return;
   }
+
+  res.json({
+    message: 'Template retrieved successfully',
+    data: template,
+  });
 };
 
 export const createTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    if (typeof req.body.htmlContent === 'string') {
-      req.body.htmlContent = RichTextProcessingService.sanitize(req.body.htmlContent);
-    }
-    const template = await emailService.createTemplate({
-      ...req.body,
-      createdBy: req.user!.userId,
-    });
-
-    res.status(201).json({
-      message: 'Email template created successfully',
-      data: template,
-    });
-  } catch (error) {
-    logger.error('Failed to create email template:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to create email template',
-    });
+  if (typeof req.body.htmlContent === 'string') {
+    req.body.htmlContent = RichTextProcessingService.sanitize(req.body.htmlContent);
   }
+  const template = await emailService.createTemplate({
+    ...req.body,
+    createdBy: req.user!.userId,
+  });
+
+  res.status(201).json({
+    message: 'Email template created successfully',
+    data: template,
+  });
 };
 
 export const updateTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { templateId } = req.params;
-    if (typeof req.body.htmlContent === 'string') {
-      req.body.htmlContent = RichTextProcessingService.sanitize(req.body.htmlContent);
-    }
-    const template = await emailService.updateTemplate(templateId, req.body, req.user!.userId);
-
-    res.json({
-      message: 'Email template updated successfully',
-      data: template,
-    });
-  } catch (error) {
-    logger.error('Failed to update email template:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to update email template',
-    });
+  const { templateId } = req.params;
+  if (typeof req.body.htmlContent === 'string') {
+    req.body.htmlContent = RichTextProcessingService.sanitize(req.body.htmlContent);
   }
+  const template = await emailService.updateTemplate(templateId, req.body, req.user!.userId);
+
+  res.json({
+    message: 'Email template updated successfully',
+    data: template,
+  });
 };
 
 export const deleteTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { templateId } = req.params;
-    await emailService.deleteTemplate(templateId, req.user!.userId);
+  const { templateId } = req.params;
+  await emailService.deleteTemplate(templateId, req.user!.userId);
 
-    res.json({
-      message: 'Email template deleted successfully',
-    });
-  } catch (error) {
-    logger.error('Failed to delete email template:', {
-      error: error instanceof Error ? error.message : String(error),
-      templateId: req.params.templateId,
-      userId: req.user?.userId,
-    });
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to delete email template',
-    });
-  }
+  res.json({
+    message: 'Email template deleted successfully',
+  });
 };
 
 export const previewTemplate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { templateId } = req.params;
-    const { templateData } = req.body;
+  const { templateId } = req.params;
+  const { templateData } = req.body;
 
-    const template = await emailService.getTemplate(templateId);
-    if (!template) {
-      res.status(404).json({
-        error: 'Template not found',
-      });
-      return;
-    }
-
-    // Process template with provided data
-    const processedContent = await emailService.renderTemplatePreview(template, templateData || {});
-
-    res.json({
-      message: 'Template preview generated successfully',
-      data: processedContent,
+  const template = await emailService.getTemplate(templateId);
+  if (!template) {
+    res.status(404).json({
+      error: 'Template not found',
     });
-  } catch (error) {
-    logger.error('Failed to preview template:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to preview template',
-    });
+    return;
   }
+
+  // Process template with provided data
+  const processedContent = await emailService.renderTemplatePreview(template, templateData || {});
+
+  res.json({
+    message: 'Template preview generated successfully',
+    data: processedContent,
+  });
 };
 
 export const sendTestEmail = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const { templateId } = req.params;
-    const { toEmail, templateData } = req.body;
+  const { templateId } = req.params;
+  const { toEmail, templateData } = req.body;
 
-    const emailId = await emailService.sendEmail({
-      templateId,
-      toEmail,
-      templateData,
-      type: EmailType.SYSTEM,
-      priority: EmailPriority.HIGH,
-      userId: req.user!.userId,
-    });
+  const emailId = await emailService.sendEmail({
+    templateId,
+    toEmail,
+    templateData,
+    type: EmailType.SYSTEM,
+    priority: EmailPriority.HIGH,
+    userId: req.user!.userId,
+  });
 
-    res.json({
-      message: 'Test email sent successfully',
-      data: { emailId },
-    });
-  } catch (error) {
-    logger.error('Failed to send test email:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to send test email',
-    });
-  }
+  res.json({
+    message: 'Test email sent successfully',
+    data: { emailId },
+  });
 };
 
 // Email sending
 export const sendEmail = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const emailId = await emailService.sendEmail({
-      ...req.body,
-      userId: req.user!.userId,
-    });
+  const emailId = await emailService.sendEmail({
+    ...req.body,
+    userId: req.user!.userId,
+  });
 
-    res.json({
-      message: 'Email sent successfully',
-      data: { emailId },
-    });
-  } catch (error) {
-    logger.error('Failed to send email:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to send email',
-    });
-  }
+  res.json({
+    message: 'Email sent successfully',
+    data: { emailId },
+  });
 };
 
 export const sendBulkEmail = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const emailIds = await emailService.sendBulkEmail({
-      ...req.body,
-      createdBy: req.user!.userId,
-    });
+  const emailIds = await emailService.sendBulkEmail({
+    ...req.body,
+    createdBy: req.user!.userId,
+  });
 
-    res.json({
-      message: 'Bulk email sent successfully',
-      data: { emailIds, count: emailIds.length },
-    });
-  } catch (error) {
-    logger.error('Failed to send bulk email:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to send bulk email',
-    });
-  }
+  res.json({
+    message: 'Bulk email sent successfully',
+    data: { emailIds, count: emailIds.length },
+  });
 };
 
 // Queue management
 export const getQueueStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const status = await emailService.getQueueStatus();
+  const status = await emailService.getQueueStatus();
 
-    res.json({
-      message: 'Queue status retrieved successfully',
-      data: status,
-    });
-  } catch (error) {
-    logger.error('Failed to get queue status:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to get queue status',
-    });
-  }
+  res.json({
+    message: 'Queue status retrieved successfully',
+    data: status,
+  });
 };
 
 export const processQueue = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    // Start queue processing
-    emailService.startQueueProcessor();
+  // Start queue processing
+  emailService.startQueueProcessor();
 
-    res.json({
-      message: 'Queue processing started successfully',
-    });
-  } catch (error) {
-    logger.error('Failed to process queue:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to process queue',
-    });
-  }
+  res.json({
+    message: 'Queue processing started successfully',
+  });
 };
 
 export const retryFailedEmails = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  try {
-    const { emailIds } = req.body;
-    const retryCount = await emailService.retryFailedEmails(emailIds);
+  const { emailIds } = req.body;
+  const retryCount = await emailService.retryFailedEmails(emailIds);
 
-    res.json({
-      message: 'Failed emails queued for retry',
-      data: { retryCount },
-    });
-  } catch (error) {
-    logger.error('Failed to retry emails:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to retry emails',
-    });
-  }
+  res.json({
+    message: 'Failed emails queued for retry',
+    data: { retryCount },
+  });
 };
 
 // Analytics
@@ -270,53 +181,39 @@ export const getEmailAnalytics = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  try {
-    const { templateId, campaignId, dateFrom, dateTo, type } = req.query;
+  const { templateId, campaignId, dateFrom, dateTo, type } = req.query;
 
-    const analytics = await emailService.getEmailAnalytics({
-      templateId: typeof templateId === 'string' ? templateId : undefined,
-      campaignId: typeof campaignId === 'string' ? campaignId : undefined,
-      dateFrom: typeof dateFrom === 'string' ? new Date(dateFrom) : undefined,
-      dateTo: typeof dateTo === 'string' ? new Date(dateTo) : undefined,
-      type: typeof type === 'string' ? (type as EmailType) : undefined,
-    });
+  const analytics = await emailService.getEmailAnalytics({
+    templateId: typeof templateId === 'string' ? templateId : undefined,
+    campaignId: typeof campaignId === 'string' ? campaignId : undefined,
+    dateFrom: typeof dateFrom === 'string' ? new Date(dateFrom) : undefined,
+    dateTo: typeof dateTo === 'string' ? new Date(dateTo) : undefined,
+    type: typeof type === 'string' ? (type as EmailType) : undefined,
+  });
 
-    res.json({
-      message: 'Email analytics retrieved successfully',
-      data: analytics,
-    });
-  } catch (error) {
-    logger.error('Failed to get email analytics:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to get email analytics',
-    });
-  }
+  res.json({
+    message: 'Email analytics retrieved successfully',
+    data: analytics,
+  });
 };
 
 export const getTemplateAnalytics = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  try {
-    const { templateId } = req.params;
-    const { dateFrom, dateTo } = req.query;
+  const { templateId } = req.params;
+  const { dateFrom, dateTo } = req.query;
 
-    const analytics = await emailService.getEmailAnalytics({
-      templateId,
-      dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
-      dateTo: dateTo ? new Date(dateTo as string) : undefined,
-    });
+  const analytics = await emailService.getEmailAnalytics({
+    templateId,
+    dateFrom: dateFrom ? new Date(dateFrom as string) : undefined,
+    dateTo: dateTo ? new Date(dateTo as string) : undefined,
+  });
 
-    res.json({
-      message: 'Template analytics retrieved successfully',
-      data: analytics,
-    });
-  } catch (error) {
-    logger.error('Failed to get template analytics:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to get template analytics',
-    });
-  }
+  res.json({
+    message: 'Template analytics retrieved successfully',
+    data: analytics,
+  });
 };
 
 // User preferences
@@ -324,47 +221,33 @@ export const getUserPreferences = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  try {
-    const { userId } = req.params;
-    const preferences = await emailService.getUserPreferences(userId);
+  const { userId } = req.params;
+  const preferences = await emailService.getUserPreferences(userId);
 
-    if (!preferences) {
-      res.status(404).json({
-        error: 'User preferences not found',
-      });
-      return;
-    }
-
-    res.json({
-      message: 'User preferences retrieved successfully',
-      data: preferences,
+  if (!preferences) {
+    res.status(404).json({
+      error: 'User preferences not found',
     });
-  } catch (error) {
-    logger.error('Failed to get user preferences:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to get user preferences',
-    });
+    return;
   }
+
+  res.json({
+    message: 'User preferences retrieved successfully',
+    data: preferences,
+  });
 };
 
 export const updateUserPreferences = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  try {
-    const { userId } = req.params;
-    const preferences = await emailService.updateUserPreferences(userId, req.body);
+  const { userId } = req.params;
+  const preferences = await emailService.updateUserPreferences(userId, req.body);
 
-    res.json({
-      message: 'Email preferences updated successfully',
-      data: preferences,
-    });
-  } catch (error) {
-    logger.error('Failed to update user preferences:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to update user preferences',
-    });
-  }
+  res.json({
+    message: 'Email preferences updated successfully',
+    data: preferences,
+  });
 };
 
 /**
@@ -382,58 +265,37 @@ export const rotateUnsubscribeToken = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ error: 'Authentication required' });
-      return;
-    }
-    const newToken = await emailService.rotateUnsubscribeToken(userId);
-    res.json({
-      message: 'Unsubscribe token rotated',
-      data: { unsubscribeToken: newToken },
-    });
-  } catch (error) {
-    logger.error('Failed to rotate unsubscribe token:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to rotate unsubscribe token',
-    });
+  const userId = req.user?.userId;
+  if (!userId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
   }
+  const newToken = await emailService.rotateUnsubscribeToken(userId);
+  res.json({
+    message: 'Unsubscribe token rotated',
+    data: { unsubscribeToken: newToken },
+  });
 };
 
 // Public endpoints
 export const unsubscribeUser = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { token } = req.params;
-    const { type } = req.query;
+  const { token } = req.params;
+  const { type } = req.query;
 
-    await emailService.unsubscribeUser(token as string, type as NotificationType);
+  await emailService.unsubscribeUser(token as string, type as NotificationType);
 
-    res.json({
-      message: 'Successfully unsubscribed',
-    });
-  } catch (error) {
-    logger.error('Failed to unsubscribe user:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to unsubscribe user',
-    });
-  }
+  res.json({
+    message: 'Successfully unsubscribed',
+  });
 };
 
 export const handleDeliveryWebhook = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const webhookData = req.body;
+  const webhookData = req.body;
 
-    // Handle delivery webhook
-    await emailService.handleDeliveryWebhook(webhookData);
+  // Handle delivery webhook
+  await emailService.handleDeliveryWebhook(webhookData);
 
-    res.status(200).json({
-      message: 'Webhook processed successfully',
-    });
-  } catch (error) {
-    logger.error('Failed to handle delivery webhook:', error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to handle delivery webhook',
-    });
-  }
+  res.status(200).json({
+    message: 'Webhook processed successfully',
+  });
 };

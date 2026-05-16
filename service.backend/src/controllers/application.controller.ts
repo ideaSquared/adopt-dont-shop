@@ -222,69 +222,59 @@ export class ApplicationController extends BaseController {
 
   // Get applications with filtering and pagination
   getApplications = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return this.sendValidationError(res, errors.array());
-      }
-
-      const filters: ApplicationSearchFilters = {
-        search: req.query.search as string,
-        userId: req.query.userId as string,
-        petId: req.query.petId as string,
-        rescueId: req.query.rescueId as string,
-        status: req.query.status as ApplicationStatus,
-        priority: req.query.priority as ApplicationPriority,
-        score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
-        score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
-        createdFrom: req.query.createdFrom ? new Date(req.query.createdFrom as string) : undefined,
-        createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
-        submittedFrom: req.query.submittedFrom
-          ? new Date(req.query.submittedFrom as string)
-          : undefined,
-        submittedTo: req.query.submittedTo ? new Date(req.query.submittedTo as string) : undefined,
-      };
-
-      const options: ApplicationSearchOptions = {
-        page: parsePage(req.query.page as string | undefined),
-        limit: parsePaginationLimit(req.query.limit as string | undefined, {
-          default: DEFAULT_PAGE_SIZE,
-          max: MAX_PAGE_SIZE,
-        }),
-        sortBy: (req.query.sortBy as string) || 'createdAt',
-        sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
-        include_user: true,
-        include_pet: true,
-        include_rescue: false,
-      };
-
-      const result = await ApplicationService.searchApplications(
-        filters,
-        options,
-        req.user!.userId,
-        req.user!.userType as UserType
-      );
-
-      // Transform the applications to frontend format
-      const transformedApplications = result.applications.map(app =>
-        this.transformApplicationModel(app)
-      );
-
-      return this.sendPaginatedSuccess(res, transformedApplications, {
-        total: result.total_filtered || 0,
-        page: result.pagination.page,
-        limit: result.pagination.limit,
-        totalPages: result.pagination.totalPages,
-      });
-    } catch (error) {
-      logger.error('Error getting applications:', error);
-      return this.sendError(
-        res,
-        'Failed to retrieve applications',
-        500,
-        error instanceof Error ? error.message : 'Unknown error'
-      );
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return this.sendValidationError(res, errors.array());
     }
+
+    const filters: ApplicationSearchFilters = {
+      search: req.query.search as string,
+      userId: req.query.userId as string,
+      petId: req.query.petId as string,
+      rescueId: req.query.rescueId as string,
+      status: req.query.status as ApplicationStatus,
+      priority: req.query.priority as ApplicationPriority,
+      score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
+      score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
+      createdFrom: req.query.createdFrom ? new Date(req.query.createdFrom as string) : undefined,
+      createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
+      submittedFrom: req.query.submittedFrom
+        ? new Date(req.query.submittedFrom as string)
+        : undefined,
+      submittedTo: req.query.submittedTo ? new Date(req.query.submittedTo as string) : undefined,
+    };
+
+    const options: ApplicationSearchOptions = {
+      page: parsePage(req.query.page as string | undefined),
+      limit: parsePaginationLimit(req.query.limit as string | undefined, {
+        default: DEFAULT_PAGE_SIZE,
+        max: MAX_PAGE_SIZE,
+      }),
+      sortBy: (req.query.sortBy as string) || 'createdAt',
+      sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
+      include_user: true,
+      include_pet: true,
+      include_rescue: false,
+    };
+
+    const result = await ApplicationService.searchApplications(
+      filters,
+      options,
+      req.user!.userId,
+      req.user!.userType as UserType
+    );
+
+    // Transform the applications to frontend format
+    const transformedApplications = result.applications.map(app =>
+      this.transformApplicationModel(app)
+    );
+
+    return this.sendPaginatedSuccess(res, transformedApplications, {
+      total: result.total_filtered || 0,
+      page: result.pagination.page,
+      limit: result.pagination.limit,
+      totalPages: result.pagination.totalPages,
+    });
   };
 
   // Create new application
@@ -828,99 +818,57 @@ export class ApplicationController extends BaseController {
 
   // Get application form structure
   getApplicationFormStructure = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { rescueId } = req.params;
-      const formStructure = await ApplicationService.getApplicationFormStructure(rescueId);
+    const { rescueId } = req.params;
+    const formStructure = await ApplicationService.getApplicationFormStructure(rescueId);
 
-      res.status(200).json({
-        success: true,
-        data: formStructure,
-      });
-    } catch (error) {
-      logger.error('Error getting application form structure:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get application form structure',
-        error:
-          process.env.DEBUG_ERRORS === 'true'
-            ? error instanceof Error
-              ? error.message
-              : 'Unknown error'
-            : undefined,
-      });
-    }
+    res.status(200).json({
+      success: true,
+      data: formStructure,
+    });
   };
 
   // Get application statistics
   getApplicationStatistics = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const userType = req.user!.userType as UserType;
-      const userId = req.user!.userId;
+    const userType = req.user!.userType as UserType;
+    const userId = req.user!.userId;
 
-      let rescueId: string | undefined;
-      if (userType === UserType.ADMIN || userType === UserType.MODERATOR) {
-        rescueId = req.query.rescueId as string | undefined;
-      } else {
-        const staffRescueId = await ApplicationService.getStaffRescueIdForUser(userId);
-        if (!staffRescueId) {
-          return res.status(403).json({ success: false, message: 'Access denied' });
-        }
-        rescueId = staffRescueId;
+    let rescueId: string | undefined;
+    if (userType === UserType.ADMIN || userType === UserType.MODERATOR) {
+      rescueId = req.query.rescueId as string | undefined;
+    } else {
+      const staffRescueId = await ApplicationService.getStaffRescueIdForUser(userId);
+      if (!staffRescueId) {
+        return res.status(403).json({ success: false, message: 'Access denied' });
       }
-
-      const statistics = await ApplicationService.getApplicationStatistics(rescueId);
-
-      res.status(200).json({
-        success: true,
-        data: statistics,
-      });
-    } catch (error) {
-      logger.error('Error getting application statistics:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve application statistics',
-        error:
-          process.env.DEBUG_ERRORS === 'true'
-            ? error instanceof Error
-              ? error.message
-              : 'Unknown error'
-            : undefined,
-      });
+      rescueId = staffRescueId;
     }
+
+    const statistics = await ApplicationService.getApplicationStatistics(rescueId);
+
+    res.status(200).json({
+      success: true,
+      data: statistics,
+    });
   };
 
   // Bulk update applications
   bulkUpdateApplications = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const result = await ApplicationService.bulkUpdateApplications(req.body, req.user!.userId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Bulk update completed',
-        data: result,
-      });
-    } catch (error) {
-      logger.error('Error performing bulk update:', error);
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to perform bulk update',
-        error:
-          process.env.DEBUG_ERRORS === 'true'
-            ? error instanceof Error
-              ? error.message
-              : 'Unknown error'
-            : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const result = await ApplicationService.bulkUpdateApplications(req.body, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Bulk update completed',
+      data: result,
+    });
   };
 
   // Delete application
@@ -970,159 +918,105 @@ export class ApplicationController extends BaseController {
 
   // Validate application answers
   validateApplicationAnswers = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { rescueId } = req.params;
-      const { answers } = req.body;
+    const { rescueId } = req.params;
+    const { answers } = req.body;
 
-      if (!answers || typeof answers !== 'object') {
-        return res.status(400).json({
-          success: false,
-          message: 'Answers object is required',
-        });
-      }
-
-      const validation = await ApplicationService.validateApplicationAnswers(answers, rescueId);
-
-      res.status(200).json({
-        success: true,
-        data: validation,
-      });
-    } catch (error) {
-      logger.error('Error validating application answers:', error);
-      res.status(500).json({
+    if (!answers || typeof answers !== 'object') {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to validate application answers',
-        error:
-          process.env.DEBUG_ERRORS === 'true'
-            ? error instanceof Error
-              ? error.message
-              : 'Unknown error'
-            : undefined,
+        message: 'Answers object is required',
       });
     }
+
+    const validation = await ApplicationService.validateApplicationAnswers(answers, rescueId);
+
+    res.status(200).json({
+      success: true,
+      data: validation,
+    });
   };
 
   // Application history now provided by timeline events
   getApplicationHistory = async (req: Request, res: Response) => {
-    try {
-      // Application history is now handled by the timeline system
-      res.status(200).json({
-        success: true,
-        data: [],
-        message: 'Application history is now available through timeline events',
-      });
-    } catch (error) {
-      logger.error('Error getting application history:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve application history',
-      });
-    }
+    // Application history is now handled by the timeline system
+    res.status(200).json({
+      success: true,
+      data: [],
+      message: 'Application history is now available through timeline events',
+    });
   };
 
   scheduleVisit = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      // This would need to be implemented with visit scheduling functionality
-      res.status(501).json({
-        success: false,
-        message: 'Visit scheduling feature not yet implemented',
-      });
-    } catch (error) {
-      logger.error('Error scheduling visit:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to schedule visit',
-      });
-    }
+    // This would need to be implemented with visit scheduling functionality
+    res.status(501).json({
+      success: false,
+      message: 'Visit scheduling feature not yet implemented',
+    });
   };
 
   // Home Visits CRUD operations
   getHomeVisits = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { applicationId } = req.params;
-      const formattedVisits = await ApplicationService.listHomeVisitsForApplication(applicationId);
+    const { applicationId } = req.params;
+    const formattedVisits = await ApplicationService.listHomeVisitsForApplication(applicationId);
 
-      res.json({
-        success: true,
-        visits: formattedVisits,
-      });
-    } catch (error) {
-      logger.error('Error getting home visits:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve home visits',
-      });
-    }
+    res.json({
+      success: true,
+      visits: formattedVisits,
+    });
   };
 
   scheduleHomeVisit = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { applicationId } = req.params;
-      const { scheduled_date, scheduled_time, assigned_staff, notes } = req.body;
+    const { applicationId } = req.params;
+    const { scheduled_date, scheduled_time, assigned_staff, notes } = req.body;
 
-      if (!scheduled_date || !scheduled_time || !assigned_staff) {
-        return res.status(400).json({
-          success: false,
-          message: 'Missing required fields: scheduled_date, scheduled_time, assigned_staff',
-        });
-      }
-
-      const visit = await ApplicationService.scheduleHomeVisit(
-        applicationId,
-        {
-          scheduledDate: scheduled_date,
-          scheduledTime: scheduled_time,
-          assignedStaff: assigned_staff,
-          notes,
-        },
-        req.user?.userId ?? null
-      );
-
-      res.status(201).json({
-        success: true,
-        message: 'Home visit scheduled successfully',
-        visit,
-      });
-    } catch (error) {
-      logger.error('Error scheduling home visit:', error);
-      res.status(500).json({
+    if (!scheduled_date || !scheduled_time || !assigned_staff) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to schedule home visit',
+        message: 'Missing required fields: scheduled_date, scheduled_time, assigned_staff',
       });
     }
+
+    const visit = await ApplicationService.scheduleHomeVisit(
+      applicationId,
+      {
+        scheduledDate: scheduled_date,
+        scheduledTime: scheduled_time,
+        assignedStaff: assigned_staff,
+        notes,
+      },
+      req.user?.userId ?? null
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Home visit scheduled successfully',
+      visit,
+    });
   };
 
   updateHomeVisit = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { applicationId, visitId } = req.params;
-      const updateData = req.body;
+    const { applicationId, visitId } = req.params;
+    const updateData = req.body;
 
-      const visit = await ApplicationService.updateHomeVisit(
-        applicationId,
-        visitId,
-        updateData,
-        req.user?.userId ?? null
-      );
+    const visit = await ApplicationService.updateHomeVisit(
+      applicationId,
+      visitId,
+      updateData,
+      req.user?.userId ?? null
+    );
 
-      if (!visit) {
-        return res.status(404).json({
-          success: false,
-          message: 'Home visit not found',
-        });
-      }
-
-      res.json({
-        success: true,
-        message: 'Home visit updated successfully',
-        visit,
-      });
-    } catch (error) {
-      logger.error('Error updating home visit:', error);
-      res.status(500).json({
+    if (!visit) {
+      return res.status(404).json({
         success: false,
-        message: 'Failed to update home visit',
+        message: 'Home visit not found',
       });
     }
+
+    res.json({
+      success: true,
+      message: 'Home visit updated successfully',
+      visit,
+    });
   };
 }
 

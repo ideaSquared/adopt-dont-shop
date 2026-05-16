@@ -193,82 +193,70 @@ export class ChatController {
   static async createChat(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { rescueId, petId, applicationId, type, initialMessage } = req.body;
-      const createdBy = req.user!.userId;
+    const { rescueId, petId, applicationId, type, initialMessage } = req.body;
+    const createdBy = req.user!.userId;
 
-      // Create participant IDs array: start with the user who created the chat
-      const participantIds = [createdBy];
+    // Create participant IDs array: start with the user who created the chat
+    const participantIds = [createdBy];
 
-      // If there's a rescue involved, add the rescue staff users as participants
-      if (rescueId && rescueId !== createdBy) {
-        try {
-          // Find users who belong to this rescue (limit to 50 to avoid unbounded queries)
-          const rescueUserIds = await ChatService.getRescueParticipantUserIds(rescueId);
+    // If there's a rescue involved, add the rescue staff users as participants
+    if (rescueId && rescueId !== createdBy) {
+      try {
+        // Find users who belong to this rescue (limit to 50 to avoid unbounded queries)
+        const rescueUserIds = await ChatService.getRescueParticipantUserIds(rescueId);
 
-          // Add rescue staff user IDs to participants (use Set for O(1) dedup)
-          const participantSet = new Set(participantIds);
-          rescueUserIds.forEach(uid => participantSet.add(uid));
-          participantIds.length = 0;
-          participantIds.push(...Array.from(participantSet));
-        } catch (error) {
-          logger.error('Error finding rescue users:', error);
-          // Continue with chat creation even if we can't find rescue users
-        }
+        // Add rescue staff user IDs to participants (use Set for O(1) dedup)
+        const participantSet = new Set(participantIds);
+        rescueUserIds.forEach(uid => participantSet.add(uid));
+        participantIds.length = 0;
+        participantIds.push(...Array.from(participantSet));
+      } catch (error) {
+        logger.error('Error finding rescue users:', error);
+        // Continue with chat creation even if we can't find rescue users
       }
-
-      const chat = await ChatService.createChat(
-        {
-          participantIds,
-          rescueId,
-          applicationId,
-          petId,
-          type: type || 'application',
-          initialMessage,
-        },
-        createdBy
-      );
-
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-
-      // Format the response to match frontend Conversation interface expectations
-      const response = {
-        id: chat.chat_id,
-        userId: createdBy, // The user who created the chat
-        rescueId: chat.rescue_id,
-        petId: chat.pet_id,
-        applicationId: chat.application_id,
-        type: type || 'application',
-        status: chat.status,
-        participants: [], // Will be populated by frontend when needed
-        unreadCount: 0, // New conversation starts with 0 unread
-        isTyping: [], // Empty initially
-        createdAt: readCreatedAt(chat),
-        updatedAt: readUpdatedAt(chat),
-        // Keep backward compatibility fields
-        chat_id: chat.chat_id,
-        rescue_id: chat.rescue_id,
-        pet_id: chat.pet_id,
-        application_id: chat.application_id,
-        created_at: readCreatedAt(chat),
-        updated_at: readUpdatedAt(chat),
-      };
-
-      res.json({
-        success: true,
-        data: response,
-      });
-    } catch (error) {
-      logger.error('Error creating chat:', {
-        error: error instanceof Error ? error.message : String(error),
-        body: req.body,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to create chat',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
     }
+
+    const chat = await ChatService.createChat(
+      {
+        participantIds,
+        rescueId,
+        applicationId,
+        petId,
+        type: type || 'application',
+        initialMessage,
+      },
+      createdBy
+    );
+
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+    // Format the response to match frontend Conversation interface expectations
+    const response = {
+      id: chat.chat_id,
+      userId: createdBy, // The user who created the chat
+      rescueId: chat.rescue_id,
+      petId: chat.pet_id,
+      applicationId: chat.application_id,
+      type: type || 'application',
+      status: chat.status,
+      participants: [], // Will be populated by frontend when needed
+      unreadCount: 0, // New conversation starts with 0 unread
+      isTyping: [], // Empty initially
+      createdAt: readCreatedAt(chat),
+      updatedAt: readUpdatedAt(chat),
+      // Keep backward compatibility fields
+      chat_id: chat.chat_id,
+      rescue_id: chat.rescue_id,
+      pet_id: chat.pet_id,
+      application_id: chat.application_id,
+      created_at: readCreatedAt(chat),
+      updated_at: readUpdatedAt(chat),
+    };
+
+    res.json({
+      success: true,
+      data: response,
+    });
   }
 
   /**
@@ -371,153 +359,49 @@ export class ChatController {
    * Search and list chats for the authenticated user
    */
   static async getChats(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user!.userId;
-      const userType = req.user!.userType;
-      const rescueId = req.user!.rescueId;
-      const {
-        petId,
-        type,
-        page = 1,
-        limit = DEFAULT_PAGE_SIZE,
-        sortBy = 'updated_at',
-        sortOrder = 'DESC',
-      } = req.query;
+    const userId = req.user!.userId;
+    const userType = req.user!.userType;
+    const rescueId = req.user!.rescueId;
+    const {
+      petId,
+      type,
+      page = 1,
+      limit = DEFAULT_PAGE_SIZE,
+      sortBy = 'updated_at',
+      sortOrder = 'DESC',
+    } = req.query;
 
-      // Admin users can see all chats, regular users only see chats they're participants in
-      const isAdmin = userType === UserType.ADMIN;
-      const searchOptions = {
-        userId,
-        rescueId: rescueId || undefined,
-        petId: petId as string,
-        type: type as string,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        sortBy: sortBy as string,
-        sortOrder: sortOrder as 'ASC' | 'DESC',
-        isAdmin,
-      };
+    // Admin users can see all chats, regular users only see chats they're participants in
+    const isAdmin = userType === UserType.ADMIN;
+    const searchOptions = {
+      userId,
+      rescueId: rescueId || undefined,
+      petId: petId as string,
+      type: type as string,
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as 'ASC' | 'DESC',
+      isAdmin,
+    };
 
-      const result = await ChatService.searchChats(searchOptions);
+    const result = await ChatService.searchChats(searchOptions);
 
-      logger.info('Chat search results', {
-        isAdmin,
-        userId: isAdmin ? 'undefined (admin)' : userId,
-        rescueId: isAdmin ? 'undefined (admin)' : rescueId,
-        totalChats: result.chats.length,
-        totalCount: result.pagination.total,
-      });
+    logger.info('Chat search results', {
+      isAdmin,
+      userId: isAdmin ? 'undefined (admin)' : userId,
+      rescueId: isAdmin ? 'undefined (admin)' : rescueId,
+      totalChats: result.chats.length,
+      totalCount: result.pagination.total,
+    });
 
-      // Add rescueName, lastMessage, and real unread count to each chat.
-      // Unread is resolved per-chat in parallel; admin listings (no userId)
-      // skip the count since admins don't have an unread-mailbox view.
-      const chatsWithRescueName = await Promise.all(
-        result.chats.map(async chat => {
-          const chatObj = chat.toJSON();
-          // Get the latest message (should be first in Messages array due to DESC order)
-          let lastMessage = null;
-          if (Array.isArray(chatObj.Messages) && chatObj.Messages.length > 0) {
-            const msg = chatObj.Messages[0];
-            lastMessage = {
-              id: msg.message_id,
-              content:
-                typeof msg.content === 'string' && msg.content.length > 120
-                  ? msg.content.slice(0, 120) + '...'
-                  : msg.content,
-              senderId: msg.sender_id,
-              createdAt: readCreatedAt(msg),
-            };
-          }
-
-          // Transform participants to match frontend Participant interface
-          const participants =
-            (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => ({
-              id: p.participant_id,
-              name: getUserFullName(p.User),
-              type: p.role === 'admin' ? 'admin' : 'user',
-              avatarUrl:
-                p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
-                  ? p.User.profileImageUrl
-                  : undefined,
-              isOnline: isUserOnline(p.participant_id),
-            })) || [];
-
-          const unreadCount = isAdmin
-            ? 0
-            : await ChatService.getUnreadMessageCount(
-                chatObj.chat_id,
-                userId,
-                rescueId || undefined
-              );
-
-          return {
-            id: chatObj.chat_id,
-            userId: undefined, // No user_id field in chat model
-            rescueId: chatObj.rescue_id,
-            petId: chatObj.pet_id,
-            applicationId: chatObj.application_id,
-            type: 'general', // Default type since not in model
-            status: chatObj.status,
-            participants,
-            unreadCount,
-            isTyping: [],
-            createdAt: readCreatedAt(chatObj),
-            updatedAt: readUpdatedAt(chatObj),
-            rescueName: chat.rescue?.name || null,
-            lastMessage,
-          };
-        })
-      );
-      res.json({
-        success: true,
-        data: chatsWithRescueName,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      logger.error('Error getting chats:', error);
-      res.status(500).json({
-        error: 'Failed to get chats',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  }
-
-  /**
-   * Search conversations with text search capability
-   */
-  static async searchConversations(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user!.userId;
-      const rescueId = req.user!.rescueId;
-      const {
-        query,
-        type,
-        page = 1,
-        limit = DEFAULT_PAGE_SIZE,
-        sortBy = 'updated_at',
-        sortOrder = 'DESC',
-      } = req.query;
-
-      if (!query || typeof query !== 'string' || query.trim().length === 0) {
-        return res.status(400).json({
-          error: 'Search query is required',
-        });
-      }
-
-      const result = await ChatService.searchConversations({
-        userId,
-        rescueId: rescueId || undefined,
-        query: query.trim(),
-        type: type as string,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        sortBy: sortBy as string,
-        sortOrder: sortOrder as 'ASC' | 'DESC',
-      });
-
-      // Add rescueName and lastMessage to each chat in the response
-      const chatsWithRescueName = result.chats.map(chat => {
+    // Add rescueName, lastMessage, and real unread count to each chat.
+    // Unread is resolved per-chat in parallel; admin listings (no userId)
+    // skip the count since admins don't have an unread-mailbox view.
+    const chatsWithRescueName = await Promise.all(
+      result.chats.map(async chat => {
         const chatObj = chat.toJSON();
+        // Get the latest message (should be first in Messages array due to DESC order)
         let lastMessage = null;
         if (Array.isArray(chatObj.Messages) && chatObj.Messages.length > 0) {
           const msg = chatObj.Messages[0];
@@ -531,25 +415,109 @@ export class ChatController {
             createdAt: readCreatedAt(msg),
           };
         }
+
+        // Transform participants to match frontend Participant interface
+        const participants =
+          (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => ({
+            id: p.participant_id,
+            name: getUserFullName(p.User),
+            type: p.role === 'admin' ? 'admin' : 'user',
+            avatarUrl:
+              p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
+                ? p.User.profileImageUrl
+                : undefined,
+            isOnline: isUserOnline(p.participant_id),
+          })) || [];
+
+        const unreadCount = isAdmin
+          ? 0
+          : await ChatService.getUnreadMessageCount(chatObj.chat_id, userId, rescueId || undefined);
+
         return {
-          ...chatObj,
+          id: chatObj.chat_id,
+          userId: undefined, // No user_id field in chat model
+          rescueId: chatObj.rescue_id,
+          petId: chatObj.pet_id,
+          applicationId: chatObj.application_id,
+          type: 'general', // Default type since not in model
+          status: chatObj.status,
+          participants,
+          unreadCount,
+          isTyping: [],
+          createdAt: readCreatedAt(chatObj),
+          updatedAt: readUpdatedAt(chatObj),
           rescueName: chat.rescue?.name || null,
           lastMessage,
         };
-      });
-      res.json({
-        success: true,
-        data: chatsWithRescueName,
-        pagination: result.pagination,
-        message: `Found ${result.pagination.total} conversations matching "${query}"`,
-      });
-    } catch (error) {
-      logger.error('Error searching conversations:', error);
-      res.status(500).json({
-        error: 'Failed to search conversations',
-        message: error instanceof Error ? error.message : 'Unknown error',
+      })
+    );
+    res.json({
+      success: true,
+      data: chatsWithRescueName,
+      pagination: result.pagination,
+    });
+  }
+
+  /**
+   * Search conversations with text search capability
+   */
+  static async searchConversations(req: AuthenticatedRequest, res: Response) {
+    const userId = req.user!.userId;
+    const rescueId = req.user!.rescueId;
+    const {
+      query,
+      type,
+      page = 1,
+      limit = DEFAULT_PAGE_SIZE,
+      sortBy = 'updated_at',
+      sortOrder = 'DESC',
+    } = req.query;
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Search query is required',
       });
     }
+
+    const result = await ChatService.searchConversations({
+      userId,
+      rescueId: rescueId || undefined,
+      query: query.trim(),
+      type: type as string,
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as 'ASC' | 'DESC',
+    });
+
+    // Add rescueName and lastMessage to each chat in the response
+    const chatsWithRescueName = result.chats.map(chat => {
+      const chatObj = chat.toJSON();
+      let lastMessage = null;
+      if (Array.isArray(chatObj.Messages) && chatObj.Messages.length > 0) {
+        const msg = chatObj.Messages[0];
+        lastMessage = {
+          id: msg.message_id,
+          content:
+            typeof msg.content === 'string' && msg.content.length > 120
+              ? msg.content.slice(0, 120) + '...'
+              : msg.content,
+          senderId: msg.sender_id,
+          createdAt: readCreatedAt(msg),
+        };
+      }
+      return {
+        ...chatObj,
+        rescueName: chat.rescue?.name || null,
+        lastMessage,
+      };
+    });
+    res.json({
+      success: true,
+      data: chatsWithRescueName,
+      pagination: result.pagination,
+      message: `Found ${result.pagination.total} conversations matching "${query}"`,
+    });
   }
 
   /**
@@ -709,24 +677,16 @@ export class ChatController {
    * Mark messages as read
    */
   static async markAsRead(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { chatId } = req.params;
-      const userId = req.user!.userId;
-      const userRescueId = req.user!.rescueId || undefined;
+    const { chatId } = req.params;
+    const userId = req.user!.userId;
+    const userRescueId = req.user!.rescueId || undefined;
 
-      await ChatService.markMessagesAsRead(chatId, userId, userRescueId);
+    await ChatService.markMessagesAsRead(chatId, userId, userRescueId);
 
-      res.json({
-        success: true,
-        message: 'Messages marked as read',
-      });
-    } catch (error) {
-      logger.error('Error marking messages as read:', error);
-      res.status(500).json({
-        error: 'Failed to mark messages as read',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.json({
+      success: true,
+      message: 'Messages marked as read',
+    });
   }
 
   /**
@@ -840,31 +800,18 @@ export class ChatController {
   static async updateChat(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { chatId } = req.params;
-      const updateData = req.body;
-      const updatedBy = req.user!.userId;
+    const { chatId } = req.params;
+    const updateData = req.body;
+    const updatedBy = req.user!.userId;
 
-      const chat = await ChatService.updateChat(chatId, updateData, updatedBy);
+    const chat = await ChatService.updateChat(chatId, updateData, updatedBy);
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: chat,
-      });
-    } catch (error) {
-      logger.error('Error updating chat:', {
-        error: error instanceof Error ? error.message : String(error),
-        chatId: req.params.chatId,
-        body: req.body,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to update chat',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.json({
+      success: true,
+      data: chat,
+    });
   }
 
   /**
@@ -1009,34 +956,26 @@ export class ChatController {
    * Get chat analytics
    */
   static async getChatAnalytics(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userType = req.user!.userType;
-      const rescueId = req.user!.rescueId;
-      const { startDate, endDate } = req.query;
+    const userType = req.user!.userType;
+    const rescueId = req.user!.rescueId;
+    const { startDate, endDate } = req.query;
 
-      // Admin users get analytics for all chats, regular users get rescue-specific analytics
-      const isAdmin = userType === UserType.ADMIN;
-      const analytics = await ChatService.getChatAnalytics(
-        startDate && endDate
-          ? {
-              start: new Date(startDate as string),
-              end: new Date(endDate as string),
-            }
-          : undefined,
-        isAdmin ? undefined : rescueId || undefined
-      );
+    // Admin users get analytics for all chats, regular users get rescue-specific analytics
+    const isAdmin = userType === UserType.ADMIN;
+    const analytics = await ChatService.getChatAnalytics(
+      startDate && endDate
+        ? {
+            start: new Date(startDate as string),
+            end: new Date(endDate as string),
+          }
+        : undefined,
+      isAdmin ? undefined : rescueId || undefined
+    );
 
-      res.json({
-        success: true,
-        data: analytics,
-      });
-    } catch (error) {
-      logger.error('Error getting chat analytics:', error);
-      res.status(500).json({
-        error: 'Failed to get chat analytics',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.json({
+      success: true,
+      data: analytics,
+    });
   }
 
   /**
@@ -1045,74 +984,66 @@ export class ChatController {
   static async uploadAttachment(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { conversationId } = req.params;
-      const userId = req.user!.userId;
-      const userRescueId = req.user!.rescueId || undefined;
+    const { conversationId } = req.params;
+    const userId = req.user!.userId;
+    const userRescueId = req.user!.rescueId || undefined;
 
-      if (!req.file) {
-        return res.status(400).json({
-          error: 'No file uploaded',
-        });
-      }
-
-      // Verify user has access to this conversation. getChatById enforces
-      // participant-or-rescue-staff access; if the user is staff of the
-      // chat's rescue we don't also require a direct participant row.
-      const chat = await ChatService.getChatById(conversationId, userId, false, userRescueId);
-      if (!chat) {
-        return res.status(404).json({
-          error: 'Conversation not found',
-        });
-      }
-
-      const isParticipant = chat.Participants?.some(
-        (p: ChatParticipant) => p.participant_id === userId
-      );
-      const isRescueStaffOfChat = !!userRescueId && chat.rescue_id === userRescueId;
-      if (!isParticipant && !isRescueStaffOfChat) {
-        return res.status(403).json({
-          error: 'Access denied to this conversation',
-        });
-      }
-
-      // Process the uploaded file using FileUploadService
-      const fileUploadResult = await FileUploadService.uploadFile(req.file, 'chat', {
-        uploadedBy: userId,
-        entityId: conversationId,
-        entityType: 'chat',
-        purpose: 'attachment',
-      });
-
-      if (!fileUploadResult.success || !fileUploadResult.upload) {
-        throw new Error('File upload failed');
-      }
-
-      logger.info('Chat attachment uploaded successfully', {
-        conversationId,
-        userId,
-        fileId: fileUploadResult.upload.upload_id,
-        filename: fileUploadResult.upload.original_filename,
-        size: fileUploadResult.upload.file_size,
-        duration: Date.now() - startTime,
-      });
-
-      res.status(200).json({
-        success: true,
-        data: {
-          id: fileUploadResult.upload.upload_id,
-          filename: fileUploadResult.upload.original_filename,
-          url: fileUploadResult.upload.url,
-          mimeType: fileUploadResult.upload.mime_type,
-          size: fileUploadResult.upload.file_size,
-        },
-      });
-    } catch (error) {
-      logger.error('Error uploading chat attachment:', error);
-      res.status(500).json({
-        error: 'Failed to upload attachment',
-        message: error instanceof Error ? error.message : 'Unknown error',
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'No file uploaded',
       });
     }
+
+    // Verify user has access to this conversation. getChatById enforces
+    // participant-or-rescue-staff access; if the user is staff of the
+    // chat's rescue we don't also require a direct participant row.
+    const chat = await ChatService.getChatById(conversationId, userId, false, userRescueId);
+    if (!chat) {
+      return res.status(404).json({
+        error: 'Conversation not found',
+      });
+    }
+
+    const isParticipant = chat.Participants?.some(
+      (p: ChatParticipant) => p.participant_id === userId
+    );
+    const isRescueStaffOfChat = !!userRescueId && chat.rescue_id === userRescueId;
+    if (!isParticipant && !isRescueStaffOfChat) {
+      return res.status(403).json({
+        error: 'Access denied to this conversation',
+      });
+    }
+
+    // Process the uploaded file using FileUploadService
+    const fileUploadResult = await FileUploadService.uploadFile(req.file, 'chat', {
+      uploadedBy: userId,
+      entityId: conversationId,
+      entityType: 'chat',
+      purpose: 'attachment',
+    });
+
+    if (!fileUploadResult.success || !fileUploadResult.upload) {
+      throw new Error('File upload failed');
+    }
+
+    logger.info('Chat attachment uploaded successfully', {
+      conversationId,
+      userId,
+      fileId: fileUploadResult.upload.upload_id,
+      filename: fileUploadResult.upload.original_filename,
+      size: fileUploadResult.upload.file_size,
+      duration: Date.now() - startTime,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: fileUploadResult.upload.upload_id,
+        filename: fileUploadResult.upload.original_filename,
+        url: fileUploadResult.upload.url,
+        mimeType: fileUploadResult.upload.mime_type,
+        size: fileUploadResult.upload.file_size,
+      },
+    });
   }
 }

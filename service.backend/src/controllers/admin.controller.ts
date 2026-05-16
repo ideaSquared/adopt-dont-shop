@@ -13,32 +13,24 @@ export class AdminController {
    * Get platform metrics (dashboard data)
    */
   static async getPlatformMetrics(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { startDate, endDate } = req.query;
+    const { startDate, endDate } = req.query;
 
-      let _start: Date | undefined;
-      let _end: Date | undefined;
+    let _start: Date | undefined;
+    let _end: Date | undefined;
 
-      if (startDate) {
-        _start = new Date(startDate as string);
-      }
-      if (endDate) {
-        _end = new Date(endDate as string);
-      }
-
-      const metrics = await AdminService.getPlatformMetrics();
-
-      res.json({
-        success: true,
-        data: metrics,
-      });
-    } catch (error) {
-      logger.error('Error getting platform metrics:', error);
-      res.status(500).json({
-        error: 'Failed to get platform metrics',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+    if (startDate) {
+      _start = new Date(startDate as string);
     }
+    if (endDate) {
+      _end = new Date(endDate as string);
+    }
+
+    const metrics = await AdminService.getPlatformMetrics();
+
+    res.json({
+      success: true,
+      data: metrics,
+    });
   }
 
   /**
@@ -47,60 +39,46 @@ export class AdminController {
   static async searchUsers(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const {
-        search,
-        role,
-        status,
-        verificationStatus,
-        page = 1,
-        limit = DEFAULT_PAGE_SIZE,
-        sortBy = 'createdAt',
-        sortOrder = 'DESC',
-      } = req.query;
+    const {
+      search,
+      role,
+      status,
+      verificationStatus,
+      page = 1,
+      limit = DEFAULT_PAGE_SIZE,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = req.query;
 
-      const allowedSortBy = ['email', 'firstName', 'lastName', 'createdAt', 'status'];
-      const safeSortBy = allowedSortBy.includes(sortBy as string)
-        ? (sortBy as string)
-        : 'createdAt';
-      const safeSortOrder =
-        (sortOrder as string)?.toUpperCase() === 'ASC' ? ('ASC' as const) : ('DESC' as const);
+    const allowedSortBy = ['email', 'firstName', 'lastName', 'createdAt', 'status'];
+    const safeSortBy = allowedSortBy.includes(sortBy as string) ? (sortBy as string) : 'createdAt';
+    const safeSortOrder =
+      (sortOrder as string)?.toUpperCase() === 'ASC' ? ('ASC' as const) : ('DESC' as const);
 
-      const parsedLimit = parseInt(limit as string);
+    const parsedLimit = parseInt(limit as string);
 
-      const result = await AdminService.getUsers({
-        search: search as string,
-        status: status as UserStatus,
-        userType: role as UserType,
-        page: parseInt(page as string),
+    const result = await AdminService.getUsers({
+      search: search as string,
+      status: status as UserStatus,
+      userType: role as UserType,
+      page: parseInt(page as string),
+      limit: parsedLimit,
+      sortBy: safeSortBy,
+      sortOrder: safeSortOrder,
+    });
+
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+    res.json({
+      success: true,
+      data: result.users,
+      pagination: {
+        page: result.page,
         limit: parsedLimit,
-        sortBy: safeSortBy,
-        sortOrder: safeSortOrder,
-      });
-
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-
-      res.json({
-        success: true,
-        data: result.users,
-        pagination: {
-          page: result.page,
-          limit: parsedLimit,
-          total: result.total,
-          pages: result.totalPages,
-        },
-      });
-    } catch (error) {
-      logger.error('Error searching users:', {
-        error: error instanceof Error ? error.message : String(error),
-        query: req.query,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to search users',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+        total: result.total,
+        pages: result.totalPages,
+      },
+    });
   }
 
   /**
@@ -180,20 +158,12 @@ export class AdminController {
    * Get system health metrics
    */
   static async getSystemHealth(req: AuthenticatedRequest, res: Response) {
-    try {
-      const health = await AdminService.getSystemHealth();
+    const health = await AdminService.getSystemHealth();
 
-      res.json({
-        success: true,
-        data: health,
-      });
-    } catch (error) {
-      logger.error('Error getting system health:', error);
-      res.status(500).json({
-        error: 'Failed to get system health',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.json({
+      success: true,
+      data: health,
+    });
   }
 
   /**
@@ -202,54 +172,42 @@ export class AdminController {
   static async getAuditLogs(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const {
-        page = 1,
-        limit = LARGE_PAGE_SIZE,
-        action,
-        userId,
-        entity,
-        level,
-        status,
-        startDate,
-        endDate,
-      } = req.query;
+    const {
+      page = 1,
+      limit = LARGE_PAGE_SIZE,
+      action,
+      userId,
+      entity,
+      level,
+      status,
+      startDate,
+      endDate,
+    } = req.query;
 
-      const result = await AdminService.getAuditLogs({
-        action: action as string,
-        userId: userId as string,
-        entity: entity as string,
-        level: level as 'INFO' | 'WARNING' | 'ERROR' | undefined,
-        status: status as 'success' | 'failure' | undefined,
-        startDate: startDate ? new Date(startDate as string) : undefined,
-        endDate: endDate ? new Date(endDate as string) : undefined,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-      });
+    const result = await AdminService.getAuditLogs({
+      action: action as string,
+      userId: userId as string,
+      entity: entity as string,
+      level: level as 'INFO' | 'WARNING' | 'ERROR' | undefined,
+      status: status as 'success' | 'failure' | undefined,
+      startDate: startDate ? new Date(startDate as string) : undefined,
+      endDate: endDate ? new Date(endDate as string) : undefined,
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+    });
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: result.logs,
-        pagination: {
-          page: result.page,
-          limit: 20,
-          total: result.total,
-          pages: result.totalPages,
-        },
-      });
-    } catch (error) {
-      logger.error('Error getting audit logs:', {
-        error: error instanceof Error ? error.message : String(error),
-        query: req.query,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to get audit logs',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.json({
+      success: true,
+      data: result.logs,
+      pagination: {
+        page: result.page,
+        limit: 20,
+        total: result.total,
+        pages: result.totalPages,
+      },
+    });
   }
 
   /**
@@ -258,38 +216,26 @@ export class AdminController {
   static async getRescueManagement(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { page = 1, limit = DEFAULT_PAGE_SIZE, status } = req.query;
+    const { page = 1, limit = DEFAULT_PAGE_SIZE, status } = req.query;
 
-      const result = await AdminService.getRescues({
-        status: status as string,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-      });
+    const result = await AdminService.getRescues({
+      status: status as string,
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+    });
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: result.rescues,
-        pagination: {
-          page: result.page,
-          limit: 20,
-          total: result.total,
-          pages: result.totalPages,
-        },
-      });
-    } catch (error) {
-      logger.error('Error getting rescue management:', {
-        error: error instanceof Error ? error.message : String(error),
-        query: req.query,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to get rescue management',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.json({
+      success: true,
+      data: result.rescues,
+      pagination: {
+        page: result.page,
+        limit: 20,
+        total: result.total,
+        pages: result.totalPages,
+      },
+    });
   }
 
   /**
@@ -298,44 +244,31 @@ export class AdminController {
   static async moderateRescue(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { rescueId } = req.params;
-      const { action, reason } = req.body;
-      const adminId = req.user!.userId;
+    const { rescueId } = req.params;
+    const { action, reason } = req.body;
+    const adminId = req.user!.userId;
 
-      let result;
-      switch (action) {
-        case 'verify':
-          result = await AdminService.verifyRescue(rescueId, adminId);
-          break;
-        case 'reject':
-          result = await AdminService.rejectRescueVerification(rescueId, adminId, reason);
-          break;
-        default:
-          return res.status(400).json({
-            error: 'Invalid action specified',
-          });
-      }
-
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-
-      res.json({
-        success: true,
-        data: result,
-        message: `Rescue ${action} successful`,
-      });
-    } catch (error) {
-      logger.error('Error moderating rescue:', {
-        error: error instanceof Error ? error.message : String(error),
-        action: req.body.action,
-        rescueId: req.params.rescueId,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to moderate rescue',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+    let result;
+    switch (action) {
+      case 'verify':
+        result = await AdminService.verifyRescue(rescueId, adminId);
+        break;
+      case 'reject':
+        result = await AdminService.rejectRescueVerification(rescueId, adminId, reason);
+        break;
+      default:
+        return res.status(400).json({
+          error: 'Invalid action specified',
+        });
     }
+
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+    res.json({
+      success: true,
+      data: result,
+      message: `Rescue ${action} successful`,
+    });
   }
 
   /**
@@ -343,42 +276,34 @@ export class AdminController {
    */
   static async getDashboardAnalytics(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
-    try {
-      const { startDate, endDate } = req.query;
+    const { startDate, endDate } = req.query;
 
-      const { AnalyticsService } = await import('../services/analytics.service');
+    const { AnalyticsService } = await import('../services/analytics.service');
 
-      const options = {
-        startDate: startDate
-          ? new Date(startDate as string)
-          : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        endDate: endDate ? new Date(endDate as string) : new Date(),
-      };
+    const options = {
+      startDate: startDate
+        ? new Date(startDate as string)
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      endDate: endDate ? new Date(endDate as string) : new Date(),
+    };
 
-      const [userMetrics, adoptionMetrics, applicationMetrics] = await Promise.all([
-        AnalyticsService.getUserBehaviorMetrics(options),
-        AnalyticsService.getAdoptionMetrics(options),
-        AnalyticsService.getApplicationMetrics(options),
-      ]);
+    const [userMetrics, adoptionMetrics, applicationMetrics] = await Promise.all([
+      AnalyticsService.getUserBehaviorMetrics(options),
+      AnalyticsService.getAdoptionMetrics(options),
+      AnalyticsService.getApplicationMetrics(options),
+    ]);
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: {
-          users: userMetrics,
-          adoptions: adoptionMetrics,
-          applications: applicationMetrics,
-          generatedAt: new Date(),
-        },
-      });
-    } catch (error) {
-      logger.error('Error getting dashboard analytics:', error);
-      res.status(500).json({
-        error: 'Failed to get dashboard analytics',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.json({
+      success: true,
+      data: {
+        users: userMetrics,
+        adoptions: adoptionMetrics,
+        applications: applicationMetrics,
+        generatedAt: new Date(),
+      },
+    });
   }
 
   /**
@@ -387,36 +312,24 @@ export class AdminController {
   static async getUsageAnalytics(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { startDate, endDate } = req.query;
+    const { startDate, endDate } = req.query;
 
-      let dateRange;
-      if (startDate && endDate) {
-        dateRange = {
-          start: new Date(startDate as string),
-          end: new Date(endDate as string),
-        };
-      }
-
-      const analytics = await AdminService.getSystemStatistics();
-
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-
-      res.json({
-        success: true,
-        data: analytics,
-      });
-    } catch (error) {
-      logger.error('Error getting usage analytics:', {
-        error: error instanceof Error ? error.message : String(error),
-        query: req.query,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to get usage analytics',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+    let dateRange;
+    if (startDate && endDate) {
+      dateRange = {
+        start: new Date(startDate as string),
+        end: new Date(endDate as string),
+      };
     }
+
+    const analytics = await AdminService.getSystemStatistics();
+
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+    res.json({
+      success: true,
+      data: analytics,
+    });
   }
 
   /**
@@ -428,66 +341,58 @@ export class AdminController {
    * the response in JSON / JSONL / CSV.
    */
   static async exportData(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { type, format = 'json' } = req.query;
+    const { type, format = 'json' } = req.query;
 
-      // Validation
-      if (!type) {
-        return res.status(400).json({
-          error: 'Export type is required',
-        });
-      }
-
-      const validTypes = ['users', 'rescues', 'pets', 'applications', 'audit_logs'];
-      if (!validTypes.includes(type as string)) {
-        return res.status(400).json({
-          error: 'Invalid export type',
-        });
-      }
-
-      const validFormats = ['json', 'jsonl', 'csv'];
-      if (!validFormats.includes(format as string)) {
-        return res.status(400).json({
-          error: 'Invalid export format',
-        });
-      }
-
-      const filename = `${type}_export_${new Date().toISOString().split('T')[0]}.${format}`;
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-      if (format === 'csv') {
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      } else if (format === 'jsonl') {
-        res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
-      } else {
-        res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      }
-
-      const stream = AdminService.streamExport(
-        type as 'users' | 'rescues' | 'pets' | 'applications' | 'audit_logs',
-        format as 'json' | 'jsonl' | 'csv'
-      );
-
-      stream.on('error', error => {
-        logger.error('Error streaming export:', error);
-        if (!res.headersSent) {
-          res.status(500).json({
-            error: 'Failed to export data',
-            message: error instanceof Error ? error.message : 'Unknown error',
-          });
-        } else {
-          res.end();
-        }
-      });
-
-      stream.pipe(res);
-    } catch (error) {
-      logger.error('Error exporting data:', error);
-      res.status(500).json({
-        error: 'Failed to export data',
-        message: error instanceof Error ? error.message : 'Unknown error',
+    // Validation
+    if (!type) {
+      return res.status(400).json({
+        error: 'Export type is required',
       });
     }
+
+    const validTypes = ['users', 'rescues', 'pets', 'applications', 'audit_logs'];
+    if (!validTypes.includes(type as string)) {
+      return res.status(400).json({
+        error: 'Invalid export type',
+      });
+    }
+
+    const validFormats = ['json', 'jsonl', 'csv'];
+    if (!validFormats.includes(format as string)) {
+      return res.status(400).json({
+        error: 'Invalid export format',
+      });
+    }
+
+    const filename = `${type}_export_${new Date().toISOString().split('T')[0]}.${format}`;
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    } else if (format === 'jsonl') {
+      res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    } else {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+
+    const stream = AdminService.streamExport(
+      type as 'users' | 'rescues' | 'pets' | 'applications' | 'audit_logs',
+      format as 'json' | 'jsonl' | 'csv'
+    );
+
+    stream.on('error', error => {
+      logger.error('Error streaming export:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: 'Failed to export data',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } else {
+        res.end();
+      }
+    });
+
+    stream.pipe(res);
   }
 
   /**
@@ -496,474 +401,314 @@ export class AdminController {
   static async getUserDetails(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { userId } = req.params;
+    const { userId } = req.params;
 
-      const user = await AdminService.getUserById(userId);
+    const user = await AdminService.getUserById(userId);
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: user,
-      });
-    } catch (error) {
-      logger.error('Error getting user details:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId: req.params.userId,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to get user details',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.json({
+      success: true,
+      data: user,
+    });
   }
 
   /**
    * Get platform configuration
    */
   static async getConfiguration(req: AuthenticatedRequest, res: Response) {
-    try {
-      // This would typically return platform configuration settings
-      // For now, returning a placeholder
-      const config = {
-        platform: {
-          name: "Adopt Don't Shop",
-          version: '1.0.0',
-          environment: process.env.NODE_ENV || 'development',
-        },
-        features: {
-          realTimeMessaging: true,
-          fileUploads: true,
-          notifications: true,
-          analytics: true,
-        },
-        limits: {
-          maxFileSize: '10MB',
-          maxUsers: 'unlimited',
-          maxRescues: 'unlimited',
-          maxPets: 'unlimited',
-        },
-      };
+    // This would typically return platform configuration settings
+    // For now, returning a placeholder
+    const config = {
+      platform: {
+        name: "Adopt Don't Shop",
+        version: '1.0.0',
+        environment: process.env.NODE_ENV || 'development',
+      },
+      features: {
+        realTimeMessaging: true,
+        fileUploads: true,
+        notifications: true,
+        analytics: true,
+      },
+      limits: {
+        maxFileSize: '10MB',
+        maxUsers: 'unlimited',
+        maxRescues: 'unlimited',
+        maxPets: 'unlimited',
+      },
+    };
 
-      res.json({
-        success: true,
-        data: config,
-      });
-    } catch (error) {
-      logger.error('Error getting configuration:', error);
-      res.status(500).json({
-        error: 'Failed to get configuration',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    res.json({
+      success: true,
+      data: config,
+    });
   }
 
   /**
    * Update platform configuration (placeholder)
    */
   static async updateConfiguration(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { key, value } = req.body;
+    const { key, value } = req.body;
 
-      // Validation
-      if (!key || value === undefined) {
-        return res.status(400).json({
-          error: 'Configuration key and value are required',
-        });
-      }
-
-      // This would implement actual configuration updates
-      // For now, just log the attempt
-      logger.info(`Admin ${req.user!.userId} attempted to update config: ${key} = ${value}`);
-
-      res.json({
-        success: true,
-        message: 'Configuration update not implemented yet',
-        data: { key, value },
-      });
-    } catch (error) {
-      logger.error('Error updating configuration:', error);
-      res.status(500).json({
-        error: 'Failed to update configuration',
-        message: error instanceof Error ? error.message : 'Unknown error',
+    // Validation
+    if (!key || value === undefined) {
+      return res.status(400).json({
+        error: 'Configuration key and value are required',
       });
     }
+
+    // This would implement actual configuration updates
+    // For now, just log the attempt
+    logger.info(`Admin ${req.user!.userId} attempted to update config: ${key} = ${value}`);
+
+    res.json({
+      success: true,
+      message: 'Configuration update not implemented yet',
+      data: { key, value },
+    });
   }
 
   static async getUsers(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { page = 1, limit = DEFAULT_PAGE_SIZE, status, userType, search } = req.query;
+    const { page = 1, limit = DEFAULT_PAGE_SIZE, status, userType, search } = req.query;
 
-      const result = await AdminService.getUsers({
-        status: status as UserStatus,
-        userType: userType as UserType,
-        search: search as string,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-      });
+    const result = await AdminService.getUsers({
+      status: status as UserStatus,
+      userType: userType as UserType,
+      search: search as string,
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+    });
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      logger.error('Admin getUsers failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        query: req.query,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve users',
-      });
-    }
+    res.json({
+      success: true,
+      data: result,
+    });
   }
 
   static async getUserById(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { userId } = req.params;
+    const { userId } = req.params;
 
-      const user = await AdminService.getUserById(userId);
+    const user = await AdminService.getUserById(userId);
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: user,
-      });
-    } catch (error) {
-      logger.error('Admin getUserById failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId: req.params.userId,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve user',
-      });
-    }
+    res.json({
+      success: true,
+      data: user,
+    });
   }
 
   static async updateUserStatus(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { userId } = req.params;
-      const { status } = req.body;
-      const adminId = req.user?.userId || 'system';
+    const { userId } = req.params;
+    const { status } = req.body;
+    const adminId = req.user?.userId || 'system';
 
-      const user = await AdminService.updateUserStatus(userId, status, adminId);
+    const user = await AdminService.updateUserStatus(userId, status, adminId);
 
-      // ADS-450 / ADS-464: capture request-level metadata (IP, user-agent)
-      // alongside the service-layer audit row so admin actions are
-      // forensically reconstructible.
-      await AuditLogService.log({
-        userId: adminId,
-        action: 'ADMIN_UPDATE_USER_STATUS',
-        entity: 'User',
-        entityId: userId,
-        details: { status },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent') || '',
-      });
+    // ADS-450 / ADS-464: capture request-level metadata (IP, user-agent)
+    // alongside the service-layer audit row so admin actions are
+    // forensically reconstructible.
+    await AuditLogService.log({
+      userId: adminId,
+      action: 'ADMIN_UPDATE_USER_STATUS',
+      entity: 'User',
+      entityId: userId,
+      details: { status },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || '',
+    });
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: user,
-      });
-    } catch (error) {
-      logger.error('Admin updateUserStatus failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId: req.params.userId,
-        status: req.body.status,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update user status',
-      });
-    }
+    res.json({
+      success: true,
+      data: user,
+    });
   }
 
   static async suspendUser(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { userId } = req.params;
-      const { reason } = req.body;
-      const adminId = req.user?.userId || 'system';
+    const { userId } = req.params;
+    const { reason } = req.body;
+    const adminId = req.user?.userId || 'system';
 
-      const user = await AdminService.suspendUser(userId, adminId, reason);
+    const user = await AdminService.suspendUser(userId, adminId, reason);
 
-      // ADS-450 / ADS-464: durable audit trail with request metadata.
-      await AuditLogService.log({
-        userId: adminId,
-        action: 'ADMIN_SUSPEND_USER',
-        entity: 'User',
-        entityId: userId,
-        details: { reason: reason ?? null },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent') || '',
-      });
+    // ADS-450 / ADS-464: durable audit trail with request metadata.
+    await AuditLogService.log({
+      userId: adminId,
+      action: 'ADMIN_SUSPEND_USER',
+      entity: 'User',
+      entityId: userId,
+      details: { reason: reason ?? null },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || '',
+    });
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: user,
-      });
-    } catch (error) {
-      logger.error('Admin suspendUser failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId: req.params.userId,
-        reason: req.body.reason,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        success: false,
-        message: 'Failed to suspend user',
-      });
-    }
+    res.json({
+      success: true,
+      data: user,
+    });
   }
 
   static async unsuspendUser(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { userId } = req.params;
-      const adminId = req.user?.userId || 'system';
+    const { userId } = req.params;
+    const adminId = req.user?.userId || 'system';
 
-      const user = await AdminService.unsuspendUser(userId, adminId);
+    const user = await AdminService.unsuspendUser(userId, adminId);
 
-      // ADS-450 / ADS-464: durable audit trail with request metadata.
-      await AuditLogService.log({
-        userId: adminId,
-        action: 'ADMIN_UNSUSPEND_USER',
-        entity: 'User',
-        entityId: userId,
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent') || '',
-      });
+    // ADS-450 / ADS-464: durable audit trail with request metadata.
+    await AuditLogService.log({
+      userId: adminId,
+      action: 'ADMIN_UNSUSPEND_USER',
+      entity: 'User',
+      entityId: userId,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || '',
+    });
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: user,
-      });
-    } catch (error) {
-      logger.error('Admin unsuspendUser failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId: req.params.userId,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        success: false,
-        message: 'Failed to unsuspend user',
-      });
-    }
+    res.json({
+      success: true,
+      data: user,
+    });
   }
 
   static async deleteUser(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { userId } = req.params;
-      const { reason } = req.body;
-      const adminId = req.user?.userId || 'system';
+    const { userId } = req.params;
+    const { reason } = req.body;
+    const adminId = req.user?.userId || 'system';
 
-      await AdminService.deleteUser(userId, adminId, reason);
+    await AdminService.deleteUser(userId, adminId, reason);
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        message: 'User deleted successfully',
-      });
-    } catch (error) {
-      logger.error('Admin deleteUser failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId: req.params.userId,
-        reason: req.body.reason,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        success: false,
-        message: 'Failed to delete user',
-      });
-    }
+    res.json({
+      success: true,
+      message: 'User deleted successfully',
+    });
   }
 
   static async getRescues(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { page = 1, limit = DEFAULT_PAGE_SIZE, status, search } = req.query;
+    const { page = 1, limit = DEFAULT_PAGE_SIZE, status, search } = req.query;
 
-      const result = await AdminService.getRescues({
-        status: status as string,
-        search: search as string,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-      });
+    const result = await AdminService.getRescues({
+      status: status as string,
+      search: search as string,
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+    });
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      logger.error('Admin getRescues failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        query: req.query,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve rescues',
-      });
-    }
+    res.json({
+      success: true,
+      data: result,
+    });
   }
 
   static async verifyRescue(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { rescueId } = req.params;
-      const adminId = req.user?.userId || 'system';
+    const { rescueId } = req.params;
+    const adminId = req.user?.userId || 'system';
 
-      const rescue = await AdminService.verifyRescue(rescueId, adminId);
+    const rescue = await AdminService.verifyRescue(rescueId, adminId);
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: rescue,
-      });
-    } catch (error) {
-      logger.error('Admin verifyRescue failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        rescueId: req.params.rescueId,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        success: false,
-        message: 'Failed to verify rescue',
-      });
-    }
+    res.json({
+      success: true,
+      data: rescue,
+    });
   }
 
   static async getSystemStatistics(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const statistics = await AdminService.getSystemStatistics();
+    const statistics = await AdminService.getSystemStatistics();
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
-      res.json({
-        success: true,
-        data: statistics,
-      });
-    } catch (error) {
-      logger.error('Admin getSystemStatistics failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve system statistics',
-      });
-    }
+    res.json({
+      success: true,
+      data: statistics,
+    });
   }
 
   static async getDashboardStats(req: AuthenticatedRequest, res: Response): Promise<void> {
     const startTime = Date.now();
 
-    try {
-      const { startDate, endDate } = req.query;
+    const { startDate, endDate } = req.query;
 
-      const stats = await AdminService.getPlatformMetrics();
+    const stats = await AdminService.getPlatformMetrics();
 
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-      res.json(stats);
-    } catch (error) {
-      logger.error('Failed to get dashboard stats:', {
-        error: error instanceof Error ? error.message : String(error),
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({ error: 'Failed to get dashboard stats' });
-    }
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+    res.json(stats);
   }
 
   static async getUsersAdmin(req: AuthenticatedRequest, res: Response): Promise<void> {
     const startTime = Date.now();
 
-    try {
-      const {
-        search,
-        role,
-        status,
-        _verificationStatus, // Prefix with underscore to indicate intentionally unused
-        page = 1,
-        limit = DEFAULT_PAGE_SIZE,
-        sortBy = 'createdAt',
-        sortOrder = 'DESC',
-      } = req.query;
+    const {
+      search,
+      role,
+      status,
+      _verificationStatus, // Prefix with underscore to indicate intentionally unused
+      page = 1,
+      limit = DEFAULT_PAGE_SIZE,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = req.query;
 
-      const allowedSortBy = ['email', 'firstName', 'lastName', 'createdAt', 'status'];
-      const safeSortBy = allowedSortBy.includes(sortBy as string)
-        ? (sortBy as string)
-        : 'createdAt';
-      const safeSortOrder =
-        (sortOrder as string)?.toUpperCase() === 'ASC' ? ('ASC' as const) : ('DESC' as const);
+    const allowedSortBy = ['email', 'firstName', 'lastName', 'createdAt', 'status'];
+    const safeSortBy = allowedSortBy.includes(sortBy as string) ? (sortBy as string) : 'createdAt';
+    const safeSortOrder =
+      (sortOrder as string)?.toUpperCase() === 'ASC' ? ('ASC' as const) : ('DESC' as const);
 
-      const parsedLimit = parseInt(limit as string);
+    const parsedLimit = parseInt(limit as string);
 
-      const result = await AdminService.getUsers({
-        search: search as string,
-        status: status as UserStatus,
-        userType: role as UserType,
-        page: parseInt(page as string),
+    const result = await AdminService.getUsers({
+      search: search as string,
+      status: status as UserStatus,
+      userType: role as UserType,
+      page: parseInt(page as string),
+      limit: parsedLimit,
+      sortBy: safeSortBy,
+      sortOrder: safeSortOrder,
+    });
+
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+    res.json({
+      success: true,
+      data: result.users,
+      pagination: {
+        page: result.page,
         limit: parsedLimit,
-        sortBy: safeSortBy,
-        sortOrder: safeSortOrder,
-      });
-
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-
-      res.json({
-        success: true,
-        data: result.users,
-        pagination: {
-          page: result.page,
-          limit: parsedLimit,
-          total: result.total,
-          pages: result.totalPages,
-        },
-      });
-    } catch (error) {
-      logger.error('Error searching users:', {
-        error: error instanceof Error ? error.message : String(error),
-        query: req.query,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to search users',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+        total: result.total,
+        pages: result.totalPages,
+      },
+    });
   }
 
   /**
@@ -972,116 +717,99 @@ export class AdminController {
   static async updateUserProfile(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { userId } = req.params;
-      const { firstName, lastName, email, phoneNumber, userType } = req.body;
-      const adminId = req.user!.userId;
+    const { userId } = req.params;
+    const { firstName, lastName, email, phoneNumber, userType } = req.body;
+    const adminId = req.user!.userId;
 
-      const user = await User.findByPk(userId);
-      if (!user) {
-        return res.status(404).json({
-          error: 'User not found',
-        });
-      }
-
-      const oldData = {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        userType: user.userType,
-      };
-
-      // Update user fields
-      if (firstName !== undefined) {
-        user.firstName = firstName;
-      }
-      if (lastName !== undefined) {
-        user.lastName = lastName;
-      }
-      if (email !== undefined) {
-        user.email = email;
-      }
-      if (phoneNumber !== undefined) {
-        user.phoneNumber = phoneNumber;
-      }
-      if (userType !== undefined) {
-        user.userType = userType;
-      }
-
-      await user.save();
-
-      // Log the change
-      await AuditLogService.log({
-        userId: adminId,
-        action: 'UPDATE',
-        entity: 'User',
-        entityId: userId,
-        details: {
-          old: oldData,
-          new: { firstName, lastName, email, phoneNumber, userType },
-        },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent') || '',
-      });
-
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-
-      res.json({
-        success: true,
-        data: user,
-        message: 'User profile updated successfully',
-      });
-    } catch (error) {
-      logger.error('Error updating user profile:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId: req.params.userId,
-        duration: Date.now() - startTime,
-      });
-      res.status(500).json({
-        error: 'Failed to update user profile',
-        message: error instanceof Error ? error.message : 'Unknown error',
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
       });
     }
+
+    const oldData = {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      userType: user.userType,
+    };
+
+    // Update user fields
+    if (firstName !== undefined) {
+      user.firstName = firstName;
+    }
+    if (lastName !== undefined) {
+      user.lastName = lastName;
+    }
+    if (email !== undefined) {
+      user.email = email;
+    }
+    if (phoneNumber !== undefined) {
+      user.phoneNumber = phoneNumber;
+    }
+    if (userType !== undefined) {
+      user.userType = userType;
+    }
+
+    await user.save();
+
+    // Log the change
+    await AuditLogService.log({
+      userId: adminId,
+      action: 'UPDATE',
+      entity: 'User',
+      entityId: userId,
+      details: {
+        old: oldData,
+        new: { firstName, lastName, email, phoneNumber, userType },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || '',
+    });
+
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+    res.json({
+      success: true,
+      data: user,
+      message: 'User profile updated successfully',
+    });
   }
 
   static async updateRescuePlan(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { rescueId } = req.params;
-      const { plan, planExpiresAt } = req.body as {
-        plan: RescuePlan;
-        planExpiresAt?: string | null;
-      };
+    const { rescueId } = req.params;
+    const { plan, planExpiresAt } = req.body as {
+      plan: RescuePlan;
+      planExpiresAt?: string | null;
+    };
 
-      const rescue = await Rescue.findByPk(rescueId);
-      if (!rescue) {
-        res.status(404).json({ error: 'Rescue not found' });
-        return;
-      }
-
-      const previousPlan = rescue.plan;
-      await rescue.update({
-        plan,
-        planExpiresAt: planExpiresAt ? new Date(planExpiresAt) : null,
-      });
-
-      await AuditLogService.log({
-        action: 'UPDATE_PLAN',
-        entity: 'Rescue',
-        entityId: rescueId,
-        details: { previousPlan, newPlan: plan, planExpiresAt: planExpiresAt ?? null },
-        userId: req.user?.userId ?? 'system',
-        ipAddress: req.ip ?? '',
-        userAgent: req.get('user-agent') ?? '',
-      });
-
-      res.json({
-        success: true,
-        data: { rescueId, plan, planExpiresAt: planExpiresAt ?? null },
-      });
-    } catch (error) {
-      logger.error('updateRescuePlan failed', { error });
-      res.status(500).json({ error: 'Failed to update rescue plan' });
+    const rescue = await Rescue.findByPk(rescueId);
+    if (!rescue) {
+      res.status(404).json({ error: 'Rescue not found' });
+      return;
     }
+
+    const previousPlan = rescue.plan;
+    await rescue.update({
+      plan,
+      planExpiresAt: planExpiresAt ? new Date(planExpiresAt) : null,
+    });
+
+    await AuditLogService.log({
+      action: 'UPDATE_PLAN',
+      entity: 'Rescue',
+      entityId: rescueId,
+      details: { previousPlan, newPlan: plan, planExpiresAt: planExpiresAt ?? null },
+      userId: req.user?.userId ?? 'system',
+      ipAddress: req.ip ?? '',
+      userAgent: req.get('user-agent') ?? '',
+    });
+
+    res.json({
+      success: true,
+      data: { rescueId, plan, planExpiresAt: planExpiresAt ?? null },
+    });
   }
 }

@@ -105,103 +105,95 @@ export class SupportTicketController {
    * Get all support tickets with filtering and pagination
    */
   static async getTickets(req: AuthenticatedRequest, res: Response) {
-    try {
-      const {
-        status,
-        priority,
-        category,
-        assignedTo,
-        userId,
-        search,
-        dateFrom,
-        dateTo,
-        page,
-        limit,
-        sortBy,
-        sortOrder,
-      } = req.query;
+    const {
+      status,
+      priority,
+      category,
+      assignedTo,
+      userId,
+      search,
+      dateFrom,
+      dateTo,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    } = req.query;
 
-      // Build filters with proper type casting
-      const filters: {
-        status?: TicketStatus | TicketStatus[];
-        priority?: TicketPriority | TicketPriority[];
-        category?: TicketCategory | TicketCategory[];
-        assignedTo?: string;
-        userId?: string;
-        search?: string;
-        dateFrom?: Date;
-        dateTo?: Date;
-      } = {};
+    // Build filters with proper type casting
+    const filters: {
+      status?: TicketStatus | TicketStatus[];
+      priority?: TicketPriority | TicketPriority[];
+      category?: TicketCategory | TicketCategory[];
+      assignedTo?: string;
+      userId?: string;
+      search?: string;
+      dateFrom?: Date;
+      dateTo?: Date;
+    } = {};
 
-      if (status) {
-        const statusArray = typeof status === 'string' ? status.split(',') : (status as string[]);
-        filters.status =
-          statusArray.length === 1
-            ? (statusArray[0] as TicketStatus)
-            : (statusArray as TicketStatus[]);
-      }
-      if (priority) {
-        const priorityArray =
-          typeof priority === 'string' ? priority.split(',') : (priority as string[]);
-        filters.priority =
-          priorityArray.length === 1
-            ? (priorityArray[0] as TicketPriority)
-            : (priorityArray as TicketPriority[]);
-      }
-      if (category) {
-        const categoryArray =
-          typeof category === 'string' ? category.split(',') : (category as string[]);
-        filters.category =
-          categoryArray.length === 1
-            ? (categoryArray[0] as TicketCategory)
-            : (categoryArray as TicketCategory[]);
-      }
-      if (assignedTo) {
-        filters.assignedTo = assignedTo as string;
-      }
-      if (userId) {
-        filters.userId = userId as string;
-      }
-      if (search) {
-        filters.search = search as string;
-      }
-      if (dateFrom) {
-        filters.dateFrom = new Date(dateFrom as string);
-      }
-      if (dateTo) {
-        filters.dateTo = new Date(dateTo as string);
-      }
-
-      const pagination: PaginationOptions = {};
-      if (page) {
-        pagination.page = parseInt(page as string, 10);
-      }
-      if (limit) {
-        pagination.limit = parseInt(limit as string, 10);
-      }
-      if (sortBy) {
-        pagination.sortBy = sortBy as string;
-      }
-      // Validate and cast sortOrder to ensure it's "ASC" | "DESC"
-      if (sortOrder) {
-        const upperOrder = (sortOrder as string).toUpperCase();
-        pagination.sortOrder = upperOrder === 'ASC' || upperOrder === 'DESC' ? upperOrder : 'DESC';
-      }
-
-      const result = await SupportTicketService.getTickets(filters, pagination);
-
-      res.json({
-        success: true,
-        data: result.tickets.map(serializeTicket),
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      logger.error('Error in getTickets:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to fetch support tickets',
-      });
+    if (status) {
+      const statusArray = typeof status === 'string' ? status.split(',') : (status as string[]);
+      filters.status =
+        statusArray.length === 1
+          ? (statusArray[0] as TicketStatus)
+          : (statusArray as TicketStatus[]);
     }
+    if (priority) {
+      const priorityArray =
+        typeof priority === 'string' ? priority.split(',') : (priority as string[]);
+      filters.priority =
+        priorityArray.length === 1
+          ? (priorityArray[0] as TicketPriority)
+          : (priorityArray as TicketPriority[]);
+    }
+    if (category) {
+      const categoryArray =
+        typeof category === 'string' ? category.split(',') : (category as string[]);
+      filters.category =
+        categoryArray.length === 1
+          ? (categoryArray[0] as TicketCategory)
+          : (categoryArray as TicketCategory[]);
+    }
+    if (assignedTo) {
+      filters.assignedTo = assignedTo as string;
+    }
+    if (userId) {
+      filters.userId = userId as string;
+    }
+    if (search) {
+      filters.search = search as string;
+    }
+    if (dateFrom) {
+      filters.dateFrom = new Date(dateFrom as string);
+    }
+    if (dateTo) {
+      filters.dateTo = new Date(dateTo as string);
+    }
+
+    const pagination: PaginationOptions = {};
+    if (page) {
+      pagination.page = parseInt(page as string, 10);
+    }
+    if (limit) {
+      pagination.limit = parseInt(limit as string, 10);
+    }
+    if (sortBy) {
+      pagination.sortBy = sortBy as string;
+    }
+    // Validate and cast sortOrder to ensure it's "ASC" | "DESC"
+    if (sortOrder) {
+      const upperOrder = (sortOrder as string).toUpperCase();
+      pagination.sortOrder = upperOrder === 'ASC' || upperOrder === 'DESC' ? upperOrder : 'DESC';
+    }
+
+    const result = await SupportTicketService.getTickets(filters, pagination);
+
+    res.json({
+      success: true,
+      data: result.tickets.map(serializeTicket),
+      pagination: result.pagination,
+    });
   }
 
   /**
@@ -239,50 +231,42 @@ export class SupportTicketController {
    * Create a new support ticket
    */
   static async createTicket(req: AuthenticatedRequest, res: Response) {
-    try {
-      const {
-        userId,
-        userEmail,
-        userName,
-        subject,
-        description,
-        category,
-        priority,
-        tags,
-        metadata,
-      } = req.body;
+    const {
+      userId,
+      userEmail,
+      userName,
+      subject,
+      description,
+      category,
+      priority,
+      tags,
+      metadata,
+    } = req.body;
 
-      // Validation
-      if (!userEmail || !subject || !description || !category) {
-        return res.status(400).json({
-          success: false,
-          error: 'Missing required fields: userEmail, subject, description, category',
-        });
-      }
-
-      const ticket = await SupportTicketService.createTicket({
-        userId,
-        userEmail,
-        userName,
-        subject,
-        description: RichTextProcessingService.sanitize(description),
-        category,
-        priority,
-        tags,
-        metadata,
-      });
-
-      res.status(201).json({
-        success: true,
-        data: serializeTicket(ticket),
-      });
-    } catch (error) {
-      logger.error('Error in createTicket:', error);
-      res.status(500).json({
+    // Validation
+    if (!userEmail || !subject || !description || !category) {
+      return res.status(400).json({
         success: false,
-        error: 'Failed to create support ticket',
+        error: 'Missing required fields: userEmail, subject, description, category',
       });
     }
+
+    const ticket = await SupportTicketService.createTicket({
+      userId,
+      userEmail,
+      userName,
+      subject,
+      description: RichTextProcessingService.sanitize(description),
+      category,
+      priority,
+      tags,
+      metadata,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: serializeTicket(ticket),
+    });
   }
 
   /**
@@ -478,20 +462,12 @@ export class SupportTicketController {
    * Get support ticket statistics
    */
   static async getTicketStats(req: AuthenticatedRequest, res: Response) {
-    try {
-      const stats = await SupportTicketService.getTicketStats();
+    const stats = await SupportTicketService.getTicketStats();
 
-      res.json({
-        success: true,
-        data: stats,
-      });
-    } catch (error) {
-      logger.error('Error in getTicketStats:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to fetch ticket statistics',
-      });
-    }
+    res.json({
+      success: true,
+      data: stats,
+    });
   }
 
   /**
@@ -499,32 +475,24 @@ export class SupportTicketController {
    * Get tickets assigned to the current agent
    */
   static async getMyTickets(req: AuthenticatedRequest, res: Response) {
-    try {
-      const agentId = req.user?.userId;
-      const { status } = req.query;
+    const agentId = req.user?.userId;
+    const { status } = req.query;
 
-      if (!agentId) {
-        return res.status(401).json({
-          success: false,
-          error: 'User not authenticated',
-        });
-      }
-
-      const tickets = await SupportTicketService.getAgentTickets(
-        agentId,
-        status as TicketStatus | undefined
-      );
-
-      res.json({
-        success: true,
-        data: tickets.map(serializeTicket),
-      });
-    } catch (error) {
-      logger.error('Error in getMyTickets:', error);
-      res.status(500).json({
+    if (!agentId) {
+      return res.status(401).json({
         success: false,
-        error: 'Failed to fetch assigned tickets',
+        error: 'User not authenticated',
       });
     }
+
+    const tickets = await SupportTicketService.getAgentTickets(
+      agentId,
+      status as TicketStatus | undefined
+    );
+
+    res.json({
+      success: true,
+      data: tickets.map(serializeTicket),
+    });
   }
 }
