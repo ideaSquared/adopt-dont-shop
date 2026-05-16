@@ -1,8 +1,9 @@
 import { ReactNode, lazy, Suspense } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -45,15 +46,36 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 function App() {
   // ADS-105: subscribe to backend analytics:invalidate events.
   useAnalyticsInvalidator();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/accept-invitation" element={<AcceptInvitation />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Suspense>
+
+        <DevLoginPanel />
+        <CookieBanner />
+      </>
+    );
+  }
+
   return (
     <>
-      {/* Public Routes */}
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/accept-invitation" element={<AcceptInvitation />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
 
-          {/* Protected Routes */}
           <Route
             path="*"
             element={
