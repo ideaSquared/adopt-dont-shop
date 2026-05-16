@@ -83,6 +83,11 @@ COPY lib.validation/ lib.validation/
 # Copy backend service (including entrypoint script)
 COPY service.backend/ service.backend/
 
+# legal-content.service.ts reads /app/docs/legal/*.md. In dev compose docs/
+# is bind-mounted on top of this, but CI runs with `volumes: !reset []` so
+# the image needs its own copy too.
+COPY docs/legal/ docs/legal/
+
 # Make entrypoint script executable
 RUN chmod +x /app/service.backend/docker-entrypoint.sh
 
@@ -196,6 +201,10 @@ WORKDIR /app
 COPY --from=build --chown=backend:nodejs /app/service.backend/dist ./service.backend/dist
 COPY --from=build --chown=backend:nodejs /app/service.backend/node_modules ./service.backend/node_modules
 COPY --from=build --chown=backend:nodejs /app/service.backend/package*.json ./service.backend/
+
+# legal-content.service.ts reads /app/docs/legal/*.md (path resolved from
+# service.backend/src/services). Without this, GET /api/v1/legal/* 500s.
+COPY --chown=backend:nodejs docs/legal/ ./docs/legal/
 
 # Switch to non-root user (security best practice)
 USER backend
