@@ -48,8 +48,9 @@ export class RescueApplicationService {
       }
       // ADS-575: petType / petBreed are now backend-supported filters
       // (case-insensitive match against the eager-loaded Pet record).
-      // referencesStatus / homeVisitStatus remain client-side stubs —
-      // see ApplicationFilter and applyClientSideFilters below.
+      // referencesStatus / homeVisitStatus are still unwired — the
+      // ApplicationList comment block documents why and tracks the
+      // follow-up.
       if (filter?.petType) {
         params.append('petType', filter.petType);
       }
