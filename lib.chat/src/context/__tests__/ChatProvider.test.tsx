@@ -771,4 +771,150 @@ describe('ChatProvider', () => {
     expect(latest?.messages[latest?.messages.length - 1].id).toBe('m-recent-49');
     expect(getMessagesSpy).toHaveBeenCalledTimes(2);
   });
+
+  // ADS-583: rescue staff need to mark conversations resolved/archived
+  // and have them automatically reopen when a participant replies.
+  describe('updateConversationStatus + auto-reopen', () => {
+    it('optimistically updates the local conversation status and calls the service', async () => {
+      const conv = buildConversation({ id: 'chat-1', status: 'active' });
+      const { chatService, tokenProvider } = buildHarness([conv]);
+      const updateSpy = vi
+        .spyOn(chatService, 'updateConversationStatus')
+        .mockResolvedValue({ ...conv, status: 'archived' });
+
+      let ctxRef: ReturnType<typeof useChat> | null = null;
+      const Capture = () => {
+        ctxRef = useChat();
+        return null;
+      };
+
+      render(
+        <ChatProvider
+          chatService={chatService}
+          user={{ userId: 'user-1' }}
+          isAuthenticated
+          tokenProvider={tokenProvider}
+        >
+          <Capture />
+        </ChatProvider>
+      );
+
+      await waitFor(() => expect(ctxRef?.conversations).toHaveLength(1));
+
+      await act(async () => {
+        await ctxRef!.updateConversationStatus('chat-1', 'archived');
+      });
+
+      expect(updateSpy).toHaveBeenCalledWith('chat-1', 'archived');
+      expect(ctxRef?.conversations[0].status).toBe('archived');
+    });
+
+    it('reverts the optimistic status change when the service call fails', async () => {
+      const conv = buildConversation({ id: 'chat-1', status: 'active' });
+      const { chatService, tokenProvider } = buildHarness([conv]);
+      vi.spyOn(chatService, 'updateConversationStatus').mockRejectedValue(new Error('nope'));
+
+      let ctxRef: ReturnType<typeof useChat> | null = null;
+      const Capture = () => {
+        ctxRef = useChat();
+        return null;
+      };
+
+      render(
+        <ChatProvider
+          chatService={chatService}
+          user={{ userId: 'user-1' }}
+          isAuthenticated
+          tokenProvider={tokenProvider}
+        >
+          <Capture />
+        </ChatProvider>
+      );
+
+      await waitFor(() => expect(ctxRef?.conversations).toHaveLength(1));
+
+      await act(async () => {
+        await expect(ctxRef!.updateConversationStatus('chat-1', 'archived')).rejects.toThrow(
+          'nope'
+        );
+      });
+
+      expect(ctxRef?.conversations[0].status).toBe('active');
+    });
+
+    it('reopens an archived conversation when another participant sends a message', async () => {
+      const conv = buildConversation({ id: 'chat-1', status: 'archived' });
+      const { chatService, tokenProvider } = buildHarness([conv]);
+
+      let ctxRef: ReturnType<typeof useChat> | null = null;
+      const Capture = () => {
+        ctxRef = useChat();
+        return null;
+      };
+
+      render(
+        <ChatProvider
+          chatService={chatService}
+          user={{ userId: 'user-1' }}
+          isAuthenticated
+          tokenProvider={tokenProvider}
+        >
+          <Capture />
+        </ChatProvider>
+      );
+
+      await waitFor(() => expect(ctxRef?.conversations).toHaveLength(1));
+      expect(ctxRef?.conversations[0].status).toBe('archived');
+
+      const incoming = buildMessage({
+        id: 'msg-from-adopter',
+        senderId: 'user-other',
+        content: 'one more question',
+      });
+      await act(async () => {
+        chatService.simulateIncomingMessage(incoming);
+      });
+
+      await waitFor(() => expect(ctxRef?.conversations[0].status).toBe('active'));
+    });
+
+    it('does not reopen when the resolver themselves replies to a resolved conversation', async () => {
+      const conv = buildConversation({ id: 'chat-1', status: 'archived' });
+      const { chatService, tokenProvider } = buildHarness([conv]);
+
+      let ctxRef: ReturnType<typeof useChat> | null = null;
+      const Capture = () => {
+        ctxRef = useChat();
+        return null;
+      };
+
+      render(
+        <ChatProvider
+          chatService={chatService}
+          user={{ userId: 'user-1' }}
+          isAuthenticated
+          tokenProvider={tokenProvider}
+        >
+          <Capture />
+        </ChatProvider>
+      );
+
+      await waitFor(() => expect(ctxRef?.conversations).toHaveLength(1));
+
+      const selfEcho = buildMessage({
+        id: 'msg-self',
+        senderId: 'user-1',
+        content: 'a note for the record',
+      });
+      await act(async () => {
+        chatService.simulateIncomingMessage(selfEcho);
+      });
+
+      // Status must remain archived — replying inside a resolved thread
+      // should not silently reopen it for the rescue staff member who
+      // closed it.
+      await waitFor(() => expect(ctxRef?.messages).toHaveLength(1));
+      expect(ctxRef?.conversations[0].status).toBe('archived');
+    });
+  });
 });

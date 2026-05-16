@@ -2,6 +2,8 @@ import type { ChatService } from '../services/chat-service';
 import type { Conversation, Message, ConnectionStatus } from '../types';
 import type { ConnectionQuality, OfflineAdapter } from './offline-adapter';
 
+export type ConversationStatus = NonNullable<Conversation['status']>;
+
 /**
  * Minimal authenticated-user shape the provider needs. Apps pass whatever
  * their auth layer exposes so long as it matches this.
@@ -65,6 +67,12 @@ export type ChatContextValue = {
   unreadMessageCount: number;
 
   setActiveConversation: (conversation: Conversation | null) => void;
+  /**
+   * Update a conversation's status (e.g. `archived` to mark resolved,
+   * `active` to reopen). Optimistically updates local state and
+   * persists via the backend.
+   */
+  updateConversationStatus: (conversationId: string, status: ConversationStatus) => Promise<void>;
   sendMessage: (content: string, attachments?: File[]) => Promise<void>;
   /**
    * Re-send a previously failed message by its client-side id. Reuses the

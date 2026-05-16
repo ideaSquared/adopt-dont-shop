@@ -835,4 +835,46 @@ describe('ChatService', () => {
       expect(init.credentials).toBe('include');
     });
   });
+
+  // ADS-583: rescue staff need to mark a conversation as resolved (archived
+  // on the backend) and optionally reopen it. The service is a thin PATCH
+  // wrapper; the provider does the optimistic state plumbing.
+  describe('updateConversationStatus', () => {
+    it('issues a PATCH to /api/v1/chats/:id with the new status and credentials', async () => {
+      const service = new ChatService({ apiUrl: 'https://api.test' });
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: () => Promise.resolve({ data: { id: 'chat-1', status: 'archived' } }),
+        } as Response)
+      );
+
+      const result = await service.updateConversationStatus('chat-1', 'archived');
+
+      const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      const url = call[0] as string;
+      const init = call[1] as RequestInit & { headers: Record<string, string> };
+      expect(url).toBe('https://api.test/api/v1/chats/chat-1');
+      expect(init.method).toBe('PATCH');
+      expect(init.credentials).toBe('include');
+      expect(JSON.parse(init.body as string)).toEqual({ status: 'archived' });
+      expect(result).toEqual({ id: 'chat-1', status: 'archived' });
+    });
+
+    it('throws when the backend rejects the status update', async () => {
+      const service = new ChatService({ apiUrl: 'https://api.test' });
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          json: () => Promise.resolve({}),
+        } as Response)
+      );
+
+      await expect(service.updateConversationStatus('chat-1', 'bogus')).rejects.toThrow(/HTTP 400/);
+    });
+  });
 });
