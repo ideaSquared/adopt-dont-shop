@@ -22,6 +22,15 @@ export const requiredNote = style({
   margin: '0 0 1.5rem 0',
 });
 
+export const errorSummary = style({
+  border: `1px solid ${vars.colors.semantic.error['500']}`,
+  background: vars.colors.semantic.error['50'],
+  padding: '0.75rem 1rem',
+  borderRadius: '0.375rem',
+  margin: '0 0 1.5rem 0',
+  color: vars.colors.semantic.error['700'],
+});
+
 export const visuallyHidden = style({
   position: 'absolute',
   width: '1px',

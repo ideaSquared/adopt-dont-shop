@@ -10,6 +10,36 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
+const firstName: Question = {
+  questionId: 'q3',
+  questionKey: 'first_name',
+  scope: 'core',
+  category: 'about',
+  questionType: 'text',
+  questionText: 'What is your first name?',
+  helpText: null,
+  placeholder: null,
+  options: null,
+  isRequired: true,
+  isEnabled: true,
+  displayOrder: 1,
+};
+
+const lastName: Question = {
+  questionId: 'q4',
+  questionKey: 'last_name',
+  scope: 'core',
+  category: 'about',
+  questionType: 'text',
+  questionText: 'What is your last name?',
+  helpText: null,
+  placeholder: null,
+  options: null,
+  isRequired: true,
+  isEnabled: true,
+  displayOrder: 2,
+};
+
 const homeOwnership: Question = {
   questionId: 'q1',
   questionKey: 'home_ownership',
@@ -84,5 +114,47 @@ describe('QuestionCategoryStep accessibility — conditional reveals', () => {
     // (the matcher catches both the visible label and the live-region announcement).
     expect(screen.getAllByText(/Do you have landlord permission/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/additional question/i)).toBeInTheDocument();
+  });
+});
+
+describe('QuestionCategoryStep accessibility — validation errors', () => {
+  it('focuses the first error field on submit', () => {
+    render(<Wrapper questions={[firstName, lastName]} initialAnswers={{}} />);
+
+    const form = document.getElementById('step-test-form');
+    expect(form).not.toBeNull();
+    if (!form) {
+      return;
+    }
+    fireEvent.submit(form);
+
+    const firstInput = screen.getAllByRole('textbox')[0];
+    expect(document.activeElement).toBe(firstInput);
+  });
+
+  it('renders a role="alert" summary listing the count of missing fields', () => {
+    render(<Wrapper questions={[firstName, lastName]} initialAnswers={{}} />);
+
+    const form = document.getElementById('step-test-form');
+    if (!form) {
+      return;
+    }
+    fireEvent.submit(form);
+
+    // There are also per-field role="alert" messages; the summary is the
+    // alert that mentions the count of missing fields.
+    const summary = screen
+      .getAllByRole('alert')
+      .find(node => /required fields? (is|are) missing/i.test(node.textContent ?? ''));
+    expect(summary).toBeDefined();
+    expect(summary).toHaveTextContent(/2 required fields are missing/i);
+    expect(summary).toHaveTextContent(/first name/i);
+    expect(summary).toHaveTextContent(/last name/i);
+  });
+
+  it('does not render the alert summary when there are no errors', () => {
+    render(<Wrapper questions={[firstName]} initialAnswers={{ first_name: 'Ada' }} />);
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

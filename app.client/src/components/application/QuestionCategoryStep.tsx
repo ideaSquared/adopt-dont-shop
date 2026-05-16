@@ -45,6 +45,7 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
   onChange,
 }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [missingFieldLabels, setMissingFieldLabels] = useState<readonly string[]>([]);
   const [touchedKeys, setTouchedKeys] = useState<Set<string>>(() => new Set());
   const [revealAnnouncement, setRevealAnnouncement] = useState<string>('');
   const previousVisibleKeys = useRef<Set<string> | null>(null);
@@ -84,24 +85,31 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
     e.preventDefault();
 
     const newErrors: Record<string, string> = {};
+    const missing: string[] = [];
     for (const q of questions) {
       if (!shouldShowQuestion(q, answers)) {
         continue;
       }
       if (q.isRequired && !hasAnswer(answers[q.questionKey])) {
         newErrors[q.questionKey] = "Don't forget this one 👀";
+        missing.push(q.questionText);
       }
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setMissingFieldLabels(missing);
       const firstKey = Object.keys(newErrors)[0];
-      document
-        .getElementById(`field-${firstKey}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const wrapper = document.getElementById(`field-${firstKey}`);
+      wrapper?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const focusable = wrapper?.querySelector<HTMLElement>(
+        'input, select, textarea, [role="radio"], [role="button"], button'
+      );
+      focusable?.focus();
       return;
     }
 
+    setMissingFieldLabels([]);
     onComplete(answers);
   };
 
@@ -112,6 +120,20 @@ export const QuestionCategoryStep: React.FC<QuestionCategoryStepProps> = ({
       <h2 className={styles.stepTitle}>{title}</h2>
       {description && <p className={styles.stepDescription}>{description}</p>}
       {hasRequired && <p className={styles.requiredNote}>Fields marked with * are required.</p>}
+
+      {missingFieldLabels.length > 0 && (
+        <div role='alert' className={styles.errorSummary}>
+          <p>
+            {missingFieldLabels.length} required{' '}
+            {missingFieldLabels.length === 1 ? 'field is' : 'fields are'} missing:
+          </p>
+          <ul>
+            {missingFieldLabels.map(label => (
+              <li key={label}>{label}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form id={`step-${stepId}-form`} onSubmit={handleSubmit} noValidate>
         <div aria-live='polite' aria-relevant='additions'>
