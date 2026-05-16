@@ -56,5 +56,5 @@ export const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
     [analyticsService]
   );
 
-  return <AnalyticsContext.Provider value={value}>{children}</AnalyticsContext.Provider>;
+  return <AnalyticsContext value={value}>{children}</AnalyticsContext>;
 };

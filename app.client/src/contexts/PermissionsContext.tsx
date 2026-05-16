@@ -106,5 +106,5 @@ export const PermissionsProvider = ({ children, userId }: PermissionsProviderPro
     [permissionsService, userPermissions, userWithPermissions, isLoading]
   );
 
-  return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>;
+  return <PermissionsContext value={value}>{children}</PermissionsContext>;
 };
