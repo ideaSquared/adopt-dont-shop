@@ -877,30 +877,42 @@ describe('ApplicationService - Business Logic', () => {
     it('narrows the search by pet type using a case-insensitive match', async () => {
       await ApplicationService.searchApplications({ petType: 'Dog' }, { page: 1, limit: 10 });
 
-      const callArgs = MockedApplication.findAndCountAll.mock.calls[0][0];
-      const whereWithPetType = callArgs.where as Record<string, { [key: symbol]: string }>;
       // The Pet.type filter is keyed by Sequelize's $association$ syntax
       // so it reaches the eager-loaded Pet record rather than the
-      // Application table directly.
-      expect(whereWithPetType['$Pet.type$']).toBeDefined();
+      // Application table directly. Comparing against the canonical
+      // `[Op.iLike]: 'Dog'` shape would tie the test to the Sequelize
+      // symbol implementation, so we just assert the path is present.
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ '$Pet.type$': expect.anything() }),
+        })
+      );
     });
 
     it('narrows the search by pet breed using a case-insensitive substring match', async () => {
       await ApplicationService.searchApplications({ petBreed: 'golden' }, { page: 1, limit: 10 });
 
-      const callArgs = MockedApplication.findAndCountAll.mock.calls[0][0];
-      const whereWithBreed = callArgs.where as Record<string, { [key: symbol]: string }>;
       // Breed lives on the lookup table eager-loaded via Pet->Breed.
-      expect(whereWithBreed['$Pet->Breed.name$']).toBeDefined();
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ '$Pet->Breed.name$': expect.anything() }),
+        })
+      );
     });
 
     it('omits pet filters from the query when no value is provided', async () => {
       await ApplicationService.searchApplications({}, { page: 1, limit: 10 });
 
-      const callArgs = MockedApplication.findAndCountAll.mock.calls[0][0];
-      const where = callArgs.where as Record<string, unknown>;
-      expect(where['$Pet.type$']).toBeUndefined();
-      expect(where['$Pet->Breed.name$']).toBeUndefined();
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({ '$Pet.type$': expect.anything() }),
+        })
+      );
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({ '$Pet->Breed.name$': expect.anything() }),
+        })
+      );
     });
   });
 

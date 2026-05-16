@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ApplicationFilter } from '../types/applications';
 
 const apiServiceMock = vi.hoisted(() => ({
-  get: vi.fn(),
+  get: vi.fn<(url: string) => Promise<unknown>>(),
 }));
 
 vi.mock('./libraryServices', () => ({
@@ -28,7 +28,7 @@ describe('RescueApplicationService.getApplications query parameters (ADS-575)', 
   const getRequestedUrl = (): string => {
     expect(apiServiceMock.get).toHaveBeenCalledTimes(1);
     const [url] = apiServiceMock.get.mock.calls[0];
-    return url as string;
+    return url;
   };
 
   const getRequestedParams = (): URLSearchParams => {
