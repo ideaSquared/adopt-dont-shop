@@ -66,6 +66,7 @@ interface PetCardProps {
 }
 
 const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete }) => {
+  'use memo';
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newStatus, setNewStatus] = useState<PetStatus>(pet.status as PetStatus);

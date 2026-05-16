@@ -27,6 +27,7 @@ const PetGrid: React.FC<PetGridProps> = ({
   onDeletePet,
   pagination,
 }) => {
+  'use memo';
   if (loading && pets.length === 0) {
     return (
       <div className={styles.loadingGrid}>
