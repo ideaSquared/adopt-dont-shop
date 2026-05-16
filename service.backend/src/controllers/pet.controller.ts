@@ -140,6 +140,8 @@ export class PetController {
         .replace('created_at', 'createdAt')
         .replace('adoption_fee', 'adoptionFeeMinor'),
       sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
+      includeArchived: req.query.includeArchived === 'true',
+      includeAdopted: req.query.includeAdopted === 'true',
     };
 
     const result = await this.petService.searchPets(filters, options);
@@ -154,15 +156,29 @@ export class PetController {
     };
     const petsData = result.pets.map(pet => {
       const distance = readDistance(pet);
-      // PetAttributes has typed fields, not an index signature; cast through
-      // `unknown` for the spread-into-record below.
       const petJson = pet.toJSON() as unknown as Record<string, unknown>;
-      return distance !== undefined ? { ...petJson, distance } : petJson;
+      const breedRel = petJson.Breed as { name?: string } | undefined;
+      const rescueRel = petJson.Rescue as { name?: string } | undefined;
+      const enriched: Record<string, unknown> = {
+        ...petJson,
+        breed: breedRel?.name ?? null,
+        rescueName: rescueRel?.name ?? null,
+      };
+      delete enriched.Breed;
+      delete enriched.SecondaryBreed;
+      delete enriched.Rescue;
+      return distance !== undefined ? { ...enriched, distance } : enriched;
     });
 
     res.status(200).json({
       success: true,
       data: petsData,
+      pagination: {
+        page: result.page,
+        limit: options.limit,
+        total: result.total,
+        pages: result.totalPages,
+      },
       meta: {
         total: result.total,
         page: result.page,
@@ -458,6 +474,12 @@ export class PetController {
     res.status(200).json({
       success: true,
       data: result.pets,
+      pagination: {
+        page: result.page,
+        limit,
+        total: result.total,
+        pages: result.totalPages,
+      },
       meta: {
         total: result.total,
         page: result.page,
@@ -527,6 +549,12 @@ export class PetController {
     res.status(200).json({
       success: true,
       data: result.pets,
+      pagination: {
+        page: result.page,
+        limit,
+        total: result.total,
+        pages: result.totalPages,
+      },
       meta: {
         total: result.total,
         page: result.page,

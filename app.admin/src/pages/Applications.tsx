@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
 import { FiSearch } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
-import { useApplications, useBulkUpdateApplications } from '../hooks';
+import { useApplications, useBulkUpdateApplications, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
 import { BulkConfirmationModal } from '../components/modals';
 import type { AdminApplication, ApplicationStatus } from '../services/applicationService';
@@ -33,6 +33,8 @@ const formatDate = (dateString: string) =>
 const Applications: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [rescueFilter, setRescueFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkApplicationActionType | null>(null);
@@ -40,11 +42,15 @@ const Applications: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, typeFilter, rescueFilter]);
+
+  const { data: rescuesList } = useRescuesList();
 
   const { data, isLoading, error } = useApplications({
     search: searchQuery || undefined,
     status: statusFilter !== 'all' ? (statusFilter as ApplicationStatus) : undefined,
+    petType: typeFilter !== 'all' ? typeFilter : undefined,
+    rescueId: rescueFilter !== 'all' ? rescueFilter : undefined,
     page,
     limit: 20,
   });
@@ -155,6 +161,45 @@ const Applications: React.FC = () => {
             <option value='approved'>Approved</option>
             <option value='rejected'>Rejected</option>
             <option value='withdrawn'>Withdrawn</option>
+          </select>
+        </div>
+
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor='apps-type-filter'>
+            Pet Type
+          </label>
+          <select
+            id='apps-type-filter'
+            className={styles.select}
+            value={typeFilter}
+            onChange={e => setTypeFilter(e.target.value)}
+          >
+            <option value='all'>All Types</option>
+            <option value='dog'>Dog</option>
+            <option value='cat'>Cat</option>
+            <option value='rabbit'>Rabbit</option>
+            <option value='bird'>Bird</option>
+            <option value='reptile'>Reptile</option>
+            <option value='other'>Other</option>
+          </select>
+        </div>
+
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor='apps-rescue-filter'>
+            Rescue
+          </label>
+          <select
+            id='apps-rescue-filter'
+            className={styles.select}
+            value={rescueFilter}
+            onChange={e => setRescueFilter(e.target.value)}
+          >
+            <option value='all'>All Rescues</option>
+            {rescuesList?.data.map(rescue => (
+              <option key={rescue.rescueId} value={rescue.rescueId}>
+                {rescue.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>

@@ -439,6 +439,12 @@ export class PetService {
         order: orderClause,
         limit,
         offset,
+        distinct: true,
+        include: [
+          { model: Breed, as: 'Breed', required: false },
+          { model: Breed, as: 'SecondaryBreed', required: false },
+          { model: Rescue, as: 'Rescue', required: false },
+        ],
       };
 
       const { rows: pets, count: total } = await Pet.findAndCountAll(queryOptions);

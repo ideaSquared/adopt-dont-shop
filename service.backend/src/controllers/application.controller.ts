@@ -86,6 +86,7 @@ export class ApplicationController extends BaseController {
         : {};
     const User = applicationModel.User as Record<string, unknown> | undefined;
     const Pet = applicationModel.Pet as Record<string, unknown> | undefined;
+    const Rescue = applicationModel.Rescue as Record<string, unknown> | undefined;
 
     // Extract personal info from answers (common pattern in adoption forms).
     // Answers live in the application_answers typed table now (plan 2.1).
@@ -217,6 +218,10 @@ export class ApplicationController extends BaseController {
       transformed.userEmail = User.email as string;
     }
 
+    if (Rescue) {
+      (transformed as Record<string, unknown>).rescueName = Rescue.name as string;
+    }
+
     return transformed;
   }
 
@@ -258,7 +263,7 @@ export class ApplicationController extends BaseController {
         sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
         include_user: true,
         include_pet: true,
-        include_rescue: false,
+        include_rescue: true,
       };
 
       const result = await ApplicationService.searchApplications(

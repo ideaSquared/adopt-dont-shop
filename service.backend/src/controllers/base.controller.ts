@@ -58,13 +58,28 @@ export class BaseController {
     message?: string,
     statusCode: number = 200
   ): Response {
-    return this.sendSuccess(res, data, message, statusCode, {
-      total: pagination.total,
-      page: pagination.page,
-      totalPages: pagination.totalPages,
-      hasNext: pagination.page < pagination.totalPages,
-      hasPrev: pagination.page > 1,
-    });
+    const response: Record<string, unknown> = {
+      success: true,
+      data,
+      pagination: {
+        page: pagination.page,
+        limit: pagination.limit,
+        total: pagination.total,
+        pages: pagination.totalPages,
+      },
+      // Legacy shape for callers that still read `meta` (lib.pets, lib.rescue).
+      meta: {
+        total: pagination.total,
+        page: pagination.page,
+        totalPages: pagination.totalPages,
+        hasNext: pagination.page < pagination.totalPages,
+        hasPrev: pagination.page > 1,
+      },
+    };
+    if (message) {
+      response.message = message;
+    }
+    return res.status(statusCode).json(response);
   }
 
   /**

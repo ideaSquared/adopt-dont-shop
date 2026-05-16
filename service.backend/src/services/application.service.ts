@@ -8,6 +8,7 @@ import ApplicationReferenceModel, {
 import HomeVisit, { HomeVisitStatus } from '../models/HomeVisit';
 import HomeVisitStatusTransition from '../models/HomeVisitStatusTransition';
 import StaffMember from '../models/StaffMember';
+import Rescue from '../models/Rescue';
 import { validateSortField } from '../utils/sort-validation';
 
 const APPLICATION_SORT_FIELDS = [
@@ -589,6 +590,7 @@ export class ApplicationService {
         sortOrder = 'DESC',
         include_user = true,
         include_pet = true,
+        include_rescue = false,
         include_deleted = false,
       } = options;
 
@@ -781,6 +783,13 @@ export class ApplicationService {
             'status',
           ],
           include: [{ model: Breed, as: 'Breed', attributes: ['breed_id', 'name'] }],
+        });
+      }
+      if (include_rescue) {
+        includeOptions.push({
+          model: Rescue,
+          as: 'Rescue',
+          attributes: ['rescueId', 'name'],
         });
       }
       // Always eager-load answer rows so the projected `answers`
