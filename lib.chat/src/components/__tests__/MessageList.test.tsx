@@ -143,6 +143,56 @@ describe('MessageList', () => {
     expect(screen.queryByTestId('load-earlier-messages')).toBeNull();
   });
 
+  it('announces the latest incoming message via an aria-live polite region', () => {
+    // Screen readers should be notified when the other party replies.
+    // We wrap a focused live region around the most recent incoming
+    // bubble's preview so AT users hear the new content without
+    // re-announcing the whole conversation history.
+    const currentUser = { userId: 'me', firstName: 'Me' };
+    const messages = [
+      buildTestMessage({
+        id: 'm-other',
+        senderId: 'other-user',
+        senderName: 'Sarah Johnson',
+        content: 'hi there',
+      }),
+    ];
+
+    renderWithChatContext(<MessageList messages={messages} />, {
+      value: buildChatContextValue({ currentUser }),
+    });
+
+    const liveRegion = screen.getByTestId('messages-live-region');
+    expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+    expect(liveRegion).toHaveAttribute('aria-relevant', 'additions');
+    // The latest incoming preview should be announced.
+    expect(liveRegion).toHaveTextContent(/Sarah Johnson/);
+    expect(liveRegion).toHaveTextContent(/hi there/);
+  });
+
+  it('labels each new bubble with sender and preview for screen readers', () => {
+    const currentUser = { userId: 'me', firstName: 'Me' };
+    const messages = [
+      buildTestMessage({
+        id: 'm-other',
+        senderId: 'other-user',
+        senderName: 'Sarah Johnson',
+        content: 'hi there friend',
+      }),
+    ];
+
+    renderWithChatContext(<MessageList messages={messages} />, {
+      value: buildChatContextValue({ currentUser }),
+    });
+
+    // The incoming bubble carries an aria-label naming the sender and
+    // a content preview so an AT user landing on the article hears
+    // both pieces of context.
+    expect(
+      screen.getByLabelText(/Message from Sarah Johnson: hi there friend/)
+    ).toBeInTheDocument();
+  });
+
   it('groups consecutive messages from the same sender within the window', () => {
     const currentUser = { userId: 'me', firstName: 'Me' };
     const messages = [

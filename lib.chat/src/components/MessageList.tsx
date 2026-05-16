@@ -189,6 +189,20 @@ export function MessageList({
     setVisibleCount((prev) => Math.min(safeMessages.length, prev + pageSize));
   };
 
+  // Latest *incoming* message drives the aria-live region. We deliberately
+  // exclude own messages — sending one is already a focused user action —
+  // and limit the region to a single preview so re-renders / scrolls
+  // don't re-announce the whole history.
+  const latestIncoming = useMemo(() => {
+    for (let i = safeMessages.length - 1; i >= 0; i -= 1) {
+      const msg = safeMessages[i];
+      if (!isMessageOwn(msg, currentUser?.userId, currentUser?.rescueId)) {
+        return msg;
+      }
+    }
+    return null;
+  }, [safeMessages, currentUser?.userId, currentUser?.rescueId]);
+
   if (safeMessages.length === 0) {
     return (
       <div className={styles.emptyMessages}>
@@ -231,6 +245,34 @@ export function MessageList({
           />
         </div>
       ))}
+      {/*
+        Single-message polite live region. Sits outside the visible message
+        flow (offscreen via aria attributes only) so screen readers
+        announce the latest incoming reply without re-announcing history
+        on every re-render. The content is just sender + preview; the full
+        message is still navigable through the rendered articles.
+      */}
+      <div
+        data-testid="messages-live-region"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-atomic="true"
+        style={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        {latestIncoming
+          ? `New message from ${latestIncoming.senderName}: ${latestIncoming.content}`
+          : ''}
+      </div>
     </div>
   );
 }

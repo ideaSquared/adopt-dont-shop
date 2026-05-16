@@ -66,6 +66,12 @@ export type ChatContextValue = {
 
   setActiveConversation: (conversation: Conversation | null) => void;
   sendMessage: (content: string, attachments?: File[]) => Promise<void>;
+  /**
+   * Re-send a previously failed message by its client-side id. Reuses the
+   * original optimistic bubble (same id), so a late-arriving success from
+   * an earlier attempt cannot create a duplicate.
+   */
+  retryMessage: (messageId: string) => Promise<void>;
   markAsRead: (conversationId: string) => Promise<void>;
   loadConversations: () => Promise<void>;
   loadMessages: (conversationId: string) => Promise<void>;
