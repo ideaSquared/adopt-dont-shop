@@ -332,6 +332,7 @@ export const PetUpdateDataSchema = z.object({
   featured: z.boolean().optional(),
   priorityListing: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
+  images: z.array(z.string()).optional(),
   status: PetStatusSchema.optional(),
 });
 

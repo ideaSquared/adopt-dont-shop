@@ -1,16 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Button } from '@adopt-dont-shop/lib.components';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button, Card } from '@adopt-dont-shop/lib.components';
+import { apiService, type ImageUploadResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData } from '@adopt-dont-shop/lib.pets';
 import * as styles from './PetFormModal.css';
+
+// ADS-574: image uploader configuration.
+//
+// `MAX_IMAGES` matches the rescue-side product cap (a handful of photos per
+// pet — not a hard backend limit, just a sensible UX ceiling).
+// `MAX_IMAGE_BYTES` mirrors the backend multer `petImageUpload` size limit
+// so we reject locally before the network round trip rather than after a
+// 413. The backend also magic-byte-checks the MIME so we still validate
+// `image/*` here to spare the user a server rejection.
+const MAX_IMAGES = 10;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = 'image/png,image/jpeg,image/jpg,image/webp,image/gif';
+
+type UploadedImage = {
+  // Local id keyed off the file slot so React can track items across reorders
+  // without using array index as the key.
+  localId: string;
+  filename: string;
+  status: 'uploading' | 'uploaded' | 'error';
+  // Populated once the upload succeeds. Stays undefined while uploading /
+  // after a failure so the submit payload only contains finalised URLs.
+  url?: string;
+  thumbnailUrl?: string;
+  errorMessage?: string;
+};
+
+type UploadImageFn = (file: File) => Promise<ImageUploadResponse>;
 
 interface PetFormModalProps {
   isOpen: boolean;
   pet?: Pet;
   onClose: () => void;
   onSubmit: (data: PetCreateData | PetUpdateData) => Promise<void>;
+  /**
+   * Test seam — defaults to the real `apiService.uploadImage`. The rescue
+   * page renders the modal without overriding this; tests inject a mock so
+   * they don't depend on `fetch`.
+   */
+  uploadImage?: UploadImageFn;
 }
 
-const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSubmit }) => {
+const PetFormModal: React.FC<PetFormModalProps> = ({
+  isOpen,
+  pet,
+  onClose,
+  onSubmit,
+  uploadImage = (file: File) => apiService.uploadImage(file),
+}) => {
   const [formData, setFormData] = useState<PetCreateData>({
     name: '',
     type: 'dog',
@@ -35,6 +75,18 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [images, setImages] = useState<UploadedImage[]>([]);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Monotonically increasing id so each upload slot has a stable React key
+  // across reorders / removals.
+  const nextLocalIdRef = useRef(0);
+  const allocateLocalId = (): string => {
+    const id = `img-${nextLocalIdRef.current}`;
+    nextLocalIdRef.current += 1;
+    return id;
+  };
 
   useEffect(() => {
     if (pet) {
@@ -74,6 +126,20 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
         medicalNotes: pet.medical_notes,
         behavioralNotes: pet.behavioral_notes,
       });
+      // Seed the uploader from the existing pet record so the editor can
+      // reorder / remove existing photos. Pet.images carries an
+      // order_index; we honour it via the array sort.
+      const seeded: UploadedImage[] = (pet.images ?? [])
+        .slice()
+        .sort((a, b) => a.order_index - b.order_index)
+        .map(img => ({
+          localId: allocateLocalId(),
+          filename: img.url.split('/').pop() ?? img.url,
+          status: 'uploaded' as const,
+          url: img.url,
+          thumbnailUrl: img.thumbnail_url,
+        }));
+      setImages(seeded);
     } else {
       setFormData({
         name: '',
@@ -96,8 +162,10 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
         energyLevel: 'medium',
         temperament: [],
       });
+      setImages([]);
     }
     setErrors({});
+    setImageError(null);
   }, [pet, isOpen]);
 
   const handleInputChange = (field: string, value: unknown) => {
@@ -147,6 +215,127 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
     return Object.keys(newErrors).length === 0;
   };
 
+  // ADS-574: image upload helpers.
+  //
+  // Each selected file gets a placeholder UploadedImage in `uploading` state
+  // appended synchronously. The upload runs asynchronously per-file (so a
+  // failure on one doesn't block the others) and patches the matching row
+  // by `localId` when it resolves. Submission only includes URLs from rows
+  // in the `uploaded` state so in-flight or failed uploads never leak into
+  // the create payload.
+  const validateImageFile = (file: File): string | null => {
+    if (!file.type.startsWith('image/')) {
+      return `${file.name} is not a supported image type.`;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      const mb = (MAX_IMAGE_BYTES / 1024 / 1024).toFixed(0);
+      return `${file.name} is too large. Maximum size is ${mb}MB.`;
+    }
+    return null;
+  };
+
+  const startUpload = (localId: string, file: File) => {
+    uploadImage(file)
+      .then(response => {
+        setImages(prev =>
+          prev.map(img =>
+            img.localId === localId
+              ? {
+                  ...img,
+                  status: 'uploaded',
+                  url: response.url,
+                  thumbnailUrl: response.thumbnail_url,
+                }
+              : img
+          )
+        );
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Upload failed.';
+        setImages(prev =>
+          prev.map(img =>
+            img.localId === localId
+              ? { ...img, status: 'error', errorMessage: `Upload failed: ${message}` }
+              : img
+          )
+        );
+      });
+  };
+
+  const handleFilesSelected = (fileList: FileList | null) => {
+    setImageError(null);
+    if (!fileList || fileList.length === 0) {
+      return;
+    }
+    const selected = Array.from(fileList);
+    const remainingSlots = Math.max(0, MAX_IMAGES - images.length);
+    const overflow = selected.length > remainingSlots;
+    const toProcess = overflow ? selected.slice(0, remainingSlots) : selected;
+
+    const newRows: UploadedImage[] = [];
+    for (const file of toProcess) {
+      const validation = validateImageFile(file);
+      if (validation) {
+        setImageError(validation);
+        continue;
+      }
+      const localId = allocateLocalId();
+      newRows.push({
+        localId,
+        filename: file.name,
+        status: 'uploading',
+      });
+      startUpload(localId, file);
+    }
+
+    if (newRows.length > 0) {
+      setImages(prev => [...prev, ...newRows]);
+    }
+
+    if (overflow) {
+      setImageError(`You can attach a maximum of ${MAX_IMAGES} images per pet.`);
+    }
+
+    // Allow re-selecting the same file later (browsers won't refire change
+    // for an identical FileList).
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (localId: string) => {
+    setImages(prev => prev.filter(img => img.localId !== localId));
+    setImageError(null);
+  };
+
+  const moveToPrimary = (localId: string) => {
+    setImages(prev => {
+      const idx = prev.findIndex(img => img.localId === localId);
+      if (idx <= 0) {
+        return prev;
+      }
+      const next = prev.slice();
+      const [moved] = next.splice(idx, 1);
+      next.unshift(moved);
+      return next;
+    });
+  };
+
+  const reorderImages = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) {
+      return;
+    }
+    setImages(prev => {
+      if (from >= prev.length || to >= prev.length) {
+        return prev;
+      }
+      const next = prev.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -154,9 +343,24 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
       return;
     }
 
+    // Only finalised uploads contribute to the submit payload — uploading /
+    // errored slots are dropped silently (the user sees them as not-yet-
+    // attached in the preview).
+    const imageUrls = images
+      .filter(
+        (img): img is UploadedImage & { url: string } =>
+          img.status === 'uploaded' && typeof img.url === 'string'
+      )
+      .map(img => img.url);
+
+    const payload: PetCreateData = {
+      ...formData,
+      images: imageUrls,
+    };
+
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      await onSubmit(payload);
       onClose();
     } catch (error) {
       console.error('Error submitting pet form:', error);
@@ -169,6 +373,8 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
   if (!isOpen) {
     return null;
   }
+
+  const remainingSlots = Math.max(0, MAX_IMAGES - images.length);
 
   return (
     <div
@@ -336,6 +542,99 @@ const PetFormModal: React.FC<PetFormModalProps> = ({ isOpen, pet, onClose, onSub
                 placeholder="Detailed description of the pet's personality, history, and needs"
                 rows={4}
               />
+            </div>
+
+            <div className={styles.formGroup({ fullWidth: true })}>
+              <label htmlFor="petImages">Add Pet Photos</label>
+              <input
+                id="petImages"
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ACCEPTED_IMAGE_TYPES}
+                onChange={e => handleFilesSelected(e.target.files)}
+                disabled={remainingSlots === 0}
+              />
+              <div className={styles.imageHelper}>
+                {remainingSlots} of {MAX_IMAGES} slots remaining. First photo is the primary listing
+                image — drag a photo to reorder or use &ldquo;Make primary&rdquo; to promote one.
+              </div>
+              {imageError && <div className="error">{imageError}</div>}
+
+              {images.length > 0 && (
+                <ul className={styles.imageList} aria-label="Attached pet photos">
+                  {images.map((img, index) => {
+                    const isPrimary = index === 0;
+                    const previewSrc = img.thumbnailUrl ?? img.url;
+                    return (
+                      <li
+                        key={img.localId}
+                        className={styles.imageItem}
+                        draggable={img.status === 'uploaded'}
+                        onDragStart={() => setDragIndex(index)}
+                        onDragOver={e => {
+                          if (dragIndex === null) {
+                            return;
+                          }
+                          e.preventDefault();
+                        }}
+                        onDrop={e => {
+                          if (dragIndex === null) {
+                            return;
+                          }
+                          e.preventDefault();
+                          reorderImages(dragIndex, index);
+                          setDragIndex(null);
+                        }}
+                        onDragEnd={() => setDragIndex(null)}
+                      >
+                        <div className={styles.imageThumbWrapper}>
+                          {previewSrc ? (
+                            <img
+                              className={styles.imageThumb}
+                              src={previewSrc}
+                              alt={img.filename}
+                            />
+                          ) : (
+                            <div className={styles.imageThumbPlaceholder} aria-hidden="true" />
+                          )}
+                          {isPrimary && <span className={styles.primaryBadge}>Primary</span>}
+                        </div>
+                        <div className={styles.imageMeta}>
+                          <span className={styles.imageFilename} title={img.filename}>
+                            {img.filename}
+                          </span>
+                          {img.status === 'uploading' && (
+                            <span className={styles.imageStatus}>Uploading...</span>
+                          )}
+                          {img.status === 'error' && (
+                            <span className={styles.imageStatusError}>
+                              {img.errorMessage ?? 'Upload failed'}
+                            </span>
+                          )}
+                        </div>
+                        <div className={styles.imageActions}>
+                          <button
+                            type="button"
+                            onClick={() => moveToPrimary(img.localId)}
+                            disabled={isPrimary || img.status !== 'uploaded'}
+                            aria-label={`Make primary: ${img.filename}`}
+                          >
+                            Make primary
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(img.localId)}
+                            aria-label={`Remove image: ${img.filename}`}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
 
             <div className={styles.formGroup()}>
