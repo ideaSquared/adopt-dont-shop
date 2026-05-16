@@ -4,14 +4,22 @@
  * Chat init failures are usually transient, so the retry is genuinely useful.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@/test-utils/render';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider, toast } from '@adopt-dont-shop/lib.components';
+import { toast } from '@adopt-dont-shop/lib.components';
 
 const startConversationMock = vi.fn();
 const getPetByIdMock = vi.fn();
 const isFavoriteMock = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useParams: () => ({ id: 'pet-1' }),
+    useNavigate: () => vi.fn(),
+  };
+});
 
 vi.mock('@adopt-dont-shop/lib.auth', async () => {
   const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.auth')>(
@@ -59,14 +67,24 @@ vi.mock('@/services', async () => {
 
 import { PetDetailsPage } from './PetDetailsPage';
 
-const renderPage = () =>
-  render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={['/pets/pet-1']}>
-        <PetDetailsPage />
-      </MemoryRouter>
-    </ThemeProvider>
-  );
+/**
+ * Narrow the loosely-typed sonner `action` (Action | ReactNode) to a plain
+ * { label, onClick } shape so the test can assert on the retry handler.
+ * The intermediate `Record<string, unknown>` cast is the minimum needed to
+ * read a property off `object` after the runtime `in` check.
+ */
+const isActionObject = (
+  value: unknown
+): value is { label: unknown; onClick: (event: unknown) => void } => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (!('label' in value) || !('onClick' in value)) {
+    return false;
+  }
+  const record: Record<string, unknown> = value;
+  return typeof record.onClick === 'function';
+};
 
 describe('PetDetailsPage chat init failure', () => {
   beforeEach(() => {
@@ -90,7 +108,7 @@ describe('PetDetailsPage chat init failure', () => {
     const user = userEvent.setup();
     startConversationMock.mockRejectedValueOnce(new Error('network down'));
 
-    renderPage();
+    render(<PetDetailsPage />);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /contact rescue/i })).toBeInTheDocument();
@@ -102,12 +120,14 @@ describe('PetDetailsPage chat init failure', () => {
       expect(toast.error).toHaveBeenCalledTimes(1);
     });
 
-    const [message, options] = vi.mocked(toast.error).mock.calls[0] as [
-      string,
-      { action: { label: string; onClick: () => void } },
-    ];
-    expect(message).toMatch(/failed to start conversation/i);
-    expect(options.action.label).toBe('Retry');
-    expect(typeof options.action.onClick).toBe('function');
+    const [message, options] = vi.mocked(toast.error).mock.calls[0];
+    expect(typeof message).toBe('string');
+    expect(String(message)).toMatch(/failed to start conversation/i);
+
+    const action = options?.action;
+    expect(isActionObject(action)).toBe(true);
+    if (isActionObject(action)) {
+      expect(action.label).toBe('Retry');
+    }
   });
 });
