@@ -7,6 +7,7 @@ import { ApplicationForm, ApplicationProgress, QuickApplyView } from '@/componen
 import type { CategoryGroup } from '@/components/application/ApplicationForm';
 import { DraftRestoreBanner } from '@/components/application/DraftRestoreBanner';
 import type { Question } from '@/components/application/QuestionField';
+import { SubmissionSuccess } from '@/components/application/SubmissionSuccess';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { petService, apiService, type Pet } from '@/services';
 import { applicationProfileService } from '@/services/applicationProfileService';
@@ -157,7 +158,10 @@ export const ApplicationPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // ADS-581: once the user submits, swap the form for a rich success view
+  // that names the next steps (confirmation email, response window, links to
+  // the dashboard) instead of a vague toast + 3s auto-redirect.
+  const [submittedApplicationId, setSubmittedApplicationId] = useState<string | null>(null);
   // ADS-581: draft restore is now explicit — the user has to opt in to seeing
   // their previous answers, or opt out by starting over. `null` = undecided
   // (banner showing); 'resume'/'startOver' = decided and banner hidden.
@@ -304,9 +308,7 @@ export const ApplicationPage: React.FC = () => {
       }
 
       clearDraft();
-      setSuccessMessage(
-        `You're in! 🎉 We've sent your application to ${pet.name}'s rescue — taking you to your application details now.`
-      );
+      setSubmittedApplicationId(result.data.applicationId);
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       // ADS-125: toast confirmation with a quick action to jump straight there.
@@ -316,12 +318,6 @@ export const ApplicationPage: React.FC = () => {
           onClick: () => navigate(`/applications/${result.data.applicationId}`),
         },
       });
-
-      setTimeout(() => {
-        navigate(`/applications/${result.data.applicationId}`, {
-          state: { message: `Application for ${pet.name} sent! 🐾` },
-        });
-      }, 3000);
     } catch (err) {
       console.error('Failed to submit application:', err);
       const message = err instanceof Error ? err.message : null;
@@ -376,6 +372,21 @@ export const ApplicationPage: React.FC = () => {
     );
   }
 
+  if (submittedApplicationId && pet) {
+    return (
+      <div className={styles.container}>
+        <SubmissionSuccess
+          petName={pet.name}
+          rescueName={pet.rescue?.name ?? 'this rescue'}
+          email={user?.email ?? ''}
+          applicationId={submittedApplicationId}
+          onViewApplication={() => navigate(`/applications/${submittedApplicationId}`)}
+          onViewAllApplications={() => navigate('/applications')}
+        />
+      </div>
+    );
+  }
+
   const showQuickApply = viewMode === 'quick' && pet && allQuestions.length > 0;
 
   return (
@@ -399,14 +410,6 @@ export const ApplicationPage: React.FC = () => {
         <div className={styles.sectionAlert}>
           <Alert variant='error' title='Error' onClose={() => setError(null)}>
             {error}
-          </Alert>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className={styles.sectionAlert}>
-          <Alert variant='success' title='Success' onClose={() => setSuccessMessage(null)}>
-            {successMessage}
           </Alert>
         </div>
       )}
