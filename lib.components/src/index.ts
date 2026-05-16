@@ -24,6 +24,8 @@ export { useToast } from './hooks/useToast';
 export type { ToastMessage, UseToastReturn } from './hooks/useToast';
 
 // Foundation Components
+export { Logo } from './components/ui/Logo';
+export type { LogoProps } from './components/ui/Logo';
 export { Avatar } from './components/ui/Avatar';
 export { Badge } from './components/ui/Badge';
 export { Button } from './components/ui/Button';

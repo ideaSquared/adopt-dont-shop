@@ -62,7 +62,7 @@ describe('AppShell', () => {
 
   it('renders the app navbar logo', () => {
     renderShell();
-    expect(screen.getByRole('link', { name: /adopt don't shop/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /adoptdontshop/i })).toBeInTheDocument();
   });
 
   it('renders the nested route content in the main region', () => {

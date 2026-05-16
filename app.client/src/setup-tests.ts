@@ -236,4 +236,22 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     dismiss: vi.fn(),
   }),
   Toaster: () => null,
+  Logo: ({
+    showWordmark,
+    darkBg: _darkBg,
+    size: _size,
+    className,
+    ...props
+  }: {
+    size?: number;
+    showWordmark?: boolean;
+    darkBg?: boolean;
+    className?: string;
+    [key: string]: unknown;
+  }) =>
+    React.createElement(
+      'span',
+      { 'aria-label': 'AdoptDontShop', className, ...props },
+      showWordmark ? 'AdoptDontShop' : null
+    ),
 }));
