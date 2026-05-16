@@ -85,27 +85,31 @@ const getStepLabel = (stepIndex: number, stage: string, finalOutcome?: string): 
   return labels[stepIndex] || '';
 };
 
-const getActionButtons = (application: ApplicationListItem) => {
+const getActionButtons = (
+  application: ApplicationListItem,
+  onSelect: (application: ApplicationListItem) => void
+) => {
   const actions = [];
   const stage = application.stage || 'PENDING';
+  const select = () => onSelect(application);
 
   // Stage-based actions
   switch (stage) {
     case 'PENDING':
-      actions.push({ label: 'Start Review', action: () => {}, variant: 'primary' as const });
+      actions.push({ label: 'Start Review', action: select, variant: 'primary' as const });
       break;
     case 'REVIEWING':
-      actions.push({ label: 'Schedule Visit', action: () => {}, variant: 'primary' as const });
+      actions.push({ label: 'Schedule Visit', action: select, variant: 'primary' as const });
       break;
     case 'VISITING':
     case 'DECIDING':
-      actions.push({ label: 'View Details', action: () => {}, variant: 'secondary' as const });
+      actions.push({ label: 'View Details', action: select, variant: 'secondary' as const });
       break;
     case 'RESOLVED':
-      actions.push({ label: 'View Details', action: () => {}, variant: 'secondary' as const });
+      actions.push({ label: 'View Details', action: select, variant: 'secondary' as const });
       break;
     default:
-      actions.push({ label: 'View', action: () => {}, variant: 'secondary' as const });
+      actions.push({ label: 'View', action: select, variant: 'secondary' as const });
   }
 
   return actions.slice(0, 2);
@@ -432,7 +436,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                     </td>
                     <td className={styles.tableCell} onClick={e => e.stopPropagation()}>
                       <div className={styles.actionsContainer}>
-                        {getActionButtons(application).map(action => (
+                        {getActionButtons(application, onApplicationSelect).map(action => (
                           <button
                             key={action.label}
                             className={styles.actionButton({ variant: action.variant })}
