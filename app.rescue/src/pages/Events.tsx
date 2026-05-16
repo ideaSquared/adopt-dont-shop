@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { Card } from '@adopt-dont-shop/lib.components';
+import { Card, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
 import { FiCalendar, FiPlus } from 'react-icons/fi';
 import * as styles from './Events.css';
 
@@ -50,6 +50,9 @@ const Events: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   // In-flight flag to prevent duplicate create/update/delete submissions.
   const [submitting, setSubmitting] = useState(false);
+
+  // ADS-586: confirm dialog for destructive event deletion.
+  const { confirm, confirmProps } = useConfirm();
 
   // Fetch events on mount and when filters change
   useEffect(() => {
@@ -140,7 +143,9 @@ const Events: React.FC = () => {
       setShowCreateModal(false);
     } catch (err) {
       console.error('Failed to create event:', err);
-      alert('Failed to create event. Please try again.');
+      toast.error('Failed to create event. Please try again.', {
+        action: { label: 'Retry', onClick: () => handleCreateEvent(eventData) },
+      });
     } finally {
       setSubmitting(false);
     }
@@ -170,7 +175,9 @@ const Events: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to update event:', err);
-      alert('Failed to update event. Please try again.');
+      toast.error('Failed to update event. Please try again.', {
+        action: { label: 'Retry', onClick: () => handleUpdateEvent(eventData) },
+      });
     } finally {
       setSubmitting(false);
     }
@@ -183,7 +190,14 @@ const Events: React.FC = () => {
     if (submitting) {
       return;
     }
-    if (!confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+    const confirmed = await confirm({
+      title: 'Delete event?',
+      message: 'Are you sure you want to delete this event? This action cannot be undone.',
+      confirmText: 'Delete event',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -195,7 +209,9 @@ const Events: React.FC = () => {
       setSelectedEvent(null);
     } catch (err) {
       console.error('Failed to delete event:', err);
-      alert('Failed to delete event. Please try again.');
+      toast.error('Failed to delete event. Please try again.', {
+        action: { label: 'Retry', onClick: () => handleDeleteEvent(eventId) },
+      });
     } finally {
       setSubmitting(false);
     }
@@ -215,7 +231,9 @@ const Events: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to update event status:', err);
-      alert('Failed to update event status. Please try again.');
+      toast.error('Failed to update event status. Please try again.', {
+        action: { label: 'Retry', onClick: () => handleUpdateEventStatus(eventId, status) },
+      });
     }
   };
 
@@ -264,7 +282,9 @@ const Events: React.FC = () => {
       setEventAttendees(updatedAttendees);
     } catch (err) {
       console.error('Failed to check in attendee:', err);
-      alert('Failed to check in attendee. Please try again.');
+      toast.error('Failed to check in attendee. Please try again.', {
+        action: { label: 'Retry', onClick: () => handleCheckInAttendee(userId) },
+      });
     }
   };
 
@@ -458,6 +478,8 @@ const Events: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };

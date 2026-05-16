@@ -52,10 +52,12 @@ const PetManagement: React.FC = () => {
       // Refresh the user data
       await refreshUser();
       setShowRescueSetup(false);
-      alert('Demo rescue created successfully! You can now manage pets.');
+      toast.success('Demo rescue created successfully! You can now manage pets.');
     } catch (error) {
       console.error('Error creating demo rescue:', error);
-      alert('Failed to create demo rescue. Please check the console for details.');
+      toast.error('Failed to create demo rescue. Please check the console for details.', {
+        action: { label: 'Retry', onClick: handleCreateDemoRescue },
+      });
     } finally {
       setLoading(false);
     }
@@ -291,7 +293,9 @@ const PetManagement: React.FC = () => {
               variant="outline"
               onClick={() => {
                 // Navigate to rescue creation form
-                alert('Full rescue registration coming soon. For now, please use the backend API.');
+                toast.info(
+                  'Full rescue registration coming soon. For now, please use the backend API.'
+                );
               }}
             >
               Register New Rescue
