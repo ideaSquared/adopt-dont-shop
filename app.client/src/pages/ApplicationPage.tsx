@@ -5,6 +5,7 @@ import * as styles from './ApplicationPage.css';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { ApplicationForm, ApplicationProgress, QuickApplyView } from '@/components/application';
 import type { CategoryGroup } from '@/components/application/ApplicationForm';
+import { DraftRestoreBanner } from '@/components/application/DraftRestoreBanner';
 import type { Question } from '@/components/application/QuestionField';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { petService, apiService, type Pet } from '@/services';
@@ -157,6 +158,10 @@ export const ApplicationPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // ADS-581: draft restore is now explicit — the user has to opt in to seeing
+  // their previous answers, or opt out by starting over. `null` = undecided
+  // (banner showing); 'resume'/'startOver' = decided and banner hidden.
+  const [draftDecision, setDraftDecision] = useState<'resume' | 'startOver' | null>(null);
 
   const { saveStatus, lastSaved, scheduleSave, saveNow, clearDraft, loadedDraft } =
     useAutoSave<Record<string, unknown>>(petId);
@@ -211,7 +216,7 @@ export const ApplicationPage: React.FC = () => {
     }
   }, [petId, navigate, user]);
 
-  useEffect(() => {
+  const handleResumeDraft = useCallback(() => {
     if (!loadedDraft) {
       return;
     }
@@ -222,7 +227,13 @@ export const ApplicationPage: React.FC = () => {
     // draft reflects the user's own typed answers.
     setPrefilledKeys(new Set());
     setViewMode('guided');
+    setDraftDecision('resume');
   }, [loadedDraft]);
+
+  const handleStartOver = useCallback(() => {
+    clearDraft();
+    setDraftDecision('startOver');
+  }, [clearDraft]);
 
   useEffect(() => {
     if (authLoading) {
@@ -373,12 +384,15 @@ export const ApplicationPage: React.FC = () => {
         <div className={styles.header}>
           <h1>Let&apos;s get you adopting {pet?.name} 🐾</h1>
           <p>A few quick questions and {pet?.name}&apos;s rescue will take it from there.</p>
-          {loadedDraft && (
-            <p className={styles.draftWelcome}>
-              Welcome back — we picked up where you left off. ✨
-            </p>
-          )}
         </div>
+      )}
+
+      {loadedDraft && draftDecision === null && (
+        <DraftRestoreBanner
+          savedAt={new Date(loadedDraft.savedAt)}
+          onResume={handleResumeDraft}
+          onStartOver={handleStartOver}
+        />
       )}
 
       {error && (

@@ -32,11 +32,6 @@ export const backToSearchButton = style({
   marginTop: '1rem',
 });
 
-export const draftWelcome = style({
-  fontSize: '0.9rem',
-  fontStyle: 'italic',
-});
-
 export const sectionAlert = style({
   marginBottom: '2rem',
 });
