@@ -16,7 +16,7 @@ import {
 import { RescueController } from '../controllers/rescue.controller';
 import GdprController, { gdprValidation } from '../controllers/gdpr.controller';
 import { QuestionController } from '../controllers/question.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, optionalAuth } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import {
   invitationSendLimiter,
@@ -279,6 +279,7 @@ const validateSendEmail = validateBody(
 router.get(
   '/',
   searchLimiter,
+  optionalAuth,
   validateSearchQuery,
   fieldMask('rescues'),
   rescueController.searchRescues
