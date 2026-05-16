@@ -317,7 +317,12 @@ export class ChatController {
         participants: participants.map(p => ({ id: p.id, name: p.name })),
       });
 
-      const unreadCount = userId
+      const isParticipant = (chatObj.Participants as ParticipantWithUser[] | undefined)?.some(
+        p => p.participant_id === userId
+      );
+      const isRescueStaffOfChat = !!userRescueId && chatObj.rescue_id === userRescueId;
+      const canCountUnread = !!userId && (isParticipant || isRescueStaffOfChat);
+      const unreadCount = canCountUnread
         ? await ChatService.getUnreadMessageCount(chatObj.chat_id, userId, userRescueId)
         : 0;
 
