@@ -672,14 +672,10 @@ const startServer = async () => {
         }
 
         // DB-level invariants that aren't expressible in Sequelize models.
-        // Idempotent and Postgres-gated; safe to run on every boot path
-        // (force-seed, fresh DB, warm reload). Independent — run in parallel.
-        // installAuditLogsImmutableTrigger is called unconditionally
-        // outside this dev block — see comment below.
-        await Promise.all([
-          installImmutableCreatedAtTriggers(Object.values(models)),
-          installIsoCheckConstraints(),
-        ]);
+        // The actual installer calls run in the unconditional Postgres
+        // block below — see the long comment there. Keep this comment
+        // for grep-ability when future hands look for installer wiring
+        // inside the dev sync path.
       } catch (error) {
         logger.error('Failed to sync database models:', error);
         throw error;
@@ -688,29 +684,30 @@ const startServer = async () => {
 
     // DB-level invariants that aren't expressible in Sequelize models
     // and aren't created by the schema bootstrap (sync in dev, baseline
-    // migrations in prod). Postgres-only, idempotent (CREATE OR REPLACE
-    // FUNCTION / DROP TRIGGER IF EXISTS), so safe regardless of
-    // environment or whether the DB is fresh.
+    // migrations in prod). Postgres-only, idempotent (skip-if-exists
+    // checks inside each installer), so safe regardless of environment
+    // or whether the DB is fresh.
     //
-    // History: migration 11-add-audit-log-immutable-trigger originally
-    // installed the audit_logs trigger as part of the prod migration
-    // sidecar; PR #521 dropped that migration when the forward
-    // migrations were folded into models/installers. This boot-time
-    // call replaces it so fresh prod DBs continue to get the trigger.
-    //
-    // installImmutableCreatedAtTriggers and installIsoCheckConstraints
-    // run only in dev (their schema-creation pair, sequelize.sync(),
-    // only runs in dev) — prod's broader trigger coverage is a separate
-    // concern beyond this fix.
+    // Why outside the dev block: the broader trigger / check-constraint
+    // coverage was never installed in prod (latent gap pre-dating
+    // ADS-531). When PR #521 dropped migration 11, prod also lost the
+    // audit_logs trigger on fresh deploys — fixed in #522. Lifting the
+    // remaining two installers out of the dev gate closes that latent
+    // gap. Each installer logs failures but does not re-throw — they're
+    // defence in depth, not a hard correctness requirement, so a
+    // failure shouldn't wedge the HTTP server before it comes up.
     if (sequelize.getDialect() === 'postgres') {
-      try {
-        await installAuditLogsImmutableTrigger();
-      } catch (error) {
-        logger.error('Failed to install audit_logs immutable trigger:', error);
-        // Non-fatal — the trigger is defence in depth (ADS-508). Boot
-        // continues so the HTTP server still comes up; the install
-        // failure is loud in logs for operators to investigate.
-      }
+      await Promise.all([
+        installImmutableCreatedAtTriggers(Object.values(models)).catch(error => {
+          logger.error('Failed to install immutable-created-at triggers:', error);
+        }),
+        installIsoCheckConstraints().catch(error => {
+          logger.error('Failed to install ISO check constraints:', error);
+        }),
+        installAuditLogsImmutableTrigger().catch(error => {
+          logger.error('Failed to install audit_logs immutable trigger:', error);
+        }),
+      ]);
     }
 
     // Start listening
