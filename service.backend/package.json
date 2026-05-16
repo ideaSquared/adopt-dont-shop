@@ -48,7 +48,7 @@
     "bullmq": "^5.20.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
-    "cron-parser": "^4.9.0",
+    "cron-parser": "^5.5.0",
     "csrf-csrf": "^4.0.3",
     "dotenv": "^17.4.2",
     "express": "^5.0.0",
