@@ -33,6 +33,7 @@ export interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {
   noMargin?: boolean;
   className?: string;
   children: React.ReactNode;
+  ref?: React.Ref<HTMLHeadingElement>;
 }
 
 const defaultSizeForLevel: Record<HeadingLevel, HeadingSize> = {
@@ -44,44 +45,38 @@ const defaultSizeForLevel: Record<HeadingLevel, HeadingSize> = {
   h6: 'md',
 };
 
-export const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
-  (
-    {
-      level = 'h2',
-      size,
-      weight = 'semibold',
-      align = 'left',
-      color = 'body',
-      truncate = false,
-      noMargin = false,
-      className = '',
-      children,
-      ...rest
-    },
-    ref
-  ) => {
-    const Tag = level;
-    const headingSize = size ?? defaultSizeForLevel[level];
+export const Heading = ({
+  level = 'h2',
+  size,
+  weight = 'semibold',
+  align = 'left',
+  color = 'body',
+  truncate = false,
+  noMargin = false,
+  className = '',
+  children,
+  ref,
+  ...rest
+}: HeadingProps) => {
+  const Tag = level;
+  const headingSize = size ?? defaultSizeForLevel[level];
 
-    return (
-      <Tag
-        ref={ref}
-        className={clsx(
-          styles.base,
-          styles.sizes[headingSize],
-          styles.weights[weight],
-          styles.colors[color],
-          styles.aligns[align],
-          noMargin ? styles.margins.none : styles.margins[level],
-          truncate && styles.truncate,
-          className
-        )}
-        {...rest}
-      >
-        {children}
-      </Tag>
-    );
-  }
-);
-
-Heading.displayName = 'Heading';
+  return (
+    <Tag
+      ref={ref}
+      className={clsx(
+        styles.base,
+        styles.sizes[headingSize],
+        styles.weights[weight],
+        styles.colors[color],
+        styles.aligns[align],
+        noMargin ? styles.margins.none : styles.margins[level],
+        truncate && styles.truncate,
+        className
+      )}
+      {...rest}
+    >
+      {children}
+    </Tag>
+  );
+};

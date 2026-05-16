@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import type { Ref } from 'react';
 import clsx from 'clsx';
 
 import {
@@ -39,88 +39,83 @@ export type RadioInputProps = {
   className?: string;
   'data-testid'?: string;
   onChange?: (value: string) => void;
+  ref?: Ref<HTMLInputElement>;
 };
 
-export const RadioInput = forwardRef<HTMLInputElement, RadioInputProps>(
-  (
-    {
-      name,
-      options,
-      value,
-      defaultValue,
-      size = 'md',
-      state = 'default',
-      disabled = false,
-      required = false,
-      label,
-      error,
-      helperText: helperTextProp,
-      direction = 'vertical',
-      fullWidth = false,
-      className,
-      'data-testid': testId,
-      onChange,
-      ...props
-    },
-    ref
-  ) => {
-    const handleChange = (optionValue: string) => {
-      if (onChange) {
-        onChange(optionValue);
-      }
-    };
+export const RadioInput = ({
+  name,
+  options,
+  value,
+  defaultValue,
+  size = 'md',
+  state = 'default',
+  disabled = false,
+  required = false,
+  label,
+  error,
+  helperText: helperTextProp,
+  direction = 'vertical',
+  fullWidth = false,
+  className,
+  'data-testid': testId,
+  onChange,
+  ref,
+  ...props
+}: RadioInputProps) => {
+  const handleChange = (optionValue: string) => {
+    if (onChange) {
+      onChange(optionValue);
+    }
+  };
 
-    const finalState = error ? 'error' : state;
-    const finalHelperText = error || helperTextProp;
+  const finalState = error ? 'error' : state;
+  const finalHelperText = error || helperTextProp;
 
-    return (
-      <div className={clsx(radioContainer({ fullWidth }), className)} data-testid={testId}>
-        {label && <label className={groupLabel({ required })}>{label}</label>}
+  return (
+    <div className={clsx(radioContainer({ fullWidth }), className)} data-testid={testId}>
+      {label && <label className={groupLabel({ required })}>{label}</label>}
 
-        <div className={radioGroup[direction]}>
-          {options.map((option, index) => {
-            const isOptionDisabled = disabled || option.disabled || false;
-            const isChecked = value === option.value;
+      <div className={radioGroup[direction]}>
+        {options.map((option, index) => {
+          const isOptionDisabled = disabled || option.disabled || false;
+          const isChecked = value === option.value;
 
-            return (
-              <label
-                key={option.value}
-                className={radioOptionContainer({ disabled: isOptionDisabled })}
-              >
-                <input
-                  type='radio'
-                  ref={index === 0 ? ref : undefined}
-                  name={name}
-                  value={option.value}
-                  {...(value !== undefined
-                    ? { checked: isChecked }
-                    : { defaultChecked: defaultValue === option.value })}
-                  disabled={isOptionDisabled}
-                  required={required}
-                  onChange={() => handleChange(option.value)}
-                  className={hiddenRadio}
-                  {...props}
-                />
-                <div
-                  className={clsx(
-                    styledRadio({
-                      state: finalState,
-                      checked: isChecked,
-                      disabled: isOptionDisabled,
-                    }),
-                    styledRadioSizes[size]
-                  )}
-                />
-                <span className={optionLabel}>{option.label}</span>
-              </label>
-            );
-          })}
-        </div>
-
-        {finalHelperText && <div className={helperText[finalState]}>{finalHelperText}</div>}
+          return (
+            <label
+              key={option.value}
+              className={radioOptionContainer({ disabled: isOptionDisabled })}
+            >
+              <input
+                type='radio'
+                ref={index === 0 ? ref : undefined}
+                name={name}
+                value={option.value}
+                {...(value !== undefined
+                  ? { checked: isChecked }
+                  : { defaultChecked: defaultValue === option.value })}
+                disabled={isOptionDisabled}
+                required={required}
+                onChange={() => handleChange(option.value)}
+                className={hiddenRadio}
+                {...props}
+              />
+              <div
+                className={clsx(
+                  styledRadio({
+                    state: finalState,
+                    checked: isChecked,
+                    disabled: isOptionDisabled,
+                  }),
+                  styledRadioSizes[size]
+                )}
+              />
+              <span className={optionLabel}>{option.label}</span>
+            </label>
+          );
+        })}
       </div>
-    );
-  }
-);
 
-RadioInput.displayName = 'RadioInput';
+      {finalHelperText && <div className={helperText[finalState]}>{finalHelperText}</div>}
+    </div>
+  );
+};
