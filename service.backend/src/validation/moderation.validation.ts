@@ -54,6 +54,7 @@ export const moderationValidation = {
       .withMessage(`sortBy must be one of: ${REPORT_SORT_FIELDS.join(', ')}`),
     query('sortOrder')
       .optional()
+      .customSanitizer(value => (typeof value === 'string' ? value.toUpperCase() : value))
       .isIn(['ASC', 'DESC'])
       .withMessage('sortOrder must be ASC or DESC'),
   ],
