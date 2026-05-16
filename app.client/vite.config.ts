@@ -43,10 +43,9 @@ export default defineConfig(({ mode }) => {
         '@': resolve(__dirname, './src'),
         ...libraryAliases,
       },
-      dedupe: ['styled-components', 'react', 'react-dom'],
+      dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
-      include: ['styled-components'],
       exclude: [
         '@testing-library/dom',
         '@testing-library/react',
@@ -109,9 +108,6 @@ export default defineConfig(({ mode }) => {
             }
             if (id.includes('react-router')) {
               return 'router-vendor';
-            }
-            if (id.includes('styled-components')) {
-              return 'styled-components';
             }
             if (id.includes('react-dom') || /\/react\//.test(id)) {
               return 'react-vendor';

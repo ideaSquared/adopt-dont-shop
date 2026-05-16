@@ -1,16 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 
 import { darkTheme, highContrastTheme, lightTheme, Theme, ThemeMode } from './theme';
 import { darkThemeClass, highContrastThemeClass, lightThemeClass } from './theme.css';
 import './GlobalStyles.css';
-
-// Keep DefaultTheme augmented while consuming apps still use styled-components.
-// Remove once all app.* styled-components are migrated to Vanilla Extract.
-declare module 'styled-components' {
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  export interface DefaultTheme extends Theme {}
-}
 
 type ThemeContextType = {
   theme: Theme;
@@ -157,7 +149,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
         toggleHighContrast,
       }}
     >
-      <StyledThemeProvider theme={theme}>{children}</StyledThemeProvider>
+      {children}
     </ThemeContext.Provider>
   );
 };

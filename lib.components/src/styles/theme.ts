@@ -546,9 +546,10 @@ export const darkTheme: Theme = {
   },
 };
 
-// ADS-137: High-contrast theme for styled-components consumers. Mirrors the
-// vanilla-extract `highContrastThemeClass` so styled-components reading
-// theme.text.primary etc. resolve to the same tokens.
+// ADS-137: High-contrast theme. Mirrors the vanilla-extract
+// `highContrastThemeClass` so any consumer reading `useTheme().theme`
+// (the JS Theme object) sees the same tokens that the .css.ts files
+// render to CSS variables.
 export const highContrastTheme: Theme = {
   ...baseTheme,
   mode: 'high-contrast',
