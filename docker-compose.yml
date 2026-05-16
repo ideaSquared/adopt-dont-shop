@@ -136,11 +136,12 @@ services:
 
   lib-types-watcher:
     image: node:22-alpine
-    working_dir: /app/lib.types
+    working_dir: /app
     volumes:
-      - ./lib.types:/app/lib.types
+      - .:/app
+      - /app/node_modules
       - lib_types_node_modules:/app/lib.types/node_modules
-    command: sh -c "npm install --prefer-offline && npm run dev"
+    command: sh -c "npm install --workspace=@adopt-dont-shop/lib.types --include-workspace-root --prefer-offline && npm run -w @adopt-dont-shop/lib.types dev"
     restart: unless-stopped
 
   # ============================================================================
