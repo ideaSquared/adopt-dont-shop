@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
+import { ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
 import { formatStatusName } from '../../utils/statusUtils';
 import {
   TimelineEventType,
@@ -199,7 +199,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       setShowAddEvent(false);
     } catch (error) {
       console.error('Failed to add timeline event:', error);
-      alert('Failed to add timeline event. Please try again.');
+      toast.error('Failed to add timeline event. Please try again.', {
+        action: { label: 'Retry', onClick: handleAddEvent },
+      });
     } finally {
       setIsAddingEvent(false);
     }
@@ -373,8 +375,14 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     } catch (error) {
       console.error('Failed to update reference:', error);
       // Show user-friendly error message
-      alert(
-        `Failed to update reference: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to update reference: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        {
+          action: {
+            label: 'Retry',
+            onClick: () => handleReferenceUpdate(referenceId, status, notes),
+          },
+        }
       );
     }
   };
@@ -426,8 +434,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to schedule visit:', error);
-      alert(
-        `Failed to schedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to schedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: handleScheduleVisit } }
       );
     } finally {
       setIsSchedulingVisit(false);
@@ -446,7 +455,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to mark visit as in progress:', error);
-      alert(`Failed to update visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to mark visit as in progress: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: () => handleMarkVisitInProgress(visitId) } }
+      );
     }
   };
 
@@ -472,8 +484,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to reschedule visit:', error);
-      alert(
-        `Failed to reschedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to reschedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: () => handleRescheduleVisit(visitId) } }
       );
     }
   };
@@ -506,8 +519,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to complete visit:', error);
-      alert(
-        `Failed to complete visit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to complete visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: () => handleCompleteVisit(visitId) } }
       );
     }
   };
@@ -530,7 +544,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to cancel visit:', error);
-      alert(`Failed to cancel visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to cancel visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: () => handleCancelVisit(visitId) } }
+      );
     }
   };
 
@@ -613,8 +630,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     } catch (error) {
       console.error('Failed to update application status:', error);
       // Show user-friendly error message
-      alert(
-        `Failed to update application status: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to update application status: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: handleStatusUpdate } }
       );
     } finally {
       setIsUpdatingStatus(false);

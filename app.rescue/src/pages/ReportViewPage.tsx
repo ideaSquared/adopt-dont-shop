@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Heading, ReportRenderer, Text } from '@adopt-dont-shop/lib.components';
+import {
+  ConfirmDialog,
+  Heading,
+  ReportRenderer,
+  Text,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import {
   useDeleteReport,
   useExecuteSavedReport,
@@ -33,6 +39,8 @@ const ReportViewPage: React.FC = () => {
   const [cron, setCron] = useState('0 9 * * 1');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  // ADS-586: confirm dialog for destructive report deletion.
+  const { confirm, confirmProps } = useConfirm();
 
   if (!id) {
     return (
@@ -57,7 +65,14 @@ const ReportViewPage: React.FC = () => {
   }
 
   const handleDelete = async (): Promise<void> => {
-    if (!confirm('Delete this report?')) {
+    const confirmed = await confirm({
+      title: 'Delete report?',
+      message: 'Delete this report? This action cannot be undone.',
+      confirmText: 'Delete report',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     await deleteMutation.mutateAsync(id);
@@ -166,6 +181,8 @@ const ReportViewPage: React.FC = () => {
           error={(executeQuery.error as Error | null) ?? null}
         />
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };
