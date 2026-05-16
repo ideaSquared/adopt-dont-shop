@@ -90,7 +90,7 @@
     "pathval": "^2.0.1",
     "prettier": "^3.2.5",
     "recast": "^0.23.11",
-    "rimraf": "^5.0.5",
+    "rimraf": "^6.1.3",
     "storybook": "^10.3.6",
     "ts-dedent": "^2.2.0",
     "typescript": "^5.4.5",
