@@ -1,7 +1,14 @@
 import { AdopterProfileSummary, ProfileEditForm, SettingsForm } from '@/components/profile';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, authService, Application, User } from '@/services';
-import { Alert, Button, Spinner, toast } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  ConfirmDialog,
+  Spinner,
+  toast,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as styles from './ProfilePage.css';
@@ -45,6 +52,7 @@ export const ProfilePage: React.FC = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { confirm, confirmProps } = useConfirm();
 
   const loadApplications = useCallback(async () => {
     try {
@@ -208,7 +216,14 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleDeleteAccount = async () => {
-    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+    const confirmed = await confirm({
+      title: 'Delete account?',
+      message: 'Are you sure you want to delete your account? This action cannot be undone.',
+      confirmText: 'Delete account',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -437,6 +452,8 @@ export const ProfilePage: React.FC = () => {
       {activeTab === 'profile' && renderProfileTab()}
       {activeTab === 'applications' && renderApplicationsTab()}
       {activeTab === 'settings' && renderSettingsTab()}
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };

@@ -213,4 +213,27 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       )
     );
   },
+  // ADS-587: useConfirm / ConfirmDialog mocks so tests can intercept the
+  // promise-based confirm flow without rendering the real modal.
+  useConfirm: () => ({
+    isOpen: false,
+    confirm: vi.fn().mockResolvedValue(true),
+    confirmProps: {
+      isOpen: false,
+      onClose: () => {},
+      onConfirm: () => {},
+      message: '',
+    },
+  }),
+  ConfirmDialog: () => null,
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    message: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
 }));

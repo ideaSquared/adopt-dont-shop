@@ -1,5 +1,11 @@
 import { User } from '@/services';
-import { Button, Input, TextArea } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  ConfirmDialog,
+  Input,
+  TextArea,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import * as styles from './ProfileEditForm.css';
 
@@ -34,6 +40,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
+  const { confirm, confirmProps } = useConfirm();
 
   // Handle Ctrl+S / Cmd+S to save
   useEffect(() => {
@@ -152,11 +159,15 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (hasChanges) {
-      const confirmCancel = window.confirm(
-        'You have unsaved changes. Are you sure you want to cancel?'
-      );
+      const confirmCancel = await confirm({
+        title: 'Discard changes?',
+        message: 'You have unsaved changes. Are you sure you want to cancel?',
+        confirmText: 'Discard changes',
+        cancelText: 'Keep editing',
+        variant: 'warning',
+      });
       if (!confirmCancel) {
         return;
       }
@@ -418,6 +429,8 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       <div className={styles.keyboardHint}>
         💡 Tip: Press Ctrl+S (or ⌘+S on Mac) to save quickly
       </div>
+
+      <ConfirmDialog {...confirmProps} />
     </form>
   );
 };
