@@ -27,6 +27,7 @@ import { printEnvironmentInfo, validateEnvironment } from './utils/validate-env'
 import models from './models';
 import { installImmutableCreatedAtTriggers } from './models/immutable-created-at';
 import { installIsoCheckConstraints } from './models/iso-check-constraints';
+import { installAuditLogsImmutableTrigger } from './models/audit-logs-immutable';
 
 // Import routes
 import adminRoutes from './routes/admin.routes';
@@ -674,6 +675,7 @@ const startServer = async () => {
         await Promise.all([
           installImmutableCreatedAtTriggers(Object.values(models)),
           installIsoCheckConstraints(),
+          installAuditLogsImmutableTrigger(),
         ]);
       } catch (error) {
         logger.error('Failed to sync database models:', error);
