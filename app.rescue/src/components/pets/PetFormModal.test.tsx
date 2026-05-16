@@ -65,9 +65,7 @@ describe('PetFormModal — adoption fee field (ADS-578)', () => {
     fireEvent.submit(form);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/adoption fee must be a non-negative number/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/adoption fee must be a non-negative number/i)).toBeInTheDocument();
     });
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -75,9 +73,7 @@ describe('PetFormModal — adoption fee field (ADS-578)', () => {
   it('accepts a valid two-decimal amount and submits', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn((_data: SubmitArg) => Promise.resolve());
-    renderWithProviders(
-      <PetFormModal isOpen={true} onClose={() => {}} onSubmit={onSubmit} />
-    );
+    renderWithProviders(<PetFormModal isOpen={true} onClose={() => {}} onSubmit={onSubmit} />);
 
     await fillRequiredFields(user);
     await user.type(screen.getByLabelText(/adoption fee/i), '150.5');
@@ -93,9 +89,7 @@ describe('PetFormModal — adoption fee field (ADS-578)', () => {
   it('accepts an empty fee (optional field)', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn((_data: SubmitArg) => Promise.resolve());
-    renderWithProviders(
-      <PetFormModal isOpen={true} onClose={() => {}} onSubmit={onSubmit} />
-    );
+    renderWithProviders(<PetFormModal isOpen={true} onClose={() => {}} onSubmit={onSubmit} />);
 
     await fillRequiredFields(user);
     // Leave the adoption fee blank.

@@ -65,7 +65,10 @@ export const PetSpayNeuterStatusSchema = z.enum([
 // rejected at the form boundary — see ADS-578.
 export const AdoptionFeeStringSchema = z
   .string()
-  .regex(/^\d+(\.\d{1,2})?$/, 'Adoption fee must be a non-negative number with up to 2 decimal places');
+  .regex(
+    /^\d+(\.\d{1,2})?$/,
+    'Adoption fee must be a non-negative number with up to 2 decimal places'
+  );
 
 // ── Sub-schemas ───────────────────────────────────────────────────────────────
 

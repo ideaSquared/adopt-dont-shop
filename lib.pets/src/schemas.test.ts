@@ -35,14 +35,14 @@ describe('PetCreateDataSchema adoptionFee field', () => {
   });
 
   it('accepts a valid numeric adoption fee string', () => {
-    expect(
-      PetCreateDataSchema.safeParse({ ...validBase, adoptionFee: '150.00' }).success
-    ).toBe(true);
+    expect(PetCreateDataSchema.safeParse({ ...validBase, adoptionFee: '150.00' }).success).toBe(
+      true
+    );
   });
 
   it('rejects a non-numeric adoption fee string', () => {
-    expect(
-      PetCreateDataSchema.safeParse({ ...validBase, adoptionFee: '£150' }).success
-    ).toBe(false);
+    expect(PetCreateDataSchema.safeParse({ ...validBase, adoptionFee: '£150' }).success).toBe(
+      false
+    );
   });
 });
