@@ -210,6 +210,32 @@ describe('Application schemas', () => {
       expect(() => ApplicationSearchQuerySchema.parse({ score_min: -1 })).toThrow();
       expect(() => ApplicationSearchQuerySchema.parse({ score_max: 101 })).toThrow();
     });
+
+    // ADS-575: the rescue dashboard filters (pet type, pet breed, date
+    // window) must round-trip through the canonical query schema or the
+    // backend rejects them as unknown.
+    it('accepts the new pet-type / pet-breed filters', () => {
+      const parsed = ApplicationSearchQuerySchema.parse({
+        petType: 'Dog',
+        petBreed: 'Golden Retriever',
+      });
+      expect(parsed.petType).toBe('Dog');
+      expect(parsed.petBreed).toBe('Golden Retriever');
+    });
+
+    it('coerces submittedFrom / submittedTo strings to Date', () => {
+      const parsed = ApplicationSearchQuerySchema.parse({
+        submittedFrom: '2026-05-01T00:00:00.000Z',
+        submittedTo: '2026-05-08T00:00:00.000Z',
+      });
+      expect(parsed.submittedFrom).toBeInstanceOf(Date);
+      expect(parsed.submittedTo).toBeInstanceOf(Date);
+    });
+
+    it('rejects an empty petType / petBreed string', () => {
+      expect(() => ApplicationSearchQuerySchema.parse({ petType: '' })).toThrow();
+      expect(() => ApplicationSearchQuerySchema.parse({ petBreed: '   ' })).toThrow();
+    });
   });
 
   describe('ApplicationBulkUpdateRequestSchema', () => {

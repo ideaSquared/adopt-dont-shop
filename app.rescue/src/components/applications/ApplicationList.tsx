@@ -187,8 +187,13 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
     petBreed: filter.petBreed || '',
   };
 
-  // Convert simple string-based filters back to complex ApplicationFilter
-  // Only search and status filters actually work for filtering data
+  // Convert simple string-based filters back to complex ApplicationFilter.
+  // ADS-575: search, status, priority, petType, petBreed, dateRange are
+  // all honoured server-side. referencesStatus / homeVisitStatus are
+  // still synthetic — the list derives them from application.status (see
+  // RescueApplicationService.calculateReferencesStatus /
+  // calculateHomeVisitStatus), so filtering on them server-side would
+  // require persisting the real reference-check / home-visit records.
   const handleFilterChange = (key: string, value: string) => {
     const newFilter = { ...filter };
 

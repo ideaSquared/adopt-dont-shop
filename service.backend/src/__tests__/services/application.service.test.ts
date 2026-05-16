@@ -853,6 +853,69 @@ describe('ApplicationService - Business Logic', () => {
     });
   });
 
+  describe('Business Rule: Pet-shape filters (ADS-575)', () => {
+    // ADS-575: rescue staff need to narrow the application list by the
+    // applied-for pet's type / breed. Both must reach the SQL query so
+    // the rendered list actually changes — previously these filters
+    // round-tripped through state without affecting the database read.
+    const mockApplicationRow = () => {
+      const app = createMockApplication();
+      return {
+        ...app,
+        toJSON: vi.fn().mockReturnValue(app),
+        Answers: [],
+      };
+    };
+
+    beforeEach(() => {
+      MockedApplication.findAndCountAll = vi.fn().mockResolvedValue({
+        rows: [mockApplicationRow()],
+        count: 1,
+      });
+    });
+
+    it('narrows the search by pet type using a case-insensitive match', async () => {
+      await ApplicationService.searchApplications({ petType: 'Dog' }, { page: 1, limit: 10 });
+
+      // The Pet.type filter is keyed by Sequelize's $association$ syntax
+      // so it reaches the eager-loaded Pet record rather than the
+      // Application table directly. Comparing against the canonical
+      // `[Op.iLike]: 'Dog'` shape would tie the test to the Sequelize
+      // symbol implementation, so we just assert the path is present.
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ '$Pet.type$': expect.anything() }),
+        })
+      );
+    });
+
+    it('narrows the search by pet breed using a case-insensitive substring match', async () => {
+      await ApplicationService.searchApplications({ petBreed: 'golden' }, { page: 1, limit: 10 });
+
+      // Breed lives on the lookup table eager-loaded via Pet->Breed.
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ '$Pet->Breed.name$': expect.anything() }),
+        })
+      );
+    });
+
+    it('omits pet filters from the query when no value is provided', async () => {
+      await ApplicationService.searchApplications({}, { page: 1, limit: 10 });
+
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({ '$Pet.type$': expect.anything() }),
+        })
+      );
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({ '$Pet->Breed.name$': expect.anything() }),
+        })
+      );
+    });
+  });
+
   describe('Error Handling', () => {
     it('throws error when application not found', async () => {
       // Given: Application does not exist

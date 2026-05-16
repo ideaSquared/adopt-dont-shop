@@ -183,6 +183,10 @@ export interface ApplicationSearchFilters {
   tags?: string[];
   hasInterviewNotes?: boolean;
   hasHomeVisitNotes?: boolean;
+  // ADS-575: narrow results by the associated pet's type / breed. Both
+  // are matched case-insensitively against the eager-loaded Pet record.
+  petType?: string;
+  petBreed?: string;
   submittedFrom?: Date;
   submittedTo?: Date;
   reviewedFrom?: Date;

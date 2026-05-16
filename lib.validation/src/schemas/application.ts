@@ -246,6 +246,16 @@ export const ApplicationSearchQuerySchema = z.object({
   sortOrder: z.enum(['ASC', 'DESC']).optional(),
   score_min: ScoreSchema.optional(),
   score_max: ScoreSchema.optional(),
+  // ADS-575: narrow results by the associated pet's type / breed. Both
+  // are matched case-insensitively in the backend so callers can pass
+  // either "Dog" or "dog" without a coordinated normalisation pass.
+  petType: z.string().trim().min(1).max(50).optional(),
+  petBreed: z.string().trim().min(1).max(100).optional(),
+  // ADS-575: submitted-date window. The backend search service already
+  // honours submittedFrom/submittedTo; surfacing them here lets the
+  // rescue dashboard "Date Range" preset reach the API.
+  submittedFrom: z.coerce.date().optional(),
+  submittedTo: z.coerce.date().optional(),
 });
 export type ApplicationSearchQuery = z.infer<typeof ApplicationSearchQuerySchema>;
 

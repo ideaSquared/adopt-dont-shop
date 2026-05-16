@@ -46,8 +46,17 @@ export class RescueApplicationService {
       if (filter?.petId) {
         params.append('pet_id', filter.petId);
       }
-      // Note: pet_type, pet_breed, references_status, home_visit_status are not validated by backend
-      // These will need to be filtered client-side or backend validation needs to be updated
+      // ADS-575: petType / petBreed are now backend-supported filters
+      // (case-insensitive match against the eager-loaded Pet record).
+      // referencesStatus / homeVisitStatus are still unwired — the
+      // ApplicationList comment block documents why and tracks the
+      // follow-up.
+      if (filter?.petType) {
+        params.append('petType', filter.petType);
+      }
+      if (filter?.petBreed) {
+        params.append('petBreed', filter.petBreed);
+      }
       if (filter?.priority?.length) {
         params.append('priority', filter.priority.join(','));
       }
@@ -55,8 +64,10 @@ export class RescueApplicationService {
         params.append('search', filter.searchQuery);
       }
       if (filter?.dateRange) {
-        params.append('startDate', filter.dateRange.start.toISOString());
-        params.append('endDate', filter.dateRange.end.toISOString());
+        // ADS-575: backend search service filters by submittedAt window.
+        // The legacy startDate/endDate params were never read server-side.
+        params.append('submittedFrom', filter.dateRange.start.toISOString());
+        params.append('submittedTo', filter.dateRange.end.toISOString());
       }
       if (sort) {
         // Backend validates sortBy as camelCase (see application.controller.ts
@@ -86,10 +97,7 @@ export class RescueApplicationService {
       }
 
       return {
-        applications: this.applyClientSideFilters(
-          applicationsArray.map(this.transformApplicationForList) || [],
-          filter || {}
-        ),
+        applications: applicationsArray.map(this.transformApplicationForList) || [],
         total: response.total || response.count || applicationsArray.length,
         page: response.page || response.currentPage || 1,
         totalPages:
@@ -659,42 +667,6 @@ export class RescueApplicationService {
       console.error('Failed to perform bulk action:', error);
       throw new Error('Failed to perform bulk action on server');
     }
-  }
-
-  /**
-   * Apply client-side filtering for parameters not supported by backend
-   */
-  private applyClientSideFilters(
-    applications: ApplicationListItem[],
-    filter: ApplicationFilter
-  ): ApplicationListItem[] {
-    return applications.filter(app => {
-      // Filter by pet type (not validated by backend, need to be filtered client-side)
-      if (filter.petType && filter.petType !== 'all' && app.petType !== filter.petType) {
-        return false;
-      }
-
-      // Filter by pet breed (not validated by backend, need to be filtered client-side)
-      if (filter.petBreed && filter.petBreed !== 'all' && app.petBreed !== filter.petBreed) {
-        return false;
-      }
-
-      // Filter by references status (not validated by backend, need to be filtered client-side)
-      if (filter.referencesStatus && filter.referencesStatus !== 'all') {
-        // Note: This would need reference data to properly filter,
-        // for now we'll allow all applications through
-        // In a complete implementation, we'd need to fetch reference data or include it in the application response
-      }
-
-      // Filter by home visit status (not validated by backend, need to be filtered client-side)
-      if (filter.homeVisitStatus && filter.homeVisitStatus !== 'all') {
-        // Note: This would need visit data to properly filter,
-        // for now we'll allow all applications through
-        // In a complete implementation, we'd need to fetch visit data or include it in the application response
-      }
-
-      return true;
-    });
   }
 
   /**
