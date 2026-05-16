@@ -35,6 +35,9 @@ import sequelize from '../sequelize';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import ApplicationTimelineService from './applicationTimeline.service';
+import emailService from './email.service';
+import { NotificationService } from './notification.service';
+import { NotificationType } from '../models/Notification';
 import { TimelineEventType } from '../models/ApplicationTimeline';
 import { JsonObject, JsonValue } from '../types/common';
 
@@ -1182,6 +1185,13 @@ export class ApplicationService {
         actionedBy,
       });
 
+      // ADS-579: On rejection, notify the applicant via email and in-app.
+      // Best-effort — a notification failure must not roll back the status
+      // change, but it must be logged so a human can chase it up.
+      if (statusUpdate.status === ApplicationStatus.REJECTED) {
+        await ApplicationService.notifyApplicantOfRejection(application, statusUpdate);
+      }
+
       await application.reload();
       return {
         ...(application.toJSON() as ApplicationData),
@@ -1190,6 +1200,84 @@ export class ApplicationService {
     } catch (error) {
       logger.error('Update application status failed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * ADS-579: Email + in-app notification for application rejection.
+   *
+   * Best-effort: any failure here is logged but never propagates — the
+   * status transition is already committed by the time this runs, so an
+   * email-provider hiccup must not appear to the caller as a failed
+   * rejection.
+   */
+  private static async notifyApplicantOfRejection(
+    application: Application,
+    statusUpdate: ApplicationStatusUpdateRequest
+  ): Promise<void> {
+    try {
+      const [applicant, pet] = await Promise.all([
+        User.findByPk(application.userId),
+        Pet.findByPk(application.petId),
+      ]);
+
+      if (!applicant) {
+        logger.warn('Rejection notification skipped: applicant not found', {
+          applicationId: application.applicationId,
+          userId: application.userId,
+        });
+        return;
+      }
+
+      const applicantName = [applicant.firstName, applicant.lastName].filter(Boolean).join(' ');
+      const petName = pet?.name ?? 'the pet';
+      const rejectionReason = statusUpdate.rejectionReason ?? statusUpdate.notes ?? '';
+
+      // In-app notification — applicant sees this in /notifications.
+      await NotificationService.createNotification({
+        userId: application.userId,
+        type: NotificationType.ADOPTION_REJECTED,
+        title: `Update on your application for ${petName}`,
+        message:
+          rejectionReason ||
+          `Your application to adopt ${petName} was not approved. Please log in for details.`,
+        data: {
+          applicationId: application.applicationId,
+          petId: application.petId,
+          rejectionReason,
+        },
+      });
+
+      // Email — uses the seeded 'Application Not Approved' template.
+      if (applicant.email) {
+        const template = await emailService.getTemplateByName('Application Not Approved');
+        if (template) {
+          await emailService.sendEmail({
+            toEmail: applicant.email,
+            toName: applicantName || undefined,
+            templateId: template.templateId,
+            templateData: {
+              applicantName: applicantName || 'there',
+              petName,
+              rejectionReason,
+              applicationId: application.applicationId,
+            },
+            userId: application.userId,
+            type: 'transactional',
+            priority: 'normal',
+          });
+        } else {
+          logger.warn(
+            "Rejection email template 'Application Not Approved' not found; skipping email",
+            { applicationId: application.applicationId }
+          );
+        }
+      }
+    } catch (error) {
+      logger.error('Rejection notification failed (non-fatal):', {
+        applicationId: application.applicationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
