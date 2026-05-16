@@ -674,14 +674,42 @@ const startServer = async () => {
         // DB-level invariants that aren't expressible in Sequelize models.
         // Idempotent and Postgres-gated; safe to run on every boot path
         // (force-seed, fresh DB, warm reload). Independent — run in parallel.
+        // installAuditLogsImmutableTrigger is called unconditionally
+        // outside this dev block — see comment below.
         await Promise.all([
           installImmutableCreatedAtTriggers(Object.values(models)),
           installIsoCheckConstraints(),
-          installAuditLogsImmutableTrigger(),
         ]);
       } catch (error) {
         logger.error('Failed to sync database models:', error);
         throw error;
+      }
+    }
+
+    // DB-level invariants that aren't expressible in Sequelize models
+    // and aren't created by the schema bootstrap (sync in dev, baseline
+    // migrations in prod). Postgres-only, idempotent (CREATE OR REPLACE
+    // FUNCTION / DROP TRIGGER IF EXISTS), so safe regardless of
+    // environment or whether the DB is fresh.
+    //
+    // History: migration 11-add-audit-log-immutable-trigger originally
+    // installed the audit_logs trigger as part of the prod migration
+    // sidecar; PR #521 dropped that migration when the forward
+    // migrations were folded into models/installers. This boot-time
+    // call replaces it so fresh prod DBs continue to get the trigger.
+    //
+    // installImmutableCreatedAtTriggers and installIsoCheckConstraints
+    // run only in dev (their schema-creation pair, sequelize.sync(),
+    // only runs in dev) — prod's broader trigger coverage is a separate
+    // concern beyond this fix.
+    if (sequelize.getDialect() === 'postgres') {
+      try {
+        await installAuditLogsImmutableTrigger();
+      } catch (error) {
+        logger.error('Failed to install audit_logs immutable trigger:', error);
+        // Non-fatal — the trigger is defence in depth (ADS-508). Boot
+        // continues so the HTTP server still comes up; the install
+        // failure is loud in logs for operators to investigate.
       }
     }
 
