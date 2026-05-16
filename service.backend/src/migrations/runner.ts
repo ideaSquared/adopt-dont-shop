@@ -26,6 +26,14 @@
 
 import type { QueryInterface } from 'sequelize';
 import { SequelizeStorage, Umzug } from 'umzug';
+import type { SequelizeStorageConstructorOptions } from 'umzug/lib/storage/sequelize';
+
+// SequelizeStorageConstructorOptions is a union of two SetRequired branches —
+// pick the one that requires `sequelize` so we can name the expected type.
+type UmzugSequelizeType = Extract<
+  SequelizeStorageConstructorOptions,
+  { sequelize: unknown }
+>['sequelize'];
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
 
@@ -67,7 +75,14 @@ export const umzug = new Umzug({
     },
   },
   context: sequelize.getQueryInterface(),
-  storage: new SequelizeStorage({ sequelize, modelName: 'SequelizeMeta' }),
+  // umzug's SequelizeStorage typings still target Sequelize 6's shape
+  // (its `SequelizeType` expects `dialect?: { name?: string }`), but the
+  // runtime contract is unchanged. We narrow with the local alias rather
+  // than `any` so we still get autocomplete on the rest of the option bag.
+  storage: new SequelizeStorage({
+    sequelize: sequelize as unknown as UmzugSequelizeType,
+    modelName: 'SequelizeMeta',
+  }),
   logger: {
     info: event => logger.info('[umzug]', event),
     warn: event => logger.warn('[umzug]', event),

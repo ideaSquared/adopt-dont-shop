@@ -1,5 +1,5 @@
 // src/models/Pet.ts
-import { DataTypes, Model, Op, Optional, QueryTypes, WhereOptions } from 'sequelize';
+import { DataTypes, Model, Op, Optional, QueryTypes, WhereAttributeHash } from 'sequelize';
 import sequelize, {
   getUuidType,
   getArrayType,
@@ -337,7 +337,9 @@ class Pet extends Model<PetAttributes, PetCreationAttributes> implements PetAttr
     limit = 50,
     offset = 0
   ): Promise<Pet[]> {
-    const whereClause: WhereOptions<PetAttributes> = { ...filters };
+    const whereClause: WhereAttributeHash<PetAttributes> = {
+      ...(filters as WhereAttributeHash<PetAttributes>),
+    };
 
     if (query) {
       whereClause.searchVector = {

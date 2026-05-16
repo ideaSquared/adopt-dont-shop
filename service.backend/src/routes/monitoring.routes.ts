@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { Op } from 'sequelize';
+import { Op, type WhereOptions } from 'sequelize';
 import { config } from '../config';
 import { authenticateToken } from '../middleware/auth';
 import { apiLimiter, authLimiter, uploadLimiter } from '../middleware/rate-limiter';
@@ -1184,20 +1184,27 @@ if (process.env.NODE_ENV === 'development') {
       typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 100;
     const limit = Number.isFinite(limitRaw) ? Math.min(500, Math.max(1, limitRaw)) : 100;
 
-    const where: Record<string | symbol, unknown> = {};
+    // Sequelize 7's `WhereAttributeHash` no longer carries the symbol
+    // indexer, so we compose AND-ed clauses (top-level attribute filters
+    // alongside a free-text OR group) via `Op.and` and let `WhereOptions`
+    // accept the union shape.
+    const andClauses: WhereOptions[] = [];
     if (userTypes.length > 0) {
-      where.userType = { [Op.in]: userTypes };
+      andClauses.push({ userType: { [Op.in]: userTypes } });
     }
     if (q) {
       const like = `%${q}%`;
-      where[Op.or] = [
-        { firstName: { [Op.iLike]: like } },
-        { lastName: { [Op.iLike]: like } },
-        // email is citext, so iLike here is redundant but harmless and
-        // matches the firstName/lastName pattern.
-        { email: { [Op.iLike]: like } },
-      ];
+      andClauses.push({
+        [Op.or]: [
+          { firstName: { [Op.iLike]: like } },
+          { lastName: { [Op.iLike]: like } },
+          // email is citext, so iLike here is redundant but harmless and
+          // matches the firstName/lastName pattern.
+          { email: { [Op.iLike]: like } },
+        ],
+      });
     }
+    const where: WhereOptions = andClauses.length > 0 ? { [Op.and]: andClauses } : {};
 
     const seededUsers = await User.findAll({
       where,

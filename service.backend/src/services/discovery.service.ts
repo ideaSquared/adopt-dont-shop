@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { Op, fn, literal } from 'sequelize';
+import { Op, fn, literal, type WhereAttributeHash } from 'sequelize';
 import { cached } from '../cache/redis-cache';
 import Breed from '../models/Breed';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../models/Pet';
@@ -218,7 +218,7 @@ export class DiscoveryService {
   ): Promise<Pet[]> {
     try {
       // Build where conditions based on filters
-      const whereConditions: Record<string, unknown> = {
+      const whereConditions: WhereAttributeHash = {
         status: PetStatus.AVAILABLE,
       };
 

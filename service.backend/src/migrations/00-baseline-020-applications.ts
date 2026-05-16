@@ -193,7 +193,7 @@ export default {
         name: 'applications_user_pet_unique',
         where: {
           deleted_at: null,
-          status: { [Op.not]: ['rejected', 'withdrawn'] },
+          status: { [Op.notIn]: ['rejected', 'withdrawn'] },
         },
         transaction,
       });

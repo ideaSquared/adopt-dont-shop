@@ -451,7 +451,7 @@ Notification.init(
         where: {
           read_at: null,
           status: {
-            [Op.not]: [NotificationStatus.FAILED, NotificationStatus.CANCELLED],
+            [Op.notIn]: [NotificationStatus.FAILED, NotificationStatus.CANCELLED],
           },
         },
       },
@@ -477,7 +477,7 @@ Notification.init(
         where: {
           expires_at: { [Op.lte]: new Date() },
           status: {
-            [Op.not]: [NotificationStatus.READ, NotificationStatus.CANCELLED],
+            [Op.notIn]: [NotificationStatus.READ, NotificationStatus.CANCELLED],
           },
         },
       },
