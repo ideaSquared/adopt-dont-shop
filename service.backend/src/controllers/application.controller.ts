@@ -219,7 +219,7 @@ export class ApplicationController extends BaseController {
     }
 
     if (Rescue) {
-      (transformed as Record<string, unknown>).rescueName = Rescue.name as string;
+      (transformed as unknown as Record<string, unknown>).rescueName = Rescue.name as string;
     }
 
     return transformed;
