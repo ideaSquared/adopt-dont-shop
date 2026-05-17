@@ -1,0 +1,175 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      libs: ${{ steps.filter.outputs.libs }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'service.api/**'
+              - 'lib.*/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+              - 'eslint-config-base/**'
+              - 'eslint-config-node/**'
+            frontend:
+              - 'app.*/**'
+              - 'lib.*/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+              - 'vite.shared.config.ts'
+              - 'eslint-config-base/**'
+              - 'eslint-config-react/**'
+            libs:
+              - 'lib.*/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+              - 'eslint-config-base/**'
+
+  test-api:
+    name: API Service Tests
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+      TEST_DB_PASSWORD: ${{ secrets.TEST_DB_PASSWORD || format('{0}{1}{2}', github.run_id, github.run_number, github.run_attempt) }}
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ env.TEST_DB_PASSWORD }}
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build shared libraries
+        run: npm run build:libs
+
+      - name: Lint
+        run: npm run lint
+        working-directory: service.api
+
+      - name: Test
+        run: npm test
+        working-directory: service.api
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:${{ env.TEST_DB_PASSWORD }}@localhost:5432/test_db
+
+      - name: Build
+        run: npm run build
+        working-directory: service.api
+
+  test-frontend:
+    name: Frontend Tests (${{ matrix.app }})
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [app.web]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build shared libraries
+        run: npm run build:libs
+
+      - name: Lint
+        run: npm run lint
+        working-directory: ${{ matrix.app }}
+
+      - name: Test
+        run: npm test
+        working-directory: ${{ matrix.app }}
+
+      - name: Type check
+        run: npx turbo run type-check --filter='@my-org/${{ matrix.app }}'
+
+      - name: Build
+        run: npm run build
+        working-directory: ${{ matrix.app }}
+        env:
+          CI: true
+
+  test-libs:
+    name: Library Tests
+    needs: changes
+    if: needs.changes.outputs.libs == 'true'
+    runs-on: ubuntu-latest
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install workspace dependencies
+        run: npm ci
+
+      - name: Build, lint, test and type-check all libraries
+        run: npx turbo run build lint test type-check --filter='@my-org/lib.*'

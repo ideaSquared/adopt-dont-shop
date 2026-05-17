@@ -1,0 +1,51 @@
+- name: 'area: api'
+  color: 'C0392B'
+  description: 'Changes to service.api (Express backend)'
+
+- name: 'area: web'
+  color: '00BCD4'
+  description: 'Changes to app.web (React frontend)'
+
+- name: 'area: app'
+  color: '009688'
+  description: 'Changes to any app.* workspace'
+
+- name: 'area: libs'
+  color: '9C27B0'
+  description: 'Changes to lib.* shared libraries'
+
+- name: 'area: ci'
+  color: 'FFC107'
+  description: 'CI/CD workflows or GitHub Actions changes'
+
+- name: 'area: config'
+  color: '607D8B'
+  description: 'Tooling, config, or Docker changes'
+
+- name: 'area: docs'
+  color: '0E8A16'
+  description: 'Documentation only'
+
+- name: 'type: bug'
+  color: 'D73A4A'
+  description: 'Something is broken'
+
+- name: 'type: feature'
+  color: 'A2EEEF'
+  description: 'New feature or enhancement'
+
+- name: 'type: chore'
+  color: 'FEF2C0'
+  description: 'Maintenance, refactors, dependency bumps'
+
+- name: 'priority: high'
+  color: 'B60205'
+  description: 'High priority'
+
+- name: 'priority: low'
+  color: 'C2E0C6'
+  description: 'Low priority'
+
+- name: 'good first issue'
+  color: '7057FF'
+  description: 'Good for newcomers'
