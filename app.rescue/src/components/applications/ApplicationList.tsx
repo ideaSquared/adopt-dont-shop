@@ -130,6 +130,8 @@ interface ApplicationListProps {
   onFilterChange: (filter: ApplicationFilter) => void;
   onSortChange: (sort: ApplicationSort) => void;
   onApplicationSelect: (application: ApplicationListItem) => void;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (next: Set<string>) => void;
 }
 
 const ApplicationList: React.FC<ApplicationListProps> = ({
@@ -142,7 +144,34 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
   onFilterChange,
   onSortChange,
   onApplicationSelect,
+  selectedIds,
+  onSelectionChange,
 }) => {
+  const selectionEnabled = selectedIds !== undefined && onSelectionChange !== undefined;
+  const toggleOne = (id: string) => {
+    if (!selectionEnabled) {
+      return;
+    }
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    onSelectionChange(next);
+  };
+  const allSelected =
+    selectionEnabled && applications.length > 0 && applications.every(a => selectedIds.has(a.id));
+  const toggleAll = () => {
+    if (!selectionEnabled) {
+      return;
+    }
+    if (allSelected) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(applications.map(a => a.id)));
+    }
+  };
   // Convert complex ApplicationFilter to simple string-based filters for UI
   const getDateRangeValue = () => {
     if (!filter.dateRange) {
@@ -311,6 +340,16 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
             <table className={styles.table}>
               <thead className={styles.tableHead}>
                 <tr>
+                  {selectionEnabled && (
+                    <th className={styles.tableHeader}>
+                      <input
+                        type="checkbox"
+                        aria-label="Select all applications"
+                        checked={allSelected}
+                        onChange={toggleAll}
+                      />
+                    </th>
+                  )}
                   <th className={styles.tableHeader}>Applicant</th>
                   <th className={styles.tableHeader}>Pet</th>
                   <th className={styles.tableHeader}>Status</th>
@@ -327,6 +366,16 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                     className={styles.tableRow}
                     onClick={() => onApplicationSelect(application)}
                   >
+                    {selectionEnabled && (
+                      <td className={styles.tableCell} onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select application ${application.id}`}
+                          checked={selectedIds.has(application.id)}
+                          onChange={() => toggleOne(application.id)}
+                        />
+                      </td>
+                    )}
                     <td className={styles.tableCell}>
                       <div className={styles.applicantInfo}>
                         <div className={styles.applicantName}>{application.applicantName}</div>
