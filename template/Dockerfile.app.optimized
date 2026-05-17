@@ -1,0 +1,136 @@
+# syntax=docker/dockerfile:1.4
+
+# ============================================================================
+# Industry Standard Monorepo Workspace Dockerfile
+# ============================================================================
+# Usage: docker build --build-arg APP_NAME=app.web -f Dockerfile.app.optimized .
+#
+# When you add a new lib via `npm run new-lib`, the script auto-appends
+# new COPY lines for the library below.
+
+ARG NODE_VERSION=20
+FROM node:${NODE_VERSION}-alpine AS base
+
+WORKDIR /app
+
+# hadolint ignore=DL3018
+RUN apk add --no-cache \
+    git=~2 \
+    wget=~1 \
+    dumb-init=~1
+
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S viteuser -u 1001
+
+# Development stage
+FROM base AS development
+ARG APP_NAME
+
+COPY --chown=viteuser:nodejs package*.json turbo.json ./
+COPY --chown=viteuser:nodejs eslint-config-base/ ./eslint-config-base/
+COPY --chown=viteuser:nodejs eslint-config-react/ ./eslint-config-react/
+COPY --chown=viteuser:nodejs eslint-config-node/ ./eslint-config-node/
+
+# Copy library package.json files first (better layer caching)
+COPY --chown=viteuser:nodejs lib.example/package.json ./lib.example/
+
+COPY --chown=viteuser:nodejs ${APP_NAME}/package.json ./${APP_NAME}/
+
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
+
+# Copy all library source code
+COPY --chown=viteuser:nodejs lib.example/ ./lib.example/
+
+COPY --chown=viteuser:nodejs ${APP_NAME}/ ./${APP_NAME}/
+COPY --chown=viteuser:nodejs vite.shared.config.ts ./
+
+USER viteuser
+EXPOSE 3000
+WORKDIR /app/${APP_NAME}
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["npm", "run", "dev"]
+
+# Build stage for production
+FROM base AS build
+ARG APP_NAME
+
+COPY . .
+
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
+
+RUN --mount=type=cache,target=/app/.turbo \
+    NODE_ENV=production npx turbo run build --filter=...@my-org/${APP_NAME}
+
+# ============================================================================
+# PRODUCTION STAGE - Minimal Nginx image for static assets
+# ============================================================================
+FROM nginx:alpine AS production
+ARG APP_NAME
+
+# hadolint ignore=DL3018
+RUN apk update && apk upgrade && rm -rf /var/cache/apk/*
+
+COPY --from=build /app/${APP_NAME}/dist /usr/share/nginx/html
+
+RUN echo 'events { \
+    worker_connections 1024; \
+} \
+http { \
+    include /etc/nginx/mime.types; \
+    default_type application/octet-stream; \
+    \
+    sendfile on; \
+    tcp_nopush on; \
+    tcp_nodelay on; \
+    keepalive_timeout 65; \
+    types_hash_max_size 2048; \
+    \
+    gzip on; \
+    gzip_vary on; \
+    gzip_comp_level 6; \
+    gzip_min_length 1000; \
+    gzip_proxied any; \
+    gzip_types text/plain text/css text/xml text/javascript \
+               application/javascript application/xml+rss application/json \
+               application/wasm; \
+    \
+    server { \
+        listen 80; \
+        server_name _; \
+        root /usr/share/nginx/html; \
+        index index.html; \
+        \
+        add_header X-Frame-Options "SAMEORIGIN" always; \
+        add_header X-Content-Type-Options "nosniff" always; \
+        add_header X-XSS-Protection "1; mode=block" always; \
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always; \
+        \
+        location / { \
+            try_files $uri $uri/ /index.html; \
+        } \
+        \
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webp|avif)$ { \
+            expires 1y; \
+            add_header Cache-Control "public, immutable"; \
+            access_log off; \
+        } \
+        \
+        location /health { \
+            access_log off; \
+            return 200 "healthy\n"; \
+            add_header Content-Type text/plain; \
+        } \
+    } \
+}' > /etc/nginx/nginx.conf
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+
+LABEL org.opencontainers.image.title="TypeScript Monorepo Template - Frontend App"
+LABEL org.opencontainers.image.description="React + Vite frontend application"
+LABEL org.opencontainers.image.version="1.0.0"
