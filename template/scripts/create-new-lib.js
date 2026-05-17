@@ -294,21 +294,25 @@ function updateRootPackageJson(name) {
 
 function updateViteSharedConfig(name) {
   const filePath = path.join(ROOT, 'vite.shared.config.ts');
-  if (!fs.existsSync(filePath)) {
+  let content;
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch {
     log('   vite.shared.config.ts not found, skipping');
     return;
   }
-  const content = fs.readFileSync(filePath, 'utf8');
   const alias = `    '${SCOPE}/lib.${name}': resolve(appDir, '../lib.${name}/src'),`;
   if (content.includes(`${SCOPE}/lib.${name}`)) {
     log(`   vite.shared.config.ts already has alias for lib.${name}`);
     return;
   }
+  // Insert before the closing brace of libraryAliases
   const updated = content.replace(
     /(\s+'@my-org\/lib\.[^']*': resolve\(appDir, '\.\.\/lib\.[^']*\/src'\),)(\s+\};)/,
     `$1\n${alias}$2`
   );
   if (updated === content) {
+    // Fallback: insert before the first }; in the libraryAliases block
     const fallback = content.replace(
       /(const libraryAliases = \{[\s\S]*?)\n(\s+\};)/,
       `$1\n${alias}\n$2`
@@ -322,22 +326,26 @@ function updateViteSharedConfig(name) {
 
 function updateDockerfile(name) {
   const filePath = path.join(ROOT, 'Dockerfile.app.optimized');
-  if (!fs.existsSync(filePath)) {
+  let content;
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch {
     log('   Dockerfile.app.optimized not found, skipping');
     return;
   }
-  let content = fs.readFileSync(filePath, 'utf8');
   if (content.includes(`lib.${name}/package.json`)) {
     log(`   Dockerfile.app.optimized already includes lib.${name}`);
     return;
   }
 
+  // Append package.json COPY line after the last existing lib package.json COPY
   const pkgCopyLine = `COPY --chown=viteuser:nodejs lib.${name}/package.json ./lib.${name}/`;
   content = content.replace(
     /(COPY --chown=viteuser:nodejs lib\.[a-z-]+\/package\.json \.\/lib\.[a-z-]+\/\n)(?!COPY --chown=viteuser:nodejs lib\.)/,
     `$1${pkgCopyLine}\n`
   );
 
+  // Append source COPY line after the last existing lib source COPY (not package.json)
   const srcCopyLine = `COPY --chown=viteuser:nodejs lib.${name}/ ./lib.${name}/`;
   content = content.replace(
     /(COPY --chown=viteuser:nodejs lib\.[a-z-]+\/ \.\/lib\.[a-z-]+\/\n)(?!COPY --chown=viteuser:nodejs lib\.)/,
