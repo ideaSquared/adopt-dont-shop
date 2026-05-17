@@ -211,6 +211,15 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
             <span className={styles.navLinkSpan({ collapsed })}>Field Permissions</span>
           </NavLink>
           <NavLink
+            to='/privacy-tools'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiShield />
+            <span className={styles.navLinkSpan({ collapsed })}>Privacy Tools</span>
+          </NavLink>
+          <NavLink
             to='/audit'
             className={({ isActive }) =>
               styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')

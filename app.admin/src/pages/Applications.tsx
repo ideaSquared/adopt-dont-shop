@@ -4,7 +4,7 @@ import { FiSearch } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { useApplications, useBulkUpdateApplications, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
-import { BulkConfirmationModal } from '../components/modals';
+import { BulkConfirmationModal, ApplicationDetailModal } from '../components/modals';
 import type { AdminApplication, ApplicationStatus } from '../services/applicationService';
 import * as styles from './Applications.css';
 
@@ -39,6 +39,7 @@ const Applications: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkApplicationActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<AdminApplication | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -237,6 +238,13 @@ const Applications: React.FC = () => {
         selectedRows={selectedRows}
         onSelectionChange={setSelectedRows}
         getRowId={app => app.applicationId}
+        onRowClick={app => setSelectedApplication(app)}
+      />
+
+      <ApplicationDetailModal
+        isOpen={selectedApplication !== null}
+        onClose={() => setSelectedApplication(null)}
+        application={selectedApplication}
       />
 
       <BulkConfirmationModal

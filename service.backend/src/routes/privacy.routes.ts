@@ -125,4 +125,67 @@ router.post(
   }
 );
 
+/**
+ * Admin-scoped GDPR tooling. Allows platform admins to trigger data
+ * exports and deletion requests on behalf of users (e.g. responding to
+ * subject access requests received via support channels). Mounted on
+ * the same router so the parent `authenticateToken` middleware applies;
+ * RBAC gating below restricts to admin/super_admin only.
+ */
+const ensureAdmin = (req: AuthenticatedRequest, res: Response): boolean => {
+  const role = req.user?.userType;
+  if (role !== 'admin' && role !== 'super_admin') {
+    res.status(403).json({ error: 'Admin privileges required' });
+    return false;
+  }
+  return true;
+};
+
+const AdminUserIdParamSchema = z.object({ userId: z.string().min(1) });
+
+router.get('/admin/users/:userId/export', async (req: AuthenticatedRequest, res: Response) => {
+  if (!ensureAdmin(req, res)) {
+    return;
+  }
+  const parsed = AdminUserIdParamSchema.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid userId' });
+    return;
+  }
+  const bundle = await exportUserData(parsed.data.userId);
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="adopt-dont-shop-export-${parsed.data.userId}.json"`
+  );
+  res.json(bundle);
+});
+
+const AdminDeleteSchema = z.object({
+  reason: z.string().trim().max(500).optional(),
+});
+
+router.post(
+  '/admin/users/:userId/delete-request',
+  validateBody(AdminDeleteSchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    if (!ensureAdmin(req, res)) {
+      return;
+    }
+    const parsed = AdminUserIdParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid userId' });
+      return;
+    }
+    const body = req.body as z.infer<typeof AdminDeleteSchema>;
+    const result = await requestAccountDeletion(parsed.data.userId, body.reason);
+    res.status(202).json({
+      data: {
+        ...result,
+        message:
+          'Account scheduled for deletion. Data will be anonymised after the 30-day grace window.',
+      },
+    });
+  }
+);
+
 export default router;

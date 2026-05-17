@@ -4,7 +4,7 @@ import { FiSearch, FiPackage } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { usePets, useBulkUpdatePets, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
-import { BulkConfirmationModal } from '../components/modals';
+import { BulkConfirmationModal, PetDetailModal } from '../components/modals';
 import type { AdminPet, PetStatus } from '../services/petService';
 import * as styles from './Pets.css';
 
@@ -43,6 +43,7 @@ const Pets: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkPetActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const [selectedPet, setSelectedPet] = useState<AdminPet | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -273,6 +274,13 @@ const Pets: React.FC = () => {
         selectedRows={selectedRows}
         onSelectionChange={setSelectedRows}
         getRowId={pet => pet.petId}
+        onRowClick={pet => setSelectedPet(pet)}
+      />
+
+      <PetDetailModal
+        isOpen={selectedPet !== null}
+        onClose={() => setSelectedPet(null)}
+        pet={selectedPet}
       />
 
       <BulkConfirmationModal

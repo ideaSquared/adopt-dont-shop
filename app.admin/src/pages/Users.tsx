@@ -19,13 +19,16 @@ import {
   useVerifyUser,
   useDeleteUser,
   useBulkUpdateUsers,
+  useCreateUser,
 } from '../hooks';
 import { apiService, type AdminUser } from '../services/libraryServices';
 import { exportData, type ExportColumn } from '../services/exportService';
+import { userManagementService } from '../services/userManagementService';
 import { ExportButton, BulkActionToolbar } from '../components/ui';
 import {
   UserDetailModal,
   EditUserModal,
+  AddUserModal,
   CreateSupportTicketModal,
   UserActionsMenu,
   BulkConfirmationModal,
@@ -99,6 +102,7 @@ const Users: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
   // Bulk selection state
@@ -121,6 +125,7 @@ const Users: React.FC = () => {
   const unsuspendUser = useUnsuspendUser();
   const verifyUser = useVerifyUser();
   const deleteUser = useDeleteUser();
+  const createUser = useCreateUser();
   const { toasts, showToast, hideToast } = useToast();
 
   // Load user from URL parameter
@@ -239,6 +244,15 @@ const Users: React.FC = () => {
       await deleteUser.mutateAsync({ userId, reason });
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to delete user');
+    }
+  };
+
+  const handleResetPassword = async (userId: string) => {
+    try {
+      await userManagementService.resetUserPassword(userId);
+      showToast({ message: 'Password reset triggered', type: 'success' });
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to reset password');
     }
   };
 
@@ -431,6 +445,7 @@ const Users: React.FC = () => {
             onUnsuspend={handleUnsuspendUser}
             onVerify={handleVerifyUser}
             onDelete={handleDeleteUser}
+            onResetPassword={handleResetPassword}
           />
         </div>
       ),
@@ -448,7 +463,7 @@ const Users: React.FC = () => {
         </div>
         <div className={styles.headerActions}>
           <ExportButton onExport={handleExport} disabled={isLoading || users.length === 0} />
-          <Button variant='primary' size='md'>
+          <Button variant='primary' size='md' onClick={() => setIsAddModalOpen(true)}>
             <FiUserPlus style={{ marginRight: '0.5rem' }} />
             Add User
           </Button>
@@ -553,6 +568,15 @@ const Users: React.FC = () => {
         onClose={() => setIsEditModalOpen(false)}
         user={selectedUser}
         onSave={handleSaveUser}
+      />
+
+      <AddUserModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onCreate={async payload => {
+          await createUser.mutateAsync(payload);
+          showToast({ message: 'User created', type: 'success' });
+        }}
       />
 
       <CreateSupportTicketModal
