@@ -48,6 +48,13 @@ vi.mock('../../config', () => ({
   },
 }));
 
+// Default to local storage so existing tests are unaffected.
+// Individual tests that exercise S3 wiring override this with vi.mocked().
+vi.mock('../../services/storage', () => ({
+  getStorageProvider: vi.fn(() => ({ getName: () => 'local' })),
+  StorageCategory: {},
+}));
+
 // ──── Imports ─────────────────────────────────────────────────────────────────
 
 import fs from 'fs';
@@ -56,6 +63,7 @@ import DOMPurify from 'isomorphic-dompurify';
 import FileUpload from '../../models/FileUpload';
 import { AuditLogService } from '../../services/auditLog.service';
 import { FileUploadService } from '../../services/file-upload.service';
+import { getStorageProvider } from '../../services/storage';
 
 // ──── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -567,6 +575,115 @@ describe('FileUploadService', () => {
           userId: 'user-456',
         })
       );
+    });
+  });
+
+  describe('S3 storage provider wiring', () => {
+    const s3ProviderUploadFile = vi.fn();
+    const s3ProviderDeleteFile = vi.fn();
+    const mockS3Provider = {
+      getName: () => 's3',
+      uploadFile: s3ProviderUploadFile,
+      deleteFile: s3ProviderDeleteFile,
+    };
+
+    beforeEach(() => {
+      s3ProviderUploadFile.mockResolvedValue({
+        url: 'https://bucket.s3.us-east-1.amazonaws.com/pets/uuid.jpg',
+        filename: 'uuid.jpg',
+        size: 1024,
+      });
+      s3ProviderDeleteFile.mockResolvedValue(undefined);
+      vi.mocked(getStorageProvider).mockReturnValue(
+        mockS3Provider as ReturnType<typeof getStorageProvider>
+      );
+    });
+
+    afterEach(() => {
+      vi.mocked(getStorageProvider).mockReturnValue({ getName: () => 'local' } as ReturnType<typeof getStorageProvider>);
+    });
+
+    describe('upload', () => {
+      it('uploads the processed file to the S3 provider when STORAGE_PROVIDER=s3', async () => {
+        const file = makeFile({ originalname: 'cat.jpg', mimetype: 'image/jpeg' });
+        setupSuccessfulUpload();
+        vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from('processed-content'));
+        vi.mocked(FileUpload.create).mockResolvedValue(
+          makeMockRecord({ url: 'https://bucket.s3.us-east-1.amazonaws.com/pets/uuid.jpg' })
+        );
+
+        const result = await FileUploadService.uploadFile(file, 'pets', {
+          uploadedBy: 'user-456',
+        });
+
+        expect(result.success).toBe(true);
+        expect(s3ProviderUploadFile).toHaveBeenCalledWith(
+          expect.any(Buffer),
+          'cat.jpg',
+          'image/jpeg',
+          'pets'
+        );
+      });
+
+      it('stores the S3 URL in the database record', async () => {
+        const file = makeFile({ originalname: 'dog.jpg', mimetype: 'image/jpeg' });
+        setupSuccessfulUpload();
+        vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from('data'));
+        vi.mocked(FileUpload.create).mockResolvedValue(
+          makeMockRecord({ url: 'https://bucket.s3.us-east-1.amazonaws.com/pets/uuid.jpg' })
+        );
+
+        await FileUploadService.uploadFile(file, 'pets', { uploadedBy: 'user-456' });
+
+        expect(vi.mocked(FileUpload.create)).toHaveBeenCalledWith(
+          expect.objectContaining({
+            url: 'https://bucket.s3.us-east-1.amazonaws.com/pets/uuid.jpg',
+          })
+        );
+      });
+
+      it('maps profiles upload type to the "users" S3 category', async () => {
+        const file = makeFile({
+          originalname: 'avatar.jpg',
+          mimetype: 'image/jpeg',
+          path: '/test-uploads/avatar.jpg',
+          filename: 'avatar_123.jpg',
+          destination: '/test-uploads',
+        });
+        setupSuccessfulUpload();
+        vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from('data'));
+        vi.mocked(FileUpload.create).mockResolvedValue(makeMockRecord());
+
+        await FileUploadService.uploadFile(file, 'profiles', { uploadedBy: 'user-456' });
+
+        expect(s3ProviderUploadFile).toHaveBeenCalledWith(
+          expect.any(Buffer),
+          'avatar.jpg',
+          'image/jpeg',
+          'users'
+        );
+      });
+    });
+
+    describe('delete', () => {
+      it('delegates deletion to the S3 provider using the stored file path as key', async () => {
+        const mockRecord = makeMockRecord({ file_path: 'pets/photo_123.jpg', uploaded_by: 'user-456' });
+        vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
+
+        await FileUploadService.deleteFile('upload-abc-123', { id: 'user-456', type: UserType.ADOPTER });
+
+        expect(s3ProviderDeleteFile).toHaveBeenCalledWith('photo_123.jpg', 'pets');
+        expect(vi.mocked(fs.promises.unlink)).not.toHaveBeenCalled();
+      });
+
+      it('handles a file_path without a directory segment gracefully', async () => {
+        const mockRecord = makeMockRecord({ file_path: 'orphan.jpg', uploaded_by: 'user-456' });
+        vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
+
+        await FileUploadService.deleteFile('upload-abc-123', { id: 'user-456', type: UserType.ADOPTER });
+
+        expect(s3ProviderDeleteFile).toHaveBeenCalledWith('orphan.jpg', 'documents');
+      });
     });
   });
 });
