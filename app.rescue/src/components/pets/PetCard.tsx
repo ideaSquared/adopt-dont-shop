@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button } from '@adopt-dont-shop/lib.components';
+import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetCard.css';
@@ -113,7 +113,11 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
       <Card className={styles.styledCard}>
         <div className={styles.petImageContainer}>
           {primaryImage ? (
-            <img className={styles.petImage} src={primaryImage.url} alt={pet.name} />
+            <ProgressiveImage
+              src={primaryImage.url}
+              alt={pet.name}
+              errorFallback={<div className={styles.placeholderImage}>🐾</div>}
+            />
           ) : (
             <div className={styles.placeholderImage}>🐾</div>
           )}

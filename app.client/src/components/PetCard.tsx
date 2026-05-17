@@ -2,7 +2,7 @@ import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { Pet } from '@/services';
-import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { Badge, Button, Card, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder, MdLocationOn } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
@@ -191,18 +191,12 @@ export const PetCard: React.FC<PetCardProps> = ({
     >
       <div className={styles.imageContainer}>
         {resolvedImageUrl ? (
-          <>
-            <img
-              src={resolvedImageUrl}
-              alt={pet.name}
-              loading='lazy'
-              onError={e => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
-              }}
-            />
-            <div className={styles.placeholderImage} style={{ display: 'none' }} />
-          </>
+          <ProgressiveImage
+            src={resolvedImageUrl}
+            alt={pet.name}
+            errorFallback={<div className={styles.placeholderImage} />}
+            placeholder={<div className={styles.placeholderImage} />}
+          />
         ) : (
           <div className={styles.placeholderImage} />
         )}
