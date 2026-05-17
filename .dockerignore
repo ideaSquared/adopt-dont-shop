@@ -65,6 +65,8 @@ test-results
 *.md
 !README.md
 docs
+!docs/legal
+!docs/legal/**
 .claude
 
 # ============================================================================
