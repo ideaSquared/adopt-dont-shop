@@ -1,0 +1,56 @@
+{
+  "name": "@my-org/lib.example",
+  "version": "1.0.0",
+  "description": "Example shared library - demonstrates the service library pattern",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext ts",
+    "lint:fix": "eslint src --ext ts --fix",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "typescript",
+    "library",
+    "monorepo"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "devDependencies": {
+    "@my-org/eslint-config-base": "*",
+    "@types/jest": "^30.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.0.5",
+    "prettier": "^3.2.5",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.4.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
