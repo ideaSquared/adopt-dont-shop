@@ -17,6 +17,9 @@ export function generateSecretsBlock() {
     `CSRF_SECRET=${b64()}`,
     `ENCRYPTION_KEY=${randomBytes(32).toString('hex')}`,
     `UPLOAD_SIGNING_SECRET=${b64()}`,
+    `JWT_REPORT_SHARE_SECRET=${b64()}`,
+    '# POSTGRES_PASSWORD is sensitive too — regenerate if leaked:',
+    `POSTGRES_PASSWORD=${b64(24)}`,
   ].join('\n');
 }
 
