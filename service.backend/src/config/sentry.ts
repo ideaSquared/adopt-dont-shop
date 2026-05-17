@@ -13,7 +13,7 @@ type SentryConfig = {
 const getSentryConfig = (): SentryConfig => {
   const dsn = process.env.SENTRY_DSN || '';
   const environment = process.env.NODE_ENV || 'development';
-  const enabled = Boolean(dsn) && environment !== 'test';
+  const enabled = Boolean(dsn) && ['production', 'staging'].includes(environment);
 
   return {
     dsn,
@@ -31,7 +31,7 @@ export const initializeSentry = (): void => {
   const config = getSentryConfig();
 
   if (!config.enabled) {
-    logger.info('Sentry is disabled (no DSN configured or running in test mode)');
+    logger.info('Sentry is disabled (no DSN configured or NODE_ENV not production/staging)');
     return;
   }
 
