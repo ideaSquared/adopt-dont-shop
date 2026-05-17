@@ -66,6 +66,7 @@ const BlogPage = lazy(() => import('@/pages/BlogPage').then(m => ({ default: m.B
 const BlogPostPage = lazy(() =>
   import('@/pages/BlogPostPage').then(m => ({ default: m.BlogPostPage }))
 );
+const LegalPage = lazy(() => import('@/pages/LegalPage').then(m => ({ default: m.LegalPage })));
 const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.HelpPage })));
 const HelpArticlePage = lazy(() =>
   import('@/pages/HelpArticlePage').then(m => ({ default: m.HelpArticlePage }))
@@ -162,6 +163,8 @@ function App() {
                     <Route path='/blog/:slug' element={<BlogPostPage />} />
                     <Route path='/help' element={<HelpPage />} />
                     <Route path='/help/:slug' element={<HelpArticlePage />} />
+                    <Route path='/terms' element={<LegalPage slug='terms' />} />
+                    <Route path='/privacy' element={<LegalPage slug='privacy' />} />
                     {/* ADS-480: 404 catch-all */}
                     <Route path='*' element={<NotFoundPage />} />
                   </Route>

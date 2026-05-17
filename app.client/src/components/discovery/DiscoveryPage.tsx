@@ -6,7 +6,8 @@ import {
   discoveryService,
 } from '@/services';
 import { Container } from '@adopt-dont-shop/lib.components';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { loadDiscoveryState, recordViewedPet } from '@/utils/discoverySession';
 import { MdWarning } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import * as styles from './DiscoveryPage.css';
@@ -20,8 +21,9 @@ export const DiscoveryPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<PetSearchFilters>({});
+  const persistedState = useMemo(() => loadDiscoveryState(), []);
   const [session, setSession] = useState<SwipeSession>({
-    sessionId: `session-${Date.now()}`,
+    sessionId: persistedState.sessionId,
     startTime: new Date().toISOString(),
     totalSwipes: 0,
     likes: 0,
@@ -29,6 +31,7 @@ export const DiscoveryPage: React.FC = () => {
     superLikes: 0,
     filters: {} as PetSearchFilters,
   });
+  const [viewedPetIds, setViewedPetIds] = useState<string[]>(persistedState.viewedPetIds);
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
 
   // Load initial pets
@@ -38,7 +41,8 @@ export const DiscoveryPage: React.FC = () => {
         setLoading(true);
         setError(null);
         const discoveryQueue = await discoveryService.getDiscoveryQueue(filters);
-        setPets(discoveryQueue.pets);
+        const filtered = discoveryQueue.pets.filter(pet => !viewedPetIds.includes(pet.petId));
+        setPets(filtered);
         setCurrentPetIndex(0); // Reset to first pet when filters change
       } catch (error) {
         console.error('Failed to load pets:', error);
@@ -78,6 +82,10 @@ export const DiscoveryPage: React.FC = () => {
 
       // Move to next pet
       setCurrentPetIndex(prev => prev + 1);
+
+      // Persist viewed pet so next session resumes correctly
+      const next = recordViewedPet(action.petId);
+      setViewedPetIds(next.viewedPetIds);
 
       // Record swipe action
       try {

@@ -53,6 +53,13 @@ class CmsPublicService {
     );
     return response.content;
   }
+
+  async getStaticPage(slug: string): Promise<PublicContent> {
+    const response = await api.get<{ content: PublicContent }>(
+      `/api/v1/cms/public/content/${slug}`
+    );
+    return response.content;
+  }
 }
 
 export const cmsPublicService = new CmsPublicService();
