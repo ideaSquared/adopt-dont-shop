@@ -2,158 +2,153 @@
 
 ## Overview
 
-The Rescue App is a comprehensive management platform for rescue organizations to manage pets, review adoption applications, communicate with adopters, and oversee rescue operations. It serves as the operational hub for rescue staff and volunteers.
+The Rescue App is the operational hub for rescue organizations to manage pets, review adoption applications, communicate with adopters, and oversee day-to-day rescue operations.
 
 ## Target Users
 
-- **Primary**: Rescue administrators and managers
-- **Secondary**: Rescue staff members and volunteers
-- **Tertiary**: Foster coordinators and veterinary staff
+- **Primary**: Rescue staff with admin permissions
+- **Secondary**: General rescue staff and volunteers (server-side role: `rescue_staff`)
+
+*Note on roles:* The backend has a single `rescue_staff` `UserRole`. Finer permission granularity (admin vs staff vs volunteer within a rescue) is enforced **client-side** via `PermissionsContext` fallback maps (`rescue_admin`, `rescue_staff`, `rescue_volunteer` permission sets). There is no separate `rescue_manager` or `volunteer` `UserRole`.
 
 ## Key Features
 
 ### 1. Pet Management
 
-- Complete pet database with detailed profiles
-- Pet registration with photos and medical history
-- Status tracking (available, pending, adopted, medical care)
-- Medical records and vaccination tracking
-- Foster coordination and transitions
-- Photo management with multiple images
-- Behavioral assessments and training needs
+- Pet database with detailed profiles
+- Pet registration form with photos
+- Status tracking via `PetStatusTransition` (`AVAILABLE / PENDING / ADOPTED / FOSTER / MEDICAL_HOLD / BEHAVIORAL_HOLD / NOT_AVAILABLE / DECEASED`)
+- Photo management (up to 10, reorder, primary)
+- Behavioural / temperament data captured as Pet columns
+- CSV import via `PetCsvImportModal`
+
+*Out of scope / roadmap:* Dedicated medical-records timeline UI, dedicated vaccination tracking UI, dedicated behavioural-assessment workflow. Schema supports these as inline fields; rich UI is a future enhancement.
 
 ### 2. Application Management
 
-#### Stage-Based Workflow
+**Backend status model (authoritative):**
 
-Five-stage workflow mirroring real adoption processes:
+`ApplicationStatus = SUBMITTED | APPROVED | REJECTED | WITHDRAWN`
 
-**PENDING** → **REVIEWING** → **VISITING** → **DECIDING** → **RESOLVED**
+**Frontend stage presentation (UI-only):**
 
-- **PENDING**: Applications awaiting initial review
-- **REVIEWING**: Active review with reference checks
-- **VISITING**: Home visit scheduled/completed
-- **DECIDING**: Final decision after positive visit
-- **RESOLVED**: Completed (Approved/Conditional/Rejected/Withdrawn)
+For richer UX, the rescue app maps backend status + side-effects (home visits, reference checks) into a derived 5-stage view via `applicationService.ts:mapStatusToStage`:
+
+`PENDING → REVIEWING → VISITING → DECIDING → RESOLVED`
+
+These stages are **display-only**; they do not persist as a backend column. Stage transitions in the UI translate to status changes (only the SUBMITTED → {APPROVED, REJECTED, WITHDRAWN} transitions are accepted by the backend). Final-outcome `CONDITIONAL` is not currently supported and is on roadmap (would require backend status model change).
 
 **Core Features:**
 
-- Comprehensive application review
+- Comprehensive application review (tabs: details / references / visits / timeline)
 - Reference checking tools
-- Home visit scheduling with auto-progression
-- Decision tracking with audit trail
-- Communication history with applicants
-- Bulk operations for efficiency
-- Application analytics and metrics
-- Custom question management
+- Home visit scheduling with outcome propagation
+- Decision tracking with audit trail via `ApplicationTimeline`
+- Communication history with applicants (via Communication page)
+- **Bulk operations**: selection checkboxes + bulk approve/reject/withdraw via `BulkActionToolbar` (mirrors admin pattern; calls existing `performBulkAction` service method)
+- Application analytics
+- Custom question management per rescue (`QuestionsBuilder`)
 
 ### 3. Rescue Configuration
 
-- Customize application questions
-- Configure adoption policies
-- Manage rescue contact information
-- Staff and volunteer management
-- Permission and role settings
-- Public rescue profile
+- Customize application questions via `QuestionsBuilder`
+- Configure adoption policies via `AdoptionPolicyForm`
+- Manage rescue contact information via `RescueProfileForm`
+- Staff management via `StaffManagement` (add/remove/edit/invite)
+- Notification preferences via `NotificationPreferencesForm`
+
+*Out of scope / roadmap:* Public rescue profile editor, in-app role/permission assignment UI (permissions managed via backend RBAC), volunteer-specific UX, message templates.
 
 ### 4. Communication Tools
 
-- Direct messaging with adopters
-- Internal staff chat
-- Email integration
-- Centralized notification center
-- Message templates
-- Searchable conversation archive
+- Direct messaging with adopters via `lib.chat` (`ConversationList` + `ChatWindow`)
+- Conversation filter: active / resolved
+- Email/push/SMS preferences toggleable via `NotificationPreferencesForm` (backend handles delivery)
+
+*Out of scope / roadmap:* Internal staff chat, message templates library, searchable conversation archive (search within messages), announcements broadcast.
 
 ### 5. Analytics & Reporting
 
-- Adoption metrics and success rates
-- Application analytics and conversion
+- **Reachable from sidebar nav** (Analytics + Reports links wired)
+- Adoption metrics + success rates (`AdoptionMetricsChart`)
+- Application analytics + conversion funnel (`ConversionFunnelChart`, `StageDistributionChart`)
 - Pet performance tracking
-- Response time monitoring
-- Financial reporting (if applicable)
-- Custom report generation
+- Response time monitoring (`ResponseTimeChart`)
+- Custom report generation via `lib.analytics` (`useReports`, `useReportTemplates`, scheduling, token shares)
+- CSV + PDF export via `analyticsService.exportToCSV/exportToPDF`
 
-### 6. Staff & Volunteer Management
+*Out of scope / roadmap:* Financial reporting, Excel export.
 
-- Staff directory and profiles
-- Role and permission assignment
-- Activity tracking
-- Training management
-- Schedule coordination
-- Internal messaging and announcements
+### 6. Staff Management
+
+- Staff directory and profiles (`StaffOverview`, `StaffList`)
+- Add/edit/remove staff
+- Invite flow (`InviteStaffModal`, `PendingInvitations`, `AcceptInvitation`)
+
+*Out of scope / roadmap:* Role/permission assignment UI, activity tracking UI, training management, schedule coordination, internal messaging / announcements.
 
 ### 7. Event Management
 
-- Adoption events and meet-and-greets
-- Fundraising activities
-- Volunteer events and training
-- Calendar integration
-- Event analytics
+- Create/list adoption events, fundraisers, meet-and-greets (`Events.tsx`)
+- Calendar view (`EventCalendar`)
+
+*Out of scope / roadmap:* External calendar integration (Google/iCal), event analytics surfaced in UI, training-specific event types.
+
+### 8. Foster Coordination
+
+- **`FosterCoordination` page** with list of active and historical placements
+- Create placement: select pet + foster user, start date, notes → triggers Pet status transition to `FOSTER`
+- End placement: outcome (return-to-rescue / adopted-by-foster) → triggers Pet status transition back to `AVAILABLE` or `ADOPTED`
+- Active-placement badge surfaced on Pet detail/edit modal
+- Backed by `FosterPlacement` + `FosterPlacementTransition` backend models (see backend PRD §11)
+- RBAC: `rescue_staff` for own rescue
 
 ## Technical Requirements
 
 ### Performance
 
-- Dashboard Load: < 2 seconds
-- Search Performance: < 500ms
-- Image Upload: Efficient bulk upload with progress
-- Offline Capability: Basic offline access for fieldwork
+- Dashboard load < 2s target
+- Search < 500ms target
+- Image bulk upload with per-file progress
 
 ### Security
 
-- Role-based access with granular permissions
-- Secure handling of sensitive adopter information
-- Audit logging for all changes
-- Regular data backup and recovery
+- Role-based access via `PermissionsContext` (client-side fallback maps over server `rescue_staff` role)
+- Audit logging via backend `auditLog.service.ts`
+- Field-level permission overrides via backend `FieldPermission` model
 
-### Mobile Responsiveness
+### Mobile / PWA
 
-- Mobile-first design
-- Touch interface optimization
-- Progressive Web App experience
-- Offline sync capability
+- Mobile-first responsive design
+- Mobile-specific Communication view
+- **PWA enabled** via `vite-plugin-pwa`:
+  - `registerType: 'autoUpdate'`
+  - Workbox runtime caches: pet list, application list (NetworkFirst, short TTL)
+  - Manifest + icons (192/512)
+  - Install prompt component
 
-### Integration Capabilities
+*Out of scope:* Offline pet/application editing (sync-on-reconnect is complex; roadmap).
 
-- RESTful APIs for third-party integrations
-- Webhook support for real-time notifications
-- Data export (CSV, PDF, Excel)
-- Import tools for data migration
+### Data Export / Import
+
+- CSV + PDF export from analytics
+- Pet CSV import via `PetCsvImportModal`
+
+*Out of scope / roadmap:* Excel export, webhooks for third-party integrations.
 
 ## User Roles & Permissions
 
-### Rescue Administrator
+### Server-side role
 
-- Full system access
-- Staff management and permissions
-- Configuration and settings
-- Complete analytics access
-- Financial reporting
+- `rescue_staff` — only role enforced server-side for rescue access
 
-### Rescue Manager
+### Client-side permission tiers (via `PermissionsContext`)
 
-- Operational management
-- Staff coordination
-- Report generation
-- Communication management
-- Event planning
+- **`rescue_admin`** (permission key): full rescue configuration, staff management, analytics, reports
+- **`rescue_staff`** (permission key): pet management, application review, communication, basic reporting
+- **`rescue_volunteer`** (permission key): read-mostly access to assigned scopes
 
-### Rescue Staff
-
-- Pet management
-- Application review
-- Communication with adopters
-- Basic reporting
-- Task completion
-
-### Volunteer
-
-- Limited access to assigned pets
-- Update volunteer tasks
-- Basic messaging
-- Event participation
-- Read-only reports
+*Removed from PRD:* `Rescue Manager` and `Volunteer` as distinct `UserRole` enum values (do not exist in backend).
 
 ## Data Models
 
@@ -175,6 +170,7 @@ interface StaffMemberAttributes {
   user_id: string;
   rescue_id: string;
   verified_by_rescue: boolean;
+  title?: string;
 }
 
 interface ApplicationAttributes {
@@ -182,113 +178,103 @@ interface ApplicationAttributes {
   user_id: string;
   pet_id: string;
   rescue_id: string;
+  status: 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN'; // backend column
+  answers: Record<string, unknown>;
+  // Side-effect models (drive UI stage derivation):
+  // HomeVisit (scheduled_at, completed_at, outcome)
+  // ApplicationReference (status per reference)
+}
 
-  // Stage-based workflow
-  stage: 'PENDING' | 'REVIEWING' | 'VISITING' | 'DECIDING' | 'RESOLVED';
-  final_outcome?: 'APPROVED' | 'CONDITIONAL' | 'REJECTED' | 'WITHDRAWN';
-
-  // Progress tracking
-  review_started_at?: Date;
-  visit_scheduled_at?: Date;
-  visit_completed_at?: Date;
-  resolved_at?: Date;
-
-  answers: Record<string, any>;
+interface FosterPlacementAttributes {
+  placement_id: string;
+  pet_id: string;
+  foster_user_id: string;
+  rescue_id: string;
+  start_date: Date;
+  end_date?: Date;
+  status: 'active' | 'completed' | 'cancelled';
+  notes?: string;
 }
 ```
 
 ## API Dependencies
 
-### Backend Services
+- Pet Management: `petManagementService` (`lib.pets`)
+- Applications: `applicationService` (+ `useApplications`)
+- Communication: `lib.chat` `chatService`
+- Notifications: `notificationsService` (`lib.notifications`)
+- Staff: `staffService`
+- Invitations: `invitationService` (`lib.invitations`)
+- Analytics: `analyticsService` + `lib.analytics`
+- Events: `eventsService`
+- Rescue config: `rescueService`
+- Permissions: `permissionsService` (`lib.permissions`)
+- Foster: `/api/v1/foster/placements` (new)
 
-- Pet Management API
-- Application Processing API
-- User Management API
-- Communication API
-- Analytics API
-- Configuration API
-
-### Third-Party Integrations
-
-- Email service (transactional and marketing)
-- Cloud storage (photos and documents)
-- Calendar service (events and scheduling)
-- Payment processing (adoption fees, optional)
-- Social media APIs
-- Veterinary system integration
+*Out of scope:* Calendar/payment/social/vet third-party integrations.
 
 ## Success Metrics
 
 ### Operational Efficiency
 
-- 50% reduction in application processing time via stage workflow
-- Response time average under 24 hours across all stages
+- 50% reduction in application processing time
+- Response time average under 24 hours
 - 95%+ pet profile completion
-- 30% increase in staff efficiency
-- Stage transition time within established benchmarks
 
 ### Adoption Success
 
 - 85%+ adoption rate for healthy pets
-- 25% reduction in average time to adoption
-- Under 5% return rate for adopted pets
-- 95%+ adopter satisfaction score
+- 25% reduction in average time-to-adoption
+- Under 5% return rate
 
 ### User Engagement
 
 - 90%+ staff actively using platform
-- 80%+ feature utilization
 - 60%+ mobile usage
-- 50% reduction in support requests
 
 ## Risk Mitigation
 
-### Operational Risks
+### Operational
 
-- Data Loss: Automated backups and redundant storage
-- Staff Turnover: Comprehensive training and documentation
-- System Downtime: High availability and quick recovery
-- User Adoption: Extensive training and change management
+- Data loss: backend automated backups + retention worker
+- Staff turnover: invitations + documented onboarding
+- Downtime: backend HA + health probes
 
-### Data Security Risks
+### Data Security
 
-- Sensitive Information: Encryption and secure access controls
-- Privacy Compliance: GDPR and privacy law compliance
-- Access Control: Regular permission audits
-- Breach Response: Incident response plan
-
-### Business Continuity
-
-- Disaster recovery procedures
-- Multiple access methods
-- Alternative communication channels
-- Critical function priorities
+- Encryption of sensitive backend data (2FA secrets today; broader PII roadmap)
+- GDPR-compliant retention/export/deletion via backend privacy routes
+- Field-level permissions via `lib.permissions`
 
 ## Future Roadmap
 
-### Short Term (3-6 months)
+### Near Term
 
-- Mobile apps (iOS and Android)
-- Advanced analytics with predictive insights
-- Automation tools and workflows
-- Enhanced communication (video calling, virtual meet-and-greets)
+- Public rescue profile editor
+- Message templates library
+- Internal staff chat
+- Excel export
+- Medical/vaccination/behavioural-assessment dedicated UIs
 
-### Medium Term (6-12 months)
+### Medium Term
 
-- AI-powered pet-adopter matching
+- External calendar integration (Google/iCal)
+- Webhook delivery for third-party integrations
+- Per-rescue financial reporting (if monetization lands)
+- Application status model extension (add `CONDITIONAL` final outcome)
+
+### Deferred / De-scoped
+
+- AI matching (cross-app; see client recommendations plan)
+- Veterinary system integration
 - Transport network integration
-- Grant management tools
-- Enhanced volunteer recruitment and onboarding
-
-### Long Term (12+ months)
-
-- Predictive analytics for adoption trends
-- IoT integration (smart collars, tracking)
-- Blockchain pet health records
-- Virtual reality pet interaction
+- IoT smart-collar integration
+- Blockchain health records
+- VR pet interaction
 
 ## Additional Resources
 
 - **Implementation Plan**: [implementation-plan.md](./implementation-plan.md)
 - **Technical Architecture**: [technical-architecture.md](./technical-architecture.md)
+- **Backend PRD (foster + status model)**: [../backend/service-backend-prd.md](../backend/service-backend-prd.md)
 - **API Documentation**: [../backend/api-endpoints.md](../backend/api-endpoints.md)
