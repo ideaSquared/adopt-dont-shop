@@ -11,6 +11,7 @@ import FileUpload from '../models/FileUpload';
 import { UserType } from '../models/User';
 import { fileTypeFromFile } from '../utils/file-type-wrapper';
 import DOMPurify from 'isomorphic-dompurify';
+import { getAvProvider } from './av-providers';
 
 // File upload configuration
 const UPLOAD_CONFIG = {
@@ -511,40 +512,30 @@ export class FileUploadService {
   }
 
   /**
-   * Scan file for malware
+   * Scan file for malware via the configured AV provider.
    *
-   * Antivirus integration is a tracked future enhancement.
-   * Options:
-   * 1. ClamAV (open-source, self-hosted)
-   *    - Install: apt-get install clamav clamav-daemon
-   *    - Node package: clamscan
-   *    - Usage: const ClamScan = require('clamscan'); const clamscan = await new ClamScan().init();
+   * Provider selection is driven by `AV_PROVIDER`:
+   *   - `noop` (dev default) — passes all files without scanning
+   *   - `clamav` (production) — placeholder; vendor wiring required
    *
-   * 2. VirusTotal API (cloud-based)
-   *    - Requires API key from virustotal.com
-   *    - Node package: virustotal-api or node-virustotal
-   *    - Rate limits apply (free tier: 4 requests/minute)
-   *
-   * 3. AWS GuardDuty for S3 (when migrating to S3)
-   *    - Automatic malware detection for S3 uploads
-   *    - Integrates with AWS Security Hub
-   *
-   * Implementation checklist:
-   * - [ ] Choose antivirus solution based on infrastructure
-   * - [ ] Install and configure antivirus service
-   * - [ ] Install appropriate Node.js package
-   * - [ ] Update this method with actual scanning logic
-   * - [ ] Add error handling for scan failures
-   * - [ ] Implement quarantine process for infected files
-   * - [ ] Add monitoring and alerting for malware detections
-   * - [ ] Document scanning configuration in deployment docs
+   * Returns true when the file is considered clean.
    */
   private static async scanForMalware(filePath: string): Promise<boolean> {
-    // AV scanning is not yet integrated. Fail closed: reject all uploads until
-    // a real scanner (e.g. ClamAV) is wired in. Remove this guard and wire up
-    // clamscan.isInfected(filePath) when the scanner is available.
-    logger.error('Malware scanning not implemented — upload rejected (fail-closed)', { filePath });
-    return false;
+    try {
+      const provider = getAvProvider();
+      const result = await provider.scan(filePath);
+      if (!result.clean) {
+        logger.warn('AV scan flagged file as not clean', {
+          filePath,
+          provider: provider.getName(),
+          details: result.details,
+        });
+      }
+      return result.clean;
+    } catch (error) {
+      logger.error('AV scan failed', { filePath, error });
+      return false;
+    }
   }
 
   /**
