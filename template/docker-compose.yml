@@ -1,0 +1,134 @@
+# Optimized Docker Compose - Industry Standard Monorepo Pattern
+
+services:
+  database:
+    image: postgres:16-alpine
+    restart: always
+    ports:
+      - '127.0.0.1:5432:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-app_dev}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-app_user} -d ${POSTGRES_DB:-app_dev}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - '127.0.0.1:6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-devredispassword}
+
+  service-api:
+    build:
+      context: .
+      dockerfile: ./service.api/Dockerfile
+      target: development
+    ports:
+      - '5000:5000'
+    volumes:
+      - ./service.api:/app/service.api
+      - ./lib.example:/app/lib.example
+      - /app/service.api/node_modules
+      - lib_example_node_modules:/app/lib.example/node_modules
+      - ./uploads:/app/service.api/uploads
+    entrypoint: /app/service.api/docker-entrypoint.sh
+    command: npm run dev
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 5000
+      DB_HOST: ${DB_HOST:-database}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USERNAME: ${POSTGRES_USER:-app_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DEV_DB_NAME: ${POSTGRES_DB:-app_dev}
+      DB_LOGGING: ${DB_LOGGING:-false}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-devredispassword}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      SESSION_SECRET: "${SESSION_SECRET:?Error: SESSION_SECRET required}"
+      CSRF_SECRET: "${CSRF_SECRET:?Error: CSRF_SECRET required}"
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      API_URL: ${API_URL:-http://api.localhost}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:5000}
+      CHOKIDAR_USEPOLLING: true
+      CHOKIDAR_INTERVAL: 1000
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: '1.0'
+
+  app-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.app.optimized
+      target: development
+      args:
+        APP_NAME: app.web
+    ports:
+      - '3000:3000'
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/app.web/node_modules
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DOCKER_ENV: 'true'
+      VITE_API_BASE_URL: ''
+      VITE_WS_BASE_URL: ws://localhost:5000
+      CHOKIDAR_USEPOLLING: true
+      CHOKIDAR_INTERVAL: 1000
+      CHOKIDAR_AWAITWRITEFINISH: 2000
+      NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
+    depends_on:
+      - service-api
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    mem_limit: 2g
+    memswap_limit: 2g
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - service-api
+      - app-web
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  lib_example_node_modules:
+
+networks:
+  default:
+    name: monorepo-network

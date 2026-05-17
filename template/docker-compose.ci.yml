@@ -1,0 +1,8 @@
+# CI override - removes dev volume mounts that shadow built artifacts
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+
+services:
+  service-api:
+    volumes: !reset []
+    entrypoint: ["/usr/bin/dumb-init", "--"]
+    command: ["npm", "run", "dev"]

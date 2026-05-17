@@ -1,0 +1,40 @@
+# Docker Compose Override Example
+#
+# Copy this file to docker-compose.override.yml and customize for your local
+# environment. docker-compose.override.yml is gitignored by default.
+#
+# Usage:
+#   1. cp docker-compose.override.yml.example docker-compose.override.yml
+#   2. Edit with your local settings
+#   3. docker compose up (automatically includes override file)
+
+services:
+  # Example: Increase memory for frontend app during development
+  # app-web:
+  #   mem_limit: 4g
+  #   environment:
+  #     NODE_OPTIONS: '--max-old-space-size=4096'
+
+  # Example: Expose additional ports for debugging
+  # service-api:
+  #   ports:
+  #     - "9229:9229"  # Node.js debugger
+  #   command: npm run dev:debug
+
+  # Example: Override database settings for local testing
+  # database:
+  #   environment:
+  #     POSTGRES_DB: my_local_db
+  #   ports:
+  #     - "5433:5432"
+
+  # Example: Add PgAdmin for database management
+  # pgadmin:
+  #   image: dpage/pgadmin4:latest
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@local.dev
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #   ports:
+  #     - "5050:80"
+  #   depends_on:
+  #     - database
