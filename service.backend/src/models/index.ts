@@ -8,6 +8,7 @@ import Breed from './Breed';
 import Pet from './Pet';
 import PetMedia from './PetMedia';
 import PetStatusTransition from './PetStatusTransition';
+import FosterPlacement from './FosterPlacement';
 import Rescue from './Rescue';
 import RescueSettings from './RescueSettings';
 import User from './User';
@@ -98,6 +99,7 @@ const models = {
   Pet,
   PetMedia,
   PetStatusTransition,
+  FosterPlacement,
   Application,
   ApplicationAnswer,
   ApplicationQuestion,
@@ -197,6 +199,13 @@ try {
     as: 'TransitionedBy',
     constraints: false,
   });
+
+  Pet.hasMany(FosterPlacement, { foreignKey: 'pet_id', as: 'FosterPlacements' });
+  FosterPlacement.belongsTo(Pet, { foreignKey: 'pet_id', as: 'Pet' });
+  User.hasMany(FosterPlacement, { foreignKey: 'foster_user_id', as: 'FosterPlacements' });
+  FosterPlacement.belongsTo(User, { foreignKey: 'foster_user_id', as: 'Foster' });
+  Rescue.hasMany(FosterPlacement, { foreignKey: 'rescue_id', as: 'FosterPlacements' });
+  FosterPlacement.belongsTo(Rescue, { foreignKey: 'rescue_id', as: 'Rescue' });
 
   HomeVisit.hasMany(HomeVisitStatusTransition, {
     foreignKey: 'visit_id',
@@ -717,6 +726,7 @@ export {
   Pet,
   PetMedia,
   PetStatusTransition,
+  FosterPlacement,
   Rating,
   Report,
   ReportStatusTransition,

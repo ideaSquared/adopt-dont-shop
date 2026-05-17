@@ -23,6 +23,9 @@ const Navigation: React.FC = () => {
       badge: unreadMessageCount,
     },
     { path: '/events', label: 'Events', icon: '🗓️' },
+    { path: '/foster', label: 'Foster', icon: '🏠' },
+    { path: '/analytics', label: 'Analytics', icon: '📈' },
+    { path: '/reports', label: 'Reports', icon: '📑' },
     { path: '/settings', label: 'Settings', icon: '⚙️' },
   ];
 

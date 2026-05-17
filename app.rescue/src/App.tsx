@@ -19,6 +19,7 @@ const StaffManagement = lazy(() => import('./pages/StaffManagement'));
 const RescueSettings = lazy(() => import('./pages/RescueSettings'));
 const Communication = lazy(() => import('./pages/Communication'));
 const Events = lazy(() => import('./pages/Events'));
+const FosterCoordination = lazy(() => import('./pages/FosterCoordination'));
 const AcceptInvitation = lazy(() => import('./pages/AcceptInvitation'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const Analytics = lazy(() => import('./pages/Analytics'));
@@ -104,6 +105,7 @@ function App() {
                         }
                       />
                       <Route path="/events" element={<Events />} />
+                      <Route path="/foster" element={<FosterCoordination />} />
                       <Route path="/analytics" element={<Analytics />} />
                       <Route path="/reports" element={<Reports />} />
                       <Route path="/reports/new" element={<ReportBuilderPage />} />
