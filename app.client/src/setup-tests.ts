@@ -226,6 +226,41 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     },
   }),
   ConfirmDialog: () => null,
+  ProgressiveImage: ({
+    src,
+    alt,
+    eager,
+    placeholder,
+    errorFallback,
+  }: {
+    src: string;
+    alt: string;
+    eager?: boolean;
+    placeholder?: React.ReactNode;
+    errorFallback?: React.ReactNode;
+    webpSrc?: string;
+    rootMargin?: string;
+    className?: string;
+    draggable?: boolean;
+    onLoad?: () => void;
+    onError?: () => void;
+  }) => {
+    const [errored, setErrored] = React.useState(false);
+    const [loaded, setLoaded] = React.useState(false);
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement('img', {
+        src,
+        alt,
+        loading: eager ? 'eager' : 'lazy',
+        onLoad: () => setLoaded(true),
+        onError: () => setErrored(true),
+      }),
+      !loaded && !errored ? placeholder : null,
+      errored ? errorFallback : null
+    );
+  },
   toast: Object.assign(vi.fn(), {
     success: vi.fn(),
     error: vi.fn(),

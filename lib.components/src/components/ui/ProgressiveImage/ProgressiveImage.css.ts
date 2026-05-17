@@ -28,7 +28,7 @@ export const image = recipe({
         filter: 'blur(0)',
       },
       false: {
-        // Blur-up: render the image (when present) at low-res blurred until decoded.
+        // Blur-up: render at low-res blurred until decoded.
         opacity: 0,
         filter: 'blur(20px)',
       },

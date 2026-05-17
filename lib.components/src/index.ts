@@ -138,3 +138,7 @@ export {
 export type { WidgetPickerProps, WidgetPreset } from './components/reports/WidgetPicker';
 export { DrillDownModal } from './components/reports/DrillDownModal';
 export type { DrillDownModalProps } from './components/reports/DrillDownModal';
+
+// ADS-14: Shared image component
+export { ProgressiveImage } from './components/ui/ProgressiveImage';
+export type { ProgressiveImageProps } from './components/ui/ProgressiveImage';

@@ -6,7 +6,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { MdCheckCircle, MdPets, MdRefresh, MdStar } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { resolveFileUrl } from '../../utils/fileUtils';
-import { ProgressiveImage } from '../ui/ProgressiveImage';
+import { ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import * as styles from './SwipeCard.css';
 
 interface SwipeCardProps {
