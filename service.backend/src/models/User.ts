@@ -43,6 +43,8 @@ export enum UserType {
   RESCUE_STAFF = 'rescue_staff',
   ADMIN = 'admin',
   MODERATOR = 'moderator',
+  SUPER_ADMIN = 'super_admin',
+  SUPPORT_AGENT = 'support_agent',
 }
 
 // Define the UserAttributes interface with enhanced fields

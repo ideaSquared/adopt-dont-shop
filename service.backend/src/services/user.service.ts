@@ -1014,6 +1014,8 @@ export class UserService {
           [UserType.RESCUE_STAFF]: 0,
           [UserType.ADMIN]: 0,
           [UserType.MODERATOR]: 0,
+          [UserType.SUPER_ADMIN]: 0,
+          [UserType.SUPPORT_AGENT]: 0,
         },
         usersByStatus: {
           [UserStatus.ACTIVE]: activeUsers,

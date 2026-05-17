@@ -139,7 +139,13 @@ router.get(
     }
 
     const { resource, role } = req.params;
-    const userRole = role as 'adopter' | 'rescue_staff' | 'admin' | 'moderator' | 'super_admin';
+    const userRole = role as
+      | 'adopter'
+      | 'rescue_staff'
+      | 'admin'
+      | 'moderator'
+      | 'super_admin'
+      | 'support_agent';
     const accessMap = getFieldAccessMap(resource as keyof typeof defaultFieldPermissions, userRole);
     res.json({ success: true, data: accessMap });
   }
