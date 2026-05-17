@@ -1,0 +1,86 @@
+{
+  "name": "typescript-monorepo-template",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "packageManager": "npm@10.8.1",
+  "workspaces": [
+    "app.web",
+    "eslint-config-base",
+    "eslint-config-node",
+    "eslint-config-react",
+    "lib.example",
+    "service.api"
+  ],
+  "scripts": {
+    "setup": "node scripts/bootstrap.mjs",
+    "prepare": "husky || true",
+    "dev": "turbo run dev --parallel",
+    "dev:apps": "turbo run dev --filter='@my-org/app.*' --parallel",
+    "dev:api": "turbo run dev --filter=@my-org/service-api",
+    "docker:dev": "docker compose up",
+    "docker:dev:build": "docker compose up --build",
+    "docker:dev:detach": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:reset": "docker compose down -v",
+    "docker:logs": "docker compose logs -f",
+    "docker:ps": "docker compose ps",
+    "docker:shell:api": "docker compose exec service-api sh",
+    "docker:shell:db": "docker compose exec database psql -U $POSTGRES_USER -d $POSTGRES_DB",
+    "docker:rebuild:lib.example": "docker compose exec service-api sh -c 'set -e && cd /app/lib.example && npm run build && rm -rf /app/service.api/node_modules/@my-org/lib.example && cp -r /app/lib.example /app/service.api/node_modules/@my-org/lib.example'",
+    "build": "turbo run build",
+    "build:libs": "turbo run build --filter='@my-org/lib.*'",
+    "build:apps": "turbo run build --filter='@my-org/app.*'",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint -- --fix",
+    "type-check": "turbo run type-check",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\" --ignore-path .prettierignore",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "prod:build": "docker compose -f docker-compose.yml -f docker-compose.prod.yml build",
+    "prod:up": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
+    "prod:down": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down",
+    "secrets:generate": "node scripts/generate-secrets.mjs",
+    "validate:env": "node scripts/validate-env.mjs",
+    "new-app": "node scripts/create-new-app.js",
+    "new-lib": "node scripts/create-new-lib.js"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "@vitest/ui": "^4.1.5",
+    "concurrently": "^9.2.1",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "happy-dom": "^20.0.10",
+    "husky": "^9.1.0",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.0.5",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.2.5",
+    "ts-jest": "^29.4.6",
+    "turbo": "^2.9.8",
+    "typescript": "^5.4.5",
+    "vitest": "^4.0.8",
+    "whatwg-fetch": "^3.6.20"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx}": [
+      "prettier --write",
+      "eslint --fix --quiet"
+    ],
+    "**/*.{js,jsx,json,md,css}": [
+      "prettier --write"
+    ]
+  }
+}
