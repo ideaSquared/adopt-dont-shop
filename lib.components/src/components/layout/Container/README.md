@@ -1,41 +1,23 @@
-# Container Component
+# Container
 
-A layout container component that provides consistent spacing, max-width constraints, and responsive behavior.
-
-## Usage
+Layout wrapper that constrains width, optionally goes fluid, and can center its children. Source: `Container.tsx`.
 
 ```tsx
-import { Container } from '@/components/layout/Container'
+import { Container } from '@adopt-dont-shop/lib.components';
 
-// Basic usage
-<Container>
-  <div>Content goes here</div>
-</Container>
-
-// With custom configuration
-<Container
-  maxWidth="lg"
-  padding="md"
-  centered={true}
-  className="custom-container"
->
-  {children}
+<Container size="lg" centerContent>
+  <h1>Page title</h1>
 </Container>
 ```
 
 ## Props
 
-- `children`: Content to display within the container
-- `maxWidth`: Maximum width constraint (xs, sm, md, lg, xl, full)
-- `padding`: Padding size (none, sm, md, lg)
-- `centered`: Whether to center the container
-- `className`: Optional CSS class names
-- Additional props are forwarded to the underlying div element
+| Prop            | Type                                        | Required | Default | Description                                  |
+| --------------- | ------------------------------------------- | -------- | ------- | -------------------------------------------- |
+| `children`      | `ReactNode`                                 | Yes      | —       | Content.                                     |
+| `size`          | `'sm' \| 'md' \| 'lg' \| 'xl' \| 'full'`    | No       | `'lg'`  | Max-width preset.                            |
+| `fluid`         | `boolean`                                   | No       | `false` | Drop the max-width and span the parent.      |
+| `centerContent` | `boolean`                                   | No       | `false` | Center children with flex.                   |
+| `className`     | `string`                                    | No       | —       | Override the root element's class.           |
 
-## Features
-
-- Responsive max-width constraints
-- Flexible padding options
-- Centering functionality
-- Accessible markup
-- TypeScript support
+Standard `HTMLDivElement` attributes are also accepted via the spread on the root.

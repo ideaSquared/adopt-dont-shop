@@ -1,36 +1,17 @@
-# DateTime Component
+# DateTime
 
-A component for displaying formatted date and time values with consistent styling.
-
-## Usage
+Formats an ISO timestamp (or `Date`) for display with optional tooltip showing the absolute value. Source: `DateTime.tsx`.
 
 ```tsx
-import { DateTime } from '@/components/ui/DateTime'
+import { DateTime } from '@adopt-dont-shop/lib.components';
 
-// Display current date/time
-<DateTime />
-
-// Display specific date
-<DateTime date={new Date('2024-01-01')} />
-
-// Custom format
-<DateTime
-  date={date}
-  format="short"
-  className="custom-class"
-/>
+<DateTime timestamp={pet.createdAt} localeOption="en-GB" showTooltip />
 ```
 
 ## Props
 
-- `date`: Date object or string to display (defaults to current date)
-- `format`: Format style for the date/time display
-- `className`: Optional CSS class names
-- Additional props are forwarded to the underlying element
-
-## Features
-
-- Multiple date formats
-- Timezone handling
-- Accessible markup
-- TypeScript support
+| Prop           | Type                       | Required | Default   | Description                                  |
+| -------------- | -------------------------- | -------- | --------- | -------------------------------------------- |
+| `timestamp`    | `string \| Date`           | Yes      | —         | ISO string or `Date` to render.              |
+| `localeOption` | `'en-GB' \| 'en-US'`       | No       | `'en-GB'` | Locale used by `Intl.DateTimeFormat`.        |
+| `showTooltip`  | `boolean`                  | No       | `false`   | Show absolute timestamp on hover.            |
