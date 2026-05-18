@@ -1,8 +1,7 @@
 # Node 20 → Node 22 LTS Migration Plan
 
 **Linear**: ADS-532
-**Status**: Not started — planning only
-**Recommended quarter**: Q3 2026 (well before Node 20 EOL in April 2026)
+**Status**: ✅ Shipped — Node 22 is the current target (`.nvmrc` 22.15.1, `engines.node` `>=22 <23`, Dockerfiles pin `ARG NODE_VERSION=22.15.1`). The historical plan below is retained for context only; do not treat it as live work.
 
 > Node 20 enters end-of-life on **2026-04-30**. Node 22 ("Jod") became Active LTS
 > on **2024-10-29** and is supported through **2027-04-30**. We have plenty of

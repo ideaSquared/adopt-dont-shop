@@ -24,7 +24,7 @@ Triggers on **`pull_request`** events that touch any of:
 
 The job:
 
-1. Spins up Postgres 15 as a service container.
+1. Spins up Postgres 16 with PostGIS (`postgis/postgis:16-3.4`) as a service container.
 2. Creates two empty databases: `schema_equiv_a`, `schema_equiv_b`.
 3. Bootstraps **DB-A** via `npm run db:migrate` — runs every migration in `service.backend/src/migrations/` in order.
 4. Bootstraps **DB-B** via a one-shot inline `sequelize.sync()` invocation that loads `src/models/index.ts` and calls `sync()` once.

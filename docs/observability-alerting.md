@@ -14,7 +14,7 @@ The backend exposes a Prometheus scrape endpoint at `/metrics`, gated by
 - HTTP counter: `http_requests_total{method,route,status_code}`
 
 Health-check probes also publish status data via `/api/v1/health` and
-`/api/v1/ready` (the readiness probe asserts DB + Redis + BullMQ).
+`/health/ready` (the readiness probe asserts DB + Redis + BullMQ).
 
 ## Severity / routing convention
 
@@ -88,7 +88,7 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Backend /api/v1/ready failing (DB/Redis/BullMQ)"
+          summary: "Backend /health/ready failing (DB/Redis/BullMQ)"
 ```
 
 ## Dashboards
@@ -117,6 +117,5 @@ Recommended Grafana panels:
 | ------------------- | ------------------------------- | -------------------- |
 | `/health/simple`    | server is up                    | Load balancer        |
 | `/api/v1/health`    | DB, email, storage, fs, Redis, queue | Operator dashboards |
-| `/api/v1/ready`     | DB + Redis + BullMQ             | Kubernetes readiness |
-| `/health/ready`     | (alias of `/api/v1/ready`)      | Legacy probes        |
+| `/health/ready`     | DB + Redis + BullMQ             | Kubernetes readiness |
 | `/metrics`          | Prometheus scrape               | Prometheus           |
