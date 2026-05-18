@@ -4,8 +4,8 @@
 
 ### Prerequisites
 
-- Node.js 20+ and npm
-- PostgreSQL 16+ with PostGIS (provided by the Docker stack)
+- Node.js 22 (pinned in `.nvmrc`; `package.json` `engines` requires `>=22 <23`)
+- PostgreSQL 16 with PostGIS (provided by the Docker stack)
 - Docker and Docker Compose (recommended)
 
 ### Development Setup
@@ -35,10 +35,14 @@ From the repository root the typical workflow uses Docker — the container boot
 
 4. **Initialize the database (first run, or after `docker:reset`)**
 
+   The migration runner is a custom Umzug script at `service.backend/src/migrations/runner.ts` (the project does not use `sequelize-cli`). Seeds are split into reference / demo / fixtures with no "do everything" alias — pick the right one for what you're doing.
+
    ```bash
-   npm run db:migrate          # runs sequelize-cli db:migrate inside the backend container
-   npm run db:seed             # optional sample data
-   # or: npm run db:reset      # migrate + seed
+   # From the repo root — wrappers shell into the service-backend container
+   npm run db:migrate                                       # runs `ts-node src/migrations/runner.ts up`
+   docker compose exec service-backend npm run db:seed:reference  # idempotent reference data
+   docker compose exec service-backend npm run db:seed:demo       # Faker-generated demo data (dev/staging only)
+   docker compose exec service-backend npm run db:seed:fixtures   # deterministic e2e fixtures
    ```
 
 5. **Backend is reachable at**
@@ -182,39 +186,36 @@ uploads/
 
 ## Database Management
 
-Migrations and seeders use `sequelize-cli`. From the repo root, `npm run db:migrate` and `npm run db:seed` are thin wrappers that shell into the backend container and call `sequelize-cli db:migrate` / `db:seed:all`. For commands that don't have an npm wrapper, shell into the container first:
-
-```bash
-npm run docker:shell:backend
-# then inside the container:
-npx sequelize-cli <command>
-```
+The project uses a custom [Umzug](https://github.com/sequelize/umzug) runner (`service.backend/src/migrations/runner.ts`) and a custom seed CLI (`service.backend/src/seeders/cli.ts`) — `sequelize-cli` is **not** installed. Migrations live in `service.backend/src/migrations/`; seeders in `service.backend/src/seeders/`.
 
 ### Migrations
 
 ```bash
-# Run migrations (from repo root)
+# Run pending migrations (from repo root)
 npm run db:migrate
 
-# Inside the backend container (npm run docker:shell:backend):
-npx sequelize-cli migration:generate --name add-user-fields
-npx sequelize-cli db:migrate:undo
-npx sequelize-cli db:migrate:undo:all
+# Status / rollback — exec inside the backend container
+docker compose exec service-backend npm run db:migrate:status
+docker compose exec service-backend npm run db:migrate:undo
+
+# Authoring a new migration: copy an existing file in
+# service.backend/src/migrations/ and follow the numbered naming pattern
+# (e.g. 01-add-something.ts). The runner picks them up automatically.
 ```
 
 ### Seeders
 
-```bash
-# Run all seeders (from repo root)
-npm run db:seed
+Seeds are deliberately not fungible — each type has a different safety profile:
 
-# Inside the backend container:
-npx sequelize-cli seed:generate --name demo-users
-npx sequelize-cli db:seed:undo
-npx sequelize-cli db:seed:undo:all
+```bash
+docker compose exec service-backend npm run db:seed:reference   # idempotent, safe anywhere
+docker compose exec service-backend npm run db:seed:demo        # Faker (dev/staging) — ALLOW_DEMO_SEED required
+docker compose exec service-backend npm run db:seed:fixtures    # deterministic e2e fixtures
+docker compose exec service-backend npm run db:seed:reset       # truncate demo+fixture tables
+docker compose exec service-backend npm run db:bootstrap        # first-run admin in production
 ```
 
-Migrations live in `service.backend/src/migrations/` and seeders in `service.backend/src/seeders/`.
+See `service.backend/src/seeders/README.md` for the full split.
 
 ## Testing
 
@@ -320,18 +321,12 @@ The root `docker-compose.prod.yml` overlay exercises this path end-to-end — se
 
 ### Add Database Model
 
-1. **Create migration** (inside the backend container):
-
-   ```bash
-   npm run docker:shell:backend
-   npx sequelize-cli migration:generate --name create-my-table
-   ```
-
+1. **Create migration** by copying the latest file in `service.backend/src/migrations/` and renaming it (the runner is a custom Umzug script — no generator). Follow the existing numbered naming pattern (`NN-create-my-table.ts`).
 2. **Define schema** in the migration file under `src/migrations/`
 3. **Create model** `src/models/MyModel.ts`
 4. **Run migration** `npm run db:migrate` (from the repo root)
 5. **Add associations** in the model file
-6. **Create seeder** (optional) under `src/seeders/`
+6. **Create seeder** (optional) under `src/seeders/{reference,demo,fixtures}/` depending on whether it's idempotent reference data, Faker-generated demo data, or a deterministic e2e fixture.
 
 ### Update Email Template
 
@@ -353,7 +348,9 @@ docker compose ps database
 # Nuclear reset (wipes the volume, then re-initializes)
 npm run docker:reset
 npm run docker:dev:detach
-npm run db:reset          # migrate + seed
+npm run db:migrate
+docker compose exec service-backend npm run db:seed:reference
+docker compose exec service-backend npm run db:seed:fixtures
 ```
 
 ### Email Not Sending
@@ -381,15 +378,14 @@ npm run dev  # Will recreate automatically
 ### Performance Issues
 
 ```bash
-# Check database query performance
-npm run db:log
-
-# Profile application
-npm run profile
+# Toggle Sequelize query logging by setting DB_LOGGING=true in .env and restarting the backend
+# (`service.backend/src/sequelize.ts` reads DB_LOGGING).
 
 # Monitor in development dashboard
 open http://localhost:5000/monitoring/dashboard
 ```
+
+Load-testing and performance-profiling scripts are not yet set up.
 
 ## Best Practices
 

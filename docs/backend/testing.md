@@ -182,16 +182,16 @@ describe('Application Workflow Integration', () => {
       .send({ petId: pet.petId })
       .expect(201);
 
-    // Progress through stages
+    // Progress through stages — the status route drives both `status` and `stage`
     await request(server)
-      .patch(`/api/v1/applications/${app.body.applicationId}/stage`)
+      .patch(`/api/v1/applications/${app.body.applicationId}/status`)
       .set('Authorization', `Bearer ${rescueToken}`)
-      .send({ stage: 'REVIEWING' })
+      .send({ stage: 'reviewing' })
       .expect(200);
 
     // Verify stage transition
     const updated = await Application.findByPk(app.body.applicationId);
-    expect(updated.stage).toBe('REVIEWING');
+    expect(updated.stage).toBe('reviewing');
     expect(updated.reviewStartedAt).toBeTruthy();
   });
 });

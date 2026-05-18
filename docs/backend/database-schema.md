@@ -2,7 +2,7 @@
 
 ## Overview
 
-PostgreSQL database with Sequelize ORM supporting a comprehensive pet adoption platform. Includes user management, pet profiles, adoption workflows, messaging, and administrative features.
+PostgreSQL 16 with the PostGIS extension and Sequelize 7. Models live in `service.backend/src/models/` and are mirrored 1:1 by baseline migrations under `service.backend/src/migrations/`. This document is a high-level reference — the source of truth is always the model file.
 
 ## Entity Relationships
 
@@ -21,7 +21,7 @@ erDiagram
     Pet ||--o{ Application : receives
     Pet ||--o{ UserFavorite : favorited_by
 
-    Application ||--o{ Timeline : tracks
+    Application ||--o{ ApplicationTimeline : tracks
     Application ||--o{ Message : generates
 
     Chat ||--o{ Message : contains
@@ -32,109 +32,125 @@ erDiagram
 
 ### Users
 
-**Purpose**: Central user management for all platform participants
+**Purpose**: Central user management for all platform participants. Defined in `User.ts`.
 
-| Field          | Type         | Description                  |
-| -------------- | ------------ | ---------------------------- |
-| user_id        | UUID (PK)    | Primary identifier           |
-| email          | VARCHAR (UK) | Email address (unique)       |
-| password_hash  | VARCHAR      | Hashed password              |
-| first_name     | VARCHAR      | First name                   |
-| last_name      | VARCHAR      | Last name                    |
-| phone_number   | VARCHAR      | Contact number               |
-| user_type      | ENUM         | ADOPTER, RESCUE_STAFF, ADMIN |
-| status         | ENUM         | ACTIVE, SUSPENDED, DELETED   |
-| email_verified | BOOLEAN      | Email verification status    |
-| created_at     | TIMESTAMP    | Registration date            |
-| updated_at     | TIMESTAMP    | Last update                  |
+| Field          | Type         | Description                                                                          |
+| -------------- | ------------ | ------------------------------------------------------------------------------------ |
+| user_id        | UUID (PK)    | Primary identifier                                                                   |
+| email          | VARCHAR (UK) | Email address (unique)                                                               |
+| password       | VARCHAR      | bcrypt-hashed password (bcrypt 12 rounds; column is `password`, not `password_hash`) |
+| first_name     | VARCHAR      | First name                                                                           |
+| last_name      | VARCHAR      | Last name                                                                            |
+| phone_number   | VARCHAR      | Contact number                                                                       |
+| user_type      | ENUM         | `adopter`, `rescue_staff`, `admin`, `moderator`, `super_admin`, `support_agent`      |
+| status         | ENUM         | `active`, `inactive`, `suspended`, `pending_verification`, `deactivated`             |
+| email_verified | BOOLEAN      | Email verification status                                                            |
+| created_at     | TIMESTAMP    | Registration date                                                                    |
+| updated_at     | TIMESTAMP    | Last update                                                                          |
+| deleted_at     | TIMESTAMP    | Soft-delete timestamp (paranoid)                                                     |
 
 **Indexes**: email, user_type, status
 
+> The model also defines optional columns for two-factor (`two_factor_secret`, `backup_codes`), reset/verification tokens, address fields, and a PostGIS `location` point. See `User.ts` for the full attribute list.
+
 ### Rescues
 
-**Purpose**: Rescue organization profiles and settings
+**Purpose**: Rescue organization profiles and settings. Defined in `Rescue.ts`.
 
-| Field            | Type         | Description         |
-| ---------------- | ------------ | ------------------- |
-| rescue_id        | UUID (PK)    | Primary identifier  |
-| rescue_name      | VARCHAR      | Organization name   |
-| rescue_type      | VARCHAR      | Type of rescue org  |
-| reference_number | VARCHAR (UK) | Unique reference    |
-| verified         | BOOLEAN      | Verification status |
-| email            | VARCHAR      | Contact email       |
-| phone            | VARCHAR      | Contact phone       |
-| address          | JSONB        | Physical address    |
-| location         | GEOGRAPHY    | GIS coordinates     |
-| created_at       | TIMESTAMP    | Registration date   |
+| Field                        | Type         | Description                                              |
+| ---------------------------- | ------------ | -------------------------------------------------------- |
+| rescue_id                    | UUID (PK)    | Primary identifier                                       |
+| name                         | VARCHAR      | Organization name                                        |
+| email                        | VARCHAR      | Contact email                                            |
+| phone                        | VARCHAR      | Contact phone                                            |
+| address_line_1               | VARCHAR      | Street address                                           |
+| city / state / zip_code      | VARCHAR      | UK locality fields (mapped to existing columns)          |
+| country                      | CHAR(2)      | ISO-3166 country code (default `GB`)                     |
+| companies_house_number       | VARCHAR      | Companies House registration (UK verification source)    |
+| charity_registration_number  | VARCHAR      | Charity Commission registration                          |
+| verification_status          | ENUM         | `pending`, `verified`, `rejected`                        |
+| verified_at / verified_by    | TIMESTAMP / UUID | Verification audit                                   |
+| settings                     | JSONB        | Per-rescue feature settings                              |
+| plan                         | VARCHAR      | Subscription plan (default `free`)                       |
+| created_at / updated_at      | TIMESTAMP    | Auditing                                                 |
 
-**Indexes**: verified, location (GIS index)
+**Indexes**: verified_by, deleted_at (soft delete)
 
 ### Pets
 
-**Purpose**: Pet profiles and availability
+**Purpose**: Pet profiles and availability. Defined in `Pet.ts`.
 
-| Field           | Type      | Description                                    |
-| --------------- | --------- | ---------------------------------------------- |
-| pet_id          | UUID (PK) | Primary identifier                             |
-| rescue_id       | UUID (FK) | Owning rescue                                  |
-| name            | VARCHAR   | Pet name                                       |
-| type            | ENUM      | DOG, CAT, OTHER                                |
-| breed           | VARCHAR   | Breed information                              |
-| age             | INTEGER   | Age in months                                  |
-| gender          | ENUM      | MALE, FEMALE                                   |
-| size            | ENUM      | SMALL, MEDIUM, LARGE                           |
-| status          | ENUM      | AVAILABLE, PENDING, ADOPTED, MEDICAL, DECEASED |
-| description     | TEXT      | Pet description                                |
-| special_needs   | TEXT      | Special care requirements                      |
-| images          | JSONB     | Array of image URLs                            |
-| medical_history | JSONB     | Medical records                                |
-| adoption_fee    | DECIMAL   | Adoption fee amount                            |
-| created_at      | TIMESTAMP | Listed date                                    |
+| Field                   | Type      | Description                                                                                              |
+| ----------------------- | --------- | -------------------------------------------------------------------------------------------------------- |
+| pet_id                  | UUID (PK) | Primary identifier                                                                                       |
+| rescue_id               | UUID (FK) | Owning rescue                                                                                            |
+| name                    | VARCHAR   | Pet name                                                                                                 |
+| type                    | ENUM      | `dog`, `cat`, `rabbit`, `bird`, `reptile`, `small_mammal`, `fish`, `other`                               |
+| breed                   | VARCHAR   | Breed information                                                                                        |
+| age_years / age_months  | INTEGER   | Age components (also `birth_date` + `age_group`)                                                         |
+| gender                  | ENUM      | `male`, `female`, `unknown`                                                                              |
+| size                    | ENUM      | `extra_small`, `small`, `medium`, `large`, `extra_large`                                                 |
+| status                  | ENUM      | `available`, `pending`, `adopted`, `foster`, `medical_hold`, `behavioral_hold`, `not_available`, `deceased` |
+| short_description       | TEXT      | Card / list copy                                                                                         |
+| long_description        | TEXT      | Full profile body                                                                                        |
+| medical_notes           | TEXT      | Free-text vet notes (no separate `medical_history` JSON column)                                          |
+| adoption_fee_minor      | INTEGER   | Fee in minor currency units (e.g. pence). Pair with `adoption_fee_currency`.                             |
+| adoption_fee_currency   | CHAR(3)   | ISO-4217 currency code                                                                                   |
+| created_at / updated_at | TIMESTAMP | Auditing                                                                                                 |
 
 **Indexes**: rescue_id, type, status, breed
 
+> Pet images and videos live in the separate **`pet_media`** table (`PetMedia.ts`) — there is no `images` JSONB column on `pets`. Status transitions are append-only in `pet_status_transitions`.
+
 ### Applications
 
-**Purpose**: Adoption application tracking
+**Purpose**: Adoption application tracking. Defined in `Application.ts`.
 
-| Field              | Type      | Description                                      |
-| ------------------ | --------- | ------------------------------------------------ |
-| application_id     | UUID (PK) | Primary identifier                               |
-| user_id            | UUID (FK) | Applicant                                        |
-| pet_id             | UUID (FK) | Applied pet                                      |
-| rescue_id          | UUID (FK) | Rescue org                                       |
-| stage              | ENUM      | PENDING, REVIEWING, VISITING, DECIDING, RESOLVED |
-| final_outcome      | ENUM      | APPROVED, CONDITIONAL, REJECTED, WITHDRAWN       |
-| answers            | JSONB     | Application answers                              |
-| review_started_at  | TIMESTAMP | Review start time                                |
-| visit_scheduled_at | TIMESTAMP | Visit scheduled                                  |
-| visit_completed_at | TIMESTAMP | Visit completion                                 |
-| resolved_at        | TIMESTAMP | Resolution time                                  |
-| created_at         | TIMESTAMP | Submission date                                  |
+| Field              | Type      | Description                                                                       |
+| ------------------ | --------- | --------------------------------------------------------------------------------- |
+| application_id     | UUID (PK) | Primary identifier                                                                |
+| user_id            | UUID (FK) | Applicant                                                                         |
+| pet_id             | UUID (FK) | Applied pet                                                                       |
+| rescue_id          | UUID (FK) | Rescue org                                                                        |
+| status             | ENUM      | `submitted`, `approved`, `rejected`, `withdrawn` (simplified outcome)             |
+| priority           | ENUM      | `low`, `normal`, `high`, `urgent`                                                 |
+| stage              | ENUM      | `pending`, `reviewing`, `visiting`, `deciding`, `resolved`, `withdrawn`           |
+| final_outcome      | ENUM      | `approved`, `rejected`, `withdrawn` (set when `stage = resolved`)                 |
+| review_started_at  | TIMESTAMP | Review start time                                                                 |
+| visit_scheduled_at | TIMESTAMP | Visit scheduled                                                                   |
+| visit_completed_at | TIMESTAMP | Visit completion                                                                  |
+| resolved_at        | TIMESTAMP | Resolution time                                                                   |
+| documents          | JSONB     | Uploaded supporting documents                                                     |
+| created_at         | TIMESTAMP | Submission date                                                                   |
 
-**Indexes**: user_id, pet_id, rescue_id, stage, final_outcome
+**Indexes**: user_id, pet_id, rescue_id, stage, status
+
+> Application **answers** live in the separate `application_answers` table (`ApplicationAnswer.ts`), and **references** in `application_references` (`ApplicationReference.ts`). Stage/status changes are mirrored in `application_status_transitions` and `application_timeline` for audit.
 
 ### Staff Members
 
-**Purpose**: Rescue staff and volunteer management
+**Purpose**: Junction table linking users to the rescues they staff. Defined in `StaffMember.ts`. RBAC roles live on the `user_roles` table — staff_members does **not** store roles or permissions itself.
 
-| Field              | Type      | Description                      |
-| ------------------ | --------- | -------------------------------- |
-| staff_member_id    | UUID (PK) | Primary identifier               |
-| user_id            | UUID (FK) | User account                     |
-| rescue_id          | UUID (FK) | Rescue org                       |
-| role               | ENUM      | ADMIN, MANAGER, STAFF, VOLUNTEER |
-| verified_by_rescue | BOOLEAN   | Verification status              |
-| permissions        | JSONB     | Role permissions                 |
-| created_at         | TIMESTAMP | Join date                        |
+| Field           | Type      | Description                                          |
+| --------------- | --------- | ---------------------------------------------------- |
+| staff_member_id | UUID (PK) | Primary identifier                                   |
+| rescue_id       | UUID (FK) | Rescue org (FK → rescues)                            |
+| user_id         | UUID (FK) | User account (FK → users)                            |
+| title           | VARCHAR   | Free-text role/title (e.g. "Adoptions Coordinator")  |
+| is_verified     | BOOLEAN   | Verified-by-rescue flag                              |
+| verified_by     | UUID (FK) | User who verified (nullable)                         |
+| verified_at     | TIMESTAMP | When verified                                        |
+| added_by        | UUID (FK) | Who added the staffer                                |
+| added_at        | TIMESTAMP | When added                                           |
+| deleted_at      | TIMESTAMP | Soft-delete timestamp (paranoid)                     |
 
-**Indexes**: user_id, rescue_id, role
+**Indexes**: user_id, rescue_id
 
 ## Communication Tables
 
 ### Chats
 
-**Purpose**: Chat thread management between adopters and rescues. Defined in `service.backend/src/models/Chat.ts`.
+**Purpose**: Chat thread management between adopters and rescues. Defined in `Chat.ts`.
 
 | Field          | Type      | Description                                |
 | -------------- | --------- | ------------------------------------------ |
@@ -142,7 +158,7 @@ erDiagram
 | rescue_id      | UUID (FK) | Owning rescue                              |
 | pet_id         | UUID (FK) | Pet that initiated the chat (optional)     |
 | application_id | UUID (FK) | Related application (optional)             |
-| status         | ENUM      | active, locked, archived                   |
+| status         | ENUM      | `active`, `locked`, `archived`             |
 | created_at     | TIMESTAMP | Creation date                              |
 | updated_at     | TIMESTAMP | Last update                                |
 
@@ -160,37 +176,54 @@ erDiagram
 
 ### Messages
 
-**Purpose**: Individual messages within a chat.
+**Purpose**: Individual messages within a chat. Defined in `Message.ts`.
 
-| Field       | Type      | Description        |
-| ----------- | --------- | ------------------ |
-| message_id  | UUID (PK) | Primary identifier |
-| chat_id     | UUID (FK) | Parent chat        |
-| sender_id   | UUID (FK) | Message sender     |
-| content     | TEXT      | Message content    |
-| attachments | JSONB     | File attachments   |
-| created_at  | TIMESTAMP | Send time          |
+| Field             | Type      | Description                                                          |
+| ----------------- | --------- | -------------------------------------------------------------------- |
+| message_id        | UUID (PK) | Primary identifier                                                   |
+| chat_id           | UUID (FK) | Parent chat                                                          |
+| sender_id         | UUID (FK) | Message sender                                                       |
+| content           | TEXT      | Message content                                                      |
+| content_format    | ENUM      | Content type (e.g. plain / markdown)                                 |
+| attachments       | JSONB     | File attachments                                                     |
+| search_vector     | TSVECTOR  | Stored generated column for full-text search (`messages_search_vector_gin_idx`) |
+| is_flagged        | BOOLEAN   | Content-moderation flag                                              |
+| flag_reason       | VARCHAR   | Reason set when flagged                                              |
+| flag_severity     | ENUM      | Severity from moderation pipeline                                    |
+| moderation_status | ENUM      | Outcome of moderation scan                                           |
+| flagged_at        | TIMESTAMP | When the flag was applied                                            |
+| created_at        | TIMESTAMP | Send time                                                            |
 
 Read receipts are tracked in a separate `MessageRead` table; reactions in `MessageReaction`.
 
-**Indexes**: chat_id, sender_id, created_at
+**Indexes**: chat_id, sender_id, created_at, search_vector (GIN)
 
 ### Notifications
 
-**Purpose**: User notifications
+**Purpose**: Multi-channel user notifications. Defined in `Notification.ts`.
 
-| Field           | Type      | Description        |
-| --------------- | --------- | ------------------ |
-| notification_id | UUID (PK) | Primary identifier |
-| user_id         | UUID (FK) | Recipient          |
-| type            | VARCHAR   | Notification type  |
-| title           | VARCHAR   | Notification title |
-| message         | TEXT      | Content            |
-| data            | JSONB     | Additional data    |
-| read            | BOOLEAN   | Read status        |
-| created_at      | TIMESTAMP | Creation time      |
+| Field                   | Type      | Description                                                                       |
+| ----------------------- | --------- | --------------------------------------------------------------------------------- |
+| notification_id         | UUID (PK) | Primary identifier                                                                |
+| user_id                 | UUID (FK) | Recipient                                                                         |
+| type                    | ENUM      | Notification category (see `NotificationType`)                                    |
+| channel                 | ENUM      | Delivery channel (email / push / in-app / SMS)                                    |
+| priority                | ENUM      | `low`, `normal`, `high`, `urgent`                                                 |
+| status                  | ENUM      | `pending`, `sent`, `delivered`, `read`, `failed`, `cancelled`                     |
+| title                   | VARCHAR   | Notification title                                                                |
+| message                 | TEXT      | Content                                                                           |
+| data                    | JSONB     | Additional data                                                                   |
+| template_id             | VARCHAR   | Optional template reference                                                       |
+| template_variables      | JSONB     | Template substitution values                                                      |
+| scheduled_for           | TIMESTAMP | Send-after timestamp                                                              |
+| sent_at / delivered_at  | TIMESTAMP | Lifecycle timestamps                                                              |
+| read_at / clicked_at    | TIMESTAMP | Engagement timestamps (there is **no** boolean `read` column — use `read_at` / `status = read`) |
+| retry_count / max_retries | INTEGER | Delivery retry bookkeeping                                                        |
+| error_message           | VARCHAR   | Last failure reason                                                               |
+| external_id             | VARCHAR   | Provider message ID                                                               |
+| created_at              | TIMESTAMP | Creation time                                                                     |
 
-**Indexes**: user_id, read, created_at
+**Indexes**: user_id, status, created_at
 
 ## Discovery Tables
 
@@ -241,9 +274,9 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 
 **Indexes**: token, email, rescue_id, status
 
-### Timeline Events
+### Application Timeline
 
-**Purpose**: Application history tracking
+**Purpose**: Application history tracking (`ApplicationTimeline.ts`).
 
 | Field          | Type      | Description            |
 | -------------- | --------- | ---------------------- |
@@ -260,17 +293,27 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 
 ### Email Queue
 
-**Purpose**: Outbound email management
+**Purpose**: Outbound email management. Defined in `EmailQueue.ts`.
 
-| Field           | Type      | Description           |
-| --------------- | --------- | --------------------- |
-| email_id        | UUID (PK) | Primary identifier    |
-| recipient_email | VARCHAR   | Recipient             |
-| template_id     | VARCHAR   | Email template        |
-| variables       | JSONB     | Template variables    |
-| status          | ENUM      | PENDING, SENT, FAILED |
-| sent_at         | TIMESTAMP | Send time             |
-| created_at      | TIMESTAMP | Queue time            |
+| Field             | Type      | Description                                          |
+| ----------------- | --------- | ---------------------------------------------------- |
+| email_id          | UUID (PK) | Primary identifier                                   |
+| template_id       | VARCHAR   | Email template                                       |
+| from_email / from_name | VARCHAR | Sender envelope                                    |
+| to_email          | VARCHAR   | Recipient (column is `to_email`, not `recipient_email`) |
+| to_name           | VARCHAR   | Recipient display name                               |
+| cc_emails         | JSONB     | CC list                                              |
+| bcc_emails        | JSONB     | BCC list                                             |
+| reply_to_email    | VARCHAR   | Reply-to address                                     |
+| html_content / text_content | TEXT | Rendered bodies                                  |
+| template_data     | JSONB     | Template substitution values                         |
+| status            | ENUM      | Delivery status                                      |
+| scheduled_for     | TIMESTAMP | Send-after timestamp                                 |
+| max_retries / current_retries | INTEGER | Retry bookkeeping                            |
+| last_attempt_at / sent_at | TIMESTAMP | Lifecycle timestamps                             |
+| failure_reason    | TEXT      | Last error                                           |
+| provider_id / provider_message_id | VARCHAR | Provider correlation                         |
+| created_at        | TIMESTAMP | Queue time                                           |
 
 **Indexes**: status, created_at
 
@@ -312,17 +355,19 @@ Most tables use soft delete (deleted_at timestamp) instead of hard delete for:
 
 ### Migration Management
 
-Migrations live in `service.backend/src/migrations/` as numbered TypeScript files (e.g. `30-create-file-uploads.ts`). Create a new one by adding the next sequential file following the existing pattern — the repo doesn't ship a `migration:create` npm script.
+Migrations live in `service.backend/src/migrations/` as numbered TypeScript files (e.g. `00-baseline-001-users.ts`, `01-add-user-type-support-agent-super-admin.ts`). The project uses [Umzug](https://github.com/sequelize/umzug) via a custom runner at `service.backend/src/migrations/runner.ts` — **`sequelize-cli` is not installed**. Create a new migration by adding the next sequential file following the existing pattern.
 
 ```bash
-# Run migrations (from repo root, while the dev stack is running)
+# From the repo root, while the dev stack is running:
 npm run db:migrate
 
-# Rollback / status — shell into the backend container and use sequelize-cli directly
+# Rollback / status (run inside the backend container):
 npm run docker:shell:backend
-npx sequelize-cli db:migrate:undo
-npx sequelize-cli db:migrate:status
+npm run db:migrate:undo      # ts-node src/migrations/runner.ts down
+npm run db:migrate:status    # ts-node src/migrations/runner.ts status
 ```
+
+The backend exposes three migration scripts in `service.backend/package.json`: `db:migrate`, `db:migrate:undo`, `db:migrate:status`.
 
 ### Best Practices
 

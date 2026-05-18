@@ -43,24 +43,16 @@ npm run db:seed:fixtures
 npm run db:seed:reset
 ```
 
-## Seeder Order
+## Layout
 
-The seeders run in this specific order to maintain referential integrity:
+Seeders are split across three subdirectories by safety profile, plus a `bootstrap/` directory for the first-run admin:
 
-1. **Permissions** (`01-permissions.ts`) - Base permission system
-2. **Roles** (`02-roles.ts`) - User roles (admin, rescue_staff, adopter, etc.)
-3. **Role-Permissions** (`03-role-permissions.ts`) - Maps permissions to roles
-4. **Users** (`04-users.ts`) - Test users with various types
-5. **User-Roles** (`05-user-roles.ts`) - Assigns roles to users
-6. **Rescues** (`06-rescues.ts`) - Rescue organization profiles
-7. **Feature Flags** (`07-feature-flags.ts`) - System feature toggles
-8. **Pets** (`08-pets.ts`) - Pet profiles with detailed information
-9. **Applications** (`09-applications.ts`) - Adoption applications
-10. **Chats** (`10-chats.ts`) - Chat conversations
-11. **Messages** (`11-messages.ts`) - Chat messages
-12. **Notifications** (`12-notifications.ts`) - User notifications
-13. **Ratings** (`13-ratings.ts`) - Reviews and ratings
-14. **Email Templates** (`14-email-templates.ts`) - System email templates
+- `reference/` — idempotent reference data (RBAC permissions/roles/role-permissions, breeds, email templates). Composed by `db:seed:reference` and safe in every environment.
+- `demo/` — Faker-generated demo data (additional users, rescues, pets, applications, chats, messages, ratings). Composed by `db:seed:demo` and gated on `ALLOW_DEMO_SEED=true` — never run in production.
+- `fixtures/` — deterministic test fixtures (Emily conversations, the seeded API-probe accounts the e2e suite relies on). Composed by `db:seed:fixtures`.
+- `bootstrap/` — first-run admin creation for fresh production environments. Invoked via `db:bootstrap` and gated on `ALLOW_BOOTSTRAP=true`.
+
+The numbered top-level files (`04-users.ts`, `06-rescues.ts`, `08-pets.ts`, etc.) are the underlying building blocks that the demo/fixture pipelines call into; you normally run the composed `npm run db:seed:*` scripts rather than invoking them directly.
 
 ## Test Data Created
 

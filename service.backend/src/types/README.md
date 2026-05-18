@@ -6,13 +6,24 @@ This directory contains all TypeScript type definitions for the adopt-dont-shop 
 
 ```
 types/
-├── index.ts          # Main export file - exports all types
-├── api.ts           # API request/response types
-├── auth.ts          # Authentication & authorization types
-├── user.ts          # User management types
-├── rbac.ts          # Role-based access control types
-├── database.ts      # Database & service layer types
-└── README.md        # This documentation
+├── index.ts             # Main export file
+├── admin.ts             # Admin tooling DTOs
+├── analytics.ts         # Analytics events / report DTOs
+├── api.ts               # Generic API request/response types
+├── application.ts       # Adoption-application DTOs
+├── auth.ts              # Authentication & authorization types
+├── chat.ts              # Chat / messaging DTOs
+├── common.ts            # Cross-domain primitives
+├── configuration.ts     # Runtime configuration shapes
+├── database.ts          # Database & service-layer types
+├── email.ts             # Email template / send DTOs
+├── enhanced-profile.ts  # Enhanced user-profile types
+├── mjml.d.ts            # Ambient declarations for mjml
+├── pet.ts               # Pet DTOs
+├── rbac.ts              # Role-based access control types
+├── rescue.ts            # Rescue-org DTOs
+├── user.ts              # User management types
+└── README.md            # This documentation
 ```
 
 ## Usage
@@ -38,7 +49,7 @@ interface ApiResponse<T> {
   message: string;
   data?: T;
   error?: string;
-  details?: any;
+  details?: unknown;
 }
 
 // Authenticated request with user context
