@@ -6,8 +6,9 @@ See the full product spec: [docs/frontend/app-rescue-prd.md](../docs/frontend/ap
 
 ## Stack
 
-- React 18 + TypeScript (strict)
+- React 19 + TypeScript (strict)
 - Vite
+- vanilla-extract for styling (`*.css.ts` files)
 - Vitest + React Testing Library
 - ESLint + Prettier
 - Docker (multi-stage build for dev and prod)
@@ -45,6 +46,7 @@ Or from this directory: `npm run dev` — Vite serves on http://localhost:3000 (
 ```
 src/
 ├── components/     Reusable UI components
+├── contexts/       React contexts (Analytics, Chat, Notifications, Permissions, Statsig)
 ├── pages/          Route-level components
 ├── hooks/          Custom React hooks
 ├── services/       API clients and external services
