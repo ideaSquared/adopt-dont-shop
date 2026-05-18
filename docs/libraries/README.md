@@ -37,7 +37,7 @@ The monorepo ships **23 workspace libraries** under `@adopt-dont-shop/lib.*`. Ea
 ### UI & analytics
 - [`lib.components`](../../lib.components/README.md) — shared React components
 - [`lib.analytics`](../../lib.analytics/README.md) — event tracking
-- [`lib.feature-flags`](../../lib.feature-flags/README.md) — Statsig type definitions
+- [`lib.feature-flags`](../../lib.feature-flags/README.md) — Statsig hooks (`useFeatureGate`, `useDynamicConfig`, `useConfigValue`) + typed gate/config constants
 - [`lib.observability`](../../lib.observability/README.md) — Sentry init, Web Vitals reporter, analytics-consent gate
 - [`lib.legal`](../../lib.legal/README.md) — legal re-acceptance modal, cookie banner, consent service
 

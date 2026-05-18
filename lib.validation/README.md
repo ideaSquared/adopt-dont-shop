@@ -28,7 +28,6 @@ See [src/index.ts](./src/index.ts) for the authoritative list. Highlights:
 - **Pet schemas** — `PetCreateRequestSchema`, `PetUpdateRequestSchema`, `PetStatusUpdateRequestSchema`, `PetSearchFiltersSchema`, `BulkPetOperationRequestSchema`, plus enums (`PetStatusSchema`, `PetTypeSchema`, `GenderSchema`, `SizeSchema`, `AgeGroupSchema`, `EnergyLevelSchema`, `VaccinationStatusSchema`, `SpayNeuterStatusSchema`, `GoodWithSchema`).
 - **Rescue schemas** — request and search shapes for the rescue domain.
 - **Application schemas** — adoption application request/update shapes.
-- **`ValidationService`** — placeholder class with `exampleMethod(data, options)` and `healthCheck()`. Not currently consumed; safe to ignore.
 
 Each schema also exports its inferred TypeScript type via `z.infer<>` (e.g. `PetCreateRequest`, `PetSearchFilters`).
 
