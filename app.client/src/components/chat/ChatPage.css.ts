@@ -7,7 +7,7 @@ export const chatContainer = style({
   height: '100vh',
   maxWidth: '100%',
   margin: '0 auto',
-  background: vars.background.primary,
+  background: vars.background.body,
   overflow: 'hidden',
   '@media': {
     '(max-width: 768px)': {
@@ -20,11 +20,11 @@ export const chatLayout = style({
   flex: '1 1 0%',
   display: 'flex',
   minHeight: 0,
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '12px',
   overflow: 'hidden',
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   '@media': {
     '(max-width: 768px)': {
       flexDirection: 'column',
@@ -37,7 +37,7 @@ export const chatLayout = style({
 
 export const divider = style({
   width: '1px',
-  background: vars.border.color.secondary,
+  background: vars.border.color.muted,
   opacity: 0.5,
   '@media': {
     '(max-width: 768px)': {
@@ -53,7 +53,7 @@ export const mobileConversationView = style({
       display: 'block',
       height: '100%',
       width: '100vw',
-      background: vars.background.primary,
+      background: vars.background.body,
     },
   },
 });
@@ -74,8 +74,8 @@ export const conversationPanel = style({
   minWidth: '260px',
   maxWidth: '380px',
   flexShrink: 0,
-  background: vars.background.primary,
-  borderRight: `1px solid ${vars.border.color.secondary}`,
+  background: vars.background.body,
+  borderRight: `1px solid ${vars.border.color.muted}`,
   height: '100%',
   overflowY: 'auto',
   zIndex: 1,
@@ -88,15 +88,15 @@ export const conversationPanel = style({
       width: '100vw',
       minWidth: 0,
       borderRight: 'none',
-      borderBottom: `1px solid ${vars.border.color.secondary}`,
+      borderBottom: `1px solid ${vars.border.color.muted}`,
     },
   },
 });
 
 export const header = style({
   padding: '1.5rem 2rem 1rem 2rem',
-  background: vars.background.primary,
-  borderBottom: `1px solid ${vars.border.color.secondary}`,
+  background: vars.background.body,
+  borderBottom: `1px solid ${vars.border.color.muted}`,
   '@media': {
     '(max-width: 768px)': {
       padding: '1.25rem 1rem 0.875rem 1rem',
@@ -124,13 +124,13 @@ export const loadingContainer = style({
   justifyContent: 'center',
   alignItems: 'center',
   height: '300px',
-  background: vars.background.secondary,
+  background: vars.background.surface,
 });
 
 export const errorMessage = style({
-  background: vars.colors.semantic.error['100'],
-  color: vars.colors.semantic.error['800'],
-  border: `1px solid ${vars.colors.semantic.error['300']}`,
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerTextEmphasis,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
   padding: '1.5rem',
   borderRadius: '8px',
   margin: '2rem auto',
@@ -142,7 +142,7 @@ export const errorMessage = style({
 export const loginPrompt = style({
   textAlign: 'center',
   padding: '4rem 2rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '12px',
   margin: '2rem 0',
 });
@@ -165,7 +165,7 @@ export const ctaButton = style({
   alignItems: 'center',
   justifyContent: 'center',
   padding: '0.875rem 2rem',
-  background: vars.colors.primary['600'],
+  background: vars.colors.primaryHover,
   color: 'white',
   textDecoration: 'none',
   borderRadius: '8px',
@@ -173,7 +173,7 @@ export const ctaButton = style({
   fontSize: '1rem',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: vars.colors.primary['700'],
+    background: vars.colors.primaryActive,
     transform: 'translateY(-1px)',
   },
 });

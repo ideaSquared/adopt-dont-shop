@@ -36,7 +36,7 @@ export const previewLabel = style({
 export const result = style({
   marginTop: '1rem',
   padding: '0.875rem 1rem',
-  border: `1px solid ${vars.colors.semantic.success['100']}`,
+  border: `1px solid ${vars.colors.successBgSubtle}`,
   background: '#ecfdf5',
   borderRadius: '8px',
   fontSize: '0.875rem',
@@ -45,9 +45,9 @@ export const result = style({
 export const error = style({
   marginTop: '1rem',
   padding: '0.875rem 1rem',
-  border: `1px solid ${vars.colors.semantic.error['200']}`,
-  background: vars.colors.semantic.error['50'],
-  color: vars.colors.semantic.error['800'],
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerTextEmphasis,
   borderRadius: '8px',
   fontSize: '0.875rem',
 });

@@ -24,11 +24,11 @@ export const infoBanner = style({
   alignItems: 'flex-start',
   gap: '0.75rem',
   padding: '1rem',
-  background: vars.colors.semantic.info['50'],
-  border: `1px solid ${vars.colors.semantic.info['200']}`,
+  background: vars.colors.infoBgSubtle,
+  border: `1px solid ${vars.colors.infoBorderSubtle}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  color: vars.colors.semantic.info['800'],
+  color: vars.colors.infoTextEmphasis,
   marginBottom: '1rem',
 });
 
@@ -38,7 +38,7 @@ globalStyle(`${infoBanner} svg`, {
 });
 
 globalStyle(`${infoBanner} a`, {
-  color: vars.colors.semantic.info['600'],
+  color: vars.colors.infoHover,
   fontWeight: '600',
   textDecoration: 'none',
 });
@@ -52,12 +52,12 @@ export const gateItem = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '1rem',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   transition: 'all 0.2s ease',
   ':hover': {
-    borderColor: vars.border.color.secondary,
-    background: vars.background.primary,
+    borderColor: vars.border.color.muted,
+    background: vars.background.body,
   },
 });
 
@@ -83,7 +83,7 @@ export const gateDescription = style({
 export const gateKey = style({
   fontFamily: 'monospace',
   fontSize: '0.75rem',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
   marginTop: '0.25rem',
 });
 
@@ -94,8 +94,8 @@ export const statusBadgeEnabled = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: vars.colors.semantic.success['100'],
-  color: vars.colors.semantic.success['800'],
+  background: vars.colors.successBgSubtle,
+  color: vars.colors.successTextEmphasis,
 });
 
 export const statusBadgeDisabled = style({
@@ -105,7 +105,7 @@ export const statusBadgeDisabled = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: vars.background.tertiary,
+  background: vars.background.muted,
   color: vars.text.tertiary,
 });
 
@@ -114,7 +114,7 @@ export const settingItem = style({
   flexDirection: 'column',
   gap: '0.5rem',
   padding: '1rem',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
 });
 
@@ -129,7 +129,7 @@ export const settingValue = style({
   fontSize: '0.875rem',
   color: vars.text.tertiary,
   padding: '0.5rem',
-  background: vars.background.primary,
+  background: vars.background.body,
   borderRadius: '6px',
 });
 
@@ -137,7 +137,7 @@ export const statsigLink = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.375rem',
-  color: vars.colors.semantic.info['600'],
+  color: vars.colors.infoHover,
   textDecoration: 'none',
   fontSize: '0.875rem',
   fontWeight: '600',

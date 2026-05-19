@@ -17,10 +17,18 @@ const formatTimestamp = (timestamp: string) => {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) {
+    return 'Just now';
+  }
+  if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  }
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
@@ -53,7 +61,9 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
   };
 
   const handleDeleteMessage = async () => {
-    if (!messageToDelete) return;
+    if (!messageToDelete) {
+      return;
+    }
 
     try {
       await deleteMessage.mutateAsync({ chatId, messageId: messageToDelete });

@@ -33,15 +33,15 @@ export const label = style({
 
 export const select = style({
   padding: '0.75rem',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
-  background: vars.background.primary,
+  background: vars.background.body,
   color: vars.text.primary,
   fontSize: '1rem',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['500'],
-    boxShadow: `0 0 0 3px ${vars.colors.primary['100']}`,
+    borderColor: vars.colors.primary,
+    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
   },
 });
 

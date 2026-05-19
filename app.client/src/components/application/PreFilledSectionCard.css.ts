@@ -4,8 +4,8 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const card = style({
   marginBottom: '1rem',
-  background: vars.background.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.75rem',
   overflow: 'hidden',
 });
@@ -22,7 +22,7 @@ export const header = style({
   textAlign: 'left',
   color: vars.text.primary,
   ':hover': {
-    background: vars.background.secondary,
+    background: vars.background.surface,
   },
 });
 
@@ -76,15 +76,15 @@ export const attentionBadge = style({
   marginLeft: '0.5rem',
   fontSize: '0.6875rem',
   fontWeight: 600,
-  color: vars.colors.semantic.warning['700'],
-  background: vars.colors.semantic.warning['50'],
-  border: `1px solid ${vars.colors.semantic.warning['200']}`,
+  color: vars.colors.warningActive,
+  background: vars.colors.warningBgSubtle,
+  border: `1px solid ${vars.colors.warningBorderSubtle}`,
   borderRadius: '9999px',
   verticalAlign: 'middle',
 });
 
 export const body = style({
   padding: '0 1.25rem 1.25rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
   paddingTop: '1rem',
 });

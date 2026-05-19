@@ -19,7 +19,7 @@ globalStyle('html', {
 });
 
 globalStyle('body', {
-  backgroundColor: vars.background.primary,
+  backgroundColor: vars.background.body,
   color: vars.text.primary,
   fontFamily: vars.typography.family.sans,
   fontSize: vars.typography.size.base,
@@ -35,7 +35,7 @@ globalStyle('h1, h2, h3, h4, h5, h6', {
   fontFamily: vars.typography.family.display,
   fontWeight: vars.typography.weight.bold,
   lineHeight: vars.typography.lineHeight.tight,
-  marginBottom: vars.spacing.md,
+  marginBottom: vars.spacing['2'],
   color: vars.text.primary,
   letterSpacing: vars.typography.letterSpacing.tight,
 });
@@ -72,7 +72,7 @@ globalStyle('h6', {
 });
 
 globalStyle('p', {
-  marginBottom: vars.spacing.md,
+  marginBottom: vars.spacing['2'],
   lineHeight: vars.typography.lineHeight.relaxed,
   color: vars.text.secondary,
 });
@@ -105,17 +105,17 @@ globalStyle('img', {
   maxWidth: '100%',
   height: 'auto',
   display: 'block',
-  borderRadius: vars.border.radius.md,
+  borderRadius: vars.border.radius.base,
 });
 
 globalStyle('::selection', {
-  backgroundColor: vars.colors.primary['200'],
-  color: vars.colors.primary['900'],
+  backgroundColor: vars.colors.primaryBgSubtle,
+  color: vars.colors.primaryTextEmphasis,
 });
 
 globalStyle('::-moz-selection', {
-  backgroundColor: vars.colors.primary['200'],
-  color: vars.colors.primary['900'],
+  backgroundColor: vars.colors.primaryBgSubtle,
+  color: vars.colors.primaryTextEmphasis,
 });
 
 globalStyle('::-webkit-scrollbar', {
@@ -124,63 +124,63 @@ globalStyle('::-webkit-scrollbar', {
 });
 
 globalStyle('::-webkit-scrollbar-track', {
-  background: vars.background.secondary,
-  borderRadius: vars.border.radius.full,
+  background: vars.background.surface,
+  borderRadius: vars.border.radius.pill,
 });
 
 globalStyle('::-webkit-scrollbar-thumb', {
-  background: vars.colors.neutral['400'],
-  borderRadius: vars.border.radius.full,
+  background: vars.gray['400'],
+  borderRadius: vars.border.radius.pill,
   transition: `background ${vars.transitions.fast}`,
 });
 
 globalStyle('::-webkit-scrollbar-thumb:hover', {
-  background: vars.colors.neutral['500'],
+  background: vars.gray['500'],
 });
 
 globalStyle('*:focus-visible', {
-  outline: `2px solid ${vars.colors.primary['500']}`,
+  outline: `2px solid ${vars.colors.primary}`,
   outlineOffset: '2px',
   borderRadius: vars.border.radius.sm,
 });
 
 globalStyle('button:focus-visible', {
-  boxShadow: vars.shadows.focusPrimary,
+  boxShadow: vars.shadows.focus,
 });
 
 globalStyle('ul, ol', {
-  marginBottom: vars.spacing.md,
-  paddingLeft: vars.spacing.lg,
+  marginBottom: vars.spacing['2'],
+  paddingLeft: vars.spacing['2'],
 });
 
 globalStyle('li', {
-  marginBottom: vars.spacing.xs,
+  marginBottom: vars.spacing['1'],
   lineHeight: vars.typography.lineHeight.relaxed,
 });
 
 globalStyle('blockquote', {
-  borderLeft: `4px solid ${vars.colors.primary['500']}`,
-  paddingLeft: vars.spacing.md,
-  margin: `${vars.spacing.lg} 0`,
+  borderLeft: `4px solid ${vars.colors.primary}`,
+  paddingLeft: vars.spacing['2'],
+  margin: `${vars.spacing['2']} 0`,
   fontStyle: 'italic',
   color: vars.text.secondary,
 });
 
 globalStyle('code', {
   fontFamily: vars.typography.family.mono,
-  backgroundColor: vars.background.secondary,
-  padding: `${vars.spacing.xs} ${vars.spacing.sm}`,
+  backgroundColor: vars.background.muted,
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
   borderRadius: vars.border.radius.sm,
   fontSize: '0.875em',
   color: vars.text.primary,
 });
 
 globalStyle('pre', {
-  backgroundColor: vars.background.secondary,
-  padding: vars.spacing.md,
-  borderRadius: vars.border.radius.md,
+  backgroundColor: vars.background.muted,
+  padding: vars.spacing['2'],
+  borderRadius: vars.border.radius.base,
   overflowX: 'auto',
-  margin: `${vars.spacing.lg} 0`,
+  margin: `${vars.spacing['2']} 0`,
 });
 
 globalStyle('pre code', {
@@ -191,23 +191,23 @@ globalStyle('pre code', {
 globalStyle('table', {
   width: '100%',
   borderCollapse: 'collapse',
-  margin: `${vars.spacing.lg} 0`,
+  margin: `${vars.spacing['2']} 0`,
 });
 
 globalStyle('th, td', {
-  padding: `${vars.spacing.sm} ${vars.spacing.md}`,
+  padding: `${vars.spacing['2']} ${vars.spacing['2']}`,
   textAlign: 'left',
-  borderBottom: `1px solid ${vars.border.color.tertiary}`,
+  borderBottom: `1px solid ${vars.border.color.muted}`,
 });
 
 globalStyle('th', {
   fontWeight: vars.typography.weight.semibold,
-  backgroundColor: vars.background.secondary,
+  backgroundColor: vars.background.muted,
 });
 
 globalStyle('hr', {
   border: 'none',
   height: '1px',
-  backgroundColor: vars.border.color.tertiary,
-  margin: `${vars.spacing.lg} 0`,
+  backgroundColor: vars.border.color.muted,
+  margin: `${vars.spacing['2']} 0`,
 });

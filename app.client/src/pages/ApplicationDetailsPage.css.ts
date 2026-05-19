@@ -29,8 +29,8 @@ globalStyle(`${header} p`, {
 });
 
 export const section = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '2rem',
   marginBottom: '2rem',
@@ -52,7 +52,7 @@ export const infoItem = style({
   justifyContent: 'space-between',
   alignItems: 'flex-start',
   padding: '0.75rem 0',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   selectors: {
     '&:last-child': {
       borderBottom: 'none',
@@ -87,20 +87,20 @@ export const statusBadge = recipe({
         color: '#6d28d9',
       },
       approved: {
-        background: vars.colors.semantic.success['100'],
-        color: vars.colors.semantic.success['800'],
+        background: vars.colors.successBgSubtle,
+        color: vars.colors.successTextEmphasis,
       },
       rejected: {
-        background: vars.colors.semantic.error['100'],
-        color: vars.colors.semantic.error['800'],
+        background: vars.colors.dangerBgSubtle,
+        color: vars.colors.dangerTextEmphasis,
       },
       withdrawn: {
-        background: vars.border.color.primary,
-        color: vars.colors.neutral['600'],
-        border: `1px solid ${vars.border.color.secondary}`,
+        background: vars.border.color.default,
+        color: vars.text.tertiary,
+        border: `1px solid ${vars.border.color.muted}`,
       },
       default: {
-        background: vars.background.tertiary,
+        background: vars.background.muted,
         color: vars.text.secondary,
       },
     },

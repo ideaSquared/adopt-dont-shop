@@ -1,254 +1,155 @@
-import { animations, palette, typography } from './colors';
-import { highContrastPalette } from './highContrastPalette';
+import {
+  animations,
+  black,
+  brand,
+  brandGradient,
+  gray,
+  primaryGradient,
+  typography,
+  warmCream,
+  warmCreamMuted,
+  white,
+} from './colors';
 
-export type ThemeMode = 'light' | 'dark' | 'high-contrast';
+export type ThemeMode = 'light' | 'normal' | 'dark';
 
-export interface Theme {
+export type Theme = {
   mode: ThemeMode;
   typography: typeof typography;
   animations: typeof animations;
-  shadows: {
-    none: string;
-    xs: string;
-    sm: string;
-    md: string;
-    lg: string;
-    xl: string;
-    '2xl': string;
-    '3xl': string;
-    inner: string;
-    primary: string;
-    secondary: string;
-    success: string;
-    error: string;
-    focus: string;
-    focusPrimary: string;
-    focusError: string;
-    focusWarning: string;
-    focusSuccess: string;
-  };
   colors: {
-    primary: {
-      50: string;
-      100: string;
-      200: string;
-      300: string;
-      400: string;
-      500: string;
-      600: string;
-      700: string;
-      800: string;
-      900: string;
-      950: string;
-    };
-    secondary: {
-      50: string;
-      100: string;
-      200: string;
-      300: string;
-      400: string;
-      500: string;
-      600: string;
-      700: string;
-      800: string;
-      900: string;
-      950: string;
-    };
-    neutral: {
-      50: string;
-      100: string;
-      200: string;
-      300: string;
-      400: string;
-      500: string;
-      600: string;
-      700: string;
-      800: string;
-      900: string;
-      950: string;
-    };
-    semantic: {
-      success: {
-        50: string;
-        100: string;
-        200: string;
-        300: string;
-        400: string;
-        500: string;
-        600: string;
-        700: string;
-        800: string;
-        900: string;
-        950: string;
-      };
-      error: {
-        50: string;
-        100: string;
-        200: string;
-        300: string;
-        400: string;
-        500: string;
-        600: string;
-        700: string;
-        800: string;
-        900: string;
-        950: string;
-      };
-      warning: {
-        50: string;
-        100: string;
-        200: string;
-        300: string;
-        400: string;
-        500: string;
-        600: string;
-        700: string;
-        800: string;
-        900: string;
-        950: string;
-      };
-      info: {
-        50: string;
-        100: string;
-        200: string;
-        300: string;
-        400: string;
-        500: string;
-        600: string;
-        700: string;
-        800: string;
-        900: string;
-        950: string;
-      };
-    };
-    gradients: {
-      primary: string;
-      secondary: string;
-      success: string;
-      warm: string;
-      cool: string;
-      brand: string;
-    };
-    accent: {
-      paw: string;
-      sky: string;
-      leaf: string;
-      magenta: string;
-    };
+    primary: string;
+    primaryHover: string;
+    primaryActive: string;
+    primaryBgSubtle: string;
+    primaryBorderSubtle: string;
+    primaryTextEmphasis: string;
+    secondary: string;
+    secondaryHover: string;
+    secondaryActive: string;
+    secondaryBgSubtle: string;
+    secondaryBorderSubtle: string;
+    secondaryTextEmphasis: string;
+    success: string;
+    successHover: string;
+    successActive: string;
+    successBgSubtle: string;
+    successBorderSubtle: string;
+    successTextEmphasis: string;
+    danger: string;
+    dangerHover: string;
+    dangerActive: string;
+    dangerBgSubtle: string;
+    dangerBorderSubtle: string;
+    dangerTextEmphasis: string;
+    warning: string;
+    warningHover: string;
+    warningActive: string;
+    warningBgSubtle: string;
+    warningBorderSubtle: string;
+    warningTextEmphasis: string;
+    info: string;
+    infoHover: string;
+    infoActive: string;
+    infoBgSubtle: string;
+    infoBorderSubtle: string;
+    infoTextEmphasis: string;
+    accentPaw: string;
+    accentSky: string;
+    accentLeaf: string;
+    gradientPrimary: string;
+    gradientBrand: string;
+  };
+  gray: {
+    100: string;
+    200: string;
+    300: string;
+    400: string;
+    500: string;
+    600: string;
+    700: string;
+    800: string;
+    900: string;
   };
   text: {
     primary: string;
     secondary: string;
     tertiary: string;
-    quaternary: string;
-    inverse: string;
+    muted: string;
     disabled: string;
-    success: string;
-    error: string;
-    warning: string;
-    info: string;
+    inverse: string;
     link: string;
     linkHover: string;
+    danger: string;
+    success: string;
+    warning: string;
+    info: string;
   };
   background: {
-    primary: string;
-    secondary: string;
-    tertiary: string;
+    body: string;
+    surface: string;
+    muted: string;
     inverse: string;
     overlay: string;
     disabled: string;
+    danger: string;
     success: string;
-    error: string;
     warning: string;
     info: string;
   };
   border: {
     width: {
-      none: string;
       thin: string;
-      normal: string;
+      base: string;
       thick: string;
-      thicker: string;
     };
     radius: {
-      none: string;
-      xs: string;
       sm: string;
-      md: string;
+      base: string;
       lg: string;
       xl: string;
       '2xl': string;
-      '3xl': string;
-      full: string;
+      pill: string;
     };
     color: {
-      primary: string;
-      secondary: string;
-      tertiary: string;
-      quaternary: string;
-      disabled: string;
+      default: string;
+      muted: string;
+      strong: string;
       focus: string;
+      danger: string;
       success: string;
-      error: string;
       warning: string;
       info: string;
     };
   };
-  spacing: {
+  shadows: {
     none: string;
-    px: string;
-    0.5: string;
+    sm: string;
+    base: string;
+    lg: string;
+    xl: string;
+    inner: string;
+    focus: string;
+    focusDanger: string;
+  };
+  spacing: {
+    0: string;
     1: string;
-    1.5: string;
     2: string;
-    2.5: string;
     3: string;
-    3.5: string;
     4: string;
     5: string;
     6: string;
     7: string;
     8: string;
-    9: string;
-    10: string;
-    11: string;
-    12: string;
-    14: string;
-    16: string;
-    20: string;
-    24: string;
-    28: string;
-    32: string;
-    36: string;
-    40: string;
-    44: string;
-    48: string;
-    52: string;
-    56: string;
-    60: string;
-    64: string;
-    72: string;
-    80: string;
-    96: string;
-    // Legacy naming for backward compatibility
-    xs: string;
-    sm: string;
-    md: string;
-    lg: string;
-    xl: string;
-    '2xl': string;
-    '3xl': string;
-    '4xl': string;
   };
   transitions: {
     none: string;
     fast: string;
-    normal: string;
+    base: string;
     slow: string;
-    slower: string;
   };
   breakpoints: {
-    xs: string;
     sm: string;
     md: string;
     lg: string;
@@ -260,390 +161,273 @@ export interface Theme {
     docked: number;
     dropdown: number;
     sticky: number;
-    banner: number;
     overlay: number;
     modal: number;
     popover: number;
-    skipLink: number;
     toast: number;
     tooltip: number;
   };
-}
+};
+
+const baseColors = {
+  primary: brand.primary,
+  primaryHover: brand.primaryHover,
+  primaryActive: brand.primaryActive,
+  primaryBgSubtle: brand.primaryBgSubtle,
+  primaryBorderSubtle: brand.primaryBorderSubtle,
+  primaryTextEmphasis: brand.primaryTextEmphasis,
+  secondary: brand.secondary,
+  secondaryHover: brand.secondaryHover,
+  secondaryActive: brand.secondaryActive,
+  secondaryBgSubtle: brand.secondaryBgSubtle,
+  secondaryBorderSubtle: brand.secondaryBorderSubtle,
+  secondaryTextEmphasis: brand.secondaryTextEmphasis,
+  success: brand.success,
+  successHover: brand.successHover,
+  successActive: brand.successActive,
+  successBgSubtle: brand.successBgSubtle,
+  successBorderSubtle: brand.successBorderSubtle,
+  successTextEmphasis: brand.successTextEmphasis,
+  danger: brand.danger,
+  dangerHover: brand.dangerHover,
+  dangerActive: brand.dangerActive,
+  dangerBgSubtle: brand.dangerBgSubtle,
+  dangerBorderSubtle: brand.dangerBorderSubtle,
+  dangerTextEmphasis: brand.dangerTextEmphasis,
+  warning: brand.warning,
+  warningHover: brand.warningHover,
+  warningActive: brand.warningActive,
+  warningBgSubtle: brand.warningBgSubtle,
+  warningBorderSubtle: brand.warningBorderSubtle,
+  warningTextEmphasis: brand.warningTextEmphasis,
+  info: brand.info,
+  infoHover: brand.infoHover,
+  infoActive: brand.infoActive,
+  infoBgSubtle: brand.infoBgSubtle,
+  infoBorderSubtle: brand.infoBorderSubtle,
+  infoTextEmphasis: brand.infoTextEmphasis,
+  accentPaw: brand.accentPaw,
+  accentSky: brand.accentSky,
+  accentLeaf: brand.accentLeaf,
+  gradientPrimary: primaryGradient,
+  gradientBrand: brandGradient,
+};
 
 const baseTheme = {
   typography,
   animations,
-  shadows: {
-    none: 'none',
-    xs: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-    sm: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-    md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-    lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-    xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-    '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-    '3xl': '0 35px 60px -15px rgb(0 0 0 / 0.3)',
-    inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
-    // Modern colored shadows for 2024
-    primary: '0 10px 25px -3px rgb(244 63 94 / 0.3), 0 4px 6px -4px rgb(244 63 94 / 0.2)',
-    secondary: '0 10px 25px -3px rgb(20 184 166 / 0.3), 0 4px 6px -4px rgb(20 184 166 / 0.2)',
-    success: '0 10px 25px -3px rgb(34 197 94 / 0.3), 0 4px 6px -4px rgb(34 197 94 / 0.2)',
-    error: '0 10px 25px -3px rgb(239 68 68 / 0.3), 0 4px 6px -4px rgb(239 68 68 / 0.2)',
-    // Focus shadows for accessibility
-    focus: '0 0 0 3px rgb(59 130 246 / 0.5)',
-    focusPrimary: '0 0 0 3px rgb(244 63 94 / 0.5)',
-    focusError: '0 0 0 3px rgb(239 68 68 / 0.5)',
-    focusWarning: '0 0 0 3px rgb(245 158 11 / 0.5)',
-    focusSuccess: '0 0 0 3px rgb(34 197 94 / 0.5)',
-  },
-  spacing: {
-    none: '0',
-    px: '1px',
-    0.5: '0.125rem', // 2px
-    1: '0.25rem', // 4px
-    1.5: '0.375rem', // 6px
-    2: '0.5rem', // 8px
-    2.5: '0.625rem', // 10px
-    3: '0.75rem', // 12px
-    3.5: '0.875rem', // 14px
-    4: '1rem', // 16px
-    5: '1.25rem', // 20px
-    6: '1.5rem', // 24px
-    7: '1.75rem', // 28px
-    8: '2rem', // 32px
-    9: '2.25rem', // 36px
-    10: '2.5rem', // 40px
-    11: '2.75rem', // 44px
-    12: '3rem', // 48px
-    14: '3.5rem', // 56px
-    16: '4rem', // 64px
-    20: '5rem', // 80px
-    24: '6rem', // 96px
-    28: '7rem', // 112px
-    32: '8rem', // 128px
-    36: '9rem', // 144px
-    40: '10rem', // 160px
-    44: '11rem', // 176px
-    48: '12rem', // 192px
-    52: '13rem', // 208px
-    56: '14rem', // 224px
-    60: '15rem', // 240px
-    64: '16rem', // 256px
-    72: '18rem', // 288px
-    80: '20rem', // 320px
-    96: '24rem', // 384px
-    // Legacy naming for backward compatibility
-    xs: '0.25rem', // 4px
-    sm: '0.5rem', // 8px
-    md: '1rem', // 16px
-    lg: '1.5rem', // 24px
-    xl: '2rem', // 32px
-    '2xl': '3rem', // 48px
-    '3xl': '4rem', // 64px
-    '4xl': '5rem', // 80px
-  },
-
+  gray,
   border: {
     width: {
-      none: '0',
       thin: '1px',
-      normal: '2px',
+      base: '2px',
       thick: '4px',
-      thicker: '8px',
     },
     radius: {
-      none: '0',
-      xs: '0.125rem', // 2px
-      sm: '0.25rem', // 4px
-      md: '0.375rem', // 6px
-      lg: '0.5rem', // 8px
-      xl: '0.75rem', // 12px
-      '2xl': '1rem', // 16px
-      '3xl': '1.5rem', // 24px
-      full: '9999px',
+      sm: '0.25rem',
+      base: '0.5rem',
+      lg: '0.75rem',
+      xl: '1rem',
+      '2xl': '1.5rem',
+      pill: '9999px',
     },
   },
-
+  spacing: {
+    0: '0',
+    1: '0.25rem',
+    2: '0.5rem',
+    3: '1rem',
+    4: '1.5rem',
+    5: '2rem',
+    6: '3rem',
+    7: '4rem',
+    8: '6rem',
+  },
   transitions: {
     none: 'none',
     fast: '150ms cubic-bezier(0.4, 0, 0.2, 1)',
-    normal: '300ms cubic-bezier(0.4, 0, 0.2, 1)',
+    base: '300ms cubic-bezier(0.4, 0, 0.2, 1)',
     slow: '500ms cubic-bezier(0.4, 0, 0.2, 1)',
-    slower: '700ms cubic-bezier(0.4, 0, 0.2, 1)',
   },
-
   breakpoints: {
-    xs: '480px',
     sm: '640px',
     md: '768px',
     lg: '1024px',
     xl: '1280px',
     '2xl': '1536px',
   },
-
   zIndex: {
     base: 0,
     docked: 10,
     dropdown: 1000,
     sticky: 1100,
-    banner: 1200,
     overlay: 1300,
     modal: 1400,
     popover: 1500,
-    skipLink: 1600,
     toast: 1700,
     tooltip: 1800,
   },
 };
 
+const lightShadows = {
+  none: 'none',
+  sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+  base: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+  lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+  xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+  inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
+  focus: '0 0 0 3px rgb(244 63 94 / 0.4)',
+  focusDanger: '0 0 0 3px rgb(239 68 68 / 0.4)',
+};
+
+const darkShadows = {
+  none: 'none',
+  sm: '0 1px 2px 0 rgb(0 0 0 / 0.2)',
+  base: '0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.25)',
+  lg: '0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3)',
+  xl: '0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.3)',
+  inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.15)',
+  focus: '0 0 0 3px rgb(244 63 94 / 0.5)',
+  focusDanger: '0 0 0 3px rgb(239 68 68 / 0.5)',
+};
+
 export const lightTheme: Theme = {
   ...baseTheme,
   mode: 'light',
-  colors: {
-    primary: palette.primary,
-    secondary: palette.secondary,
-    neutral: palette.neutral,
-    semantic: {
-      success: palette.success,
-      error: palette.error,
-      warning: palette.warning,
-      info: palette.info,
-    },
-    gradients: palette.gradients,
-    accent: palette.accent,
-  },
+  colors: baseColors,
   text: {
-    primary: palette.neutral[900],
-    secondary: palette.neutral[700],
-    tertiary: palette.neutral[600],
-    quaternary: palette.neutral[500],
-    inverse: palette.neutral[50],
-    disabled: palette.neutral[400],
-    success: palette.success[700],
-    error: palette.error[700],
-    warning: palette.warning[700],
-    info: palette.info[700],
-    link: palette.info[600],
-    linkHover: palette.info[700],
+    primary: gray[900],
+    secondary: gray[700],
+    tertiary: gray[600],
+    muted: gray[500],
+    disabled: gray[400],
+    inverse: white,
+    link: brand.infoHover,
+    linkHover: brand.infoActive,
+    danger: brand.dangerHover,
+    success: brand.successHover,
+    warning: brand.warningHover,
+    info: brand.infoHover,
   },
   background: {
-    primary: palette.neutral[50],
-    secondary: palette.white,
-    tertiary: palette.neutral[100],
-    inverse: palette.neutral[900],
+    body: white,
+    surface: white,
+    muted: gray[100],
+    inverse: gray[900],
     overlay: 'rgb(0 0 0 / 0.5)',
-    disabled: palette.neutral[100],
-    success: palette.success[50],
-    error: palette.error[50],
-    warning: palette.warning[50],
-    info: palette.info[50],
+    disabled: gray[200],
+    danger: brand.dangerBgSubtle,
+    success: brand.successBgSubtle,
+    warning: brand.warningBgSubtle,
+    info: brand.infoBgSubtle,
   },
   border: {
     ...baseTheme.border,
     color: {
-      primary: palette.neutral[200],
-      secondary: palette.neutral[300],
-      tertiary: palette.neutral[400],
-      quaternary: palette.neutral[500],
-      disabled: palette.neutral[200],
-      focus: palette.primary[500],
-      success: palette.success[300],
-      error: palette.error[300],
-      warning: palette.warning[300],
-      info: palette.info[300],
+      default: gray[300],
+      muted: gray[200],
+      strong: gray[400],
+      focus: brand.primary,
+      danger: brand.dangerBorderSubtle,
+      success: brand.successBorderSubtle,
+      warning: brand.warningBorderSubtle,
+      info: brand.infoBorderSubtle,
     },
   },
+  shadows: lightShadows,
+};
+
+// "Normal" — the warm-cream cosy default. Same contrast posture as light, but
+// with a softer body/muted surface tinted toward cream. Matches the warm
+// surface from the design system's logo lockup.
+export const normalTheme: Theme = {
+  ...baseTheme,
+  mode: 'normal',
+  colors: baseColors,
+  text: {
+    primary: gray[900],
+    secondary: gray[700],
+    tertiary: gray[600],
+    muted: gray[500],
+    disabled: gray[400],
+    inverse: white,
+    link: brand.infoHover,
+    linkHover: brand.infoActive,
+    danger: brand.dangerHover,
+    success: brand.successHover,
+    warning: brand.warningHover,
+    info: brand.infoHover,
+  },
+  background: {
+    body: warmCream,
+    surface: white,
+    muted: warmCreamMuted,
+    inverse: gray[900],
+    overlay: 'rgb(0 0 0 / 0.5)',
+    disabled: gray[200],
+    danger: brand.dangerBgSubtle,
+    success: brand.successBgSubtle,
+    warning: brand.warningBgSubtle,
+    info: brand.infoBgSubtle,
+  },
+  border: {
+    ...baseTheme.border,
+    color: {
+      default: gray[300],
+      muted: gray[200],
+      strong: gray[400],
+      focus: brand.primary,
+      danger: brand.dangerBorderSubtle,
+      success: brand.successBorderSubtle,
+      warning: brand.warningBorderSubtle,
+      info: brand.infoBorderSubtle,
+    },
+  },
+  shadows: lightShadows,
 };
 
 export const darkTheme: Theme = {
   ...baseTheme,
   mode: 'dark',
-  colors: {
-    primary: palette.primary,
-    secondary: palette.secondary,
-    neutral: {
-      50: palette.neutral[950],
-      100: palette.neutral[900],
-      200: palette.neutral[800],
-      300: palette.neutral[700],
-      400: palette.neutral[600],
-      500: palette.neutral[500],
-      600: palette.neutral[400],
-      700: palette.neutral[300],
-      800: palette.neutral[200],
-      900: palette.neutral[100],
-      950: palette.neutral[50],
-    },
-    semantic: {
-      success: palette.success,
-      error: palette.error,
-      warning: palette.warning,
-      info: palette.info,
-    },
-    gradients: palette.gradients,
-    accent: palette.accent,
-  },
+  colors: baseColors,
   text: {
-    primary: palette.neutral[100],
-    secondary: palette.neutral[300],
-    tertiary: palette.neutral[400],
-    quaternary: palette.neutral[500],
-    inverse: palette.neutral[900],
-    disabled: palette.neutral[600],
-    success: palette.success[400],
-    error: palette.error[400],
-    warning: palette.warning[400],
-    info: palette.info[400],
-    link: palette.info[400],
-    linkHover: palette.info[300],
+    primary: gray[100],
+    secondary: gray[300],
+    tertiary: gray[400],
+    muted: gray[500],
+    disabled: gray[600],
+    inverse: gray[900],
+    link: '#93C5FD',
+    linkHover: '#BFDBFE',
+    danger: '#F87171',
+    success: '#4ADE80',
+    warning: '#FBBF24',
+    info: '#60A5FA',
   },
   background: {
-    primary: palette.neutral[950],
-    secondary: palette.neutral[900],
-    tertiary: palette.neutral[800],
-    inverse: palette.neutral[50],
+    body: black,
+    surface: gray[900],
+    muted: gray[800],
+    inverse: gray[100],
     overlay: 'rgb(0 0 0 / 0.7)',
-    disabled: palette.neutral[800],
-    success: palette.success[950],
-    error: palette.error[950],
-    warning: palette.warning[950],
-    info: palette.info[950],
+    disabled: gray[800],
+    danger: '#450A0A',
+    success: '#052E16',
+    warning: '#451A03',
+    info: '#172554',
   },
   border: {
     ...baseTheme.border,
     color: {
-      primary: palette.neutral[800],
-      secondary: palette.neutral[700],
-      tertiary: palette.neutral[600],
-      quaternary: palette.neutral[500],
-      disabled: palette.neutral[800],
-      focus: palette.primary[500],
-      success: palette.success[600],
-      error: palette.error[600],
-      warning: palette.warning[600],
-      info: palette.info[600],
+      default: gray[800],
+      muted: gray[800],
+      strong: gray[700],
+      focus: brand.primary,
+      danger: '#7F1D1D',
+      success: '#14532D',
+      warning: '#78350F',
+      info: '#1E3A8A',
     },
   },
-  shadows: {
-    none: 'none',
-    xs: '0 1px 2px 0 rgb(0 0 0 / 0.15)',
-    sm: '0 1px 3px 0 rgb(0 0 0 / 0.2), 0 1px 2px -1px rgb(0 0 0 / 0.2)',
-    md: '0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2)',
-    lg: '0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.2)',
-    xl: '0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2)',
-    '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.4)',
-    '3xl': '0 35px 60px -15px rgb(0 0 0 / 0.5)',
-    inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.1)',
-    // Modern colored shadows for 2024 (dark theme versions)
-    primary: '0 10px 25px -3px rgb(244 63 94 / 0.4), 0 4px 6px -4px rgb(244 63 94 / 0.3)',
-    secondary: '0 10px 25px -3px rgb(20 184 166 / 0.4), 0 4px 6px -4px rgb(20 184 166 / 0.3)',
-    success: '0 10px 25px -3px rgb(34 197 94 / 0.4), 0 4px 6px -4px rgb(34 197 94 / 0.3)',
-    error: '0 10px 25px -3px rgb(239 68 68 / 0.4), 0 4px 6px -4px rgb(239 68 68 / 0.3)',
-    focus: '0 0 0 3px rgb(59 130 246 / 0.2)',
-    focusPrimary: '0 0 0 3px rgb(244 63 94 / 0.2)',
-    focusError: '0 0 0 3px rgb(239 68 68 / 0.2)',
-    focusWarning: '0 0 0 3px rgb(245 158 11 / 0.2)',
-    focusSuccess: '0 0 0 3px rgb(34 197 94 / 0.2)',
-  },
-};
-
-// ADS-137: High-contrast theme. Mirrors the vanilla-extract
-// `highContrastThemeClass` so any consumer reading `useTheme().theme`
-// (the JS Theme object) sees the same tokens that the .css.ts files
-// render to CSS variables.
-export const highContrastTheme: Theme = {
-  ...baseTheme,
-  mode: 'high-contrast',
-  colors: {
-    primary: palette.primary,
-    secondary: palette.secondary,
-    neutral: {
-      50: highContrastPalette.surface.primary,
-      100: highContrastPalette.surface.tertiary,
-      200: '#E0E0E0',
-      300: '#C2C2C2',
-      400: highContrastPalette.foreground.disabled,
-      500: highContrastPalette.foreground.quaternary,
-      600: highContrastPalette.foreground.tertiary,
-      700: highContrastPalette.foreground.secondary,
-      800: highContrastPalette.foreground.primary,
-      900: highContrastPalette.foreground.primary,
-      950: highContrastPalette.foreground.primary,
-    },
-    semantic: {
-      success: palette.success,
-      error: palette.error,
-      warning: palette.warning,
-      info: palette.info,
-    },
-    gradients: palette.gradients,
-    accent: palette.accent,
-  },
-  text: {
-    primary: highContrastPalette.foreground.primary,
-    secondary: highContrastPalette.foreground.secondary,
-    tertiary: highContrastPalette.foreground.tertiary,
-    quaternary: highContrastPalette.foreground.quaternary,
-    inverse: highContrastPalette.foreground.inverse,
-    disabled: highContrastPalette.foreground.disabled,
-    success: highContrastPalette.semantic.success,
-    error: highContrastPalette.semantic.error,
-    warning: highContrastPalette.semantic.warning,
-    info: highContrastPalette.semantic.info,
-    link: highContrastPalette.foreground.link,
-    linkHover: highContrastPalette.foreground.linkHover,
-  },
-  background: {
-    primary: highContrastPalette.surface.primary,
-    secondary: highContrastPalette.surface.secondary,
-    tertiary: highContrastPalette.surface.tertiary,
-    inverse: highContrastPalette.surface.inverse,
-    overlay: highContrastPalette.surface.overlay,
-    disabled: highContrastPalette.surface.disabled,
-    success: highContrastPalette.semanticSurface.success,
-    error: highContrastPalette.semanticSurface.error,
-    warning: highContrastPalette.semanticSurface.warning,
-    info: highContrastPalette.semanticSurface.info,
-  },
-  border: {
-    width: {
-      none: '0',
-      thin: '2px',
-      normal: '3px',
-      thick: '4px',
-      thicker: '8px',
-    },
-    radius: { ...baseTheme.border.radius },
-    color: {
-      primary: highContrastPalette.border.primary,
-      secondary: highContrastPalette.border.secondary,
-      tertiary: highContrastPalette.border.tertiary,
-      quaternary: highContrastPalette.border.quaternary,
-      disabled: highContrastPalette.border.disabled,
-      focus: highContrastPalette.border.focus,
-      success: highContrastPalette.border.success,
-      error: highContrastPalette.border.error,
-      warning: highContrastPalette.border.warning,
-      info: highContrastPalette.border.info,
-    },
-  },
-  shadows: {
-    none: 'none',
-    xs: '0 0 0 1px #000000',
-    sm: '0 0 0 1px #000000',
-    md: '0 0 0 2px #000000',
-    lg: '0 0 0 2px #000000',
-    xl: '0 0 0 3px #000000',
-    '2xl': '0 0 0 3px #000000',
-    '3xl': '0 0 0 4px #000000',
-    inner: 'inset 0 0 0 2px #000000',
-    primary: '0 0 0 2px #000000',
-    secondary: '0 0 0 2px #000000',
-    success: '0 0 0 2px #006400',
-    error: '0 0 0 2px #A30000',
-    focus: '0 0 0 3px #CC4400',
-    focusPrimary: '0 0 0 3px #CC4400',
-    focusError: '0 0 0 3px #CC4400',
-    focusWarning: '0 0 0 3px #CC4400',
-    focusSuccess: '0 0 0 3px #CC4400',
-  },
+  shadows: darkShadows,
 };

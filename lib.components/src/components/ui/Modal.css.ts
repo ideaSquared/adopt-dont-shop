@@ -27,7 +27,7 @@ export const overlay = style({
   background: vars.background.overlay,
   backdropFilter: 'blur(4px)',
   zIndex: vars.zIndex.modal,
-  animation: `${fadeIn} ${vars.transitions.normal}`,
+  animation: `${fadeIn} ${vars.transitions.base}`,
   '@media': {
     '(prefers-reduced-motion: reduce)': { animation: 'none', backdropFilter: 'none' },
   },
@@ -37,9 +37,9 @@ export const modalContainer = recipe({
   base: {
     position: 'fixed',
     left: '50%',
-    background: vars.background.secondary,
+    background: vars.background.surface,
     borderRadius: vars.border.radius.xl,
-    boxShadow: vars.shadows['2xl'],
+    boxShadow: vars.shadows.xl,
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
@@ -64,7 +64,7 @@ export const modalContainer = recipe({
       true: {
         top: '50%',
         transform: 'translate(-50%, -50%)',
-        animation: `${scaleInCentered} ${vars.transitions.normal}`,
+        animation: `${scaleInCentered} ${vars.transitions.base}`,
         '@media': {
           '(prefers-reduced-motion: reduce)': {
             animation: 'none',
@@ -75,7 +75,7 @@ export const modalContainer = recipe({
       false: {
         top: '10%',
         transform: 'translate(-50%, 0)',
-        animation: `${scaleInTop} ${vars.transitions.normal}`,
+        animation: `${scaleInTop} ${vars.transitions.base}`,
         '@media': {
           '(prefers-reduced-motion: reduce)': {
             animation: 'none',
@@ -92,11 +92,11 @@ export const modalHeader = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  paddingTop: vars.spacing['6'],
-  paddingLeft: vars.spacing['6'],
-  paddingRight: vars.spacing['6'],
-  paddingBottom: vars.spacing['4'],
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  paddingTop: vars.spacing['4'],
+  paddingLeft: vars.spacing['4'],
+  paddingRight: vars.spacing['4'],
+  paddingBottom: vars.spacing['3'],
+  borderBottom: `1px solid ${vars.border.color.default}`,
   flexShrink: 0,
 });
 
@@ -109,7 +109,7 @@ export const modalTitle = style({
 });
 
 export const modalContent = style({
-  padding: vars.spacing['6'],
+  padding: vars.spacing['4'],
   flex: '1',
   overflowY: 'auto',
   color: vars.text.secondary,
@@ -117,8 +117,8 @@ export const modalContent = style({
   selectors: {
     '&::-webkit-scrollbar': { width: '6px' },
     '&::-webkit-scrollbar-track': { background: 'transparent' },
-    '&::-webkit-scrollbar-thumb': { background: vars.border.color.tertiary, borderRadius: '3px' },
-    '&::-webkit-scrollbar-thumb:hover': { background: vars.border.color.quaternary },
+    '&::-webkit-scrollbar-thumb': { background: vars.border.color.muted, borderRadius: '3px' },
+    '&::-webkit-scrollbar-thumb:hover': { background: vars.border.color.strong },
   },
 });
 
@@ -126,25 +126,25 @@ export const modalFooter = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'flex-end',
-  gap: vars.spacing['3'],
-  paddingTop: vars.spacing['4'],
-  paddingLeft: vars.spacing['6'],
-  paddingRight: vars.spacing['6'],
-  paddingBottom: vars.spacing['6'],
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  gap: vars.spacing['2'],
+  paddingTop: vars.spacing['3'],
+  paddingLeft: vars.spacing['4'],
+  paddingRight: vars.spacing['4'],
+  paddingBottom: vars.spacing['4'],
+  borderTop: `1px solid ${vars.border.color.default}`,
   flexShrink: 0,
 });
 
 export const closeButton = style({
   display: 'flex',
   position: 'absolute',
-  top: vars.spacing['4'],
-  right: vars.spacing['4'],
+  top: vars.spacing['3'],
+  right: vars.spacing['3'],
   alignItems: 'center',
   justifyContent: 'center',
   width: '32px',
   height: '32px',
-  borderRadius: vars.border.radius.md,
+  borderRadius: vars.border.radius.base,
   border: 'none',
   background: 'transparent',
   color: vars.text.tertiary,
@@ -152,7 +152,7 @@ export const closeButton = style({
   cursor: 'pointer',
   transition: `all ${vars.transitions.fast}`,
   selectors: {
-    '&:hover': { background: vars.background.tertiary, color: vars.text.primary },
+    '&:hover': { background: vars.background.muted, color: vars.text.primary },
     '&:focus-visible': { outline: 'none', boxShadow: vars.shadows.focus },
     '&:active': { transform: 'scale(0.95)' },
   },

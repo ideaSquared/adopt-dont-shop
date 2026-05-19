@@ -35,8 +35,8 @@ export const postGrid = style({
 export const postCard = style({
   display: 'flex',
   flexDirection: 'column',
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   overflow: 'hidden',
   textDecoration: 'none',
@@ -56,7 +56,7 @@ export const postImage = style({
 export const postImagePlaceholder = style({
   width: '100%',
   height: '200px',
-  background: vars.background.primary,
+  background: vars.background.body,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',

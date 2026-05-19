@@ -48,7 +48,7 @@ export const postMeta = style({
   fontSize: '0.9rem',
   marginBottom: '2.5rem',
   paddingBottom: '1.5rem',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 export const postContent = style({
@@ -70,7 +70,7 @@ globalStyle(`${postContent} p`, {
 });
 
 globalStyle(`${postContent} a`, {
-  color: vars.colors.semantic.info['600'],
+  color: vars.colors.infoHover,
 });
 
 globalStyle(`${postContent} a:hover`, {
@@ -89,7 +89,7 @@ globalStyle(`${postContent} ul, ${postContent} ol`, {
 });
 
 globalStyle(`${postContent} blockquote`, {
-  borderLeft: `4px solid ${vars.colors.semantic.info['600']}`,
+  borderLeft: `4px solid ${vars.colors.infoHover}`,
   margin: '1.5rem 0',
   padding: '0.5rem 1.5rem',
   color: vars.text.tertiary,

@@ -14,9 +14,9 @@ export const container = recipe({
   },
   variants: {
     size: {
-      sm: { padding: vars.spacing.lg },
-      md: { padding: vars.spacing.xl },
-      lg: { padding: vars.spacing['2xl'] },
+      sm: { padding: vars.spacing['4'] },
+      md: { padding: vars.spacing['5'] },
+      lg: { padding: vars.spacing['6'] },
     },
   },
   defaultVariants: {
@@ -32,7 +32,7 @@ export const iconContainer = styleVariants({
     flexShrink: 0,
     width: '48px',
     height: '48px',
-    marginBottom: vars.spacing.sm,
+    marginBottom: vars.spacing['2'],
   },
   md: {
     display: 'flex',
@@ -41,7 +41,7 @@ export const iconContainer = styleVariants({
     flexShrink: 0,
     width: '64px',
     height: '64px',
-    marginBottom: vars.spacing.md,
+    marginBottom: vars.spacing['3'],
   },
   lg: {
     display: 'flex',
@@ -50,7 +50,7 @@ export const iconContainer = styleVariants({
     flexShrink: 0,
     width: '80px',
     height: '80px',
-    marginBottom: vars.spacing.lg,
+    marginBottom: vars.spacing['4'],
   },
 });
 globalStyle(`${iconContainer.sm} svg`, { width: '100%', height: '100%' });
@@ -58,16 +58,16 @@ globalStyle(`${iconContainer.md} svg`, { width: '100%', height: '100%' });
 globalStyle(`${iconContainer.lg} svg`, { width: '100%', height: '100%' });
 
 export const iconColor = styleVariants({
-  default: { color: vars.colors.neutral['400'] },
-  error: { color: vars.colors.semantic.error['500'] },
-  search: { color: vars.colors.primary['500'] },
-  loading: { color: vars.colors.neutral['300'] },
+  default: { color: vars.border.color.strong },
+  error: { color: vars.colors.danger },
+  search: { color: vars.colors.primary },
+  loading: { color: vars.border.color.default },
 });
 
 export const image = style({
   maxWidth: '100%',
   height: 'auto',
-  marginBottom: vars.spacing.md,
+  marginBottom: vars.spacing['3'],
 });
 
 export const title = recipe({
@@ -78,15 +78,15 @@ export const title = recipe({
   },
   variants: {
     size: {
-      sm: { fontSize: vars.typography.size.lg, marginBottom: vars.spacing.xs },
-      md: { fontSize: vars.typography.size.xl, marginBottom: vars.spacing.sm },
-      lg: { fontSize: vars.typography.size['2xl'], marginBottom: vars.spacing.md },
+      sm: { fontSize: vars.typography.size.lg, marginBottom: vars.spacing['1'] },
+      md: { fontSize: vars.typography.size.xl, marginBottom: vars.spacing['2'] },
+      lg: { fontSize: vars.typography.size['2xl'], marginBottom: vars.spacing['3'] },
     },
     variant: {
-      default: { color: vars.colors.neutral['700'] },
-      error: { color: vars.colors.semantic.error['900'] },
-      search: { color: vars.colors.neutral['700'] },
-      loading: { color: vars.colors.neutral['600'] },
+      default: { color: vars.text.secondary },
+      error: { color: vars.colors.dangerTextEmphasis },
+      search: { color: vars.text.secondary },
+      loading: { color: vars.text.tertiary },
     },
   },
   defaultVariants: {
@@ -103,15 +103,15 @@ export const description = recipe({
   },
   variants: {
     size: {
-      sm: { fontSize: vars.typography.size.sm, marginBottom: vars.spacing.md },
-      md: { fontSize: vars.typography.size.base, marginBottom: vars.spacing.lg },
-      lg: { fontSize: vars.typography.size.lg, marginBottom: vars.spacing.xl },
+      sm: { fontSize: vars.typography.size.sm, marginBottom: vars.spacing['3'] },
+      md: { fontSize: vars.typography.size.base, marginBottom: vars.spacing['4'] },
+      lg: { fontSize: vars.typography.size.lg, marginBottom: vars.spacing['5'] },
     },
     variant: {
-      default: { color: vars.colors.neutral['500'] },
-      error: { color: vars.colors.neutral['600'] },
-      search: { color: vars.colors.neutral['500'] },
-      loading: { color: vars.colors.neutral['400'] },
+      default: { color: vars.text.muted },
+      error: { color: vars.text.tertiary },
+      search: { color: vars.text.muted },
+      loading: { color: vars.border.color.strong },
     },
   },
   defaultVariants: {
@@ -123,7 +123,7 @@ export const description = recipe({
 export const actionContainer = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing.sm,
+  gap: vars.spacing['2'],
   alignItems: 'center',
   '@media': {
     '(min-width: 640px)': {
@@ -135,8 +135,8 @@ export const actionContainer = style({
 
 export const actionButton = recipe({
   base: {
-    padding: `${vars.spacing.sm} ${vars.spacing.lg}`,
-    borderRadius: vars.border.radius.md,
+    padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
+    borderRadius: vars.border.radius.base,
     fontWeight: vars.typography.weight.medium,
     fontSize: vars.typography.size.sm,
     cursor: 'pointer',
@@ -149,7 +149,7 @@ export const actionButton = recipe({
         cursor: 'not-allowed',
       },
       '&:focus': {
-        outline: `2px solid ${vars.colors.primary['500']}`,
+        outline: `2px solid ${vars.colors.primary}`,
         outlineOffset: '2px',
       },
     },
@@ -157,24 +157,24 @@ export const actionButton = recipe({
   variants: {
     variant: {
       primary: {
-        backgroundColor: vars.colors.primary['500'],
-        borderColor: vars.colors.primary['500'],
-        color: vars.colors.neutral['50'],
+        backgroundColor: vars.colors.primary,
+        borderColor: vars.colors.primary,
+        color: vars.background.body,
         selectors: {
           '&:hover:not(:disabled)': {
-            backgroundColor: vars.colors.primary['700'],
-            borderColor: vars.colors.primary['700'],
+            backgroundColor: vars.colors.primaryActive,
+            borderColor: vars.colors.primaryActive,
           },
         },
       },
       secondary: {
         backgroundColor: 'transparent',
-        borderColor: vars.colors.neutral['300'],
-        color: vars.colors.neutral['700'],
+        borderColor: vars.border.color.default,
+        color: vars.text.secondary,
         selectors: {
           '&:hover:not(:disabled)': {
-            backgroundColor: vars.colors.neutral['50'],
-            borderColor: vars.colors.neutral['400'],
+            backgroundColor: vars.background.body,
+            borderColor: vars.border.color.strong,
           },
         },
       },

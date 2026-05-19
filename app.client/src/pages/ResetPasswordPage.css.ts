@@ -8,7 +8,7 @@ export const container = style({
   alignItems: 'center',
   justifyContent: 'center',
   padding: '2rem',
-  background: `linear-gradient(135deg, ${vars.background.secondary} 0%, ${vars.background.primary} 100%)`,
+  background: `linear-gradient(135deg, ${vars.background.surface} 0%, ${vars.background.body} 100%)`,
 });
 
 export const resetPasswordCard = style({
@@ -46,8 +46,8 @@ export const formGroup = style({
 });
 
 export const passwordRequirements = style({
-  background: vars.background.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   padding: '1rem',
   marginTop: '0.5rem',
@@ -73,7 +73,7 @@ globalStyle(`${passwordRequirements} li`, {
 
 export const backToLoginLink = style({
   fontSize: '0.9rem',
-  color: vars.colors.primary['500'],
+  color: vars.colors.primary,
   textDecoration: 'none',
   textAlign: 'center',
   marginTop: '1rem',
@@ -105,7 +105,7 @@ globalStyle(`${successContainer} p`, {
 
 globalStyle(`${successContainer} .redirect-message`, {
   fontSize: '0.9rem',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
   fontStyle: 'italic',
 });
 

@@ -39,7 +39,7 @@ export const headerActions = style({
 export const tabBar = style({
   display: 'flex',
   gap: 0,
-  borderBottom: `2px solid ${vars.border.color.primary}`,
+  borderBottom: `2px solid ${vars.border.color.default}`,
 });
 
 export const tab = style({
@@ -58,14 +58,14 @@ export const tab = style({
 });
 
 export const tabActive = style({
-  borderBottomColor: vars.colors.semantic.info['600'],
-  color: vars.colors.semantic.info['600'],
+  borderBottomColor: vars.colors.infoHover,
+  color: vars.colors.infoHover,
   fontWeight: '600',
 });
 
 export const card = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.5rem',
 });
@@ -92,10 +92,10 @@ export const filterLabel = style({
 
 export const select = style({
   padding: '0.5rem 0.75rem',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   color: vars.text.primary,
   cursor: 'pointer',
 });
@@ -111,13 +111,13 @@ globalStyle(`${searchWrapper} svg`, {
   left: '0.75rem',
   top: '50%',
   transform: 'translateY(-50%)',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
 });
 
 export const searchInput = style({
   width: '100%',
   padding: '0.5rem 0.75rem 0.5rem 2.25rem',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   boxSizing: 'border-box',
@@ -137,13 +137,13 @@ export const th = style({
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
   color: vars.text.tertiary,
-  borderBottom: `1px solid ${vars.border.color.primary}`,
-  background: vars.background.primary,
+  borderBottom: `1px solid ${vars.border.color.default}`,
+  background: vars.background.body,
 });
 
 export const td = style({
   padding: '0.875rem 1rem',
-  borderBottom: `1px solid ${vars.background.tertiary}`,
+  borderBottom: `1px solid ${vars.background.muted}`,
   fontSize: '0.875rem',
   color: vars.text.secondary,
   verticalAlign: 'middle',
@@ -156,8 +156,8 @@ export const statusBadgePublished = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '500',
-  background: vars.colors.semantic.success['100'],
-  color: vars.colors.semantic.success['800'],
+  background: vars.colors.successBgSubtle,
+  color: vars.colors.successTextEmphasis,
 });
 
 export const statusBadgeDraft = style({
@@ -167,8 +167,8 @@ export const statusBadgeDraft = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '500',
-  background: vars.colors.semantic.warning['100'],
-  color: vars.colors.semantic.warning['800'],
+  background: vars.colors.warningBgSubtle,
+  color: vars.colors.warningTextEmphasis,
 });
 
 export const statusBadgeScheduled = style({
@@ -178,8 +178,8 @@ export const statusBadgeScheduled = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '500',
-  background: vars.colors.semantic.info['100'],
-  color: vars.colors.semantic.info['800'],
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoTextEmphasis,
 });
 
 export const statusBadgeDefault = style({
@@ -189,7 +189,7 @@ export const statusBadgeDefault = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '500',
-  background: vars.background.tertiary,
+  background: vars.background.muted,
   color: vars.text.secondary,
 });
 
@@ -205,8 +205,8 @@ export const iconButton = style({
   justifyContent: 'center',
   padding: '0.375rem',
   borderRadius: '6px',
-  border: `1px solid ${vars.border.color.primary}`,
-  background: vars.background.secondary,
+  border: `1px solid ${vars.border.color.default}`,
+  background: vars.background.surface,
   color: vars.text.tertiary,
   cursor: 'pointer',
   ':hover': {
@@ -221,8 +221,8 @@ export const iconButtonPrimary = style({
   padding: '0.375rem',
   borderRadius: '6px',
   border: '1px solid #93c5fd',
-  background: vars.colors.semantic.info['50'],
-  color: vars.colors.semantic.info['600'],
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoHover,
   cursor: 'pointer',
   ':hover': {
     opacity: 0.8,
@@ -236,8 +236,8 @@ export const iconButtonDanger = style({
   padding: '0.375rem',
   borderRadius: '6px',
   border: '1px solid #fca5a5',
-  background: vars.colors.semantic.error['50'],
-  color: vars.colors.semantic.error['600'],
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerHover,
   cursor: 'pointer',
   ':hover': {
     opacity: 0.8,
@@ -249,15 +249,15 @@ export const primaryButton = style({
   alignItems: 'center',
   gap: '0.5rem',
   padding: '0.625rem 1.25rem',
-  background: vars.colors.semantic.info['600'],
-  color: vars.background.secondary,
+  background: vars.colors.infoHover,
+  color: vars.background.surface,
   border: 'none',
   borderRadius: '8px',
   fontSize: '0.875rem',
   fontWeight: '500',
   cursor: 'pointer',
   ':hover': {
-    background: vars.colors.semantic.info['700'],
+    background: vars.colors.infoActive,
   },
   ':disabled': {
     opacity: 0.6,
@@ -277,7 +277,7 @@ export const overlay = style({
 });
 
 export const modal = style({
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '16px',
   width: '100%',
   maxWidth: '760px',
@@ -342,22 +342,22 @@ export const formLabel = style({
 
 export const formInput = style({
   padding: '0.5rem 0.75rem',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.semantic.info['600'],
+    borderColor: vars.colors.infoHover,
   },
   ':disabled': {
-    background: vars.background.primary,
-    color: vars.text.quaternary,
+    background: vars.background.body,
+    color: vars.text.muted,
   },
 });
 
 export const formTextarea = style({
   padding: '0.5rem 0.75rem',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   resize: 'vertical',
@@ -365,16 +365,16 @@ export const formTextarea = style({
   fontFamily: 'monospace',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.semantic.info['600'],
+    borderColor: vars.colors.infoHover,
   },
 });
 
 export const formSelect = style({
   padding: '0.5rem 0.75rem',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
 });
 
 export const modalActions = style({
@@ -382,13 +382,13 @@ export const modalActions = style({
   justifyContent: 'flex-end',
   gap: '0.75rem',
   paddingTop: '0.5rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 export const secondaryButton = style({
   padding: '0.625rem 1.25rem',
-  border: `1px solid ${vars.border.color.secondary}`,
-  background: vars.background.secondary,
+  border: `1px solid ${vars.border.color.muted}`,
+  background: vars.background.surface,
   color: vars.text.secondary,
   borderRadius: '8px',
   fontSize: '0.875rem',
@@ -398,21 +398,21 @@ export const secondaryButton = style({
 export const emptyState = style({
   padding: '3rem',
   textAlign: 'center',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
   fontSize: '0.95rem',
 });
 
 export const errorMessage = style({
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
   fontSize: '0.875rem',
   margin: 0,
 });
 
 export const seoSection = style({
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   padding: '1rem',
-  background: vars.background.primary,
+  background: vars.background.body,
   gridColumn: '1 / -1',
   display: 'flex',
   flexDirection: 'column',

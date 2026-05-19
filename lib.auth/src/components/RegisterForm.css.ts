@@ -5,13 +5,13 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const form = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing['6'],
+  gap: vars.spacing['4'],
 });
 
 export const formRow = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',
-  gap: vars.spacing['4'],
+  gap: vars.spacing['3'],
   '@media': {
     '(max-width: 768px)': {
       gridTemplateColumns: '1fr',
@@ -26,7 +26,7 @@ export const formGroup = style({
 });
 
 export const styledAlert = style({
-  marginBottom: vars.spacing['4'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const passwordRequirements = style({
@@ -36,7 +36,7 @@ export const passwordRequirements = style({
 });
 
 export const passwordRequirementsList = style({
-  margin: `${vars.spacing['2']} 0 0 ${vars.spacing['4']}`,
+  margin: `${vars.spacing['2']} 0 0 ${vars.spacing['3']}`,
   padding: '0',
   listStyle: 'none',
 });
@@ -60,7 +60,7 @@ export const requirementItemInvalid = style({
 export const checkIcon = style({
   width: '14px',
   height: '14px',
-  borderRadius: vars.border.radius.full,
+  borderRadius: vars.border.radius.pill,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -74,15 +74,15 @@ export const checkIconValid = style({
 });
 
 export const checkIconInvalid = style({
-  backgroundColor: vars.border.color.primary,
+  backgroundColor: vars.border.color.default,
   color: vars.text.disabled,
 });
 
 export const termsCheckbox = style({
   display: 'flex',
   alignItems: 'flex-start',
-  gap: vars.spacing['3'],
-  margin: `${vars.spacing['4']} 0`,
+  gap: vars.spacing['2'],
+  margin: `${vars.spacing['3']} 0`,
 });
 
 export const termsCheckboxLabel = style({

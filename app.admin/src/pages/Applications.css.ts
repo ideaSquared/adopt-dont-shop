@@ -26,8 +26,8 @@ globalStyle(`${headerLeft} h1`, {
 });
 
 export const filterBar = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.5rem',
   display: 'flex',
@@ -61,7 +61,7 @@ globalStyle(`${searchInputWrapper} svg`, {
   left: '0.75rem',
   top: '50%',
   transform: 'translateY(-50%)',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
   fontSize: '1.125rem',
 });
 
@@ -71,19 +71,19 @@ globalStyle(`${searchInputWrapper} input`, {
 
 export const select = style({
   padding: '0.625rem 0.875rem',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   color: vars.text.primary,
-  background: vars.background.secondary,
+  background: vars.background.surface,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    borderColor: vars.text.quaternary,
+    borderColor: vars.text.muted,
   },
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['500'],
+    borderColor: vars.colors.primary,
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
   },
 });
@@ -95,8 +95,8 @@ export const badgeSuccess = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: vars.colors.semantic.success['100'],
-  color: vars.colors.semantic.success['800'],
+  background: vars.colors.successBgSubtle,
+  color: vars.colors.successTextEmphasis,
 });
 
 export const badgeWarning = style({
@@ -106,8 +106,8 @@ export const badgeWarning = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: vars.colors.semantic.warning['100'],
-  color: vars.colors.semantic.warning['800'],
+  background: vars.colors.warningBgSubtle,
+  color: vars.colors.warningTextEmphasis,
 });
 
 export const badgeDanger = style({
@@ -117,8 +117,8 @@ export const badgeDanger = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: vars.colors.semantic.error['100'],
-  color: vars.colors.semantic.error['800'],
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerTextEmphasis,
 });
 
 export const badgeNeutral = style({
@@ -128,7 +128,7 @@ export const badgeNeutral = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: vars.background.tertiary,
+  background: vars.background.muted,
   color: vars.text.secondary,
 });
 
@@ -149,10 +149,10 @@ export const applicantEmail = style({
 });
 
 export const errorMessage = style({
-  background: vars.colors.semantic.error['100'],
-  border: `1px solid ${vars.colors.semantic.error['200']}`,
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
   borderRadius: '8px',
   padding: '1rem',
-  color: vars.colors.semantic.error['800'],
+  color: vars.colors.dangerTextEmphasis,
   fontSize: '0.875rem',
 });

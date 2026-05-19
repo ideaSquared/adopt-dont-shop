@@ -6,13 +6,13 @@ import { vars } from '../../../styles/theme.css';
 export const container = style({
   display: 'inline-flex',
   flexDirection: 'column',
-  gap: vars.spacing.xs,
+  gap: vars.spacing['1'],
 });
 
 export const checkboxContainer = style({
   display: 'flex',
   alignItems: 'flex-start',
-  gap: vars.spacing.sm,
+  gap: vars.spacing['2'],
   cursor: 'pointer',
 });
 
@@ -37,83 +37,83 @@ export const styledCheckbox = recipe({
     alignItems: 'center',
     justifyContent: 'center',
     border: '2px solid',
-    borderRadius: vars.border.radius.xs,
-    backgroundColor: vars.colors.neutral['50'],
+    borderRadius: vars.border.radius.sm,
+    backgroundColor: vars.background.body,
     transition: `all ${vars.transitions.fast}`,
     flexShrink: 0,
     marginTop: '2px',
     selectors: {
       [`${checkboxContainer}:hover input:not(:disabled) + &`]: {
-        borderColor: vars.colors.primary['500'],
+        borderColor: vars.colors.primary,
       },
     },
   },
   variants: {
     state: {
       default: {
-        borderColor: vars.colors.neutral['300'],
+        borderColor: vars.border.color.default,
         selectors: {
           'input:focus + &': {
-            borderColor: vars.colors.primary['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.primary['100']}40`,
+            borderColor: vars.colors.primary,
+            boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
           },
           'input:focus-visible + &': {
-            borderColor: vars.colors.primary['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.primary['100']}40`,
+            borderColor: vars.colors.primary,
+            boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
           },
         },
       },
       error: {
-        borderColor: vars.colors.semantic.error['500'],
+        borderColor: vars.colors.danger,
         selectors: {
           'input:focus + &': {
-            borderColor: vars.colors.semantic.error['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.error['100']}40`,
+            borderColor: vars.colors.danger,
+            boxShadow: `0 0 0 3px ${vars.colors.dangerBgSubtle}40`,
           },
           'input:focus-visible + &': {
-            borderColor: vars.colors.semantic.error['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.error['100']}40`,
+            borderColor: vars.colors.danger,
+            boxShadow: `0 0 0 3px ${vars.colors.dangerBgSubtle}40`,
           },
         },
       },
       success: {
-        borderColor: vars.colors.semantic.success['500'],
+        borderColor: vars.colors.success,
         selectors: {
           'input:focus + &': {
-            borderColor: vars.colors.semantic.success['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.success['100']}40`,
+            borderColor: vars.colors.success,
+            boxShadow: `0 0 0 3px ${vars.colors.successBgSubtle}40`,
           },
           'input:focus-visible + &': {
-            borderColor: vars.colors.semantic.success['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.success['100']}40`,
+            borderColor: vars.colors.success,
+            boxShadow: `0 0 0 3px ${vars.colors.successBgSubtle}40`,
           },
         },
       },
       warning: {
-        borderColor: vars.colors.semantic.warning['500'],
+        borderColor: vars.colors.warning,
         selectors: {
           'input:focus + &': {
-            borderColor: vars.colors.semantic.warning['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.warning['100']}40`,
+            borderColor: vars.colors.warning,
+            boxShadow: `0 0 0 3px ${vars.colors.warningBgSubtle}40`,
           },
           'input:focus-visible + &': {
-            borderColor: vars.colors.semantic.warning['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.warning['100']}40`,
+            borderColor: vars.colors.warning,
+            boxShadow: `0 0 0 3px ${vars.colors.warningBgSubtle}40`,
           },
         },
       },
     },
     checked: {
       true: {
-        backgroundColor: vars.colors.primary['500'],
-        borderColor: vars.colors.primary['500'],
+        backgroundColor: vars.colors.primary,
+        borderColor: vars.colors.primary,
       },
       false: {},
     },
     disabled: {
       true: {
-        backgroundColor: vars.colors.neutral['100'],
-        borderColor: vars.colors.neutral['200'],
+        backgroundColor: vars.background.muted,
+        borderColor: vars.border.color.muted,
         cursor: 'not-allowed',
       },
       false: {},
@@ -155,7 +155,7 @@ export const checkIcon = recipe({
 export const labelContainer = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing.xs,
+  gap: vars.spacing['1'],
   flex: 1,
 });
 
@@ -163,14 +163,14 @@ export const label = recipe({
   base: {
     fontSize: vars.typography.size.sm,
     fontWeight: vars.typography.weight.medium,
-    color: vars.colors.neutral['900'],
+    color: vars.text.primary,
     cursor: 'pointer',
     lineHeight: vars.typography.lineHeight.normal,
   },
   variants: {
     disabled: {
       true: {
-        color: vars.colors.neutral['400'],
+        color: vars.border.color.strong,
         cursor: 'not-allowed',
       },
       false: {},
@@ -180,7 +180,7 @@ export const label = recipe({
         selectors: {
           '&::after': {
             content: '" *"',
-            color: vars.colors.semantic.error['500'],
+            color: vars.colors.danger,
           },
         },
       },
@@ -197,12 +197,12 @@ export const description = recipe({
   base: {
     margin: 0,
     fontSize: vars.typography.size.xs,
-    color: vars.colors.neutral['600'],
+    color: vars.text.tertiary,
     lineHeight: vars.typography.lineHeight.relaxed,
   },
   variants: {
     disabled: {
-      true: { color: vars.colors.neutral['300'] },
+      true: { color: vars.border.color.default },
       false: {},
     },
   },
@@ -214,18 +214,18 @@ export const description = recipe({
 export const helperText = styleVariants({
   default: {
     fontSize: vars.typography.size.xs,
-    color: vars.colors.neutral['600'],
+    color: vars.text.tertiary,
   },
   error: {
     fontSize: vars.typography.size.xs,
-    color: vars.colors.semantic.error['500'],
+    color: vars.colors.danger,
   },
   success: {
     fontSize: vars.typography.size.xs,
-    color: vars.colors.semantic.success['500'],
+    color: vars.colors.success,
   },
   warning: {
     fontSize: vars.typography.size.xs,
-    color: vars.colors.semantic.warning['500'],
+    color: vars.colors.warning,
   },
 });

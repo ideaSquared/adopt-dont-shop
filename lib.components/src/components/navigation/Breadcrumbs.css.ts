@@ -22,7 +22,7 @@ export const breadcrumbContainer = recipe({
       },
       lg: {
         fontSize: vars.typography.size.lg,
-        gap: vars.spacing['3'],
+        gap: vars.spacing['2'],
       },
     },
   },
@@ -51,8 +51,8 @@ const interactiveBase = {
   textDecoration: 'none',
   transition: `all ${vars.transitions.fast}`,
   borderRadius: vars.border.radius.sm,
-  padding: `${vars.spacing['1']} ${vars.spacing['1.5']}`,
-  margin: `-${vars.spacing['1']} -${vars.spacing['1.5']}`,
+  padding: `${vars.spacing['1']} ${vars.spacing['1']}`,
+  margin: `-${vars.spacing['1']} -${vars.spacing['1']}`,
   '@media': {
     '(prefers-reduced-motion: reduce)': {
       transition: 'none',
@@ -79,11 +79,11 @@ export const breadcrumbLink = recipe({
         selectors: {
           '&:hover': {
             color: vars.text.primary,
-            background: vars.background.tertiary,
+            background: vars.background.muted,
           },
           '&:focus-visible': {
             outline: 'none',
-            background: vars.background.tertiary,
+            background: vars.background.muted,
             boxShadow: vars.shadows.focus,
           },
         },
@@ -126,11 +126,11 @@ export const breadcrumbButton = recipe({
         selectors: {
           '&:hover': {
             color: vars.text.primary,
-            background: vars.background.tertiary,
+            background: vars.background.muted,
           },
           '&:focus-visible': {
             outline: 'none',
-            background: vars.background.tertiary,
+            background: vars.background.muted,
             boxShadow: vars.shadows.focus,
           },
         },
@@ -151,13 +151,13 @@ export const breadcrumbButton = recipe({
 });
 
 export const separator = style({
-  color: vars.text.quaternary,
+  color: vars.text.muted,
   userSelect: 'none',
   fontWeight: vars.typography.weight.normal,
 });
 
 export const collapsedIndicator = style({
-  color: vars.text.quaternary,
+  color: vars.text.muted,
   display: 'flex',
   alignItems: 'center',
   padding: vars.spacing['1'],

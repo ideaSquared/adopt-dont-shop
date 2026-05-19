@@ -133,7 +133,7 @@ export const metricChangeNegative = style({
   alignItems: 'center',
   gap: '0.25rem',
   fontSize: '0.875rem',
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
   fontWeight: '600',
 });
 
@@ -153,12 +153,12 @@ export const topItem = style({
   alignItems: 'center',
   justifyContent: 'space-between',
   padding: '0.875rem',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: vars.background.primary,
-    borderColor: vars.border.color.secondary,
+    background: vars.background.body,
+    borderColor: vars.border.color.muted,
   },
 });
 
@@ -166,8 +166,8 @@ export const topItemRank = style({
   width: '32px',
   height: '32px',
   borderRadius: '8px',
-  background: vars.colors.gradients.primary,
-  color: vars.background.secondary,
+  background: vars.colors.gradientPrimary,
+  color: vars.background.surface,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -215,10 +215,10 @@ export const skeletonBlock = style({
 });
 
 export const errorBanner = style({
-  background: vars.colors.semantic.error['100'],
-  border: `1px solid ${vars.colors.semantic.error['200']}`,
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
   borderRadius: '8px',
   padding: '1rem',
-  color: vars.colors.semantic.error['800'],
+  color: vars.colors.dangerTextEmphasis,
   fontSize: '0.875rem',
 });

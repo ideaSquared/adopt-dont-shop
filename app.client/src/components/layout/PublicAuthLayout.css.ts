@@ -5,7 +5,7 @@ export const shell = style({
   minHeight: '100vh',
   display: 'flex',
   flexDirection: 'column',
-  background: vars.background.primary,
+  background: vars.background.body,
 });
 
 export const header = style({
@@ -13,17 +13,13 @@ export const header = style({
   alignItems: 'center',
   justifyContent: 'space-between',
   height: '64px',
-  padding: `0 ${vars.spacing['4']}`,
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  padding: `0 ${vars.spacing['3']}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 export const logo = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: vars.spacing['2'],
-  fontWeight: 700,
-  fontSize: vars.typography.size.lg,
-  color: vars.text.primary,
   textDecoration: 'none',
   ':focus-visible': {
     outline: `2px solid ${vars.border.color.focus}`,
@@ -32,13 +28,8 @@ export const logo = style({
   },
 });
 
-export const logoIcon = style({
-  fontSize: '1.5rem',
-  lineHeight: 1,
-});
-
 export const switchLink = style({
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   textDecoration: 'none',
   fontWeight: 500,
   fontSize: vars.typography.size.sm,
@@ -57,12 +48,12 @@ export const main = style({
   display: 'flex',
   alignItems: 'flex-start',
   justifyContent: 'center',
-  padding: `${vars.spacing['8']} ${vars.spacing['4']}`,
+  padding: `${vars.spacing['5']} ${vars.spacing['3']}`,
 });
 
 export const footer = style({
   display: 'flex',
   justifyContent: 'center',
-  padding: `${vars.spacing['4']} ${vars.spacing['4']}`,
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  padding: `${vars.spacing['3']} ${vars.spacing['3']}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
 });

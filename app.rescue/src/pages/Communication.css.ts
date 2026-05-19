@@ -6,13 +6,13 @@ export const pageContainer = style({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  background: vars.background.secondary,
+  background: vars.background.surface,
 });
 
 export const pageHeader = style({
   padding: '1.5rem 2rem',
-  background: vars.background.secondary,
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   '@media': {
     'screen and (max-width: 768px)': {
       padding: '1rem 1.25rem',
@@ -104,26 +104,26 @@ export const toolbar = style({
 export const filterTab = style({
   padding: '0.375rem 0.875rem',
   borderRadius: '9999px',
-  border: `1px solid ${vars.border.color.secondary}`,
-  background: vars.background.secondary,
+  border: `1px solid ${vars.border.color.muted}`,
+  background: vars.background.surface,
   color: vars.text.secondary,
   fontWeight: 500,
   fontSize: '0.875rem',
   cursor: 'pointer',
   selectors: {
     '&:hover': {
-      background: vars.background.tertiary,
+      background: vars.background.muted,
     },
   },
 });
 
 export const filterTabActive = style({
-  background: vars.colors.semantic.info['600'],
-  borderColor: vars.colors.semantic.info['600'],
-  color: vars.background.secondary,
+  background: vars.colors.infoHover,
+  borderColor: vars.colors.infoHover,
+  color: vars.background.surface,
   selectors: {
     '&:hover': {
-      background: vars.colors.semantic.info['700'],
+      background: vars.colors.infoActive,
     },
   },
 });

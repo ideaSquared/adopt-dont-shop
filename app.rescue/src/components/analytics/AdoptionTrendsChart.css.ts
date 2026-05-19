@@ -13,7 +13,7 @@ export const svgContainer = style({
 });
 
 export const gridLine = style({
-  stroke: vars.colors.neutral['200'],
+  stroke: vars.border.color.muted,
   strokeWidth: '1',
   strokeDasharray: '4 4',
 });
@@ -32,7 +32,7 @@ export const axisLabel = style({
 
 export const linePath = style({
   fill: 'none',
-  stroke: vars.colors.primary['500'],
+  stroke: vars.colors.primary,
   strokeWidth: '3',
   strokeLinecap: 'round',
   strokeLinejoin: 'round',
@@ -49,7 +49,7 @@ export const dataPoint = recipe({
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     fill: 'white',
-    stroke: vars.colors.primary['500'],
+    stroke: vars.colors.primary,
   },
   variants: {
     active: {
@@ -65,7 +65,7 @@ export const dataPoint = recipe({
 export const tooltipContainer = style({
   position: 'absolute',
   transform: 'translate(-50%, -100%)',
-  background: vars.colors.neutral['900'],
+  background: vars.text.primary,
   color: 'white',
   padding: '0.5rem 0.75rem',
   borderRadius: '6px',
@@ -84,7 +84,7 @@ export const tooltipContainer = style({
     height: 0,
     borderLeft: '4px solid transparent',
     borderRight: '4px solid transparent',
-    borderTop: `4px solid ${vars.colors.neutral['900']}`,
+    borderTop: `4px solid ${vars.text.primary}`,
   },
 });
 
@@ -94,7 +94,7 @@ export const tooltipDate = style({
 });
 
 export const tooltipValue = style({
-  color: vars.colors.primary['300'],
+  color: vars.colors.primaryBorderSubtle,
   fontWeight: '500',
 });
 
@@ -105,7 +105,7 @@ const shimmer = keyframes({
 
 export const loadingSkeleton = style({
   width: '100%',
-  background: vars.colors.neutral['100'],
+  background: vars.background.muted,
   borderRadius: '8px',
   position: 'relative',
   overflow: 'hidden',
@@ -116,7 +116,7 @@ export const loadingSkeleton = style({
     left: 0,
     width: '100%',
     height: '100%',
-    background: `linear-gradient(90deg, transparent, ${vars.colors.neutral['200']}, transparent)`,
+    background: `linear-gradient(90deg, transparent, ${vars.border.color.muted}, transparent)`,
     animation: `${shimmer} 1.5s infinite`,
   },
 });

@@ -37,13 +37,13 @@ export const articleList = style({
 export const articleCard = style({
   display: 'block',
   padding: '1.5rem',
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '10px',
   textDecoration: 'none',
   transition: 'border-color 0.2s, box-shadow 0.2s',
   ':hover': {
-    borderColor: vars.colors.semantic.info['600'],
+    borderColor: vars.colors.infoHover,
     boxShadow: '0 2px 12px rgba(37, 99, 235, 0.1)',
   },
 });

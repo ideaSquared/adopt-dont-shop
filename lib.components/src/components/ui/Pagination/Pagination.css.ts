@@ -6,7 +6,7 @@ import { vars } from '../../../styles/theme.css';
 export const container = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing.xs,
+  gap: vars.spacing['1'],
 });
 
 const buttonBase = style({
@@ -20,7 +20,7 @@ const buttonBase = style({
   textDecoration: 'none',
   selectors: {
     '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
-    '&:focus': { outline: `2px solid ${vars.colors.primary['500']}`, outlineOffset: '2px' },
+    '&:focus': { outline: `2px solid ${vars.colors.primary}`, outlineOffset: '2px' },
   },
 });
 globalStyle(`${buttonBase} svg`, { width: '16px', height: '16px' });
@@ -63,13 +63,13 @@ export const button = recipe({
     {
       variants: { variant: 'default', isActive: false },
       style: {
-        backgroundColor: vars.colors.neutral['50'],
-        border: `1px solid ${vars.colors.neutral['300']}`,
-        color: vars.colors.neutral['700'],
+        backgroundColor: vars.background.body,
+        border: `1px solid ${vars.border.color.default}`,
+        color: vars.text.secondary,
         selectors: {
           '&:hover:not(:disabled)': {
-            backgroundColor: vars.colors.neutral['50'],
-            borderColor: vars.colors.neutral['400'],
+            backgroundColor: vars.background.body,
+            borderColor: vars.border.color.strong,
           },
         },
       },
@@ -78,13 +78,13 @@ export const button = recipe({
     {
       variants: { variant: 'default', isActive: true },
       style: {
-        backgroundColor: vars.colors.primary['500'],
-        border: `1px solid ${vars.colors.primary['500']}`,
-        color: vars.colors.neutral['50'],
+        backgroundColor: vars.colors.primary,
+        border: `1px solid ${vars.colors.primary}`,
+        color: vars.background.body,
         selectors: {
           '&:hover:not(:disabled)': {
-            backgroundColor: vars.colors.primary['700'],
-            borderColor: vars.colors.primary['700'],
+            backgroundColor: vars.colors.primaryActive,
+            borderColor: vars.colors.primaryActive,
           },
         },
       },
@@ -94,13 +94,13 @@ export const button = recipe({
       variants: { variant: 'outlined', isActive: false },
       style: {
         backgroundColor: 'transparent',
-        border: `1px solid ${vars.colors.neutral['300']}`,
-        color: vars.colors.neutral['700'],
+        border: `1px solid ${vars.border.color.default}`,
+        color: vars.text.secondary,
         selectors: {
           '&:hover:not(:disabled)': {
-            backgroundColor: vars.colors.neutral['50'],
-            borderColor: vars.colors.primary['500'],
-            color: vars.colors.primary['500'],
+            backgroundColor: vars.background.body,
+            borderColor: vars.colors.primary,
+            color: vars.colors.primary,
           },
         },
       },
@@ -110,12 +110,12 @@ export const button = recipe({
       variants: { variant: 'outlined', isActive: true },
       style: {
         backgroundColor: 'transparent',
-        border: `1px solid ${vars.colors.primary['500']}`,
-        color: vars.colors.primary['500'],
+        border: `1px solid ${vars.colors.primary}`,
+        color: vars.colors.primary,
         selectors: {
           '&:hover:not(:disabled)': {
-            borderColor: vars.colors.primary['500'],
-            color: vars.colors.primary['500'],
+            borderColor: vars.colors.primary,
+            color: vars.colors.primary,
           },
         },
       },
@@ -126,11 +126,11 @@ export const button = recipe({
       style: {
         backgroundColor: 'transparent',
         border: '1px solid transparent',
-        color: vars.colors.neutral['600'],
+        color: vars.text.tertiary,
         selectors: {
           '&:hover:not(:disabled)': {
-            backgroundColor: vars.colors.neutral['100'],
-            color: vars.colors.neutral['700'],
+            backgroundColor: vars.background.muted,
+            color: vars.text.secondary,
           },
         },
       },
@@ -141,12 +141,12 @@ export const button = recipe({
       style: {
         backgroundColor: 'transparent',
         border: '1px solid transparent',
-        color: vars.colors.primary['500'],
+        color: vars.colors.primary,
         fontWeight: vars.typography.weight.semibold,
         selectors: {
           '&:hover:not(:disabled)': {
-            backgroundColor: vars.colors.neutral['100'],
-            color: vars.colors.neutral['700'],
+            backgroundColor: vars.background.muted,
+            color: vars.text.secondary,
           },
         },
       },
@@ -164,7 +164,7 @@ export const ellipsis = recipe({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: vars.colors.neutral['500'],
+    color: vars.text.muted,
   },
   variants: {
     size: {

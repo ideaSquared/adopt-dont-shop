@@ -7,7 +7,7 @@ export const inputWrapper = recipe({
   base: {
     display: 'flex',
     flexDirection: 'column',
-    marginBottom: vars.spacing.md,
+    marginBottom: vars.spacing['3'],
   },
   variants: {
     isFullWidth: {
@@ -21,13 +21,13 @@ export const inputWrapper = recipe({
 export const inputLabel = style({
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.medium,
-  marginBottom: vars.spacing.xs,
+  marginBottom: vars.spacing['1'],
   color: vars.text.primary,
 });
 
 export const requiredIndicator = style({
-  color: vars.text.error,
-  marginLeft: vars.spacing.xs,
+  color: vars.text.danger,
+  marginLeft: vars.spacing['1'],
 });
 
 export const inputContainer = style({
@@ -39,10 +39,10 @@ export const inputContainer = style({
 export const styledInput = recipe({
   base: {
     width: '100%',
-    backgroundColor: vars.background.primary,
+    backgroundColor: vars.background.body,
     color: vars.text.primary,
     border: `${vars.border.width.thin} solid`,
-    borderRadius: vars.border.radius.md,
+    borderRadius: vars.border.radius.base,
     outline: 'none',
     transition: `all ${vars.transitions.fast}`,
     fontFamily: vars.typography.family.sans,
@@ -58,41 +58,50 @@ export const styledInput = recipe({
   variants: {
     variant: {
       default: {
-        borderColor: vars.border.color.secondary,
+        borderColor: vars.border.color.muted,
         selectors: {
           '&:focus': {
-            borderColor: vars.colors.primary['500'],
-            boxShadow: vars.shadows.focusPrimary,
+            borderColor: vars.colors.primary,
+            boxShadow: vars.shadows.focus,
           },
         },
       },
       success: {
-        borderColor: vars.colors.semantic.success['500'],
+        borderColor: vars.colors.success,
         selectors: {
           '&:focus': {
-            borderColor: vars.colors.semantic.success['500'],
-            boxShadow: vars.shadows.focusSuccess,
+            borderColor: vars.colors.success,
+            boxShadow: vars.shadows.focus,
           },
         },
       },
       error: {
-        borderColor: vars.border.color.error,
+        borderColor: vars.border.color.danger,
         selectors: {
-          '&:focus': { borderColor: vars.border.color.error, boxShadow: vars.shadows.focusError },
+          '&:focus': { borderColor: vars.border.color.danger, boxShadow: vars.shadows.focusDanger },
         },
       },
     },
     size: {
-      sm: { padding: `${vars.spacing.xs} ${vars.spacing.sm}`, fontSize: vars.typography.size.sm },
-      md: { padding: `${vars.spacing.sm} ${vars.spacing.md}`, fontSize: vars.typography.size.base },
-      lg: { padding: `${vars.spacing.sm} ${vars.spacing.md}`, fontSize: vars.typography.size.lg },
+      sm: {
+        padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+        fontSize: vars.typography.size.sm,
+      },
+      md: {
+        padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+        fontSize: vars.typography.size.base,
+      },
+      lg: {
+        padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+        fontSize: vars.typography.size.lg,
+      },
     },
     hasStartIcon: {
-      true: { paddingLeft: vars.spacing.xl },
+      true: { paddingLeft: vars.spacing['5'] },
       false: {},
     },
     hasEndIcon: {
-      true: { paddingRight: vars.spacing.xl },
+      true: { paddingRight: vars.spacing['5'] },
       false: {},
     },
   },
@@ -110,17 +119,17 @@ export const iconWrapper = style({
   color: vars.text.secondary,
 });
 
-export const startIconWrapper = style([iconWrapper, { left: vars.spacing.sm }]);
-export const endIconWrapper = style([iconWrapper, { right: vars.spacing.sm }]);
+export const startIconWrapper = style([iconWrapper, { left: vars.spacing['2'] }]);
+export const endIconWrapper = style([iconWrapper, { right: vars.spacing['2'] }]);
 
 export const helperText = recipe({
   base: {
     fontSize: vars.typography.size.xs,
-    marginTop: vars.spacing.xs,
+    marginTop: vars.spacing['1'],
   },
   variants: {
     hasError: {
-      true: { color: vars.text.error },
+      true: { color: vars.text.danger },
       false: { color: vars.text.secondary },
     },
   },

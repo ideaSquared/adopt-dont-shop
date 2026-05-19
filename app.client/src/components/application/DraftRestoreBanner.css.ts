@@ -8,8 +8,8 @@ export const banner = style({
   gap: '1rem',
   padding: '1rem 1.25rem',
   marginBottom: '1.5rem',
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.5rem',
   '@media': {
     'screen and (max-width: 640px)': {

@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useAuth, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
-import {
-  HIGH_CONTRAST_SHORTCUT_HINT,
-  HighContrastToggle,
-  toast,
-} from '@adopt-dont-shop/lib.components';
+import { ThemeToggle, toast } from '@adopt-dont-shop/lib.components';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
@@ -16,7 +12,7 @@ import QuestionsBuilder from '../components/rescue/QuestionsBuilder';
 import type { RescueProfile, AdoptionPolicy } from '../types/rescue';
 import * as styles from './RescueSettings.css';
 
-type TabType = 'profile' | 'policies' | 'questions' | 'preferences' | 'security' | 'accessibility';
+type TabType = 'profile' | 'policies' | 'questions' | 'preferences' | 'security' | 'appearance';
 
 const RescueSettings: React.FC = () => {
   const { user } = useAuth();
@@ -165,10 +161,10 @@ const RescueSettings: React.FC = () => {
             Security
           </button>
           <button
-            className={clsx(styles.tab, activeTab === 'accessibility' && styles.tabActive)}
-            onClick={() => setActiveTab('accessibility')}
+            className={clsx(styles.tab, activeTab === 'appearance' && styles.tabActive)}
+            onClick={() => setActiveTab('appearance')}
           >
-            Accessibility
+            Appearance
           </button>
         </div>
       </div>
@@ -211,16 +207,11 @@ const RescueSettings: React.FC = () => {
         </div>
       </div>
 
-      <div
-        className={clsx(activeTab === 'accessibility' ? styles.tabPanel : styles.tabPanelHidden)}
-      >
+      <div className={clsx(activeTab === 'appearance' ? styles.tabPanel : styles.tabPanelHidden)}>
         <div className={styles.securitySection}>
-          <h2>High-Contrast Mode</h2>
-          <p>
-            Increase text and border contrast across the rescue tools to meet WCAG AA. Toggle
-            anywhere in the app with <kbd>{HIGH_CONTRAST_SHORTCUT_HINT}</kbd>.
-          </p>
-          <HighContrastToggle />
+          <h2>Theme</h2>
+          <p>Choose how the rescue tools look — light, cosy (warm cream), or dark.</p>
+          <ThemeToggle />
         </div>
       </div>
     </div>

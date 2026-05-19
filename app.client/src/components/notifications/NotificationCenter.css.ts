@@ -3,8 +3,8 @@ import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const notificationCenter = style({
-  background: vars.background.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   overflow: 'hidden',
   maxWidth: '600px',
@@ -13,7 +13,7 @@ export const notificationCenter = style({
 
 export const header = style({
   padding: '1.5rem',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -27,7 +27,7 @@ globalStyle(`${header} h2`, {
 
 export const filterBar = style({
   padding: '1rem 1.5rem',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   display: 'flex',
   gap: '1rem',
   alignItems: 'center',
@@ -42,14 +42,14 @@ export const filterBar = style({
 
 export const filterSelect = style({
   padding: '0.5rem',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '6px',
-  background: vars.background.primary,
+  background: vars.background.body,
   color: vars.text.primary,
   fontSize: '0.875rem',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['500'],
+    borderColor: vars.colors.primary,
   },
 });
 
@@ -61,11 +61,11 @@ export const notificationList = style({
 export const notificationItem = recipe({
   base: {
     padding: '1rem 1.5rem',
-    borderBottom: `1px solid ${vars.border.color.primary}`,
+    borderBottom: `1px solid ${vars.border.color.default}`,
     cursor: 'pointer',
     transition: 'background-color 0.2s ease',
     ':hover': {
-      background: vars.background.secondary,
+      background: vars.background.surface,
     },
     selectors: {
       '&:last-child': {
@@ -76,10 +76,10 @@ export const notificationItem = recipe({
   variants: {
     isRead: {
       true: {
-        background: vars.background.primary,
+        background: vars.background.body,
       },
       false: {
-        background: vars.background.secondary,
+        background: vars.background.surface,
       },
     },
   },
@@ -137,11 +137,11 @@ export const actionButton = style({
   borderRadius: '4px',
   fontSize: '0.75rem',
   cursor: 'pointer',
-  background: vars.colors.neutral['200'],
+  background: vars.border.color.muted,
   color: vars.text.primary,
   transition: 'background-color 0.2s ease',
   ':hover': {
-    background: vars.colors.neutral['300'],
+    background: vars.border.color.default,
   },
 });
 
@@ -151,11 +151,11 @@ export const actionButtonPrimary = style({
   borderRadius: '4px',
   fontSize: '0.75rem',
   cursor: 'pointer',
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   transition: 'background-color 0.2s ease',
   ':hover': {
-    background: vars.colors.primary['600'],
+    background: vars.colors.primaryHover,
   },
 });
 
@@ -165,11 +165,11 @@ export const actionButtonDanger = style({
   borderRadius: '4px',
   fontSize: '0.75rem',
   cursor: 'pointer',
-  background: vars.colors.semantic.error['500'],
+  background: vars.colors.danger,
   color: 'white',
   transition: 'background-color 0.2s ease',
   ':hover': {
-    background: vars.colors.semantic.error['600'],
+    background: vars.colors.dangerHover,
   },
 });
 
@@ -198,7 +198,7 @@ export const loadingState = style({
 
 export const pagination = style({
   padding: '1rem 1.5rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',

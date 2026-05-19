@@ -12,7 +12,7 @@ export const trigger = style({
   gap: '0.5rem',
   padding: '0.625rem 1rem',
   background: 'white',
-  border: `1px solid ${vars.colors.neutral['300']}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   fontWeight: '500',
@@ -20,8 +20,8 @@ export const trigger = style({
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    borderColor: vars.colors.primary['400'],
-    background: vars.colors.primary['50'],
+    borderColor: vars.colors.primary,
+    background: vars.colors.primaryBgSubtle,
   },
 });
 
@@ -35,7 +35,7 @@ export const dropdown = recipe({
     top: 'calc(100% + 0.5rem)',
     right: 0,
     background: 'white',
-    border: `1px solid ${vars.colors.neutral['200']}`,
+    border: `1px solid ${vars.border.color.muted}`,
     borderRadius: '8px',
     boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
     zIndex: 1000,
@@ -54,7 +54,7 @@ export const dropdown = recipe({
 
 export const presetsSection = style({
   padding: '0.5rem',
-  borderBottom: `1px solid ${vars.colors.neutral['200']}`,
+  borderBottom: `1px solid ${vars.border.color.muted}`,
 });
 
 export const presetButton = recipe({
@@ -69,15 +69,15 @@ export const presetButton = recipe({
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     ':hover': {
-      background: vars.colors.primary['50'],
-      color: vars.colors.primary['700'],
+      background: vars.colors.primaryBgSubtle,
+      color: vars.colors.primaryActive,
     },
   },
   variants: {
     active: {
       true: {
-        background: vars.colors.primary['50'],
-        color: vars.colors.primary['700'],
+        background: vars.colors.primaryBgSubtle,
+        color: vars.colors.primaryActive,
         fontWeight: '600',
       },
       false: {
@@ -118,15 +118,15 @@ export const label = style({
 
 export const dateInput = style({
   padding: '0.5rem',
-  border: `1px solid ${vars.colors.neutral['300']}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '6px',
   fontSize: '0.875rem',
   color: vars.text.primary,
   transition: 'all 0.2s ease',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['400'],
-    boxShadow: `0 0 0 3px ${vars.colors.primary['100']}`,
+    borderColor: vars.colors.primary,
+    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
   },
 });
 
@@ -134,7 +134,7 @@ export const applyButton = style({
   width: '100%',
   marginTop: '0.75rem',
   padding: '0.625rem',
-  background: vars.colors.primary['600'],
+  background: vars.colors.primaryHover,
   color: 'white',
   border: 'none',
   borderRadius: '6px',
@@ -143,7 +143,7 @@ export const applyButton = style({
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: vars.colors.primary['700'],
+    background: vars.colors.primaryActive,
   },
   ':active': {
     transform: 'scale(0.98)',

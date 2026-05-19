@@ -13,11 +13,11 @@ export const stack = recipe({
     },
     spacing: {
       none: { gap: '0' },
-      xs: { gap: vars.spacing.xs },
-      sm: { gap: vars.spacing.sm },
-      md: { gap: vars.spacing.md },
-      lg: { gap: vars.spacing.lg },
-      xl: { gap: vars.spacing.xl },
+      xs: { gap: vars.spacing['1'] },
+      sm: { gap: vars.spacing['2'] },
+      md: { gap: vars.spacing['3'] },
+      lg: { gap: vars.spacing['4'] },
+      xl: { gap: vars.spacing['5'] },
     },
     align: {
       start: { alignItems: 'flex-start' },

@@ -83,7 +83,7 @@ The Client App is the public-facing React application for potential pet adopters
 - **Discovery preferences**: pet types, search radius
 - **Notification preferences**: email, push, SMS, marketing, applications, messages, system, reminders, quiet hours
 - **Privacy controls**: profile visibility, show email/phone toggles
-- **Accessibility**: keyboard nav (built-in), high-contrast toggle (`HighContrastToggle`)
+- **Accessibility**: keyboard nav (built-in), theme toggle (`ThemeToggle` — light/normal/dark)
 
 *Out of scope / roadmap:* Swipe sensitivity preference, characteristic preferences (size/age/energy), reduce-motion preference, default saved-search.
 

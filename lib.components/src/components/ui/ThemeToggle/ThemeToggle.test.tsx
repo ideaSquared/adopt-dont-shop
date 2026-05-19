@@ -5,88 +5,53 @@ import React from 'react';
 import { lightTheme } from '../../../styles/theme';
 import { ThemeToggle } from './ThemeToggle';
 
-// Mock the theme context
 const mockSetThemeMode = vi.fn();
+let mockThemeMode: 'light' | 'normal' | 'dark' = 'light';
 
 vi.mock('../../../styles/ThemeProvider', async () => ({
   ...((await vi.importActual('../../../styles/ThemeProvider')) as Record<string, unknown>),
   useTheme: () => ({
-    themeMode: 'light',
+    themeMode: mockThemeMode,
     setThemeMode: mockSetThemeMode,
     theme: lightTheme,
   }),
 }));
 
-const renderWithTheme = (component: React.ReactElement) => render(component);
-
 describe('ThemeToggle', () => {
   beforeEach(() => {
     mockSetThemeMode.mockClear();
+    mockThemeMode = 'light';
   });
 
-  it('renders correctly with light theme', () => {
-    renderWithTheme(<ThemeToggle />);
-
-    const button = screen.getByRole('button');
-    expect(button).toBeInTheDocument();
-    expect(button).toHaveAttribute('aria-label', 'Switch to dark mode');
-  });
-
-  it('displays correct icon and text for light theme', () => {
-    renderWithTheme(<ThemeToggle />);
-
-    expect(screen.getByText('🌙')).toBeInTheDocument();
-    expect(screen.getByText('Dark Mode')).toBeInTheDocument();
-  });
-
-  it('calls setThemeMode when clicked', async () => {
+  it('shows the current theme label and cycles to the next on click', async () => {
     const user = userEvent.setup();
-    renderWithTheme(<ThemeToggle />);
+    render(<ThemeToggle />);
 
     const button = screen.getByRole('button');
+    expect(button).toHaveAttribute('aria-label', 'Switch to Cosy theme');
+    expect(screen.getByText('Light')).toBeInTheDocument();
+
     await user.click(button);
-
-    expect(mockSetThemeMode).toHaveBeenCalledTimes(1);
-    expect(mockSetThemeMode).toHaveBeenCalledWith('dark');
+    expect(mockSetThemeMode).toHaveBeenCalledWith('normal');
   });
 
-  it('supports keyboard interaction', async () => {
+  it('cycles light → normal → dark → light', () => {
+    mockThemeMode = 'normal';
+    const { rerender } = render(<ThemeToggle />);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-label', 'Switch to Dark theme');
+
+    mockThemeMode = 'dark';
+    rerender(<ThemeToggle />);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-label', 'Switch to Light theme');
+  });
+
+  it('activates with keyboard', async () => {
     const user = userEvent.setup();
-    renderWithTheme(<ThemeToggle />);
+    render(<ThemeToggle />);
 
-    const button = screen.getByRole('button');
-
-    // Focus and activate with keyboard
     await user.tab();
-    expect(button).toHaveFocus();
-
+    expect(screen.getByRole('button')).toHaveFocus();
     await user.keyboard('{Enter}');
-    expect(mockSetThemeMode).toHaveBeenCalledTimes(1);
-    expect(mockSetThemeMode).toHaveBeenCalledWith('dark');
-
-    mockSetThemeMode.mockClear();
-
-    await user.keyboard(' ');
-    expect(mockSetThemeMode).toHaveBeenCalledTimes(1);
-    expect(mockSetThemeMode).toHaveBeenCalledWith('dark');
-  });
-
-  it('has proper accessibility attributes', () => {
-    renderWithTheme(<ThemeToggle />);
-
-    const button = screen.getByRole('button');
-    expect(button).toHaveAttribute('aria-label', 'Switch to dark mode');
-  });
-});
-
-// Test with dark theme — the module is already mocked above with `themeMode: 'light'`.
-// Verifying the toggle aria-label confirms the mock is wired up correctly.
-describe('ThemeToggle - Dark Mode Integration', () => {
-  it('should toggle from light to dark mode', () => {
-    renderWithTheme(<ThemeToggle />);
-
-    const button = screen.getByRole('button');
-    // The mock returns themeMode: 'light', so the button should offer to switch to dark
-    expect(button).toHaveAttribute('aria-label', 'Switch to dark mode');
+    expect(mockSetThemeMode).toHaveBeenCalledWith('normal');
   });
 });

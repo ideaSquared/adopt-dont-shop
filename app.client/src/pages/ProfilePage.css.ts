@@ -43,7 +43,7 @@ globalStyle(`${header} h1`, {
 });
 
 export const tabContainer = style({
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   marginBottom: '2rem',
 });
 
@@ -62,13 +62,13 @@ export const tab = recipe({
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     ':hover': {
-      color: vars.colors.primary['600'],
+      color: vars.colors.primaryHover,
     },
   },
   variants: {
     active: {
       true: {
-        color: vars.colors.primary['600'],
+        color: vars.colors.primaryHover,
         borderBottom: '2px solid #4f46e5',
       },
       false: {
@@ -80,8 +80,8 @@ export const tab = recipe({
 });
 
 export const section = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '2rem',
   marginBottom: '2rem',
@@ -103,7 +103,7 @@ export const infoItem = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '1rem 0',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   selectors: {
     '&:last-child': {
       borderBottom: 'none',
@@ -126,8 +126,8 @@ export const applicationsGrid = style({
 });
 
 export const applicationCard = style({
-  background: vars.background.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   padding: '1.5rem',
   display: 'flex',
@@ -163,15 +163,15 @@ export const statusBadge = recipe({
         color: '#6d28d9',
       },
       approved: {
-        background: vars.colors.semantic.success['100'],
-        color: vars.colors.semantic.success['800'],
+        background: vars.colors.successBgSubtle,
+        color: vars.colors.successTextEmphasis,
       },
       rejected: {
-        background: vars.colors.semantic.error['100'],
-        color: vars.colors.semantic.error['800'],
+        background: vars.colors.dangerBgSubtle,
+        color: vars.colors.dangerTextEmphasis,
       },
       default: {
-        background: vars.background.tertiary,
+        background: vars.background.muted,
         color: vars.text.secondary,
       },
     },

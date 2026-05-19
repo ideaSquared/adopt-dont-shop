@@ -3,16 +3,16 @@ import { style } from '@vanilla-extract/css';
 import { darkThemeClass, vars } from '../../../styles/theme.css';
 
 export const header = style({
-  background: vars.background.secondary,
-  borderBottom: `1px solid ${vars.border.color.primary}`,
-  paddingTop: vars.spacing.md,
-  paddingBottom: vars.spacing.md,
+  background: vars.background.surface,
+  borderBottom: `1px solid ${vars.border.color.default}`,
+  paddingTop: vars.spacing['3'],
+  paddingBottom: vars.spacing['3'],
   position: 'sticky',
   top: 0,
   zIndex: vars.zIndex.sticky,
   selectors: {
     [`:is(html.${darkThemeClass}) &`]: {
-      background: vars.background.primary,
+      background: vars.background.body,
     },
   },
 });
@@ -20,8 +20,8 @@ export const header = style({
 export const headerContainer = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  paddingLeft: vars.spacing.md,
-  paddingRight: vars.spacing.md,
+  paddingLeft: vars.spacing['3'],
+  paddingRight: vars.spacing['3'],
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -37,7 +37,7 @@ export const logo = style({
 export const navigation = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing.md,
+  gap: vars.spacing['3'],
 });
 
 export const navLink = style({

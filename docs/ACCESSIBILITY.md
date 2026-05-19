@@ -2,53 +2,41 @@
 
 This document tracks the accessibility features built into the platform.
 
-## High-contrast mode (WCAG AA)
+## Theme variants
 
-High-contrast mode swaps the default palette for a stark white-on-black theme
-designed to meet WCAG AA conformance for users with low vision or
-photosensitivity. It is implemented in `lib.components` and applies uniformly
-to `app.client`, `app.rescue`, and `app.admin`.
+The platform ships three theme variants — `light`, `normal` (the warm-cream
+default), and `dark`. All three meet WCAG AA for text and UI contrast on
+their default surfaces, verified by the design tokens in
+`lib.components/src/styles/colors.ts` and `theme.ts`.
 
-### Contrast targets
+| Theme    | Surface        | Text on surface | Contrast posture |
+| -------- | -------------- | --------------- | ---------------- |
+| `light`  | `#FFFFFF`      | gray-900        | WCAG AA          |
+| `normal` | `#FAF7F2` cream| gray-900        | WCAG AA          |
+| `dark`   | `#0F172A` navy | gray-100        | WCAG AA          |
 
-The high-contrast palette (`lib.components/src/styles/highContrastPalette.ts`)
-is built around these targets, verified by
-`lib.components/src/styles/highContrastPalette.test.ts`:
+### How users switch themes
 
-| Token group              | Contrast on white background | WCAG level |
-| ------------------------ | ---------------------------- | ---------- |
-| Normal text foregrounds  | ≥ 7:1                        | AAA        |
-| Semantic foregrounds     | ≥ 7:1                        | AAA        |
-| Focus ring vs. surface   | ≥ 4.5:1                      | AA (UI)    |
-| Semantic on tinted bg    | ≥ 4.5:1                      | AA         |
+Each app exposes the `<ThemeToggle />` component inside its settings page:
 
-### How users turn it on
+- `app.client`: *Profile → Settings → Appearance*
+- `app.rescue`: *Settings → Appearance*
+- `app.admin`: *Account Settings → Appearance*
 
-There are two equivalent affordances:
-
-1. **Settings UI.** Every app exposes the toggle inside its settings page:
-   - `app.client`: *Profile → Settings → Accessibility*
-   - `app.rescue`: *Settings → Accessibility*
-   - `app.admin`: *Account Settings → Accessibility*
-2. **Keyboard shortcut.** Press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd>
-   anywhere in the app to toggle the mode. The shortcut is registered
-   globally by `ThemeProvider` so it works regardless of focus.
-
-### Persistence
-
-The preference is persisted to `localStorage` under the key
-`theme-high-contrast` and rehydrated on app load. When the user is signed in
-the value is read on the same device only; cross-device sync via the user
-profile is tracked separately.
+The toggle cycles `light → normal → dark → light`. The preference persists
+to `localStorage` under the key `theme` and is rehydrated on app load.
 
 ### Implementation notes
 
-- The mode is exposed via `useTheme()` (`highContrast`, `setHighContrast`,
-  `toggleHighContrast`) and `<HighContrastToggle />` from
-  `@adopt-dont-shop/lib.components`.
-- It is orthogonal to the light/dark `themeMode`; toggling HC off restores
-  the previous mode without losing the preference.
-- The vanilla-extract class `highContrastThemeClass` is applied to
-  `<html>` along with the `data-theme="high-contrast"` and
-  `data-high-contrast="true"` attributes for assistive tech and global
-  styles.
+- The mode is exposed via `useTheme()` (`themeMode`, `setThemeMode`, `theme`)
+  from `@adopt-dont-shop/lib.components`.
+- The vanilla-extract theme class (`lightThemeClass`, `normalThemeClass`, or
+  `darkThemeClass`) is applied to `<html>` along with `data-theme="<mode>"`
+  for global style hooks and assistive tech.
+
+## Previous high-contrast theme
+
+A dedicated WCAG AAA high-contrast theme (white surfaces with a bright-orange
+focus ring) was retired in favour of the simpler `light/normal/dark` model
+above. Users who relied on it can use their OS-level high-contrast or
+dark-mode preference in combination with the `dark` theme.

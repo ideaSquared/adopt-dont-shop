@@ -6,7 +6,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const dashboardContainer = style({});
 
 export const pageHeader = style({
-  marginBottom: vars.spacing.md,
+  marginBottom: vars.spacing['3'],
 });
 
 export const metricsGrid = style({
@@ -17,8 +17,8 @@ export const metricsGrid = style({
 });
 
 export const metricCard = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.xl,
   padding: '1.5rem',
   transition: 'all 0.2s ease',
@@ -56,13 +56,13 @@ export const metricValue = style({
 
 export const metricChangePositive = style({
   fontSize: '0.875rem',
-  color: vars.colors.semantic.success['500'],
+  color: vars.colors.success,
   fontWeight: '500',
 });
 
 export const metricChangeNegative = style({
   fontSize: '0.875rem',
-  color: vars.colors.semantic.error['500'],
+  color: vars.colors.danger,
   fontWeight: '500',
 });
 
@@ -72,8 +72,8 @@ const shimmerAnim = keyframes({
 });
 
 export const skeletonBlock = style({
-  borderRadius: vars.border.radius.md,
-  background: `linear-gradient(90deg, ${vars.background.tertiary} 25%, ${vars.background.primary} 50%, ${vars.background.tertiary} 75%)`,
+  borderRadius: vars.border.radius.base,
+  background: `linear-gradient(90deg, ${vars.background.muted} 25%, ${vars.background.body} 50%, ${vars.background.muted} 75%)`,
   backgroundSize: '200px 100%',
   animationName: shimmerAnim,
   animationDuration: '1.4s',
@@ -82,10 +82,10 @@ export const skeletonBlock = style({
 });
 
 export const errorBanner = style({
-  background: vars.colors.semantic.error['100'],
-  border: `1px solid ${vars.colors.semantic.error['200']}`,
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
   borderRadius: vars.border.radius.xl,
   padding: '1.5rem',
-  color: vars.colors.semantic.error['800'],
+  color: vars.colors.dangerTextEmphasis,
   fontSize: '0.875rem',
 });

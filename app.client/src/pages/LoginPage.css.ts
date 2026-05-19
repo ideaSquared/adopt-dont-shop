@@ -6,7 +6,7 @@ export const signupPrompt = style({
   textAlign: 'center',
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${signupPrompt} p`, {
@@ -15,7 +15,7 @@ globalStyle(`${signupPrompt} p`, {
 });
 
 globalStyle(`${signupPrompt} a`, {
-  color: vars.colors.primary['500'],
+  color: vars.colors.primary,
   textDecoration: 'none',
   fontWeight: '500',
 });

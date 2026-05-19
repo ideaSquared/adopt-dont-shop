@@ -16,7 +16,7 @@ export const label = style({
 });
 
 export const requiredMark = style({
-  color: vars.colors.semantic.error['500'],
+  color: vars.colors.danger,
   marginLeft: '0.125rem',
 });
 
@@ -40,19 +40,19 @@ export const input = recipe({
   base: {
     ...baseInputStyle,
     color: vars.text.primary,
-    background: vars.background.primary,
+    background: vars.background.body,
     ':focus': {
-      borderColor: vars.colors.primary['500'],
-      boxShadow: `0 0 0 2px ${vars.colors.primary['100']}`,
+      borderColor: vars.colors.primary,
+      boxShadow: `0 0 0 2px ${vars.colors.primaryBgSubtle}`,
     },
   },
   variants: {
     hasError: {
       true: {
-        border: `1px solid ${vars.colors.semantic.error['500']}`,
+        border: `1px solid ${vars.colors.danger}`,
       },
       false: {
-        border: `1px solid ${vars.border.color.primary}`,
+        border: `1px solid ${vars.border.color.default}`,
       },
     },
   },
@@ -65,20 +65,20 @@ export const select = recipe({
   base: {
     ...baseInputStyle,
     color: vars.text.primary,
-    background: vars.background.primary,
+    background: vars.background.body,
     cursor: 'pointer',
     ':focus': {
-      borderColor: vars.colors.primary['500'],
-      boxShadow: `0 0 0 2px ${vars.colors.primary['100']}`,
+      borderColor: vars.colors.primary,
+      boxShadow: `0 0 0 2px ${vars.colors.primaryBgSubtle}`,
     },
   },
   variants: {
     hasError: {
       true: {
-        border: `1px solid ${vars.colors.semantic.error['500']}`,
+        border: `1px solid ${vars.colors.danger}`,
       },
       false: {
-        border: `1px solid ${vars.border.color.primary}`,
+        border: `1px solid ${vars.border.color.default}`,
       },
     },
   },
@@ -91,21 +91,21 @@ export const textArea = recipe({
   base: {
     ...baseInputStyle,
     color: vars.text.primary,
-    background: vars.background.primary,
+    background: vars.background.body,
     resize: 'vertical',
     minHeight: '80px',
     ':focus': {
-      borderColor: vars.colors.primary['500'],
-      boxShadow: `0 0 0 2px ${vars.colors.primary['100']}`,
+      borderColor: vars.colors.primary,
+      boxShadow: `0 0 0 2px ${vars.colors.primaryBgSubtle}`,
     },
   },
   variants: {
     hasError: {
       true: {
-        border: `1px solid ${vars.colors.semantic.error['500']}`,
+        border: `1px solid ${vars.colors.danger}`,
       },
       false: {
-        border: `1px solid ${vars.border.color.primary}`,
+        border: `1px solid ${vars.border.color.default}`,
       },
     },
   },
@@ -131,6 +131,6 @@ export const checkboxLabel = style({
 
 export const errorText = style({
   fontSize: '0.8125rem',
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
   margin: 0,
 });

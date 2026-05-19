@@ -39,8 +39,8 @@ export const statsBar = style({
 });
 
 export const statCard = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.25rem',
   display: 'flex',
@@ -66,8 +66,8 @@ export const statValue = style({
 });
 
 export const filterBar = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.5rem',
   display: 'flex',
@@ -92,19 +92,19 @@ export const filterLabel = style({
 
 export const select = style({
   padding: '0.625rem 1rem',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   color: vars.text.primary,
-  background: vars.background.secondary,
+  background: vars.background.surface,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    borderColor: vars.text.quaternary,
+    borderColor: vars.text.muted,
   },
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.semantic.info['500'],
+    borderColor: vars.colors.info,
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
   },
 });
@@ -120,7 +120,7 @@ export const searchIcon = style({
   left: '1rem',
   top: '50%',
   transform: 'translateY(-50%)',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
   pointerEvents: 'none',
 });
 
@@ -130,8 +130,8 @@ export const badgeSuccess = style({
   fontSize: '0.75rem',
   fontWeight: '600',
   display: 'inline-block',
-  background: vars.colors.semantic.success['100'],
-  color: vars.colors.semantic.success['700'],
+  background: vars.colors.successBgSubtle,
+  color: vars.colors.successActive,
 });
 
 export const badgeDanger = style({
@@ -140,8 +140,8 @@ export const badgeDanger = style({
   fontSize: '0.75rem',
   fontWeight: '600',
   display: 'inline-block',
-  background: vars.colors.semantic.error['100'],
-  color: vars.colors.semantic.error['600'],
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerHover,
 });
 
 export const badgeInfo = style({
@@ -150,8 +150,8 @@ export const badgeInfo = style({
   fontSize: '0.75rem',
   fontWeight: '600',
   display: 'inline-block',
-  background: vars.colors.semantic.info['100'],
-  color: vars.colors.semantic.info['800'],
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoTextEmphasis,
 });
 
 export const badgeNeutral = style({
@@ -160,15 +160,15 @@ export const badgeNeutral = style({
   fontSize: '0.75rem',
   fontWeight: '600',
   display: 'inline-block',
-  background: vars.background.tertiary,
-  color: vars.colors.neutral['600'],
+  background: vars.background.muted,
+  color: vars.text.tertiary,
 });
 
 export const priorityIndicatorCritical = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: vars.colors.semantic.error['600'],
+  background: vars.colors.dangerHover,
   flexShrink: 0,
 });
 
@@ -192,7 +192,7 @@ export const priorityIndicatorLow = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: vars.colors.semantic.info['600'],
+  background: vars.colors.infoHover,
   flexShrink: 0,
 });
 
@@ -200,7 +200,7 @@ export const priorityIndicatorDefault = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: vars.text.quaternary,
+  background: vars.text.muted,
   flexShrink: 0,
 });
 
@@ -223,16 +223,16 @@ export const iconButton = style({
   justifyContent: 'center',
   width: '32px',
   height: '32px',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '6px',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   color: vars.text.tertiary,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: vars.background.primary,
+    background: vars.background.body,
     color: vars.text.primary,
-    borderColor: vars.border.color.secondary,
+    borderColor: vars.border.color.muted,
   },
   ':active': {
     transform: 'scale(0.95)',
@@ -253,8 +253,8 @@ export const contentTypeTagMessage = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: vars.colors.semantic.info['100'],
-  color: vars.colors.semantic.info['800'],
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoTextEmphasis,
 });
 
 export const contentTypeTagUser = style({
@@ -271,8 +271,8 @@ export const contentTypeTagRescue = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: vars.colors.semantic.warning['100'],
-  color: vars.colors.semantic.warning['800'],
+  background: vars.colors.warningBgSubtle,
+  color: vars.colors.warningTextEmphasis,
 });
 
 export const contentTypeTagDefault = style({
@@ -280,7 +280,7 @@ export const contentTypeTagDefault = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: vars.background.tertiary,
+  background: vars.background.muted,
   color: vars.text.secondary,
 });
 
@@ -307,7 +307,7 @@ export const reportedAt = style({
 export const errorBanner = style({
   padding: '2rem',
   textAlign: 'center',
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
 });
 
 const statIconBase = style({
@@ -322,19 +322,19 @@ const statIconBase = style({
 
 export const statIconRed = style([
   statIconBase,
-  { background: '#dc262620', color: vars.colors.semantic.error['600'] },
+  { background: '#dc262620', color: vars.colors.dangerHover },
 ]);
 
 export const statIconBlue = style([
   statIconBase,
-  { background: '#3b82f620', color: vars.colors.semantic.info['500'] },
+  { background: '#3b82f620', color: vars.colors.info },
 ]);
 
 export const statIconOrange = style([statIconBase, { background: '#ea580c20', color: '#ea580c' }]);
 
 export const statIconGreen = style([
   statIconBase,
-  { background: '#16a34a20', color: vars.colors.semantic.success['600'] },
+  { background: '#16a34a20', color: vars.colors.successHover },
 ]);
 
 export const searchInputPadded = style({

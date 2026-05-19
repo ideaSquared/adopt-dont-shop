@@ -9,8 +9,8 @@ export const container = style({
 export const finalStep = style({
   marginTop: '2rem',
   padding: '1.5rem',
-  background: vars.background.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.75rem',
 });
 
@@ -46,12 +46,12 @@ export const switchLink = style({
   border: 'none',
   padding: 0,
   fontSize: '0.875rem',
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   cursor: 'pointer',
   textDecoration: 'underline',
   textAlign: 'left',
   ':hover': {
-    color: vars.colors.primary['700'],
+    color: vars.colors.primaryActive,
   },
 });
 

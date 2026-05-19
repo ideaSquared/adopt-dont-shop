@@ -2,8 +2,8 @@ import { style } from '@vanilla-extract/css';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const summaryCard = style({
-  background: vars.background.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.5rem',
   position: 'sticky',
@@ -34,7 +34,7 @@ export const detailItem = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '0.5rem 0',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   selectors: {
     '&:last-child': {
       borderBottom: 'none',
@@ -55,7 +55,7 @@ export const detailValue = style({
 
 export const rescueInfo = style({
   padding: '1rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '8px',
   marginTop: '1rem',
 });
@@ -76,7 +76,7 @@ export const rescueLocation = style({
 export const adoptionFee = style({
   textAlign: 'center',
   padding: '1rem',
-  background: vars.colors.primary['50'],
+  background: vars.colors.primaryBgSubtle,
   borderRadius: '8px',
   marginTop: '1rem',
 });
@@ -90,5 +90,5 @@ export const feeLabel = style({
 export const feeAmount = style({
   fontSize: '1.5rem',
   fontWeight: '700',
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
 });

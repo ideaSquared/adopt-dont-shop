@@ -8,7 +8,7 @@ export const container = style({
   alignItems: 'center',
   justifyContent: 'center',
   padding: '2rem',
-  background: `linear-gradient(135deg, ${vars.background.secondary} 0%, ${vars.background.primary} 100%)`,
+  background: `linear-gradient(135deg, ${vars.background.surface} 0%, ${vars.background.body} 100%)`,
 });
 
 export const card = style({
@@ -51,7 +51,7 @@ export const resendSection = style({
   textAlign: 'center',
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${resendSection} p`, {

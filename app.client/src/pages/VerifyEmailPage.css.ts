@@ -8,7 +8,7 @@ export const container = style({
   alignItems: 'center',
   justifyContent: 'center',
   padding: '2rem',
-  background: `linear-gradient(135deg, ${vars.background.secondary} 0%, ${vars.background.primary} 100%)`,
+  background: `linear-gradient(135deg, ${vars.background.surface} 0%, ${vars.background.body} 100%)`,
 });
 
 export const verifyEmailCard = style({
@@ -56,8 +56,8 @@ export const loadingSpinner = style({
     content: '""',
     width: '48px',
     height: '48px',
-    border: `5px solid ${vars.border.color.primary}`,
-    borderBottomColor: vars.colors.primary['500'],
+    border: `5px solid ${vars.border.color.default}`,
+    borderBottomColor: vars.colors.primary,
     borderRadius: '50%',
     animationName: 'rotation',
     animationDuration: '1s',
@@ -70,7 +70,7 @@ export const resendSection = style({
   textAlign: 'center',
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${resendSection} p`, {

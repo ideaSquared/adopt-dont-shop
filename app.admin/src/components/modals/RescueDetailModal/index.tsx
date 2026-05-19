@@ -22,7 +22,9 @@ type RescueDetailModalProps = {
 type ActiveTab = 'overview' | 'contact' | 'policies' | 'staff' | 'listings' | 'plan';
 
 const formatDate = (dateString?: string): string => {
-  if (!dateString) return 'N/A';
+  if (!dateString) {
+    return 'N/A';
+  }
   return new Date(dateString).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -75,7 +77,9 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   }, [rescueId]);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onClose();
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
   };
 
   const tabs: { id: ActiveTab; label: string }[] = [

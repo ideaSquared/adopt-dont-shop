@@ -17,5 +17,5 @@ export const manageCookies = style({
   textAlign: 'center',
   marginTop: '1rem',
   paddingTop: '1rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
 });

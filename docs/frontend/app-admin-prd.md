@@ -128,7 +128,7 @@ The Admin App is a comprehensive administrative dashboard for platform administr
 
 ### Accessibility
 
-- High-contrast toggle (`HighContrastToggle` from `lib.components`)
+- Theme toggle (`ThemeToggle` from `lib.components` — light/normal/dark)
 - WCAG 2.1 AA targeted (no formal audit artefact)
 - Keyboard navigation across DataTable + modals
 - Screen-reader-friendly markup

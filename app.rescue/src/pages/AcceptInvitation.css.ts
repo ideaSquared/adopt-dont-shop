@@ -9,7 +9,7 @@ const spin = keyframes({
 
 export const pageContainer = style({
   minHeight: '100vh',
-  background: vars.colors.gradients.primary,
+  background: vars.colors.gradientPrimary,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -26,7 +26,7 @@ export const card = style({
 });
 
 export const cardHeader = style({
-  background: vars.colors.gradients.primary,
+  background: vars.colors.gradientPrimary,
   color: 'white',
   padding: '2rem',
   textAlign: 'center',
@@ -81,7 +81,7 @@ export const formLabel = style({
 });
 
 export const requiredIndicator = style({
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
 });
 
 export const formInput = style({
@@ -95,7 +95,7 @@ export const formInput = style({
   selectors: {
     '&:focus': {
       outline: 'none',
-      borderColor: vars.colors.primary['500'],
+      borderColor: vars.colors.primary,
     },
     '&:disabled': {
       backgroundColor: '#f8f9fa',
@@ -105,18 +105,18 @@ export const formInput = style({
 });
 
 export const formInputError = style({
-  borderColor: vars.colors.semantic.error['600'],
+  borderColor: vars.colors.dangerHover,
   selectors: {
     '&:focus': {
       outline: 'none',
-      borderColor: vars.colors.semantic.error['600'],
+      borderColor: vars.colors.dangerHover,
     },
   },
 });
 
 export const formError = style({
   display: 'block',
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
   fontSize: '0.875rem',
   marginTop: '0.25rem',
 });
@@ -124,7 +124,7 @@ export const formError = style({
 export const submitButton = style({
   width: '100%',
   padding: '0.875rem',
-  background: vars.colors.gradients.primary,
+  background: vars.colors.gradientPrimary,
   color: 'white',
   border: 'none',
   borderRadius: '8px',
@@ -204,7 +204,7 @@ export const successIcon = style({
 
 export const loginButton = style({
   padding: '0.875rem 2rem',
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   border: 'none',
   borderRadius: '8px',

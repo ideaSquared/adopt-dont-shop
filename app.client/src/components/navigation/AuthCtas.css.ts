@@ -10,8 +10,8 @@ export const row = style({
 export const ghostLink = style({
   color: '#fff',
   textDecoration: 'none',
-  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
-  borderRadius: vars.border.radius.md,
+  padding: `${vars.spacing['2']} ${vars.spacing['2']}`,
+  borderRadius: vars.border.radius.base,
   fontWeight: 500,
   fontSize: vars.typography.size.sm,
   transition: `background ${vars.transitions.fast}`,
@@ -25,17 +25,17 @@ export const ghostLink = style({
 });
 
 export const solidLink = style({
-  color: vars.colors.primary['700'],
+  color: vars.colors.primaryActive,
   background: '#fff',
   textDecoration: 'none',
-  padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
-  borderRadius: vars.border.radius.md,
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+  borderRadius: vars.border.radius.base,
   fontWeight: 600,
   fontSize: vars.typography.size.sm,
   transition: `transform ${vars.transitions.fast}, box-shadow ${vars.transitions.fast}`,
   ':hover': {
     transform: 'translateY(-1px)',
-    boxShadow: vars.shadows.md,
+    boxShadow: vars.shadows.base,
   },
   ':focus-visible': {
     outline: '2px solid rgba(255, 255, 255, 0.8)',

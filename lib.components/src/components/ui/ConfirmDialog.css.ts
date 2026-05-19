@@ -10,7 +10,7 @@ export const messageText = style({
 
 export const buttonGroup = style({
   display: 'flex',
-  gap: vars.spacing['3'],
+  gap: vars.spacing['2'],
   justifyContent: 'flex-end',
-  marginTop: vars.spacing['6'],
+  marginTop: vars.spacing['4'],
 });

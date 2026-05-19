@@ -57,7 +57,7 @@ export const primaryButton = style({
   alignItems: 'center',
   gap: '0.5rem',
   padding: '0.75rem 1.5rem',
-  background: vars.colors.semantic.info['600'],
+  background: vars.colors.infoHover,
   color: 'white',
   border: 'none',
   borderRadius: '8px',
@@ -67,7 +67,7 @@ export const primaryButton = style({
   transition: 'all 0.2s ease',
   selectors: {
     '&:hover': {
-      background: vars.colors.semantic.info['700'],
+      background: vars.colors.infoActive,
       transform: 'translateY(-1px)',
       boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
     },
@@ -76,10 +76,10 @@ export const primaryButton = style({
     },
     '&:focus': {
       outline: 'none',
-      boxShadow: `0 0 0 3px ${vars.colors.semantic.info['100']}`,
+      boxShadow: `0 0 0 3px ${vars.colors.infoBgSubtle}`,
     },
     '&:disabled': {
-      background: vars.border.color.secondary,
+      background: vars.border.color.muted,
       cursor: 'not-allowed',
       transform: 'none',
       boxShadow: 'none',
@@ -100,9 +100,9 @@ export const contentArea = style({
 export const errorState = style({
   textAlign: 'center',
   padding: '2rem',
-  color: vars.colors.semantic.error['600'],
-  background: vars.colors.semantic.error['50'],
-  border: `1px solid ${vars.colors.semantic.error['200']}`,
+  color: vars.colors.dangerHover,
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
   borderRadius: '8px',
   marginBottom: '1.5rem',
 });
@@ -149,7 +149,7 @@ export const modalHeader = style({
   top: 0,
   background: 'white',
   padding: '1.5rem',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -192,7 +192,7 @@ export const emptyState = style({
 
 globalStyle(`${emptyState} svg`, {
   fontSize: '3rem',
-  color: vars.border.color.secondary,
+  color: vars.border.color.muted,
   marginBottom: '1rem',
 });
 

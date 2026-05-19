@@ -54,7 +54,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   const { data: chat, isLoading: chatLoading } = useAdminChatById(chatId);
   const { deleteChat, updateChatStatus } = useAdminChatMutations();
 
-  if (!chatId) return null;
+  if (!chatId) {
+    return null;
+  }
 
   const conversation = chat as Conversation | undefined;
 
@@ -66,7 +68,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       cancelText: 'Cancel',
       variant: 'warning',
     });
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       await updateChatStatus.mutateAsync({ chatId, status: 'archived' });
@@ -93,7 +97,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       cancelText: 'Cancel',
       variant: 'danger',
     });
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       await deleteChat.mutateAsync(chatId);

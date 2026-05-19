@@ -58,7 +58,7 @@ export const TextArea = ({
  * errors, even though VE build-time compilation doesn't run.
  *
  * Special symbols (toPrimitive, toStringTag) and toString/valueOf return ''
- * so template-literal interpolation like `${vars.colors.neutral['300']}`
+ * so template-literal interpolation like `${vars.border.color.default}`
  * produces '' rather than trying to call a Proxy as a function.
  */
 const makeVarsProxy = (): Record<string, unknown> => {

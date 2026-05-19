@@ -29,9 +29,9 @@ const bannerBase = style({
 });
 
 export const banner = styleVariants({
-  info: [bannerBase, { background: vars.colors.primary['500'] }],
-  warning: [bannerBase, { background: vars.colors.semantic.warning['500'] }],
-  error: [bannerBase, { background: vars.colors.semantic.error['500'] }],
+  info: [bannerBase, { background: vars.colors.primary }],
+  warning: [bannerBase, { background: vars.colors.warning }],
+  error: [bannerBase, { background: vars.colors.danger }],
 });
 
 const dotBase = style({
@@ -45,9 +45,9 @@ const dotBase = style({
 });
 
 export const statusDot = styleVariants({
-  info: [dotBase, { background: vars.colors.primary['100'] }],
-  warning: [dotBase, { background: vars.colors.semantic.warning['100'] }],
-  error: [dotBase, { background: vars.colors.semantic.error['100'] }],
+  info: [dotBase, { background: vars.colors.primaryBgSubtle }],
+  warning: [dotBase, { background: vars.colors.warningBgSubtle }],
+  error: [dotBase, { background: vars.colors.dangerBgSubtle }],
 });
 
 export const statusText = style({

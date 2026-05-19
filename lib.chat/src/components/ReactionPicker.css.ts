@@ -17,7 +17,7 @@ export const pickerTrigger = style({
   color: vars.text.secondary,
   selectors: {
     '&:hover': {
-      background: vars.background.secondary,
+      background: vars.background.surface,
       opacity: '1',
     },
   },
@@ -36,8 +36,8 @@ export const pickerPopover = styleVariants({
     left: '50%',
     transform: 'translateX(-50%)',
     zIndex: '100',
-    background: vars.background.primary,
-    border: `1px solid ${vars.border.color.secondary}`,
+    background: vars.background.body,
+    border: `1px solid ${vars.border.color.muted}`,
     borderRadius: '24px',
     padding: '0.25rem 0.375rem',
     display: 'flex',
@@ -51,8 +51,8 @@ export const pickerPopover = styleVariants({
     left: '50%',
     transform: 'translateX(-50%)',
     zIndex: '100',
-    background: vars.background.primary,
-    border: `1px solid ${vars.border.color.secondary}`,
+    background: vars.background.body,
+    border: `1px solid ${vars.border.color.muted}`,
     borderRadius: '24px',
     padding: '0.25rem 0.375rem',
     display: 'flex',
@@ -76,7 +76,7 @@ export const emojiButton = style({
   transition: 'all 0.15s ease',
   selectors: {
     '&:hover': {
-      background: vars.background.secondary,
+      background: vars.background.surface,
       transform: 'scale(1.2)',
     },
     '&:active': {
