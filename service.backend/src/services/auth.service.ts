@@ -903,6 +903,32 @@ Need help? Contact us at support@adoptdontshop.com
     }
   }
 
+  /**
+   * Verify a user's password and, if 2FA is enabled, a TOTP code.
+   * Used for "step-up" authentication on destructive actions
+   * (account deletion, etc.). Throws on failure to match the login flow.
+   */
+  static async verifyStepUpCredentials(
+    user: User,
+    password: string,
+    twoFactorToken?: string
+  ): Promise<void> {
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid credentials');
+    }
+
+    if (user.twoFactorEnabled) {
+      if (!twoFactorToken) {
+        throw new Error('Two-factor authentication code required');
+      }
+      const isValid = await this.verifyTwoFactorToken(user, twoFactorToken);
+      if (!isValid) {
+        throw new Error('Invalid two-factor authentication code');
+      }
+    }
+  }
+
   private static async verifyTwoFactorToken(
     user: User,
     token: string,

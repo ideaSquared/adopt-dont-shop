@@ -358,14 +358,14 @@ describe('AuthService', () => {
   });
 
   describe('deleteAccount', () => {
-    it('should delete account and clear storage', async () => {
+    it('should send password and reason and clear storage on success', async () => {
       (apiService.fetchWithAuth as jest.Mock).mockResolvedValue({});
 
-      await authService.deleteAccount('reason');
+      await authService.deleteAccount('my-password', { reason: 'reason' });
 
       expect(apiService.fetchWithAuth).toHaveBeenCalledWith('/api/v1/users/account', {
         method: 'DELETE',
-        body: { reason: 'reason' },
+        body: { password: 'my-password', reason: 'reason' },
       });
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
@@ -374,14 +374,25 @@ describe('AuthService', () => {
       expect(apiService.setToken).toHaveBeenCalledWith('');
     });
 
-    it('should delete account without reason', async () => {
+    it('should include twoFactorToken when provided', async () => {
       (apiService.fetchWithAuth as jest.Mock).mockResolvedValue({});
 
-      await authService.deleteAccount();
+      await authService.deleteAccount('my-password', { twoFactorToken: '123456' });
 
       expect(apiService.fetchWithAuth).toHaveBeenCalledWith('/api/v1/users/account', {
         method: 'DELETE',
-        body: undefined,
+        body: { password: 'my-password', twoFactorToken: '123456' },
+      });
+    });
+
+    it('should omit reason and twoFactorToken when not provided', async () => {
+      (apiService.fetchWithAuth as jest.Mock).mockResolvedValue({});
+
+      await authService.deleteAccount('my-password');
+
+      expect(apiService.fetchWithAuth).toHaveBeenCalledWith('/api/v1/users/account', {
+        method: 'DELETE',
+        body: { password: 'my-password' },
       });
     });
   });

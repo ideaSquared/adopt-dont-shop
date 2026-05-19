@@ -947,4 +947,58 @@ describe('AuthService', () => {
       expect(MockedRevokedToken.create).not.toHaveBeenCalled();
     });
   });
+
+  describe('verifyStepUpCredentials (ADS-592)', () => {
+    it('resolves when password matches and 2FA is disabled', async () => {
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+      const user = { password: 'hashed', twoFactorEnabled: false } as unknown as User;
+
+      await expect(
+        AuthService.verifyStepUpCredentials(user, 'plain-password')
+      ).resolves.toBeUndefined();
+    });
+
+    it('rejects with "Invalid credentials" when password does not match', async () => {
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(false as never);
+      const user = { password: 'hashed', twoFactorEnabled: false } as unknown as User;
+
+      await expect(AuthService.verifyStepUpCredentials(user, 'wrong')).rejects.toThrow(
+        'Invalid credentials'
+      );
+    });
+
+    it('rejects when 2FA is enabled and no TOTP is supplied', async () => {
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+      const user = {
+        password: 'hashed',
+        twoFactorEnabled: true,
+        twoFactorSecret: 'secret',
+      } as unknown as User;
+
+      await expect(AuthService.verifyStepUpCredentials(user, 'plain-password')).rejects.toThrow(
+        /two-factor/i
+      );
+    });
+
+    it('rejects when 2FA token is invalid', async () => {
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+      const user = {
+        password: 'hashed',
+        twoFactorEnabled: true,
+        twoFactorSecret: 'secret',
+      } as unknown as User;
+      const verifySpy = vi
+        .spyOn(
+          AuthService as unknown as { verifyTwoFactorToken: () => Promise<boolean> },
+          'verifyTwoFactorToken'
+        )
+        .mockResolvedValue(false);
+
+      await expect(
+        AuthService.verifyStepUpCredentials(user, 'plain-password', '000000')
+      ).rejects.toThrow(/invalid two-factor/i);
+
+      verifySpy.mockRestore();
+    });
+  });
 });

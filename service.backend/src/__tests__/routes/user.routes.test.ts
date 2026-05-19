@@ -28,6 +28,26 @@ vi.mock('../../config/env', () => ({
   },
 }));
 
+vi.mock('../../models/User', () => {
+  const findByPk = vi.fn();
+  return {
+    default: { findByPk },
+    UserType: { ADOPTER: 'ADOPTER', RESCUE_STAFF: 'RESCUE_STAFF', ADMIN: 'ADMIN' },
+    UserStatus: { ACTIVE: 'ACTIVE' },
+  };
+});
+
+vi.mock('../../services/auth.service', () => ({
+  default: {
+    verifyStepUpCredentials: vi.fn(),
+    logout: vi.fn(),
+  },
+  AuthService: {
+    verifyStepUpCredentials: vi.fn(),
+    logout: vi.fn(),
+  },
+}));
+
 vi.mock('../../services/user.service', () => ({
   default: {
     getUserById: vi.fn(),
@@ -188,12 +208,80 @@ describe('User routes', () => {
       expect(res.status).toBe(401);
     });
 
-    it('reaches the controller when authenticated', async () => {
-      // Controller may return 200 or 500 depending on service availability;
-      // either way the auth guard allowed it through.
-      const res = await request(buildApp()).delete('/api/v1/users/account');
-      expect(res.status).not.toBe(401);
-      expect(res.status).not.toBe(403);
+    it('returns 401 when no password is supplied', async () => {
+      const res = await request(buildApp()).delete('/api/v1/users/account').send({});
+      expect(res.status).toBe(401);
+      expect(res.body.error).toMatch(/password/i);
+    });
+
+    it('returns 401 when the supplied password does not match', async () => {
+      const userModel = (await import('../../models/User')).default as unknown as {
+        findByPk: ReturnType<typeof vi.fn>;
+      };
+      const authService = (await import('../../services/auth.service')).default as unknown as {
+        verifyStepUpCredentials: ReturnType<typeof vi.fn>;
+      };
+      userModel.findByPk.mockResolvedValue({ userId: mockUser.userId, twoFactorEnabled: false });
+      authService.verifyStepUpCredentials.mockRejectedValue(new Error('Invalid credentials'));
+
+      const res = await request(buildApp())
+        .delete('/api/v1/users/account')
+        .send({ password: 'wrong-password' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('Invalid credentials');
+    });
+
+    it('returns 401 when 2FA is enabled and no token is supplied', async () => {
+      const userModel = (await import('../../models/User')).default as unknown as {
+        findByPk: ReturnType<typeof vi.fn>;
+      };
+      const authService = (await import('../../services/auth.service')).default as unknown as {
+        verifyStepUpCredentials: ReturnType<typeof vi.fn>;
+      };
+      userModel.findByPk.mockResolvedValue({ userId: mockUser.userId, twoFactorEnabled: true });
+      authService.verifyStepUpCredentials.mockRejectedValue(
+        new Error('Two-factor authentication code required')
+      );
+
+      const res = await request(buildApp())
+        .delete('/api/v1/users/account')
+        .send({ password: 'correct-password' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toMatch(/two-factor/i);
+    });
+
+    it('clears accessToken and refreshToken cookies, revokes tokens, and deletes the account on success', async () => {
+      const userModel = (await import('../../models/User')).default as unknown as {
+        findByPk: ReturnType<typeof vi.fn>;
+      };
+      const authService = (await import('../../services/auth.service')).default as unknown as {
+        verifyStepUpCredentials: ReturnType<typeof vi.fn>;
+        logout: ReturnType<typeof vi.fn>;
+      };
+      const userService = (await import('../../services/user.service')).default as unknown as {
+        deleteAccount: ReturnType<typeof vi.fn>;
+      };
+
+      userModel.findByPk.mockResolvedValue({ userId: mockUser.userId, twoFactorEnabled: false });
+      authService.verifyStepUpCredentials.mockResolvedValue(undefined);
+      authService.logout.mockResolvedValue(undefined);
+      userService.deleteAccount.mockResolvedValue(undefined);
+
+      const res = await request(buildApp())
+        .delete('/api/v1/users/account')
+        .send({ password: 'correct-password', reason: 'no longer needed' });
+
+      expect(res.status).toBe(200);
+      expect(authService.logout).toHaveBeenCalled();
+      expect(userService.deleteAccount).toHaveBeenCalledWith(mockUser.userId, 'no longer needed');
+
+      const setCookie = res.headers['set-cookie'];
+      const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
+      const cookieHeader = cookies.join('\n');
+      expect(cookieHeader).toMatch(/accessToken=;/);
+      expect(cookieHeader).toMatch(/refreshToken=;/);
     });
   });
 
