@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   maxWidth: '1200px',
   margin: '0 auto',
@@ -43,13 +45,13 @@ export const headerContent = style({
 globalStyle(`${headerContent} h1`, {
   fontSize: '2.5rem',
   fontWeight: 700,
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
 globalStyle(`${headerContent} p`, {
   fontSize: '1.1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
@@ -96,13 +98,13 @@ export const statCard = style({
 export const statNumber = style({
   fontSize: '2rem',
   fontWeight: 700,
-  color: '#2563eb',
+  color: vars.colors.semantic.info['600'],
   marginBottom: '0.5rem',
 });
 
 export const statLabel = style({
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
 });
@@ -112,14 +114,14 @@ export const loadingContainer = style({
   justifyContent: 'center',
   alignItems: 'center',
   height: '150px',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const errorContainer = style({
   padding: '2rem',
   textAlign: 'center',
-  border: '1px solid #ef4444',
-  backgroundColor: '#fef2f2',
-  color: '#dc2626',
+  border: `1px solid ${vars.colors.semantic.error['500']}`,
+  backgroundColor: vars.colors.semantic.error['50'],
+  color: vars.colors.semantic.error['600'],
   borderRadius: '0.5rem',
 });

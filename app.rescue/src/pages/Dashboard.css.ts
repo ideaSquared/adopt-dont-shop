@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const dashboardContainer = style({
   maxWidth: 'none',
   margin: 0,
@@ -14,19 +16,19 @@ export const dashboardHeader = style({
 globalStyle(`${dashboardHeader} h1`, {
   fontSize: '2.5rem',
   fontWeight: 700,
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
 globalStyle(`${dashboardHeader} p`, {
   fontSize: '1.1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
 export const welcomeMessage = style({
-  background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-  border: '1px solid #bfdbfe',
+  background: `linear-gradient(135deg, ${vars.colors.semantic.info['50']} 0%, ${vars.colors.semantic.info['100']} 100%)`,
+  border: `1px solid ${vars.colors.semantic.info['200']}`,
   borderRadius: '12px',
   padding: '1.5rem',
   marginBottom: '2rem',
@@ -34,13 +36,13 @@ export const welcomeMessage = style({
 
 globalStyle(`${welcomeMessage} h2`, {
   margin: '0 0 0.5rem 0',
-  color: '#1e40af',
+  color: vars.colors.semantic.info['800'],
   fontSize: '1.25rem',
 });
 
 globalStyle(`${welcomeMessage} p`, {
   margin: 0,
-  color: '#1d4ed8',
+  color: vars.colors.semantic.info['700'],
 });
 
 export const metricsGrid = style({

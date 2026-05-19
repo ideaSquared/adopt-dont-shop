@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const messagePreview = style({
   display: 'flex',
   flexDirection: 'column',
@@ -12,18 +14,18 @@ export const messageParticipants = style({
   alignItems: 'center',
   gap: '0.5rem',
   fontSize: '0.875rem',
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: '600',
 });
 
 globalStyle(`${messageParticipants} svg`, {
   fontSize: '0.875rem',
-  color: '#9ca3af',
+  color: vars.text.quaternary,
 });
 
 export const messageSubject = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
@@ -33,7 +35,7 @@ export const messageMeta = style({
   display: 'flex',
   gap: '0.75rem',
   fontSize: '0.75rem',
-  color: '#9ca3af',
+  color: vars.text.quaternary,
 });
 
 export const participantInfo = style({
@@ -44,13 +46,13 @@ export const participantInfo = style({
 
 export const participantName = style({
   fontSize: '0.875rem',
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: '500',
 });
 
 export const participantRole = style({
   fontSize: '0.75rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const actionButtons = style({
@@ -64,16 +66,16 @@ export const actionButton = style({
   justifyContent: 'center',
   width: '32px',
   height: '32px',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.primary}`,
   borderRadius: '6px',
-  background: '#ffffff',
-  color: '#6b7280',
+  background: vars.background.secondary,
+  color: vars.text.tertiary,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: '#f9fafb',
-    color: '#111827',
-    borderColor: '#d1d5db',
+    background: vars.background.primary,
+    color: vars.text.primary,
+    borderColor: vars.border.color.secondary,
   },
   ':active': {
     transform: 'scale(0.95)',
@@ -84,7 +86,7 @@ export const statusDotActive = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: '#10b981',
+  background: vars.colors.semantic.success['500'],
   flexShrink: 0,
 });
 
@@ -92,7 +94,7 @@ export const statusDotFlagged = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: '#f59e0b',
+  background: vars.colors.semantic.warning['500'],
   flexShrink: 0,
 });
 
@@ -100,7 +102,7 @@ export const statusDotArchived = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: '#9ca3af',
+  background: vars.text.quaternary,
   flexShrink: 0,
 });
 
@@ -108,6 +110,6 @@ export const statusDotDefault = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: '#6b7280',
+  background: vars.text.tertiary,
   flexShrink: 0,
 });

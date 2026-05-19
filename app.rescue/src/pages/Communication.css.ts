@@ -1,16 +1,18 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  background: '#ffffff',
+  background: vars.background.secondary,
 });
 
 export const pageHeader = style({
   padding: '1.5rem 2rem',
-  background: '#ffffff',
-  borderBottom: '1px solid #e5e7eb',
+  background: vars.background.secondary,
+  borderBottom: `1px solid ${vars.border.color.primary}`,
   '@media': {
     'screen and (max-width: 768px)': {
       padding: '1rem 1.25rem',
@@ -22,13 +24,13 @@ globalStyle(`${pageHeader} h1`, {
   margin: 0,
   fontSize: '1.875rem',
   fontWeight: 700,
-  color: '#111827',
+  color: vars.text.primary,
   letterSpacing: '-0.025em',
 });
 
 globalStyle(`${pageHeader} p`, {
   margin: '0.5rem 0 0 0',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: '1rem',
 });
 
@@ -102,26 +104,26 @@ export const toolbar = style({
 export const filterTab = style({
   padding: '0.375rem 0.875rem',
   borderRadius: '9999px',
-  border: '1px solid #d1d5db',
-  background: '#ffffff',
-  color: '#374151',
+  border: `1px solid ${vars.border.color.secondary}`,
+  background: vars.background.secondary,
+  color: vars.text.secondary,
   fontWeight: 500,
   fontSize: '0.875rem',
   cursor: 'pointer',
   selectors: {
     '&:hover': {
-      background: '#f3f4f6',
+      background: vars.background.tertiary,
     },
   },
 });
 
 export const filterTabActive = style({
-  background: '#2563eb',
-  borderColor: '#2563eb',
-  color: '#ffffff',
+  background: vars.colors.semantic.info['600'],
+  borderColor: vars.colors.semantic.info['600'],
+  color: vars.background.secondary,
   selectors: {
     '&:hover': {
-      background: '#1d4ed8',
+      background: vars.colors.semantic.info['700'],
     },
   },
 });

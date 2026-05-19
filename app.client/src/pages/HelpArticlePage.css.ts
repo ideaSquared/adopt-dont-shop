@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   padding: '3rem 0',
   maxWidth: '800px',
@@ -9,19 +11,19 @@ export const backLink = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.5rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   textDecoration: 'none',
   fontSize: '0.9rem',
   marginBottom: '2rem',
   ':hover': {
-    color: '#111827',
+    color: vars.text.primary,
   },
 });
 
 export const articleTitle = style({
   fontSize: '2rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 2rem 0',
   lineHeight: '1.3',
   '@media': {
@@ -32,7 +34,7 @@ export const articleTitle = style({
 });
 
 export const articleContent = style({
-  color: '#111827',
+  color: vars.text.primary,
   lineHeight: '1.8',
   fontSize: '1.05rem',
 });
@@ -40,7 +42,7 @@ export const articleContent = style({
 globalStyle(
   `${articleContent} h1, ${articleContent} h2, ${articleContent} h3, ${articleContent} h4, ${articleContent} h5, ${articleContent} h6`,
   {
-    color: '#111827',
+    color: vars.text.primary,
     margin: '2rem 0 1rem',
   }
 );
@@ -50,7 +52,7 @@ globalStyle(`${articleContent} p`, {
 });
 
 globalStyle(`${articleContent} a`, {
-  color: '#2563eb',
+  color: vars.colors.semantic.info['600'],
 });
 
 globalStyle(`${articleContent} a:hover`, {
@@ -69,10 +71,10 @@ globalStyle(`${articleContent} ul, ${articleContent} ol`, {
 });
 
 globalStyle(`${articleContent} blockquote`, {
-  borderLeft: '4px solid #2563eb',
+  borderLeft: `4px solid ${vars.colors.semantic.info['600']}`,
   margin: '1.5rem 0',
   padding: '0.5rem 1.5rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontStyle: 'italic',
 });
 

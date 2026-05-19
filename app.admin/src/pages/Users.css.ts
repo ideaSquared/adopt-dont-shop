@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   display: 'flex',
   flexDirection: 'column',
@@ -19,13 +21,13 @@ export const headerLeft = style({});
 globalStyle(`${headerLeft} h1`, {
   fontSize: '2rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
 globalStyle(`${headerLeft} p`, {
   fontSize: '1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
@@ -35,8 +37,8 @@ export const headerActions = style({
 });
 
 export const filterBar = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.secondary,
+  border: `1px solid ${vars.border.color.primary}`,
   borderRadius: '12px',
   padding: '1.5rem',
   display: 'flex',
@@ -56,7 +58,7 @@ export const filterGroup = style({
 export const filterLabel = style({
   fontSize: '0.875rem',
   fontWeight: '500',
-  color: '#374151',
+  color: vars.text.secondary,
 });
 
 export const searchInputWrapper = style({
@@ -70,7 +72,7 @@ globalStyle(`${searchInputWrapper} svg`, {
   left: '0.75rem',
   top: '50%',
   transform: 'translateY(-50%)',
-  color: '#9ca3af',
+  color: vars.text.quaternary,
   fontSize: '1.125rem',
 });
 
@@ -80,19 +82,19 @@ globalStyle(`${searchInputWrapper} input`, {
 
 export const select = style({
   padding: '0.625rem 0.875rem',
-  border: '1px solid #d1d5db',
+  border: `1px solid ${vars.border.color.secondary}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  color: '#111827',
-  background: '#ffffff',
+  color: vars.text.primary,
+  background: vars.background.secondary,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    borderColor: '#9ca3af',
+    borderColor: vars.text.quaternary,
   },
   ':focus': {
     outline: 'none',
-    borderColor: '#667eea',
+    borderColor: vars.colors.primary['500'],
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
   },
 });
@@ -104,8 +106,8 @@ export const badgeSuccess = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#d1fae5',
-  color: '#065f46',
+  background: vars.colors.semantic.success['100'],
+  color: vars.colors.semantic.success['800'],
 });
 
 export const badgeWarning = style({
@@ -115,8 +117,8 @@ export const badgeWarning = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#fef3c7',
-  color: '#92400e',
+  background: vars.colors.semantic.warning['100'],
+  color: vars.colors.semantic.warning['800'],
 });
 
 export const badgeDanger = style({
@@ -126,8 +128,8 @@ export const badgeDanger = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#fee2e2',
-  color: '#991b1b',
+  background: vars.colors.semantic.error['100'],
+  color: vars.colors.semantic.error['800'],
 });
 
 export const badgeInfo = style({
@@ -137,8 +139,8 @@ export const badgeInfo = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#dbeafe',
-  color: '#1e40af',
+  background: vars.colors.semantic.info['100'],
+  color: vars.colors.semantic.info['800'],
 });
 
 export const badgeNeutral = style({
@@ -148,19 +150,19 @@ export const badgeNeutral = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#f3f4f6',
-  color: '#374151',
+  background: vars.background.tertiary,
+  color: vars.text.secondary,
 });
 
 export const userAvatar = style({
   width: '32px',
   height: '32px',
   borderRadius: '50%',
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  background: vars.colors.gradients.primary,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#ffffff',
+  color: vars.background.secondary,
   fontWeight: '600',
   fontSize: '0.875rem',
 });
@@ -179,12 +181,12 @@ export const userDetails = style({
 
 export const userName = style({
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const userEmail = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const actionButtons = style({
@@ -198,16 +200,16 @@ export const iconButton = style({
   justifyContent: 'center',
   width: '32px',
   height: '32px',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.primary}`,
   borderRadius: '6px',
-  background: '#ffffff',
-  color: '#6b7280',
+  background: vars.background.secondary,
+  color: vars.text.tertiary,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: '#f9fafb',
-    color: '#111827',
-    borderColor: '#d1d5db',
+    background: vars.background.primary,
+    color: vars.text.primary,
+    borderColor: vars.border.color.secondary,
   },
   ':active': {
     transform: 'scale(0.95)',

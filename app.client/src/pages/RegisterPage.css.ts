@@ -1,19 +1,21 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const loginPrompt = style({
   textAlign: 'center',
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
-  borderTop: '1px solid #d1d5db',
+  borderTop: `1px solid ${vars.border.color.secondary}`,
 });
 
 globalStyle(`${loginPrompt} p`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginBottom: '0.5rem',
 });
 
 globalStyle(`${loginPrompt} a`, {
-  color: '#4f46e5',
+  color: vars.colors.primary['600'],
   textDecoration: 'none',
   fontWeight: '500',
 });

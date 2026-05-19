@@ -48,8 +48,66 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
   Container: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  Stack: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  EmptyState: ({
+    title,
+    description,
+    ...props
+  }: {
+    title: string;
+    description?: string;
+    [k: string]: unknown;
+  }) =>
+    React.createElement(
+      'div',
+      { role: 'status', ...props },
+      React.createElement('h3', null, title),
+      description ? React.createElement('p', null, description) : null
+    ),
+  FormSection: ({
+    title,
+    description,
+    children,
+    ...props
+  }: {
+    title?: string;
+    description?: string;
+    children: React.ReactNode;
+    [k: string]: unknown;
+  }) =>
+    React.createElement(
+      'section',
+      props,
+      title ? React.createElement('h3', null, title) : null,
+      description ? React.createElement('p', null, description) : null,
+      children
+    ),
+  FormRow: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
+  FormField: ({
+    label,
+    error,
+    description,
+    children,
+    ...props
+  }: {
+    label?: string;
+    error?: string;
+    description?: string;
+    children: React.ReactNode;
+    [k: string]: unknown;
+  }) =>
+    React.createElement(
+      'div',
+      props,
+      label ? React.createElement('label', null, label) : null,
+      children,
+      error ? React.createElement('span', { role: 'alert' }, error) : null,
+      description ? React.createElement('span', null, description) : null
+    ),
   Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
     React.createElement('button', props, children),
   Text: ({ children, ...props }: React.ComponentPropsWithoutRef<'span'>) =>
