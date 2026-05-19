@@ -1,41 +1,26 @@
-# BaseSidebar Component
+# BaseSidebar
 
-A base sidebar component providing the foundation for navigation sidebars with collapsible functionality.
-
-## Usage
+Controlled drawer/sidebar primitive. Source: `BaseSidebar.tsx`. Not re-exported from `lib.components/src/index.ts`.
 
 ```tsx
-import { BaseSidebar } from '@/components/layout/BaseSidebar'
+import BaseSidebar from '@adopt-dont-shop/lib.components/src/components/layout/BaseSidebar/BaseSidebar';
 
-// Basic usage
-<BaseSidebar>
-  <nav>
-    {/* Navigation items */}
-  </nav>
-</BaseSidebar>
-
-// With custom props
 <BaseSidebar
-  isOpen={isOpen}
-  onToggle={handleToggle}
-  className="custom-sidebar"
+  show={isOpen}
+  handleClose={() => setIsOpen(false)}
+  title="Filters"
+  size="md"
 >
-  {children}
+  <FilterForm />
 </BaseSidebar>
 ```
 
 ## Props
 
-- `children`: Content to display in the sidebar
-- `isOpen`: Whether the sidebar is expanded
-- `onToggle`: Function to handle sidebar toggle
-- `className`: Optional CSS class names
-- Additional props are forwarded to the underlying element
-
-## Features
-
-- Collapsible functionality
-- Responsive design
-- Accessible markup
-- TypeScript support
-- Flexible content area
+| Prop          | Type           | Required | Description                            |
+| ------------- | -------------- | -------- | -------------------------------------- |
+| `show`        | `boolean`      | Yes      | Whether the sidebar is open.           |
+| `handleClose` | `() => void`   | Yes      | Called when the user dismisses it.     |
+| `title`       | `string`       | Yes      | Header text.                           |
+| `size`        | `string`       | No       | Width preset (component-defined).      |
+| `children`    | `ReactNode`    | Yes      | Body content.                          |

@@ -272,8 +272,7 @@ For support/moderation models see backend PRD §5–§8.
 
 ### Near Term
 
-- Admin GDPR/Privacy Tools page (this PRD section §9)
-- Foster Coordination tab in `RescueDetailModal`
+- Foster Coordination tab in `RescueDetailModal` (the full Foster page already lives in `app.rescue`)
 - Email campaign workflow
 - Maintenance-mode toggle
 - MFA enforcement for admin login

@@ -178,6 +178,5 @@ For security issues:
 
 ---
 
-**Last Updated**: June 2024  
 **Security Version**: 1.0  
 **Compliance**: OWASP Top 10, GDPR, CCPA Ready

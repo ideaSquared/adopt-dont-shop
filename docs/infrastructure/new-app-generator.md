@@ -7,46 +7,39 @@ The `npm run new-app` command scaffolds new applications in the workspace with a
 ## Usage
 
 ```bash
-npm run new-app <app-name> <app-type>
+npm run new-app <app-name> [template] [--overwrite]
+# or:
+npm run new-app <app-name> --template <template>
 ```
 
 ### Parameters
 
 - **app-name**: Application name (e.g., `app.mobile`, `app.veterinary`)
-- **app-type**: Type of application (`client`, `rescue`, `admin`, `service`)
+- **template**: One of `minimal`, `standard`, `enterprise` (defaults to `standard` if omitted)
+- **--overwrite**: Replace an existing app directory of the same name
 
-### App Types
+The generator only scaffolds React apps under `app.*`. Backend services are not produced by this script — `service.backend` is the single backend; add new domain code there.
 
-| Type      | Description                 | Use Case                |
-| --------- | --------------------------- | ----------------------- |
-| `client`  | Client-facing React app     | Public adoption portals |
-| `rescue`  | Rescue management React app | Rescue staff tools      |
-| `admin`   | Admin dashboard React app   | Platform administration |
-| `service` | Backend Node.js service     | API services            |
+### Templates
+
+| Template     | Description                                                  | Pre-installed libraries                                                                                                                                                  |
+| ------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `minimal`    | Basic React app with auth and routing                        | `lib.components`, `lib.auth`                                                                                                                                             |
+| `standard`   | Full-featured app with data fetching and analytics           | `lib.components`, `lib.auth`, `lib.analytics`, `lib.api`, `@tanstack/react-query`                                                                                        |
+| `enterprise` | Complete enterprise app with all features                    | `lib.components`, `lib.auth`, `lib.analytics`, `lib.api`, `lib.feature-flags`, `lib.notifications`, `lib.permissions`, `lib.discovery`, `lib.search`, `@statsig/react-bindings`, `@tanstack/react-query` |
 
 ## Examples
 
-### Frontend Apps
-
 ```bash
-# Mobile adoption app
-npm run new-app app.mobile client
+# Mobile adoption app (standard template)
+npm run new-app app.mobile
 
-# Veterinary rescue portal
-npm run new-app app.veterinary rescue
+# Pick a template explicitly
+npm run new-app app.veterinary minimal
+npm run new-app app.superadmin enterprise
 
-# Super admin dashboard
-npm run new-app app.superadmin admin
-```
-
-### Backend Services
-
-```bash
-# Notification service
-npm run new-app service.notifications service
-
-# Payment processing service
-npm run new-app service.payments service
+# Replace an existing scaffold
+npm run new-app app.mobile standard --overwrite
 ```
 
 ## What Gets Created

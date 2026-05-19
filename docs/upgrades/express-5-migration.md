@@ -1,8 +1,7 @@
 # Express 4 → Express 5 Migration Plan
 
 **Linear**: ADS-531 (this document covers the Express portion)
-**Status**: Not started — planning only
-**Recommended quarter**: After Node 22 migration lands.
+**Status**: ✅ Shipped — `service.backend/package.json` pins `"express": "^5.0.0"` and root `overrides` pin the express type packages to v5. The historical plan below is retained for context only; do not treat it as live work.
 
 > Express 5 went stable on **2024-10-15** after a long beta. The biggest
 > structural change is the move from `path-to-regexp` v0 → v8 (route syntax)

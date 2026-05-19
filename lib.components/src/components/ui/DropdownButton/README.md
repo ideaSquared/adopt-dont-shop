@@ -1,41 +1,23 @@
-# DropdownButton Component
+# DropdownButton
 
-A button component that triggers dropdown menus with flexible content and positioning.
-
-## Usage
+Button-styled dropdown that renders a list of label/route/onClick items. Source: `DropdownButton.tsx`. Not re-exported from `lib.components/src/index.ts`.
 
 ```tsx
-import { DropdownButton } from '@/components/ui/DropdownButton'
+import DropdownButton from '@adopt-dont-shop/lib.components/src/components/ui/DropdownButton/DropdownButton';
 
-// Basic usage
-<DropdownButton label="Actions">
-  <div>Dropdown content</div>
-</DropdownButton>
-
-// With custom configuration
 <DropdownButton
-  label="More Options"
-  variant="secondary"
-  position="bottom-end"
-  className="custom-dropdown"
->
-  {dropdownContent}
-</DropdownButton>
+  triggerLabel="Actions"
+  items={[
+    { label: 'Edit', onClick: handleEdit },
+    { label: 'Delete', onClick: handleDelete },
+  ]}
+/>
 ```
 
 ## Props
 
-- `label`: Button text or content
-- `children`: Dropdown content
-- `variant`: Button styling variant
-- `position`: Dropdown position relative to button
-- `className`: Optional CSS class names
-- Additional props are forwarded to the underlying button element
-
-## Features
-
-- Flexible positioning
-- Keyboard navigation
-- Click outside to close
-- Accessible markup
-- TypeScript support
+| Prop           | Type             | Required | Description                                                       |
+| -------------- | ---------------- | -------- | ----------------------------------------------------------------- |
+| `triggerLabel` | `string`         | Yes      | Text rendered on the trigger button.                              |
+| `items`        | `DropdownItem[]` | Yes      | Each item has `label`, and either `to` (route) or `onClick`.      |
+| `className`    | `string`         | No       | Override the root element's class.                                |

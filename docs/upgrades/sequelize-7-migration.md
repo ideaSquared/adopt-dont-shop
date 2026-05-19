@@ -1,10 +1,8 @@
 # Sequelize 6 → Sequelize 7 Migration Plan
 
 **Linear**: ADS-531 (this document covers the Sequelize portion)
-**Status**: Not started — planning only
-**Recommended quarter**: After Sequelize 7 ships a stable (non-alpha) tag and
-`sequelize-typescript` (or our chosen replacement) catches up. **Do not start
-until that's true.**
+**Status**: ⚠️ Partially shipped — `service.backend/package.json` already pins `"sequelize": "7.0.0-alpha.9"` and `sequelize-typescript` / `sequelize-cli` / `@types/sequelize` were removed. The remaining work is the bump to a stable 7.x release once one lands.
+**Recommended quarter**: After Sequelize 7 ships a stable (non-alpha) tag.
 
 > Sequelize 7 has been in alpha for an extended period. It rewrites a large
 > part of the internals (TypeScript-first decorators, new model-definition

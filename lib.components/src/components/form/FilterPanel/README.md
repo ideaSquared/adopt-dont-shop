@@ -1,39 +1,28 @@
-# FilterPanel Component
+# GenericFilters (`form/FilterPanel`)
 
-A flexible filter panel component for creating advanced filtering interfaces with various filter types.
-
-## Usage
+Generic filter bar for table / list views. Default export from `FilterPanel.tsx`; the component is named `GenericFilters`. Not re-exported from `lib.components/src/index.ts` — the `FilterPanel` re-export at the top level refers to a different (reports) component.
 
 ```tsx
-import { FilterPanel } from '@/components/form/FilterPanel'
+import GenericFilters from '@adopt-dont-shop/lib.components/src/components/form/FilterPanel/FilterPanel';
 
-// Basic usage
-<FilterPanel
-  filters={filters}
-  onApplyFilters={handleApplyFilters}
-/>
+const filterConfig = [
+  { name: 'status', label: 'Status', type: 'select', options: [/* … */] },
+  { name: 'search', label: 'Search', type: 'text' },
+];
 
-// With custom configuration
-<FilterPanel
+<GenericFilters
   filters={filters}
-  onApplyFilters={handleApplyFilters}
-  onClearFilters={handleClearFilters}
-  className="custom-filter-panel"
+  onFilterChange={(name, value) => setFilters((prev) => ({ ...prev, [name]: value }))}
+  filterConfig={filterConfig}
 />
 ```
 
 ## Props
 
-- `filters`: Array of filter configurations
-- `onApplyFilters`: Function called when filters are applied
-- `onClearFilters`: Optional function called when filters are cleared
-- `className`: Optional CSS class names
-- Additional props are forwarded to the underlying element
+| Prop             | Type                                                                | Required | Description                                            |
+| ---------------- | ------------------------------------------------------------------- | -------- | ------------------------------------------------------ |
+| `filters`        | `T extends Record<string, string \| boolean \| number \| undefined>` | Yes     | Current filter values.                                 |
+| `onFilterChange` | `(name: string, value: string \| boolean \| number) => void`        | Yes      | Called when an individual field changes.               |
+| `filterConfig`   | `FilterConfig[]`                                                    | Yes      | Field schema (label, type, options for selects, etc.). |
 
-## Features
-
-- Multiple filter types support
-- Collapsible sections
-- Clear all functionality
-- Accessible markup
-- TypeScript support
+> The top-level `FilterPanel` named export from `@adopt-dont-shop/lib.components` is the reports-domain component (`components/reports/FilterPanel`), which has a different API. Pick the one that matches your use case.

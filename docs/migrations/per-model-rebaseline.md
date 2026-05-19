@@ -1,8 +1,7 @@
 # Per-Model Baseline Rebaseline — Design Proposal
 
-Status: **DRAFT — design only**, no migration code is being written or run as part of this PR.
-Owner: TBD (see "Decision needed").
-Tracks the follow-up hinted at in `service.backend/src/migrations/00-baseline.ts` line 19.
+Status: ✅ **Implemented** — the per-domain baseline files now exist as `service.backend/src/migrations/00-baseline-001-users.ts` through `00-baseline-061-cms-navigation-menus.ts` plus `00-baseline-999-foreign-keys.ts`. The `SequelizeMeta` reseeder lives at `service.backend/scripts/rebaseline-seed-meta.ts`. The design notes below are retained for context.
+Tracks the follow-up hinted at in the original `service.backend/src/migrations/00-baseline.ts`.
 
 ---
 

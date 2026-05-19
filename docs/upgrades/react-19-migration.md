@@ -1,9 +1,7 @@
 # React 18 → React 19 Migration Plan
 
 **Linear**: ADS-531 (this document covers the React portion)
-**Status**: Not started — planning only
-**Recommended quarter**: After Express 5 lands; before mid-2026 to stay on
-ecosystem-supported majors.
+**Status**: ✅ Shipped — every app pins `"react": "^19.0.0"` / `"react-dom": "^19.0.0"`; root `overrides` enforces React 19 for `@types/react` and `@types/react-dom`. The historical plan below is retained for context only; do not treat it as live work.
 
 > React 19 stable shipped on **2024-12-05**. The big-ticket items are
 > stable `use()`, the React Compiler (opt-in), removal of legacy APIs, and

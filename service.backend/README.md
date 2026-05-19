@@ -37,11 +37,13 @@ npm install
 ### 3. Database Setup
 
 ```bash
-# Run migrations
+# Run pending migrations (umzug runner — no sequelize-cli)
 npm run migrate
 
-# Seed initial data (optional)
-npm run seed
+# Seed initial data — pick the right safety profile (no "do everything" alias)
+npm run db:seed:reference   # idempotent reference data (RBAC, breeds, templates)
+npm run db:seed:demo        # Faker-generated demo data (dev/staging; ALLOW_DEMO_SEED=true)
+npm run db:seed:fixtures    # deterministic e2e fixtures
 ```
 
 ### 4. Development Server
@@ -106,23 +108,28 @@ All endpoints are prefixed with `/api/v1` and follow RESTful conventions.
 
 ### Users
 
-- GET `/api/v1/users` - List users (admin)
-- GET `/api/v1/users/:id` - Get user
-- PATCH `/api/v1/users/:id` - Update user
+User listing is admin-only and lives at `GET /api/v1/admin/users`. The `/api/v1/users` mount exposes the current user's own resources.
+
+- GET `/api/v1/users/profile` - Get own profile
+- PUT `/api/v1/users/profile` - Update own profile
+- GET `/api/v1/users/preferences` - Get own preferences
+- GET `/api/v1/users/:userId` - Get another user's public profile
 
 ### Pets
 
 - GET `/api/v1/pets` - List pets with filtering
-- POST `/api/v1/pets` - Create pet (rescue)
-- GET `/api/v1/pets/:id` - Get pet
-- PATCH `/api/v1/pets/:id` - Update pet (rescue)
+- POST `/api/v1/pets` - Create pet (rescue staff)
+- GET `/api/v1/pets/:petId` - Get pet
+- PUT `/api/v1/pets/:petId` - Update pet (rescue staff)
+- PATCH `/api/v1/pets/:petId/status` - Update pet availability status
 
 ### Applications
 
 - GET `/api/v1/applications` - List applications (filtered by role)
 - POST `/api/v1/applications` - Submit application
-- GET `/api/v1/applications/:id` - Get application
-- PATCH `/api/v1/applications/:id` - Update application
+- GET `/api/v1/applications/:applicationId` - Get application
+- PATCH `/api/v1/applications/:applicationId/status` - Update application status
+- POST `/api/v1/applications/:applicationId/withdraw` - Withdraw application
 
 ### Health Check
 
@@ -323,11 +330,16 @@ This service uses PostgreSQL with Sequelize ORM.
 ### Migrations
 
 ```bash
-# Run pending migrations
+# Run pending migrations (umzug runner — sequelize-cli is not installed)
 npm run migrate
 
-# Create new migration
-npx sequelize-cli migration:generate --name your-migration-name
+# Rollback / status
+npm run db:migrate:undo
+npm run db:migrate:status
+
+# Create new migration: copy the latest file in src/migrations/ and
+# follow the existing numbered naming pattern (NN-create-my-table.ts).
+# The runner picks up new files automatically.
 ```
 
 ## Monitoring

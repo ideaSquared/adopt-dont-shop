@@ -38,9 +38,12 @@ const reports = await moderationService.getReports({
   limit: 20,
 });
 
-// Take moderation action
+// Take moderation action — payload must satisfy CreateModeratorActionRequestSchema
 await moderationService.takeAction(reportId, {
+  targetEntityType: 'message',
+  targetEntityId: messageId,
   actionType: 'warning_issued',
+  severity: 'medium',
   reason: 'Violation of community guidelines',
 });
 ```

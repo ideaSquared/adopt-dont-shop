@@ -1,37 +1,13 @@
-# ThemeToggle Component
+# ThemeToggle
 
-A theme toggle component for switching between light and dark themes with smooth transitions.
+Reads the current theme from `useTheme()` and toggles it. Takes no props. Source: `ThemeToggle.tsx`.
 
-## Usage
+Not re-exported from `lib.components/src/index.ts` — import from the component path:
 
 ```tsx
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { ThemeToggle } from '@adopt-dont-shop/lib.components/src/components/ui/ThemeToggle/ThemeToggle';
 
-// Basic usage
 <ThemeToggle />
-
-// With custom configuration
-<ThemeToggle
-  currentTheme={theme}
-  onThemeChange={handleThemeChange}
-  showLabel={true}
-  className="custom-toggle"
-/>
 ```
 
-## Props
-
-- `currentTheme`: Current theme value
-- `onThemeChange`: Function called when theme changes
-- `showLabel`: Whether to show theme labels
-- `className`: Optional CSS class names
-- Additional props are forwarded to the underlying element
-
-## Features
-
-- Smooth theme transitions
-- Icon indicators
-- Keyboard accessible
-- Persistent theme storage
-- Accessible markup
-- TypeScript support
+Wrap the consumer tree with the theme provider that exposes `useTheme()` (see the app it's mounted in for the exact provider).

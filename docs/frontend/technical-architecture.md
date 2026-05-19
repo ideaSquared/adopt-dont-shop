@@ -51,7 +51,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 
 ### Communication Layer
 
-- **HTTP**: Axios + React Query for REST APIs
+- **HTTP**: native `fetch` (wrapped by `@adopt-dont-shop/lib.api`'s `apiService`) + React Query
 - **WebSocket**: Socket.IO for real-time updates
 - **Interceptors**: Auth management, error handling, caching
 
@@ -66,30 +66,29 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 
 ### Global State (React Context)
 
-**AuthContext**
+Authentication is owned by `@adopt-dont-shop/lib.auth` (`AuthProvider` / `useAuth`) and shared across all three apps. The rescue app additionally composes a small set of app-owned contexts under `app.rescue/src/contexts/`:
 
-- User authentication state
-- Login/logout functionality
-- Token management
-- User profile data
+**AnalyticsContext**
 
-**RescueContext**
+- Forwards UI events into `lib.analytics`
 
-- Current rescue organization data
-- Rescue settings and configuration
-- Staff and permission information
+**ChatContext**
 
-**NotificationContext**
+- Per-app chat connection state from `lib.chat`
 
-- Real-time notifications
-- Notification preferences
-- Unread counts and alerts
+**NotificationsContext**
 
-**PermissionContext**
+- Real-time notifications, unread counts, browser-notification opt-in
 
-- User roles and permissions
-- Access control logic
-- Permission checking utilities
+**PermissionsContext**
+
+- Role / permission data from `lib.permissions`, used by route guards and field-level checks
+
+**StatsigContext**
+
+- Wraps `@statsig/react-bindings` for the rescue app
+
+Rescue-organization data (settings, staff, etc.) is fetched on demand via React Query — there is no dedicated `RescueContext`.
 
 ### Server State (React Query)
 

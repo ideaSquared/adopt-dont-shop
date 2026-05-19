@@ -1,44 +1,28 @@
-# DateInput Component
+# DateInput
 
-A date input component with date picker functionality and consistent styling.
-
-## Usage
+Thin wrapper around `<input type="date">` for ISO date strings. Source: `DateInput.tsx`. Not re-exported from `lib.components/src/index.ts`.
 
 ```tsx
-import { DateInput } from '@/components/form/DateInput'
+import { DateInput } from '@adopt-dont-shop/lib.components/src/components/form/DateInput/DateInput';
 
-// Basic usage
-<DateInput
-  value={selectedDate}
-  onChange={handleDateChange}
-/>
+const [value, setValue] = useState('');
 
-// With custom configuration
 <DateInput
-  value={selectedDate}
-  onChange={handleDateChange}
-  placeholder="Select a date..."
-  minDate={minDate}
-  maxDate={maxDate}
-  className="custom-date-input"
+  id="dob"
+  value={value}
+  onChange={(e) => setValue(e.target.value)}
+  min="1900-01-01"
+  max={new Date().toISOString().slice(0, 10)}
 />
 ```
 
 ## Props
 
-- `value`: Currently selected date
-- `onChange`: Function called when date changes
-- `placeholder`: Optional placeholder text
-- `minDate`: Minimum selectable date
-- `maxDate`: Maximum selectable date
-- `className`: Optional CSS class names
-- Additional props are forwarded to the underlying input element
-
-## Features
-
-- Date picker integration
-- Date validation
-- Keyboard navigation
-- Accessible markup
-- TypeScript support
-- Consistent with other form inputs
+| Prop       | Type                                            | Required | Description                                  |
+| ---------- | ----------------------------------------------- | -------- | -------------------------------------------- |
+| `value`    | `string`                                        | Yes      | ISO date string (YYYY-MM-DD).                |
+| `onChange` | `(e: ChangeEvent<HTMLInputElement>) => void`    | Yes      | Native change handler.                       |
+| `disabled` | `boolean`                                       | No       | Disable the input.                           |
+| `min`      | `string`                                        | No       | Earliest selectable ISO date.                |
+| `max`      | `string`                                        | No       | Latest selectable ISO date.                  |
+| `id`       | `string`                                        | No       | Used by external `<label htmlFor>`.          |

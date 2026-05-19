@@ -1,38 +1,23 @@
-# ImageGallery Component
+# ImageGallery
 
-An image gallery component with lightbox functionality, thumbnails, and navigation controls.
-
-## Usage
+Displays a list of image URLs either as a swipable carousel or a grid gallery, with optional upload/delete handlers. Default export from `ImageGallery.tsx`. Not re-exported from `lib.components/src/index.ts`.
 
 ```tsx
-import { ImageGallery } from '@/components/ui/ImageGallery'
+import ImageGallery from '@adopt-dont-shop/lib.components/src/components/ui/ImageGallery/ImageGallery';
 
-// Basic usage
-<ImageGallery images={imageArray} />
-
-// With custom configuration
 <ImageGallery
-  images={imageArray}
-  showThumbnails={true}
-  autoPlay={false}
-  className="custom-gallery"
+  images={pet.images.map((i) => i.url)}
+  viewMode="gallery"
+  onUpload={(file) => uploadPetImage(pet.petId, file)}
+  onDelete={(fileName) => deletePetImage(pet.petId, fileName)}
 />
 ```
 
 ## Props
 
-- `images`: Array of image objects with src and alt
-- `showThumbnails`: Whether to display thumbnail navigation
-- `autoPlay`: Whether to auto-advance images
-- `className`: Optional CSS class names
-- Additional props are forwarded to the underlying element
-
-## Features
-
-- Lightbox modal view
-- Thumbnail navigation
-- Keyboard controls
-- Touch/swipe support
-- Lazy loading
-- Accessible markup
-- TypeScript support
+| Prop       | Type                              | Required | Description                                            |
+| ---------- | --------------------------------- | -------- | ------------------------------------------------------ |
+| `images`   | `string[]`                        | Yes      | Image URLs (strings, not objects).                     |
+| `viewMode` | `'carousel' \| 'gallery'`         | Yes      | Render mode.                                           |
+| `onUpload` | `(file: File) => void`            | No       | Show upload affordance and call this with the file.    |
+| `onDelete` | `(fileName: string) => void`      | No       | Show delete affordance and call this with the name.    |

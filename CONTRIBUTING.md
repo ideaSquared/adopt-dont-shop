@@ -119,7 +119,7 @@ npm run test:e2e:report
 
 - Playwright runs with `retries: 2` in CI. A test must fail 3 times in a row before it counts as a failure.
 - Flaky retry counts are printed in the "Report E2E retry counts" CI step.
-- The `test-e2e` job currently has `continue-on-error: true` — failures are surfaced but do not block merge. This will be removed once the suite has 10 consecutive green runs on `main` (see ADS-386).
+- The `test-e2e` job is a blocking signal — a failure fails the PR check (see ADS-419 and the comment block at `.github/workflows/ci.yml:339`).
 
 ### Selector guidelines
 

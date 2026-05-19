@@ -9,7 +9,7 @@ The notification system provides real-time notifications with context-based stat
 ### Using the Context Hook (Recommended)
 
 ```tsx
-import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotifications } from '@/contexts/NotificationsContext';
 
 function MyComponent() {
   const { unreadCount, recentNotifications, markAsRead, markAllAsRead, isLoading } =
@@ -34,16 +34,18 @@ function MyComponent() {
 
 ### Provider Setup
 
-The `NotificationProvider` is already set up in `App.tsx` and wraps the entire application:
+The `NotificationsProvider` is already set up in `App.tsx`. `AuthProvider` wraps the app in `main.tsx`, then `App` composes the rest:
 
 ```tsx
-<AuthProvider>
-  <NotificationProvider>
-    <ChatProvider>
-      <FavoritesProvider>{/* Your app content */}</FavoritesProvider>
-    </ChatProvider>
-  </NotificationProvider>
-</AuthProvider>
+<PermissionsProvider>
+  <AnalyticsProvider>
+    <NotificationsProvider userId={user?.userId}>
+      <ChatProvider>
+        <FavoritesProvider>{/* Your app content */}</FavoritesProvider>
+      </ChatProvider>
+    </NotificationsProvider>
+  </AnalyticsProvider>
+</PermissionsProvider>
 ```
 
 ## Features

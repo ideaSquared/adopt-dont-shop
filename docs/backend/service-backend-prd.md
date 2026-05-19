@@ -137,14 +137,12 @@ Frontend `ApplicationStage` (PENDING / REVIEWING / VISITING / DECIDING / RESOLVE
 
 ### 11. Foster Coordination
 
-- `FosterPlacement` model (PK: `placementId`; FKs: `petId`, `fosterUserId`, `rescueId`; columns: `startDate`, `endDate`, `status` (`active | completed | cancelled`), `notes`)
-- `FosterPlacementTransition` append-only event log (mirrors `PetStatusTransition`)
-- Routes mounted at `/api/v1/foster/placements`:
+- `FosterPlacement` model (`FosterPlacement.ts`; PK: `placementId`; FKs: `petId`, `fosterUserId`, `rescueId`; columns: `startDate`, `endDate`, `status` (`active | completed | cancelled`), `notes`)
+- Routes mounted at `/api/v1/foster` (see `foster.routes.ts`):
   - `POST /placements` — create (triggers Pet status transition to `FOSTER`)
   - `GET /placements` — list (filtered by current user's rescue/user scope)
   - `GET /placements/:id` — detail
-  - `PATCH /placements/:id` — update notes/dates
-  - `POST /placements/:id/end` — end placement; outcome param selects new Pet status (`AVAILABLE` or `ADOPTED`)
+  - `POST /placements/:id/end` — end placement; `outcome` is one of `return_to_rescue` | `adopted_by_foster` | `cancelled`, which drives the corresponding Pet status transition
 - RBAC: `rescue_staff` for their own rescue; `admin` / `super_admin` global; `support_agent` read-only
 
 ## Performance Requirements

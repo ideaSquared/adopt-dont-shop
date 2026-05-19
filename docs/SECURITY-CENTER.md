@@ -21,9 +21,10 @@ Two new RBAC permissions gate the Security Center:
 - `admin.security.manage` — mutating operations (revoke sessions,
   add/remove IP rules, lock/unlock accounts).
 
-Both are granted to `super_admin` and `admin` roles by the
-`03-role-permissions` seeder. Re-run the permissions + role-permissions
-seeders on existing environments to pick them up.
+Both are granted to `super_admin` and `admin` roles by the role-permissions
+reference seeder (`service.backend/src/seeders/reference/role-permissions.ts`,
+exported as `seedRolePermissions`). Re-run `npm run db:seed:reference`
+on existing environments to pick them up.
 
 ## Best practices
 

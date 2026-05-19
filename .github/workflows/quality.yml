@@ -46,7 +46,7 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci --no-audit --no-fund
 
-      # ADS-387: Single workspace-level outdated check covers all 28 packages,
+      # ADS-387: Single workspace-level outdated check covers every workspace package,
       # replacing the previous 5-package hardcoded matrix.
       # continue-on-error because outdated deps are advisory, not blocking.
       - name: Check for outdated dependencies across all workspaces

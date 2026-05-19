@@ -92,7 +92,7 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
 - Development: Local uploads directory
 - Production: AWS S3 with CloudFront CDN
 
-## Shared Libraries (21 libraries)
+## Shared Libraries (23 libraries)
 
 All libraries follow ESM-only architecture with TypeScript strict mode. Package names are scoped as `@adopt-dont-shop/lib.<name>` (dots, matching the directory names).
 
@@ -125,7 +125,9 @@ All libraries follow ESM-only architecture with TypeScript strict mode. Package 
 
 - `@adopt-dont-shop/lib.components` - Shared React components
 - `@adopt-dont-shop/lib.analytics` - Event tracking
-- `@adopt-dont-shop/lib.feature-flags` - Feature flags
+- `@adopt-dont-shop/lib.feature-flags` - Statsig hooks + typed gate/config constants
+- `@adopt-dont-shop/lib.observability` - Sentry init, Web Vitals reporter, analytics-consent gate
+- `@adopt-dont-shop/lib.legal` - Legal re-acceptance modal, cookie banner, consent service
 
 **Utilities:**
 
@@ -143,7 +145,7 @@ See [Libraries Documentation](../libraries/README.md) for details.
 docker compose up
 
 # Start specific service
-docker compose up service.backend
+docker compose up service-backend
 
 # View logs
 docker compose logs -f
@@ -220,19 +222,22 @@ cd lib.api && npm run dev
 
 ### Database Migrations
 
+The backend uses a custom Umzug runner (`service.backend/src/migrations/runner.ts`) and a custom seed CLI (`service.backend/src/seeders/cli.ts`). `sequelize-cli` is not installed.
+
 ```bash
 # From the repo root (containers must be running):
-npm run db:migrate                     # run migrations
-npm run db:seed                        # run seeders
-npm run db:reset                       # migrate + seed
+npm run db:migrate                                              # ts-node src/migrations/runner.ts up
+docker compose exec service-backend npm run db:migrate:undo     # rollback
+docker compose exec service-backend npm run db:migrate:status   # show applied / pending
 
-# From inside service.backend directly:
-npm run migrate                        # sequelize-cli db:migrate
-npm run seed                           # sequelize-cli db:seed:all
+# Seeders are split by safety profile — no "do everything" alias:
+docker compose exec service-backend npm run db:seed:reference   # idempotent reference data
+docker compose exec service-backend npm run db:seed:demo        # Faker (dev/staging; ALLOW_DEMO_SEED=true)
+docker compose exec service-backend npm run db:seed:fixtures    # deterministic e2e fixtures
+docker compose exec service-backend npm run db:seed:reset       # truncate demo+fixture tables
 
-# Create / rollback migrations via sequelize-cli directly:
-npx sequelize-cli migration:generate --name add-new-field
-npx sequelize-cli db:migrate:undo
+# Authoring a new migration: copy the latest file in
+# service.backend/src/migrations/ and follow the numbered naming pattern.
 ```
 
 ## CI/CD Pipeline
@@ -249,22 +254,17 @@ npx sequelize-cli db:migrate:undo
 
 ### Environments
 
-**Development:**
-
-- Branch: develop
-- Deployment: Automatic on commit
-- URL: dev.adoptdontshop.com
+All deploys are driven from `main` via the `Makefile` targets at the repo root, which dispatch the `deploy.yml` workflow with the appropriate `environment` input. See [DEPLOYMENT-PLAN.md](./DEPLOYMENT-PLAN.md) for the full procedure.
 
 **Staging:**
 
-- Branch: staging
-- Deployment: Manual approval
+- `make staging` — deploys `main` to staging (runs immediately)
 - URL: staging.adoptdontshop.com
 
 **Production:**
 
-- Branch: main
-- Deployment: Manual approval with rollback
+- `make prod` — deploys `main` to production (requires GitHub UI approval)
+- Rollback: `make rollback env=production sha=<commit>`
 - URL: adoptdontshop.com
 
 ## Monitoring & Logging
