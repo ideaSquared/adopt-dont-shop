@@ -1,6 +1,5 @@
 import { Response } from 'express';
 import { body, query, validationResult } from 'express-validator';
-import { Op } from 'sequelize';
 import { matchService } from '../matching';
 import AdopterMatchProfile from '../models/AdopterMatchProfile';
 import Breed from '../models/Breed';
@@ -147,19 +146,5 @@ export class MatchController {
       });
       res.status(500).json({ success: false, message: 'Failed to load top picks' });
     }
-  }
-
-  /**
-   * Find candidate users for the new-match daily digest. Used by the
-   * BullMQ job — exposed here to keep DB access centralised in the
-   * controller layer.
-   */
-  static async listNotifiableProfiles(): Promise<AdopterMatchProfile[]> {
-    return AdopterMatchProfile.findAll({
-      where: {
-        notify_new_matches: true,
-        [Op.or]: [{ last_notified_at: null }, { last_notified_at: { [Op.lt]: new Date() } }],
-      },
-    });
   }
 }
