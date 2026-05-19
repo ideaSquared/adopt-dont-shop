@@ -113,3 +113,32 @@ export const statusDotDefault = style({
   background: vars.text.tertiary,
   flexShrink: 0,
 });
+
+export const lastMessageCell = style({
+  maxWidth: '250px',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+});
+
+export const noMessagesPlaceholder = style({
+  color: '#9ca3af',
+  fontStyle: 'italic',
+});
+
+export const participantsList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+});
+
+export const participantMore = style({
+  fontSize: '0.75rem',
+  color: '#9ca3af',
+});
+
+export const errorBanner = style({
+  padding: '2rem',
+  textAlign: 'center',
+  color: '#ef4444',
+});

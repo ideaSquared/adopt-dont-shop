@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as styles from './BulkActionBar.css';
 
 type BulkAction = 'approve' | 'reject' | 'withdraw';
 
@@ -36,18 +37,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '0.75rem',
-        alignItems: 'center',
-        padding: '0.75rem 1rem',
-        background: '#f3f4f6',
-        borderRadius: '0.375rem',
-        marginBottom: '0.75rem',
-        flexWrap: 'wrap',
-      }}
-    >
+    <div className={styles.container}>
       {selectedCount > 0 && (
         <>
           <span>
@@ -56,12 +46,12 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
           <button type="button" onClick={onClearSelection} disabled={busy}>
             Clear
           </button>
-          <span style={{ flex: 1 }} />
+          <span className={styles.spacer} />
           <button
             type="button"
             onClick={() => setPendingAction('approve')}
             disabled={busy}
-            style={{ background: '#16a34a', color: 'white', padding: '0.25rem 0.75rem' }}
+            className={styles.approveButton}
           >
             Approve
           </button>
@@ -69,7 +59,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
             type="button"
             onClick={() => setPendingAction('reject')}
             disabled={busy}
-            style={{ background: '#dc2626', color: 'white', padding: '0.25rem 0.75rem' }}
+            className={styles.rejectButton}
           >
             Reject
           </button>
@@ -77,7 +67,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
             type="button"
             onClick={() => setPendingAction('withdraw')}
             disabled={busy}
-            style={{ padding: '0.25rem 0.75rem' }}
+            className={styles.neutralButton}
           >
             Withdraw
           </button>
@@ -85,25 +75,14 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
       )}
 
       {resultSummary && (
-        <span style={{ width: '100%' }}>
+        <span className={styles.fullWidthRow}>
           Bulk action complete: <strong>{resultSummary.successCount}</strong> succeeded,{' '}
           <strong>{resultSummary.failedCount}</strong> failed.
         </span>
       )}
 
       {pendingAction && (
-        <div
-          style={{
-            width: '100%',
-            display: 'flex',
-            gap: '0.5rem',
-            alignItems: 'center',
-            paddingTop: '0.5rem',
-            borderTop: '1px solid #d1d5db',
-            marginTop: '0.5rem',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className={styles.confirmRow}>
           <span>
             Confirm <strong>{pendingAction}</strong> for {selectedCount} application
             {selectedCount === 1 ? '' : 's'}?
@@ -114,14 +93,14 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
               placeholder="Reason (required for rejection)"
               value={reason}
               onChange={e => setReason(e.target.value)}
-              style={{ flex: 1, minWidth: '12rem', padding: '0.25rem 0.5rem' }}
+              className={styles.reasonInput}
             />
           )}
           <button
             type="button"
             onClick={handleConfirm}
             disabled={busy || (requireReason && reason.trim().length === 0)}
-            style={{ padding: '0.25rem 0.75rem' }}
+            className={styles.neutralButton}
           >
             {busy ? 'Working…' : 'Confirm'}
           </button>
@@ -132,7 +111,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
               setReason('');
             }}
             disabled={busy}
-            style={{ padding: '0.25rem 0.75rem' }}
+            className={styles.neutralButton}
           >
             Cancel
           </button>

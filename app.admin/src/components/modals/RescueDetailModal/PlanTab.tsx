@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import clsx from 'clsx';
 import * as styles from '../RescueDetailModal.css';
 import { Button } from '@adopt-dont-shop/lib.components';
 import type { AdminRescue, RescuePlan } from '@/types/rescue';
@@ -93,29 +94,13 @@ export const PlanTab: React.FC<PlanTabProps> = ({
         )}
       </div>
 
-      <div className={styles.inviteForm} style={{ marginTop: '1.5rem' }}>
-        <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', color: '#111827' }}>Change Plan</h4>
+      <div className={clsx(styles.inviteForm, styles.inviteFormSpacing)}>
+        <h4 className={styles.planSectionTitle}>Change Plan</h4>
 
         {planError && (
-          <div className={styles.errorMessage} style={{ marginBottom: '1rem' }}>
-            {planError}
-          </div>
+          <div className={clsx(styles.errorMessage, styles.errorMessageSpacing)}>{planError}</div>
         )}
-        {planSuccess && (
-          <div
-            style={{
-              padding: '0.75rem',
-              marginBottom: '1rem',
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              borderRadius: '0.375rem',
-              color: '#166534',
-              fontSize: '0.875rem',
-            }}
-          >
-            Plan updated successfully.
-          </div>
-        )}
+        {planSuccess && <div className={styles.successMessage}>Plan updated successfully.</div>}
 
         <div className={styles.formRow}>
           <div className={styles.formGroup}>

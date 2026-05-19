@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fosterService, type FosterPlacement } from '../services/fosterService';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
+import * as styles from './FosterCoordination.css';
 
 const FosterCoordination: React.FC = () => {
   const { user } = useAuth();
@@ -81,8 +82,8 @@ const FosterCoordination: React.FC = () => {
   };
 
   return (
-    <div className="page-container" style={{ padding: '1.5rem' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
+    <div className={`page-container ${styles.pageContainer}`}>
+      <div className={`page-header ${styles.pageHeader}`}>
         <div>
           <h1>Foster Coordination</h1>
           <p>Manage active and historical foster placements for your rescue.</p>
@@ -92,15 +93,9 @@ const FosterCoordination: React.FC = () => {
         </button>
       </div>
 
-      {error && (
-        <div
-          style={{ background: '#fee2e2', color: '#991b1b', padding: '0.75rem', margin: '1rem 0' }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <div className={styles.errorBanner}>{error}</div>}
 
-      <div style={{ margin: '1rem 0' }}>
+      <div className={styles.filterRow}>
         <label>
           Filter:{' '}
           <select
@@ -119,30 +114,30 @@ const FosterCoordination: React.FC = () => {
       ) : placements.length === 0 ? (
         <p>No foster placements found.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className={styles.table}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #e5e7eb', textAlign: 'left' }}>
-              <th style={{ padding: '0.5rem' }}>Pet</th>
-              <th style={{ padding: '0.5rem' }}>Foster user</th>
-              <th style={{ padding: '0.5rem' }}>Start</th>
-              <th style={{ padding: '0.5rem' }}>End</th>
-              <th style={{ padding: '0.5rem' }}>Status</th>
-              <th style={{ padding: '0.5rem' }}>Actions</th>
+            <tr className={styles.tableHeadRow}>
+              <th className={styles.tableCell}>Pet</th>
+              <th className={styles.tableCell}>Foster user</th>
+              <th className={styles.tableCell}>Start</th>
+              <th className={styles.tableCell}>End</th>
+              <th className={styles.tableCell}>Status</th>
+              <th className={styles.tableCell}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {placements.map(p => (
-              <tr key={p.placementId} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '0.5rem', fontFamily: 'monospace' }}>{p.petId}</td>
-                <td style={{ padding: '0.5rem', fontFamily: 'monospace' }}>{p.fosterUserId}</td>
-                <td style={{ padding: '0.5rem' }}>
+              <tr key={p.placementId} className={styles.tableBodyRow}>
+                <td className={styles.monoCell}>{p.petId}</td>
+                <td className={styles.monoCell}>{p.fosterUserId}</td>
+                <td className={styles.tableCell}>
                   {new Date(p.startDate).toLocaleDateString('en-GB')}
                 </td>
-                <td style={{ padding: '0.5rem' }}>
+                <td className={styles.tableCell}>
                   {p.endDate ? new Date(p.endDate).toLocaleDateString('en-GB') : '—'}
                 </td>
-                <td style={{ padding: '0.5rem' }}>{p.status}</td>
-                <td style={{ padding: '0.5rem' }}>
+                <td className={styles.tableCell}>{p.status}</td>
+                <td className={styles.tableCell}>
                   {p.status === 'active' && (
                     <button type="button" onClick={() => setEndingId(p.placementId)}>
                       End placement
@@ -156,28 +151,8 @@ const FosterCoordination: React.FC = () => {
       )}
 
       {showCreate && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <form
-            onSubmit={handleCreate}
-            style={{
-              background: 'white',
-              padding: '1.5rem',
-              borderRadius: '0.5rem',
-              minWidth: '24rem',
-              display: 'grid',
-              gap: '0.5rem',
-            }}
-          >
+        <div className={styles.modalOverlay}>
+          <form onSubmit={handleCreate} className={styles.modalForm}>
             <h2>New Foster Placement</h2>
             <label>
               Pet ID
@@ -211,7 +186,7 @@ const FosterCoordination: React.FC = () => {
                 onChange={e => setForm({ ...form, notes: e.target.value })}
               />
             </label>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <div className={styles.modalActions}>
               <button type="button" onClick={() => setShowCreate(false)}>
                 Cancel
               </button>
@@ -222,28 +197,8 @@ const FosterCoordination: React.FC = () => {
       )}
 
       {endingId && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <form
-            onSubmit={handleEnd}
-            style={{
-              background: 'white',
-              padding: '1.5rem',
-              borderRadius: '0.5rem',
-              minWidth: '24rem',
-              display: 'grid',
-              gap: '0.5rem',
-            }}
-          >
+        <div className={styles.modalOverlay}>
+          <form onSubmit={handleEnd} className={styles.modalForm}>
             <h2>End Foster Placement</h2>
             <label>
               Outcome
@@ -265,7 +220,7 @@ const FosterCoordination: React.FC = () => {
                 onChange={e => setEndForm({ ...endForm, notes: e.target.value })}
               />
             </label>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <div className={styles.modalActions}>
               <button type="button" onClick={() => setEndingId(null)}>
                 Cancel
               </button>

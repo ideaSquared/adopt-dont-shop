@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import clsx from 'clsx';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
@@ -246,17 +247,15 @@ const Rescues: React.FC = () => {
           {row.status === 'pending' && (
             <>
               <button
-                className={styles.iconButton}
+                className={clsx(styles.iconButton, styles.approveButton)}
                 title='Approve'
-                style={{ color: '#10b981', borderColor: '#10b981' }}
                 onClick={() => handleApprove(row)}
               >
                 <FiCheckCircle />
               </button>
               <button
-                className={styles.iconButton}
+                className={clsx(styles.iconButton, styles.rejectButton)}
                 title='Reject'
-                style={{ color: '#ef4444', borderColor: '#ef4444' }}
                 onClick={() => handleReject(row)}
               >
                 <FiXCircle />

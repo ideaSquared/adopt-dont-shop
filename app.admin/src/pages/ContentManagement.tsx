@@ -447,12 +447,7 @@ const ContentManagement: React.FC = () => {
                     <td className={styles.td}>
                       <strong>{item.title}</strong>
                     </td>
-                    <td
-                      className={styles.td}
-                      style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#6b7280' }}
-                    >
-                      /{item.slug}
-                    </td>
+                    <td className={clsx(styles.td, styles.slugCell)}>/{item.slug}</td>
                     <td className={styles.td}>{CONTENT_TYPE_LABELS[item.contentType]}</td>
                     <td className={styles.td}>
                       <span className={getStatusBadgeClass(item.status)}>{item.status}</span>
@@ -536,9 +531,7 @@ const ContentManagement: React.FC = () => {
                     <td className={styles.td}>
                       <strong>{menu.name}</strong>
                     </td>
-                    <td className={styles.td} style={{ textTransform: 'capitalize' }}>
-                      {menu.location}
-                    </td>
+                    <td className={clsx(styles.td, styles.capitalize)}>{menu.location}</td>
                     <td className={styles.td}>{menu.items.length} items</td>
                     <td className={styles.td}>
                       <span
@@ -606,11 +599,10 @@ const ContentManagement: React.FC = () => {
                 <label className={styles.formLabel} htmlFor='cm-slug'>
                   Slug
                 </label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className={styles.slugInputRow}>
                   <input
                     id='cm-slug'
-                    className={styles.formInput}
-                    style={{ flex: 1 }}
+                    className={clsx(styles.formInput, styles.slugInputFlex)}
                     value={contentForm.slug}
                     onChange={e => setContentForm(f => ({ ...f, slug: e.target.value }))}
                     placeholder='auto-generated'
@@ -663,8 +655,7 @@ const ContentManagement: React.FC = () => {
                 </label>
                 <textarea
                   id='cm-excerpt'
-                  className={styles.formTextarea}
-                  style={{ minHeight: '80px' }}
+                  className={clsx(styles.formTextarea, styles.excerptTextarea)}
                   value={contentForm.excerpt}
                   onChange={e => setContentForm(f => ({ ...f, excerpt: e.target.value }))}
                   placeholder='Short summary for listings and SEO'
@@ -690,8 +681,7 @@ const ContentManagement: React.FC = () => {
                   </label>
                   <textarea
                     id='cm-meta-desc'
-                    className={styles.formTextarea}
-                    style={{ minHeight: '70px' }}
+                    className={clsx(styles.formTextarea, styles.metaDescTextarea)}
                     value={contentForm.metaDescription}
                     onChange={e => setContentForm(f => ({ ...f, metaDescription: e.target.value }))}
                     placeholder='SEO description'
@@ -789,7 +779,7 @@ const ContentManagement: React.FC = () => {
           onKeyDown={e => e.key === 'Escape' && setShowMenuModal(false)}
           role='presentation'
         >
-          <div className={styles.modal} style={{ maxWidth: '480px' }}>
+          <div className={clsx(styles.modal, styles.menuModalWidth)}>
             <div className={styles.modalHeader}>
               <h2>{editingMenu ? 'Edit Menu' : 'New Navigation Menu'}</h2>
               <button className={styles.closeButton} onClick={() => setShowMenuModal(false)}>

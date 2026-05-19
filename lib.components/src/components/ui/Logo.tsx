@@ -123,8 +123,8 @@ export const Logo: React.FC<LogoProps> = ({
         data-dark={darkBg ? 'true' : undefined}
         aria-label='AdoptDontShop'
       >
-        <span style={{ fontWeight: 700 }}>Adopt</span>
-        <span style={{ fontWeight: 600 }}>DontShop</span>
+        <span className={styles.wordmarkBold}>Adopt</span>
+        <span className={styles.wordmarkSemibold}>DontShop</span>
       </span>
     </span>
   );

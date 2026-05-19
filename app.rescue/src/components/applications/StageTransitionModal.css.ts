@@ -177,3 +177,10 @@ export const button = recipe({
     variant: 'secondary',
   },
 });
+
+export const noActionsMessage = style({
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  textAlign: 'center',
+  padding: '1rem',
+});

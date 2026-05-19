@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChartFrame, type ChartFrameProps } from './ChartFrame';
+import * as styles from './DataTable.css';
 
 export type DataTableColumn = {
   key: string;
@@ -14,36 +15,6 @@ export type DataTableProps = Omit<ChartFrameProps, 'children' | 'isEmpty'> & {
   pageSize?: number;
   /** Optional callback when a row is clicked (used for drill-down). */
   onRowClick?: (row: Record<string, unknown>) => void;
-};
-
-const tableStyle: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '13px',
-};
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '8px 12px',
-  borderBottom: '1px solid var(--color-border, #e5e7eb)',
-  cursor: 'pointer',
-  color: 'var(--color-text-muted, #6b7280)',
-  fontWeight: 600,
-  background: 'var(--color-surface-muted, #f9fafb)',
-  position: 'sticky',
-  top: 0,
-};
-const tdStyle: React.CSSProperties = {
-  padding: '8px 12px',
-  borderBottom: '1px solid var(--color-border, #e5e7eb)',
-  color: 'var(--color-text, #111827)',
-};
-const paginationStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: '8px',
-  fontSize: '12px',
-  color: 'var(--color-text-muted, #6b7280)',
-  paddingTop: '8px',
 };
 
 const compareCells = (a: unknown, b: unknown): number => {
@@ -94,14 +65,14 @@ export const DataTable: React.FC<DataTableProps> = ({
 
   return (
     <ChartFrame {...frame} isEmpty={rows.length === 0}>
-      <div style={{ height: '100%', overflow: 'auto' }}>
-        <table style={tableStyle}>
+      <div className={styles.scrollContainer}>
+        <table className={styles.table}>
           <thead>
             <tr>
               {columns.map(col => (
                 <th
                   key={col.key}
-                  style={thStyle}
+                  className={styles.th}
                   onClick={() => handleSort(col.key)}
                   data-testid={`th-${col.key}`}
                 >
@@ -116,10 +87,10 @@ export const DataTable: React.FC<DataTableProps> = ({
               <tr
                 key={i}
                 onClick={() => onRowClick?.(row)}
-                style={{ cursor: onRowClick ? 'pointer' : 'default' }}
+                className={onRowClick ? styles.rowClickable : styles.rowDefault}
               >
                 {columns.map(col => (
-                  <td key={col.key} style={tdStyle}>
+                  <td key={col.key} className={styles.td}>
                     {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? '')}
                   </td>
                 ))}
@@ -128,7 +99,7 @@ export const DataTable: React.FC<DataTableProps> = ({
           </tbody>
         </table>
         {totalPages > 1 ? (
-          <div style={paginationStyle}>
+          <div className={styles.pagination}>
             <button
               type='button'
               disabled={safePage === 0}

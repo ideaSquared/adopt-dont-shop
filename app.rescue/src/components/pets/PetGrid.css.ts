@@ -84,3 +84,20 @@ export const paginationContainer = style({
     },
   },
 });
+
+export const pageButton = style({
+  minWidth: '40px',
+  height: '40px',
+  padding: '0.5rem',
+});
+
+export const pageButtonCurrent = style({
+  backgroundColor: '#2563eb',
+  color: 'white',
+});
+
+export const pageCounter = style({
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  whiteSpace: 'nowrap',
+});

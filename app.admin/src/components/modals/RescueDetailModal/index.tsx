@@ -22,7 +22,9 @@ type RescueDetailModalProps = {
 type ActiveTab = 'overview' | 'contact' | 'policies' | 'staff' | 'listings' | 'plan';
 
 const formatDate = (dateString?: string): string => {
-  if (!dateString) return 'N/A';
+  if (!dateString) {
+    return 'N/A';
+  }
   return new Date(dateString).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -75,7 +77,9 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   }, [rescueId]);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) onClose();
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
   };
 
   const tabs: { id: ActiveTab; label: string }[] = [
@@ -99,7 +103,7 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
           <div className={styles.headerContent}>
             <Heading level='h2'>{rescue?.name || 'Rescue Details'}</Heading>
             {rescue && (
-              <Text style={{ marginTop: '0.5rem' }}>
+              <Text className={styles.headerSpacing}>
                 {getStatusBadge(rescue.status)} • Registered {formatDate(rescue.createdAt)}
               </Text>
             )}
@@ -123,14 +127,11 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
 
         <div className={styles.modalBody}>
           {loading && (
-            <div
-              aria-label='Loading rescue details'
-              style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div aria-label='Loading rescue details' className={styles.skeletonContent}>
+              <div className={styles.skeletonAvatarRow}>
                 <Skeleton width='4rem' height='4rem' radius='50%' />
-                <div style={{ flex: 1 }}>
-                  <Skeleton height='1.25rem' width='50%' style={{ marginBottom: '0.5rem' }} />
+                <div className={styles.skeletonAvatarText}>
+                  <Skeleton height='1.25rem' width='50%' className={styles.skeletonName} />
                   <Skeleton height='0.875rem' width='30%' />
                 </div>
               </div>

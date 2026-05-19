@@ -1,4 +1,5 @@
 import React from 'react';
+import clsx from 'clsx';
 import { ApplicationListItem } from '../../types/applications';
 import { ApplicationStage, StageAction, OUTCOME_CONFIG } from '../../types/applicationStages';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
@@ -157,9 +158,7 @@ const ApplicationStageCard: React.FC<ApplicationStageCardProps> = ({
         )}
 
         {isTerminalStatus() && (
-          <div className={styles.outcomeBadge} style={{ background: '#dbeafe', color: '#2563eb' }}>
-            🔒 Application Closed
-          </div>
+          <div className={clsx(styles.outcomeBadge, styles.closedBadge)}>🔒 Application Closed</div>
         )}
       </div>
 

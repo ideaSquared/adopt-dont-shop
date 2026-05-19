@@ -222,3 +222,65 @@ export const errorBanner = style({
   color: vars.colors.semantic.error['800'],
   fontSize: '0.875rem',
 });
+
+export const filterBarOverride = style({
+  padding: '0.5rem 0.75rem',
+  marginBottom: 0,
+});
+
+export const filterGroupOverride = style({
+  minWidth: '140px',
+  marginBottom: 0,
+});
+
+export const exportIcon = style({
+  marginRight: '0.5rem',
+});
+
+export const skeletonStat80 = style({
+  width: '80px',
+  height: '1.5rem',
+});
+
+export const skeletonStat60 = style({
+  width: '60px',
+  height: '1.5rem',
+});
+
+export const skeletonFullHeight = style({
+  height: '100%',
+});
+
+export const skeletonRow3rem = style({
+  height: '3rem',
+});
+
+export const skeletonPie = style({
+  width: '200px',
+  height: '200px',
+  borderRadius: '50%',
+});
+
+export const chartEmptyState = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '100%',
+  color: '#9ca3af',
+  fontSize: '0.875rem',
+});
+
+export const pieEmptyState = style({
+  color: '#9ca3af',
+  fontSize: '0.875rem',
+});
+
+export const emptyStatePadded = style({
+  color: '#9ca3af',
+  fontSize: '0.875rem',
+  padding: '1rem 0',
+});
+
+export const barLabelCapitalize = style({
+  textTransform: 'capitalize',
+});

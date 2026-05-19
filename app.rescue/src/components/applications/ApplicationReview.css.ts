@@ -975,3 +975,29 @@ globalStyle(`${visitDetailsHeader} h4`, {
   fontWeight: '600',
   color: '#111827',
 });
+
+export const noStatusOptionsText = style({
+  fontSize: '0.75rem',
+  color: '#6b7280',
+  marginTop: '0.25rem',
+});
+
+export const statusChangeBlock = style({
+  marginTop: '0.5rem',
+});
+
+export const oldStatusText = style({
+  color: '#ef4444',
+});
+
+export const newStatusText = style({
+  color: '#10b981',
+});
+
+export const notesText = style({
+  color: '#6b7280',
+});
+
+export const visitDetailsBody = style({
+  padding: '1rem',
+});

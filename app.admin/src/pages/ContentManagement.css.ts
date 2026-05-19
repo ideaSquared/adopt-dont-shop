@@ -425,3 +425,34 @@ export const seoTitle = style({
   color: vars.text.secondary,
   margin: 0,
 });
+
+export const slugCell = style({
+  fontFamily: 'monospace',
+  fontSize: '0.8rem',
+  color: '#6b7280',
+});
+
+export const capitalize = style({
+  textTransform: 'capitalize',
+});
+
+export const slugInputRow = style({
+  display: 'flex',
+  gap: '0.5rem',
+});
+
+export const slugInputFlex = style({
+  flex: 1,
+});
+
+export const excerptTextarea = style({
+  minHeight: '80px',
+});
+
+export const metaDescTextarea = style({
+  minHeight: '70px',
+});
+
+export const menuModalWidth = style({
+  maxWidth: '480px',
+});

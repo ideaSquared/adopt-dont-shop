@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import clsx from 'clsx';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ConfirmDialog,
@@ -14,17 +15,11 @@ import {
   useUpsertSchedule,
   useCreateTokenShare,
 } from '@adopt-dont-shop/lib.analytics';
+import * as styles from './ReportViewPage.css';
 
 /**
  * ADS-105: Rescue report viewer with schedule + share actions.
  */
-
-const containerStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '16px',
-  padding: '24px',
-};
 
 const ReportViewPage: React.FC = () => {
   const { id } = useParams();
@@ -44,14 +39,14 @@ const ReportViewPage: React.FC = () => {
 
   if (!id) {
     return (
-      <div style={containerStyle}>
+      <div className={styles.container}>
         <Text>Missing report id.</Text>
       </div>
     );
   }
   if (reportQuery.isLoading || !reportQuery.data) {
     return (
-      <div style={containerStyle}>
+      <div className={styles.container}>
         <Text>Loading…</Text>
       </div>
     );
@@ -99,13 +94,13 @@ const ReportViewPage: React.FC = () => {
   };
 
   return (
-    <div style={containerStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className={styles.container}>
+      <div className={styles.headerRow}>
         <div>
           <Heading level="h1">{reportQuery.data.name}</Heading>
           {reportQuery.data.description ? <Text>{reportQuery.data.description}</Text> : null}
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className={styles.headerActions}>
           <Link to={`/reports/${id}/edit`}>
             <button type="button">Edit</button>
           </Link>
@@ -122,33 +117,21 @@ const ReportViewPage: React.FC = () => {
       </div>
 
       {scheduleOpen ? (
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            background: '#f9fafb',
-          }}
-        >
+        <div className={clsx(styles.panel, styles.schedulePanel)}>
           <Text>Schedule (cron + recipient email)</Text>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+          <div className={styles.scheduleRow}>
             <input
               type="text"
               value={cron}
               onChange={e => setCron(e.target.value)}
-              style={{ padding: '6px', border: '1px solid #e5e7eb', borderRadius: '6px' }}
+              className={styles.cronInput}
             />
             <input
               type="email"
               value={recipientEmail}
               onChange={e => setRecipientEmail(e.target.value)}
               placeholder="recipient@example.com"
-              style={{
-                flex: 1,
-                padding: '6px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-              }}
+              className={styles.emailInput}
             />
             <button type="button" onClick={handleSchedule}>
               Save schedule
@@ -158,16 +141,9 @@ const ReportViewPage: React.FC = () => {
       ) : null}
 
       {shareUrl ? (
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            background: '#ecfdf5',
-          }}
-        >
+        <div className={clsx(styles.panel, styles.sharePanel)}>
           <Text>Share link (expires in 7 days):</Text>
-          <code style={{ wordBreak: 'break-all' }}>{shareUrl}</code>
+          <code className={styles.shareCode}>{shareUrl}</code>
         </div>
       ) : null}
 

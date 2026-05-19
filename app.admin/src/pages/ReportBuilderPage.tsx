@@ -15,6 +15,7 @@ import {
   type ReportConfig,
 } from '@adopt-dont-shop/lib.analytics';
 import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
+import * as styles from './ReportBuilderPage.css';
 
 /**
  * ADS-105: Custom report builder page.
@@ -119,43 +120,23 @@ const ReportBuilderPage: React.FC = () => {
         </button>
       </PageHeader>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '16px',
-          padding: '12px',
-          background: '#f9fafb',
-          borderRadius: '8px',
-          marginBottom: '16px',
-        }}
-      >
+      <div className={styles.formGrid}>
         <label>
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>Name</span>
+          <span className={styles.fieldLabel}>Name</span>
           <input
             type='text'
             value={name}
             onChange={e => setName(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-            }}
+            className={styles.textInput}
           />
         </label>
         <label>
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>Description (optional)</span>
+          <span className={styles.fieldLabel}>Description (optional)</span>
           <input
             type='text'
             value={description}
             onChange={e => setDescription(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-            }}
+            className={styles.textInput}
           />
         </label>
       </div>

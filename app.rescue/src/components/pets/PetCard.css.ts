@@ -212,3 +212,17 @@ export const statusBadge = recipe({
     status: 'default',
   },
 });
+
+export const dangerText = style({
+  color: '#ef4444',
+});
+
+export const deleteWarning = style({
+  marginBottom: '1rem',
+  color: '#666',
+});
+
+export const dangerButton = style({
+  backgroundColor: '#ef4444',
+  borderColor: '#ef4444',
+});

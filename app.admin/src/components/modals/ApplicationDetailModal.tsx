@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Heading, Text } from '@adopt-dont-shop/lib.components';
 import type { AdminApplication } from '@/services/applicationService';
+import * as styles from './ApplicationDetailModal.css';
 
 type ApplicationDetailModalProps = {
   isOpen: boolean;
@@ -25,7 +26,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   }
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Application ${application.applicationId}`}>
-      <div style={{ display: 'grid', gap: '0.75rem' }}>
+      <div className={styles.container}>
         <section>
           <Heading level='h3'>Status</Heading>
           <Text>{application.status}</Text>
@@ -33,7 +34,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
         <section>
           <Heading level='h3'>Applicant</Heading>
-          <dl style={{ display: 'grid', gridTemplateColumns: '8rem 1fr', gap: '0.25rem 1rem' }}>
+          <dl className={styles.detailGrid}>
             <dt>
               <Text>Name</Text>
             </dt>
@@ -51,7 +52,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
         <section>
           <Heading level='h3'>Pet</Heading>
-          <dl style={{ display: 'grid', gridTemplateColumns: '8rem 1fr', gap: '0.25rem 1rem' }}>
+          <dl className={styles.detailGrid}>
             <dt>
               <Text>Name</Text>
             </dt>
@@ -75,7 +76,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
         <section>
           <Heading level='h3'>Rescue</Heading>
-          <dl style={{ display: 'grid', gridTemplateColumns: '8rem 1fr', gap: '0.25rem 1rem' }}>
+          <dl className={styles.detailGrid}>
             <dt>
               <Text>Name</Text>
             </dt>
@@ -93,7 +94,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
         <section>
           <Heading level='h3'>Timestamps</Heading>
-          <dl style={{ display: 'grid', gridTemplateColumns: '8rem 1fr', gap: '0.25rem 1rem' }}>
+          <dl className={styles.detailGrid}>
             <dt>
               <Text>Created</Text>
             </dt>

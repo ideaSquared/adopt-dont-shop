@@ -197,3 +197,20 @@ export const footerButtons = style({
   justifyContent: 'flex-end',
   gap: '0.75rem',
 });
+
+export const modalHeader = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+});
+
+export const modalHeaderTitle = style({
+  fontWeight: 600,
+  fontSize: '1.125rem',
+});
+
+export const modalHeaderSubtitle = style({
+  fontSize: '0.875rem',
+  opacity: 0.8,
+  marginTop: '0.125rem',
+});

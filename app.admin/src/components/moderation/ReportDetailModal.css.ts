@@ -265,3 +265,12 @@ export const warningBox = style({
   alignItems: 'flex-start',
   gap: '0.5rem',
 });
+
+export const monospaceId = style({
+  fontFamily: 'monospace',
+  fontSize: '0.75rem',
+});
+
+export const viewContentButtonSpacing = style({
+  marginTop: '1rem',
+});

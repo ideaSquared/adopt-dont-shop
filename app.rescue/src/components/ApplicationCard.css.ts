@@ -207,3 +207,18 @@ export const skeletonBox = style({
   borderRadius: '0.25rem',
   animation: `${pulse} 2s cubic-bezier(0.4, 0, 0.6, 1) infinite`,
 });
+
+export const timelineSkeleton = style({
+  height: '120px',
+  marginBottom: '1rem',
+});
+
+export const noActivityPlaceholder = style({
+  padding: '1rem',
+  textAlign: 'center',
+  color: '#6b7280',
+  fontSize: '0.875rem',
+  border: '1px dashed #d1d5db',
+  borderRadius: '0.375rem',
+  marginBottom: '1rem',
+});

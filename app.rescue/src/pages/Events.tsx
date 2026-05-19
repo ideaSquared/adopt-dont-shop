@@ -355,7 +355,7 @@ const Events: React.FC = () => {
       <div className={styles.contentArea}>
         {loading ? (
           <Card>
-            <div style={{ padding: '3rem', textAlign: 'center' }}>
+            <div className={styles.loadingState}>
               <p>Loading events...</p>
             </div>
           </Card>

@@ -15,7 +15,9 @@ import {
   useUpsertSchedule,
   useCreateTokenShare,
 } from '@adopt-dont-shop/lib.analytics';
+import clsx from 'clsx';
 import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
+import * as styles from './ReportViewPage.css';
 
 /**
  * ADS-105: View page for a saved report.
@@ -103,7 +105,7 @@ const ReportViewPage: React.FC = () => {
           <Heading level='h1'>{reportQuery.data.name}</Heading>
           {reportQuery.data.description ? <Text>{reportQuery.data.description}</Text> : null}
         </HeaderLeft>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className={styles.headerActions}>
           <Link to={`/reports/${id}/edit`}>
             <Button variant='outline'>Edit</Button>
           </Link>
@@ -120,35 +122,22 @@ const ReportViewPage: React.FC = () => {
       </PageHeader>
 
       {scheduleOpen ? (
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            marginBottom: '12px',
-            background: '#f9fafb',
-          }}
-        >
+        <div className={clsx(styles.panel, styles.schedulePanel)}>
           <Text>Schedule (cron + recipient)</Text>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+          <div className={styles.scheduleRow}>
             <input
               type='text'
               value={cron}
               onChange={e => setCron(e.target.value)}
               placeholder='0 9 * * 1'
-              style={{ padding: '6px', border: '1px solid #e5e7eb', borderRadius: '6px' }}
+              className={styles.cronInput}
             />
             <input
               type='email'
               value={recipientEmail}
               onChange={e => setRecipientEmail(e.target.value)}
               placeholder='recipient@example.com'
-              style={{
-                flex: 1,
-                padding: '6px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-              }}
+              className={styles.emailInput}
             />
             <Button variant='primary' onClick={handleSchedule}>
               Save schedule
@@ -158,17 +147,9 @@ const ReportViewPage: React.FC = () => {
       ) : null}
 
       {shareUrl ? (
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            marginBottom: '12px',
-            background: '#ecfdf5',
-          }}
-        >
+        <div className={clsx(styles.panel, styles.sharePanel)}>
           <Text>Share link (expires in 7 days):</Text>
-          <code style={{ wordBreak: 'break-all' }}>{shareUrl}</code>
+          <code className={styles.shareCode}>{shareUrl}</code>
         </div>
       ) : null}
 

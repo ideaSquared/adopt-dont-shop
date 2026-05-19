@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Heading, Text } from '@adopt-dont-shop/lib.components';
 import type { AdminPet } from '@/services/petService';
+import * as styles from './PetDetailModal.css';
 
 type PetDetailModalProps = {
   isOpen: boolean;
@@ -21,10 +22,10 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({ isOpen, onClose,
   }
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Pet: ${pet.name}`}>
-      <div style={{ display: 'grid', gap: '0.75rem' }}>
+      <div className={styles.container}>
         <section>
           <Heading level='h3'>Overview</Heading>
-          <dl style={{ display: 'grid', gridTemplateColumns: '8rem 1fr', gap: '0.25rem 1rem' }}>
+          <dl className={styles.detailGrid}>
             <dt>
               <Text>ID</Text>
             </dt>
@@ -72,7 +73,7 @@ export const PetDetailModal: React.FC<PetDetailModalProps> = ({ isOpen, onClose,
 
         <section>
           <Heading level='h3'>Rescue</Heading>
-          <dl style={{ display: 'grid', gridTemplateColumns: '8rem 1fr', gap: '0.25rem 1rem' }}>
+          <dl className={styles.detailGrid}>
             <dt>
               <Text>Rescue</Text>
             </dt>

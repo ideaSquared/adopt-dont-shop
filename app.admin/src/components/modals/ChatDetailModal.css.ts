@@ -405,3 +405,112 @@ export const deletePromptActions = style({
   gap: '0.75rem',
   justifyContent: 'flex-end',
 });
+
+export const headerBadgeRow = style({
+  display: 'flex',
+  gap: '0.5rem',
+  flexWrap: 'wrap',
+});
+
+export const closeButtonWrapper = style({
+  marginLeft: 'auto',
+});
+
+export const messagesContainer = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '1rem',
+});
+
+export const loadMoreWrapper = style({
+  textAlign: 'center',
+  padding: '1rem',
+});
+
+export const moderationHelpText = style({
+  marginTop: '0.5rem',
+  fontSize: '0.875rem',
+  color: '#6b7280',
+});
+
+export const reportList = style({
+  maxHeight: '300px',
+  overflowY: 'auto',
+});
+
+export const reportCard = style({
+  padding: '0.75rem',
+  marginBottom: '0.5rem',
+  backgroundColor: '#f9fafb',
+  borderRadius: '0.375rem',
+  border: '1px solid #e5e7eb',
+});
+
+export const reportCardHeader = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  marginBottom: '0.25rem',
+});
+
+export const reportCategoryLabel = style({
+  textTransform: 'capitalize',
+});
+
+export const reportStatusBadge = style({
+  padding: '0.125rem 0.5rem',
+  borderRadius: '0.25rem',
+  fontSize: '0.75rem',
+  fontWeight: '500',
+});
+
+export const reportDescription = style({
+  fontSize: '0.875rem',
+  color: '#6b7280',
+});
+
+export const reportMeta = style({
+  fontSize: '0.75rem',
+  color: '#9ca3af',
+  marginTop: '0.25rem',
+});
+
+export const noReportsMessage = style({
+  padding: '1rem',
+  textAlign: 'center',
+  color: '#6b7280',
+});
+
+export const moderationLink = style({
+  color: '#2563eb',
+  textDecoration: 'none',
+  fontWeight: '500',
+  ':hover': {
+    textDecoration: 'underline',
+  },
+});
+
+export const participantHelpText = style({
+  marginBottom: '0.5rem',
+  fontSize: '0.875rem',
+  color: '#6b7280',
+});
+
+export const moderationParticipantList = style({
+  listStyle: 'none',
+  padding: 0,
+});
+
+export const participantRow = style({
+  padding: '0.5rem',
+  marginBottom: '0.25rem',
+  backgroundColor: '#f9fafb',
+  borderRadius: '0.25rem',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+});
+
+export const participantViewLink = style({
+  fontSize: '0.875rem',
+  color: '#2563eb',
+});

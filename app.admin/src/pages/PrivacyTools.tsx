@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import clsx from 'clsx';
 import { Heading, Text, Input, Button } from '@adopt-dont-shop/lib.components';
 import { FiDownload, FiAlertTriangle } from 'react-icons/fi';
 import { apiService } from '../services/libraryServices';
+import * as styles from './PrivacyTools.css';
 
 const PrivacyTools: React.FC = () => {
   const [userId, setUserId] = useState('');
@@ -72,7 +74,7 @@ const PrivacyTools: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '1.5rem', display: 'grid', gap: '1.5rem', maxWidth: '48rem' }}>
+    <div className={styles.container}>
       <div>
         <Heading level='h1'>Privacy Tools</Heading>
         <Text>
@@ -80,7 +82,7 @@ const PrivacyTools: React.FC = () => {
         </Text>
       </div>
 
-      <div style={{ display: 'grid', gap: '0.5rem' }}>
+      <div className={styles.fieldGroup}>
         <label htmlFor='privacy-user-id'>User ID</label>
         <Input
           id='privacy-user-id'
@@ -91,22 +93,22 @@ const PrivacyTools: React.FC = () => {
         />
       </div>
 
-      <section style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+      <section className={styles.section}>
         <Heading level='h2'>Data Export (GDPR Art. 20)</Heading>
         <Text>Downloads a JSON archive of user-owned data.</Text>
         <Button variant='primary' onClick={handleExport} disabled={busy !== null}>
-          <FiDownload style={{ marginRight: '0.5rem' }} />
+          <FiDownload className={styles.buttonIcon} />
           {busy === 'export' ? 'Exporting…' : 'Export user data'}
         </Button>
       </section>
 
-      <section style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+      <section className={styles.section}>
         <Heading level='h2'>Account Deletion (GDPR Art. 17)</Heading>
         <Text>
           Schedules account deletion with a 30-day grace window. Data is hard-anonymised after the
           grace period.
         </Text>
-        <div style={{ display: 'grid', gap: '0.5rem', marginTop: '0.5rem' }}>
+        <div className={styles.fieldGroupSpaced}>
           <label htmlFor='privacy-reason'>Reason (optional, internal audit log)</label>
           <Input
             id='privacy-reason'
@@ -120,21 +122,19 @@ const PrivacyTools: React.FC = () => {
           variant='outline'
           onClick={handleDelete}
           disabled={busy !== null}
-          style={{ marginTop: '0.5rem' }}
+          className={styles.deleteButton}
         >
-          <FiAlertTriangle style={{ marginRight: '0.5rem' }} />
+          <FiAlertTriangle className={styles.buttonIcon} />
           {busy === 'delete' ? 'Scheduling…' : 'Schedule deletion'}
         </Button>
       </section>
 
       {message && (
         <div
-          style={{
-            padding: '0.75rem',
-            borderRadius: '0.375rem',
-            background: message.kind === 'success' ? '#dcfce7' : '#fee2e2',
-            color: message.kind === 'success' ? '#166534' : '#991b1b',
-          }}
+          className={clsx(
+            styles.message,
+            message.kind === 'success' ? styles.messageSuccess : styles.messageError
+          )}
         >
           {message.text}
         </div>

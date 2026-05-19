@@ -235,3 +235,27 @@ export const internalBadge = style({
   background: '#92400e',
   color: '#ffffff',
 });
+
+export const detailValueSecondary = style({
+  fontSize: '0.8125rem',
+  color: '#6b7280',
+});
+
+export const detailValueMeta = style({
+  fontSize: '0.75rem',
+  color: '#6b7280',
+  marginTop: '0.25rem',
+});
+
+export const internalNotesSection = style({
+  background: '#fef3c7',
+  borderColor: '#fbbf24',
+});
+
+export const internalNotesLabel = style({
+  color: '#92400e',
+});
+
+export const internalBadgeSpacing = style({
+  marginLeft: '0.5rem',
+});

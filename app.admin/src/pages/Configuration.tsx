@@ -96,7 +96,7 @@ const Configuration: React.FC = () => {
         </HeaderLeft>
         <div className={styles.headerActions}>
           <Button variant='outline' size='md' onClick={handleRefresh}>
-            <FiRefreshCw style={{ marginRight: '0.5rem' }} />
+            <FiRefreshCw className={styles.inlineIcon} />
             Reload
           </Button>
           <Button
@@ -104,7 +104,7 @@ const Configuration: React.FC = () => {
             size='md'
             onClick={() => openExternal('https://console.statsig.com')}
           >
-            <FiExternalLink style={{ marginRight: '0.5rem' }} />
+            <FiExternalLink className={styles.inlineIcon} />
             Open Statsig Console
           </Button>
         </div>
@@ -132,7 +132,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiFlag style={{ display: 'inline', marginRight: '0.5rem' }} />
+              <FiFlag className={styles.sectionIcon} />
               Feature Gates
             </CardTitle>
           </CardHeader>
@@ -146,7 +146,7 @@ const Configuration: React.FC = () => {
               size='sm'
               onClick={() => openExternal('https://console.statsig.com')}
             >
-              <FiExternalLink style={{ marginRight: '0.5rem' }} />
+              <FiExternalLink className={styles.inlineIcon} />
               Manage gates in Statsig
             </Button>
           </CardContent>
@@ -155,7 +155,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiSettings style={{ display: 'inline', marginRight: '0.5rem' }} />
+              <FiSettings className={styles.sectionIcon} />
               Application Settings
             </CardTitle>
           </CardHeader>
@@ -192,7 +192,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiSettings style={{ display: 'inline', marginRight: '0.5rem' }} />
+              <FiSettings className={styles.sectionIcon} />
               System Settings
             </CardTitle>
           </CardHeader>
@@ -219,7 +219,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiSettings style={{ display: 'inline', marginRight: '0.5rem' }} />
+              <FiSettings className={styles.sectionIcon} />
               Moderation Settings
             </CardTitle>
           </CardHeader>

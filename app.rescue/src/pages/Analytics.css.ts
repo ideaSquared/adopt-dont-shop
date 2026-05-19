@@ -171,3 +171,33 @@ export const errorState = style({
 globalStyle(`${errorState} p`, {
   margin: 0,
 });
+
+export const breedList = style({
+  display: 'grid',
+  gap: '1rem',
+});
+
+export const breedRow = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '1rem',
+  background: '#F9FAFB',
+  borderRadius: '8px',
+});
+
+export const breedTitle = style({
+  fontWeight: 600,
+  marginBottom: '0.25rem',
+});
+
+export const breedSubtitle = style({
+  fontSize: '0.875rem',
+  color: '#6B7280',
+});
+
+export const breedCount = style({
+  fontSize: '1.5rem',
+  fontWeight: 700,
+  color: '#3B82F6',
+});

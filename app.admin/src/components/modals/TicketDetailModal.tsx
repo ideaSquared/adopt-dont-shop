@@ -133,7 +133,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             <div className={styles.detailValue}>
               {ticket.userName || <span className={styles.emptyValue}>Not provided</span>}
             </div>
-            <div className={styles.detailValue} style={{ fontSize: '0.8125rem', color: '#6b7280' }}>
+            <div className={clsx(styles.detailValue, styles.detailValueSecondary)}>
               {ticket.userEmail}
             </div>
           </div>
@@ -155,9 +155,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             </div>
             <div className={styles.detailValue}>
               {formatDate(ticket.createdAt)}
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                ({formatRelativeTime(ticket.createdAt)})
-              </div>
+              <div className={styles.detailValueMeta}>({formatRelativeTime(ticket.createdAt)})</div>
             </div>
           </div>
 
@@ -168,9 +166,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             </div>
             <div className={styles.detailValue}>
               {formatDate(ticket.updatedAt)}
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                ({formatRelativeTime(ticket.updatedAt)})
-              </div>
+              <div className={styles.detailValueMeta}>({formatRelativeTime(ticket.updatedAt)})</div>
             </div>
           </div>
 
@@ -201,11 +197,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         </div>
 
         {ticket.internalNotes && (
-          <div
-            className={styles.descriptionSection}
-            style={{ background: '#fef3c7', borderColor: '#fbbf24' }}
-          >
-            <div className={styles.descriptionLabel} style={{ color: '#92400e' }}>
+          <div className={clsx(styles.descriptionSection, styles.internalNotesSection)}>
+            <div className={clsx(styles.descriptionLabel, styles.internalNotesLabel)}>
               Internal Notes
             </div>
             <div className={styles.descriptionText}>{ticket.internalNotes}</div>
@@ -232,7 +225,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                     <div className={styles.responderInfo}>
                       {response.responderType === 'staff' ? 'Staff' : 'Customer'} Response
                       {response.isInternal && (
-                        <span className={styles.internalBadge} style={{ marginLeft: '0.5rem' }}>
+                        <span className={clsx(styles.internalBadge, styles.internalBadgeSpacing)}>
                           Internal
                         </span>
                       )}

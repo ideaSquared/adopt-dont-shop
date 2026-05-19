@@ -1,4 +1,5 @@
 import React from 'react';
+import * as styles from './MetricCard.css';
 
 export type MetricCardFormat = 'number' | 'percent' | 'currency' | 'duration';
 
@@ -10,38 +11,6 @@ export type MetricCardProps = {
   deltaInverted?: boolean;
   format?: MetricCardFormat;
   helperText?: string;
-};
-
-const cardStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e5e7eb)',
-  borderRadius: '8px',
-  padding: '16px',
-  height: '100%',
-  minHeight: '110px',
-  boxSizing: 'border-box',
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: '12px',
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  color: 'var(--color-text-muted, #6b7280)',
-  margin: 0,
-};
-
-const valueStyle: React.CSSProperties = {
-  fontSize: '28px',
-  fontWeight: 700,
-  color: 'var(--color-text, #111827)',
-  margin: '4px 0',
-};
-
-const helperStyle: React.CSSProperties = {
-  fontSize: '12px',
-  color: 'var(--color-text-muted, #6b7280)',
 };
 
 const formatValue = (value: number | string, format: MetricCardFormat | undefined): string => {
@@ -88,21 +57,15 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   format,
   helperText,
 }) => (
-  <div style={cardStyle} data-testid='metric-card'>
-    <h4 style={labelStyle}>{label}</h4>
-    <div style={valueStyle}>{formatValue(value, format)}</div>
+  <div className={styles.card} data-testid='metric-card'>
+    <h4 className={styles.label}>{label}</h4>
+    <div className={styles.value}>{formatValue(value, format)}</div>
     {typeof delta === 'number' ? (
-      <div
-        style={{
-          fontSize: '12px',
-          fontWeight: 600,
-          color: deltaColor(delta, !!deltaInverted),
-        }}
-      >
+      <div className={styles.delta} style={{ color: deltaColor(delta, !!deltaInverted) }}>
         {delta > 0 ? '+' : ''}
         {(delta * 100).toFixed(1)}%
       </div>
     ) : null}
-    {helperText ? <div style={helperStyle}>{helperText}</div> : null}
+    {helperText ? <div className={styles.helper}>{helperText}</div> : null}
   </div>
 );

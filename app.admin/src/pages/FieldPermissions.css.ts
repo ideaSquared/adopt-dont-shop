@@ -190,3 +190,26 @@ export const statusBar = style({
   marginBottom: '1rem',
   fontSize: '0.875rem',
 });
+
+export const statusBarError = style({
+  background: '#fee2e2',
+  color: '#991b1b',
+});
+
+export const statusBarWarning = style({
+  background: '#fffbeb',
+  color: '#92400e',
+});
+
+export const skeletonList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.75rem',
+});
+
+export const skeletonRow = style({
+  display: 'grid',
+  gridTemplateColumns: '2fr 1fr 1fr 1fr',
+  gap: '1rem',
+  alignItems: 'center',
+});

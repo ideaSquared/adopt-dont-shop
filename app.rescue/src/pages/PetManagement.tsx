@@ -256,7 +256,7 @@ const PetManagement: React.FC = () => {
         <div className={styles.errorContainer}>
           <Heading level="h3">Error Loading Pets</Heading>
           <Text>{error}</Text>
-          <Button onClick={() => fetchPets()} style={{ marginTop: '1rem' }}>
+          <Button onClick={() => fetchPets()} className={styles.retryButton}>
             Try Again
           </Button>
         </div>
@@ -275,17 +275,15 @@ const PetManagement: React.FC = () => {
           </div>
         </div>
 
-        <Card
-          style={{ padding: '2rem', textAlign: 'center', maxWidth: '600px', margin: '1rem auto' }}
-        >
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏠</div>
+        <Card className={styles.setupCard}>
+          <div className={styles.setupEmoji}>🏠</div>
           <h2>Create Your Rescue Organization</h2>
-          <p style={{ marginBottom: '1.5rem', color: '#6b7280' }}>
+          <p className={styles.setupHint}>
             To start managing pets, you first need to create or join a rescue organization. This
             will allow you to add pets, manage applications, and track adoptions.
           </p>
 
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className={styles.setupActions}>
             <Button variant="primary" onClick={handleCreateDemoRescue} disabled={loading}>
               {loading ? 'Creating...' : 'Create Demo Rescue (Dev)'}
             </Button>
@@ -302,19 +300,10 @@ const PetManagement: React.FC = () => {
             </Button>
           </div>
 
-          <div
-            style={{
-              marginTop: '1.5rem',
-              padding: '1rem',
-              background: '#f3f4f6',
-              borderRadius: '8px',
-            }}
-          >
+          <div className={styles.devNote}>
             <strong>Development Note:</strong>
-            <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}>
-              To test the pet management system, you need to:
-            </p>
-            <ol style={{ textAlign: 'left', fontSize: '0.875rem', margin: 0 }}>
+            <p className={styles.devNoteIntro}>To test the pet management system, you need to:</p>
+            <ol className={styles.devNoteSteps}>
               <li>Create a rescue via API: POST /api/v1/rescues</li>
               <li>Update your user with the rescue ID</li>
               <li>Or use the seed data if available</li>
@@ -454,7 +443,7 @@ const PetManagement: React.FC = () => {
               onClick={() => setError(null)}
               variant="outline"
               size="sm"
-              style={{ marginTop: '0.5rem' }}
+              className={styles.dismissButton}
             >
               Dismiss
             </Button>

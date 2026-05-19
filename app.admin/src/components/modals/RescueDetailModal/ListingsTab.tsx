@@ -71,7 +71,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({ rescueId }) => {
         {error && <div className={styles.errorMessage}>{error}</div>}
 
         {loading && (
-          <div aria-label='Loading listings' style={{ display: 'flex', gap: '0.5rem' }}>
+          <div aria-label='Loading listings' className={styles.skeletonRow}>
             {Array.from({ length: 4 }, (_, i) => (
               <Skeleton key={i} height='4rem' width='8rem' />
             ))}
@@ -103,23 +103,23 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({ rescueId }) => {
       {!loading && !error && recent.length > 0 && (
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>Recent Listings</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <div className={styles.tableWrapper}>
+            <table className={styles.dataTable}>
               <thead>
-                <tr style={{ textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>
-                  <th style={{ padding: '0.5rem' }}>Name</th>
-                  <th style={{ padding: '0.5rem' }}>Type</th>
-                  <th style={{ padding: '0.5rem' }}>Breed</th>
-                  <th style={{ padding: '0.5rem' }}>Listed</th>
+                <tr className={styles.tableHeadRow}>
+                  <th className={styles.tableCell}>Name</th>
+                  <th className={styles.tableCell}>Type</th>
+                  <th className={styles.tableCell}>Breed</th>
+                  <th className={styles.tableCell}>Listed</th>
                 </tr>
               </thead>
               <tbody>
                 {recent.map(pet => (
-                  <tr key={pet.petId} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={{ padding: '0.5rem' }}>{pet.name}</td>
-                    <td style={{ padding: '0.5rem' }}>{pet.type}</td>
-                    <td style={{ padding: '0.5rem' }}>{pet.breed}</td>
-                    <td style={{ padding: '0.5rem' }}>
+                  <tr key={pet.petId} className={styles.tableBodyRow}>
+                    <td className={styles.tableCell}>{pet.name}</td>
+                    <td className={styles.tableCell}>{pet.type}</td>
+                    <td className={styles.tableCell}>{pet.breed}</td>
+                    <td className={styles.tableCell}>
                       <DateTime timestamp={pet.createdAt} />
                     </td>
                   </tr>
@@ -127,7 +127,7 @@ export const ListingsTab: React.FC<ListingsTabProps> = ({ rescueId }) => {
               </tbody>
             </table>
           </div>
-          <div style={{ marginTop: '0.75rem' }}>
+          <div className={styles.manageLinkRow}>
             <Link to='/pets'>Manage all pets →</Link>
           </div>
         </div>

@@ -307,3 +307,21 @@ export const loadingState = style({
   padding: '3rem',
   color: '#6b7280',
 });
+
+export const questionTextEnabled = style({
+  textDecoration: 'none',
+  color: '#111827',
+});
+
+export const questionTextDisabled = style({
+  textDecoration: 'line-through',
+  color: '#9ca3af',
+});
+
+export const helpTextEnabled = style({
+  color: '#6b7280',
+});
+
+export const helpTextDisabled = style({
+  color: '#d1d5db',
+});

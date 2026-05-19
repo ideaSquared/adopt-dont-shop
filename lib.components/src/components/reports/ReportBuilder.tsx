@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import clsx from 'clsx';
 import { FilterPanel, type FilterPanelValue } from './FilterPanel';
 import { WidgetPicker, type WidgetPreset } from './WidgetPicker';
 import { ReportRenderer, type ReportRendererWidget } from './ReportRenderer';
+import * as styles from './ReportBuilder.css';
 
 /**
  * ADS-105: Form-based custom report builder.
@@ -36,36 +38,6 @@ export type ReportBuilderProps = {
   /** Save action — typically calls useSaveReport / useUpdateReport. */
   onSave?: () => void;
   isSaving?: boolean;
-};
-
-const layoutStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 2fr',
-  gap: '16px',
-  alignItems: 'start',
-};
-
-const sidebarStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '12px',
-};
-
-const widgetRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  padding: '8px 12px',
-  border: '1px solid var(--color-border, #e5e7eb)',
-  borderRadius: '6px',
-  background: 'var(--color-surface, #fff)',
-  fontSize: '13px',
-};
-
-const buttonRowStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: '8px',
-  marginTop: '12px',
 };
 
 const generateId = (): string => {
@@ -131,40 +103,26 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   };
 
   return (
-    <div data-testid='report-builder' style={layoutStyle}>
-      <div style={sidebarStyle}>
+    <div data-testid='report-builder' className={styles.layout}>
+      <div className={styles.sidebar}>
         <FilterPanel
           value={config.filters}
           onChange={filters => onChange({ ...config, filters })}
           extraFields={filterExtras}
         />
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 12px',
-            border: '1px solid var(--color-border, #e5e7eb)',
-            borderRadius: '8px',
-          }}
-        >
-          <span style={{ fontSize: '13px' }}>Grid columns</span>
-          <div style={{ display: 'flex', gap: '4px' }}>
+        <div className={styles.columnsBar}>
+          <span className={styles.columnsLabel}>Grid columns</span>
+          <div className={styles.columnsButtons}>
             {[1, 2, 3, 4].map(n => (
               <button
                 key={n}
                 type='button'
                 onClick={() => handleColumns(n as 1 | 2 | 3 | 4)}
                 aria-pressed={config.layout.columns === n}
-                style={{
-                  padding: '4px 10px',
-                  border: '1px solid var(--color-border, #e5e7eb)',
-                  borderRadius: '4px',
-                  background:
-                    config.layout.columns === n ? 'var(--color-primary, #2563eb)' : 'transparent',
-                  color: config.layout.columns === n ? '#fff' : 'inherit',
-                  cursor: 'pointer',
-                }}
+                className={clsx(
+                  styles.columnsButton,
+                  config.layout.columns === n && styles.columnsButtonActive
+                )}
               >
                 {n}
               </button>
@@ -172,17 +130,17 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           </div>
         </div>
         <div>
-          <h4 style={{ fontSize: '13px', margin: '8px 0' }}>Widgets ({config.widgets.length})</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <h4 className={styles.widgetsHeading}>Widgets ({config.widgets.length})</h4>
+          <div className={styles.widgetsList}>
             {config.widgets.map((widget, i) => (
-              <div key={widget.id} style={widgetRowStyle}>
+              <div key={widget.id} className={styles.widgetRow}>
                 <div>
                   <strong>{widget.title}</strong>
-                  <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                  <div className={styles.widgetMeta}>
                     {widget.metric} · {widget.chartType}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
+                <div className={styles.widgetActions}>
                   <button type='button' onClick={() => handleMove(i, -1)} aria-label='Move up'>
                     ↑
                   </button>
@@ -201,7 +159,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             ))}
           </div>
         </div>
-        <div style={buttonRowStyle}>
+        <div className={styles.buttonRow}>
           <button type='button' onClick={() => setPickerOpen(true)} data-testid='add-widget'>
             Add widget
           </button>
@@ -211,7 +169,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
               onClick={onSave}
               disabled={isSaving}
               data-testid='save-report'
-              style={{ marginLeft: 'auto' }}
+              className={styles.saveButton}
             >
               {isSaving ? 'Saving…' : 'Save'}
             </button>
@@ -220,17 +178,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       </div>
       <div>
         {config.widgets.length === 0 ? (
-          <div
-            style={{
-              border: '1px dashed var(--color-border, #e5e7eb)',
-              borderRadius: '8px',
-              padding: '40px',
-              textAlign: 'center',
-              color: '#6b7280',
-            }}
-          >
-            Add a widget to start building your report.
-          </div>
+          <div className={styles.emptyPreview}>Add a widget to start building your report.</div>
         ) : (
           <ReportRenderer
             config={{

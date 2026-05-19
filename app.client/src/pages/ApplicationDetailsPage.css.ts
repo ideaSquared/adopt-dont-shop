@@ -119,3 +119,9 @@ export const buttonGroup = style({
   gap: '1rem',
   marginTop: '2rem',
 });
+
+export const withdrawButton = style({
+  backgroundColor: '#dc2626',
+  borderColor: '#dc2626',
+  color: 'white',
+});

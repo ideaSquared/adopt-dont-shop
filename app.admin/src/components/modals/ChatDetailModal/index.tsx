@@ -54,7 +54,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   const { data: chat, isLoading: chatLoading } = useAdminChatById(chatId);
   const { deleteChat, updateChatStatus } = useAdminChatMutations();
 
-  if (!chatId) return null;
+  if (!chatId) {
+    return null;
+  }
 
   const conversation = chat as Conversation | undefined;
 
@@ -66,7 +68,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       cancelText: 'Cancel',
       variant: 'warning',
     });
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       await updateChatStatus.mutateAsync({ chatId, status: 'archived' });
@@ -93,7 +97,9 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       cancelText: 'Cancel',
       variant: 'danger',
     });
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       await deleteChat.mutateAsync(chatId);
@@ -123,9 +129,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
           {conversation && (
             <>
               <span className={styles.chatId}>Chat #{conversation.id.slice(-8)}</span>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {getStatusBadge(conversation.status)}
-              </div>
+              <div className={styles.headerBadgeRow}>{getStatusBadge(conversation.status)}</div>
             </>
           )}
         </div>
@@ -194,7 +198,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
           <Button variant='danger' leftIcon={<FiTrash2 />} onClick={handleDeleteChat}>
             Delete
           </Button>
-          <div style={{ marginLeft: 'auto' }}>
+          <div className={styles.closeButtonWrapper}>
             <Button variant='secondary' leftIcon={<FiX />} onClick={onClose}>
               Close
             </Button>

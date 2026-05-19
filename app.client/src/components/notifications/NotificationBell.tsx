@@ -221,19 +221,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
             }}
             aria-label='Close notification center'
           />
-          <div
-            style={{
-              position: 'fixed',
-              top: '5vh',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 1002,
-              maxHeight: '90vh',
-              width: '90vw',
-              maxWidth: '800px',
-              overflow: 'auto',
-            }}
-          >
+          <div className={styles.fullCenterModal}>
             <NotificationCenterComponent onClose={closeFullCenter} />
           </div>
         </>

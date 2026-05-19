@@ -208,3 +208,13 @@ export const errorMessage = style({
 globalStyle(`${errorMessage} svg`, {
   flexShrink: 0,
 });
+
+export const approveButton = style({
+  color: '#10b981',
+  borderColor: '#10b981',
+});
+
+export const rejectButton = style({
+  color: '#ef4444',
+  borderColor: '#ef4444',
+});
