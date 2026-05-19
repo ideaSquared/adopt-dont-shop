@@ -287,13 +287,13 @@ const Pets: React.FC = () => {
         isOpen={bulkAction !== null}
         onClose={handleBulkModalClose}
         onConfirm={handleBulkConfirm}
-        title={
-          bulkAction === 'publish'
-            ? 'Publish Pets'
-            : bulkAction === 'unpublish'
-              ? 'Unpublish Pets'
-              : 'Archive Pets'
-        }
+        title={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} pet${count !== 1 ? 's' : ''}`;
+          if (bulkAction === 'publish') return `Publish ${noun}?`;
+          if (bulkAction === 'unpublish') return `Unpublish ${noun}?`;
+          return `Archive ${noun}?`;
+        })()}
         description={
           bulkAction === 'publish'
             ? 'Set the selected pets as available for adoption.'

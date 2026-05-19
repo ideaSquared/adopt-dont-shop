@@ -334,7 +334,7 @@ describe('Bulk operations — Users page', () => {
       await user.click(within(toolbar).getByRole('button', { name: /^activate$/i }));
 
       expect(screen.getByTestId('bulk-confirmation-modal')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-title')).toHaveTextContent('Activate Users');
+      expect(screen.getByTestId('modal-title')).toHaveTextContent(/Activate \d+ users?\?/);
     });
 
     it('opens the bulk confirmation modal when Deactivate is clicked', async () => {
@@ -347,7 +347,7 @@ describe('Bulk operations — Users page', () => {
       await user.click(within(toolbar).getByRole('button', { name: /^deactivate$/i }));
 
       expect(screen.getByTestId('bulk-confirmation-modal')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-title')).toHaveTextContent('Deactivate Users');
+      expect(screen.getByTestId('modal-title')).toHaveTextContent(/Deactivate \d+ users?\?/);
     });
 
     it('opens the bulk confirmation modal when Delete is clicked', async () => {
@@ -360,7 +360,7 @@ describe('Bulk operations — Users page', () => {
       await user.click(within(toolbar).getByRole('button', { name: /^delete$/i }));
 
       expect(screen.getByTestId('bulk-confirmation-modal')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-title')).toHaveTextContent('Delete Users');
+      expect(screen.getByTestId('modal-title')).toHaveTextContent(/Delete \d+ users?\?/);
     });
 
     it('shows the number of selected items in the confirmation modal', async () => {
