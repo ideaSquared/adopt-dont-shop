@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   maxWidth: '100%',
   margin: 0,
@@ -29,13 +31,13 @@ export const headerTitle = style({});
 globalStyle(`${headerTitle} h1`, {
   fontSize: '2rem',
   fontWeight: 700,
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
 globalStyle(`${headerTitle} p`, {
   fontSize: '1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
@@ -55,7 +57,7 @@ export const primaryButton = style({
   alignItems: 'center',
   gap: '0.5rem',
   padding: '0.75rem 1.5rem',
-  background: '#2563eb',
+  background: vars.colors.semantic.info['600'],
   color: 'white',
   border: 'none',
   borderRadius: '8px',
@@ -65,7 +67,7 @@ export const primaryButton = style({
   transition: 'all 0.2s ease',
   selectors: {
     '&:hover': {
-      background: '#1d4ed8',
+      background: vars.colors.semantic.info['700'],
       transform: 'translateY(-1px)',
       boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
     },
@@ -74,10 +76,10 @@ export const primaryButton = style({
     },
     '&:focus': {
       outline: 'none',
-      boxShadow: '0 0 0 3px #dbeafe',
+      boxShadow: `0 0 0 3px ${vars.colors.semantic.info['100']}`,
     },
     '&:disabled': {
-      background: '#d1d5db',
+      background: vars.border.color.secondary,
       cursor: 'not-allowed',
       transform: 'none',
       boxShadow: 'none',
@@ -98,9 +100,9 @@ export const contentArea = style({
 export const errorState = style({
   textAlign: 'center',
   padding: '2rem',
-  color: '#dc2626',
-  background: '#fef2f2',
-  border: '1px solid #fecaca',
+  color: vars.colors.semantic.error['600'],
+  background: vars.colors.semantic.error['50'],
+  border: `1px solid ${vars.colors.semantic.error['200']}`,
   borderRadius: '8px',
   marginBottom: '1.5rem',
 });
@@ -147,7 +149,7 @@ export const modalHeader = style({
   top: 0,
   background: 'white',
   padding: '1.5rem',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.primary}`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -159,21 +161,21 @@ export const modalTitle = style({
   margin: 0,
   fontSize: '1.5rem',
   fontWeight: 600,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const closeButton = style({
   background: 'none',
   border: 'none',
   fontSize: '1.5rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   cursor: 'pointer',
   padding: '0.25rem',
   lineHeight: 1,
   transition: 'all 0.2s ease',
   selectors: {
     '&:hover': {
-      color: '#111827',
+      color: vars.text.primary,
     },
   },
 });
@@ -185,19 +187,19 @@ export const modalBody = style({
 export const emptyState = style({
   textAlign: 'center',
   padding: '3rem 1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${emptyState} svg`, {
   fontSize: '3rem',
-  color: '#d1d5db',
+  color: vars.border.color.secondary,
   marginBottom: '1rem',
 });
 
 globalStyle(`${emptyState} h3`, {
   fontSize: '1.125rem',
   fontWeight: 600,
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 

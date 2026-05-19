@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   maxWidth: '100%',
   margin: 0,
@@ -29,13 +31,13 @@ export const headerTitle = style({});
 globalStyle(`${headerTitle} h1`, {
   fontSize: '2rem',
   fontWeight: 700,
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
 globalStyle(`${headerTitle} p`, {
   fontSize: '1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
@@ -61,20 +63,20 @@ export const filterBar = style({
 export const filterSelect = style({
   padding: '0.625rem 1rem',
   background: 'white',
-  border: '1px solid #d1d5db',
+  border: `1px solid ${vars.border.color.secondary}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  color: '#111827',
+  color: vars.text.primary,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   selectors: {
     '&:hover': {
-      borderColor: '#60a5fa',
+      borderColor: vars.colors.semantic.info['400'],
     },
     '&:focus': {
       outline: 'none',
-      borderColor: '#60a5fa',
-      boxShadow: '0 0 0 3px #dbeafe',
+      borderColor: vars.colors.semantic.info['400'],
+      boxShadow: `0 0 0 3px ${vars.colors.semantic.info['100']}`,
     },
   },
 });
@@ -106,7 +108,7 @@ export const twoColumnGrid = style({
 
 export const cardHeader = style({
   padding: '1.5rem 1.5rem 1rem 1.5rem',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.primary}`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -122,11 +124,11 @@ globalStyle(`${cardTitle} h3`, {
   margin: 0,
   fontSize: '1.125rem',
   fontWeight: 600,
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${cardTitle} svg`, {
-  color: '#2563eb',
+  color: vars.colors.semantic.info['600'],
   fontSize: '1.25rem',
 });
 
@@ -137,19 +139,19 @@ export const cardBody = style({
 export const emptyState = style({
   textAlign: 'center',
   padding: '3rem 1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${emptyState} svg`, {
   fontSize: '3rem',
-  color: '#d1d5db',
+  color: vars.border.color.secondary,
   marginBottom: '1rem',
 });
 
 globalStyle(`${emptyState} h3`, {
   fontSize: '1.125rem',
   fontWeight: 600,
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
@@ -160,9 +162,9 @@ globalStyle(`${emptyState} p`, {
 export const errorState = style({
   textAlign: 'center',
   padding: '2rem',
-  color: '#dc2626',
-  background: '#fef2f2',
-  border: '1px solid #fecaca',
+  color: vars.colors.semantic.error['600'],
+  background: vars.colors.semantic.error['50'],
+  border: `1px solid ${vars.colors.semantic.error['200']}`,
   borderRadius: '8px',
 });
 

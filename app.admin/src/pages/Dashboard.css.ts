@@ -1,5 +1,7 @@
 import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const dashboardContainer = style({
   display: 'flex',
   flexDirection: 'column',
@@ -18,8 +20,8 @@ export const metricsGrid = style({
 });
 
 export const metricCard = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.secondary,
+  border: `1px solid ${vars.border.color.primary}`,
   borderRadius: '12px',
   padding: '1.5rem',
   transition: 'all 0.2s ease',
@@ -43,7 +45,7 @@ globalStyle(`${metricHeader} span`, {
 export const metricLabel = style({
   fontSize: '0.875rem',
   fontWeight: '600',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   textTransform: 'uppercase',
   letterSpacing: '0.025em',
 });
@@ -51,19 +53,19 @@ export const metricLabel = style({
 export const metricValue = style({
   fontSize: '2.25rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '0.5rem',
 });
 
 export const metricChangePositive = style({
   fontSize: '0.875rem',
-  color: '#10b981',
+  color: vars.colors.semantic.success['500'],
   fontWeight: '500',
 });
 
 export const metricChangeNegative = style({
   fontSize: '0.875rem',
-  color: '#ef4444',
+  color: vars.colors.semantic.error['500'],
   fontWeight: '500',
 });
 
@@ -83,10 +85,10 @@ export const skeletonBlock = style({
 });
 
 export const errorBanner = style({
-  background: '#fee2e2',
-  border: '1px solid #fecaca',
+  background: vars.colors.semantic.error['100'],
+  border: `1px solid ${vars.colors.semantic.error['200']}`,
   borderRadius: '12px',
   padding: '1.5rem',
-  color: '#991b1b',
+  color: vars.colors.semantic.error['800'],
   fontSize: '0.875rem',
 });

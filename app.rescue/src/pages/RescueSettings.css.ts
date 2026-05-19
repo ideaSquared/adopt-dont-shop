@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   padding: '2rem',
   maxWidth: '1200px',
@@ -13,18 +15,18 @@ export const pageHeader = style({
 globalStyle(`${pageHeader} h1`, {
   fontSize: '2rem',
   fontWeight: 700,
-  color: '#1f2937',
+  color: vars.colors.neutral['800'],
   margin: '0 0 0.5rem 0',
 });
 
 globalStyle(`${pageHeader} p`, {
   fontSize: '1.1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
 export const tabContainer = style({
-  borderBottom: '2px solid #e5e7eb',
+  borderBottom: `2px solid ${vars.border.color.primary}`,
   marginBottom: '2rem',
 });
 
@@ -41,20 +43,20 @@ export const tab = style({
   background: 'none',
   cursor: 'pointer',
   borderBottom: '2px solid transparent',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   transition: 'all 0.2s',
   position: 'relative',
   bottom: '-2px',
   selectors: {
     '&:hover': {
-      color: '#3b82f6',
+      color: vars.colors.semantic.info['500'],
     },
   },
 });
 
 export const tabActive = style({
-  color: '#3b82f6',
-  borderBottomColor: '#3b82f6',
+  color: vars.colors.semantic.info['500'],
+  borderBottomColor: vars.colors.semantic.info['500'],
 });
 
 export const tabPanel = style({
@@ -71,12 +73,12 @@ export const loadingContainer = style({
   alignItems: 'center',
   height: '400px',
   fontSize: '1.125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const errorContainer = style({
-  backgroundColor: '#fee2e2',
-  color: '#991b1b',
+  backgroundColor: vars.colors.semantic.error['100'],
+  color: vars.colors.semantic.error['800'],
   padding: '2rem',
   borderRadius: '0.5rem',
   textAlign: 'center',
@@ -92,8 +94,8 @@ globalStyle(`${errorContainer} p`, {
 });
 
 export const placeholderSection = style({
-  background: '#f9fafb',
-  border: '2px dashed #d1d5db',
+  background: vars.background.primary,
+  border: `2px dashed ${vars.border.color.secondary}`,
   borderRadius: '0.75rem',
   padding: '3rem',
   textAlign: 'center',
@@ -101,31 +103,31 @@ export const placeholderSection = style({
 
 globalStyle(`${placeholderSection} h2`, {
   fontSize: '1.5rem',
-  color: '#374151',
+  color: vars.text.secondary,
   margin: '0 0 1rem 0',
 });
 
 globalStyle(`${placeholderSection} p`, {
   fontSize: '1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
 export const securitySection = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.secondary,
+  border: `1px solid ${vars.border.color.primary}`,
   borderRadius: '0.75rem',
   padding: '2rem',
 });
 
 globalStyle(`${securitySection} h2`, {
   fontSize: '1.25rem',
-  color: '#374151',
+  color: vars.text.secondary,
   margin: '0 0 0.5rem 0',
 });
 
 globalStyle(`${securitySection} > p`, {
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: '0 0 1.5rem 0',
 });

@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const headerActions = style({
   display: 'flex',
   gap: '0.75rem',
@@ -16,7 +18,7 @@ export const reportCard = style({
   transition: 'all 0.2s ease',
   position: 'relative',
   ':hover': {
-    borderColor: '#d1d5db',
+    borderColor: vars.border.color.secondary,
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
     transform: 'translateY(-2px)',
   },
@@ -25,13 +27,13 @@ export const reportCard = style({
 export const reportTitle = style({
   fontSize: '1.125rem',
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
 export const reportDescription = style({
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: '0 0 1rem 0',
   lineHeight: 1.5,
 });
@@ -41,7 +43,7 @@ export const reportMeta = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   paddingTop: '1rem',
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.primary}`,
 });
 
 export const reportFrequency = style({
@@ -49,7 +51,7 @@ export const reportFrequency = style({
   alignItems: 'center',
   gap: '0.375rem',
   fontSize: '0.75rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${reportFrequency} svg`, {
@@ -73,13 +75,13 @@ export const scheduledReportItem = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '1.25rem',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.primary}`,
   borderRadius: '12px',
-  background: '#ffffff',
+  background: vars.background.secondary,
   transition: 'all 0.2s ease',
   ':hover': {
-    background: '#f9fafb',
-    borderColor: '#d1d5db',
+    background: vars.background.primary,
+    borderColor: vars.border.color.secondary,
   },
 });
 
@@ -98,13 +100,13 @@ export const scheduledReportDetails = style({
 
 export const scheduledReportName = style({
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
   fontSize: '0.9375rem',
 });
 
 export const scheduledReportSchedule = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const scheduledReportStatus = style({
@@ -115,7 +117,7 @@ export const scheduledReportStatus = style({
 
 export const lastRun = style({
   fontSize: '0.75rem',
-  color: '#9ca3af',
+  color: vars.text.quaternary,
 });
 
 export const quickStatsGrid = style({
@@ -126,8 +128,8 @@ export const quickStatsGrid = style({
 });
 
 export const quickStatCard = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.secondary,
+  border: `1px solid ${vars.border.color.primary}`,
   borderRadius: '12px',
   padding: '1.25rem',
   display: 'flex',
@@ -143,13 +145,13 @@ export const quickStatDetails = style({
 
 export const quickStatLabel = style({
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const quickStatValue = style({
   fontSize: '1.5rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const buttonIcon = style({
@@ -166,19 +168,19 @@ export const reportRow = style({
   display: 'flex',
   justifyContent: 'space-between',
   padding: '12px',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.primary}`,
   borderRadius: '8px',
   textDecoration: 'none',
   color: 'inherit',
 });
 
 export const subtleSmall = style({
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: '13px',
 });
 
 export const subtleScope = style({
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: '12px',
 });
 
@@ -195,14 +197,14 @@ export const templatesGrid = style({
 export const templateCard = style({
   display: 'block',
   padding: '14px',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.primary}`,
   borderRadius: '8px',
   textDecoration: 'none',
   color: 'inherit',
 });
 
 export const templateDescription = style({
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: '12px',
   marginTop: '4px',
 });
