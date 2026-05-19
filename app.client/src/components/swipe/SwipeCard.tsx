@@ -284,6 +284,10 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
 
   const age = formatAge(pet);
   const distanceLabel = formatDistance(pet.distance);
+  const compatibilityScore =
+    pet.compatibilityScore !== undefined && pet.compatibilityScore !== null
+      ? pet.compatibilityScore
+      : null;
   const placeholderBackground =
     petTypeGradients[pet.type ?? ''] ?? 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
 
@@ -373,11 +377,11 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
           </>
         )}
 
-        {(pet.isSponsored || pet.compatibilityScore !== undefined && pet.compatibilityScore !== null) && (
+        {(pet.isSponsored || compatibilityScore !== null) && (
           <div className={styles.topBadges}>
-            {pet.compatibilityScore !== undefined && pet.compatibilityScore !== null && pet.compatibilityScore >= 0.7 && (
+            {compatibilityScore !== null && compatibilityScore >= 0.7 && (
               <span className={styles.topBadge({ variant: 'match' })}>
-                <MdVerified /> {Math.round(pet.compatibilityScore * 100)}% match
+                <MdVerified /> {Math.round(compatibilityScore * 100)}% match
               </span>
             )}
             {pet.isSponsored && (
