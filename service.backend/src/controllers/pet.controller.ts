@@ -12,6 +12,8 @@ import {
   ReportPetRequestSchema,
 } from '@adopt-dont-shop/lib.validation';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
+import { matchService } from '../matching';
+import { loadMatchConfig } from '../matching/config';
 import { PetType, Size, Gender, PetStatus, AgeGroup } from '../models/Pet';
 import PetService, { PetSearchFilters } from '../services/pet.service';
 import type { BulkPetOperation } from '../types/pet';
@@ -146,6 +148,24 @@ export class PetController {
 
     const result = await this.petService.searchPets(filters, options);
 
+    // Optional personalised re-rank. Gated on MATCH_SEARCH_RERANK so we
+    // can ship the wiring dark and flip per environment. Honours the
+    // user's existing sortBy when set to anything other than the default
+    // — only relevance/match sort gets re-ordered.
+    const matchScores = new Map<string, number>();
+    const userId = req.user?.userId;
+    const matchCfg = loadMatchConfig();
+    if (
+      userId &&
+      matchCfg.enabled &&
+      matchCfg.searchRerank &&
+      (!req.query.sortBy || req.query.sortBy === 'match' || req.query.sortBy === 'relevance')
+    ) {
+      const scored = await matchService.rankPets(userId, result.pets);
+      for (const s of scored) matchScores.set(s.petId, s.score);
+      result.pets.sort((a, b) => (matchScores.get(b.petId) ?? 0) - (matchScores.get(a.petId) ?? 0));
+    }
+
     // Distance is computed by the service layer (Haversine). Preserve it through toJSON().
     const readDistance = (value: unknown): number | undefined => {
       if (!value || typeof value !== 'object') {
@@ -159,10 +179,12 @@ export class PetController {
       const petJson = pet.toJSON() as unknown as Record<string, unknown>;
       const breedRel = petJson.Breed as { name?: string } | undefined;
       const rescueRel = petJson.Rescue as { name?: string } | undefined;
+      const score = matchScores.get(pet.petId);
       const enriched: Record<string, unknown> = {
         ...petJson,
         breed: breedRel?.name ?? null,
         rescueName: rescueRel?.name ?? null,
+        ...(score !== undefined ? { relevanceScore: score } : {}),
       };
       delete enriched.Breed;
       delete enriched.SecondaryBreed;

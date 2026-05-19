@@ -6,7 +6,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { MdCheckCircle, MdPets, MdRefresh, MdStar } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { resolveFileUrl } from '../../utils/fileUtils';
-import { ProgressiveImage } from '@adopt-dont-shop/lib.components';
+import { MatchReasonChips, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import * as styles from './SwipeCard.css';
 
 interface SwipeCardProps {
@@ -403,6 +403,11 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
               <span className={styles.badge({ variant: 'breed' })}>{pet.breed}</span>
               <span>{pet.gender}</span>
             </div>
+            {pet.matchReasons && pet.matchReasons.length > 0 && (
+              <div className={styles.detailRow}>
+                <MatchReasonChips reasons={pet.matchReasons} />
+              </div>
+            )}
           </div>
         </div>
       </div>

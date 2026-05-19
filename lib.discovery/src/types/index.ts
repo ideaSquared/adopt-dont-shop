@@ -97,6 +97,10 @@ export interface DiscoveryPet {
   rescueName: string;
   isSponsored?: boolean;
   compatibilityScore?: number;
+  matchReasons?: Array<{
+    kind: 'pref_match' | 'lifestyle' | 'distance' | 'similar_to_liked' | 'fresh';
+    label: string;
+  }>;
 }
 
 export interface DiscoveryQueue {

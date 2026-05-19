@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto';
 import { Op, fn, literal, type WhereAttributeHash } from 'sequelize';
 import { cached } from '../cache/redis-cache';
+import { matchService, type ReasonChip, type ScoredPet } from '../matching';
 import Breed from '../models/Breed';
 import Pet, { AgeGroup, Gender, PetStatus, PetType, Size } from '../models/Pet';
 import PetMedia, { PetMediaType } from '../models/PetMedia';
@@ -85,6 +86,7 @@ export interface DiscoveryPet {
   rescueName: string;
   isSponsored?: boolean;
   compatibilityScore?: number;
+  matchReasons?: ReasonChip[];
 }
 
 export interface DiscoveryQueue {
@@ -136,14 +138,20 @@ export class DiscoveryService {
       // Get pets with smart filtering and sorting
       const pets = await this.getSmartSortedPets(filters, limit, userId);
 
-      // Transform to discovery format
-      const discoveryPets = await this.transformToDiscoveryPets(pets);
+      // Personalised re-rank when matching is enabled and we have a
+      // userId. Otherwise scoredPets is empty and transform falls back
+      // to the legacy compatibility score.
+      const scoredPets =
+        userId && matchService.isEnabled() ? await matchService.rankPets(userId, pets) : [];
+
+      const orderedPets = this.orderByScores(pets, scoredPets);
+      const discoveryPets = await this.transformToDiscoveryPets(orderedPets, scoredPets);
 
       return {
         pets: discoveryPets,
         sessionId,
         hasMore: pets.length === limit,
-        nextCursor: pets.length > 0 ? pets[pets.length - 1].petId : undefined,
+        nextCursor: orderedPets.length > 0 ? orderedPets[orderedPets.length - 1].petId : undefined,
       };
     } catch (error) {
       logger.error('Error generating discovery queue', {
@@ -294,6 +302,12 @@ export class DiscoveryService {
           // 5. Random factor for diversity
           fn('RANDOM'),
         ],
+        // Force a single-query plan so the eager-loaded Rescue alias is
+        // visible to the ORDER BY clauses above. Sequelize 7 wraps the
+        // Pet query in a subquery whenever `limit` is set with includes,
+        // which hides the Rescue join from the outer ORDER BY and
+        // surfaces as `missing FROM-clause entry for table "Rescue"`.
+        subQuery: false,
         limit: limit * 2, // Get more than needed for filtering
       });
 
@@ -314,20 +328,19 @@ export class DiscoveryService {
   }
 
   /**
-   * Apply smart filtering based on user preferences and behavior
+   * Apply smart filtering based on user preferences and behavior.
+   *
+   * Pets with images sort first (better UX), but pets without images
+   * are still surfaced behind them — they used to be dropped, which
+   * hid most seed data in dev environments. Frontend renders a
+   * placeholder for the no-image case.
    */
   private applySmartFiltering(pets: Pet[], _userId?: string): Pet[] {
-    // For now, implement basic filtering. ML-based filtering on user
-    // behaviour is a future enhancement and tracked separately.
+    const withImages = pets.filter(pet => getImages(pet).length > 0);
+    const withoutImages = pets.filter(pet => getImages(pet).length === 0);
 
-    // Remove pets with no images. Media is eager-loaded via PetMedia
-    // (plan 2.1).
-    const filtered = pets.filter(pet => getImages(pet).length > 0);
-
-    // Implement diversity - don't show too many of the same breed in a row
-    const diversified = this.diversifyBreeds(filtered);
-
-    return diversified;
+    const diversified = this.diversifyBreeds(withImages);
+    return [...diversified, ...withoutImages];
   }
 
   /**
@@ -366,9 +379,27 @@ export class DiscoveryService {
   }
 
   /**
-   * Transform Pet models to DiscoveryPet format
+   * Reorder pets by personalised score when matching is enabled.
+   * When `scoredPets` is empty, preserves the legacy smart-sort order.
    */
-  private async transformToDiscoveryPets(pets: Pet[]): Promise<DiscoveryPet[]> {
+  private orderByScores(pets: Pet[], scoredPets: ScoredPet[]): Pet[] {
+    if (scoredPets.length === 0) return pets;
+    const scoreByPetId = new Map(scoredPets.map(s => [s.petId, s.score]));
+    return [...pets].sort(
+      (a, b) => (scoreByPetId.get(b.petId) ?? 0) - (scoreByPetId.get(a.petId) ?? 0)
+    );
+  }
+
+  /**
+   * Transform Pet models to DiscoveryPet format. When `scoredPets`
+   * is non-empty, replaces the legacy compatibility score with the
+   * matching module's blended score and surfaces reason chips.
+   */
+  private async transformToDiscoveryPets(
+    pets: Pet[],
+    scoredPets: ScoredPet[] = []
+  ): Promise<DiscoveryPet[]> {
+    const scoreLookup = new Map(scoredPets.map(s => [s.petId, s]));
     return pets.map(pet => {
       // Type assertion to access included rescue / breed data
       const petWithIncludes = pet as Pet & {
@@ -405,7 +436,8 @@ export class DiscoveryService {
         shortDescription: pet.shortDescription || undefined,
         rescueName: petWithIncludes.Rescue?.name || 'Unknown Rescue',
         isSponsored: petWithIncludes.Rescue?.status === 'verified' || false,
-        compatibilityScore: this.calculateCompatibilityScore(pet),
+        compatibilityScore: scoreLookup.get(petId)?.score ?? this.calculateCompatibilityScore(pet),
+        matchReasons: scoreLookup.get(petId)?.reasons,
       };
     });
   }
