@@ -16,8 +16,8 @@ interface SwipeStackProps {
 
 const VISIBLE_CARDS = 3;
 const PRELOAD_AHEAD = 5;
-const CARD_SCALE_STEP = 0.05;
-const CARD_Y_OFFSET = 8;
+const CARD_SCALE_STEP = 0.04;
+const CARD_Y_OFFSET = 12;
 
 export const SwipeStack: React.FC<SwipeStackProps> = ({
   pets,

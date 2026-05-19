@@ -10,39 +10,31 @@ export const cardContainer = recipe({
   base: {
     position: 'absolute',
     width: '100%',
-    maxWidth: '350px',
-    height: '600px',
-    background: 'white',
-    borderRadius: '20px',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+    maxWidth: '380px',
+    height: '620px',
+    background: '#fff',
+    borderRadius: '24px',
+    boxShadow:
+      '0 20px 40px -12px rgba(0, 0, 0, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.1)',
     userSelect: 'none',
     overflow: 'hidden',
     willChange: 'transform',
-    selectors: {
-      '&:active': {
-        // cursor handled inline based on isTop prop
-      },
-    },
+    touchAction: 'none',
     '@media': {
       '(max-width: 768px)': {
-        maxWidth: '90vw',
-        height: '70vh',
+        maxWidth: 'min(92vw, 420px)',
+        height: 'min(70vh, 640px)',
+        borderRadius: '20px',
       },
     },
   },
   variants: {
     isTop: {
-      true: {
-        cursor: 'grab',
-      },
-      false: {
-        cursor: 'default',
-      },
+      true: { cursor: 'grab' },
+      false: { cursor: 'default', pointerEvents: 'none' },
     },
     disabled: {
-      true: {
-        cursor: 'default',
-      },
+      true: { cursor: 'default' },
       false: {},
     },
   },
@@ -51,14 +43,17 @@ export const cardContainer = recipe({
 
 export const imageContainer = style({
   position: 'relative',
-  height: '70%',
+  width: '100%',
+  height: '100%',
   overflow: 'hidden',
+  background: '#1a1a1a',
 });
 
 globalStyle(`${imageContainer} img`, {
   width: '100%',
   height: '100%',
   objectFit: 'cover',
+  display: 'block',
 });
 
 export const placeholderImage = style({
@@ -76,6 +71,7 @@ export const placeholderImage = style({
 globalStyle(`${placeholderImage} .placeholder-icon`, {
   fontSize: '80px',
   marginBottom: '20px',
+  opacity: 0.9,
 });
 
 export const placeholderIconSpin = style({
@@ -89,7 +85,7 @@ export const placeholderIconSpin = style({
 
 export const placeholderText = style({
   fontSize: '1.5rem',
-  fontWeight: 'bold',
+  fontWeight: 700,
   marginBottom: '8px',
   textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
 });
@@ -100,141 +96,336 @@ export const placeholderSubtext = style({
   textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
 });
 
-export const swipeOverlay = style({
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: '120px',
-  height: '120px',
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '48px',
-  color: 'white',
-  fontWeight: 'bold',
-  border: '4px solid white',
-  zIndex: 10,
-});
-
-export const cardContent = style({
-  padding: '20px',
-  height: '30%',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between',
-});
-
-export const petName = style({
-  fontSize: '24px',
-  fontWeight: 700,
-  margin: '0 0 8px 0',
-  color: '#333',
-});
-
-export const petDetails = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '4px',
-});
-
-export const detailRow = style({
-  display: 'flex',
-  justifyContent: 'space-between',
-  fontSize: '16px',
-  color: '#666',
-});
-
-export const badge = recipe({
-  base: {
-    padding: '4px 8px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: 600,
-  },
-  variants: {
-    variant: {
-      age: {
-        background: '#e3f2fd',
-        color: '#1976d2',
-      },
-      size: {
-        background: '#f3e5f5',
-        color: '#7b1fa2',
-      },
-      breed: {
-        background: '#e8f5e8',
-        color: '#388e3c',
-      },
-    },
-  },
-  defaultVariants: { variant: 'age' },
-});
-
-export const loginPromptOverlay = recipe({
+/* Tap-zones for cycling images (left/right halves of upper card) */
+export const tapZone = recipe({
   base: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.7)',
+    bottom: '35%',
+    width: '40%',
+    zIndex: 4,
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    outline: 'none',
+  },
+  variants: {
+    side: {
+      left: { left: 0 },
+      right: { right: 0 },
+    },
+  },
+});
+
+/* Image dots indicator */
+export const imageDots = style({
+  position: 'absolute',
+  top: '12px',
+  left: '12px',
+  right: '12px',
+  display: 'flex',
+  gap: '4px',
+  zIndex: 5,
+  pointerEvents: 'none',
+});
+
+export const imageDot = recipe({
+  base: {
+    flex: 1,
+    height: '3px',
+    borderRadius: '2px',
+    background: 'rgba(255, 255, 255, 0.4)',
+    transition: 'background 0.2s ease',
+  },
+  variants: {
+    active: {
+      true: { background: 'rgba(255, 255, 255, 0.95)' },
+      false: {},
+    },
+  },
+});
+
+/* Gradient overlay that fades image to dark at the bottom so text is readable */
+export const gradientScrim = style({
+  position: 'absolute',
+  inset: 0,
+  background:
+    'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0.85) 100%)',
+  pointerEvents: 'none',
+  zIndex: 1,
+});
+
+/* Corner stamps shown while dragging */
+export const stamp = recipe({
+  base: {
+    position: 'absolute',
+    top: '32px',
+    padding: '8px 18px',
+    border: '4px solid',
+    borderRadius: '10px',
+    fontSize: '2rem',
+    fontWeight: 800,
+    letterSpacing: '2px',
+    textTransform: 'uppercase',
+    pointerEvents: 'none',
+    zIndex: 6,
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+  },
+  variants: {
+    variant: {
+      like: {
+        right: '24px',
+        color: '#22c55e',
+        borderColor: '#22c55e',
+        transform: 'rotate(15deg)',
+      },
+      pass: {
+        left: '24px',
+        color: '#ef4444',
+        borderColor: '#ef4444',
+        transform: 'rotate(-15deg)',
+      },
+      super_like: {
+        top: '40%',
+        left: '50%',
+        marginLeft: '-90px',
+        color: '#0ea5e9',
+        borderColor: '#0ea5e9',
+        transform: 'rotate(-8deg)',
+      },
+      info: {
+        bottom: '40%',
+        left: '50%',
+        marginLeft: '-60px',
+        color: '#f59e0b',
+        borderColor: '#f59e0b',
+      },
+    },
+  },
+});
+
+/* Top badges (sponsored, compatibility) */
+export const topBadges = style({
+  position: 'absolute',
+  top: '24px',
+  right: '12px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '6px',
+  alignItems: 'flex-end',
+  zIndex: 5,
+  pointerEvents: 'none',
+});
+
+export const topBadge = recipe({
+  base: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '4px 10px',
+    borderRadius: '999px',
+    fontSize: '0.75rem',
+    fontWeight: 700,
     backdropFilter: 'blur(8px)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+  },
+  variants: {
+    variant: {
+      sponsored: {
+        background: 'rgba(255, 255, 255, 0.92)',
+        color: '#7c3aed',
+      },
+      match: {
+        background: 'rgba(34, 197, 94, 0.92)',
+        color: 'white',
+      },
+    },
+  },
+});
+
+/* Bottom info layered over image */
+export const cardContent = style({
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+  padding: '20px 22px 24px',
+  color: 'white',
+  zIndex: 2,
+  pointerEvents: 'none',
+});
+
+export const nameRow = style({
+  display: 'flex',
+  alignItems: 'baseline',
+  gap: '10px',
+  flexWrap: 'wrap',
+  marginBottom: '6px',
+});
+
+export const petName = style({
+  fontSize: '2rem',
+  fontWeight: 800,
+  margin: 0,
+  color: 'white',
+  letterSpacing: '-0.02em',
+  textShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+  lineHeight: 1.1,
+});
+
+export const petAge = style({
+  fontSize: '1.4rem',
+  fontWeight: 500,
+  color: 'rgba(255, 255, 255, 0.92)',
+  textShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+});
+
+export const metaRow = style({
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: '8px 12px',
+  fontSize: '0.95rem',
+  color: 'rgba(255, 255, 255, 0.95)',
+  textShadow: '0 1px 4px rgba(0, 0, 0, 0.4)',
+  marginBottom: '8px',
+});
+
+export const metaItem = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '4px',
+});
+
+export const metaDot = style({
+  width: '3px',
+  height: '3px',
+  borderRadius: '50%',
+  background: 'rgba(255, 255, 255, 0.6)',
+});
+
+export const description = style({
+  fontSize: '0.9rem',
+  lineHeight: 1.4,
+  color: 'rgba(255, 255, 255, 0.92)',
+  textShadow: '0 1px 4px rgba(0, 0, 0, 0.4)',
+  marginTop: '6px',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden',
+});
+
+export const chipsRow = style({
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '6px',
+  marginTop: '10px',
+});
+
+export const chip = recipe({
+  base: {
+    padding: '4px 10px',
+    borderRadius: '999px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    background: 'rgba(255, 255, 255, 0.18)',
+    color: 'white',
+    backdropFilter: 'blur(8px)',
+    border: '1px solid rgba(255, 255, 255, 0.25)',
+  },
+  variants: {
+    variant: {
+      default: {},
+      breed: { background: 'rgba(255, 255, 255, 0.22)' },
+    },
+  },
+  defaultVariants: { variant: 'default' },
+});
+
+/* Info button (chevron) to expand details */
+export const infoButton = style({
+  position: 'absolute',
+  right: '16px',
+  bottom: '24px',
+  width: '40px',
+  height: '40px',
+  borderRadius: '50%',
+  background: 'rgba(255, 255, 255, 0.18)',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  color: 'white',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  backdropFilter: 'blur(8px)',
+  fontSize: '1.4rem',
+  pointerEvents: 'auto',
+  zIndex: 5,
+  transition: 'all 0.2s ease',
+  ':hover': {
+    background: 'rgba(255, 255, 255, 0.28)',
+    transform: 'translateY(-2px)',
+  },
+});
+
+/* Login prompt overlay */
+export const loginPromptOverlay = recipe({
+  base: {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(0, 0, 0, 0.75)',
+    backdropFilter: 'blur(10px)',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
-    borderRadius: '20px',
+    zIndex: 20,
+    borderRadius: '24px',
     textAlign: 'center',
     padding: '2rem',
   },
   variants: {
     show: {
-      true: {
-        display: 'flex',
-      },
-      false: {
-        display: 'none',
-      },
+      true: { display: 'flex' },
+      false: { display: 'none' },
     },
   },
   defaultVariants: { show: false },
 });
 
 export const promptIcon = style({
-  fontSize: '3rem',
+  fontSize: '3.5rem',
   marginBottom: '1rem',
-  color: '#4ecdc4',
 });
 
 export const promptTitle = style({
   color: 'white',
-  fontSize: '1.2rem',
+  fontSize: '1.4rem',
   marginBottom: '0.5rem',
-  fontWeight: 600,
+  fontWeight: 700,
 });
 
 export const promptText = style({
-  color: 'rgba(255, 255, 255, 0.8)',
-  fontSize: '0.9rem',
-  lineHeight: 1.4,
+  color: 'rgba(255, 255, 255, 0.85)',
+  fontSize: '0.95rem',
+  lineHeight: 1.5,
   marginBottom: '1.5rem',
+  maxWidth: '280px',
 });
 
 export const promptButton = style({
-  background: 'linear-gradient(45deg, #4ecdc4, #44a08d)',
+  background: 'linear-gradient(135deg, #4ecdc4, #44a08d)',
   color: 'white',
   border: 'none',
-  padding: '0.75rem 1.5rem',
-  borderRadius: '12px',
-  fontWeight: 600,
-  fontSize: '0.9rem',
+  padding: '0.85rem 1.75rem',
+  borderRadius: '999px',
+  fontWeight: 700,
+  fontSize: '0.95rem',
   cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  boxShadow: '0 4px 15px rgba(78, 205, 196, 0.3)',
+  transition: 'all 0.2s ease',
+  boxShadow: '0 6px 20px rgba(78, 205, 196, 0.4)',
   ':hover': {
     transform: 'translateY(-2px)',
-    boxShadow: '0 6px 20px rgba(78, 205, 196, 0.4)',
+    boxShadow: '0 8px 24px rgba(78, 205, 196, 0.5)',
   },
 });
