@@ -114,14 +114,12 @@ const formatHomeVisit = (visit: HomeVisit): HomeVisitDto => ({
 
 export class ApplicationService {
   /**
-   * Look up the rescueId for any StaffMember row owned by the user.
-   * Mirrors the previous controller-side `StaffMember.findOne({ where:
-   * { userId } })` lookup (no `isVerified` filter), centralised in the
-   * service layer so the controller stays thin (ADS-489).
+   * Look up the rescueId for a verified StaffMember row owned by the user.
+   * Unverified rows must not grant rescue-scoped access (ADS-591).
    */
   static async getStaffRescueIdForUser(userId: string): Promise<string | null> {
     const membership = await StaffMember.findOne({
-      where: { userId },
+      where: { userId, isVerified: true },
       attributes: ['rescueId'],
     });
     return membership?.rescueId ?? null;
@@ -549,7 +547,10 @@ export class ApplicationService {
         }
         if (userType === UserType.RESCUE_STAFF) {
           const StaffMember = (await import('../models/StaffMember')).default;
-          const membership = await StaffMember.findOne({ where: { userId } });
+          const membership = await StaffMember.findOne({
+            where: { userId, isVerified: true },
+            attributes: ['rescueId'],
+          });
           if (!membership || membership.rescueId !== application.rescueId) {
             throw new Error('Access denied');
           }

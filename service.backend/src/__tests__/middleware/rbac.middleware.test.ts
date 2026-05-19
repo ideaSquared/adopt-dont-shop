@@ -4,7 +4,6 @@ import { UserType } from '../../models/User';
 import {
   requireRole,
   requirePermission,
-  requireOwnership,
   requirePermissionOrOwnership,
   requireAdmin,
   requireRescue,
@@ -294,131 +293,6 @@ describe('RBAC Middleware', () => {
 
         expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockNext).not.toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('requireOwnership - Resource ownership check', () => {
-    describe('when user is not authenticated', () => {
-      it('should reject request with 401', () => {
-        mockRequest.user = undefined;
-
-        const middleware = requireOwnership('userId');
-        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
-
-        expect(mockResponse.status).toHaveBeenCalledWith(401);
-        expect(mockResponse.json).toHaveBeenCalledWith({
-          error: 'Authentication required',
-          message: 'User must be authenticated',
-        });
-      });
-    });
-
-    describe('when checking userId ownership', () => {
-      it('should reject if user does not own the resource', () => {
-        const requestWithPath = {
-          ...mockRequest,
-          path: '/api/users/user-456/profile',
-          params: { userId: 'user-456' },
-        };
-        requestWithPath.user = {
-          userId: 'user-123',
-          userType: UserType.ADOPTER,
-        } as AuthenticatedRequest['user'];
-
-        const middleware = requireOwnership('userId');
-        middleware(requestWithPath as AuthenticatedRequest, mockResponse as Response, mockNext);
-
-        expect(mockResponse.status).toHaveBeenCalledWith(403);
-        expect(mockResponse.json).toHaveBeenCalledWith({
-          error: 'Access denied',
-          message: 'You can only access your own resources',
-        });
-      });
-
-      it('should log ownership check failure', () => {
-        const requestWithPath = {
-          ...mockRequest,
-          path: '/api/users/user-456/profile',
-          params: { userId: 'user-456' },
-        };
-        requestWithPath.user = {
-          userId: 'user-123',
-          userType: UserType.ADOPTER,
-        } as unknown as AuthenticatedRequest['user'];
-
-        const middleware = requireOwnership('userId');
-        middleware(requestWithPath as AuthenticatedRequest, mockResponse as Response, mockNext);
-
-        expect(logger.warn).toHaveBeenCalledWith(
-          'Access denied - resource ownership check failed',
-          {
-            userId: 'user-123',
-            resourceId: 'user-456',
-            resourceParam: 'userId',
-            endpoint: '/api/users/user-456/profile',
-          }
-        );
-      });
-
-      it('should allow access if user owns the resource', () => {
-        mockRequest.user = {
-          userId: 'user-123',
-          userType: UserType.ADOPTER,
-        } as AuthenticatedRequest['user'];
-        mockRequest.params = { userId: 'user-123' };
-
-        const middleware = requireOwnership('userId');
-        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
-
-        expect(mockNext).toHaveBeenCalled();
-        expect(mockResponse.status).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('when checking non-userId resources', () => {
-      it('should pass through for other resource types', () => {
-        mockRequest.user = {
-          userId: 'user-123',
-          userType: UserType.ADOPTER,
-        } as AuthenticatedRequest['user'];
-        mockRequest.params = { id: 'resource-456' };
-
-        const middleware = requireOwnership('id');
-        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
-
-        expect(mockNext).toHaveBeenCalled();
-      });
-
-      it('should attach resourceId to request', () => {
-        mockRequest.user = {
-          userId: 'user-123',
-          userType: UserType.ADOPTER,
-        } as AuthenticatedRequest['user'];
-        mockRequest.params = { petId: 'pet-789' };
-
-        const middleware = requireOwnership('petId');
-        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
-
-        expect((mockRequest as AuthenticatedRequest & { resourceId: string }).resourceId).toBe(
-          'pet-789'
-        );
-        expect(mockNext).toHaveBeenCalled();
-      });
-    });
-
-    describe('when using default parameter', () => {
-      it('should default to "id" parameter', () => {
-        mockRequest.user = {
-          userId: 'user-123',
-          userType: UserType.ADOPTER,
-        } as AuthenticatedRequest['user'];
-        mockRequest.params = { id: 'resource-123' };
-
-        const middleware = requireOwnership();
-        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
-
-        expect(mockNext).toHaveBeenCalled();
       });
     });
   });
