@@ -1052,9 +1052,10 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", 'https://fonts.googleapis.com'],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
+        fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
       },
     },
   })
