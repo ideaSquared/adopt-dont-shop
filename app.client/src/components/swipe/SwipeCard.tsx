@@ -65,7 +65,7 @@ const formatAge = (pet: DiscoveryPet): string => {
 };
 
 const formatDistance = (distance?: number): string | null => {
-  if (distance == null) {
+  if (distance === undefined || distance === null) {
     return null;
   }
   if (distance < 1) {
@@ -175,12 +175,8 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   }));
 
   // Live drag stamp opacities (computed from x/y in a derived style)
-  const likeOpacity = to([x], (vx: number) =>
-    Math.min(1, Math.max(0, vx / STAMP_FADE_DISTANCE))
-  );
-  const passOpacity = to([x], (vx: number) =>
-    Math.min(1, Math.max(0, -vx / STAMP_FADE_DISTANCE))
-  );
+  const likeOpacity = to([x], (vx: number) => Math.min(1, Math.max(0, vx / STAMP_FADE_DISTANCE)));
+  const passOpacity = to([x], (vx: number) => Math.min(1, Math.max(0, -vx / STAMP_FADE_DISTANCE)));
   const superOpacity = to([x, y], (vx: number, vy: number) => {
     if (Math.abs(vx) > 60) return 0;
     return Math.min(1, Math.max(0, -vy / STAMP_FADE_DISTANCE));
@@ -377,9 +373,9 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
           </>
         )}
 
-        {(pet.isSponsored || pet.compatibilityScore != null) && (
+        {(pet.isSponsored || pet.compatibilityScore !== undefined && pet.compatibilityScore !== null) && (
           <div className={styles.topBadges}>
-            {pet.compatibilityScore != null && pet.compatibilityScore >= 0.7 && (
+            {pet.compatibilityScore !== undefined && pet.compatibilityScore !== null && pet.compatibilityScore >= 0.7 && (
               <span className={styles.topBadge({ variant: 'match' })}>
                 <MdVerified /> {Math.round(pet.compatibilityScore * 100)}% match
               </span>
@@ -454,9 +450,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             </div>
           )}
 
-          {pet.shortDescription && (
-            <p className={styles.description}>{pet.shortDescription}</p>
-          )}
+          {pet.shortDescription && <p className={styles.description}>{pet.shortDescription}</p>}
         </div>
 
         {isTop && (

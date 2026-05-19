@@ -14,8 +14,7 @@ export const cardContainer = recipe({
     height: '620px',
     background: '#fff',
     borderRadius: '24px',
-    boxShadow:
-      '0 20px 40px -12px rgba(0, 0, 0, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.1)',
+    boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.1)',
     userSelect: 'none',
     overflow: 'hidden',
     willChange: 'transform',

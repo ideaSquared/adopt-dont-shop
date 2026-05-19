@@ -63,8 +63,7 @@ export const skeletonCard = style({
   maxWidth: '380px',
   height: '620px',
   borderRadius: '24px',
-  background:
-    'linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 40%, #f1f5f9 80%)',
+  background: 'linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 40%, #f1f5f9 80%)',
   backgroundSize: '800px 100%',
   animationName: shimmer,
   animationDuration: '1.4s',
