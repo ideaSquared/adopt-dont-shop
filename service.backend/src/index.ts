@@ -38,6 +38,7 @@ import authRoutes from './routes/auth.routes';
 import chatRoutes from './routes/chat.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import discoveryRoutes from './routes/discovery.routes';
+import matchRoutes from './routes/match.routes';
 import emailRoutes from './routes/email.routes';
 import monitoringRoutes from './routes/monitoring.routes';
 import notificationRoutes from './routes/notification.routes';
@@ -295,6 +296,7 @@ app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/conversations', chatRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/discovery', discoveryRoutes);
+app.use('/api/v1/match', matchRoutes);
 app.use('/api/v1/email', emailRoutes);
 app.use('/api/v1/pets', petRoutes);
 app.use('/api/v1/users', userRoutes);
@@ -542,6 +544,23 @@ const startServer = async () => {
         }
       } catch (err) {
         logger.warn('Retention job failed to start (continuing without scheduling)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
+      // Match digest job — opt-in daily notification of new pet
+      // matches. Gated on MATCH_DIGEST_ENABLED inside the schedule call
+      // so an unconfigured env stays quiet.
+      try {
+        const { scheduleMatchDigestJob, startMatchDigestWorker } =
+          await import('./jobs/match-digest.job');
+        await scheduleMatchDigestJob();
+        const w = startMatchDigestWorker();
+        if (w) {
+          logger.info('Match digest worker started');
+        }
+      } catch (err) {
+        logger.warn('Match digest job failed to start (continuing without scheduling)', {
           error: err instanceof Error ? err.message : String(err),
         });
       }
