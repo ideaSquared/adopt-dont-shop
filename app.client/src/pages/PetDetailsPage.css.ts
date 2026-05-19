@@ -14,9 +14,12 @@ export const backLink = style({
   marginBottom: '2rem',
   textDecoration: 'none',
   color: vars.text.secondary,
+  background: 'transparent',
   border: `1px solid ${vars.border.color.primary}`,
   borderRadius: vars.border.radius.md,
   fontSize: '0.9rem',
+  font: 'inherit',
+  cursor: 'pointer',
   transition: `all ${vars.transitions.fast}`,
   ':hover': {
     color: vars.text.primary,
