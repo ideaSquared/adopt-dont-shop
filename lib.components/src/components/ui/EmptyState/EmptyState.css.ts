@@ -126,7 +126,7 @@ export const actionContainer = style({
   gap: vars.spacing.sm,
   alignItems: 'center',
   '@media': {
-    [`(min-width: ${vars.breakpoints.sm})`]: {
+    '(min-width: 640px)': {
       flexDirection: 'row',
       justifyContent: 'center',
     },

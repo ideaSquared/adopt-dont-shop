@@ -47,6 +47,13 @@ export type { SelectOption } from './components/form/SelectInput/';
 export { TextArea } from './components/form/TextArea';
 export { TextInput } from './components/form/TextInput';
 export { Input } from './components/ui/Input';
+export { FormField, FormRow, FormSection } from './components/form/FormField';
+export type {
+  FormFieldProps,
+  FormRowColumns,
+  FormRowProps,
+  FormSectionProps,
+} from './components/form/FormField';
 
 // Feedback Components
 export { Alert } from './components/ui/Alert';
@@ -67,7 +74,7 @@ export * from './components/form/FileUpload';
 // export * from './components/form/RadioInput';
 
 // UI components - commenting out problematic ones
-// export * from './components/ui/EmptyState';
+export * from './components/ui/EmptyState';
 // export * from './components/ui/Pagination';
 // export * from './components/ui/ProgressBar';
 export { Toast, ToastContainer } from './components/ui/Toast';
