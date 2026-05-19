@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heading, Text } from '@adopt-dont-shop/lib.components';
+import { EmptyState, Heading, Stack, Text } from '@adopt-dont-shop/lib.components';
 import { usePlatformMetrics } from '../hooks';
 import * as styles from './Dashboard.css';
 
@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
     : [];
 
   return (
-    <div className={styles.dashboardContainer}>
+    <Stack spacing='xl' className={styles.dashboardContainer}>
       <div className={styles.pageHeader}>
         <Heading level='h1'>Admin Dashboard</Heading>
         <Text>Welcome back! Here's what's happening across the platform today.</Text>
@@ -129,21 +129,12 @@ const Dashboard: React.FC = () => {
             ))}
       </div>
 
-      <div
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '2rem',
-          textAlign: 'center',
-          color: '#6b7280',
-        }}
-      >
-        <p style={{ margin: 0, fontSize: '0.875rem' }}>
-          📊 Additional dashboard widgets will be added here: recent activity, charts, alerts, etc.
-        </p>
-      </div>
-    </div>
+      <EmptyState
+        title='More widgets coming soon'
+        description='Recent activity, charts, and alerts will appear here.'
+        variant='loading'
+      />
+    </Stack>
   );
 };
 

@@ -6,6 +6,8 @@ import {
   TextArea as LibTextArea,
   Alert,
   CheckboxInput,
+  FormSection,
+  FormRow,
 } from '@adopt-dont-shop/lib.components';
 import type { AdoptionPolicy } from '../../types/rescue';
 import * as styles from './AdoptionPolicyForm.css';
@@ -190,35 +192,29 @@ const AdoptionPolicyForm: React.FC<AdoptionPolicyFormProps> = ({
           )}
         </div>
 
-        <div className={styles.formSection}>
-          <h3 className={styles.sectionTitle}>Adoption Fees</h3>
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <TextInput
-                label="Minimum Fee (£)"
-                type="number"
-                min={0}
-                step={0.01}
-                value={formData.adoptionFeeRange.min.toString()}
-                onChange={e => handleFeeChange('min', e.target.value)}
-                fullWidth
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <TextInput
-                label="Maximum Fee (£)"
-                type="number"
-                min={0}
-                step={0.01}
-                value={formData.adoptionFeeRange.max.toString()}
-                onChange={e => handleFeeChange('max', e.target.value)}
-                helperText="Set the range for your adoption fees"
-                fullWidth
-              />
-            </div>
-          </div>
-        </div>
+        <FormSection title="Adoption Fees">
+          <FormRow columns="two">
+            <TextInput
+              label="Minimum Fee (£)"
+              type="number"
+              min={0}
+              step={0.01}
+              value={formData.adoptionFeeRange.min.toString()}
+              onChange={e => handleFeeChange('min', e.target.value)}
+              fullWidth
+            />
+            <TextInput
+              label="Maximum Fee (£)"
+              type="number"
+              min={0}
+              step={0.01}
+              value={formData.adoptionFeeRange.max.toString()}
+              onChange={e => handleFeeChange('max', e.target.value)}
+              helperText="Set the range for your adoption fees"
+              fullWidth
+            />
+          </FormRow>
+        </FormSection>
 
         <div className={styles.formSection}>
           <h3 className={styles.sectionTitle}>Adoption Requirements</h3>

@@ -2,14 +2,11 @@ import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
-export const dashboardContainer = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '2rem',
-});
+// Stack handles direction/gap; the className only adds page-level overrides.
+export const dashboardContainer = style({});
 
 export const pageHeader = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing.md,
 });
 
 export const metricsGrid = style({
@@ -22,7 +19,7 @@ export const metricsGrid = style({
 export const metricCard = style({
   background: vars.background.secondary,
   border: `1px solid ${vars.border.color.primary}`,
-  borderRadius: '12px',
+  borderRadius: vars.border.radius.xl,
   padding: '1.5rem',
   transition: 'all 0.2s ease',
   ':hover': {
@@ -75,8 +72,8 @@ const shimmerAnim = keyframes({
 });
 
 export const skeletonBlock = style({
-  borderRadius: '6px',
-  background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+  borderRadius: vars.border.radius.md,
+  background: `linear-gradient(90deg, ${vars.background.tertiary} 25%, ${vars.background.primary} 50%, ${vars.background.tertiary} 75%)`,
   backgroundSize: '200px 100%',
   animationName: shimmerAnim,
   animationDuration: '1.4s',
@@ -87,7 +84,7 @@ export const skeletonBlock = style({
 export const errorBanner = style({
   background: vars.colors.semantic.error['100'],
   border: `1px solid ${vars.colors.semantic.error['200']}`,
-  borderRadius: '12px',
+  borderRadius: vars.border.radius.xl,
   padding: '1.5rem',
   color: vars.colors.semantic.error['800'],
   fontSize: '0.875rem',
