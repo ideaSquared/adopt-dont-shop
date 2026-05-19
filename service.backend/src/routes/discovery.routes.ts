@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { QueryTypes } from 'sequelize';
 import { DiscoveryController } from '../controllers/discovery.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, optionalAuth } from '../middleware/auth';
 import { idempotency } from '../middleware/idempotency';
 import sequelize from '../sequelize';
 
@@ -401,6 +401,7 @@ router.get('/test', (req, res) => {
 // Discovery routes
 router.get(
   '/pets',
+  optionalAuth,
   DiscoveryController.validateDiscoveryQuery,
   discoveryController.getDiscoveryQueue
 );
@@ -455,7 +456,9 @@ router.post(
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.post('/queue', discoveryController.addToQueue);
+// Optional auth so the personalised match path engages when a cookie is
+// present, while anonymous browse still works.
+router.post('/queue', optionalAuth, discoveryController.addToQueue);
 
 // Swipe action routes
 router.post(

@@ -15,6 +15,7 @@ import {
 } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { resolveFileUrl } from '../../utils/fileUtils';
+import { MatchReasonChips } from '@adopt-dont-shop/lib.components';
 import * as styles from './SwipeCard.css';
 
 interface SwipeCardProps {
@@ -377,7 +378,9 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
           </>
         )}
 
-        {(pet.isSponsored || compatibilityScore !== null) && (
+        {(pet.isSponsored ||
+          compatibilityScore !== null ||
+          (pet.matchReasons && pet.matchReasons.length > 0)) && (
           <div className={styles.topBadges}>
             {compatibilityScore !== null && compatibilityScore >= 0.7 && (
               <span className={styles.topBadge({ variant: 'match' })}>
@@ -388,6 +391,9 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
               <span className={styles.topBadge({ variant: 'sponsored' })}>
                 <MdStar /> Featured
               </span>
+            )}
+            {pet.matchReasons && pet.matchReasons.length > 0 && (
+              <MatchReasonChips reasons={pet.matchReasons} />
             )}
           </div>
         )}

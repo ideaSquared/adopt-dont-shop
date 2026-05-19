@@ -90,7 +90,10 @@ export class DiscoveryController {
       default: DEFAULT_PAGE_SIZE,
       max: MAX_PAGE_SIZE,
     });
-    const userId = req.query.userId as string;
+    // Authenticated user takes precedence so personalised matching engages
+    // even when the client omits the query param. Explicit `?userId=` still
+    // wins (admin / debug surfaces).
+    const userId = (req.query.userId as string | undefined) ?? req.user?.userId;
 
     const discoveryQueue = await this.discoveryService.getDiscoveryQueue(filters, limit, userId);
 
@@ -231,7 +234,7 @@ export class DiscoveryController {
 
     const {
       filters = {},
-      userId,
+      userId: bodyUserId,
       limit = 20,
     } = req.body as {
       filters?: DiscoveryFilters;
@@ -239,10 +242,15 @@ export class DiscoveryController {
       limit?: number;
     };
 
+    // Prefer the authenticated user over a body-supplied id so personalised
+    // matching kicks in even when the client doesn't plumb the id through.
+    // Body still wins when present (admin tools / debug flows).
+    const userId = bodyUserId ?? req.user?.userId;
+
     logger.info('Discovery queue request received', {
       service: 'discovery',
       type: 'queue_request',
-      data: { filters, limit },
+      data: { filters, limit, userId },
       ip: req.ip,
     });
 

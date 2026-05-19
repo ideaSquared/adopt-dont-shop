@@ -89,11 +89,13 @@ describe('SwipeService', () => {
             },
           ],
         ]) // Second call for getting pet details
-        .mockResolvedValueOnce([]); // Third call for updating preferences
+        .mockResolvedValueOnce([]) // Third call for updating preferences
+        .mockResolvedValueOnce([[]]) // Fourth: SELECT user_preferences for inferred-prefs projection
+        .mockResolvedValueOnce([]); // Fifth: upsert adopter_match_profile.inferred_prefs
 
       await swipeService.recordSwipeAction(mockSwipeAction);
 
-      expect(mockSequelize.query).toHaveBeenCalledTimes(3);
+      expect(mockSequelize.query).toHaveBeenCalledTimes(5);
       // Plan 2.4 — breed is now an FK; the pet preference probe joins
       // through the breeds lookup to surface the breed name. Match
       // the canonical column expression rather than the legacy
@@ -150,13 +152,40 @@ describe('SwipeService', () => {
       );
     });
 
-    it('should not update preferences for pass action', async () => {
+    it('records a negative-weighted preference for pass action', async () => {
       const passAction = { ...mockSwipeAction, action: 'pass' as const };
-      mockSequelize.query = vi.fn().mockResolvedValue([]);
+      mockSequelize.query = vi
+        .fn()
+        .mockResolvedValueOnce([]) // Insert swipe action
+        .mockResolvedValueOnce([
+          [
+            {
+              type: 'dog',
+              breed: 'Golden Retriever',
+              age_group: 'young',
+              size: 'large',
+              gender: 'male',
+              good_with_children: true,
+              good_with_dogs: true,
+              good_with_cats: false,
+              energy_level: 'high',
+            },
+          ],
+        ])
+        .mockResolvedValueOnce([]) // Insert prefs with weight -1
+        .mockResolvedValueOnce([[]]) // SELECT for projection
+        .mockResolvedValueOnce([]); // Upsert adopter_match_profile
 
       await swipeService.recordSwipeAction(passAction);
 
-      expect(mockSequelize.query).toHaveBeenCalledTimes(1); // Only the initial insert
+      expect(mockSequelize.query).toHaveBeenCalledTimes(5);
+      expect(mockSequelize.query).toHaveBeenNthCalledWith(
+        3,
+        expect.stringContaining('INSERT INTO user_preferences'),
+        expect.objectContaining({
+          replacements: expect.objectContaining({ weight: -1 }),
+        })
+      );
     });
 
     it('should handle error when recording swipe action fails', async () => {
@@ -435,6 +464,8 @@ describe('SwipeService', () => {
         .fn()
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([mockPetData])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([[]])
         .mockResolvedValueOnce([]);
 
       await swipeService.recordSwipeAction({
@@ -445,7 +476,7 @@ describe('SwipeService', () => {
         userId: 'user123',
       });
 
-      expect(mockSequelize.query).toHaveBeenCalledTimes(3);
+      expect(mockSequelize.query).toHaveBeenCalledTimes(5);
       expect(mockSequelize.query).toHaveBeenNthCalledWith(
         3,
         expect.stringContaining('INSERT INTO user_preferences'),

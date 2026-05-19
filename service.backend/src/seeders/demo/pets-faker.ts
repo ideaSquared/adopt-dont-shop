@@ -8,9 +8,19 @@ import Pet, {
   SpayNeuterStatus,
   VaccinationStatus,
 } from '../../models/Pet';
+import PetMedia, { PetMediaType } from '../../models/PetMedia';
 import Rescue from '../../models/Rescue';
 import { ukFaker } from '../lib/faker-rng';
 import { bulkInsert } from '../lib/bulk-insert';
+
+/**
+ * Pick a placeholder image URL keyed on the pet id so the same pet
+ * always renders the same picture across reseeds. picsum.photos
+ * accepts a free-form `seed` and returns a stable image; no auth, no
+ * rate-limit drama for ~hundreds of dev requests.
+ */
+const imageUrlForPet = (petId: string, slot: number): string =>
+  `https://picsum.photos/seed/${petId}-${slot}/640/480`;
 
 const DEFAULT_PET_COUNT = 800;
 
@@ -93,7 +103,7 @@ export async function seedDemoPets(): Promise<void> {
 
   const rescues = await Rescue.findAll({ paranoid: false, attributes: ['rescueId'] });
   if (rescues.length === 0) {
-    console.log('⚠️  No rescues to attach pets to — skipping demo pets');
+    console.warn('⚠️  No rescues to attach pets to — skipping demo pets');
     return;
   }
 
@@ -182,5 +192,32 @@ export async function seedDemoPets(): Promise<void> {
 
   await bulkInsert(Pet, rows);
 
-  console.log(`✅ Inserted ${rows.length} faker-generated pets (target ${target})`);
+  // Attach a realistic spread of images: 70% of pets get 1-4 photos,
+  // 30% have none (mirrors how rescues actually upload — some rich,
+  // some bare). Without this every faker pet was hidden by the
+  // discovery image filter.
+  const mediaRows = rows.flatMap(p => {
+    const hasImages = ukFaker.datatype.boolean({ probability: 0.7 });
+    if (!hasImages) return [];
+    const count = ukFaker.number.int({ min: 1, max: 4 });
+    return Array.from({ length: count }, (_, idx) => ({
+      media_id: ukFaker.string.uuid(),
+      pet_id: p.petId,
+      type: PetMediaType.IMAGE,
+      url: imageUrlForPet(p.petId, idx),
+      order_index: idx,
+      is_primary: idx === 0,
+      created_at: p.createdAt,
+      updated_at: p.createdAt,
+    }));
+  });
+
+  if (mediaRows.length > 0) {
+    await bulkInsert(PetMedia, mediaRows);
+  }
+
+  console.warn(
+    `✅ Inserted ${rows.length} faker-generated pets (target ${target}) ` +
+      `+ ${mediaRows.length} image rows`
+  );
 }

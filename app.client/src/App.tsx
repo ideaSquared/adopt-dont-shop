@@ -40,6 +40,12 @@ const ProfilePage = lazy(() =>
 const FavoritesPage = lazy(() =>
   import('@/pages/FavoritesPage').then(m => ({ default: m.FavoritesPage }))
 );
+const TopPicksPage = lazy(() =>
+  import('@/pages/TopPicksPage').then(m => ({ default: m.TopPicksPage }))
+);
+const MatchOnboardingPage = lazy(() =>
+  import('@/pages/MatchOnboardingPage').then(m => ({ default: m.MatchOnboardingPage }))
+);
 const NotificationsPage = lazy(() =>
   import('@/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage }))
 );
@@ -142,6 +148,8 @@ function App() {
                     <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
                     <Route path='/profile' element={<ProfilePage />} />
                     <Route path='/favorites' element={<FavoritesPage />} />
+                    <Route path='/match/top-picks' element={<TopPicksPage />} />
+                    <Route path='/match/onboarding' element={<MatchOnboardingPage />} />
                     <Route path='/notifications' element={<NotificationsPage />} />
                     <Route
                       path='/chat'
