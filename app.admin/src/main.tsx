@@ -12,11 +12,9 @@ import { StatsigWrapper } from './contexts/StatsigContext';
 
 // ADS-594: promote deferred font stylesheet via CSSOM so the non-blocking
 // load works under a strict CSP (no inline `onload=` handler).
-document
-  .querySelectorAll<HTMLLinkElement>('link[data-deferred-stylesheet]')
-  .forEach(link => {
-    link.media = 'all';
-  });
+document.querySelectorAll<HTMLLinkElement>('link[data-deferred-stylesheet]').forEach(link => {
+  link.media = 'all';
+});
 
 // ADS-406: initialise Sentry as early as possible so any synchronous module-load
 // error is captured. No-ops when VITE_SENTRY_DSN is unset.
