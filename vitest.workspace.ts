@@ -16,6 +16,7 @@ export default defineWorkspace([
   'lib.discovery/vitest.config.ts',
   'lib.feature-flags/vitest.config.ts',
   'lib.invitations/vitest.config.ts',
+  'lib.matching/vitest.config.ts',
   'lib.moderation/vitest.config.ts',
   'lib.notifications/vitest.config.ts',
   'lib.permissions/vitest.config.ts',

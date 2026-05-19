@@ -7,7 +7,18 @@
  * pet card, match profile read/write).
  */
 
-export type ReasonChipKind = 'pref_match' | 'lifestyle' | 'distance' | 'similar_to_liked' | 'fresh';
+export const REASON_CHIP_KINDS = [
+  'pref_match',
+  'lifestyle',
+  'distance',
+  'similar_to_liked',
+  'fresh',
+] as const;
+
+export type ReasonChipKind = (typeof REASON_CHIP_KINDS)[number];
+
+export const isReasonChipKind = (value: unknown): value is ReasonChipKind =>
+  typeof value === 'string' && (REASON_CHIP_KINDS as readonly string[]).includes(value);
 
 export type ReasonChip = {
   kind: ReasonChipKind;
