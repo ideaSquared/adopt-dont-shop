@@ -26,19 +26,22 @@ const mockUseUnsuspendUser = vi.fn();
 const mockUseVerifyUser = vi.fn();
 const mockUseDeleteUser = vi.fn();
 
+const defaultMutation = {
+  mutateAsync: vi.fn(),
+  isLoading: false,
+  isError: false,
+  isSuccess: false,
+  reset: vi.fn(),
+};
+
 vi.mock('../hooks', () => ({
   useUsers: (...args: unknown[]) => mockUseUsers(...args),
   useSuspendUser: () => mockUseSuspendUser(),
   useUnsuspendUser: () => mockUseUnsuspendUser(),
   useVerifyUser: () => mockUseVerifyUser(),
   useDeleteUser: () => mockUseDeleteUser(),
-  useBulkUpdateUsers: () => ({
-    mutateAsync: vi.fn(),
-    isLoading: false,
-    isError: false,
-    isSuccess: false,
-    reset: vi.fn(),
-  }),
+  useBulkUpdateUsers: () => defaultMutation,
+  useCreateUser: () => defaultMutation,
 }));
 
 vi.mock('../services/libraryServices', () => ({
@@ -46,6 +49,7 @@ vi.mock('../services/libraryServices', () => ({
 }));
 
 vi.mock('../components/modals', () => ({
+  AddUserModal: () => null,
   UserDetailModal: () => null,
   EditUserModal: () => null,
   CreateSupportTicketModal: () => null,

@@ -250,7 +250,7 @@ const Users: React.FC = () => {
   const handleResetPassword = async (userId: string) => {
     try {
       await userManagementService.resetUserPassword(userId);
-      showToast({ message: 'Password reset triggered', type: 'success' });
+      showToast('Password reset triggered', 'success');
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to reset password');
     }
@@ -575,7 +575,7 @@ const Users: React.FC = () => {
         onClose={() => setIsAddModalOpen(false)}
         onCreate={async payload => {
           await createUser.mutateAsync(payload);
-          showToast({ message: 'User created', type: 'success' });
+          showToast('User created', 'success');
         }}
       />
 
