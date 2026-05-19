@@ -1,16 +1,23 @@
-import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { Socket, Server as SocketIOServer } from 'socket.io';
-import { config } from '../config';
 import { toFrontendMessage } from '../controllers/chat.controller';
 import MessageReaction from '../models/MessageReaction';
 import RevokedToken from '../models/RevokedToken';
+import Role from '../models/Role';
+import StaffMember from '../models/StaffMember';
+import User, { UserStatus, UserType } from '../models/User';
 import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
 import { getMessageBroker } from '../services/messageBroker.service';
 import { setAnalyticsIo } from './analytics-emitter';
+import { setLiveIo, getLiveIo } from './socket-registry';
 import { JsonObject } from '../types/common';
+import { verifyAccessToken } from '../utils/jwt';
 import { logger } from '../utils/logger';
+
+// Re-export so existing callers that imported disconnectAllSockets
+// from this module keep working.
+export { disconnectAllSockets } from './socket-registry';
 
 // Track active connections for health monitoring
 let activeConnections = 0;
@@ -78,7 +85,82 @@ interface AuthenticatedSocket extends Socket {
   userId?: string;
   userType?: string;
   role?: string;
-  rescueId?: string;
+  rescueId?: string | null;
+  authJti?: string;
+}
+
+/**
+ * ADS-597: per-event re-validation cache. We re-verify the JWT signature
+ * and check the RevokedToken table on every inbound event, but bound the
+ * DB cost by caching the "still valid" result for a short sliding
+ * window. JWT verify is cheap (HMAC) and runs every time; only the
+ * RevokedToken DB read is skipped while the window is open.
+ */
+const REVALIDATE_CACHE_MS = 30_000;
+const socketRevalidateUntil = new Map<string, number>();
+
+/**
+ * ADS-597: periodic re-fetch of authoritative auth state. Every
+ * AUTH_REFRESH_MS we re-read the user row and disconnect the socket if
+ * the account is no longer active. Per-socket so we can clear it on
+ * disconnect.
+ */
+const AUTH_REFRESH_MS = 60_000;
+const socketAuthRefreshTimers = new Map<string, NodeJS.Timeout>();
+
+/**
+ * ADS-599: resolve the most-privileged role name the user currently
+ * holds (DB-backed; not the JWT claim). Drives the `analytics:platform`
+ * room join.
+ */
+function resolveHighestRole(roles: ReadonlyArray<{ name: string }> | undefined): string {
+  const names = roles?.map(r => r.name) ?? [];
+  if (names.includes('super_admin')) {
+    return 'super_admin';
+  }
+  if (names.includes('admin')) {
+    return 'admin';
+  }
+  if (names.includes('moderator')) {
+    return 'moderator';
+  }
+  return 'user';
+}
+
+/**
+ * ADS-599: fetch the user's current auth state from the DB rather than
+ * trusting JWT claims. Returns null if the account is no longer
+ * eligible for an authenticated socket (deleted, suspended, email
+ * un-verified). Used both at handshake and by the periodic refresh
+ * timer.
+ */
+async function loadSocketAuthState(userId: string): Promise<{
+  userType: UserType;
+  role: string;
+  rescueId: string | null;
+} | null> {
+  const user = await User.findByPk(userId, {
+    include: [{ model: Role, as: 'Roles' }],
+  });
+  if (!user) {
+    return null;
+  }
+  if (user.status !== UserStatus.ACTIVE || !user.emailVerified) {
+    return null;
+  }
+  let rescueId: string | null = null;
+  if (user.userType === UserType.RESCUE_STAFF) {
+    const staff = await StaffMember.findOne({
+      where: { userId, isVerified: true },
+      attributes: ['rescueId'],
+    });
+    rescueId = staff?.rescueId ?? null;
+  }
+  return {
+    userType: user.userType,
+    role: resolveHighestRole(user.Roles),
+    rescueId,
+  };
 }
 
 interface UserPresence {
@@ -113,13 +195,6 @@ export function isUserOnline(userId: string): boolean {
 }
 
 /**
- * Holds the live Socket.IO server so module-level broadcast helpers can
- * reach it without the caller having to plumb a handle through. Populated
- * in SocketHandlers' constructor and cleared in teardown paths (tests).
- */
-let liveIo: SocketIOServer | null = null;
-
-/**
  * Broadcast a "new_message" event to every given recipient's personal
  * user:{id} room. Each authenticated socket auto-joins that room on
  * connect, so we don't need the frontend to manage chat-room membership
@@ -136,6 +211,7 @@ export function broadcastNewMessage(
   message: any,
   recipientUserIds: string[]
 ): void {
+  const liveIo = getLiveIo();
   if (!liveIo) {
     return;
   }
@@ -152,9 +228,10 @@ export class SocketHandlers {
   constructor(io: SocketIOServer) {
     this.io = io;
     // Expose the IO instance to module-level broadcast helpers
-    // (broadcastNewMessage) so controllers can fan out events without
+    // (broadcastNewMessage) and the shared registry used by
+    // disconnectAllSockets so controllers can fan out events without
     // having to plumb a reference through.
-    liveIo = io;
+    setLiveIo(io);
     // ADS-105: same registration for the analytics emitter so service-
     // layer mutations can fan invalidations out without plumbing a ref.
     setAnalyticsIo(io);
@@ -176,14 +253,10 @@ export class SocketHandlers {
           return next(new Error('Authentication token required'));
         }
 
-        const decoded = jwt.verify(token, config.jwt.secret) as {
-          userId: string;
-          email: string;
-          userType: string;
-          role?: string;
-          rescueId?: string;
-          jti?: string;
-        };
+        // ADS-590: HS256 allowlist pinned via the shared helper so a
+        // future asymmetric-key path can't be exploited via alg
+        // confusion. Used by the HTTP middleware too.
+        const decoded = verifyAccessToken(token);
 
         // ADS-473: HTTP authenticateToken middleware checks the
         // RevokedToken table on every authenticated request, but
@@ -194,9 +267,19 @@ export class SocketHandlers {
           return next(new Error('Token has been revoked'));
         }
 
+        // ADS-599: do not trust role/rescueId/userType from the JWT.
+        // The token may have been issued before a role change or staff
+        // transfer. Read the authoritative state from the DB.
+        const authState = await loadSocketAuthState(decoded.userId);
+        if (!authState) {
+          return next(new Error('Account is not eligible'));
+        }
+
         socket.userId = decoded.userId;
-        socket.role = decoded.role || 'user';
-        socket.rescueId = decoded.rescueId;
+        socket.authJti = decoded.jti;
+        socket.userType = authState.userType;
+        socket.role = authState.role;
+        socket.rescueId = authState.rescueId;
 
         next();
       } catch (error) {
@@ -204,6 +287,89 @@ export class SocketHandlers {
         next(new Error('Authentication failed'));
       }
     });
+  }
+
+  /**
+   * ADS-597: per-event re-validation. JWT verify runs on every event
+   * (cheap); the RevokedToken DB read is gated by a 30s sliding cache so
+   * a chatty client doesn't slam the table. On failure we tear the
+   * socket down so no further events are processed.
+   */
+  private installPerEventRevalidation(socket: AuthenticatedSocket) {
+    socket.use((_event, next) => {
+      const token =
+        socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+
+      if (!token) {
+        socket.disconnect(true);
+        return;
+      }
+
+      let decoded;
+      try {
+        decoded = verifyAccessToken(token);
+      } catch {
+        socket.disconnect(true);
+        return;
+      }
+
+      const cachedUntil = socketRevalidateUntil.get(socket.id) ?? 0;
+      if (Date.now() < cachedUntil) {
+        next();
+        return;
+      }
+
+      if (!decoded.jti) {
+        socketRevalidateUntil.set(socket.id, Date.now() + REVALIDATE_CACHE_MS);
+        next();
+        return;
+      }
+
+      RevokedToken.findByPk(decoded.jti)
+        .then(row => {
+          if (row) {
+            socket.disconnect(true);
+            return;
+          }
+          socketRevalidateUntil.set(socket.id, Date.now() + REVALIDATE_CACHE_MS);
+          next();
+        })
+        .catch(err => {
+          logger.error('Socket revalidation DB error:', err);
+          // Fail closed: better to tear down than serve a possibly-
+          // revoked session.
+          socket.disconnect(true);
+        });
+    });
+  }
+
+  /**
+   * ADS-597: re-fetch the user row every AUTH_REFRESH_MS and disconnect
+   * if the account is no longer active (suspended, deleted, email
+   * un-verified). Also refreshes the cached role/rescueId so a demoted
+   * admin loses their `analytics:platform` membership on the next
+   * connect — combined with disconnectAllSockets it tightens the
+   * window after a role change.
+   */
+  private installAuthRefreshTimer(socket: AuthenticatedSocket) {
+    const timer = setInterval(async () => {
+      if (!socket.userId) {
+        return;
+      }
+      try {
+        const authState = await loadSocketAuthState(socket.userId);
+        if (!authState) {
+          socket.disconnect(true);
+          return;
+        }
+        socket.userType = authState.userType;
+        socket.role = authState.role;
+        socket.rescueId = authState.rescueId;
+      } catch (err) {
+        logger.error('Socket auth refresh error:', err);
+      }
+    }, AUTH_REFRESH_MS);
+    socketAuthRefreshTimers.set(socket.id, timer);
   }
 
   /**
@@ -222,26 +388,29 @@ export class SocketHandlers {
       // Update user presence
       this.updateUserPresence(socket.userId!, 'online', socket.id);
 
-      // Join user to their personal room for notifications
+      // Join user to their personal room for notifications. Also used
+      // by disconnectAllSockets() to terminate every device a user has
+      // open in one io.to(...).disconnectSockets() call.
       socket.join(`user:${socket.userId}`);
 
-      // ADS-105: analytics rooms. Rescue staff get rescue-scoped
-      // invalidations; admins/super-admins also get platform-wide.
-      // We can't read DB permissions on every handshake, so we gate
-      // platform-room membership on userType/role from the JWT —
-      // matches how the rest of the socket layer trusts the JWT
-      // payload.
+      // ADS-105 / ADS-599: analytics rooms. Rescue staff get rescue-
+      // scoped invalidations; admins/super-admins/moderators also get
+      // platform-wide. The role / rescueId values come from the
+      // handshake DB lookup (loadSocketAuthState) — *not* the JWT — so
+      // a stale token can't keep platform-room access after a demote.
       if (socket.rescueId) {
         socket.join(`analytics:rescue:${socket.rescueId}`);
       }
-      if (
-        socket.role === 'super_admin' ||
-        socket.role === 'admin' ||
-        socket.userType === 'admin' ||
-        socket.userType === 'moderator'
-      ) {
+      if (socket.role === 'super_admin' || socket.role === 'admin' || socket.role === 'moderator') {
         socket.join('analytics:platform');
       }
+
+      // ADS-597: per-event JWT/revocation re-check + periodic auth
+      // refresh. Without these the socket would remain authenticated
+      // for its full lifetime regardless of logout / suspend / token
+      // expiry.
+      this.installPerEventRevalidation(socket);
+      this.installAuthRefreshTimer(socket);
 
       // Setup event handlers
       this.setupChatHandlers(socket);
@@ -669,6 +838,15 @@ export class SocketHandlers {
 
       // Release per-socket rate-limit state
       socketEventTimestamps.delete(socket.id);
+
+      // ADS-597: stop the auth-refresh timer and drop the revalidation
+      // cache entry so they don't leak past the socket lifetime.
+      const timer = socketAuthRefreshTimers.get(socket.id);
+      if (timer) {
+        clearInterval(timer);
+        socketAuthRefreshTimers.delete(socket.id);
+      }
+      socketRevalidateUntil.delete(socket.id);
     });
   }
 

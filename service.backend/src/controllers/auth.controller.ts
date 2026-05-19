@@ -232,7 +232,14 @@ export class AuthController {
       return;
     }
 
-    const { secret, otpauthUrl } = AuthService.generateTwoFactorSecret(user.email);
+    // ADS-599: server stores the pending secret encrypted; the response
+    // still includes the secret so the user can copy it into their
+    // authenticator, but enableTwoFactor will *not* trust whatever the
+    // client posts back.
+    const { secret, otpauthUrl } = await AuthService.initiateTwoFactorSetup(
+      user.userId,
+      user.email
+    );
     const qrCodeDataUrl = await AuthService.generateQrCodeDataUrl(otpauthUrl);
 
     res.json({ secret, qrCodeDataUrl });
@@ -244,15 +251,21 @@ export class AuthController {
   async twoFactorEnable(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.userId;
-      const { secret, token } = req.body;
+      const { token } = req.body;
 
-      const result = await AuthService.enableTwoFactor(userId, secret, token);
+      // ADS-599: secret is no longer accepted from the client; the
+      // pending secret stored at twoFactorSetup time is used.
+      const result = await AuthService.enableTwoFactor(userId, token);
       res.json({ success: true, backupCodes: result.backupCodes });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('2FA enable failed:', error);
 
-      if (errorMessage.includes('Invalid verification code')) {
+      if (
+        errorMessage.includes('Invalid verification code') ||
+        errorMessage.includes('setup has not been initiated') ||
+        errorMessage.includes('setup has expired')
+      ) {
         res.status(400).json({ error: errorMessage });
         return;
       }
