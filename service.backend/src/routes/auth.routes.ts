@@ -581,6 +581,7 @@ router.post(
   '/2fa/backup-codes',
   authenticateToken,
   twoFactorLimiter,
+  authValidation.twoFactorRegenerateBackupCodes,
   AuthController.twoFactorRegenerateBackupCodes
 );
 
