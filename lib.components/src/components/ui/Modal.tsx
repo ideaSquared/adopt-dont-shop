@@ -124,14 +124,7 @@ export const Modal: React.FC<ModalProps> = ({
   }
 
   const modalContent = (
-    <div
-      className={styles.overlay}
-      onClick={handleOverlayClick}
-      onKeyDown={handleKeyDown}
-      role='button'
-      tabIndex={-1}
-      aria-label='Modal backdrop'
-    >
+    <div className={styles.overlay} onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
       <div
         ref={modalRef}
         className={clsx(styles.modalContainer({ size, centered }), className)}

@@ -3,6 +3,10 @@ import { style } from '@vanilla-extract/css';
 import { vars } from '../../../styles/theme.css';
 
 export const trigger = style({
+  background: 'transparent',
+  border: 'none',
+  padding: 0,
+  font: 'inherit',
   color: vars.text.primary,
   fontWeight: vars.typography.weight.bold,
   cursor: 'pointer',

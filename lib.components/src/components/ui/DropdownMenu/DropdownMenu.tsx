@@ -17,7 +17,9 @@ interface DropdownProps {
 const Dropdown: React.FC<DropdownProps> = ({ triggerLabel, items }) => (
   <DropdownMenuPrimitive.Root>
     <DropdownMenuPrimitive.Trigger asChild>
-      <span className={styles.trigger}>{triggerLabel}</span>
+      <button type='button' className={styles.trigger}>
+        {triggerLabel}
+      </button>
     </DropdownMenuPrimitive.Trigger>
     <DropdownMenuPrimitive.Content className={styles.content}>
       {items.map((item, index) => (

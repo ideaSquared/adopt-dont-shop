@@ -108,7 +108,7 @@ describe('ImageGallery Component', () => {
   it('updates the image index when a dot is clicked in carousel view', () => {
     renderWithTheme(<ImageGallery images={initialImages} viewMode='carousel' />);
 
-    const dots = screen.getAllByRole('button', { name: /dot/i }); // Ensure dots have accessible names
+    const dots = screen.getAllByRole('button', { name: /view image \d+ of \d+/i });
     expect(dots).toHaveLength(initialImages.length);
 
     fireEvent.click(dots[1]); // Click the second dot
