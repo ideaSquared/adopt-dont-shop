@@ -14,6 +14,8 @@ import RescueSettings from './RescueSettings';
 import User from './User';
 import UserFavorite from './UserFavorite';
 import UserApplicationPrefs from './UserApplicationPrefs';
+import AdopterMatchProfile from './AdopterMatchProfile';
+import UserPreference from './UserPreference';
 import UserConsent from './UserConsent';
 import UserNotificationPrefs from './UserNotificationPrefs';
 import UserPrivacyPrefs from './UserPrivacyPrefs';
@@ -93,6 +95,8 @@ const models = {
   UserNotificationPrefs,
   UserPrivacyPrefs,
   UserApplicationPrefs,
+  AdopterMatchProfile,
+  UserPreference,
   Rescue,
   RescueSettings,
   Breed,
@@ -621,6 +625,16 @@ try {
   User.hasOne(UserApplicationPrefs, { foreignKey: 'user_id', as: 'ApplicationPrefs' });
   UserApplicationPrefs.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
 
+  // AdopterMatchProfile association (1:1, lazy-created on first read by
+  // MatchService — no afterCreate hook so we don't bloat user.create paths).
+  User.hasOne(AdopterMatchProfile, { foreignKey: 'user_id', as: 'MatchProfile' });
+  AdopterMatchProfile.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+
+  // UserPreference — implicit signal table written by swipe.service on
+  // every like/pass and read by the CF scorer.
+  User.hasMany(UserPreference, { foreignKey: 'user_id', as: 'Preferences' });
+  UserPreference.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+
   // UserFavorite associations
   User.hasMany(UserFavorite, { foreignKey: 'user_id', as: 'Favorites' });
   UserFavorite.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
@@ -745,6 +759,8 @@ export {
   UserNotificationPrefs,
   UserPrivacyPrefs,
   UserApplicationPrefs,
+  AdopterMatchProfile,
+  UserPreference,
   UserRole,
   UserSanction,
   Content,

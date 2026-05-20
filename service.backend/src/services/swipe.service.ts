@@ -101,12 +101,23 @@ export class SwipeService {
         }
       );
 
-      // Update user preferences based on the action (for ML learning)
+      // Update user preferences based on the action (for ML learning).
+      // Likes / super_likes add positive weight; passes subtract a
+      // smaller negative weight so the CF scorer can distinguish a
+      // breed adopters actively dislike from one they've never seen.
       if (
         swipeAction.userId &&
-        (swipeAction.action === 'like' || swipeAction.action === 'super_like')
+        (swipeAction.action === 'like' ||
+          swipeAction.action === 'super_like' ||
+          swipeAction.action === 'pass')
       ) {
         await this.updateUserPreferences(swipeAction.userId, swipeAction.petId, swipeAction.action);
+        await this.projectInferredPrefs(swipeAction.userId).catch(err => {
+          logger.warn('Failed to project inferred prefs', {
+            userId: swipeAction.userId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
       }
     } catch (error) {
       logger.error('Error recording swipe action', { error, swipeAction });
@@ -327,12 +338,14 @@ export class SwipeService {
   }
 
   /**
-   * Update user preferences based on swipe actions (for ML learning)
+   * Update user preferences based on swipe actions (for ML learning).
+   * Pass adds a small negative weight so the CF scorer can tell apart
+   * "never seen" from "actively rejected".
    */
   private async updateUserPreferences(
     userId: string,
     petId: string,
-    action: 'like' | 'super_like'
+    action: 'like' | 'super_like' | 'pass'
   ): Promise<void> {
     try {
       // Get pet details for preference learning. Plan 2.4 — breed
@@ -369,7 +382,7 @@ export class SwipeService {
       }
 
       const pet = (petResults as PetPreferenceData[])[0];
-      const weight = action === 'super_like' ? 2 : 1; // Super likes count more
+      const weight = action === 'super_like' ? 2 : action === 'like' ? 1 : -1;
 
       // Update or insert user preference scores
       await sequelize.query(
@@ -441,5 +454,58 @@ export class SwipeService {
       logger.error('Error getting user preferences', { error, userId });
       return {};
     }
+  }
+
+  /**
+   * Project the rows in `user_preferences` into the cached
+   * `inferred_prefs` JSONB on `adopter_match_profile`. The CF scorer
+   * reads the cached projection so per-pet scoring stays in-memory
+   * without a per-call SQL fan-out.
+   *
+   * Idempotent — rebuilds the projection from scratch on every call.
+   */
+  private async projectInferredPrefs(userId: string): Promise<void> {
+    const prefs = await this.getUserPreferences(userId);
+
+    const project = (key: string): Record<string, number> => {
+      const rows = prefs[key] ?? [];
+      const out: Record<string, number> = {};
+      for (const { value, score } of rows) {
+        if (score > 0) out[value] = score;
+      }
+      return out;
+    };
+
+    const liked_types = project('type');
+    const liked_breeds = project('breed');
+    const liked_sizes = project('size');
+    const liked_age_groups = project('age_group');
+    const total_likes = Object.values(liked_types).reduce((s, v) => s + v, 0);
+
+    await sequelize.query(
+      `
+      INSERT INTO adopter_match_profile (
+        user_id, inferred_prefs, lifestyle, prefs_updated_at, created_at, updated_at, version
+      ) VALUES (
+        :userId, :inferred, '{}'::jsonb, NOW(), NOW(), NOW(), 0
+      )
+      ON CONFLICT (user_id) DO UPDATE SET
+        inferred_prefs = EXCLUDED.inferred_prefs,
+        prefs_updated_at = NOW(),
+        updated_at = NOW()
+    `,
+      {
+        replacements: {
+          userId,
+          inferred: JSON.stringify({
+            liked_types,
+            liked_breeds,
+            liked_sizes,
+            liked_age_groups,
+            total_likes,
+          }),
+        },
+      }
+    );
   }
 }

@@ -23,6 +23,7 @@
     "lib.feature-flags",
     "lib.invitations",
     "lib.legal",
+    "lib.matching",
     "lib.moderation",
     "lib.notifications",
     "lib.observability",

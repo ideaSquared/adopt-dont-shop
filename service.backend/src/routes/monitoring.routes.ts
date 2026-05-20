@@ -26,6 +26,80 @@ router.use(monitoringGuard);
 // inside `authenticateToken`. Once we're past the rate gate the standard
 // admin-auth chain runs.
 router.use(apiLimiter);
+
+// Dev-login user list is consumed pre-auth by the DevLoginPanel so the
+// user has *something* to log in as. `monitoringGuard` already 404s
+// this in production; admin auth on top would defeat the purpose.
+router.get('/api/dev/seeded-users', async (req, res) => {
+  const User = (await import('../models/User')).default;
+
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const userTypeRaw = typeof req.query.userType === 'string' ? req.query.userType : '';
+  const userTypes = userTypeRaw
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  const limitRaw = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 100;
+  const limit = Number.isFinite(limitRaw) ? Math.min(500, Math.max(1, limitRaw)) : 100;
+
+  const andClauses: WhereOptions[] = [];
+  if (userTypes.length > 0) {
+    andClauses.push({ userType: { [Op.in]: userTypes } });
+  }
+  if (q) {
+    const like = `%${q}%`;
+    andClauses.push({
+      [Op.or]: [
+        { firstName: { [Op.iLike]: like } },
+        { lastName: { [Op.iLike]: like } },
+        { email: { [Op.iLike]: like } },
+      ],
+    });
+  }
+  const where: WhereOptions = andClauses.length > 0 ? { [Op.and]: andClauses } : {};
+
+  const seededUsers = await User.findAll({
+    where,
+    attributes: [
+      'userId',
+      'firstName',
+      'lastName',
+      'email',
+      'userType',
+      'status',
+      'emailVerified',
+      'country',
+      'city',
+      'addressLine1',
+      'postalCode',
+      'timezone',
+      'language',
+      'bio',
+      'dateOfBirth',
+      'phoneNumber',
+      'termsAcceptedAt',
+      'privacyPolicyAcceptedAt',
+      'createdAt',
+      'updatedAt',
+    ],
+    order: [['createdAt', 'DESC']],
+    limit,
+  });
+
+  const transformedUsers = seededUsers.map(user => ({
+    ...user.toJSON(),
+    description: getDevUserDescription(user.userType, user.email),
+  }));
+
+  res.json({
+    users: transformedUsers,
+    source: 'database',
+    limit,
+    returned: transformedUsers.length,
+    timestamp: new Date(),
+  });
+});
+
 router.use(authenticateToken);
 router.use(requireAdmin);
 
@@ -1162,92 +1236,6 @@ if (process.env.NODE_ENV === 'development') {
       ...providerInfo,
       loginUrl: 'https://ethereal.email/login',
       messagesUrl: 'https://ethereal.email/messages',
-    });
-  });
-
-  // Dev seeded users endpoint — dynamic, queries the live DB so any
-  // faker-generated demo user is logged-in-able. NEVER exposed in prod
-  // (User table has real PII).
-  router.get('/api/dev/seeded-users', async (req, res) => {
-    // Production gate is enforced by `monitoringGuard` at the router level;
-    // we keep an admin-auth requirement (router.use(requireAdmin)) since the
-    // response includes user PII even outside production.
-    const User = (await import('../models/User')).default;
-
-    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-    const userTypeRaw = typeof req.query.userType === 'string' ? req.query.userType : '';
-    const userTypes = userTypeRaw
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
-    const limitRaw =
-      typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 100;
-    const limit = Number.isFinite(limitRaw) ? Math.min(500, Math.max(1, limitRaw)) : 100;
-
-    // Sequelize 7's `WhereAttributeHash` no longer carries the symbol
-    // indexer, so we compose AND-ed clauses (top-level attribute filters
-    // alongside a free-text OR group) via `Op.and` and let `WhereOptions`
-    // accept the union shape.
-    const andClauses: WhereOptions[] = [];
-    if (userTypes.length > 0) {
-      andClauses.push({ userType: { [Op.in]: userTypes } });
-    }
-    if (q) {
-      const like = `%${q}%`;
-      andClauses.push({
-        [Op.or]: [
-          { firstName: { [Op.iLike]: like } },
-          { lastName: { [Op.iLike]: like } },
-          // email is citext, so iLike here is redundant but harmless and
-          // matches the firstName/lastName pattern.
-          { email: { [Op.iLike]: like } },
-        ],
-      });
-    }
-    const where: WhereOptions = andClauses.length > 0 ? { [Op.and]: andClauses } : {};
-
-    const seededUsers = await User.findAll({
-      where,
-      attributes: [
-        'userId',
-        'firstName',
-        'lastName',
-        'email',
-        'userType',
-        'status',
-        'emailVerified',
-        'country',
-        'city',
-        'addressLine1',
-        'postalCode',
-        'timezone',
-        'language',
-        'bio',
-        'dateOfBirth',
-        'phoneNumber',
-        'termsAcceptedAt',
-        'privacyPolicyAcceptedAt',
-        'createdAt',
-        'updatedAt',
-      ],
-      order: [['createdAt', 'DESC']],
-      limit,
-    });
-
-    const transformedUsers = seededUsers.map(user => ({
-      ...user.toJSON(),
-      description: getDevUserDescription(user.userType, user.email),
-    }));
-
-    // ADS-398: never return a shared dev password in the response. The
-    // dev password is documented in the seeder README; emitting it here
-    // turned a misconfigured NODE_ENV into a one-shot credential leak.
-    res.json({
-      users: transformedUsers,
-      source: 'database',
-      limit,
-      returned: transformedUsers.length,
-      timestamp: new Date(),
     });
   });
 
