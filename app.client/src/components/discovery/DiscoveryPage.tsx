@@ -13,6 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import * as styles from './DiscoveryPage.css';
 import { SwipeControls } from '../swipe/SwipeControls';
 import { SwipeStack } from '../swipe/SwipeStack';
+import { EndOfQueueEmptyState } from './EndOfQueueEmptyState';
 
 export const DiscoveryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +35,11 @@ export const DiscoveryPage: React.FC = () => {
   const [viewedPetIds, setViewedPetIds] = useState<string[]>(persistedState.viewedPetIds);
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
   const [undoStack, setUndoStack] = useState<SwipeAction[]>([]);
+  // ADS-630: track whether `loadMorePets` has ever returned an empty page
+  // — that's how we differentiate "queue truly exhausted" from "first
+  // batch not arrived yet". Reset to true whenever the filter set
+  // changes so a new preference set gets a fresh chance at backfill.
+  const [hasMore, setHasMore] = useState(true);
 
   // Load initial pets
   useEffect(() => {
@@ -41,6 +47,8 @@ export const DiscoveryPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
+        // New filter set → assume there's more until proven otherwise.
+        setHasMore(true);
         const discoveryQueue = await discoveryService.getDiscoveryQueue(filters);
         const filtered = discoveryQueue.pets.filter(pet => !viewedPetIds.includes(pet.petId));
         setPets(filtered);
@@ -112,6 +120,11 @@ export const DiscoveryPage: React.FC = () => {
         const morePets = await discoveryService.loadMorePets(session.sessionId, lastPet.petId);
         if (morePets.length > 0) {
           setPets(prev => [...prev, ...morePets]);
+        } else {
+          // ADS-630: distinct from "haven't paginated yet" — backend
+          // explicitly returned no further matches for this preference
+          // set, so the empty state below is appropriate.
+          setHasMore(false);
         }
       }
     } catch (error) {
@@ -173,6 +186,11 @@ export const DiscoveryPage: React.FC = () => {
 
   const visiblePets = pets.slice(currentPetIndex);
   const hasNoPets = visiblePets.length === 0;
+  // ADS-630: the empty state must only show after pagination has
+  // actually returned an empty response — not just because the first
+  // batch is still in-flight. The initial-load `loading` guard is
+  // already enforced by the parent ternary.
+  const isQueueExhausted = !loading && !error && hasNoPets && !hasMore;
 
   return (
     <Container className={styles.pageContainer}>
@@ -267,6 +285,8 @@ export const DiscoveryPage: React.FC = () => {
               Try Again
             </button>
           </div>
+        ) : isQueueExhausted ? (
+          <EndOfQueueEmptyState />
         ) : (
           <>
             <SwipeStack
