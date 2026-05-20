@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
-import { Heading, Text, Input, Button } from '@adopt-dont-shop/lib.components';
+import {
+  Heading,
+  Text,
+  Input,
+  Button,
+  ConfirmDialog,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import { FiDownload, FiAlertTriangle } from 'react-icons/fi';
 import { apiService } from '../services/libraryServices';
 import * as styles from './PrivacyTools.css';
@@ -10,6 +17,7 @@ const PrivacyTools: React.FC = () => {
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState<'export' | 'delete' | null>(null);
   const [message, setMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+  const { confirm, confirmProps } = useConfirm();
 
   const handleExport = async () => {
     if (!userId.trim()) {
@@ -45,11 +53,14 @@ const PrivacyTools: React.FC = () => {
       setMessage({ kind: 'error', text: 'Enter a user ID' });
       return;
     }
-    if (
-      !window.confirm(
-        `Schedule account deletion for ${userId.trim()}? Data will be anonymised after the 30-day grace window.`
-      )
-    ) {
+    const confirmed = await confirm({
+      title: 'Schedule account deletion?',
+      message: `Schedule account deletion for ${userId.trim()}? Data will be anonymised after the 30-day grace window.`,
+      confirmText: 'Schedule deletion',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     setBusy('delete');
@@ -139,6 +150,8 @@ const PrivacyTools: React.FC = () => {
           {message.text}
         </div>
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };
