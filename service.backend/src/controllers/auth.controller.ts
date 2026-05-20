@@ -13,7 +13,8 @@ import { UserService } from '../services/user.service';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 import { validateBody } from '../middleware/zod-validate';
-import { logger } from '../utils/logger';
+import { logger, loggerHelpers } from '../utils/logger';
+import { AuditLogService } from '../services/auditLog.service';
 
 const REFRESH_TOKEN_COOKIE = 'refreshToken';
 const REFRESH_TOKEN_COOKIE_OPTIONS = {
@@ -48,6 +49,11 @@ export const authValidation = {
     })
   ),
   twoFactorDisable: validateBody(
+    z.object({
+      token: z.string().length(6, 'Verification code must be 6 digits'),
+    })
+  ),
+  twoFactorRegenerateBackupCodes: validateBody(
     z.object({
       token: z.string().length(6, 'Verification code must be 6 digits'),
     })
@@ -286,19 +292,31 @@ export class AuthController {
   }
 
   /**
-   * Regenerate backup codes
+   * Regenerate backup codes — requires a valid TOTP to prevent session-hijack abuse (ADS-593).
    */
   async twoFactorRegenerateBackupCodes(req: AuthenticatedRequest, res: Response): Promise<void> {
     const user = req.user!;
+    const { token } = req.body;
 
     if (!user.twoFactorEnabled) {
       res.status(400).json({ error: 'Two-factor authentication is not enabled' });
       return;
     }
 
+    const userWithSecret = await User.scope('withSecrets').findByPk(user.userId);
+    if (!userWithSecret || !userWithSecret.twoFactorSecret) {
+      res.status(400).json({ error: 'Two-factor authentication secret not found' });
+      return;
+    }
+
+    const isValid = AuthService.verifyTwoFactorSetupToken(userWithSecret.twoFactorSecret, token);
+    if (!isValid) {
+      res.status(400).json({ error: 'Invalid verification code' });
+      return;
+    }
+
     const backupCodes = AuthService.generateBackupCodes();
 
-    // Need to fetch the user with write access to update
     const dbUser = await User.findByPk(user.userId);
     if (!dbUser) {
       res.status(404).json({ error: 'User not found' });
@@ -307,6 +325,16 @@ export class AuthController {
 
     dbUser.backupCodes = backupCodes;
     await dbUser.save();
+
+    await AuditLogService.log({
+      userId: user.userId,
+      action: 'TWO_FACTOR_BACKUP_CODES_REGENERATED',
+      entity: 'User',
+      entityId: user.userId,
+      details: { email: user.email },
+    });
+
+    loggerHelpers.logSecurity('2FA backup codes regenerated', { userId: user.userId });
 
     res.json({ success: true, backupCodes });
   }

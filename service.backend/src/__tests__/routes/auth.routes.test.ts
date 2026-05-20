@@ -39,6 +39,8 @@ vi.mock('../../services/auth.service', () => ({
     generateTwoFactorSecret: vi.fn(),
     generateQrCodeDataUrl: vi.fn(),
     enableTwoFactor: vi.fn(),
+    verifyTwoFactorSetupToken: vi.fn(),
+    generateBackupCodes: vi.fn(),
   },
   AuthService: class {
     requestPasswordReset = vi.fn();
@@ -78,6 +80,19 @@ vi.mock('../../middleware/ip-rules', () => ({
   enforceIpRules: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
+vi.mock('../../models/User', () => ({
+  default: {
+    scope: vi.fn(),
+    findByPk: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/auditLog.service', () => ({
+  AuditLogService: {
+    log: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 const authenticateTokenMock = vi.fn();
 
 vi.mock('../../middleware/auth', () => ({
@@ -87,10 +102,15 @@ vi.mock('../../middleware/auth', () => ({
 
 import AuthService from '../../services/auth.service';
 import authRouter from '../../routes/auth.routes';
+import User from '../../models/User';
 
 const mockRegister = vi.mocked(AuthService.register);
 const mockLogin = vi.mocked(AuthService.login);
 const mockRefreshToken = vi.mocked(AuthService.refreshToken);
+const mockVerifyTwoFactorSetupToken = vi.mocked(AuthService.verifyTwoFactorSetupToken);
+const mockGenerateBackupCodes = vi.mocked(AuthService.generateBackupCodes);
+const mockUserScope = vi.mocked(User.scope);
+const mockUserFindByPk = vi.mocked(User.findByPk);
 
 const mockUser = {
   userId: 'user-uuid-1',
@@ -311,6 +331,103 @@ describe('Auth routes', () => {
     it('returns 200 with current user when authenticated', async () => {
       const res = await request(buildApp()).get('/api/v1/auth/me');
       expect(res.status).toBe(200);
+    });
+  });
+
+  describe('POST /api/v1/auth/2fa/backup-codes (ADS-593)', () => {
+    const userWith2FA = {
+      ...mockUser,
+      twoFactorEnabled: true,
+      twoFactorSecret: 'encrypted-secret',
+    };
+
+    beforeEach(() => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = userWith2FA as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+    });
+
+    it('returns 422 when TOTP token is missing from request body', async () => {
+      const res = await request(buildApp()).post('/api/v1/auth/2fa/backup-codes').send({});
+
+      expect(res.status).toBe(422);
+    });
+
+    it('returns 422 when TOTP token is not 6 digits', async () => {
+      const res = await request(buildApp())
+        .post('/api/v1/auth/2fa/backup-codes')
+        .send({ token: '12345' });
+
+      expect(res.status).toBe(422);
+    });
+
+    it('returns 400 when 2FA is not enabled on the account', async () => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = { ...mockUser, twoFactorEnabled: false } as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+
+      const res = await request(buildApp())
+        .post('/api/v1/auth/2fa/backup-codes')
+        .send({ token: '123456' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 400 when the supplied TOTP is invalid', async () => {
+      mockUserScope.mockReturnValue({
+        findByPk: vi.fn().mockResolvedValue({
+          twoFactorSecret: 'encrypted-secret',
+        }),
+      } as unknown as ReturnType<typeof User.scope>);
+      mockVerifyTwoFactorSetupToken.mockReturnValue(false);
+
+      const res = await request(buildApp())
+        .post('/api/v1/auth/2fa/backup-codes')
+        .send({ token: '000000' });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error');
+    });
+
+    it('returns 200 with new backup codes when TOTP is valid', async () => {
+      const freshCodes = [
+        'aabb1122',
+        'ccdd3344',
+        'eeff5566',
+        'aabb7788',
+        'ccdd9900',
+        '11223344',
+        '55667788',
+        '99aabbcc',
+        'ddeeff00',
+        '11223300',
+      ];
+      const mockSave = vi.fn().mockResolvedValue(undefined);
+      mockUserScope.mockReturnValue({
+        findByPk: vi.fn().mockResolvedValue({ twoFactorSecret: 'encrypted-secret' }),
+      } as unknown as ReturnType<typeof User.scope>);
+      mockUserFindByPk.mockResolvedValue({
+        userId: userWith2FA.userId,
+        backupCodes: [],
+        save: mockSave,
+      } as unknown as Awaited<ReturnType<typeof User.findByPk>>);
+      mockVerifyTwoFactorSetupToken.mockReturnValue(true);
+      mockGenerateBackupCodes.mockReturnValue(freshCodes);
+
+      const res = await request(buildApp())
+        .post('/api/v1/auth/2fa/backup-codes')
+        .send({ token: '123456' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('success', true);
+      expect(res.body).toHaveProperty('backupCodes');
+      expect(mockSave).toHaveBeenCalled();
     });
   });
 });
