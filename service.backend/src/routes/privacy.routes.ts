@@ -1,7 +1,9 @@
 import { Router, type Response } from 'express';
 import { z } from 'zod';
 import { authenticateToken } from '../middleware/auth';
+import { requireRole } from '../middleware/rbac';
 import { validateBody } from '../middleware/zod-validate';
+import { UserType } from '../models/User';
 import {
   ConsentInputSchema,
   CookiesConsentInputSchema,
@@ -130,38 +132,32 @@ router.post(
  * exports and deletion requests on behalf of users (e.g. responding to
  * subject access requests received via support channels). Mounted on
  * the same router so the parent `authenticateToken` middleware applies;
- * RBAC gating below restricts to admin/super_admin only.
+ * `requireRole(...)` below restricts to admin/super_admin only.
  */
-const ensureAdmin = (req: AuthenticatedRequest, res: Response): boolean => {
-  const role = req.user?.userType;
-  if (role !== 'admin' && role !== 'super_admin') {
-    res.status(403).json({ error: 'Admin privileges required' });
-    return false;
-  }
-  return true;
-};
+const requireAdminOrSuperAdmin = requireRole(UserType.ADMIN, UserType.SUPER_ADMIN);
 
 const AdminUserIdParamSchema = z.object({ userId: z.string().min(1) });
 
-router.get('/admin/users/:userId/export', async (req: AuthenticatedRequest, res: Response) => {
-  if (!ensureAdmin(req, res)) {
-    return;
+router.get(
+  '/admin/users/:userId/export',
+  requireAdminOrSuperAdmin,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const parsed = AdminUserIdParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid userId' });
+      return;
+    }
+    // ADS-605: thread the acting admin through so the audit row records
+    // the admin's userId, not the data subject's.
+    const actor = req.user ? { userId: req.user.userId, userType: req.user.userType } : undefined;
+    const bundle = await exportUserData(parsed.data.userId, actor);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="adopt-dont-shop-export-${parsed.data.userId}.json"`
+    );
+    res.json(bundle);
   }
-  const parsed = AdminUserIdParamSchema.safeParse(req.params);
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Invalid userId' });
-    return;
-  }
-  // ADS-605: thread the acting admin through so the audit row records
-  // the admin's userId, not the data subject's.
-  const actor = req.user ? { userId: req.user.userId, userType: req.user.userType } : undefined;
-  const bundle = await exportUserData(parsed.data.userId, actor);
-  res.setHeader(
-    'Content-Disposition',
-    `attachment; filename="adopt-dont-shop-export-${parsed.data.userId}.json"`
-  );
-  res.json(bundle);
-});
+);
 
 const AdminDeleteSchema = z.object({
   reason: z.string().trim().max(500).optional(),
@@ -169,11 +165,9 @@ const AdminDeleteSchema = z.object({
 
 router.post(
   '/admin/users/:userId/delete-request',
+  requireAdminOrSuperAdmin,
   validateBody(AdminDeleteSchema),
   async (req: AuthenticatedRequest, res: Response) => {
-    if (!ensureAdmin(req, res)) {
-      return;
-    }
     const parsed = AdminUserIdParamSchema.safeParse(req.params);
     if (!parsed.success) {
       res.status(400).json({ error: 'Invalid userId' });

@@ -104,6 +104,35 @@ describe('GET /api/v1/foster/placements scope enforcement (ADS-606)', () => {
     expect(mockedList).not.toHaveBeenCalled();
   });
 
+  // ADS-610: requireRole gates support_agent (and other non-foster roles)
+  // at the middleware layer, before the route handler runs — same outcome
+  // regardless of whether they carry a rescueId.
+  it('forbids a support agent even when carrying a rescueId', async () => {
+    authenticateAs({
+      userId: 'support-2',
+      userType: UserType.SUPPORT_AGENT,
+      rescueId: '1ece75b7-956f-420f-8538-91f89b00b30a',
+    });
+
+    const res = await request(buildApp()).get('/api/v1/foster/placements');
+
+    expect(res.status).toBe(403);
+    expect(mockedList).not.toHaveBeenCalled();
+  });
+
+  it('forbids an adopter from listing placements', async () => {
+    authenticateAs({
+      userId: 'adopter-1',
+      userType: UserType.ADOPTER,
+      rescueId: null,
+    });
+
+    const res = await request(buildApp()).get('/api/v1/foster/placements');
+
+    expect(res.status).toBe(403);
+    expect(mockedList).not.toHaveBeenCalled();
+  });
+
   it('scopes a non-admin caller to their own rescue and ignores any rescueId query override', async () => {
     const callerRescueId = '1ece75b7-956f-420f-8538-91f89b00b30a';
     const otherRescueId = '7bdeed6e-6e22-4b8d-93c4-8a03f46a9910';
