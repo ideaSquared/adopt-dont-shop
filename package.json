@@ -59,6 +59,7 @@
     "build:apps": "turbo run build --filter='@adopt-dont-shop/app.*'",
     "test": "turbo run test",
     "test:e2e": "npm run -w @adopt-dont-shop/e2e test",
+    "test:e2e:smoke": "npm run -w @adopt-dont-shop/e2e test:smoke",
     "test:e2e:ui": "npm run -w @adopt-dont-shop/e2e test:ui",
     "test:e2e:debug": "npm run -w @adopt-dont-shop/e2e test:debug",
     "test:e2e:headed": "npm run -w @adopt-dont-shop/e2e test:headed",

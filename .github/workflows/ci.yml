@@ -450,11 +450,21 @@ jobs:
           done
 
       - name: Run Playwright suite
-        # The backend bootstraps the database (sync + runAllSeeders) on
-        # startup in development mode, so by the time /health responds in
-        # the previous step the seeded data is already available.
+        # PRs run the @smoke subset (~2 critical journeys, ~3-5 min). Push
+        # to main/develop runs the full suite as the integration gate
+        # before deploy. The full set still runs on PR via the smoke
+        # signal + the unit/integration jobs; tagging more tests as
+        # @smoke is the lever if you want broader PR coverage.
+        #
         # Retries are configured in e2e/playwright.config.ts (retries: CI ? 2 : 0).
-        run: npm run test:e2e
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "PR event — running @smoke subset"
+            npm run test:e2e:smoke
+          else
+            echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
+            npm run test:e2e
+          fi
 
       # ADS-386: Surface flaky-retry signal so engineers can see which tests
       # needed retries without having to open the full HTML report.
