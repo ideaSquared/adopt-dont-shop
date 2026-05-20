@@ -89,7 +89,7 @@ Profile:
 
 - `getProfile(): Promise<User>`
 - `updateProfile(partial: Partial<User>): Promise<User>`
-- `deleteAccount(reason?: string): Promise<void>`
+- `deleteAccount(password: string, options?: { twoFactorToken?: string; reason?: string }): Promise<void>` — backend requires step-up auth (ADS-592)
 
 Password / email:
 

@@ -235,13 +235,22 @@ export class AuthService {
   }
 
   /**
-   * Delete user account
+   * Delete user account.
+   *
+   * ADS-592: backend requires step-up auth — caller must supply current
+   * password (and TOTP code if 2FA is enabled).
    */
-  async deleteAccount(reason?: string): Promise<void> {
-    const body = reason ? { reason } : undefined;
+  async deleteAccount(
+    password: string,
+    options?: { twoFactorToken?: string; reason?: string }
+  ): Promise<void> {
     await apiService.fetchWithAuth('/api/v1/users/account', {
       method: 'DELETE',
-      body,
+      body: {
+        password,
+        ...(options?.twoFactorToken ? { twoFactorToken: options.twoFactorToken } : {}),
+        ...(options?.reason ? { reason: options.reason } : {}),
+      },
     });
 
     this.clearStorage();

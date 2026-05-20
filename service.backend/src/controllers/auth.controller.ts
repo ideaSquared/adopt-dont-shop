@@ -16,16 +16,16 @@ import { validateBody } from '../middleware/zod-validate';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
 
-const REFRESH_TOKEN_COOKIE = 'refreshToken';
-const REFRESH_TOKEN_COOKIE_OPTIONS = {
+export const REFRESH_TOKEN_COOKIE = 'refreshToken';
+export const REFRESH_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict' as const,
   maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
 };
 
-const ACCESS_TOKEN_COOKIE = 'accessToken';
-const ACCESS_TOKEN_COOKIE_OPTIONS = {
+export const ACCESS_TOKEN_COOKIE = 'accessToken';
+export const ACCESS_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict' as const,
