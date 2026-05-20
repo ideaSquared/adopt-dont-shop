@@ -616,21 +616,6 @@ export class FileUploadService {
     return categoryMap[uploadType];
   }
 
-  /**
-   * Resolve a path and assert it lives inside the configured local upload
-   * directory. CodeQL flags `file.path` as user-controllable; constraining
-   * to the upload root closes the path-traversal sink.
-   */
-  private static assertWithinUploadRoot(candidate: string): string {
-    const uploadRoot = path.resolve(config.storage.local.directory);
-    const resolved = path.resolve(candidate);
-    const rel = path.relative(uploadRoot, resolved);
-    if (rel.startsWith('..') || path.isAbsolute(rel)) {
-      throw new Error('Upload path escapes configured upload directory');
-    }
-    return resolved;
-  }
-
   private static async transferToRemoteStorage(
     file: Express.Multer.File,
     processedFile: ProcessedFileInfo,
@@ -643,7 +628,7 @@ export class FileUploadService {
 
     const category = this.mapUploadTypeToCategory(uploadType);
 
-    const safeProcessedPath = this.assertWithinUploadRoot(processedFile.processedPath);
+    const safeProcessedPath = this.safeResolveUploadPath(processedFile.processedPath);
     const processedBuffer = await fs.promises.readFile(safeProcessedPath);
     const uploadResult = await provider.uploadFile(
       processedBuffer,
@@ -654,7 +639,7 @@ export class FileUploadService {
 
     let thumbnailUrl: string | undefined;
     if (processedFile.thumbnailPath) {
-      const safeThumbPath = this.assertWithinUploadRoot(processedFile.thumbnailPath);
+      const safeThumbPath = this.safeResolveUploadPath(processedFile.thumbnailPath);
       const thumbBuffer = await fs.promises.readFile(safeThumbPath);
       const thumbResult = await provider.uploadFile(
         thumbBuffer,
@@ -677,7 +662,7 @@ export class FileUploadService {
     await Promise.all(
       localPaths.map(async p => {
         try {
-          await fs.promises.unlink(this.assertWithinUploadRoot(p));
+          await fs.promises.unlink(this.safeResolveUploadPath(p));
         } catch {
           // best-effort cleanup
         }
