@@ -13,7 +13,15 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 - ✅ Tests backend with PostgreSQL database
 - ✅ Tests all frontend applications in parallel
 - ✅ Runs linting and builds for all projects
+- ✅ Runs Playwright E2E against the full docker-compose stack
 - ✅ Ensures code quality before merging
+
+**E2E strategy**:
+
+- **Pull request**: runs `--grep @smoke` (2 critical journeys: adopter registration + full adoption journey). ~3-5 min of test runtime on top of the stack-up step.
+- **Push to main/develop**: runs the full Playwright suite as the integration gate before `deploy.yml`.
+
+Tag a test with `@smoke` in its title to add it to the PR set. Keep the smoke set small — its job is to catch obvious integration breaks, not to be a coverage proxy. Unit/integration coverage lives in `test-backend`, `test-frontend`, and `test-libs`.
 
 **Triggers**: Push/PR to `main` or `develop` branches
 
@@ -36,16 +44,20 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 
 ### 🐳 **Docker Workflow** (`docker.yml`)
 
-**Purpose**: Container building and Docker Compose testing.
+**Purpose**: Container build validation and pre-deploy production-image gate.
 
 **What it does**:
 
-- 🏗️ Builds Docker images for all services
-- 🧪 Tests Docker Compose stack
-- ✅ Validates container health and connectivity
+- 🏗️ Builds development images (PR + push)
+- 🚀 Builds production images + runs Trivy vulnerability scan (push to main/develop only)
 - 💾 Uses GitHub Actions cache for faster builds
 
-**Triggers**: Changes to Dockerfiles or service code
+**Triggers**:
+
+- **Pull request**: only on changes to Dockerfiles, `docker-compose*.yml`, or `.dockerignore`. Source-only PRs are validated by `ci.yml` (`test-frontend`/`test-backend` run native `npm run build`, and `test-e2e` brings the dev stack up via `docker compose up --build`).
+- **Push to main/develop**: triggers on the broader source path set so a regression that only manifests inside a container is caught before deploy. Production images and the Trivy scan run only on this branch — `deploy.yml` is the consumer.
+
+**Note**: the previous `test-compose` job (backend-container `/health` probe) was removed; `ci.yml`'s `test-e2e` brings up the full stack and is a strict superset of that signal.
 
 ---
 
