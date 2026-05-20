@@ -110,7 +110,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className={styles.messagesContainer}>
         <div className={styles.messageTimeline}>
           {messages.map(message => {
             const isDeleted = message.content === '[Message deleted]';
@@ -147,7 +147,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
         </div>
 
         {hasMorePages && (
-          <div style={{ textAlign: 'center', padding: '1rem' }}>
+          <div className={styles.loadMoreWrapper}>
             <Button
               variant='secondary'
               onClick={() => setPage(p => p + 1)}

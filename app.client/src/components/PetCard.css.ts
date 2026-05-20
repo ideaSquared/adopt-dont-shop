@@ -181,3 +181,7 @@ globalStyle(`${distanceBadge} svg`, {
   flexShrink: 0,
   color: '#6ee7b7',
 });
+
+export const actionButton = style({
+  flex: 1,
+});

@@ -1,4 +1,5 @@
 import React from 'react';
+import clsx from 'clsx';
 import { TimelineWidget } from './TimelineWidget';
 import { useTimelineWidget, useTimelineSummary } from '../hooks/useTimelineWidget';
 import { formatDate, formatDateTime } from '@adopt-dont-shop/lib.utils';
@@ -112,7 +113,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
       </div>
 
       {timelineLoading ? (
-        <div className={styles.skeletonBox} style={{ height: '120px', marginBottom: '1rem' }} />
+        <div className={clsx(styles.skeletonBox, styles.timelineSkeleton)} />
       ) : hasEvents ? (
         <TimelineWidget
           events={events}
@@ -121,19 +122,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
           onViewAll={handleViewTimeline}
         />
       ) : (
-        <div
-          style={{
-            padding: '1rem',
-            textAlign: 'center',
-            color: '#6b7280',
-            fontSize: '0.875rem',
-            border: '1px dashed #d1d5db',
-            borderRadius: '0.375rem',
-            marginBottom: '1rem',
-          }}
-        >
-          No recent activity
-        </div>
+        <div className={styles.noActivityPlaceholder}>No recent activity</div>
       )}
 
       <div className={styles.cardActions}>

@@ -105,14 +105,7 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
 
         {availableActions.length === 0 ? (
           <div className={styles.formField}>
-            <p
-              style={{
-                fontSize: '0.875rem',
-                color: '#6b7280',
-                textAlign: 'center',
-                padding: '1rem',
-              }}
-            >
+            <p className={styles.noActionsMessage}>
               No stage transitions available for {STAGE_CONFIG[currentStage]?.label || currentStage}
               .
             </p>

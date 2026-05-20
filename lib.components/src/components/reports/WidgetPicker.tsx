@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import * as styles from './WidgetPicker.css';
 
 /**
  * ADS-105: Modal/picker for adding a widget.
@@ -104,38 +105,6 @@ export type WidgetPickerProps = {
   onClose?: () => void;
 };
 
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(15, 23, 42, 0.4)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 50,
-};
-
-const panelStyle: React.CSSProperties = {
-  background: 'var(--color-surface, #fff)',
-  borderRadius: '12px',
-  padding: '20px',
-  width: 'min(640px, 90vw)',
-  maxHeight: '80vh',
-  overflowY: 'auto',
-};
-
-const presetStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'flex-start',
-  textAlign: 'left',
-  padding: '12px',
-  border: '1px solid var(--color-border, #e5e7eb)',
-  borderRadius: '8px',
-  background: 'var(--color-surface, #fff)',
-  cursor: 'pointer',
-  width: '100%',
-};
-
 export const WidgetPicker: React.FC<WidgetPickerProps> = ({
   presets = DEFAULT_PRESETS,
   onAdd,
@@ -157,38 +126,24 @@ export const WidgetPicker: React.FC<WidgetPickerProps> = ({
   }, [onClose]);
 
   return (
-    <div style={overlayStyle} role='presentation'>
-      <div style={panelStyle} role='dialog' aria-modal='true'>
-        <h3 style={{ marginTop: 0 }}>Add a widget</h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: '8px',
-          }}
-        >
+    <div className={styles.overlay} role='presentation'>
+      <div className={styles.panel} role='dialog' aria-modal='true'>
+        <h3 className={styles.heading}>Add a widget</h3>
+        <div className={styles.presetGrid}>
           {presets.map(preset => (
             <button
               key={preset.id}
               type='button'
-              style={presetStyle}
+              className={styles.presetButton}
               onClick={() => onAdd(preset)}
               data-testid={`widget-preset-${preset.id}`}
             >
-              <strong style={{ fontSize: '13px' }}>{preset.label}</strong>
-              <span
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--color-text-muted, #6b7280)',
-                  marginTop: '4px',
-                }}
-              >
-                {preset.description}
-              </span>
+              <strong className={styles.presetLabel}>{preset.label}</strong>
+              <span className={styles.presetDescription}>{preset.description}</span>
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+        <div className={styles.footer}>
           <button type='button' onClick={onClose}>
             Close
           </button>

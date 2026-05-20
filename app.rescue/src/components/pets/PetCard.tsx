@@ -177,7 +177,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
               size="sm"
               onClick={handleDelete}
               disabled={isDeleting}
-              style={{ color: '#ef4444' }}
+              className={styles.dangerText}
             >
               {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
@@ -252,7 +252,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
           >
             <h3>Delete Pet: {pet.name}</h3>
 
-            <p style={{ marginBottom: '1rem', color: '#666' }}>
+            <p className={styles.deleteWarning}>
               Are you sure you want to delete this pet? This action cannot be undone.
             </p>
 
@@ -275,7 +275,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
                 variant="primary"
                 onClick={confirmDelete}
                 disabled={isDeleting}
-                style={{ backgroundColor: '#ef4444', borderColor: '#ef4444' }}
+                className={styles.dangerButton}
               >
                 {isDeleting ? 'Deleting...' : 'Delete Pet'}
               </Button>

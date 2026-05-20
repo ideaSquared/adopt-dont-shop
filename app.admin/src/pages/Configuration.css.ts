@@ -145,3 +145,12 @@ export const statsigLink = style({
     textDecoration: 'underline',
   },
 });
+
+export const inlineIcon = style({
+  marginRight: '0.5rem',
+});
+
+export const sectionIcon = style({
+  display: 'inline',
+  marginRight: '0.5rem',
+});

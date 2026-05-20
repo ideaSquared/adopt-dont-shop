@@ -226,16 +226,9 @@ const Messages: React.FC = () => {
       id: 'lastMessage',
       header: 'Last Message',
       accessor: row => (
-        <div
-          style={{
-            maxWidth: '250px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <div className={styles.lastMessageCell}>
           {row.lastMessage?.content || (
-            <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No messages</span>
+            <span className={styles.noMessagesPlaceholder}>No messages</span>
           )}
         </div>
       ),
@@ -245,7 +238,7 @@ const Messages: React.FC = () => {
       id: 'participants',
       header: 'Participants',
       accessor: row => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div className={styles.participantsList}>
           {row.participants.slice(0, 2).map(p => (
             <div key={p.id} className={styles.participantInfo}>
               <div className={styles.participantName}>{p.name}</div>
@@ -253,9 +246,7 @@ const Messages: React.FC = () => {
             </div>
           ))}
           {row.participants.length > 2 && (
-            <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-              +{row.participants.length - 2} more
-            </div>
+            <div className={styles.participantMore}>+{row.participants.length - 2} more</div>
           )}
         </div>
       ),
@@ -379,7 +370,7 @@ const Messages: React.FC = () => {
       </FilterBar>
 
       {chatsError && (
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
+        <div className={styles.errorBanner}>
           Error loading chats: {chatsError instanceof Error ? chatsError.message : 'Unknown error'}
         </div>
       )}

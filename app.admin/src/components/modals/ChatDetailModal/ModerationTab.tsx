@@ -80,7 +80,7 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
           >
             {flaggingConversation ? 'Flagging...' : 'Report This Conversation'}
           </Button>
-          <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
+          <p className={styles.moderationHelpText}>
             Flag this conversation for moderator review if it contains inappropriate content, spam,
             harassment, or policy violations.
           </p>
@@ -96,34 +96,16 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
           {loadingReports ? (
             'Loading reports...'
           ) : reports.length > 0 ? (
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            <div className={styles.reportList}>
               {reports.map(report => (
-                <div
-                  key={report.reportId}
-                  style={{
-                    padding: '0.75rem',
-                    marginBottom: '0.5rem',
-                    backgroundColor: '#f9fafb',
-                    borderRadius: '0.375rem',
-                    border: '1px solid #e5e7eb',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginBottom: '0.25rem',
-                    }}
-                  >
-                    <strong style={{ textTransform: 'capitalize' }}>
+                <div key={report.reportId} className={styles.reportCard}>
+                  <div className={styles.reportCardHeader}>
+                    <strong className={styles.reportCategoryLabel}>
                       {report.category.replace('_', ' ')}
                     </strong>
                     <span
+                      className={styles.reportStatusBadge}
                       style={{
-                        padding: '0.125rem 0.5rem',
-                        borderRadius: '0.25rem',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
                         backgroundColor:
                           report.status === 'resolved'
                             ? '#d1fae5'
@@ -141,19 +123,17 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
                       {report.status}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                  <div className={styles.reportDescription}>
                     {report.description || 'No description provided'}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                  <div className={styles.reportMeta}>
                     Reported: {new Date(report.createdAt).toLocaleString()}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
-              No reports filed for this conversation
-            </div>
+            <div className={styles.noReportsMessage}>No reports filed for this conversation</div>
           )}
         </div>
       </div>
@@ -166,13 +146,11 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
         <div className={styles.detailValue}>
           <a
             href={`/moderation?entity=conversation&id=${chatId}`}
-            style={{ color: '#2563eb', textDecoration: 'none', fontWeight: '500' }}
-            onMouseOver={e => (e.currentTarget.style.textDecoration = 'underline')}
-            onMouseOut={e => (e.currentTarget.style.textDecoration = 'none')}
+            className={styles.moderationLink}
           >
             View in Moderation Dashboard →
           </a>
-          <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
+          <p className={styles.moderationHelpText}>
             View complete moderation history, take actions, and manage reports in the dedicated
             moderation interface.
           </p>
@@ -187,29 +165,16 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
         <div className={styles.detailValue}>
           {chat.participants && chat.participants.length > 0 ? (
             <div>
-              <p style={{ marginBottom: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                Moderate individual participants:
-              </p>
-              <ul style={{ listStyle: 'none', padding: 0 }}>
+              <p className={styles.participantHelpText}>Moderate individual participants:</p>
+              <ul className={styles.moderationParticipantList}>
                 {chat.participants.map((participant: Participant) => (
-                  <li
-                    key={participant.id}
-                    style={{
-                      padding: '0.5rem',
-                      marginBottom: '0.25rem',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '0.25rem',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
+                  <li key={participant.id} className={styles.participantRow}>
                     <span>
                       {participant.name} ({participant.type})
                     </span>
                     <a
                       href={`/moderation?user=${participant.id}`}
-                      style={{ fontSize: '0.875rem', color: '#2563eb' }}
+                      className={styles.participantViewLink}
                     >
                       View User
                     </a>

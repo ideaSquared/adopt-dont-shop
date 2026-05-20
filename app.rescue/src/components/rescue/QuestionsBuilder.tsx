@@ -753,15 +753,20 @@ const QuestionsBuilder: React.FC<QuestionsBuilderProps> = ({ rescueId }) => {
 
                   <div className={styles.questionText}>
                     <p
-                      style={{
-                        textDecoration: question.isEnabled ? 'none' : 'line-through',
-                        color: question.isEnabled ? '#111827' : '#9ca3af',
-                      }}
+                      className={
+                        question.isEnabled
+                          ? styles.questionTextEnabled
+                          : styles.questionTextDisabled
+                      }
                     >
                       {question.questionText}
                     </p>
                     {question.helpText && (
-                      <span style={{ color: question.isEnabled ? '#6b7280' : '#d1d5db' }}>
+                      <span
+                        className={
+                          question.isEnabled ? styles.helpTextEnabled : styles.helpTextDisabled
+                        }
+                      >
                         {question.helpText}
                       </span>
                     )}

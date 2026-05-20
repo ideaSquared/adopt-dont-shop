@@ -116,10 +116,10 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
     <>
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className={styles.staffSectionHeader}>
             <span>Staff Members ({staff?.length || 0})</span>
             <Button variant='primary' size='sm' onClick={() => setShowInviteForm(!showInviteForm)}>
-              <FiUserPlus style={{ marginRight: '0.5rem' }} />
+              <FiUserPlus className={styles.userPlusIcon} />
               Invite Staff
             </Button>
           </div>
@@ -129,9 +129,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
 
         {showInviteForm && (
           <div className={styles.inviteForm}>
-            <h4 style={{ margin: 0, fontSize: '0.9375rem', color: '#111827' }}>
-              Invite New Staff Member
-            </h4>
+            <h4 className={styles.staffSectionSubtitle}>Invite New Staff Member</h4>
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label className={styles.label} htmlFor='invite-email'>
@@ -189,15 +187,12 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
         )}
 
         {loadingStaff && (
-          <div
-            aria-label='Loading staff'
-            style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem 0' }}
-          >
+          <div aria-label='Loading staff' className={styles.skeletonStaffList}>
             {Array.from({ length: 3 }, (_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div key={i} className={styles.skeletonStaffRow}>
                 <Skeleton width='2.5rem' height='2.5rem' radius='50%' />
-                <div style={{ flex: 1 }}>
-                  <Skeleton height='0.875rem' width='40%' style={{ marginBottom: '0.25rem' }} />
+                <div className={styles.skeletonStaffText}>
+                  <Skeleton height='0.875rem' width='40%' className={styles.skeletonStaffName} />
                   <Skeleton height='0.75rem' width='60%' />
                 </div>
               </div>
@@ -218,12 +213,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                 <div className={styles.staffInfo}>
                   <div className={styles.staffName}>
                     {member.firstName} {member.lastName}
-                    {member.isVerified && (
-                      <FiCheck
-                        style={{ display: 'inline-block', marginLeft: '0.5rem', color: '#10b981' }}
-                        size={16}
-                      />
-                    )}
+                    {member.isVerified && <FiCheck className={styles.acceptedBadge} size={16} />}
                   </div>
                   <div className={styles.staffEmail}>{member.email}</div>
                   <div className={styles.staffMeta}>
@@ -263,7 +253,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
                     <span>• Expires {<DateTime timestamp={invitation.expiresAt} />}</span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div className={styles.staffRowFlex}>
                   <span
                     className={
                       invitation.status === 'pending'

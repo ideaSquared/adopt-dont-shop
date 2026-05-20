@@ -56,14 +56,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClos
             </h3>
             <p className={styles.userEmail}>{user.email}</p>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-              alignItems: 'flex-end',
-            }}
-          >
+          <div className={styles.headerBadges}>
             {getUserTypeBadge(user.userType)}
             {getStatusBadge(user.status, user.emailVerified ?? false)}
           </div>

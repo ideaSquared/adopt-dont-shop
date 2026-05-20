@@ -382,36 +382,18 @@ const Analytics: React.FC = () => {
           </div>
           <div className={styles.cardBody}>
             {petPerformance?.mostPopularBreeds && petPerformance.mostPopularBreeds.length > 0 ? (
-              <div style={{ display: 'grid', gap: '1rem' }}>
+              <div className={styles.breedList}>
                 {petPerformance.mostPopularBreeds.map((breed, index) => (
-                  <div
-                    key={breed.breed}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '1rem',
-                      background: '#F9FAFB',
-                      borderRadius: '8px',
-                    }}
-                  >
+                  <div key={breed.breed} className={styles.breedRow}>
                     <div>
-                      <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                      <div className={styles.breedTitle}>
                         #{index + 1} {breed.breed}
                       </div>
-                      <div style={{ fontSize: '0.875rem', color: '#6B7280' }}>
+                      <div className={styles.breedSubtitle}>
                         Avg. {breed.averageAdoptionTime.toFixed(1)} days to adoption
                       </div>
                     </div>
-                    <div
-                      style={{
-                        fontSize: '1.5rem',
-                        fontWeight: 700,
-                        color: '#3B82F6',
-                      }}
-                    >
-                      {breed.count}
-                    </div>
+                    <div className={styles.breedCount}>{breed.count}</div>
                   </div>
                 ))}
               </div>

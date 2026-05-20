@@ -189,3 +189,19 @@ export const errorMessage = style({
   borderRadius: vars.border.radius.lg,
   margin: '2rem 0',
 });
+
+export const heroPrimaryButton = style({
+  background: 'white',
+  color: '#BE123C',
+  borderColor: 'white',
+});
+
+export const heroSecondaryButton = style({
+  color: 'white',
+  borderColor: 'rgba(255,255,255,0.5)',
+  background: 'rgba(255,255,255,0.08)',
+});
+
+export const centerAlign = style({
+  textAlign: 'center',
+});

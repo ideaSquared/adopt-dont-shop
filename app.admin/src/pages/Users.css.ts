@@ -215,3 +215,26 @@ export const iconButton = style({
     transform: 'scale(0.95)',
   },
 });
+
+export const errorPanel = style({
+  background: '#fee2e2',
+  border: '1px solid #fecaca',
+  borderRadius: '12px',
+  padding: '2rem',
+  textAlign: 'center',
+  color: '#991b1b',
+});
+
+export const errorTitle = style({
+  margin: '0 0 1rem 0',
+  fontWeight: 600,
+});
+
+export const errorMessage = style({
+  margin: '0',
+  fontSize: '0.875rem',
+});
+
+export const addUserIcon = style({
+  marginRight: '0.5rem',
+});

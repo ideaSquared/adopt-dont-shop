@@ -1,4 +1,5 @@
 import React from 'react';
+import clsx from 'clsx';
 import { EmptyState, Heading, Stack, Text } from '@adopt-dont-shop/lib.components';
 import { usePlatformMetrics } from '../hooks';
 import * as styles from './Dashboard.css';
@@ -95,20 +96,11 @@ const Dashboard: React.FC = () => {
           ? Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className={styles.metricCard} aria-busy='true'>
                 <div className={styles.metricHeader}>
-                  <div className={styles.skeletonBlock} style={{ width: '32px', height: '32px' }} />
-                  <div
-                    className={styles.skeletonBlock}
-                    style={{ width: '120px', height: '0.875rem' }}
-                  />
+                  <div className={clsx(styles.skeletonBlock, styles.skeletonIcon)} />
+                  <div className={clsx(styles.skeletonBlock, styles.skeletonLabel)} />
                 </div>
-                <div
-                  className={styles.skeletonBlock}
-                  style={{ width: '80px', height: '2.25rem', marginBottom: '0.5rem' }}
-                />
-                <div
-                  className={styles.skeletonBlock}
-                  style={{ width: '140px', height: '0.875rem' }}
-                />
+                <div className={clsx(styles.skeletonBlock, styles.skeletonValue)} />
+                <div className={clsx(styles.skeletonBlock, styles.skeletonChange)} />
               </div>
             ))
           : metrics.map(metric => (

@@ -763,7 +763,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 ))}
               </select>
               {getValidStatusOptions(currentStatus).length === 0 && (
-                <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                <p className={styles.noStatusOptionsText}>
                   No status changes available for {formatStatusName(currentStatus)}.
                 </p>
               )}
@@ -1824,18 +1824,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                               <div className={styles.timelineData}>
                                 <strong>Additional Details:</strong>
                                 {event.data.oldStatus && event.data.newStatus ? (
-                                  <div style={{ marginTop: '0.5rem' }}>
-                                    <span style={{ color: '#ef4444' }}>
+                                  <div className={styles.statusChangeBlock}>
+                                    <span className={styles.oldStatusText}>
                                       From: {formatStatusName(event.data.oldStatus)}
                                     </span>
                                     <br />
-                                    <span style={{ color: '#10b981' }}>
+                                    <span className={styles.newStatusText}>
                                       To: {formatStatusName(event.data.newStatus)}
                                     </span>
                                     {event.data.notes && (
                                       <>
                                         <br />
-                                        <span style={{ color: '#6b7280' }}>
+                                        <span className={styles.notesText}>
                                           Notes: {event.data.notes}
                                         </span>
                                       </>
@@ -1878,7 +1878,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 ×
               </button>
             </div>
-            <div style={{ padding: '1rem' }}>
+            <div className={styles.visitDetailsBody}>
               {(() => {
                 const visit = homeVisits.find(v => v.id === viewingVisit);
                 if (!visit) {

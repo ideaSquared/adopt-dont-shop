@@ -16,14 +16,7 @@ const Dashboard: React.FC = () => {
           <Heading level="h1">Rescue Dashboard</Heading>
           <Text>Loading dashboard data...</Text>
         </div>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '200px',
-          }}
-        >
+        <div className={styles.loadingState}>
           <Text>📊 Loading...</Text>
         </div>
       </Container>
@@ -38,29 +31,13 @@ const Dashboard: React.FC = () => {
           <Text>Welcome back! Here's what's happening with your rescue today.</Text>
         </div>
         <Card>
-          <div style={{ padding: '1.5rem', textAlign: 'center' }}>
-            <Text style={{ color: '#ef4444', marginBottom: '1rem' }}>
-              ⚠️ Unable to load dashboard data: {error}
-            </Text>
-            <Text style={{ color: '#6b7280', marginBottom: '1rem' }}>
+          <div className={styles.errorCard}>
+            <Text className={styles.errorMessage}>⚠️ Unable to load dashboard data: {error}</Text>
+            <Text className={styles.errorHint}>
               This usually indicates an authentication issue. Please try logging in again.
             </Text>
-            <div
-              style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem' }}
-            >
-              <button
-                onClick={() => window.location.reload()}
-                style={{
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  padding: '0.5rem 1rem',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                }}
-              >
+            <div className={styles.errorActions}>
+              <button onClick={() => window.location.reload()} className={styles.refreshButton}>
                 Refresh Page
               </button>
               <button
@@ -68,16 +45,7 @@ const Dashboard: React.FC = () => {
                   localStorage.clear();
                   window.location.reload();
                 }}
-                style={{
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  padding: '0.5rem 1rem',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                }}
+                className={styles.clearAuthButton}
               >
                 Clear Auth & Restart
               </button>
@@ -127,94 +95,46 @@ const Dashboard: React.FC = () => {
       {/* Key Metrics Row */}
       <div className={styles.metricsGrid}>
         <Card>
-          <div style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '1.5rem', marginRight: '0.75rem' }}>🐕</span>
-              <Text
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.025em',
-                }}
-              >
-                Total Pets
-              </Text>
+          <div className={styles.metricCardBody}>
+            <div className={styles.metricCardHeader}>
+              <span className={styles.metricEmoji}>🐕</span>
+              <Text className={styles.metricLabel}>Total Pets</Text>
             </div>
-            <Text style={{ fontSize: '2.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              {totalPets}
-            </Text>
-            <Text style={{ fontSize: '0.875rem', color: '#10b981' }}>↑ 5% from last month</Text>
+            <Text className={styles.metricValue}>{totalPets}</Text>
+            <Text className={styles.metricDeltaUp}>↑ 5% from last month</Text>
           </div>
         </Card>
 
         <Card>
-          <div style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '1.5rem', marginRight: '0.75rem' }}>❤️</span>
-              <Text
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.025em',
-                }}
-              >
-                Successful Adoptions
-              </Text>
+          <div className={styles.metricCardBody}>
+            <div className={styles.metricCardHeader}>
+              <span className={styles.metricEmoji}>❤️</span>
+              <Text className={styles.metricLabel}>Successful Adoptions</Text>
             </div>
-            <Text style={{ fontSize: '2.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              {successfulAdoptions}
-            </Text>
-            <Text style={{ fontSize: '0.875rem', color: '#10b981' }}>↑ 12% from last month</Text>
+            <Text className={styles.metricValue}>{successfulAdoptions}</Text>
+            <Text className={styles.metricDeltaUp}>↑ 12% from last month</Text>
           </div>
         </Card>
 
         <Card>
-          <div style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '1.5rem', marginRight: '0.75rem' }}>📋</span>
-              <Text
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.025em',
-                }}
-              >
-                Pending Applications
-              </Text>
+          <div className={styles.metricCardBody}>
+            <div className={styles.metricCardHeader}>
+              <span className={styles.metricEmoji}>📋</span>
+              <Text className={styles.metricLabel}>Pending Applications</Text>
             </div>
-            <Text style={{ fontSize: '2.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              {pendingApplications}
-            </Text>
-            <Text style={{ fontSize: '0.875rem', color: '#ef4444' }}>↓ 2% from last month</Text>
+            <Text className={styles.metricValue}>{pendingApplications}</Text>
+            <Text className={styles.metricDeltaDown}>↓ 2% from last month</Text>
           </div>
         </Card>
 
         <Card>
-          <div style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '1.5rem', marginRight: '0.75rem' }}>📊</span>
-              <Text
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: '#6b7280',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.025em',
-                }}
-              >
-                Adoption Rate
-              </Text>
+          <div className={styles.metricCardBody}>
+            <div className={styles.metricCardHeader}>
+              <span className={styles.metricEmoji}>📊</span>
+              <Text className={styles.metricLabel}>Adoption Rate</Text>
             </div>
-            <Text style={{ fontSize: '2.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              {adoptionRate}%
-            </Text>
-            <Text style={{ fontSize: '0.875rem', color: '#10b981' }}>↑ 3% from last month</Text>
+            <Text className={styles.metricValue}>{adoptionRate}%</Text>
+            <Text className={styles.metricDeltaUp}>↑ 3% from last month</Text>
           </div>
         </Card>
       </div>
@@ -222,68 +142,31 @@ const Dashboard: React.FC = () => {
       {/* Charts and Analytics Row */}
       <div className={styles.analyticsGrid}>
         <Card>
-          <div style={{ padding: '1.5rem 1.5rem 1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-            <Heading level="h3" style={{ margin: 0 }}>
+          <div className={styles.cardSectionHeader}>
+            <Heading level="h3" className={styles.cardSectionHeading}>
               Monthly Adoptions
             </Heading>
           </div>
-          <div style={{ padding: '1.5rem' }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'end',
-                height: '180px',
-                gap: '0.5rem',
-                marginBottom: '1rem',
-              }}
-            >
+          <div className={styles.cardSectionBody}>
+            <div className={styles.chartArea}>
               {monthlyAdoptions.map(item => (
-                <div
-                  key={item.month}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    height: '100%',
-                  }}
-                >
+                <div key={item.month} className={styles.chartColumn}>
                   <div
-                    style={{
-                      background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
-                      borderRadius: '4px 4px 0 0',
-                      width: '100%',
-                      height: `${(item.adoptions / 23) * 100}%`,
-                      minHeight: '4px',
-                      transition: 'all 0.3s ease',
-                      cursor: 'pointer',
-                    }}
+                    className={styles.chartBar}
+                    style={{ height: `${(item.adoptions / 23) * 100}%` }}
                     title={`${item.month}: ${item.adoptions} adoptions`}
                   />
-                  <Text
-                    style={{
-                      fontSize: '0.75rem',
-                      color: '#6b7280',
-                      marginTop: '0.5rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {item.month}
-                  </Text>
-                  <Text style={{ fontSize: '0.875rem', fontWeight: 600, marginTop: '0.25rem' }}>
-                    {item.adoptions}
-                  </Text>
+                  <Text className={styles.chartMonthLabel}>{item.month}</Text>
+                  <Text className={styles.chartValueLabel}>{item.adoptions}</Text>
                 </div>
               ))}
             </div>
-            <div
-              style={{ paddingTop: '1rem', borderTop: '1px solid #e5e7eb', fontSize: '0.875rem' }}
-            >
-              <Text style={{ margin: '0.25rem 0', color: '#4b5563' }}>
+            <div className={styles.chartSummary}>
+              <Text className={styles.chartSummaryRow}>
                 <strong>Total Adoptions: </strong>
                 {monthlyAdoptions.reduce((sum, item) => sum + item.adoptions, 0)}
               </Text>
-              <Text style={{ margin: '0.25rem 0', color: '#4b5563' }}>
+              <Text className={styles.chartSummaryRow}>
                 <strong>Best Month: </strong>
                 {
                   monthlyAdoptions.reduce((best, current) =>
@@ -296,41 +179,20 @@ const Dashboard: React.FC = () => {
         </Card>
 
         <Card>
-          <div style={{ padding: '1.5rem 1.5rem 1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-            <Heading level="h3" style={{ margin: 0 }}>
+          <div className={styles.cardSectionHeader}>
+            <Heading level="h3" className={styles.cardSectionHeading}>
               Pet Status Distribution
             </Heading>
           </div>
-          <div style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className={styles.cardSectionBody}>
+            <div className={styles.statusList}>
               {petStatusDistribution.map(status => (
-                <div
-                  key={status.name}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        backgroundColor: status.color,
-                        marginRight: '0.75rem',
-                      }}
-                    />
-                    <Text style={{ fontWeight: 500 }}>{status.name}</Text>
+                <div key={status.name} className={styles.statusRow}>
+                  <div className={styles.statusLabelWrap}>
+                    <div className={styles.statusDot} style={{ backgroundColor: status.color }} />
+                    <Text className={styles.statusName}>{status.name}</Text>
                   </div>
-                  <Text
-                    style={{
-                      fontWeight: 600,
-                      backgroundColor: '#f3f4f6',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '12px',
-                      fontSize: '0.875rem',
-                    }}
-                  >
-                    {status.value}
-                  </Text>
+                  <Text className={styles.statusValueChip}>{status.value}</Text>
                 </div>
               ))}
             </div>
@@ -338,40 +200,30 @@ const Dashboard: React.FC = () => {
         </Card>
 
         <Card>
-          <div style={{ padding: '1.5rem 1.5rem 1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-            <Heading level="h3" style={{ margin: 0 }}>
+          <div className={styles.cardSectionHeader}>
+            <Heading level="h3" className={styles.cardSectionHeading}>
               Recent Activity
             </Heading>
           </div>
-          <div style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className={styles.cardSectionBody}>
+            <div className={styles.activityList}>
               {recentActivities.length > 0 ? (
                 recentActivities.map((activity, index) => {
                   const isLast = index === recentActivities.length - 1;
                   return (
                     <div
                       key={activity.id}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.25rem',
-                        paddingBottom: isLast ? '0' : '1rem',
-                        borderBottom: isLast ? 'none' : '1px solid #e5e7eb',
-                      }}
+                      className={isLast ? styles.activityItemLast : styles.activityItem}
                     >
-                      <Text style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 500 }}>
+                      <Text className={styles.activityTimestamp}>
                         {formatRelativeDate(activity.timestamp)}
                       </Text>
-                      <Text style={{ fontSize: '0.875rem', lineHeight: 1.4 }}>
-                        {activity.message}
-                      </Text>
+                      <Text className={styles.activityMessage}>{activity.message}</Text>
                     </div>
                   );
                 })
               ) : (
-                <Text style={{ fontSize: '0.875rem', color: '#6b7280', textAlign: 'center' }}>
-                  No recent activities
-                </Text>
+                <Text className={styles.emptyActivityMessage}>No recent activities</Text>
               )}
             </div>
           </div>
@@ -379,32 +231,18 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Notifications */}
-      <Card style={{ gridColumn: '1 / -1' }}>
-        <div style={{ padding: '1.5rem 1.5rem 1rem 1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-          <Heading
-            level="h3"
-            style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
+      <Card className={styles.notificationsCard}>
+        <div className={styles.cardSectionHeader}>
+          <Heading level="h3" className={styles.notificationsHeading}>
             Recent Notifications
             {notifications.filter(n => !n.read).length > 0 && (
-              <span
-                style={{
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '10px',
-                  minWidth: '1.25rem',
-                  textAlign: 'center',
-                }}
-              >
+              <span className={styles.unreadBadge}>
                 {notifications.filter(n => !n.read).length}
               </span>
             )}
           </Heading>
         </div>
-        <div style={{ padding: '1rem' }}>
+        <div className={styles.notificationsBody}>
           {notifications.length > 0 ? (
             notifications.map(notification => {
               const getNotificationIcon = (type: string) => {
@@ -423,80 +261,30 @@ const Dashboard: React.FC = () => {
               return (
                 <div
                   key={notification.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '0.75rem',
-                    padding: '0.75rem',
-                    borderRadius: '8px',
-                    marginBottom: '0.5rem',
-                    backgroundColor: notification.read ? '#f9fafb' : '#eff6ff',
-                    position: 'relative',
-                  }}
+                  className={`${styles.notificationRowBase} ${
+                    notification.read ? styles.notificationRowRead : styles.notificationRowUnread
+                  }`}
                 >
-                  <div style={{ fontSize: '1.25rem', marginTop: '0.125rem' }}>
+                  <div className={styles.notificationIcon}>
                     {getNotificationIcon(notification.type)}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <Text
-                      style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.25rem' }}
-                    >
-                      {notification.title}
-                    </Text>
-                    <Text
-                      style={{
-                        color: '#4b5563',
-                        fontSize: '0.875rem',
-                        lineHeight: 1.4,
-                        marginBottom: '0.25rem',
-                      }}
-                    >
-                      {notification.message}
-                    </Text>
-                    <Text style={{ color: '#6b7280', fontSize: '0.75rem' }}>
+                  <div className={styles.notificationContent}>
+                    <Text className={styles.notificationTitle}>{notification.title}</Text>
+                    <Text className={styles.notificationBody}>{notification.message}</Text>
+                    <Text className={styles.notificationTimestamp}>
                       {formatRelativeDate(notification.timestamp)}
                     </Text>
                   </div>
-                  {!notification.read && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '0.75rem',
-                        right: '0.75rem',
-                        width: '8px',
-                        height: '8px',
-                        backgroundColor: '#3b82f6',
-                        borderRadius: '50%',
-                      }}
-                    />
-                  )}
+                  {!notification.read && <div className={styles.unreadDot} />}
                 </div>
               );
             })
           ) : (
-            <Text style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>
-              No notifications
-            </Text>
+            <Text className={styles.emptyNotifications}>No notifications</Text>
           )}
         </div>
-        <div
-          style={{ padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb', textAlign: 'center' }}
-        >
-          <button
-            style={{
-              background: 'none',
-              border: '1px solid #d1d5db',
-              color: '#374151',
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              transition: 'all 0.2s ease',
-            }}
-          >
-            View All Notifications
-          </button>
+        <div className={styles.notificationsFooter}>
+          <button className={styles.viewAllButton}>View All Notifications</button>
         </div>
       </Card>
     </Container>

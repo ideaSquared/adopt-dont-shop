@@ -125,3 +125,53 @@ export const errorContainer = style({
   color: vars.colors.dangerHover,
   borderRadius: '0.5rem',
 });
+
+export const retryButton = style({
+  marginTop: '1rem',
+});
+
+export const setupCard = style({
+  padding: '2rem',
+  textAlign: 'center',
+  maxWidth: '600px',
+  margin: '1rem auto',
+});
+
+export const setupEmoji = style({
+  fontSize: '3rem',
+  marginBottom: '1rem',
+});
+
+export const setupHint = style({
+  marginBottom: '1.5rem',
+  color: '#6b7280',
+});
+
+export const setupActions = style({
+  display: 'flex',
+  gap: '1rem',
+  justifyContent: 'center',
+  flexWrap: 'wrap',
+});
+
+export const devNote = style({
+  marginTop: '1.5rem',
+  padding: '1rem',
+  background: '#f3f4f6',
+  borderRadius: '8px',
+});
+
+export const devNoteIntro = style({
+  margin: '0.5rem 0',
+  fontSize: '0.875rem',
+});
+
+export const devNoteSteps = style({
+  textAlign: 'left',
+  fontSize: '0.875rem',
+  margin: 0,
+});
+
+export const dismissButton = style({
+  marginTop: '0.5rem',
+});

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import clsx from 'clsx';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
@@ -121,8 +122,8 @@ const Analytics: React.FC = () => {
           <Text>Comprehensive analytics and data insights</Text>
         </HeaderLeft>
         <div className={styles.headerActions}>
-          <FilterBar style={{ padding: '0.5rem 0.75rem', marginBottom: 0 }}>
-            <FilterGroup style={{ minWidth: '140px', marginBottom: 0 }}>
+          <FilterBar className={styles.filterBarOverride}>
+            <FilterGroup className={styles.filterGroupOverride}>
               <Select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
                 <option value='7days'>Last 7 Days</option>
                 <option value='30days'>Last 30 Days</option>
@@ -132,7 +133,7 @@ const Analytics: React.FC = () => {
             </FilterGroup>
           </FilterBar>
           <Button variant='outline' size='md'>
-            <FiDownload style={{ marginRight: '0.5rem' }} />
+            <FiDownload className={styles.exportIcon} />
             Export Report
           </Button>
         </div>
@@ -152,7 +153,7 @@ const Analytics: React.FC = () => {
           <StatDetails>
             <StatLabel>Total Users</StatLabel>
             {isLoading ? (
-              <div className={styles.skeletonBlock} style={{ width: '80px', height: '1.5rem' }} />
+              <div className={clsx(styles.skeletonBlock, styles.skeletonStat80)} />
             ) : (
               <StatValue>{totalAdopters.toLocaleString()}</StatValue>
             )}
@@ -172,7 +173,7 @@ const Analytics: React.FC = () => {
           <StatDetails>
             <StatLabel>Active Rescues</StatLabel>
             {isLoading ? (
-              <div className={styles.skeletonBlock} style={{ width: '60px', height: '1.5rem' }} />
+              <div className={clsx(styles.skeletonBlock, styles.skeletonStat60)} />
             ) : (
               <StatValue>{activeRescues.toLocaleString()}</StatValue>
             )}
@@ -190,7 +191,7 @@ const Analytics: React.FC = () => {
           <StatDetails>
             <StatLabel>Weekly Adoptions</StatLabel>
             {isLoading ? (
-              <div className={styles.skeletonBlock} style={{ width: '60px', height: '1.5rem' }} />
+              <div className={clsx(styles.skeletonBlock, styles.skeletonStat60)} />
             ) : (
               <StatValue>{weeklyAdoptions.toLocaleString()}</StatValue>
             )}
@@ -214,7 +215,7 @@ const Analytics: React.FC = () => {
           <StatDetails>
             <StatLabel>Active Listings</StatLabel>
             {isLoading ? (
-              <div className={styles.skeletonBlock} style={{ width: '80px', height: '1.5rem' }} />
+              <div className={clsx(styles.skeletonBlock, styles.skeletonStat80)} />
             ) : (
               <StatValue>{totalListings.toLocaleString()}</StatValue>
             )}
@@ -234,7 +235,7 @@ const Analytics: React.FC = () => {
           <CardContent>
             <div className={styles.chartContainer}>
               {isLoading ? (
-                <div className={styles.skeletonBlock} style={{ height: '100%' }} />
+                <div className={clsx(styles.skeletonBlock, styles.skeletonFullHeight)} />
               ) : adoptionTrends.length > 0 ? (
                 <div className={styles.barChart}>
                   {adoptionTrends.map(d => (
@@ -252,18 +253,7 @@ const Analytics: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    color: '#9ca3af',
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  No adoption data for this period
-                </div>
+                <div className={styles.chartEmptyState}>No adoption data for this period</div>
               )}
             </div>
           </CardContent>
@@ -276,7 +266,7 @@ const Analytics: React.FC = () => {
           <CardContent>
             <div className={styles.chartContainer}>
               {isLoading ? (
-                <div className={styles.skeletonBlock} style={{ height: '100%' }} />
+                <div className={clsx(styles.skeletonBlock, styles.skeletonFullHeight)} />
               ) : analyticsData ? (
                 (() => {
                   const statusData = Object.entries(analyticsData.applications.statusMetrics).map(
@@ -299,7 +289,7 @@ const Analytics: React.FC = () => {
                           }}
                         >
                           <div className={styles.barValue}>{s.count}</div>
-                          <div className={styles.barLabel} style={{ textTransform: 'capitalize' }}>
+                          <div className={clsx(styles.barLabel, styles.barLabelCapitalize)}>
                             {s.status}
                           </div>
                         </div>
@@ -308,18 +298,7 @@ const Analytics: React.FC = () => {
                   );
                 })()
               ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    color: '#9ca3af',
-                    fontSize: '0.875rem',
-                  }}
-                >
-                  No application data available
-                </div>
+                <div className={styles.chartEmptyState}>No application data available</div>
               )}
             </div>
           </CardContent>
@@ -332,10 +311,7 @@ const Analytics: React.FC = () => {
           <CardContent>
             <div className={styles.pieChartContainer}>
               {isLoading ? (
-                <div
-                  className={styles.skeletonBlock}
-                  style={{ width: '200px', height: '200px', borderRadius: '50%' }}
-                />
+                <div className={clsx(styles.skeletonBlock, styles.skeletonPie)} />
               ) : petPieSlices.length > 0 ? (
                 <>
                   <svg className={styles.pieChart} viewBox='0 0 200 200'>
@@ -360,9 +336,7 @@ const Analytics: React.FC = () => {
                   </div>
                 </>
               ) : (
-                <div style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
-                  No pet type data for this period
-                </div>
+                <div className={styles.pieEmptyState}>No pet type data for this period</div>
               )}
             </div>
           </CardContent>
@@ -376,7 +350,7 @@ const Analytics: React.FC = () => {
             {isLoading ? (
               <div className={styles.topItemsList}>
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className={styles.skeletonBlock} style={{ height: '3rem' }} />
+                  <div key={i} className={clsx(styles.skeletonBlock, styles.skeletonRow3rem)} />
                 ))}
               </div>
             ) : topRescues.length > 0 ? (
@@ -397,7 +371,7 @@ const Analytics: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div style={{ color: '#9ca3af', fontSize: '0.875rem', padding: '1rem 0' }}>
+              <div className={styles.emptyStatePadded}>
                 No rescue performance data for this period
               </div>
             )}

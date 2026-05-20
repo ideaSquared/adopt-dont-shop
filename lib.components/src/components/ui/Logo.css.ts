@@ -21,3 +21,11 @@ export const wordmark = style({
 export const wordmarkDark = style({
   color: '#FFFFFF',
 });
+
+export const wordmarkBold = style({
+  fontWeight: 700,
+});
+
+export const wordmarkSemibold = style({
+  fontWeight: 600,
+});

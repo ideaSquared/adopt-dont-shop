@@ -89,3 +89,38 @@ export const errorBanner = style({
   color: vars.colors.dangerTextEmphasis,
   fontSize: '0.875rem',
 });
+
+export const skeletonIcon = style({
+  width: '32px',
+  height: '32px',
+});
+
+export const skeletonLabel = style({
+  width: '120px',
+  height: '0.875rem',
+});
+
+export const skeletonValue = style({
+  width: '80px',
+  height: '2.25rem',
+  marginBottom: '0.5rem',
+});
+
+export const skeletonChange = style({
+  width: '140px',
+  height: '0.875rem',
+});
+
+export const widgetPlaceholder = style({
+  background: '#ffffff',
+  border: '1px solid #e5e7eb',
+  borderRadius: '12px',
+  padding: '2rem',
+  textAlign: 'center',
+  color: '#6b7280',
+});
+
+export const widgetPlaceholderText = style({
+  margin: 0,
+  fontSize: '0.875rem',
+});

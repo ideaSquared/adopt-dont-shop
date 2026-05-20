@@ -231,7 +231,7 @@ const Pets: React.FC = () => {
               type='checkbox'
               checked={includeArchived}
               onChange={e => setIncludeArchived(e.target.checked)}
-              style={{ marginRight: '0.375rem' }}
+              className={styles.checkboxSpacing}
             />
             Show archived
           </label>

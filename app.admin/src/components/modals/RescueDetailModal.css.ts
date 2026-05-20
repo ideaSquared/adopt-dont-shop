@@ -376,3 +376,133 @@ export const invitationBadgeDefault = style({
   background: '#e5e7eb',
   color: '#374151',
 });
+
+export const skeletonRow = style({
+  display: 'flex',
+  gap: '0.5rem',
+});
+
+export const tableWrapper = style({
+  overflowX: 'auto',
+});
+
+export const dataTable = style({
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontSize: '0.875rem',
+});
+
+export const tableHeadRow = style({
+  textAlign: 'left',
+  borderBottom: '1px solid #e5e7eb',
+});
+
+export const tableCell = style({
+  padding: '0.5rem',
+});
+
+export const tableBodyRow = style({
+  borderBottom: '1px solid #f3f4f6',
+});
+
+export const manageLinkRow = style({
+  marginTop: '0.75rem',
+});
+
+export const inviteFormSpacing = style({
+  marginTop: '1.5rem',
+});
+
+export const planSectionTitle = style({
+  margin: '0 0 1rem',
+  fontSize: '0.9375rem',
+  color: '#111827',
+});
+
+export const errorMessageSpacing = style({
+  marginBottom: '1rem',
+});
+
+export const staffSectionHeader = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+});
+
+export const userPlusIcon = style({
+  marginRight: '0.5rem',
+});
+
+export const staffSectionSubtitle = style({
+  margin: 0,
+  fontSize: '0.9375rem',
+  color: '#111827',
+});
+
+export const skeletonStaffList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.75rem',
+  padding: '1rem 0',
+});
+
+export const skeletonStaffRow = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+});
+
+export const skeletonStaffText = style({
+  flex: 1,
+});
+
+export const skeletonStaffName = style({
+  marginBottom: '0.25rem',
+});
+
+export const acceptedBadge = style({
+  display: 'inline-block',
+  marginLeft: '0.5rem',
+  color: '#10b981',
+});
+
+export const staffRowFlex = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+});
+
+export const headerSpacing = style({
+  marginTop: '0.5rem',
+});
+
+export const skeletonContent = style({
+  padding: '2rem',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '1.5rem',
+});
+
+export const skeletonAvatarRow = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '1rem',
+});
+
+export const skeletonAvatarText = style({
+  flex: 1,
+});
+
+export const skeletonName = style({
+  marginBottom: '0.5rem',
+});
+
+export const successMessage = style({
+  padding: '0.75rem',
+  marginBottom: '1rem',
+  background: '#f0fdf4',
+  border: '1px solid #bbf7d0',
+  borderRadius: '0.375rem',
+  color: '#166534',
+  fontSize: '0.875rem',
+});

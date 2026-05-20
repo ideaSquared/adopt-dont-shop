@@ -184,10 +184,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               </div>
               <div className={styles.infoItem}>
                 <div className={styles.infoLabel}>Report ID</div>
-                <div
-                  className={styles.infoValue}
-                  style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                >
+                <div className={clsx(styles.infoValue, styles.monospaceId)}>
                   {report.reportId.substring(0, 8)}...
                 </div>
               </div>
@@ -282,29 +279,22 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}>
                 <div className={styles.infoLabel}>Reporter ID</div>
-                <div
-                  className={styles.infoValue}
-                  style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                >
+                <div className={clsx(styles.infoValue, styles.monospaceId)}>
                   {report.reporterId.substring(0, 8)}...
                 </div>
               </div>
               {report.reportedUserId && (
                 <div className={styles.infoItem}>
                   <div className={styles.infoLabel}>Reported User ID</div>
-                  <div
-                    className={styles.infoValue}
-                    style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}
-                  >
+                  <div className={clsx(styles.infoValue, styles.monospaceId)}>
                     {report.reportedUserId.substring(0, 8)}...
                   </div>
                 </div>
               )}
             </div>
             <button
-              className={styles.viewContentButton}
+              className={clsx(styles.viewContentButton, styles.viewContentButtonSpacing)}
               onClick={() => openExternal(`${window.location.origin}/users/${report.reporterId}`)}
-              style={{ marginTop: '1rem' }}
             >
               <FiExternalLink size={16} />
               View Reporter Profile

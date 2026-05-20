@@ -257,11 +257,16 @@ export const PetCard: React.FC<PetCardProps> = ({
         {pet.rescue_id && <div className={styles.rescueInfo}>Rescue ID: {pet.rescue_id}</div>}
 
         <div className={styles.cardActions}>
-          <Button size='sm' variant='primary' style={{ flex: 1 }}>
+          <Button size='sm' variant='primary' className={styles.actionButton}>
             View Details
           </Button>
           {pet.status === 'available' && (
-            <Button size='sm' variant='outline' style={{ flex: 1 }} onClick={handleApplyClick}>
+            <Button
+              size='sm'
+              variant='outline'
+              className={styles.actionButton}
+              onClick={handleApplyClick}
+            >
               Apply
             </Button>
           )}

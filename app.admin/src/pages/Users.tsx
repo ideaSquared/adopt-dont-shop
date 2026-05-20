@@ -303,18 +303,9 @@ const Users: React.FC = () => {
             <Heading level='h1'>User Management</Heading>
           </div>
         </div>
-        <div
-          style={{
-            background: '#fee2e2',
-            border: '1px solid #fecaca',
-            borderRadius: '12px',
-            padding: '2rem',
-            textAlign: 'center',
-            color: '#991b1b',
-          }}
-        >
-          <p style={{ margin: '0 0 1rem 0', fontWeight: 600 }}>Failed to load users</p>
-          <p style={{ margin: '0', fontSize: '0.875rem' }}>{(error as Error).message}</p>
+        <div className={styles.errorPanel}>
+          <p className={styles.errorTitle}>Failed to load users</p>
+          <p className={styles.errorMessage}>{(error as Error).message}</p>
         </div>
       </div>
     );
@@ -464,7 +455,7 @@ const Users: React.FC = () => {
         <div className={styles.headerActions}>
           <ExportButton onExport={handleExport} disabled={isLoading || users.length === 0} />
           <Button variant='primary' size='md' onClick={() => setIsAddModalOpen(true)}>
-            <FiUserPlus style={{ marginRight: '0.5rem' }} />
+            <FiUserPlus className={styles.addUserIcon} />
             Add User
           </Button>
         </div>

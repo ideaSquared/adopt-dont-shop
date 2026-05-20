@@ -323,3 +323,15 @@ export const emptyState = style({
   color: vars.text.secondary,
   fontSize: '0.875rem',
 });
+
+export const fullCenterModal = style({
+  position: 'fixed',
+  top: '5vh',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 1002,
+  maxHeight: '90vh',
+  width: '90vw',
+  maxWidth: '800px',
+  overflow: 'auto',
+});

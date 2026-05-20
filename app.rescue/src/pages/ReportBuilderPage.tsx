@@ -14,6 +14,7 @@ import {
   useUpdateReport,
   type ReportConfig,
 } from '@adopt-dont-shop/lib.analytics';
+import * as styles from './ReportBuilderPage.css';
 
 /**
  * ADS-105: Custom report builder for rescue staff.
@@ -26,13 +27,6 @@ const emptyConfig: ReportBuilderConfig = {
   filters: { groupBy: 'day' },
   layout: { columns: 2 },
   widgets: [],
-};
-
-const containerStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '16px',
-  padding: '24px',
 };
 
 const ReportBuilderPage: React.FC = () => {
@@ -105,8 +99,8 @@ const ReportBuilderPage: React.FC = () => {
   );
 
   return (
-    <div style={containerStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className={styles.container}>
+      <div className={styles.headerRow}>
         <div>
           <Heading level="h1">{id ? 'Edit report' : 'New report'}</Heading>
           <Text>Build a custom report. Click Preview to run it.</Text>
@@ -116,42 +110,23 @@ const ReportBuilderPage: React.FC = () => {
         </button>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '16px',
-          padding: '12px',
-          background: '#f9fafb',
-          borderRadius: '8px',
-        }}
-      >
+      <div className={styles.formGrid}>
         <label>
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>Name</span>
+          <span className={styles.fieldLabel}>Name</span>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-            }}
+            className={styles.textInput}
           />
         </label>
         <label>
-          <span style={{ fontSize: '12px', color: '#6b7280' }}>Description</span>
+          <span className={styles.fieldLabel}>Description</span>
           <input
             type="text"
             value={description}
             onChange={e => setDescription(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '6px',
-            }}
+            className={styles.textInput}
           />
         </label>
       </div>
