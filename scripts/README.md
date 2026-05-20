@@ -6,6 +6,7 @@ Utility scripts referenced from the root `package.json` or mounted into containe
 
 | Script | Invoked via | Purpose |
 | --- | --- | --- |
+| `bootstrap.mjs` | `npm run setup` | One-shot onboarding: checks Node, seeds `.env`, generates secrets, runs `npm ci`, builds libs, validates env, and installs Playwright browsers. Pass `-- --skip-playwright` to skip the ~200 MB browser download. |
 | `generate-secrets.mjs` | `npm run secrets:generate` | Print fresh JWT/session/CSRF/encryption secrets to append to `.env`. Pure Node — works on Windows/macOS/Linux without OpenSSL. |
 | `validate-env.mjs` | `npm run validate:env` | Check `.env` against the required-variable list and warn on missing/insecure values. |
 | `create-new-app.js` | `npm run new-app` | Scaffold a new `app.<name>` package with Vite + React + workspace wiring. |

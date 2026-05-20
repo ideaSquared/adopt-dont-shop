@@ -1,4 +1,13 @@
 #!/usr/bin/env node
+/**
+ * Bootstrap script for new contributors. Invoked via `npm run setup`.
+ *
+ * Flags:
+ *   --skip-playwright   Skip downloading Playwright browsers (~200 MB).
+ *                       Useful for CI containers or lightweight dev environments
+ *                       that won't run E2E tests locally. You can install them
+ *                       later with `npm run test:e2e:install`.
+ */
 import { execSync } from 'child_process';
 import { existsSync, copyFileSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -118,6 +127,8 @@ function ensureSecretsInEnv(envPath) {
 async function setup() {
   logHeader("Adopt Don't Shop - Developer Setup");
 
+  const skipPlaywright = process.argv.includes('--skip-playwright');
+
   try {
     // Step 1: Check Node.js version
     logStep('1', 'Checking Node.js version...');
@@ -191,6 +202,26 @@ async function setup() {
       // Non-fatal: the user may need to fill in non-secret values like POSTGRES_PASSWORD.
     }
     log('', RESET);
+
+    // Step 6: Install Playwright browsers (for E2E tests)
+    if (skipPlaywright) {
+      logStep('6', 'Skipping Playwright browser install (--skip-playwright)');
+      logInfo('Run `npm run test:e2e:install` later if you want to run E2E tests.');
+      log('', RESET);
+    } else {
+      logStep('6', 'Installing Playwright browsers (for E2E tests)...');
+      logInfo('This downloads ~200 MB and may take 30–60 seconds.');
+      try {
+        runCommand('npm run test:e2e:install');
+        logSuccess('Playwright browsers installed');
+      } catch {
+        logError(
+          'Playwright install failed — run `npm run test:e2e:install` manually before `npm run test:e2e`.'
+        );
+        // Non-fatal: a transient network failure shouldn't fail the whole bootstrap.
+      }
+      log('', RESET);
+    }
 
     // Success message
     logHeader('Setup Complete! 🎉');
