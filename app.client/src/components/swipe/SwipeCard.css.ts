@@ -238,6 +238,33 @@ export const topBadge = recipe({
         background: 'rgba(34, 197, 94, 0.92)',
         color: 'white',
       },
+      pawfect: {
+        background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #fcd34d 100%)',
+        color: 'white',
+        boxShadow: '0 2px 12px rgba(245, 158, 11, 0.5)',
+        textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+      },
+      locked: {
+        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        color: 'white',
+        border: 'none',
+        cursor: 'pointer',
+        pointerEvents: 'auto',
+        boxShadow: '0 2px 12px rgba(99, 102, 241, 0.5)',
+        textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+        font: 'inherit',
+        fontWeight: 700,
+        fontSize: '0.75rem',
+        transition: 'transform 120ms ease, box-shadow 120ms ease',
+        ':hover': {
+          transform: 'translateY(-1px)',
+          boxShadow: '0 4px 16px rgba(99, 102, 241, 0.6)',
+        },
+        ':focus-visible': {
+          outline: '2px solid white',
+          outlineOffset: '2px',
+        },
+      },
     },
   },
 });

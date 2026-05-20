@@ -1,5 +1,6 @@
 import { useStatsig } from '@/hooks/useStatsig';
 import { DiscoveryPet } from '@/services';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { MatchReasonChips, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { animated, to, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
@@ -8,10 +9,10 @@ import {
   MdCheckCircle,
   MdExpandLess,
   MdLocationOn,
+  MdLock,
   MdPets,
   MdRefresh,
   MdStar,
-  MdVerified,
 } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { resolveFileUrl } from '../../utils/fileUtils';
@@ -82,6 +83,16 @@ const sizeLabels: Record<string, string> = {
   extra_large: 'XL',
 };
 
+type MatchTier = { label: string; variant: 'pawfect' | 'match' };
+
+// Score is 0..100 from the backend. Hide low scores so badges feel meaningful
+// (dating-app pattern: only highlight standouts).
+const getMatchTier = (score: number | null): MatchTier | null => {
+  if (score === null || score < 70) return null;
+  if (score >= 90) return { label: 'Pawfect Match', variant: 'pawfect' };
+  return { label: 'Great Match', variant: 'match' };
+};
+
 export const SwipeCard: React.FC<SwipeCardProps> = ({
   pet,
   onSwipe,
@@ -93,7 +104,20 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { logEvent } = useStatsig();
+  const { isAuthenticated } = useAuth();
   const [imageIndex, setImageIndex] = useState(0);
+
+  const openSignup = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      logEvent('swipe_match_teaser_clicked', 1, {
+        pet_id: pet.petId,
+        pet_name: pet.name || 'unknown',
+      });
+      navigate('/register');
+    },
+    [logEvent, navigate, pet.petId, pet.name]
+  );
 
   React.useEffect(() => {
     if (isTop) {
@@ -288,6 +312,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     pet.compatibilityScore !== undefined && pet.compatibilityScore !== null
       ? pet.compatibilityScore
       : null;
+  const matchTier = getMatchTier(compatibilityScore);
   const placeholderBackground =
     petTypeGradients[pet.type ?? ''] ?? 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
 
@@ -378,13 +403,25 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         )}
 
         {(pet.isSponsored ||
-          compatibilityScore !== null ||
+          !isAuthenticated ||
+          matchTier !== null ||
           (pet.matchReasons && pet.matchReasons.length > 0)) && (
           <div className={styles.topBadges}>
-            {compatibilityScore !== null && compatibilityScore >= 0.7 && (
-              <span className={styles.topBadge({ variant: 'match' })}>
-                <MdVerified /> {Math.round(compatibilityScore * 100)}% match
-              </span>
+            {!isAuthenticated ? (
+              <button
+                type='button'
+                className={styles.topBadge({ variant: 'locked' })}
+                onClick={openSignup}
+                aria-label='Sign up to see your match score'
+              >
+                <MdLock /> See Your Match
+              </button>
+            ) : (
+              matchTier && (
+                <span className={styles.topBadge({ variant: matchTier.variant })}>
+                  <MdStar /> {matchTier.label}
+                </span>
+              )
             )}
             {pet.isSponsored && (
               <span className={styles.topBadge({ variant: 'sponsored' })}>
