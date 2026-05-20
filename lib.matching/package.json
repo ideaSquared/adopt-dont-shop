@@ -23,7 +23,9 @@
     "test:watch": "vitest",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [
     "pet-adoption",
