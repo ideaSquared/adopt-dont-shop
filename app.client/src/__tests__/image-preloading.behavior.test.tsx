@@ -24,6 +24,14 @@ vi.mock('@/hooks/useStatsig', () => ({
   }),
 }));
 
+vi.mock('@adopt-dont-shop/lib.auth', () => ({
+  useAuth: () => ({
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+  }),
+}));
+
 import { SwipeStack } from '../components/swipe/SwipeStack';
 import type { DiscoveryPet } from '../services';
 

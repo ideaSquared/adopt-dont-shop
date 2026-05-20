@@ -1,5 +1,6 @@
 import { useStatsig } from '@/hooks/useStatsig';
 import { DiscoveryPet } from '@/services';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { MatchReasonChips, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { animated, to, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
@@ -8,6 +9,7 @@ import {
   MdCheckCircle,
   MdExpandLess,
   MdLocationOn,
+  MdLock,
   MdPets,
   MdRefresh,
   MdStar,
@@ -102,7 +104,20 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { logEvent } = useStatsig();
+  const { isAuthenticated } = useAuth();
   const [imageIndex, setImageIndex] = useState(0);
+
+  const openSignup = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      logEvent('swipe_match_teaser_clicked', 1, {
+        pet_id: pet.petId,
+        pet_name: pet.name || 'unknown',
+      });
+      navigate('/register');
+    },
+    [logEvent, navigate, pet.petId, pet.name]
+  );
 
   React.useEffect(() => {
     if (isTop) {
@@ -388,13 +403,25 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         )}
 
         {(pet.isSponsored ||
+          !isAuthenticated ||
           matchTier !== null ||
           (pet.matchReasons && pet.matchReasons.length > 0)) && (
           <div className={styles.topBadges}>
-            {matchTier && (
-              <span className={styles.topBadge({ variant: matchTier.variant })}>
-                <MdStar /> {matchTier.label}
-              </span>
+            {!isAuthenticated ? (
+              <button
+                type='button'
+                className={styles.topBadge({ variant: 'locked' })}
+                onClick={openSignup}
+                aria-label='Sign up to see your match score'
+              >
+                <MdLock /> See Your Match
+              </button>
+            ) : (
+              matchTier && (
+                <span className={styles.topBadge({ variant: matchTier.variant })}>
+                  <MdStar /> {matchTier.label}
+                </span>
+              )
             )}
             {pet.isSponsored && (
               <span className={styles.topBadge({ variant: 'sponsored' })}>
