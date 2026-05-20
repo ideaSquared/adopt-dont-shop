@@ -206,10 +206,14 @@ function isWithinAllowedRoot(resolvedPath: string, allowedRoots: readonly string
   }
   return allowedRoots.some(root => {
     const resolvedRoot = path.resolve(root);
-    if (resolvedPath === resolvedRoot) {
+    // path.relative is the canonical CodeQL sanitiser for path traversal:
+    // an empty result means the path is the root itself; a result that
+    // neither starts with ".." nor is absolute is strictly inside it.
+    const rel = path.relative(resolvedRoot, resolvedPath);
+    if (rel === '') {
       return true;
     }
-    return resolvedPath.startsWith(resolvedRoot + path.sep);
+    return !rel.startsWith('..') && !path.isAbsolute(rel);
   });
 }
 
