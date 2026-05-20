@@ -15,9 +15,12 @@ import type User from '../models/User';
  * - Cached for 60 seconds. Long enough to absorb typical request bursts
  *   from a single page load, short enough that a role change propagates
  *   without an explicit bust.
- * - Role-mutating call sites (`UserRole.create` / `setRoles` /
- *   `removeRole`) explicitly call `invalidateAuthCache(userId)` so the
- *   change takes effect on the next request without waiting for TTL.
+ * - The User model's `afterSave` / `afterDestroy` hooks call
+ *   `invalidateAuthCache(userId)` so any persisted change to the user
+ *   row (status, emailVerified, role, password, 2FA, …) takes effect on
+ *   the next request without waiting for TTL (ADS-596). Call sites that
+ *   bypass instance hooks (`Model.update`, role-only mutations,
+ *   `logout`) invalidate explicitly.
  * - Revoked tokens are checked *before* the cache lookup in
  *   `authenticateRequest`, so a revoked session can't ride a stale
  *   cache entry.

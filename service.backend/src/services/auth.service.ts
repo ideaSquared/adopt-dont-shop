@@ -14,6 +14,7 @@ import { getValidatedFrontendOrigin } from '../utils/url-allowlist';
 import { AuditLogService } from './auditLog.service';
 import { redactEmail } from './redact';
 import { env } from '../config/env';
+import { invalidateAuthCache } from '../lib/auth-cache';
 
 import {
   AuthResponse,
@@ -725,6 +726,12 @@ Need help? Contact us at support@adoptdontshop.com
     }
 
     if (!refreshToken) {
+      // ADS-596: bust the auth cache so the next request can't ride a
+      // stale entry past the freshly-revoked access token. Logout doesn't
+      // mutate the User row, so the User-model hook doesn't fire here.
+      if (callerUserId) {
+        invalidateAuthCache(callerUserId);
+      }
       return;
     }
 
@@ -739,6 +746,11 @@ Need help? Contact us at support@adoptdontshop.com
     } catch {
       // Expired or malformed token — nothing to revoke
       logger.info('Logout with invalid or expired token, skipping revocation');
+    }
+
+    // ADS-596: see comment in the early-return branch above.
+    if (callerUserId) {
+      invalidateAuthCache(callerUserId);
     }
   }
 

@@ -23,6 +23,7 @@ import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { redactSensitiveFields } from '../utils/redact';
+import { invalidateAuthCache } from '../lib/auth-cache';
 
 const USER_SORT_FIELDS = [
   'createdAt',
@@ -1308,6 +1309,12 @@ export class UserService {
           },
         },
       });
+
+      // ADS-596: Model.update bypasses the per-instance afterSave hook that
+      // normally busts the auth cache, so we have to do it explicitly here.
+      for (const userId of updates[0].userIds) {
+        invalidateAuthCache(userId);
+      }
 
       // Log bulk update
       await AuditLogService.log({
