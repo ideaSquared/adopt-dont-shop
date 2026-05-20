@@ -316,8 +316,10 @@ export class FileUploadService {
       const provider = getStorageProvider();
       if (provider.getName() !== 'local') {
         const lastSlash = uploadRecord.file_path.lastIndexOf('/');
-        const category = lastSlash !== -1 ? uploadRecord.file_path.slice(0, lastSlash) : 'documents';
-        const filename = lastSlash !== -1 ? uploadRecord.file_path.slice(lastSlash + 1) : uploadRecord.file_path;
+        const category =
+          lastSlash !== -1 ? uploadRecord.file_path.slice(0, lastSlash) : 'documents';
+        const filename =
+          lastSlash !== -1 ? uploadRecord.file_path.slice(lastSlash + 1) : uploadRecord.file_path;
         await provider.deleteFile(filename, category);
       } else {
         const filePath = path.join(config.storage.local.directory, uploadRecord.file_path);
@@ -614,6 +616,21 @@ export class FileUploadService {
     return categoryMap[uploadType];
   }
 
+  /**
+   * Resolve a path and assert it lives inside the configured local upload
+   * directory. CodeQL flags `file.path` as user-controllable; constraining
+   * to the upload root closes the path-traversal sink.
+   */
+  private static assertWithinUploadRoot(candidate: string): string {
+    const uploadRoot = path.resolve(config.storage.local.directory);
+    const resolved = path.resolve(candidate);
+    const rel = path.relative(uploadRoot, resolved);
+    if (rel.startsWith('..') || path.isAbsolute(rel)) {
+      throw new Error('Upload path escapes configured upload directory');
+    }
+    return resolved;
+  }
+
   private static async transferToRemoteStorage(
     file: Express.Multer.File,
     processedFile: ProcessedFileInfo,
@@ -626,7 +643,8 @@ export class FileUploadService {
 
     const category = this.mapUploadTypeToCategory(uploadType);
 
-    const processedBuffer = await fs.promises.readFile(processedFile.processedPath);
+    const safeProcessedPath = this.assertWithinUploadRoot(processedFile.processedPath);
+    const processedBuffer = await fs.promises.readFile(safeProcessedPath);
     const uploadResult = await provider.uploadFile(
       processedBuffer,
       file.originalname,
@@ -636,7 +654,8 @@ export class FileUploadService {
 
     let thumbnailUrl: string | undefined;
     if (processedFile.thumbnailPath) {
-      const thumbBuffer = await fs.promises.readFile(processedFile.thumbnailPath);
+      const safeThumbPath = this.assertWithinUploadRoot(processedFile.thumbnailPath);
+      const thumbBuffer = await fs.promises.readFile(safeThumbPath);
       const thumbResult = await provider.uploadFile(
         thumbBuffer,
         `thumb_${file.originalname}`,
@@ -655,7 +674,15 @@ export class FileUploadService {
         : undefined,
     ].filter((p): p is string => p !== undefined);
 
-    await Promise.all(localPaths.map(p => fs.promises.unlink(p).catch(() => undefined)));
+    await Promise.all(
+      localPaths.map(async p => {
+        try {
+          await fs.promises.unlink(this.assertWithinUploadRoot(p));
+        } catch {
+          // best-effort cleanup
+        }
+      })
+    );
 
     return {
       url: uploadResult.url,
