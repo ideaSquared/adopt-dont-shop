@@ -626,6 +626,31 @@ describe('ApplicationService - Business Logic', () => {
       expect(result).toBeDefined();
     });
 
+    it('denies unverified rescue staff (ADS-591)', async () => {
+      // Given: Application owned by rescue, but the staff lookup with
+      // isVerified: true returns no match.
+      const mockApplication = createMockApplication();
+      mockApplication.rescueId = mockRescueId;
+
+      MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
+      MockedStaffMember.findOne = vi.fn().mockResolvedValue(null);
+
+      // When & Then: Access denied
+      await expect(
+        ApplicationService.getApplicationById(
+          mockApplicationId,
+          'unverified-staff-123',
+          UserType.RESCUE_STAFF
+        )
+      ).rejects.toThrow('Access denied');
+
+      expect(MockedStaffMember.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ isVerified: true }),
+        })
+      );
+    });
+
     it('allows admin to view any application', async () => {
       // Given: Any application
       const mockApplication = createMockApplication();

@@ -72,42 +72,6 @@ export const requirePermission = (requiredPermission: string) => {
   };
 };
 
-// Resource ownership check
-export const requireOwnership = (resourceIdParam: string = 'id') => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      res.status(401).json({
-        error: 'Authentication required',
-        message: 'User must be authenticated',
-      });
-      return;
-    }
-
-    const resourceId = req.params[resourceIdParam];
-    const userId = req.user.userId;
-
-    // For user resources, check if user owns the resource
-    if (resourceIdParam === 'userId' && resourceId !== userId) {
-      logger.warn(`Access denied - resource ownership check failed`, {
-        userId,
-        resourceId,
-        resourceParam: resourceIdParam,
-        endpoint: req.path,
-      });
-
-      res.status(403).json({
-        error: 'Access denied',
-        message: 'You can only access your own resources',
-      });
-      return;
-    }
-
-    // Store resource ID for use in controller - using proper typing
-    (req as AuthenticatedRequest & { resourceId: string }).resourceId = resourceId;
-    next();
-  };
-};
-
 // Combined permission and ownership check
 export const requirePermissionOrOwnership = (
   permission: string,
@@ -209,7 +173,6 @@ export const requireOwnershipOrAdmin = (
 export default {
   requireRole,
   requirePermission,
-  requireOwnership,
   requirePermissionOrOwnership,
   requireAdmin,
   requireRescue,
