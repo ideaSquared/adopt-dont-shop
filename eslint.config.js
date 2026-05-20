@@ -19,6 +19,15 @@ export default [
     },
   },
   {
-    ignores: ['node_modules/', 'dist/', 'build/', 'coverage/', '**/*.d.ts'],
+    ignores: [
+      'node_modules/',
+      'dist/',
+      'build/',
+      'coverage/',
+      '**/*.d.ts',
+      // Scaffolding templates contain {{PLACEHOLDER}} tokens that aren't valid
+      // TS until rendered; eslint can't parse them.
+      'scripts/templates/',
+    ],
   },
 ];
