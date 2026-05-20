@@ -72,6 +72,7 @@ export class ClamAvProvider extends BaseAvProvider {
       return { clean: false, details: 'ClamAV scan target is outside the allowed upload roots' };
     }
     try {
+      // lgtm[js/path-injection] - resolvedPath is realpathSync'd and confirmed inside an allowedRoots prefix above.
       const stats = fs.statSync(resolvedPath);
       if (!stats.isFile()) {
         return { clean: false, details: 'ClamAV scan target is not a regular file' };
@@ -85,6 +86,7 @@ export class ClamAvProvider extends BaseAvProvider {
     // takes the path itself as a parameter — keeps the fs.createReadStream
     // sink right next to the sanitiser above for CodeQL's data-flow trace.
     const openStream = (): fs.ReadStream =>
+      // lgtm[js/path-injection] - resolvedPath is realpathSync'd and confirmed inside an allowedRoots prefix above.
       fs.createReadStream(resolvedPath, { highWaterMark: CLAMAV_CHUNK_BYTES });
 
     try {
