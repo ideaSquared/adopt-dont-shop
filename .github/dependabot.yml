@@ -26,12 +26,6 @@ updates:
       typescript-eslint:
         patterns:
           - "@typescript-eslint/*"
-      jest:
-        patterns:
-          - "jest"
-          - "ts-jest"
-          - "@types/jest"
-          - "jest-environment-*"
       vitest:
         patterns:
           - "vitest"
