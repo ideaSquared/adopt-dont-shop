@@ -152,7 +152,10 @@ router.get('/admin/users/:userId/export', async (req: AuthenticatedRequest, res:
     res.status(400).json({ error: 'Invalid userId' });
     return;
   }
-  const bundle = await exportUserData(parsed.data.userId);
+  // ADS-605: thread the acting admin through so the audit row records
+  // the admin's userId, not the data subject's.
+  const actor = req.user ? { userId: req.user.userId, userType: req.user.userType } : undefined;
+  const bundle = await exportUserData(parsed.data.userId, actor);
   res.setHeader(
     'Content-Disposition',
     `attachment; filename="adopt-dont-shop-export-${parsed.data.userId}.json"`
@@ -177,7 +180,11 @@ router.post(
       return;
     }
     const body = req.body as z.infer<typeof AdminDeleteSchema>;
-    const result = await requestAccountDeletion(parsed.data.userId, body.reason);
+    // ADS-605: thread the acting admin through so a second audit row
+    // attributed to the admin is written alongside the subject-scoped
+    // GDPR_DELETE_REQUESTED entry.
+    const actor = req.user ? { userId: req.user.userId, userType: req.user.userType } : undefined;
+    const result = await requestAccountDeletion(parsed.data.userId, body.reason, actor);
     res.status(202).json({
       data: {
         ...result,
