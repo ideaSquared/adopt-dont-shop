@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as net from 'net';
+
 import { logger } from '../../utils/logger';
 import { BaseAvProvider, ScanResult } from './base-provider';
 
@@ -7,12 +10,20 @@ export type ClamAvConfig = {
   timeoutMs?: number;
 };
 
+// ClamAV INSTREAM chunk size. 64 KiB is well under the daemon's default
+// StreamMaxLength and keeps memory usage flat for arbitrarily large files.
+const CLAMAV_CHUNK_BYTES = 64 * 1024;
+const DEFAULT_TIMEOUT_MS = 30_000;
+
 /**
- * ClamAV provider scaffold. Implementation deferred — wire `clamscan`
- * (or equivalent) when ClamAV daemon is available in the deployment.
+ * ClamAV provider. Talks to clamd directly via its INSTREAM protocol so
+ * no native binding is required.
  *
- * `validateConfiguration` returns true if host/port are set so startup
- * validation can fail fast without a daemon round-trip.
+ * Protocol reference: clamd(8). We use the `z<cmd>\0` form which is
+ * NUL-terminated and survives stale newlines in the stream.
+ *
+ * `ping()` is exposed so startup can verify the daemon is actually
+ * reachable before the first upload arrives (ADS-602).
  */
 export class ClamAvProvider extends BaseAvProvider {
   private readonly config: ClamAvConfig;
@@ -23,14 +34,37 @@ export class ClamAvProvider extends BaseAvProvider {
   }
 
   async scan(filePath: string): Promise<ScanResult> {
-    logger.error(
-      'ClamAV provider invoked but implementation not wired. Reject file (fail-closed).',
-      { filePath, host: this.config.host, port: this.config.port }
-    );
-    return {
-      clean: false,
-      details: 'ClamAV provider not implemented — vendor wiring required',
-    };
+    const host = this.config.host;
+    const port = this.config.port;
+    if (!host || !port) {
+      return { clean: false, details: 'ClamAV provider misconfigured: host/port missing' };
+    }
+
+    try {
+      const response = await this.runInstream(host, port, filePath);
+      return parseInstreamResponse(response);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error('ClamAV scan failed', { filePath, host, port, error: message });
+      return { clean: false, details: `ClamAV scan error: ${message}` };
+    }
+  }
+
+  /**
+   * Send a PING to clamd and expect PONG. Throws on any other reply,
+   * a connection error, or a timeout. Used as a startup smoke check.
+   */
+  async ping(): Promise<void> {
+    const host = this.config.host;
+    const port = this.config.port;
+    if (!host || !port) {
+      throw new Error('ClamAV provider misconfigured: host/port missing');
+    }
+    const response = await this.sendCommand(host, port, 'zPING\0');
+    const trimmed = response.replace(/\0+$/, '').trim();
+    if (trimmed !== 'PONG') {
+      throw new Error(`Unexpected PING response from clamd: ${JSON.stringify(trimmed)}`);
+    }
   }
 
   getName(): string {
@@ -40,4 +74,123 @@ export class ClamAvProvider extends BaseAvProvider {
   validateConfiguration(): boolean {
     return Boolean(this.config.host && this.config.port);
   }
+
+  private get timeoutMs(): number {
+    return this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  }
+
+  /**
+   * Open a connection, write `command`, collect the reply, close.
+   */
+  private sendCommand(host: string, port: number, command: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const socket = net.createConnection({ host, port });
+      const chunks: Buffer[] = [];
+      const cleanup = (): void => {
+        socket.removeAllListeners();
+        socket.destroy();
+      };
+
+      socket.setTimeout(this.timeoutMs);
+      socket.once('connect', () => {
+        socket.write(command);
+      });
+      socket.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+      socket.once('end', () => {
+        cleanup();
+        resolve(Buffer.concat(chunks).toString('utf8'));
+      });
+      socket.once('timeout', () => {
+        cleanup();
+        reject(new Error(`ClamAV request timed out after ${this.timeoutMs}ms`));
+      });
+      socket.once('error', err => {
+        cleanup();
+        reject(err);
+      });
+    });
+  }
+
+  /**
+   * Stream a file to clamd via the INSTREAM command. clamd replies with
+   * a single line once the terminator chunk is received.
+   */
+  private runInstream(host: string, port: number, filePath: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const socket = net.createConnection({ host, port });
+      const chunks: Buffer[] = [];
+      let fileStream: fs.ReadStream | null = null;
+      let settled = false;
+      const settle = (action: () => void): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        socket.removeAllListeners();
+        if (fileStream) {
+          fileStream.removeAllListeners();
+          fileStream.destroy();
+        }
+        socket.destroy();
+        action();
+      };
+
+      socket.setTimeout(this.timeoutMs);
+      socket.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+      socket.once('end', () => {
+        settle(() => resolve(Buffer.concat(chunks).toString('utf8')));
+      });
+      socket.once('timeout', () => {
+        settle(() => reject(new Error(`ClamAV INSTREAM timed out after ${this.timeoutMs}ms`)));
+      });
+      socket.once('error', err => {
+        settle(() => reject(err));
+      });
+
+      socket.once('connect', () => {
+        socket.write('zINSTREAM\0');
+        fileStream = fs.createReadStream(filePath, { highWaterMark: CLAMAV_CHUNK_BYTES });
+        fileStream.on('data', data => {
+          // Coerce string-mode reads to Buffer so the length prefix is correct.
+          const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+          const header = Buffer.alloc(4);
+          header.writeUInt32BE(buf.length, 0);
+          socket.write(header);
+          socket.write(buf);
+        });
+        fileStream.once('end', () => {
+          // Zero-length chunk signals end-of-stream to clamd.
+          const terminator = Buffer.alloc(4);
+          socket.write(terminator);
+        });
+        fileStream.once('error', err => {
+          settle(() => reject(err));
+        });
+      });
+    });
+  }
+}
+
+/**
+ * Parse a clamd INSTREAM reply.
+ *
+ * Examples:
+ *   "stream: OK\0"                          -> clean
+ *   "stream: Eicar-Test-Signature FOUND\0"  -> infected
+ *   "INSTREAM size limit exceeded. ERROR\0" -> error
+ */
+export function parseInstreamResponse(raw: string): ScanResult {
+  const trimmed = raw.replace(/\0+$/, '').trim();
+  if (/\bFOUND$/.test(trimmed)) {
+    const signature = trimmed.replace(/^stream:\s*/, '').replace(/\s+FOUND$/, '');
+    return { clean: false, details: `infected: ${signature}` };
+  }
+  if (/\bOK$/.test(trimmed)) {
+    return { clean: true };
+  }
+  return { clean: false, details: `clamd error: ${trimmed}` };
 }

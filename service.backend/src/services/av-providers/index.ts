@@ -58,6 +58,24 @@ export function getAvProvider(): AvProvider {
   return cachedProvider;
 }
 
+/**
+ * ADS-602: startup smoke check. Resolves only when the configured
+ * provider is actually reachable. For ClamAV this means a successful
+ * PING/PONG round-trip; for noop it's an immediate success. Call this
+ * from server startup so a misconfigured AV daemon fails the boot
+ * instead of silently rejecting every upload at request time.
+ */
+export async function initializeAvProvider(): Promise<void> {
+  const provider = getAvProvider();
+  if (provider instanceof ClamAvProvider) {
+    await provider.ping();
+    logger.info('ClamAV daemon reachable (PING/PONG ok)', {
+      host: config.av.clamav.host,
+      port: config.av.clamav.port,
+    });
+  }
+}
+
 export function resetAvProviderForTests(): void {
   cachedProvider = null;
 }
