@@ -248,7 +248,13 @@ describe('FileUploadService', () => {
     });
   });
 
-  describe('sanitizeSvgFile() — XSS prevention', () => {
+  describe('SVG uploads rejected at allowlist level (ADS-598)', () => {
+    // ADS-598: `image/svg+xml` was dropped from the image allowlist because
+    // SVGs execute same-origin and DOMPurify SVG sanitisation has a long
+    // CVE history. Any attempt to upload one — clean or malicious — is
+    // rejected. The `sanitizeSvgFile` helper is kept as defence-in-depth
+    // for non-multer code paths but the normal upload pipeline never
+    // reaches it.
     const makeSvgFile = () =>
       makeFile({
         originalname: 'icon.svg',
@@ -257,72 +263,25 @@ describe('FileUploadService', () => {
         filename: 'icon_123.svg',
       });
 
-    const setupSvgUpload = (rawSvg: string, sanitizedSvg: string) => {
+    it('rejects an SVG upload even when the content is clean', async () => {
       vi.mocked(fileTypeFromFile).mockResolvedValue({ mime: 'image/svg+xml', ext: 'svg' });
-      vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from(rawSvg));
-      vi.mocked(DOMPurify.sanitize).mockReturnValue(sanitizedSvg);
-      vi.mocked(fs.promises.writeFile).mockResolvedValue(undefined);
-      vi.mocked(fs.promises.stat).mockResolvedValue({
-        mtime: new Date('2024-01-01'),
-      } as unknown as import('fs').Stats);
-      vi.mocked(FileUpload.create).mockResolvedValue(
-        makeMockRecord({ mime_type: 'image/svg+xml' })
-      );
-    };
-
-    it('strips script tags from SVG content and allows the upload', async () => {
-      const rawSvg = '<svg><script>alert("xss")</script><circle r="5"/></svg>';
-      const cleanSvg = '<svg><circle r="5"/></svg>';
-      setupSvgUpload(rawSvg, cleanSvg);
-
-      const result = await FileUploadService.uploadFile(makeSvgFile(), 'pets', {
-        uploadedBy: 'user-456',
-      });
-
-      expect(result.success).toBe(true);
-      expect(vi.mocked(fs.promises.writeFile)).toHaveBeenCalledWith(
-        '/test-uploads/icon.svg',
-        cleanSvg,
-        'utf-8'
-      );
-    });
-
-    it('strips event handler attributes from SVG content', async () => {
-      const rawSvg = '<svg><circle onclick="evil()" r="5"/></svg>';
-      const cleanSvg = '<svg><circle r="5"/></svg>';
-      setupSvgUpload(rawSvg, cleanSvg);
-
-      const result = await FileUploadService.uploadFile(makeSvgFile(), 'pets', {
-        uploadedBy: 'user-456',
-      });
-
-      expect(result.success).toBe(true);
-      expect(vi.mocked(DOMPurify.sanitize)).toHaveBeenCalled();
-    });
-
-    it('rejects an SVG when sanitisation removes all meaningful content', async () => {
-      setupSvgUpload('<svg><script>alert(1)</script></svg>', '');
 
       await expect(
         FileUploadService.uploadFile(makeSvgFile(), 'pets', { uploadedBy: 'user-456' })
-      ).rejects.toThrow('File upload failed');
+      ).rejects.toThrow(/image\/svg\+xml/);
+      expect(vi.mocked(DOMPurify.sanitize)).not.toHaveBeenCalled();
+      expect(vi.mocked(FileUpload.create)).not.toHaveBeenCalled();
     });
 
-    it('passes a clean SVG through unchanged', async () => {
-      const cleanSvg =
-        '<svg xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="5"/></svg>';
-      setupSvgUpload(cleanSvg, cleanSvg);
+    it('rejects an SVG upload containing <script> without ever invoking the sanitiser', async () => {
+      const rawSvg = '<svg><script>alert("xss")</script><circle r="5"/></svg>';
+      vi.mocked(fileTypeFromFile).mockResolvedValue({ mime: 'image/svg+xml', ext: 'svg' });
+      vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from(rawSvg));
 
-      const result = await FileUploadService.uploadFile(makeSvgFile(), 'pets', {
-        uploadedBy: 'user-456',
-      });
-
-      expect(result.success).toBe(true);
-      expect(vi.mocked(fs.promises.writeFile)).toHaveBeenCalledWith(
-        '/test-uploads/icon.svg',
-        cleanSvg,
-        'utf-8'
-      );
+      await expect(
+        FileUploadService.uploadFile(makeSvgFile(), 'pets', { uploadedBy: 'user-456' })
+      ).rejects.toThrow(/image\/svg\+xml/);
+      expect(vi.mocked(DOMPurify.sanitize)).not.toHaveBeenCalled();
     });
   });
 

@@ -168,6 +168,16 @@ const streamFile = (resolved: string, res: Response): void => {
     if (ext === '.pdf') {
       res.setHeader('Content-Disposition', 'inline');
     }
+    // ADS-598: any historical SVG already on disk must be downloaded,
+    // not rendered. New SVG uploads are rejected upstream by the
+    // file-upload allowlist, but the Express fallback still serves
+    // legacy files for environments where this code runs without nginx
+    // in front. Forcing `attachment` prevents stored XSS via SVG
+    // payloads (event hooks, foreign content) executing same-origin.
+    if (ext === '.svg' || ext === '.svgz') {
+      res.setHeader('Content-Disposition', 'attachment');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
     // Authenticated content must NEVER be cached by shared caches —
     // they can't replay the auth check on a follow-up requester.
     res.setHeader('Cache-Control', 'private, max-age=300');

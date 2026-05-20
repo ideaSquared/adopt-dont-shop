@@ -411,6 +411,28 @@ describe('GET /uploads/:path — Express fallback streaming route', () => {
     expect(response.status).toBe(400);
   });
 
+  // ADS-598: SVGs from the legacy on-disk corpus must be served as a
+  // downloadable attachment with X-Content-Type-Options: nosniff so a
+  // browser navigating directly to the URL cannot execute the script
+  // payload same-origin.
+  it('forces Content-Disposition: attachment and nosniff on .svg responses', async () => {
+    authenticateTokenMock.mockImplementation(
+      (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+        req.user = mockUser as AuthenticatedRequest['user'];
+        next();
+      }
+    );
+
+    fs.mkdirSync(path.join(TEST_UPLOAD_DIR, 'pets'), { recursive: true });
+    fs.writeFileSync(path.join(TEST_UPLOAD_DIR, 'pets', 'legacy.svg'), '<svg onload="alert(1)"/>');
+
+    const response = await request(app).get('/uploads/pets/legacy.svg');
+    expect(response.status).toBe(200);
+    expect(response.headers['content-disposition']).toBe('attachment');
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['content-type']).toMatch(/application\/octet-stream/);
+  });
+
   // ── per-resource ACL wiring ────────────────────────────────────────────────
   //
   // The streaming route must invoke decideUploadAccess and honour its verdict,
