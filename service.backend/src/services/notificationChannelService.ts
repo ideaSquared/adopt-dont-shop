@@ -121,7 +121,7 @@ export class NotificationChannelService {
   /**
    * Determine if notification should be sent to specific channel based on type and preferences
    */
-  private static shouldSendToChannel(
+  static shouldSendToChannel(
     channel: 'email' | 'push' | 'sms',
     notificationType: string,
     preferences: NotificationPreferences
@@ -141,9 +141,11 @@ export class NotificationChannelService {
       return true;
     }
 
-    // Marketing (opt-in only)
-    if (notificationType.includes('marketing') && preferences.marketing === true) {
-      return true;
+    // Marketing is opt-in only — drop unless explicitly opted in. Terminal
+    // so opted-out marketing notifications can't fall through to the
+    // default `return true` below (ADS-604).
+    if (notificationType.includes('marketing')) {
+      return preferences.marketing === true;
     }
 
     // Reminders

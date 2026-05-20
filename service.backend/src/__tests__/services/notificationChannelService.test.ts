@@ -5,8 +5,9 @@
  * chat previews, application notes, or broadcast messages must be
  * HTML-escaped before it lands in a recipient's inbox.
  *
- * Tests assert through `deliverToChannels` (the public API) and inspect
- * the payload handed to the mocked emailService.sendEmail.
+ * ADS-604: behaviour tests for shouldSendToChannel — marketing
+ * notifications must be opt-in only; a prior bug let opted-out marketing
+ * notifications through via a catch-all `return true`.
  */
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 
@@ -34,6 +35,7 @@ vi.mock('../../services/email.service', () => ({
 import User from '../../models/User';
 import emailService from '../../services/email.service';
 import { NotificationChannelService } from '../../services/notificationChannelService';
+import { NotificationPreferences } from '../../services/notification.service';
 
 const mockUserFindByPk = vi.mocked(User.findByPk);
 const mockSendEmail = vi.mocked(emailService.sendEmail);
@@ -119,5 +121,85 @@ describe('NotificationChannelService email delivery', () => {
     const payload = mockSendEmail.mock.calls[0][0];
     expect(payload.htmlContent).toBe('<p>Your application for Buddy has been approved!</p>');
     expect(payload.textContent).toBe(normal);
+  });
+});
+
+// ADS-604: Marketing notifications must be opt-in only. Prior bug let
+// opted-out marketing notifications through via a catch-all `return true`.
+describe('NotificationChannelService.shouldSendToChannel', () => {
+  const basePrefs: NotificationPreferences = {
+    email: true,
+    push: true,
+    sms: true,
+    applications: true,
+    messages: true,
+    system: true,
+    marketing: false,
+    reminders: true,
+  };
+
+  const channels: Array<'email' | 'push' | 'sms'> = ['email', 'push', 'sms'];
+
+  describe('marketing notifications (opt-in only)', () => {
+    for (const channel of channels) {
+      describe(`channel: ${channel}`, () => {
+        it('sends when user has opted in (marketing: true)', () => {
+          const prefs: NotificationPreferences = { ...basePrefs, marketing: true };
+          expect(
+            NotificationChannelService.shouldSendToChannel(channel, 'marketing.promo', prefs)
+          ).toBe(true);
+        });
+
+        it('drops when user has opted out (marketing: false)', () => {
+          const prefs: NotificationPreferences = { ...basePrefs, marketing: false };
+          expect(
+            NotificationChannelService.shouldSendToChannel(channel, 'marketing.promo', prefs)
+          ).toBe(false);
+        });
+
+        it('drops when preference is unset (marketing: undefined)', () => {
+          // marketing is required in the type but the runtime preference row
+          // can be missing; emulate that by stripping the field. Cast through
+          // unknown so we keep strict mode happy without `any`.
+          const { marketing: _ignored, ...partial } = basePrefs;
+          const prefs = partial as unknown as NotificationPreferences;
+          expect(
+            NotificationChannelService.shouldSendToChannel(channel, 'marketing.promo', prefs)
+          ).toBe(false);
+        });
+      });
+    }
+  });
+
+  describe('non-marketing notifications (existing flow preserved)', () => {
+    for (const channel of channels) {
+      it(`sends application.update on ${channel} even when marketing is opted out`, () => {
+        const prefs: NotificationPreferences = { ...basePrefs, marketing: false };
+        expect(
+          NotificationChannelService.shouldSendToChannel(channel, 'application.update', prefs)
+        ).toBe(true);
+      });
+    }
+
+    it('sends system notifications regardless of marketing preference', () => {
+      const prefs: NotificationPreferences = { ...basePrefs, marketing: false };
+      expect(
+        NotificationChannelService.shouldSendToChannel('email', 'system.maintenance', prefs)
+      ).toBe(true);
+    });
+
+    it('sends reminders when not explicitly disabled', () => {
+      const prefs: NotificationPreferences = { ...basePrefs, marketing: false, reminders: true };
+      expect(
+        NotificationChannelService.shouldSendToChannel('email', 'reminder.followup', prefs)
+      ).toBe(true);
+    });
+
+    it('sends unrelated types via the default-send fallback', () => {
+      const prefs: NotificationPreferences = { ...basePrefs, marketing: false };
+      expect(NotificationChannelService.shouldSendToChannel('email', 'generic.event', prefs)).toBe(
+        true
+      );
+    });
   });
 });
