@@ -47,13 +47,26 @@ export class ClamAvProvider extends BaseAvProvider {
     }
 
     // Canonicalise and confirm the scan target sits inside an allowed
-    // root before any fs read. The sanitiser is inlined (rather than a
-    // helper call) so CodeQL's path-injection query recognises the
-    // `path.relative` + `..` rejection as gating the data flow.
-    const resolvedPath = path.resolve(filePath);
+    // root before any fs read. Use realpath to resolve symlinks so a file
+    // inside an allowed directory cannot escape via symlink traversal.
+    let resolvedPath: string;
+    try {
+      resolvedPath = fs.realpathSync(path.resolve(filePath));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { clean: false, details: `ClamAV scan target not accessible: ${message}` };
+    }
+
     const inAllowedRoot = this.config.allowedRoots.some(root => {
-      const rel = path.relative(path.resolve(root), resolvedPath);
-      return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+      try {
+        const canonicalRoot = fs.realpathSync(path.resolve(root));
+        const rootWithSep = canonicalRoot.endsWith(path.sep)
+          ? canonicalRoot
+          : `${canonicalRoot}${path.sep}`;
+        return resolvedPath === canonicalRoot || resolvedPath.startsWith(rootWithSep);
+      } catch {
+        return false;
+      }
     });
     if (!inAllowedRoot) {
       return { clean: false, details: 'ClamAV scan target is outside the allowed upload roots' };
