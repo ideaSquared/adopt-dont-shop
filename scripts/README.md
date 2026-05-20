@@ -15,6 +15,7 @@ Utility scripts referenced from the root `package.json` or mounted into containe
 | `generate-test-attachments.js` | `npm run generate:attachments` | Generate sample chat attachments (images + PDFs) into `uploads/chat/` for the `20-emily-attachment-test` seeder. |
 | `snapshot-postgres.sh` | cron on production host | Daily `pg_dump` of the prod database to S3. See `docs/operations/snapshot-policy.md`. Bash — Linux/macOS only. |
 | `snapshot-uploads.sh` | cron on production host | Daily rsync of the `uploads` Docker volume to S3. See `docs/operations/snapshot-policy.md`. Bash — Linux/macOS only. |
+| `check-workspace-consistency.mjs` | `npm run check:workspaces` | Workspace structural-drift guard (ADS-622). Verifies required scripts per `lib.*`/`app.*` package, `vitest.workspace.ts` coverage, `vite.shared.config.ts` `getLibraryAliases()` coverage, absence of nested `package-lock.json`, and absence of stale Jest references. Wired into the `workspace-drift` CI job. |
 | `init-postgis.sql` | mounted into `database` container at `/docker-entrypoint-initdb.d/` | Enables the PostGIS extension on first DB init. Runs automatically — do not invoke manually. |
 
 ## Adding a new script

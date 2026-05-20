@@ -40,7 +40,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "clean": "rimraf dist",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.0.6",
