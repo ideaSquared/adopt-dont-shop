@@ -238,6 +238,12 @@ export const topBadge = recipe({
         background: 'rgba(34, 197, 94, 0.92)',
         color: 'white',
       },
+      pawfect: {
+        background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #fcd34d 100%)',
+        color: 'white',
+        boxShadow: '0 2px 12px rgba(245, 158, 11, 0.5)',
+        textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+      },
     },
   },
 });

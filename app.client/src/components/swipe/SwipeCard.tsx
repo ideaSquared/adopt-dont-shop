@@ -11,7 +11,6 @@ import {
   MdPets,
   MdRefresh,
   MdStar,
-  MdVerified,
 } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { resolveFileUrl } from '../../utils/fileUtils';
@@ -80,6 +79,16 @@ const sizeLabels: Record<string, string> = {
   medium: 'Medium',
   large: 'Large',
   extra_large: 'XL',
+};
+
+type MatchTier = { label: string; variant: 'pawfect' | 'match' };
+
+// Score is 0..100 from the backend. Hide low scores so badges feel meaningful
+// (dating-app pattern: only highlight standouts).
+const getMatchTier = (score: number | null): MatchTier | null => {
+  if (score === null || score < 70) return null;
+  if (score >= 90) return { label: 'Pawfect Match', variant: 'pawfect' };
+  return { label: 'Great Match', variant: 'match' };
 };
 
 export const SwipeCard: React.FC<SwipeCardProps> = ({
@@ -288,6 +297,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     pet.compatibilityScore !== undefined && pet.compatibilityScore !== null
       ? pet.compatibilityScore
       : null;
+  const matchTier = getMatchTier(compatibilityScore);
   const placeholderBackground =
     petTypeGradients[pet.type ?? ''] ?? 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
 
@@ -378,12 +388,12 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         )}
 
         {(pet.isSponsored ||
-          compatibilityScore !== null ||
+          matchTier !== null ||
           (pet.matchReasons && pet.matchReasons.length > 0)) && (
           <div className={styles.topBadges}>
-            {compatibilityScore !== null && compatibilityScore >= 0.7 && (
-              <span className={styles.topBadge({ variant: 'match' })}>
-                <MdVerified /> {Math.round(compatibilityScore * 100)}% match
+            {matchTier && (
+              <span className={styles.topBadge({ variant: matchTier.variant })}>
+                <MdStar /> {matchTier.label}
               </span>
             )}
             {pet.isSponsored && (
