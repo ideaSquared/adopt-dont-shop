@@ -3,13 +3,13 @@ import * as styles from './BulkActionBar.css';
 
 type BulkAction = 'approve' | 'reject' | 'withdraw';
 
-interface BulkActionBarProps {
+type BulkActionBarProps = {
   selectedCount: number;
   onClearSelection: () => void;
   onBulkAction: (action: BulkAction, reason?: string) => Promise<void>;
   busy?: boolean;
   resultSummary?: { successCount: number; failedCount: number } | null;
-}
+};
 
 const BulkActionBar: React.FC<BulkActionBarProps> = ({
   selectedCount,
