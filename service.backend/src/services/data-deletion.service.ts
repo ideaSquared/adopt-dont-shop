@@ -53,9 +53,22 @@ export type DeletionResult = {
   applicationsSoftDeleted: number;
 };
 
+/**
+ * ADS-605: when the deletion is triggered by an admin on behalf of a
+ * subject (not self-service), the caller passes the acting admin's
+ * identity so a second audit entry attributed to the admin is written
+ * alongside the subject-scoped entry. Without this, audit logs can't
+ * distinguish self-service deletions from admin-triggered ones.
+ */
+export type DeletionActor = {
+  userId: string;
+  userType: string;
+};
+
 export const requestAccountDeletion = async (
   userId: string,
-  reason?: string
+  reason?: string,
+  actor?: DeletionActor
 ): Promise<DeletionResult> => {
   const user = await User.findByPk(userId);
   if (!user) {
@@ -91,6 +104,23 @@ export const requestAccountDeletion = async (
       emailSnapshot: redactEmail(user.email),
     },
   });
+
+  // ADS-605: when an admin triggered this on behalf of the subject,
+  // write a second audit row attributed to the admin so the trail can
+  // answer "which admin deleted Alice's account?".
+  if (actor && actor.userId !== userId) {
+    await AuditLogService.log({
+      userId: actor.userId,
+      action: 'GDPR_DELETE_REQUESTED_BY_ADMIN',
+      entity: 'User',
+      entityId: userId,
+      details: {
+        reason: reason ?? null,
+        actorUserType: actor.userType,
+        targetUserId: userId,
+      },
+    });
+  }
 
   logger.info('Account soft-deleted at user request (GDPR phase 1)', {
     userId,

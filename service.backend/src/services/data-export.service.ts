@@ -11,6 +11,7 @@ import UserApplicationPrefs from '../models/UserApplicationPrefs';
 import UserFavorite from '../models/UserFavorite';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import UserPrivacyPrefs from '../models/UserPrivacyPrefs';
+import { AuditLogService } from './auditLog.service';
 import { logger } from '../utils/logger';
 
 /**
@@ -86,7 +87,22 @@ const pickSafeUserFields = (user: User): Record<string, unknown> => {
   return Object.fromEntries(SAFE_USER_FIELDS.map(key => [key, json[key]]));
 };
 
-export const exportUserData = async (userId: string): Promise<DataExportBundle> => {
+/**
+ * ADS-605: when the export is triggered by an admin on behalf of a
+ * subject (rather than the subject themself via /me/export), the caller
+ * passes the acting admin's identity so an audit entry attributed to
+ * the admin is written. Without this, the action is invisible to the
+ * audit log.
+ */
+export type ExportActor = {
+  userId: string;
+  userType: string;
+};
+
+export const exportUserData = async (
+  userId: string,
+  actor?: ExportActor
+): Promise<DataExportBundle> => {
   const user = await User.findByPk(userId);
   if (!user) {
     throw new Error('User not found');
@@ -152,6 +168,22 @@ export const exportUserData = async (userId: string): Promise<DataExportBundle> 
     notificationCount: notifications.length,
     auditLogCount: auditLogs.length,
   });
+
+  // ADS-605: when an admin triggered this on behalf of the subject,
+  // write an audit row attributed to the admin so the trail can answer
+  // "which admin exported Alice's data?".
+  if (actor && actor.userId !== userId) {
+    await AuditLogService.log({
+      userId: actor.userId,
+      action: 'GDPR_EXPORT_BY_ADMIN',
+      entity: 'User',
+      entityId: userId,
+      details: {
+        actorUserType: actor.userType,
+        targetUserId: userId,
+      },
+    });
+  }
 
   return bundle;
 };

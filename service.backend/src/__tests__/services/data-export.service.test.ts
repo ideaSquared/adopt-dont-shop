@@ -89,13 +89,20 @@ vi.mock('../../models/UserPrivacyPrefs', () => ({
   default: { findOne: vi.fn().mockResolvedValue(null) },
 }));
 
+vi.mock('../../services/auditLog.service', () => ({
+  AuditLogService: { log: vi.fn().mockResolvedValue(undefined) },
+}));
+
 import User from '../../models/User';
+import { AuditLogService } from '../../services/auditLog.service';
 import { exportUserData } from '../../services/data-export.service';
 
 const mockFindByPk = User.findByPk as ReturnType<typeof vi.fn>;
+const mockAuditLog = AuditLogService.log as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   mockFindByPk.mockResolvedValue(mockUser);
+  mockAuditLog.mockClear();
 });
 
 describe('exportUserData', () => {
@@ -148,6 +155,42 @@ describe('exportUserData', () => {
     expect(bundle.supportTickets).toEqual([]);
     expect(bundle.notifications).toEqual([]);
     expect(bundle.auditLogs).toEqual([]);
+  });
+
+  // ADS-605: when an admin triggers the export on behalf of a user, the
+  // audit log must attribute the action to the admin's userId — not the
+  // data subject — so we can answer "which admin exported Alice's data?".
+  it('writes no audit row for self-service export (no actor supplied)', async () => {
+    await exportUserData('user-export-1');
+    expect(mockAuditLog).not.toHaveBeenCalled();
+  });
+
+  it('writes no audit row when the actor IS the subject', async () => {
+    await exportUserData('user-export-1', {
+      userId: 'user-export-1',
+      userType: 'adopter',
+    });
+    expect(mockAuditLog).not.toHaveBeenCalled();
+  });
+
+  it('writes an audit row attributed to the admin when an admin triggers the export', async () => {
+    await exportUserData('user-export-1', {
+      userId: 'admin-user-7',
+      userType: 'admin',
+    });
+
+    expect(mockAuditLog).toHaveBeenCalledTimes(1);
+    expect(mockAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'admin-user-7',
+        action: 'GDPR_EXPORT_BY_ADMIN',
+        entityId: 'user-export-1',
+        details: expect.objectContaining({
+          actorUserType: 'admin',
+          targetUserId: 'user-export-1',
+        }),
+      })
+    );
   });
 
   it('includes application references nested under their parent application', async () => {
