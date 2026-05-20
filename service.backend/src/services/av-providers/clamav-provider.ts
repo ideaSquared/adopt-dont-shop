@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as net from 'net';
+import * as path from 'path';
 
 import { logger } from '../../utils/logger';
 import { BaseAvProvider, ScanResult } from './base-provider';
@@ -40,12 +41,28 @@ export class ClamAvProvider extends BaseAvProvider {
       return { clean: false, details: 'ClamAV provider misconfigured: host/port missing' };
     }
 
+    // Canonicalize and validate the scan target before opening a stream.
+    // path.resolve collapses any `..` traversal sequences and produces an
+    // absolute path; fs.statSync rejects directories, devices, and broken
+    // symlinks. Together they keep clamd from being asked to read an
+    // unintended file if a malformed path ever reaches the provider.
+    const resolvedPath = path.resolve(filePath);
     try {
-      const response = await this.runInstream(host, port, filePath);
+      const stats = fs.statSync(resolvedPath);
+      if (!stats.isFile()) {
+        return { clean: false, details: 'ClamAV scan target is not a regular file' };
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { clean: false, details: `ClamAV scan target not accessible: ${message}` };
+    }
+
+    try {
+      const response = await this.runInstream(host, port, resolvedPath);
       return parseInstreamResponse(response);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      logger.error('ClamAV scan failed', { filePath, host, port, error: message });
+      logger.error('ClamAV scan failed', { filePath: resolvedPath, host, port, error: message });
       return { clean: false, details: `ClamAV scan error: ${message}` };
     }
   }

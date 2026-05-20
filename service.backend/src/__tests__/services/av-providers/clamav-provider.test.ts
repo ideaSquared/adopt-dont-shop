@@ -269,4 +269,25 @@ describe('ClamAvProvider against a clamd-compatible mock', () => {
     expect(provider.validateConfiguration()).toBe(true);
     expect(new ClamAvProvider({}).validateConfiguration()).toBe(false);
   });
+
+  it('scan rejects a path that points to a directory', async () => {
+    daemon = await startMockDaemon();
+    const provider = new ClamAvProvider({ host: '127.0.0.1', port: daemon.port });
+
+    const result = await provider.scan(os.tmpdir());
+
+    expect(result.clean).toBe(false);
+    expect(result.details).toMatch(/not a regular file/);
+  });
+
+  it('scan rejects a non-existent path before opening any socket', async () => {
+    const provider = new ClamAvProvider({ host: '127.0.0.1', port: 65535 });
+
+    const result = await provider.scan(
+      path.join(os.tmpdir(), `clamav-missing-${Date.now()}-${Math.random()}`)
+    );
+
+    expect(result.clean).toBe(false);
+    expect(result.details).toMatch(/not accessible/);
+  });
 });
