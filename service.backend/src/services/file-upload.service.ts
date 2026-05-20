@@ -12,6 +12,8 @@ import { UserType } from '../models/User';
 import { fileTypeFromFile } from '../utils/file-type-wrapper';
 import DOMPurify from 'isomorphic-dompurify';
 import { getAvProvider } from './av-providers';
+import { getStorageProvider } from './storage';
+import { StorageCategory } from './storage/base-provider';
 
 // File upload configuration
 const UPLOAD_CONFIG = {
@@ -207,8 +209,18 @@ export class FileUploadService {
       // Process file (resize images, generate thumbnails, etc.)
       const processedFile = await this.processFile(file, uploadType);
 
-      // Generate file metadata
+      // Generate file metadata (must happen before remote transfer to access local file stats)
       const fileMetadata = await this.generateFileMetadata(file, processedFile, uploadType);
+
+      // Transfer to remote storage if configured; updates URL and path in metadata
+      const remoteUrls = await this.transferToRemoteStorage(file, processedFile, uploadType);
+      if (remoteUrls) {
+        fileMetadata.url = remoteUrls.url;
+        fileMetadata.path = remoteUrls.path;
+        if (remoteUrls.thumbnailUrl !== undefined) {
+          fileMetadata.thumbnailUrl = remoteUrls.thumbnailUrl;
+        }
+      }
 
       // Create database record
       const uploadRecord = await this.createUploadRecord(fileMetadata, metadata);
@@ -300,10 +312,20 @@ export class FileUploadService {
         throw Object.assign(new Error('Not allowed to delete this file'), { statusCode: 403 });
       }
 
-      // Delete physical file
-      const filePath = path.join(config.storage.local.directory, uploadRecord.file_path);
-      if (fs.existsSync(filePath)) {
-        await fs.promises.unlink(filePath);
+      // Delete physical file via the configured storage provider
+      const provider = getStorageProvider();
+      if (provider.getName() !== 'local') {
+        const lastSlash = uploadRecord.file_path.lastIndexOf('/');
+        const category =
+          lastSlash !== -1 ? uploadRecord.file_path.slice(0, lastSlash) : 'documents';
+        const filename =
+          lastSlash !== -1 ? uploadRecord.file_path.slice(lastSlash + 1) : uploadRecord.file_path;
+        await provider.deleteFile(filename, category);
+      } else {
+        const filePath = path.join(config.storage.local.directory, uploadRecord.file_path);
+        if (fs.existsSync(filePath)) {
+          await fs.promises.unlink(filePath);
+        }
       }
 
       // Delete database record
@@ -578,6 +600,92 @@ export class FileUploadService {
     }
 
     return processedInfo;
+  }
+
+  private static mapUploadTypeToCategory(
+    uploadType: keyof typeof UPLOAD_CONFIG.directories
+  ): StorageCategory {
+    const categoryMap: Record<keyof typeof UPLOAD_CONFIG.directories, StorageCategory> = {
+      pets: 'pets',
+      profiles: 'users',
+      applications: 'documents',
+      chat: 'documents',
+      documents: 'documents',
+      temp: 'documents',
+    };
+    return categoryMap[uploadType];
+  }
+
+  private static async transferToRemoteStorage(
+    file: Express.Multer.File,
+    processedFile: ProcessedFileInfo,
+    uploadType: keyof typeof UPLOAD_CONFIG.directories
+  ): Promise<{ url: string; thumbnailUrl?: string; path: string } | undefined> {
+    const provider = getStorageProvider();
+    if (provider.getName() === 'local') {
+      return undefined;
+    }
+
+    const category = this.mapUploadTypeToCategory(uploadType);
+
+    const safeProcessedPath = this.safeResolveUploadPath(processedFile.processedPath);
+    const processedBuffer = await fs.promises.readFile(safeProcessedPath);
+    const uploadResult = await provider.uploadFile(
+      processedBuffer,
+      file.originalname,
+      file.mimetype,
+      category
+    );
+
+    let thumbnailFilename: string | undefined;
+    if (processedFile.thumbnailPath) {
+      const safeThumbPath = this.safeResolveUploadPath(processedFile.thumbnailPath);
+      const thumbBuffer = await fs.promises.readFile(safeThumbPath);
+      const thumbResult = await provider.uploadFile(
+        thumbBuffer,
+        `thumb_${file.originalname}`,
+        'image/jpeg',
+        category
+      );
+      thumbnailFilename = thumbResult.filename;
+    }
+
+    // Best-effort cleanup of local temp files after successful remote upload
+    const localPaths = [
+      processedFile.processedPath,
+      processedFile.thumbnailPath,
+      processedFile.originalPath !== processedFile.processedPath
+        ? processedFile.originalPath
+        : undefined,
+    ].filter((p): p is string => p !== undefined);
+
+    await Promise.all(
+      localPaths.map(async p => {
+        try {
+          await fs.promises.unlink(this.safeResolveUploadPath(p));
+        } catch {
+          // best-effort cleanup
+        }
+      })
+    );
+
+    // Store the backend-routed URL rather than the direct S3/CloudFront URL.
+    // The /uploads/* serve route runs the auth_request + upload-acl gate before
+    // streaming locally or 302-redirecting to a presigned S3 URL, keeping
+    // private categories (applications/chat/documents/temp) behind authn+ACL
+    // regardless of storage backend. The direct S3 URL (uploadResult.url) is
+    // only reachable if the bucket policy permits it — recommended posture is
+    // bucket-private + CloudFront with OAC + signed URLs.
+    const servedUrl = `/uploads/${category}/${uploadResult.filename}`;
+    const thumbnailUrl = thumbnailFilename
+      ? `/uploads/${category}/${thumbnailFilename}`
+      : undefined;
+
+    return {
+      url: servedUrl,
+      thumbnailUrl,
+      path: `${category}/${uploadResult.filename}`,
+    };
   }
 
   /**

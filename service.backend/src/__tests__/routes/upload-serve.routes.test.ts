@@ -48,6 +48,7 @@ vi.mock('../../config/env', () => ({
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-chars-12345',
     SESSION_SECRET: 'test-session-secret',
     CSRF_SECRET: 'test-csrf-secret',
+    UPLOAD_SIGNING_SECRET: 'test-upload-signing-secret-min-32-characters-long',
   },
 }));
 
@@ -92,6 +93,20 @@ const authenticateTokenMock = vi.fn();
 vi.mock('../../middleware/auth', () => ({
   authenticateToken: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
     authenticateTokenMock(req, res, next),
+}));
+
+// Storage provider mock — defaults to a local provider that does not support
+// signed URLs. S3-backed tests below override these mocks to simulate the S3
+// branch (supportsSignedUrls === true + getSignedUrl returning a presigned URL).
+const supportsSignedUrlsMock = vi.fn(() => false);
+const getSignedUrlMock = vi.fn(async () => '');
+const getProviderNameMock = vi.fn(() => 'local');
+vi.mock('../../services/storage', () => ({
+  getStorageProvider: () => ({
+    getName: getProviderNameMock,
+    supportsSignedUrls: supportsSignedUrlsMock,
+    getSignedUrl: getSignedUrlMock,
+  }),
 }));
 
 // ACL helper is mocked here so the route tests prove the wiring: the
@@ -468,6 +483,165 @@ describe('GET /uploads/:path — Express fallback streaming route', () => {
       const response = await request(app).get('/uploads/applications/doc.pdf');
 
       expect(response.status).toBe(401);
+    });
+  });
+});
+
+// ── Remote (S3) backend — redirects to presigned URLs after ACL passes ──────
+
+describe('upload-serve routes with a remote (signed-URL) storage backend', () => {
+  let app: express.Application;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    decideUploadAccessMock.mockResolvedValue(200);
+    supportsSignedUrlsMock.mockReturnValue(true);
+    getProviderNameMock.mockReturnValue('s3');
+    getSignedUrlMock.mockResolvedValue('https://signed.example.com/key?sig=abc');
+    authenticateTokenMock.mockImplementation(
+      (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+        req.user = mockUser as AuthenticatedRequest['user'];
+        next();
+      }
+    );
+    // Don't create test-uploads-tmp on disk — these tests exercise the path
+    // that never touches the filesystem.
+    app = await buildApp();
+  });
+
+  afterEach(() => {
+    supportsSignedUrlsMock.mockReturnValue(false);
+    getProviderNameMock.mockReturnValue('local');
+    try {
+      fs.rmSync(TEST_UPLOAD_DIR, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+  });
+
+  describe('GET /uploads/* with a remote backend', () => {
+    it('302-redirects to a short-lived presigned URL when ACL allows access', async () => {
+      const response = await request(app).get('/uploads/pets/photo.jpg').redirects(0);
+
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toBe('https://signed.example.com/key?sig=abc');
+      expect(getSignedUrlMock).toHaveBeenCalledWith('photo.jpg', 'pets', 5 * 60);
+    });
+
+    it('never reads from disk — works even when no uploads directory exists', async () => {
+      // No fs.mkdirSync — TEST_UPLOAD_DIR doesn't exist on the remote path.
+      const response = await request(app).get('/uploads/applications/private.pdf').redirects(0);
+
+      expect(response.status).toBe(302);
+      expect(getSignedUrlMock).toHaveBeenCalledWith('private.pdf', 'applications', 5 * 60);
+    });
+
+    it('marks the redirect as private no-store so shared caches cannot replay it', async () => {
+      const response = await request(app).get('/uploads/pets/photo.jpg').redirects(0);
+
+      expect(response.headers['cache-control']).toBe('private, no-store');
+    });
+
+    it('still applies the per-resource ACL — denies a non-owner application request without redirecting', async () => {
+      decideUploadAccessMock.mockResolvedValue(403);
+
+      const response = await request(app).get('/uploads/applications/other-user.pdf').redirects(0);
+
+      expect(response.status).toBe(403);
+      expect(getSignedUrlMock).not.toHaveBeenCalled();
+    });
+
+    it('returns 502 if the storage backend fails to mint a signed URL', async () => {
+      getSignedUrlMock.mockRejectedValueOnce(new Error('S3 unreachable'));
+
+      const response = await request(app).get('/uploads/pets/photo.jpg').redirects(0);
+
+      expect(response.status).toBe(502);
+    });
+
+    it('returns 401 when no auth token is present, before consulting the provider', async () => {
+      authenticateTokenMock.mockImplementation(
+        (_req: AuthenticatedRequest, res: Response, _next: NextFunction) => {
+          res.status(401).json({ error: 'Unauthorised' });
+        }
+      );
+
+      const response = await request(app).get('/uploads/pets/photo.jpg').redirects(0);
+
+      expect(response.status).toBe(401);
+      expect(getSignedUrlMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /uploads-signed/.../* with a remote backend', () => {
+    // computeSignature(filePath, expiresAt) uses HMAC-SHA256 with the
+    // UPLOAD_SIGNING_SECRET; rebuild it here so the request passes the
+    // signature check identically to the local-path tests.
+    const buildSignedUrlPath = (filePath: string, expiresAt: number): string => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const crypto = require('crypto') as typeof import('crypto');
+      const signature = crypto
+        .createHmac('sha256', 'test-upload-signing-secret-min-32-characters-long')
+        .update(`${filePath}:${expiresAt}`)
+        .digest('hex');
+      return `/uploads-signed/${expiresAt}/${signature}/${filePath}`;
+    };
+
+    it('302-redirects to a presigned URL when the HMAC signature is valid', async () => {
+      const expiresAt = Math.floor(Date.now() / 1000) + 60;
+      const urlPath = buildSignedUrlPath('pets/cat.jpg', expiresAt);
+
+      const response = await request(app).get(urlPath).redirects(0);
+
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toBe('https://signed.example.com/key?sig=abc');
+      expect(getSignedUrlMock).toHaveBeenCalledWith('cat.jpg', 'pets', 5 * 60);
+    });
+
+    it('returns 410 for an expired signature without consulting the provider', async () => {
+      const expiresAt = Math.floor(Date.now() / 1000) - 1;
+      const urlPath = buildSignedUrlPath('pets/cat.jpg', expiresAt);
+
+      const response = await request(app).get(urlPath).redirects(0);
+
+      expect(response.status).toBe(410);
+      expect(getSignedUrlMock).not.toHaveBeenCalled();
+    });
+
+    it('returns 403 when the signature is invalid without consulting the provider', async () => {
+      const expiresAt = Math.floor(Date.now() / 1000) + 60;
+      const urlPath = `/uploads-signed/${expiresAt}/deadbeef/pets/cat.jpg`;
+
+      const response = await request(app).get(urlPath).redirects(0);
+
+      expect(response.status).toBe(403);
+      expect(getSignedUrlMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /api/v1/uploads/authorize with a remote backend', () => {
+    it('returns the ACL verdict without performing a filesystem stat (nothing on disk to find)', async () => {
+      decideUploadAccessMock.mockResolvedValue(200);
+
+      const response = await request(app)
+        .get('/api/v1/uploads/authorize')
+        .query({ path: 'pets/photo.jpg' });
+
+      expect(response.status).toBe(200);
+      expect(decideUploadAccessMock).toHaveBeenCalledWith({
+        filePath: 'pets/photo.jpg',
+        user: expect.objectContaining({ userId: mockUser.userId }),
+      });
+    });
+
+    it('honours an ACL deny verdict even though no on-disk file exists', async () => {
+      decideUploadAccessMock.mockResolvedValue(403);
+
+      const response = await request(app)
+        .get('/api/v1/uploads/authorize')
+        .query({ path: 'applications/private.pdf' });
+
+      expect(response.status).toBe(403);
     });
   });
 });

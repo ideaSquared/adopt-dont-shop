@@ -19,4 +19,10 @@ export interface StorageProvider {
   getFileInfo(filename: string, category?: string): Promise<FileInfo>;
   getName(): string;
   validateConfiguration(): boolean;
+  // Returns true when the provider serves content via signed redirect rather than
+  // streaming bytes through Node. Drives the serve route's redirect-vs-stream branch.
+  supportsSignedUrls(): boolean;
+  // Mints a short-lived URL for direct client access. Only meaningful when
+  // supportsSignedUrls() returns true; local provider throws.
+  getSignedUrl(filename: string, category?: string, expiresInSeconds?: number): Promise<string>;
 }
