@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
 import AuditLog from '../models/AuditLog';
 import User, { UserStatus, UserType } from '../models/User';
 import { COOKIES_VERSION, PRIVACY_VERSION, TERMS_VERSION } from '../services/legal-content.service';
@@ -366,6 +365,7 @@ export async function seedUsers() {
   }
 
   if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console -- existing seeder log; surfaces to dev CLI only.
     console.log(`✅ Created ${testUsers.length} test users (password: ${plainPassword})`);
   }
 }
