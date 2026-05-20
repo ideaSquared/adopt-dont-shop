@@ -1,4 +1,5 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const pageContainer = style({
   padding: '1.5rem',
@@ -10,8 +11,8 @@ export const pageHeader = style({
 });
 
 export const errorBanner = style({
-  background: '#fee2e2',
-  color: '#991b1b',
+  background: vars.background.danger,
+  color: vars.text.danger,
   padding: '0.75rem',
   margin: '1rem 0',
 });
@@ -26,7 +27,7 @@ export const table = style({
 });
 
 export const tableHeadRow = style({
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.default}`,
   textAlign: 'left',
 });
 
@@ -34,30 +35,11 @@ export const tableCell = style({
   padding: '0.5rem',
 });
 
-export const monoCell = style({
-  padding: '0.5rem',
-  fontFamily: 'monospace',
-});
-
 export const tableBodyRow = style({
-  borderBottom: '1px solid #f3f4f6',
-});
-
-export const modalOverlay = style({
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.4)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
+  borderBottom: `1px solid ${vars.background.muted}`,
 });
 
 export const modalForm = style({
-  background: 'white',
-  padding: '1.5rem',
-  borderRadius: '0.5rem',
-  minWidth: '24rem',
   display: 'grid',
   gap: '0.5rem',
 });
