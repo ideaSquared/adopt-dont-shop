@@ -610,9 +610,7 @@ describe('FileUploadService', () => {
         const file = makeFile({ originalname: 'cat.jpg', mimetype: 'image/jpeg' });
         setupSuccessfulUpload();
         vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from('processed-content'));
-        vi.mocked(FileUpload.create).mockResolvedValue(
-          makeMockRecord({ url: 'https://bucket.s3.us-east-1.amazonaws.com/pets/uuid.jpg' })
-        );
+        vi.mocked(FileUpload.create).mockResolvedValue(makeMockRecord());
 
         const result = await FileUploadService.uploadFile(file, 'pets', {
           uploadedBy: 'user-456',
@@ -627,19 +625,37 @@ describe('FileUploadService', () => {
         );
       });
 
-      it('stores the S3 URL in the database record', async () => {
+      it('stores the backend-routed /uploads URL — not the direct S3 URL — so the ACL gate still applies', async () => {
         const file = makeFile({ originalname: 'dog.jpg', mimetype: 'image/jpeg' });
         setupSuccessfulUpload();
         vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from('data'));
-        vi.mocked(FileUpload.create).mockResolvedValue(
-          makeMockRecord({ url: 'https://bucket.s3.us-east-1.amazonaws.com/pets/uuid.jpg' })
-        );
+        vi.mocked(FileUpload.create).mockResolvedValue(makeMockRecord());
 
         await FileUploadService.uploadFile(file, 'pets', { uploadedBy: 'user-456' });
 
         expect(vi.mocked(FileUpload.create)).toHaveBeenCalledWith(
           expect.objectContaining({
-            url: 'https://bucket.s3.us-east-1.amazonaws.com/pets/uuid.jpg',
+            url: '/uploads/pets/uuid.jpg',
+          })
+        );
+      });
+
+      it('routes private-category uploads through /uploads/<category> even though S3 minted a direct URL', async () => {
+        s3ProviderUploadFile.mockResolvedValueOnce({
+          url: 'https://bucket.s3.us-east-1.amazonaws.com/documents/secret.pdf',
+          filename: 'secret.pdf',
+          size: 2048,
+        });
+        const file = makeFile({ originalname: 'app.pdf', mimetype: 'application/pdf' });
+        setupSuccessfulUpload('application/pdf');
+        vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from('data'));
+        vi.mocked(FileUpload.create).mockResolvedValue(makeMockRecord());
+
+        await FileUploadService.uploadFile(file, 'applications', { uploadedBy: 'user-456' });
+
+        expect(vi.mocked(FileUpload.create)).toHaveBeenCalledWith(
+          expect.objectContaining({
+            url: '/uploads/documents/secret.pdf',
           })
         );
       });

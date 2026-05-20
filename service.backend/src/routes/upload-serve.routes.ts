@@ -7,6 +7,7 @@ import { authenticateToken } from '../middleware/auth';
 import { apiLimiter } from '../middleware/rate-limiter';
 import { env } from '../config/env';
 import { decideUploadAccess } from '../services/upload-acl.service';
+import { getStorageProvider } from '../services/storage';
 import type { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 
@@ -92,6 +93,58 @@ export const buildSignedUploadUrl = (
   return { url, expiresAt: new Date(expiresAt * 1000).toISOString() };
 };
 
+// Short TTL for presigned redirects. Long enough for an inline <img> render or
+// PDF preview; short enough that a leaked Location header has near-zero replay
+// value (and the browser cache is bounded by the redirect's max-age below).
+const PRESIGNED_REDIRECT_TTL_SECONDS = 5 * 60;
+
+/**
+ * For storage backends that mint signed URLs (S3 / CloudFront), respond with a
+ * 302 to a short-lived signed URL so the client streams the object directly
+ * from the CDN rather than through Node. The auth + ACL gate already ran by
+ * the time we get here, so the redirect cannot escalate privileges.
+ *
+ * Returns true when a redirect was sent; the caller should fall back to
+ * filesystem streaming when this returns false.
+ */
+const tryRedirectToProvider = async (filePath: string, res: Response): Promise<boolean> => {
+  const provider = getStorageProvider();
+  if (!provider.supportsSignedUrls()) {
+    return false;
+  }
+
+  const cleaned = filePath.replace(/^[/\\]+/, '').replace(/\\/g, '/');
+  const lastSlash = cleaned.lastIndexOf('/');
+  if (lastSlash === -1) {
+    return false;
+  }
+  const category = cleaned.slice(0, lastSlash);
+  const filename = cleaned.slice(lastSlash + 1);
+  if (!category || !filename) {
+    return false;
+  }
+
+  try {
+    const signedUrl = await provider.getSignedUrl(
+      filename,
+      category,
+      PRESIGNED_REDIRECT_TTL_SECONDS
+    );
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.redirect(302, signedUrl);
+    return true;
+  } catch (error) {
+    logger.error('Failed to mint signed URL for upload serve', {
+      provider: provider.getName(),
+      category,
+      filename,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(502).json({ error: 'Storage backend unavailable' });
+    return true;
+  }
+};
+
 const streamFile = (resolved: string, res: Response): void => {
   fs.stat(resolved, (statErr, stats) => {
     if (statErr || !stats.isFile()) {
@@ -126,7 +179,7 @@ const streamFile = (resolved: string, res: Response): void => {
 router.get(
   '/uploads-signed/:expiresAt/:signature/*filepath',
   apiLimiter,
-  (req: AuthenticatedRequest, res: Response) => {
+  async (req: AuthenticatedRequest, res: Response) => {
     const expiresAt = Number.parseInt(req.params.expiresAt, 10);
     const { signature } = req.params;
     const filePathSegments = (req.params as Record<string, string | string[]>).filepath;
@@ -147,6 +200,12 @@ router.get(
       !crypto.timingSafeEqual(expectedBuf, providedBuf)
     ) {
       res.status(403).json({ error: 'Invalid signature' });
+      return;
+    }
+
+    // Remote backend: signature check already authorised the request, so 302
+    // to a short-lived presigned URL. No filesystem read needed.
+    if (await tryRedirectToProvider(filePath, res)) {
       return;
     }
 
@@ -183,8 +242,9 @@ router.get(
       return;
     }
 
-    const resolved = safeResolve(filePath);
-    if (!resolved) {
+    const remoteBackend = getStorageProvider().supportsSignedUrls();
+    const resolved = remoteBackend ? null : safeResolve(filePath);
+    if (!remoteBackend && !resolved) {
       logger.warn('Upload authorize: rejected unsafe path', {
         userId: req.user?.userId,
         requested: filePath,
@@ -194,15 +254,7 @@ router.get(
       return;
     }
 
-    fs.stat(resolved, (statErr, stats) => {
-      if (statErr || !stats.isFile()) {
-        res.status(404).end();
-        return;
-      }
-      // Per-resource ACL: confirm the authenticated user is allowed to
-      // see this specific file (owner / rescue staff / chat participant
-      // / admin). Public path-shapes (pets/, profiles/) short-circuit
-      // to 200 inside the helper.
+    const runAcl = (): void => {
       const user = req.user;
       if (!user) {
         res.status(401).end();
@@ -227,6 +279,30 @@ router.get(
           });
           res.status(403).end();
         });
+    };
+
+    if (remoteBackend) {
+      // For remote backends the object lives in S3 — skip the on-disk
+      // existence check and let the ACL verdict drive the response. A 404
+      // would come from the eventual GetObject if the key is missing.
+      runAcl();
+      return;
+    }
+
+    if (!resolved) {
+      res.status(403).end();
+      return;
+    }
+    fs.stat(resolved, (statErr, stats) => {
+      if (statErr || !stats.isFile()) {
+        res.status(404).end();
+        return;
+      }
+      // Per-resource ACL: confirm the authenticated user is allowed to
+      // see this specific file (owner / rescue staff / chat participant
+      // / admin). Public path-shapes (pets/, profiles/) short-circuit
+      // to 200 inside the helper.
+      runAcl();
     });
   }
 );
@@ -236,7 +312,8 @@ router.get(
   apiLimiter,
   authenticateToken,
   (req: AuthenticatedRequest, res: Response) => {
-    if (!config.storage.local.serveLocalUploads) {
+    const remoteBackend = getStorageProvider().supportsSignedUrls();
+    if (!remoteBackend && !config.storage.local.serveLocalUploads) {
       res.status(404).end();
       return;
     }
@@ -245,8 +322,13 @@ router.get(
     const filePath = Array.isArray(filePathSegments)
       ? filePathSegments.join('/')
       : (filePathSegments ?? '');
-    const resolved = safeResolve(filePath);
-    if (!resolved) {
+
+    // For the local backend we resolve the on-disk path up-front; for remote
+    // backends we skip the filesystem check entirely since the object lives in
+    // S3, not on disk. Either way path-shape validation still runs via the
+    // upload-acl helper below.
+    const resolved = remoteBackend ? null : safeResolve(filePath);
+    if (!remoteBackend && !resolved) {
       logger.warn('Upload serve: rejected unsafe path', {
         userId: req.user?.userId,
         requested: filePath,
@@ -262,7 +344,7 @@ router.get(
     }
 
     decideUploadAccess({ filePath, user })
-      .then(verdict => {
+      .then(async verdict => {
         if (verdict !== 200) {
           logger.warn('Upload serve: ACL denied', {
             userId: user.userId,
@@ -272,7 +354,13 @@ router.get(
           res.status(verdict).end();
           return;
         }
-        streamFile(resolved, res);
+        if (remoteBackend) {
+          await tryRedirectToProvider(filePath, res);
+          return;
+        }
+        if (resolved) {
+          streamFile(resolved, res);
+        }
       })
       .catch(err => {
         logger.error('Upload serve: ACL check failed', {

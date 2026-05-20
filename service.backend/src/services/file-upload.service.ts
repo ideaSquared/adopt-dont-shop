@@ -637,7 +637,7 @@ export class FileUploadService {
       category
     );
 
-    let thumbnailUrl: string | undefined;
+    let thumbnailFilename: string | undefined;
     if (processedFile.thumbnailPath) {
       const safeThumbPath = this.safeResolveUploadPath(processedFile.thumbnailPath);
       const thumbBuffer = await fs.promises.readFile(safeThumbPath);
@@ -647,7 +647,7 @@ export class FileUploadService {
         'image/jpeg',
         category
       );
-      thumbnailUrl = thumbResult.url;
+      thumbnailFilename = thumbResult.filename;
     }
 
     // Best-effort cleanup of local temp files after successful remote upload
@@ -669,8 +669,20 @@ export class FileUploadService {
       })
     );
 
+    // Store the backend-routed URL rather than the direct S3/CloudFront URL.
+    // The /uploads/* serve route runs the auth_request + upload-acl gate before
+    // streaming locally or 302-redirecting to a presigned S3 URL, keeping
+    // private categories (applications/chat/documents/temp) behind authn+ACL
+    // regardless of storage backend. The direct S3 URL (uploadResult.url) is
+    // only reachable if the bucket policy permits it — recommended posture is
+    // bucket-private + CloudFront with OAC + signed URLs.
+    const servedUrl = `/uploads/${category}/${uploadResult.filename}`;
+    const thumbnailUrl = thumbnailFilename
+      ? `/uploads/${category}/${thumbnailFilename}`
+      : undefined;
+
     return {
-      url: uploadResult.url,
+      url: servedUrl,
       thumbnailUrl,
       path: `${category}/${uploadResult.filename}`,
     };

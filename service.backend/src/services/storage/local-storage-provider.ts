@@ -132,4 +132,12 @@ export class LocalStorageProvider implements StorageProvider {
   validateConfiguration(): boolean {
     return Boolean(this.uploadDir);
   }
+
+  supportsSignedUrls(): boolean {
+    return false;
+  }
+
+  async getSignedUrl(): Promise<string> {
+    throw new Error('Local storage provider does not generate signed URLs');
+  }
 }
