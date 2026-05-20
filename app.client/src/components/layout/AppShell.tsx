@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Footer } from '@adopt-dont-shop/lib.components';
+import { Footer, InstallPwaBanner } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AppNavbar } from '@/components/navigation/AppNavbar';
 import { BottomTabBar } from '@/components/navigation/BottomTabBar';
@@ -26,6 +26,7 @@ export const AppShell: React.FC = () => {
       <BottomTabBar />
       {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
       <Footer extraLinks={<ManageCookiesLink />} />
+      <InstallPwaBanner appName="Adopt Don't Shop" />
     </div>
   );
 };
