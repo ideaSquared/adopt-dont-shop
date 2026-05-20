@@ -38,6 +38,12 @@ jobs:
             exit 1
           fi
 
+      # ADS-622: structural consistency guard — required scripts per workspace,
+      # vitest.workspace.ts coverage, vite alias map coverage, nested lockfiles
+      # and stale jest references. See scripts/check-workspace-consistency.mjs.
+      - name: Verify workspace consistency
+        run: node scripts/check-workspace-consistency.mjs
+
   # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================

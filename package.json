@@ -80,6 +80,7 @@
     "secrets:generate": "node scripts/generate-secrets.mjs",
     "validate:env": "node scripts/validate-env.mjs",
     "check:lib-tests": "node scripts/check-lib-tests.mjs",
+    "check:workspaces": "node scripts/check-workspace-consistency.mjs",
     "new-app": "node scripts/create-new-app.js",
     "new-lib": "node scripts/create-new-lib.js",
     "generate:attachments": "node scripts/generate-test-attachments.js"
