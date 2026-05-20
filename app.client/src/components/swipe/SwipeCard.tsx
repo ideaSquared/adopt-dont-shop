@@ -1,6 +1,6 @@
 import { useStatsig } from '@/hooks/useStatsig';
 import { DiscoveryPet } from '@/services';
-import { ProgressiveImage } from '@adopt-dont-shop/lib.components';
+import { MatchReasonChips, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { animated, to, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import React, { useCallback, useRef, useState } from 'react';
@@ -15,7 +15,6 @@ import {
 } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { resolveFileUrl } from '../../utils/fileUtils';
-import { MatchReasonChips } from '@adopt-dont-shop/lib.components';
 import * as styles from './SwipeCard.css';
 
 interface SwipeCardProps {
