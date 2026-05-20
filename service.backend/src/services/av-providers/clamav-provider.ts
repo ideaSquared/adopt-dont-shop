@@ -47,12 +47,15 @@ export class ClamAvProvider extends BaseAvProvider {
     }
 
     // Canonicalise and confirm the scan target sits inside an allowed
-    // root before any fs read. path.resolve collapses `..` traversal;
-    // the allowlist check rejects anything outside the configured upload
-    // directory (and is the sanitiser CodeQL recognises for the fs reads
-    // below).
+    // root before any fs read. The sanitiser is inlined (rather than a
+    // helper call) so CodeQL's path-injection query recognises the
+    // `path.relative` + `..` rejection as gating the data flow.
     const resolvedPath = path.resolve(filePath);
-    if (!isWithinAllowedRoot(resolvedPath, this.config.allowedRoots)) {
+    const inAllowedRoot = this.config.allowedRoots.some(root => {
+      const rel = path.relative(path.resolve(root), resolvedPath);
+      return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+    });
+    if (!inAllowedRoot) {
       return { clean: false, details: 'ClamAV scan target is outside the allowed upload roots' };
     }
     try {
@@ -65,8 +68,14 @@ export class ClamAvProvider extends BaseAvProvider {
       return { clean: false, details: `ClamAV scan target not accessible: ${message}` };
     }
 
+    // Capture the validated path in a stream factory so runInstream never
+    // takes the path itself as a parameter — keeps the fs.createReadStream
+    // sink right next to the sanitiser above for CodeQL's data-flow trace.
+    const openStream = (): fs.ReadStream =>
+      fs.createReadStream(resolvedPath, { highWaterMark: CLAMAV_CHUNK_BYTES });
+
     try {
-      const response = await this.runInstream(host, port, resolvedPath);
+      const response = await this.runInstream(host, port, openStream);
       return parseInstreamResponse(response);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -141,8 +150,16 @@ export class ClamAvProvider extends BaseAvProvider {
   /**
    * Stream a file to clamd via the INSTREAM command. clamd replies with
    * a single line once the terminator chunk is received.
+   *
+   * Takes a stream factory rather than a path so the fs read sink lives
+   * in scan() next to the path sanitiser, not here behind a parameter
+   * boundary that CodeQL's data-flow trace can't cross cleanly.
    */
-  private runInstream(host: string, port: number, filePath: string): Promise<string> {
+  private runInstream(
+    host: string,
+    port: number,
+    openStream: () => fs.ReadStream
+  ): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const socket = net.createConnection({ host, port });
       const chunks: Buffer[] = [];
@@ -178,7 +195,7 @@ export class ClamAvProvider extends BaseAvProvider {
 
       socket.once('connect', () => {
         socket.write('zINSTREAM\0');
-        fileStream = fs.createReadStream(filePath, { highWaterMark: CLAMAV_CHUNK_BYTES });
+        fileStream = openStream();
         fileStream.on('data', data => {
           // Coerce string-mode reads to Buffer so the length prefix is correct.
           const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
@@ -198,23 +215,6 @@ export class ClamAvProvider extends BaseAvProvider {
       });
     });
   }
-}
-
-function isWithinAllowedRoot(resolvedPath: string, allowedRoots: readonly string[]): boolean {
-  if (allowedRoots.length === 0) {
-    return false;
-  }
-  return allowedRoots.some(root => {
-    const resolvedRoot = path.resolve(root);
-    // path.relative is the canonical CodeQL sanitiser for path traversal:
-    // an empty result means the path is the root itself; a result that
-    // neither starts with ".." nor is absolute is strictly inside it.
-    const rel = path.relative(resolvedRoot, resolvedPath);
-    if (rel === '') {
-      return true;
-    }
-    return !rel.startsWith('..') && !path.isAbsolute(rel);
-  });
 }
 
 /**
