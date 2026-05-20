@@ -33,6 +33,7 @@ export const DiscoveryPage: React.FC = () => {
   });
   const [viewedPetIds, setViewedPetIds] = useState<string[]>(persistedState.viewedPetIds);
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
+  const [undoStack, setUndoStack] = useState<SwipeAction[]>([]);
 
   // Load initial pets
   useEffect(() => {
@@ -83,6 +84,9 @@ export const DiscoveryPage: React.FC = () => {
       // Move to next pet
       setCurrentPetIndex(prev => prev + 1);
 
+      // Track for undo
+      setUndoStack(prev => [...prev, action].slice(-10));
+
       // Persist viewed pet so next session resumes correctly
       const next = recordViewedPet(action.petId);
       setViewedPetIds(next.viewedPetIds);
@@ -114,6 +118,22 @@ export const DiscoveryPage: React.FC = () => {
       console.error('Failed to load more pets:', error);
     }
   }, [pets, session.sessionId]);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack(prev => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setCurrentPetIndex(idx => Math.max(0, idx - 1));
+      setSession(s => ({
+        ...s,
+        totalSwipes: Math.max(0, s.totalSwipes - 1),
+        likes: s.likes - (last.action === 'like' ? 1 : 0),
+        passes: s.passes - (last.action === 'pass' ? 1 : 0),
+        superLikes: s.superLikes - (last.action === 'super_like' ? 1 : 0),
+      }));
+      return prev.slice(0, -1);
+    });
+  }, []);
 
   const handleControlAction = useCallback(
     (action: 'pass' | 'info' | 'like' | 'super_like') => {
@@ -256,7 +276,14 @@ export const DiscoveryPage: React.FC = () => {
               sessionId={session.sessionId}
             />
 
-            {!hasNoPets && <SwipeControls onAction={handleControlAction} disabled={hasNoPets} />}
+            {!hasNoPets && (
+              <SwipeControls
+                onAction={handleControlAction}
+                onUndo={handleUndo}
+                canUndo={undoStack.length > 0}
+                disabled={hasNoPets}
+              />
+            )}
           </>
         )}
 

@@ -6,11 +6,11 @@ export const controlsContainer = style({
   justifyContent: 'center',
   alignItems: 'center',
   gap: '1rem',
-  padding: '1rem',
+  padding: '1.25rem 1rem',
   '@media': {
-    '(max-width: 768px)': {
+    '(max-width: 480px)': {
       gap: '0.75rem',
-      padding: '0.75rem',
+      padding: '1rem 0.5rem',
     },
   },
 });
@@ -23,73 +23,91 @@ export const actionButton = recipe({
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
+    transition: 'transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease',
+    background: 'white',
     fontSize: '1.5rem',
+    flexShrink: 0,
     ':disabled': {
-      opacity: 0.5,
+      opacity: 0.4,
       cursor: 'not-allowed',
+    },
+    ':focus-visible': {
+      outline: '3px solid rgba(78, 205, 196, 0.6)',
+      outlineOffset: '2px',
     },
     selectors: {
       '&:not(:disabled):hover': {
-        transform: 'scale(1.1)',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        transform: 'translateY(-3px)',
       },
       '&:not(:disabled):active': {
-        transform: 'scale(0.95)',
+        transform: 'translateY(0) scale(0.95)',
       },
     },
   },
   variants: {
     variant: {
-      pass: {
-        width: '50px',
-        height: '50px',
-        background: '#ff6b6b',
-        color: 'white',
-        boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)',
+      undo: {
+        width: '48px',
+        height: '48px',
+        color: '#f59e0b',
+        boxShadow: '0 4px 14px rgba(245, 158, 11, 0.25)',
+        fontSize: '1.3rem',
         selectors: {
           '&:not(:disabled):hover': {
-            background: '#ee5a5a',
-            boxShadow: '0 4px 12px rgba(255, 107, 107, 0.4)',
+            boxShadow: '0 8px 22px rgba(245, 158, 11, 0.35)',
+            background: '#fffbeb',
+          },
+        },
+      },
+      pass: {
+        width: '64px',
+        height: '64px',
+        color: '#ef4444',
+        boxShadow: '0 6px 18px rgba(239, 68, 68, 0.3)',
+        fontSize: '1.9rem',
+        selectors: {
+          '&:not(:disabled):hover': {
+            boxShadow: '0 10px 28px rgba(239, 68, 68, 0.4)',
+            background: '#fef2f2',
           },
         },
       },
       info: {
-        width: '45px',
-        height: '45px',
-        background: '#ffd93d',
-        color: 'white',
-        boxShadow: '0 2px 8px rgba(255, 217, 61, 0.3)',
+        width: '48px',
+        height: '48px',
+        color: '#8b5cf6',
+        boxShadow: '0 4px 14px rgba(139, 92, 246, 0.25)',
+        fontSize: '1.3rem',
         selectors: {
           '&:not(:disabled):hover': {
-            background: '#ffcd02',
-            boxShadow: '0 4px 12px rgba(255, 217, 61, 0.4)',
-          },
-        },
-      },
-      like: {
-        width: '60px',
-        height: '60px',
-        background: '#4ecdc4',
-        color: 'white',
-        boxShadow: '0 2px 8px rgba(78, 205, 196, 0.3)',
-        selectors: {
-          '&:not(:disabled):hover': {
-            background: '#45b7b8',
-            boxShadow: '0 4px 12px rgba(78, 205, 196, 0.4)',
+            boxShadow: '0 8px 22px rgba(139, 92, 246, 0.35)',
+            background: '#f5f3ff',
           },
         },
       },
       super: {
-        width: '45px',
-        height: '45px',
-        background: '#74b9ff',
-        color: 'white',
-        boxShadow: '0 2px 8px rgba(116, 185, 255, 0.3)',
+        width: '48px',
+        height: '48px',
+        color: '#0ea5e9',
+        boxShadow: '0 4px 14px rgba(14, 165, 233, 0.25)',
+        fontSize: '1.3rem',
         selectors: {
           '&:not(:disabled):hover': {
-            background: '#0984e3',
-            boxShadow: '0 4px 12px rgba(116, 185, 255, 0.4)',
+            boxShadow: '0 8px 22px rgba(14, 165, 233, 0.35)',
+            background: '#f0f9ff',
+          },
+        },
+      },
+      like: {
+        width: '64px',
+        height: '64px',
+        color: '#22c55e',
+        boxShadow: '0 6px 18px rgba(34, 197, 94, 0.3)',
+        fontSize: '1.9rem',
+        selectors: {
+          '&:not(:disabled):hover': {
+            boxShadow: '0 10px 28px rgba(34, 197, 94, 0.4)',
+            background: '#f0fdf4',
           },
         },
       },
@@ -101,4 +119,5 @@ export const actionButton = recipe({
 export const buttonIcon = style({
   fontSize: 'inherit',
   lineHeight: 1,
+  display: 'flex',
 });
