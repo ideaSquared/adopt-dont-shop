@@ -78,6 +78,12 @@ router.get(
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
+    // Non-admins must resolve to a concrete rescue scope. Falling through
+    // to `undefined` would skip the rescueId filter in the service and
+    // leak placements across every rescue (ADS-606).
+    if (!isAdmin(req) && !req.user.rescueId) {
+      return res.status(403).json({ error: 'No rescue scope' });
+    }
     // Non-admins are scoped to their own rescue.
     const scopedRescueId = isAdmin(req)
       ? (req.query.rescueId as string | undefined)
