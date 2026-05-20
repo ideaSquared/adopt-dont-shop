@@ -9,11 +9,13 @@ import RefreshToken from '../models/RefreshToken';
 import RevokedToken from '../models/RevokedToken';
 import EmailQueue, { EmailStatus, EmailType, EmailPriority } from '../models/EmailQueue';
 import { logger, loggerHelpers } from '../utils/logger';
-import { decryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
+import { decryptSecret, encryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
 import { getValidatedFrontendOrigin } from '../utils/url-allowlist';
 import { AuditLogService } from './auditLog.service';
 import { redactEmail } from './redact';
 import { env } from '../config/env';
+import { invalidateAuthCache } from '../lib/auth-cache';
+import { disconnectAllSockets } from '../socket/socket-registry';
 
 import {
   AuthResponse,
@@ -615,7 +617,20 @@ Need help? Contact us at support@adoptdontshop.com
       user.resetTokenForceFlag = false;
 
       await user.save();
+
+      const revokedCount = await RefreshToken.update(
+        { is_revoked: true },
+        { where: { user_id: user.userId, is_revoked: false } }
+      );
+      invalidateAuthCache(user.userId);
+
       logger.info('Password reset completed', { userId: user.userId });
+
+      // ADS-597: a password reset invalidates the user's sessions on
+      // the HTTP path (refresh-token family rotation / forced relogin);
+      // tear down any live Socket.IO connections too so an attacker
+      // who'd hijacked a WebSocket can't continue past the reset.
+      disconnectAllSockets(user.userId);
 
       // Log password reset
       await AuditLogService.log({
@@ -623,6 +638,14 @@ Need help? Contact us at support@adoptdontshop.com
         entity: 'User',
         entityId: user.userId,
         details: { email: user.email },
+        userId: user.userId,
+      });
+
+      await AuditLogService.log({
+        action: 'REFRESH_TOKENS_REVOKED',
+        entity: 'User',
+        entityId: user.userId,
+        details: { reason: 'password_reset', count: revokedCount[0] },
         userId: user.userId,
       });
 
@@ -725,6 +748,12 @@ Need help? Contact us at support@adoptdontshop.com
     }
 
     if (!refreshToken) {
+      // ADS-596: bust the auth cache so the next request can't ride a
+      // stale entry past the freshly-revoked access token. Logout doesn't
+      // mutate the User row, so the User-model hook doesn't fire here.
+      if (callerUserId) {
+        invalidateAuthCache(callerUserId);
+      }
       return;
     }
 
@@ -739,6 +768,14 @@ Need help? Contact us at support@adoptdontshop.com
     } catch {
       // Expired or malformed token — nothing to revoke
       logger.info('Logout with invalid or expired token, skipping revocation');
+    }
+
+    // ADS-596: see comment in the early-return branch above.
+    // ADS-597: tear down any live Socket.IO connections for this user so
+    // they can't keep receiving chat / notification events after logout.
+    if (callerUserId) {
+      invalidateAuthCache(callerUserId);
+      disconnectAllSockets(callerUserId);
     }
   }
 
@@ -875,9 +912,15 @@ Need help? Contact us at support@adoptdontshop.com
   }
 
   private static sanitizeUser(user: User): Partial<User> {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, twoFactorSecret, backupCodes, resetToken, verificationToken, ...sanitized } =
-      user.toJSON();
+    const {
+      password,
+      twoFactorSecret,
+      twoFactorPendingSecret,
+      backupCodes,
+      resetToken,
+      verificationToken,
+      ...sanitized
+    } = user.toJSON();
     return sanitized;
   }
 
@@ -900,6 +943,32 @@ Need help? Contact us at support@adoptdontshop.com
 
     if (!/(?=.*[@$!%*?&])/.test(password)) {
       throw new Error('Password must contain at least one special character');
+    }
+  }
+
+  /**
+   * Verify a user's password and, if 2FA is enabled, a TOTP code.
+   * Used for "step-up" authentication on destructive actions
+   * (account deletion, etc.). Throws on failure to match the login flow.
+   */
+  static async verifyStepUpCredentials(
+    user: User,
+    password: string,
+    twoFactorToken?: string
+  ): Promise<void> {
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid credentials');
+    }
+
+    if (user.twoFactorEnabled) {
+      if (!twoFactorToken) {
+        throw new Error('Two-factor authentication code required');
+      }
+      const isValid = await this.verifyTwoFactorToken(user, twoFactorToken);
+      if (!isValid) {
+        throw new Error('Invalid two-factor authentication code');
+      }
     }
   }
 
@@ -981,6 +1050,38 @@ Need help? Contact us at support@adoptdontshop.com
     };
   }
 
+  /**
+   * ADS-599: server-bound 2FA setup. We generate the TOTP secret, store
+   * it encrypted in a short-lived pending field on the user row, and
+   * return only the QR code / displayable secret to the client. The
+   * subsequent enableTwoFactor() call reads the secret from the row
+   * rather than trusting whatever the client posts back, which closes
+   * a social-engineering path where an attacker tricks a victim into
+   * enrolling against a secret the attacker controls.
+   *
+   * The pending secret lives for PENDING_2FA_TTL_MS; an unfinished
+   * setup expires and must be restarted.
+   */
+  static async initiateTwoFactorSetup(
+    userId: string,
+    userEmail: string
+  ): Promise<{ secret: string; otpauthUrl: string }> {
+    const { secret, otpauthUrl } = this.generateTwoFactorSecret(userEmail);
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    user.twoFactorPendingSecret = encryptSecret(secret);
+    user.twoFactorPendingExpiresAt = new Date(Date.now() + this.PENDING_2FA_TTL_MS);
+    await user.save();
+
+    return { secret, otpauthUrl };
+  }
+
+  private static readonly PENDING_2FA_TTL_MS = 10 * 60 * 1000;
+
   static async generateQrCodeDataUrl(otpauthUrl: string): Promise<string> {
     return qrcode.toDataURL(otpauthUrl);
   }
@@ -998,26 +1099,39 @@ Need help? Contact us at support@adoptdontshop.com
     return Array.from({ length: count }, () => crypto.randomBytes(4).toString('hex'));
   }
 
-  static async enableTwoFactor(
-    userId: string,
-    secret: string,
-    token: string
-  ): Promise<{ backupCodes: string[] }> {
-    // Verify the token before enabling
-    const isValid = this.verifyTwoFactorSetupToken(secret, token);
-    if (!isValid) {
-      throw new Error('Invalid verification code. Please try again.');
-    }
-
-    const user = await User.findByPk(userId);
+  static async enableTwoFactor(userId: string, token: string): Promise<{ backupCodes: string[] }> {
+    // ADS-599: read the pending secret from the DB rather than
+    // accepting it from the client. The row is populated by
+    // initiateTwoFactorSetup and times out after PENDING_2FA_TTL_MS.
+    const user = await User.scope('withSecrets').findByPk(userId);
     if (!user) {
       throw new Error('User not found');
+    }
+
+    if (!user.twoFactorPendingSecret) {
+      throw new Error('Two-factor setup has not been initiated. Please start setup again.');
+    }
+    if (user.twoFactorPendingExpiresAt && user.twoFactorPendingExpiresAt.getTime() < Date.now()) {
+      user.twoFactorPendingSecret = null;
+      user.twoFactorPendingExpiresAt = null;
+      await user.save();
+      throw new Error('Two-factor setup has expired. Please start setup again.');
+    }
+
+    const plainPendingSecret = decryptSecret(user.twoFactorPendingSecret);
+    const isValid = this.verifyTwoFactorSetupToken(plainPendingSecret, token);
+    if (!isValid) {
+      throw new Error('Invalid verification code. Please try again.');
     }
 
     const backupCodes = this.generateBackupCodes();
 
     user.twoFactorEnabled = true;
-    user.twoFactorSecret = secret;
+    // Store the server-generated plain secret here; the model's
+    // beforeUpdate hook re-encrypts twoFactorSecret on save.
+    user.twoFactorSecret = plainPendingSecret;
+    user.twoFactorPendingSecret = null;
+    user.twoFactorPendingExpiresAt = null;
     user.backupCodes = backupCodes;
     await user.save();
 
@@ -1045,12 +1159,33 @@ Need help? Contact us at support@adoptdontshop.com
     user.backupCodes = null;
     await user.save();
 
+    // ADS-589: a 2FA disable downgrades the account's security posture
+    // — revoke every active refresh token so any session that
+    // pre-dates the disable can't continue to refresh.
+    const revokedCount = await RefreshToken.update(
+      { is_revoked: true },
+      { where: { user_id: userId, is_revoked: false } }
+    );
+    invalidateAuthCache(userId);
+
+    // ADS-597: a 2FA disable is a security-state change; force live
+    // sockets to reconnect so they pick up the new state.
+    disconnectAllSockets(user.userId);
+
     await AuditLogService.log({
       userId: user.userId,
       action: 'TWO_FACTOR_DISABLED',
       entity: 'User',
       entityId: user.userId,
       details: { email: user.email },
+    });
+
+    await AuditLogService.log({
+      userId,
+      action: 'REFRESH_TOKENS_REVOKED',
+      entity: 'User',
+      entityId: userId,
+      details: { reason: '2fa_disabled', count: revokedCount[0] },
     });
 
     loggerHelpers.logSecurity('2FA disabled', { userId: user.userId });

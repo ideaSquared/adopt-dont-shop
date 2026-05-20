@@ -27,6 +27,7 @@ import { printEnvironmentInfo, validateEnvironment } from './utils/validate-env'
 import models from './models';
 import { installImmutableCreatedAtTriggers } from './models/immutable-created-at';
 import { installIsoCheckConstraints } from './models/iso-check-constraints';
+import { installAuditLogsImmutableTrigger } from './models/audit-logs-immutable';
 
 // Import routes
 import adminRoutes from './routes/admin.routes';
@@ -37,6 +38,7 @@ import authRoutes from './routes/auth.routes';
 import chatRoutes from './routes/chat.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import discoveryRoutes from './routes/discovery.routes';
+import matchRoutes from './routes/match.routes';
 import emailRoutes from './routes/email.routes';
 import monitoringRoutes from './routes/monitoring.routes';
 import notificationRoutes from './routes/notification.routes';
@@ -57,6 +59,9 @@ import metricsRoutes from './routes/metrics.routes';
 import reportsRoutes from './routes/reports.routes';
 import legalRoutes from './routes/legal.routes';
 import privacyRoutes from './routes/privacy.routes';
+import deviceTokenRoutes from './routes/device-token.routes';
+import fosterRoutes from './routes/foster.routes';
+import uploadRoutes from './routes/upload.routes';
 import uploadServeRoutes from './routes/upload-serve.routes';
 import { authenticateToken } from './middleware/auth';
 import { requireRole } from './middleware/rbac';
@@ -132,7 +137,11 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"], // Required for styled-components runtime style injection; remove when migrating to CSS modules
+        // ADS-594: styled-components is no longer used and React's `style={{}}`
+        // prop applies styles via CSSOM (not the parsed `style=""` attribute),
+        // so no `'unsafe-inline'` is required for style-src. Google Fonts is
+        // whitelisted explicitly because the frontend pulls it via <link>.
+        styleSrc: ["'self'", 'https://fonts.googleapis.com'],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: [
@@ -143,7 +152,7 @@ app.use(
           (process.env.API_URL ?? 'ws://localhost:5000').replace(/^https?/, 'ws'),
           (process.env.API_URL ?? 'wss://localhost:5000').replace(/^https?/, 'wss'),
         ],
-        fontSrc: ["'self'", 'https:', 'data:'],
+        fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
         objectSrc: ["'none'"], // Disallow plugins
         mediaSrc: ["'self'"],
         frameSrc: ["'none'"], // Prevent clickjacking via iframes
@@ -291,6 +300,7 @@ app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/conversations', chatRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/discovery', discoveryRoutes);
+app.use('/api/v1/match', matchRoutes);
 app.use('/api/v1/email', emailRoutes);
 app.use('/api/v1/pets', petRoutes);
 app.use('/api/v1/users', userRoutes);
@@ -309,6 +319,9 @@ app.use('/api/v1/cms', cmsRoutes);
 app.use('/api/v1/reports', reportsRoutes); // ADS-105: custom analytics reports
 app.use('/api/v1/legal', legalRoutes); // ADS-495: public terms / privacy
 app.use('/api/v1/privacy', privacyRoutes); // ADS-427/496/497: GDPR delete + export + consent
+app.use('/api/v1/devices', deviceTokenRoutes); // device token registration for push notifications
+app.use('/api/v1/foster', fosterRoutes); // foster placement coordination
+app.use('/api/v1/uploads', uploadRoutes); // ADS-588: staged image upload (POST /images)
 
 // ADS-446 / ADS-460: readiness endpoint that probes DB + Redis + BullMQ.
 app.use('/api/v1', healthRoutes);
@@ -539,6 +552,23 @@ const startServer = async () => {
         });
       }
 
+      // Match digest job — opt-in daily notification of new pet
+      // matches. Gated on MATCH_DIGEST_ENABLED inside the schedule call
+      // so an unconfigured env stays quiet.
+      try {
+        const { scheduleMatchDigestJob, startMatchDigestWorker } =
+          await import('./jobs/match-digest.job');
+        await scheduleMatchDigestJob();
+        const w = startMatchDigestWorker();
+        if (w) {
+          logger.info('Match digest worker started');
+        }
+      } catch (err) {
+        logger.warn('Match digest job failed to start (continuing without scheduling)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
       // ADS-544: daily purge of expired RevokedToken rows. Without this
       // the blacklist table grows unbounded since every logout writes a
       // row that's only useful until the token's `exp`.
@@ -669,16 +699,42 @@ const startServer = async () => {
         }
 
         // DB-level invariants that aren't expressible in Sequelize models.
-        // Idempotent and Postgres-gated; safe to run on every boot path
-        // (force-seed, fresh DB, warm reload). Independent — run in parallel.
-        await Promise.all([
-          installImmutableCreatedAtTriggers(Object.values(models)),
-          installIsoCheckConstraints(),
-        ]);
+        // The actual installer calls run in the unconditional Postgres
+        // block below — see the long comment there. Keep this comment
+        // for grep-ability when future hands look for installer wiring
+        // inside the dev sync path.
       } catch (error) {
         logger.error('Failed to sync database models:', error);
         throw error;
       }
+    }
+
+    // DB-level invariants that aren't expressible in Sequelize models
+    // and aren't created by the schema bootstrap (sync in dev, baseline
+    // migrations in prod). Postgres-only, idempotent (skip-if-exists
+    // checks inside each installer), so safe regardless of environment
+    // or whether the DB is fresh.
+    //
+    // Why outside the dev block: the broader trigger / check-constraint
+    // coverage was never installed in prod (latent gap pre-dating
+    // ADS-531). When PR #521 dropped migration 11, prod also lost the
+    // audit_logs trigger on fresh deploys — fixed in #522. Lifting the
+    // remaining two installers out of the dev gate closes that latent
+    // gap. Each installer logs failures but does not re-throw — they're
+    // defence in depth, not a hard correctness requirement, so a
+    // failure shouldn't wedge the HTTP server before it comes up.
+    if (sequelize.getDialect() === 'postgres') {
+      await Promise.all([
+        installImmutableCreatedAtTriggers(Object.values(models)).catch(error => {
+          logger.error('Failed to install immutable-created-at triggers:', error);
+        }),
+        installIsoCheckConstraints().catch(error => {
+          logger.error('Failed to install ISO check constraints:', error);
+        }),
+        installAuditLogsImmutableTrigger().catch(error => {
+          logger.error('Failed to install audit_logs immutable trigger:', error);
+        }),
+      ]);
     }
 
     // Start listening

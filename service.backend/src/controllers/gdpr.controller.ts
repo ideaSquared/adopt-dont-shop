@@ -29,30 +29,20 @@ export class GdprController {
    * /admin route.
    */
   async exportSelf(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const data = await GdprService.exportUserData(userId);
-      res.setHeader('Content-Disposition', `attachment; filename="user-${userId}.json"`);
-      res.json(data);
-    } catch (error) {
-      logger.error('GDPR self-export failed', { error });
-      res.status(500).json({ error: 'Failed to export user data' });
-    }
+    const userId = req.user!.userId;
+    const data = await GdprService.exportUserData(userId);
+    res.setHeader('Content-Disposition', `attachment; filename="user-${userId}.json"`);
+    res.json(data);
   }
 
   async exportByAdmin(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      if (!isAdmin(req)) {
-        res.status(403).json({ error: 'Admin access required' });
-        return;
-      }
-      const { userId } = req.params;
-      const data = await GdprService.exportUserData(userId);
-      res.json(data);
-    } catch (error) {
-      logger.error('GDPR admin export failed', { error });
-      res.status(500).json({ error: 'Failed to export user data' });
+    if (!isAdmin(req)) {
+      res.status(403).json({ error: 'Admin access required' });
+      return;
     }
+    const { userId } = req.params;
+    const data = await GdprService.exportUserData(userId);
+    res.json(data);
   }
 
   /**
@@ -96,14 +86,9 @@ export class GdprController {
   }
 
   async getConsents(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const consents = await GdprService.getCurrentConsents(userId);
-      res.json({ consents });
-    } catch (error) {
-      logger.error('Get consents failed', { error });
-      res.status(500).json({ error: 'Failed to get consents' });
-    }
+    const userId = req.user!.userId;
+    const consents = await GdprService.getCurrentConsents(userId);
+    res.json({ consents });
   }
 
   /**
@@ -150,27 +135,22 @@ export class GdprController {
   }
 
   async recordConsent(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const { purpose, granted, policyVersion, source } = req.body as {
-        purpose: ConsentPurpose;
-        granted: boolean;
-        policyVersion: string;
-        source?: string;
-      };
-      const consent = await GdprService.recordConsent({
-        userId,
-        purpose,
-        granted,
-        policyVersion,
-        source: source ?? null,
-        ipAddress: req.ip ?? null,
-      });
-      res.status(201).json({ consent });
-    } catch (error) {
-      logger.error('Record consent failed', { error });
-      res.status(500).json({ error: 'Failed to record consent' });
-    }
+    const userId = req.user!.userId;
+    const { purpose, granted, policyVersion, source } = req.body as {
+      purpose: ConsentPurpose;
+      granted: boolean;
+      policyVersion: string;
+      source?: string;
+    };
+    const consent = await GdprService.recordConsent({
+      userId,
+      purpose,
+      granted,
+      policyVersion,
+      source: source ?? null,
+      ipAddress: req.ip ?? null,
+    });
+    res.status(201).json({ consent });
   }
 }
 

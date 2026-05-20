@@ -167,3 +167,8 @@ export const actionButton = recipe({
     variant: 'secondary',
   },
 });
+
+export const closedBadge = style({
+  background: '#dbeafe',
+  color: '#2563eb',
+});

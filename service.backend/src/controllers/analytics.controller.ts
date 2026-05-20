@@ -8,154 +8,130 @@ export class AnalyticsController {
    * Record a pageview
    */
   async recordPageview(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-        return;
-      }
-
-      const { path, url, timestamp, sessionId, referrer, userAgent } = req.body;
-      const userId = req.user?.userId;
-
-      // Use either path or url, prefer path
-      const pagePath = path || url || req.url || 'unknown';
-
-      // For now, just log the pageview data
-      // In the future, this could be stored in a database or sent to an analytics service
-      logger.info('Pageview recorded', {
-        service: 'analytics',
-        type: 'pageview',
-        data: {
-          path: pagePath,
-          timestamp: timestamp || new Date().toISOString(),
-          userId,
-          sessionId,
-          referrer,
-          userAgent,
-          ip: req.ip,
-        },
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'Pageview recorded',
-      });
-    } catch (error) {
-      logger.error('Failed to record pageview', { error });
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
         success: false,
-        message: 'Failed to record pageview',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
+      return;
     }
+
+    const { path, url, timestamp, sessionId, referrer, userAgent } = req.body;
+    const userId = req.user?.userId;
+
+    // Use either path or url, prefer path
+    const pagePath = path || url || req.url || 'unknown';
+
+    // For now, just log the pageview data
+    // In the future, this could be stored in a database or sent to an analytics service
+    logger.info('Pageview recorded', {
+      service: 'analytics',
+      type: 'pageview',
+      data: {
+        path: pagePath,
+        timestamp: timestamp || new Date().toISOString(),
+        userId,
+        sessionId,
+        referrer,
+        userAgent,
+        ip: req.ip,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Pageview recorded',
+    });
   }
 
   /**
    * Record multiple analytics events in a batch
    */
   async recordEventsBatch(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-        return;
-      }
-
-      const { events } = req.body;
-      const userId = req.user?.userId;
-
-      if (!Array.isArray(events)) {
-        res.status(400).json({
-          success: false,
-          message: 'Events must be an array',
-        });
-        return;
-      }
-
-      // For now, just log the events
-      // In the future, this could be stored in a database or sent to an analytics service
-      logger.info('Batch events recorded', {
-        service: 'analytics',
-        type: 'batch_events',
-        count: events.length,
-        userId,
-        ip: req.ip,
-        events: events.map(event => ({
-          event: event.event || event.name || event.type || 'unknown',
-          timestamp: event.timestamp || new Date().toISOString(),
-          properties: event.properties || {},
-        })),
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'Events recorded',
-        processed: events.length,
-      });
-    } catch (error) {
-      logger.error('Failed to record batch events', { error });
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
         success: false,
-        message: 'Failed to record events',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
+      return;
     }
+
+    const { events } = req.body;
+    const userId = req.user?.userId;
+
+    if (!Array.isArray(events)) {
+      res.status(400).json({
+        success: false,
+        message: 'Events must be an array',
+      });
+      return;
+    }
+
+    // For now, just log the events
+    // In the future, this could be stored in a database or sent to an analytics service
+    logger.info('Batch events recorded', {
+      service: 'analytics',
+      type: 'batch_events',
+      count: events.length,
+      userId,
+      ip: req.ip,
+      events: events.map(event => ({
+        event: event.event || event.name || event.type || 'unknown',
+        timestamp: event.timestamp || new Date().toISOString(),
+        properties: event.properties || {},
+      })),
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Events recorded',
+      processed: events.length,
+    });
   }
 
   /**
    * Record a single analytics event
    */
   async recordEvent(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-        return;
-      }
-
-      const { event, name, type, timestamp, properties, sessionId } = req.body;
-      const userId = req.user?.userId;
-
-      // Use event, name, or type - prefer event
-      const eventName = event || name || type || 'unknown';
-
-      // For now, just log the event data
-      // In the future, this could be stored in a database or sent to an analytics service
-      logger.info('Analytics event recorded', {
-        service: 'analytics',
-        type: 'single_event',
-        data: {
-          event: eventName,
-          timestamp: timestamp || new Date().toISOString(),
-          properties: properties || {},
-          userId,
-          sessionId,
-          ip: req.ip,
-        },
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'Event recorded',
-      });
-    } catch (error) {
-      logger.error('Failed to record event', { error });
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
         success: false,
-        message: 'Failed to record event',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
+      return;
     }
+
+    const { event, name, type, timestamp, properties, sessionId } = req.body;
+    const userId = req.user?.userId;
+
+    // Use event, name, or type - prefer event
+    const eventName = event || name || type || 'unknown';
+
+    // For now, just log the event data
+    // In the future, this could be stored in a database or sent to an analytics service
+    logger.info('Analytics event recorded', {
+      service: 'analytics',
+      type: 'single_event',
+      data: {
+        event: eventName,
+        timestamp: timestamp || new Date().toISOString(),
+        properties: properties || {},
+        userId,
+        sessionId,
+        ip: req.ip,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Event recorded',
+    });
   }
 
   /**

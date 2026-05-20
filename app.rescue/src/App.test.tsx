@@ -20,6 +20,14 @@ vi.mock('@adopt-dont-shop/lib.analytics', () => ({
   useAnalyticsInvalidator: vi.fn(),
 }));
 
+vi.mock('@adopt-dont-shop/lib.auth', () => ({
+  useAuth: () => ({
+    user: { userId: 'u1', userType: 'rescue_staff' },
+    isAuthenticated: true,
+    isLoading: false,
+  }),
+}));
+
 vi.mock('./components/ProtectedRoute', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));

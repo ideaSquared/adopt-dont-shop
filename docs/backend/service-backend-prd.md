@@ -2,126 +2,160 @@
 
 ## Overview
 
-The Backend Service is the core API and data management layer that powers all applications in the Adopt Don't Shop ecosystem. It provides secure, scalable, and reliable backend services for user management, pet data, adoption workflows, and communication systems.
+The Backend Service is the core API and data management layer that powers all applications in the Adopt Don't Shop ecosystem. It provides secure, scalable, and reliable backend services for user management, pet data, adoption workflows, communication, and reporting.
 
 ## Architecture Overview
 
 - **Service Type**: RESTful API with WebSocket support
 - **Technology**: Node.js + Express + TypeScript
-- **Database**: PostgreSQL with Sequelize ORM
-- **Authentication**: JWT-based with role-based access control
-- **Real-time**: Socket.IO for messaging and notifications
-- **Storage**: Local (dev) / AWS S3 (production) with CDN
+- **Database**: PostgreSQL with Sequelize ORM (PostGIS for spatial queries)
+- **Authentication**: JWT-based with role-based access control (RBAC) and optional TOTP MFA
+- **Real-time**: Socket.IO for chat, presence, and live notifications
+- **Storage**: Pluggable provider (`STORAGE_PROVIDER` env). Default `local` in dev; `s3` provider scaffolded for production (vendor-pluggable)
+- **Background jobs**: BullMQ on Redis (reports worker, retention worker, legal reminders)
+- **Observability**: Prometheus metrics, Winston structured logs, Sentry (prod/staging only)
 
 ## Core Modules
 
 ### 1. Authentication & Authorization
 
 - User registration with email verification
-- Secure login with JWT token generation
-- Token refresh rotation and session management
-- Password reset and recovery functionality
-- Role-based access control (RBAC)
-- Multi-factor authentication (optional)
+- Secure login with JWT access tokens (15 min) + refresh token rotation with `family_id` revocation
+- Password reset and recovery
+- Brute force protection (5-attempt account lockout) + auth rate limiters
+- Role-based access control via `Role` / `Permission` / `RolePermission` / `UserRole` models
+- Optional TOTP MFA with encrypted secret storage and backup codes
+- CSRF protection on all state-changing routes
 
 ### 2. User Management
 
 - Complete user profile management
 - Account verification and activation
-- Preference and privacy settings
-- Account linking and data export
-- Account deletion with data cleanup
+- Notification, privacy, and consent preferences
+- Data export (GDPR Art. 20) via `/api/v1/privacy/me/export`
+- Account deletion (GDPR Art. 17) via `/api/v1/privacy/me/delete` with 30-day grace + retention worker anonymization
+- Field-level access restrictions via `FieldPermission` model + `middleware/field-permissions.ts`
+
+*Out of scope (not implemented):* OAuth / social login / external-account linking. Defer to roadmap.
 
 ### 3. Rescue Management
 
-- Rescue organization registration and verification
+- Rescue organization registration and verification (Companies House + Charity Commission lookups)
 - Profile and contact information management
-- Staff and volunteer account management
-- Rescue-specific settings and configuration
-- Performance metrics and analytics
+- Staff/volunteer account management via `StaffMember` + `Invitation` models
+- Rescue-specific settings and configuration (`RescueSettings`)
+- Performance metrics surfaced via dashboard endpoints
 
 ### 4. Pet Management
 
-- Pet registration with comprehensive profiles
-- Advanced search with filtering and sorting
-- Photo management with multiple images
-- Medical records and history tracking
-- Status and availability workflow
-- Foster placement coordination
-- Behavioral and temperament data
+- Pet registration with comprehensive profiles (`Pet` model)
+- Advanced search with filtering, sorting, and PostGIS radius queries (`pet.service.ts:searchPets`)
+- Photo management with multiple images (`PetMedia`) — uploads gated by AV provider
+- Status workflow via `PetStatusTransition` append-only event log (`AVAILABLE / PENDING / ADOPTED / FOSTER / MEDICAL_HOLD / BEHAVIORAL_HOLD / NOT_AVAILABLE / DECEASED`)
+- Behavioural / temperament data captured as Pet columns
+- Foster placement coordination (see §11)
+
+*Partial:* Medical records carried as inline JSON columns; dedicated `MedicalRecord` timeline is roadmap.
 
 ### 5. Application Processing
 
-- Dynamic application forms with validation
-- Multi-stage approval workflow
-- Reference management and verification
-- Decision tracking with audit trail
-- Communication integration
-- Document management and storage
-- Bulk operations support
+- Dynamic application forms with validation (`ApplicationQuestion` + `ApplicationAnswer`)
+- Status transition workflow via `ApplicationStatusTransition` event log
+- Reference management via `ApplicationReference` (manual update flow; automated reference-email verification is roadmap)
+- Decision tracking with `ApplicationTimeline`
+- Home-visit scheduling/outcome propagation via `HomeVisit` model
+- Communication integration: chats can be linked to `applicationId`
+- Document management via `applicationDocumentUpload` (`file-upload.service.ts`)
+- Bulk operations via `/api/v1/applications/bulk-update`
+- Core application question library seeded via `question.service.ts`
+
+**Application status model (current, authoritative):**
+
+`ApplicationStatus = SUBMITTED | APPROVED | REJECTED | WITHDRAWN`
+
+Frontend `ApplicationStage` (PENDING / REVIEWING / VISITING / DECIDING / RESOLVED) is a UI-only presentation layer derived from status + home-visit + reference data via `app.rescue/src/services/applicationService.ts:mapStatusToStage`. It does not exist as a backend column. Allowed status transitions: `SUBMITTED → {APPROVED, REJECTED, WITHDRAWN}`; terminal statuses cannot transition.
 
 ### 6. Communication System
 
-- Real-time messaging with Socket.IO
-- Message history with full-text search
-- Conversation and thread management
-- Message reactions and interactions
-- File and image sharing
-- Read receipts and typing indicators
-- Push notifications and email alerts
-- Content moderation and filtering
-- Offline support with message queuing
+- Real-time messaging with Socket.IO (`socket-handlers.ts`)
+- Message history with full-text search (`messageSearch.service.ts`)
+- Conversation/thread management (`Chat`, `ChatParticipant`)
+- Message reactions (`MessageReaction`)
+- File/image sharing (subject to AV scan — see §Security)
+- Read receipts (`MessageRead`)
+- Typing indicators
+- Email and push alerts for offline users (push channel scaffolded — see §7)
+- Content moderation via `content-moderation.service.ts` (regex-rule-based, severity tiers)
+
+*Not implemented:* Offline message queueing/replay for users offline at send time. Currently relies on push + email fallback. Deferred to roadmap.
 
 ### 7. Notification System
 
-- Multi-channel delivery (in-app, email, push, SMS)
-- Centralized notification center
-- User preference management
-- Real-time alerts for time-sensitive events
-- Scheduled and recurring notifications
-- Template-based notifications
+- **Multi-channel delivery scaffold**: in-app (real), email (real via Resend in prod), push (scaffold + console provider in dev; FCM/APNs provider pluggable), SMS (scaffold + console provider in dev; Twilio provider pluggable). See "Provider scaffolds" below.
+- Centralized notification center via `Notification` model + `/api/v1/notifications` routes
+- User preference management via `UserNotificationPrefs`
+- Real-time alerts via Socket.IO `analytics-emitter.ts`
+- Template-based notifications via `EmailTemplate` + `EmailTemplateVersion`
 - Read status tracking
-- Batch processing for high-volume events
-- Email digests and do-not-disturb modes
+- Batch processing (`validateBulkNotification`)
+- Quiet hours enforcement in `notificationChannelService.ts`
+- Device token registration via `POST /api/v1/devices`, `DELETE /api/v1/devices/:id`, `GET /api/v1/devices` (backed by `DeviceToken` model)
+
+*Roadmap:* Scheduled notification dispatcher worker (`scheduledFor` column exists but no scheduler job yet), email digests, A/B testing.
 
 ### 8. Email Service
 
-- Transactional emails (registration, password reset, etc.)
-- Template management with variables and conditionals
-- Multi-language support
-- Queue management with retry logic
-- Delivery tracking and analytics
-- Template editor for non-technical users
-- Personalization engine
-- A/B testing capabilities
-- GDPR and CAN-SPAM compliance
+- Transactional emails via pluggable provider (`EMAIL_PROVIDER` env)
+- **Providers shipped**: Console (dev default), Ethereal (dev), Resend (production)
+- Template management via `EmailTemplate` + versioned `EmailTemplateVersion`
+- Multi-language scaffold: `locale` column exists; English-only content shipped today
+- Queue management with retry and bounce tracking (`EmailQueue`)
+- Delivery webhook handler for provider callbacks
+- Variable substitution + conditionals via template engine
+- Unsubscribe token hashing (`utils/secrets.ts`)
+
+*PRD note:* The original PRD listed SendGrid + AWS SES as production providers. Actual implementation ships **Resend** as the production provider. Add SendGrid/SES later only if business need arises.
+
+*Roadmap:* A/B testing, dynamic segmentation, full personalization engine.
 
 ### 9. Analytics & Reporting
 
-- User behavior and engagement tracking
-- Adoption metrics and conversion analytics
-- Platform performance monitoring
-- Custom reports with data export
-- Real-time dashboards for administrators
-- Trend analysis and forecasting
+- User behaviour / engagement tracking via `analytics.routes.ts`
+- Adoption metrics + dashboard aggregates via `dashboard.routes.ts`
+- Platform performance monitoring via Prometheus metrics (`middleware/metrics.ts`)
+- Custom reports framework: `SavedReport`, `ScheduledReport`, `ReportTemplate`, `ReportShare`, `workers/reports.worker.ts`, 13 endpoints in `reports.routes.ts`
+- Real-time dashboards for admins
 
-### 10. Feature Flags & Configuration
+*Not in scope:* Trend forecasting, financial/revenue reporting (no monetization model in code).
 
-- Dynamic feature enabling/disabling
-- Platform-wide configuration management
-- Core question library for applications
-- Notification rules configuration
-- Third-party service integration settings
+### 10. Configuration
+
+- **Feature flags**: Owned by Statsig. Frontend reads gates via `lib.feature-flags`. The backend feature-flag system was removed; the backend is no longer a source of truth for flag state. See `lib.feature-flags/src/index.ts:13` for migration note.
+- **Platform configuration**: `configuration.service.ts` uses an in-memory map of defaults. Runtime configuration is not persisted — this is an accepted trade-off; environment variables remain the persisted-config mechanism.
+- **Question library**: Core application questions managed via `question.service.ts` + seed data.
+- **Notification routing rules**: Currently baked into `notificationChannelService.ts` (channel selection by notification type + user prefs). Runtime configurability deferred.
+
+### 11. Foster Coordination
+
+- `FosterPlacement` model (`FosterPlacement.ts`; PK: `placementId`; FKs: `petId`, `fosterUserId`, `rescueId`; columns: `startDate`, `endDate`, `status` (`active | completed | cancelled`), `notes`)
+- Routes mounted at `/api/v1/foster` (see `foster.routes.ts`):
+  - `POST /placements` — create (triggers Pet status transition to `FOSTER`)
+  - `GET /placements` — list (filtered by current user's rescue/user scope)
+  - `GET /placements/:id` — detail
+  - `POST /placements/:id/end` — end placement; `outcome` is one of `return_to_rescue` | `adopted_by_foster` | `cancelled`, which drives the corresponding Pet status transition
+- RBAC: `rescue_staff` for their own rescue; `admin` / `super_admin` global; `support_agent` read-only
 
 ## Performance Requirements
 
 ### Response Time Targets
 
-- Authentication: < 200ms
-- Search Queries: < 500ms
-- Data Retrieval: < 300ms
+- Authentication: < 200ms p95
+- Search Queries: < 500ms p95
+- Data Retrieval: < 300ms p95
 - File Upload: < 2 seconds (5MB)
 - Real-time Messages: < 100ms
+
+Targets are measured via Prometheus histograms (`middleware/metrics.ts`); not currently enforced in CI.
 
 ### Scalability Targets
 
@@ -133,175 +167,158 @@ The Backend Service is the core API and data management layer that powers all ap
 
 ### Availability Requirements
 
-- System Uptime: 99.9%
-- Database Availability: 99.95%
-- API Availability: 99.9%
-- Real-time Messaging: 99.5% delivery success
-- File Storage: 99.99% availability
+- System Uptime: 99.9% target (no SLO artefact in repo)
+- Health checks: `/health`, `/health/simple`, `/health/ready` (probes DB + Redis + BullMQ)
+- Graceful shutdown on SIGTERM/SIGINT with 10s forced-exit timeout
 
 ## Security Requirements
 
 ### Authentication Security
 
-- bcrypt password hashing (salt rounds >= 12)
-- Short-lived JWT access tokens (15 minutes)
-- Secure refresh token rotation
-- CSRF protection for sessions
-- Brute force protection with account lockout
+- bcrypt password hashing (salt rounds ≥ 12)
+- 15-minute JWT access tokens
+- Refresh token rotation with `family_id` revocation
+- CSRF protection mounted on `/api`
+- Brute-force protection: 5-attempt account lockout + auth rate limiter + per-email login limiter
 
 ### Data Protection
 
-- Encryption at rest for sensitive data
-- TLS 1.3 for all communications
-- Comprehensive input validation
-- Parameterized queries (SQL injection prevention)
-- Content Security Policy (XSS protection)
-- Restricted CORS configuration
+- Encryption at rest for highly sensitive data (currently: 2FA secrets via AES-256-GCM in `utils/secrets.ts`). Broader PII column encryption is roadmap.
+- TLS 1.3 terminated at nginx (out of repo)
+- HSTS + strict CSP + helmet headers configured in `index.ts`
+- Comprehensive input validation (express-validator + zod schemas in `schemas/`)
+- Parameterized queries via Sequelize
+- Restricted CORS allowlist (wildcard rejected at startup)
 
 ### Access Control
 
-- Role-based permission system
-- Secure API key management
-- Complete audit logging
-- Field-level access restrictions
-- File upload security with virus scanning
-- API rate limiting
+- Role-based permission system (`Role` / `Permission` / `RolePermission` / `UserRole`)
+- Active roles: `adopter | rescue_staff | admin | moderator | super_admin | support_agent`
+- Field-level access restrictions via `FieldPermission` + `middleware/field-permissions.ts`
+- Complete audit logging via `auditLog.service.ts` with immutable trigger
+- API rate limiting (general + auth-specific + search-specific)
+- Metrics endpoint gated by `METRICS_AUTH_TOKEN`
+
+### File Upload Security
+
+- Pluggable AV provider via `AV_PROVIDER` env (default `noop` in dev; `clamav` provider available in prod)
+- `noop` provider passes all uploads (development-friendly)
+- Production requires explicit `AV_PROVIDER=clamav` — startup validation fails fast if unset
+- Image processing via `sharp` (resize + thumbnail)
+- Secure temporary URLs for uploads via HMAC-signed paths with 5-minute TTL (`upload-serve.routes.ts`)
 
 ## Monitoring & Observability
 
-### Application Monitoring
-
-- Performance metrics (response times, throughput, errors)
-- Database query performance
-- Memory usage and leak detection
-- CPU utilization tracking
-- Disk I/O and storage monitoring
-
-### Error Tracking
-
-- Comprehensive error logging and alerting
-- Error aggregation and analysis
-- Stack trace debugging
-- Performance profiling
-- User impact assessment
-
-### Business Metrics
-
-- User activity and engagement
-- API endpoint usage statistics
-- Adoption funnel tracking
-- Revenue and financial metrics
-- Support request volume and resolution
+- Performance metrics via prom-client (`middleware/metrics.ts`); scrape endpoint `metrics.routes.ts`
+- Default metrics (heap, GC, event loop, CPU) via `prom-client.collectDefaultMetrics`
+- Structured logging via Winston (`utils/logger.ts`)
+- Sentry integration (`config/sentry.ts`) — enabled only in prod/staging; includes httpIntegration + profilingIntegration via `@sentry/profiling-node`
 
 ## Integration Requirements
 
-### Email Services
+### Email
 
-- Development: Ethereal Mail (free test accounts)
-- Production: SendGrid or AWS SES
-- Template management system
-- Delivery tracking and bounce handling
+- **Provider abstraction**: `email.service.ts:57-110` factory switched on `EMAIL_PROVIDER` env
+- **Providers**: Console, Ethereal, Resend (production)
+- **Webhook**: Delivery callbacks via `controllers/email.controller.ts:handleDeliveryWebhook`
 
 ### File Storage
 
-- Development: Local file system
-- Production: AWS S3 with CloudFront CDN
-- Image processing and optimization
-- Backup and disaster recovery
-- Secure temporary URLs
+- **Provider abstraction**: `services/storage/index.ts` factory switched on `STORAGE_PROVIDER` env
+- **Providers**: `local` (dev default); `s3` scaffolded (vendor-pluggable; `@aws-sdk/client-s3`). S3 provider throws on init without creds.
+- Image processing and optimisation via `sharp`
+- Secure temporary HMAC-signed URLs for serving uploads
 
-### Third-Party APIs
+### SMS
 
-- Payment processing (Stripe)
-- Map services (Google Maps)
-- Analytics (Google Analytics)
+- **Provider abstraction**: `services/sms-providers/index.ts` factory switched on `SMS_PROVIDER` env
+- **Providers**: `console` (dev default); `twilio` scaffolded (vendor-pluggable)
+
+### Push Notifications
+
+- **Provider abstraction**: `services/push-providers/index.ts` factory switched on `PUSH_PROVIDER` env
+- **Providers**: `console` (dev default — logs); `fcm` scaffolded (vendor-pluggable for FCM/APNs)
+- **Device token registration**: `POST /api/v1/devices`, `DELETE /api/v1/devices/:id`, `GET /api/v1/devices`
+
+### Antivirus
+
+- **Provider abstraction**: `services/av-providers/index.ts` factory switched on `AV_PROVIDER` env
+- **Providers**: `noop` (dev default — passes all); `clamav` (vendor-pluggable for production)
+
+### Out of Scope
+
+- Payment processing (no monetization model in code)
+- Map services (PostGIS used for spatial queries; no Google Maps integration)
 - Social media integration
-- Push notification services
+- Analytics SDKs (frontend concern)
 
 ## Deployment & DevOps
 
 ### Containerization
 
-- Docker multi-stage builds
-- Kubernetes or Docker Swarm orchestration
-- Health check endpoints
+- Docker multi-stage builds (`Dockerfile.app.optimized`)
+- Docker Compose for dev/staging/prod orchestration
+- Health check endpoints (see above)
 - Graceful shutdown procedures
-- Resource constraints (CPU/memory)
 
 ### CI/CD Pipeline
 
-- Automated testing (unit, integration, e2e)
-- Code quality checks (ESLint, SonarQube)
-- Security vulnerability scanning
-- Zero-downtime deployments
-- Quick rollback procedures
+- Automated tests in `.github/workflows/ci.yml` and `quality.yml`
+- Code quality checks (ESLint, Prettier, type-check)
+- Security vulnerability scanning (`codeql.yml`, `security.yml`)
+- Zero-downtime deployment (`deploy.yml`) + rollback workflow (`rollback.yml`)
 
 ### Environment Management
 
-- Environment-specific configuration
-- Secure secret management
-- Automated database migrations
-- Consistent dev/staging/prod parity
-- Automated backup procedures
-
-## Success Metrics
-
-### Technical Performance
-
-- API Response Time: 95th percentile < 500ms
-- System Uptime: 99.9% availability
-- Error Rate: < 0.1% across all endpoints
-- Database Performance: query response < 100ms
-- File Upload Success: 99.5% success rate
-
-### Business Impact
-
-- Support 50% month-over-month user growth
-- Infrastructure costs < $0.10 per user
-- Feature delivery in < 2 weeks
-- Reduce API-related support tickets by 80%
-- Zero security breaches or data leaks
+- `config/env.ts` validates required env vars at startup
+- Production env requires explicit `STORAGE_PROVIDER`, `EMAIL_PROVIDER`, `AV_PROVIDER`, `PUSH_PROVIDER`, `SMS_PROVIDER` (no silent defaults beyond dev)
+- Database migrations via `migrations/runner.ts` (62 baseline migrations)
+- Automated backup script `scripts/db-backup.sh`; scheduled backup orchestration is deployment-pipeline concern
 
 ## Compliance & Governance
 
 ### Data Privacy
 
-- GDPR compliance (European data protection)
-- CCPA compliance (California privacy law)
-- Automated data retention and deletion
-- Granular user consent management
-- Data portability capabilities
+- GDPR Art. 20 (data export): `/api/v1/privacy/me/export`
+- GDPR Art. 17 (erasure): `/api/v1/privacy/me/delete` with 30-day grace + anonymization via retention worker
+- Automated retention via `jobs/retention.job.ts` + `data-retention.service.ts`
+- Consent management via `consent.service.ts` + `UserConsent` model + `/consent` + `/cookies-consent` endpoints
+- Same endpoints satisfy CCPA basic rights; California-specific opt-out signal handling is roadmap
 
 ### Security Standards
 
-- OWASP security guidelines
-- SOC 2 Type II compliance framework
-- PCI DSS for payment security
-- ISO 27001 information security
-- Quarterly security audits
+- OWASP guidelines: many controls covered (CSRF, XSS via CSP, SQLi via ORM, rate limits, headers); no formal OWASP audit checklist artefact
+- SOC 2 / ISO 27001: organization-level concerns, not in-repo
+- PCI DSS: not applicable (no payment processing)
 
 ## Future Roadmap
 
-### Short Term (3-6 months)
+### Near Term
 
-- GraphQL support for efficient data fetching
-- Advanced rate limiting with user-based quotas
-- Multi-tenant architecture for rescue organizations
-- OAuth2 and advanced threat detection
+- Wire ClamAV / production AV vendor
+- Wire FCM/APNs provider for push
+- Wire Twilio (or alternative) for SMS
+- Wire S3 storage provider for production
+- Scheduled-notification dispatcher worker
+- Email digest job
+- PII column encryption beyond 2FA secrets
 
-### Medium Term (6-12 months)
+### Medium Term
 
-- Microservice architecture migration
-- Event-driven architecture with CQRS
-- Machine learning APIs for matching and recommendations
-- International support (multi-language, multi-currency)
+- Foster reporting & analytics surfaces
+- Application reference-check automation (email round-trip)
+- Recommendation service (see `docs/frontend/recommendations-plan.md` once written)
+- Email A/B testing
+- OAuth / social login
 
-### Long Term (12+ months)
+### Deferred / De-scoped from earlier PRDs
 
-- Blockchain integration for pet records
-- IoT support for smart collars and tracking
-- Advanced analytics with stream processing
-- Global scale with multi-region deployment
+- **GraphQL support** — not pursued; REST + WebSocket sufficient
+- **Multi-tenant architecture** — rescue-scoped authorization is the de-facto tenant boundary; no `tenant_id` scaffolding planned
+- **Microservices migration** — monolith remains the design
+- **Event sourcing / CQRS** — not pursued
+- **Financial / revenue reporting** — no monetization model
+- **Blockchain pet records, IoT, multi-region** — out of scope
 
 ## Additional Resources
 

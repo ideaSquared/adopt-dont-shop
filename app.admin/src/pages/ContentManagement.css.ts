@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   display: 'flex',
   flexDirection: 'column',
@@ -19,13 +21,13 @@ export const headerLeft = style({});
 globalStyle(`${headerLeft} h1`, {
   fontSize: '2rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
 globalStyle(`${headerLeft} p`, {
   fontSize: '1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
@@ -37,7 +39,7 @@ export const headerActions = style({
 export const tabBar = style({
   display: 'flex',
   gap: 0,
-  borderBottom: '2px solid #e5e7eb',
+  borderBottom: `2px solid ${vars.border.color.default}`,
 });
 
 export const tab = style({
@@ -46,7 +48,7 @@ export const tab = style({
   border: 'none',
   borderBottom: '2px solid transparent',
   marginBottom: '-2px',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontWeight: '400',
   fontSize: '0.875rem',
   cursor: 'pointer',
@@ -56,14 +58,14 @@ export const tab = style({
 });
 
 export const tabActive = style({
-  borderBottomColor: '#2563eb',
-  color: '#2563eb',
+  borderBottomColor: vars.colors.infoHover,
+  color: vars.colors.infoHover,
   fontWeight: '600',
 });
 
 export const card = style({
-  background: '#fff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.5rem',
 });
@@ -85,16 +87,16 @@ export const filterGroup = style({
 export const filterLabel = style({
   fontSize: '0.8rem',
   fontWeight: '500',
-  color: '#374151',
+  color: vars.text.secondary,
 });
 
 export const select = style({
   padding: '0.5rem 0.75rem',
-  border: '1px solid #d1d5db',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  background: '#fff',
-  color: '#111827',
+  background: vars.background.surface,
+  color: vars.text.primary,
   cursor: 'pointer',
 });
 
@@ -109,13 +111,13 @@ globalStyle(`${searchWrapper} svg`, {
   left: '0.75rem',
   top: '50%',
   transform: 'translateY(-50%)',
-  color: '#9ca3af',
+  color: vars.text.muted,
 });
 
 export const searchInput = style({
   width: '100%',
   padding: '0.5rem 0.75rem 0.5rem 2.25rem',
-  border: '1px solid #d1d5db',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   boxSizing: 'border-box',
@@ -134,16 +136,16 @@ export const th = style({
   fontWeight: '600',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: '#6b7280',
-  borderBottom: '1px solid #e5e7eb',
-  background: '#f9fafb',
+  color: vars.text.tertiary,
+  borderBottom: `1px solid ${vars.border.color.default}`,
+  background: vars.background.body,
 });
 
 export const td = style({
   padding: '0.875rem 1rem',
-  borderBottom: '1px solid #f3f4f6',
+  borderBottom: `1px solid ${vars.background.muted}`,
   fontSize: '0.875rem',
-  color: '#374151',
+  color: vars.text.secondary,
   verticalAlign: 'middle',
 });
 
@@ -154,8 +156,8 @@ export const statusBadgePublished = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '500',
-  background: '#d1fae5',
-  color: '#065f46',
+  background: vars.colors.successBgSubtle,
+  color: vars.colors.successTextEmphasis,
 });
 
 export const statusBadgeDraft = style({
@@ -165,8 +167,8 @@ export const statusBadgeDraft = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '500',
-  background: '#fef3c7',
-  color: '#92400e',
+  background: vars.colors.warningBgSubtle,
+  color: vars.colors.warningTextEmphasis,
 });
 
 export const statusBadgeScheduled = style({
@@ -176,8 +178,8 @@ export const statusBadgeScheduled = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '500',
-  background: '#dbeafe',
-  color: '#1e40af',
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoTextEmphasis,
 });
 
 export const statusBadgeDefault = style({
@@ -187,8 +189,8 @@ export const statusBadgeDefault = style({
   borderRadius: '9999px',
   fontSize: '0.75rem',
   fontWeight: '500',
-  background: '#f3f4f6',
-  color: '#374151',
+  background: vars.background.muted,
+  color: vars.text.secondary,
 });
 
 export const actionGroup = style({
@@ -203,9 +205,9 @@ export const iconButton = style({
   justifyContent: 'center',
   padding: '0.375rem',
   borderRadius: '6px',
-  border: '1px solid #e5e7eb',
-  background: '#fff',
-  color: '#6b7280',
+  border: `1px solid ${vars.border.color.default}`,
+  background: vars.background.surface,
+  color: vars.text.tertiary,
   cursor: 'pointer',
   ':hover': {
     opacity: 0.8,
@@ -219,8 +221,8 @@ export const iconButtonPrimary = style({
   padding: '0.375rem',
   borderRadius: '6px',
   border: '1px solid #93c5fd',
-  background: '#eff6ff',
-  color: '#2563eb',
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoHover,
   cursor: 'pointer',
   ':hover': {
     opacity: 0.8,
@@ -234,8 +236,8 @@ export const iconButtonDanger = style({
   padding: '0.375rem',
   borderRadius: '6px',
   border: '1px solid #fca5a5',
-  background: '#fef2f2',
-  color: '#dc2626',
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerHover,
   cursor: 'pointer',
   ':hover': {
     opacity: 0.8,
@@ -247,15 +249,15 @@ export const primaryButton = style({
   alignItems: 'center',
   gap: '0.5rem',
   padding: '0.625rem 1.25rem',
-  background: '#2563eb',
-  color: '#fff',
+  background: vars.colors.infoHover,
+  color: vars.background.surface,
   border: 'none',
   borderRadius: '8px',
   fontSize: '0.875rem',
   fontWeight: '500',
   cursor: 'pointer',
   ':hover': {
-    background: '#1d4ed8',
+    background: vars.colors.infoActive,
   },
   ':disabled': {
     opacity: 0.6,
@@ -275,7 +277,7 @@ export const overlay = style({
 });
 
 export const modal = style({
-  background: '#fff',
+  background: vars.background.surface,
   borderRadius: '16px',
   width: '100%',
   maxWidth: '760px',
@@ -296,7 +298,7 @@ export const modalHeader = style({
 globalStyle(`${modalHeader} h2`, {
   margin: 0,
   fontSize: '1.25rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const closeButton = style({
@@ -304,7 +306,7 @@ export const closeButton = style({
   border: 'none',
   fontSize: '1.5rem',
   cursor: 'pointer',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: 1,
 });
 
@@ -335,27 +337,27 @@ export const formGroupFull = style({
 export const formLabel = style({
   fontSize: '0.8rem',
   fontWeight: '600',
-  color: '#374151',
+  color: vars.text.secondary,
 });
 
 export const formInput = style({
   padding: '0.5rem 0.75rem',
-  border: '1px solid #d1d5db',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   ':focus': {
     outline: 'none',
-    borderColor: '#2563eb',
+    borderColor: vars.colors.infoHover,
   },
   ':disabled': {
-    background: '#f9fafb',
-    color: '#9ca3af',
+    background: vars.background.body,
+    color: vars.text.muted,
   },
 });
 
 export const formTextarea = style({
   padding: '0.5rem 0.75rem',
-  border: '1px solid #d1d5db',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   resize: 'vertical',
@@ -363,16 +365,16 @@ export const formTextarea = style({
   fontFamily: 'monospace',
   ':focus': {
     outline: 'none',
-    borderColor: '#2563eb',
+    borderColor: vars.colors.infoHover,
   },
 });
 
 export const formSelect = style({
   padding: '0.5rem 0.75rem',
-  border: '1px solid #d1d5db',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  background: '#fff',
+  background: vars.background.surface,
 });
 
 export const modalActions = style({
@@ -380,14 +382,14 @@ export const modalActions = style({
   justifyContent: 'flex-end',
   gap: '0.75rem',
   paddingTop: '0.5rem',
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 export const secondaryButton = style({
   padding: '0.625rem 1.25rem',
-  border: '1px solid #d1d5db',
-  background: '#fff',
-  color: '#374151',
+  border: `1px solid ${vars.border.color.muted}`,
+  background: vars.background.surface,
+  color: vars.text.secondary,
   borderRadius: '8px',
   fontSize: '0.875rem',
   cursor: 'pointer',
@@ -396,21 +398,21 @@ export const secondaryButton = style({
 export const emptyState = style({
   padding: '3rem',
   textAlign: 'center',
-  color: '#9ca3af',
+  color: vars.text.muted,
   fontSize: '0.95rem',
 });
 
 export const errorMessage = style({
-  color: '#dc2626',
+  color: vars.colors.dangerHover,
   fontSize: '0.875rem',
   margin: 0,
 });
 
 export const seoSection = style({
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   padding: '1rem',
-  background: '#f9fafb',
+  background: vars.background.body,
   gridColumn: '1 / -1',
   display: 'flex',
   flexDirection: 'column',
@@ -420,6 +422,37 @@ export const seoSection = style({
 export const seoTitle = style({
   fontSize: '0.875rem',
   fontWeight: '600',
-  color: '#374151',
+  color: vars.text.secondary,
   margin: 0,
+});
+
+export const slugCell = style({
+  fontFamily: 'monospace',
+  fontSize: '0.8rem',
+  color: '#6b7280',
+});
+
+export const capitalize = style({
+  textTransform: 'capitalize',
+});
+
+export const slugInputRow = style({
+  display: 'flex',
+  gap: '0.5rem',
+});
+
+export const slugInputFlex = style({
+  flex: 1,
+});
+
+export const excerptTextarea = style({
+  minHeight: '80px',
+});
+
+export const metaDescTextarea = style({
+  minHeight: '70px',
+});
+
+export const menuModalWidth = style({
+  maxWidth: '480px',
 });

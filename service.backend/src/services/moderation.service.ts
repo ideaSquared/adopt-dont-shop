@@ -1,4 +1,4 @@
-import { Op, Transaction, WhereOptions, literal } from 'sequelize';
+import { Op, Transaction, WhereOptions } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/ModerationEvidence';
 import Report, { ReportCategory, ReportSeverity, ReportStatus } from '../models/Report';
@@ -976,9 +976,9 @@ class ModerationService {
         where: {
           targetUserId: userId,
           isActive: true,
-          // Sequelize types `[Op.is]` as `Literal | undefined`; `literal('NULL')`
-          // emits `IS NULL` without the implicit-null cast escape.
-          expiresAt: { [Op.is]: literal('NULL') },
+          // Sequelize 7 narrows `[Op.is]` to `null` only; passing `null`
+          // directly emits the same `IS NULL` SQL.
+          expiresAt: { [Op.is]: null },
         },
         order: [['createdAt', 'DESC']],
       }),
@@ -1189,7 +1189,7 @@ class ModerationService {
     const { default: Message } = await import('../models/Message');
     const { page = 1, limit = 20, severity, moderationStatus } = options;
 
-    const where: Record<string, unknown> = { is_flagged: true };
+    const where: import('sequelize').WhereAttributeHash = { is_flagged: true };
 
     if (severity) {
       where['flag_severity'] = severity;

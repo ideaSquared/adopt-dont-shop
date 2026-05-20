@@ -80,7 +80,7 @@ We follow Test-Driven Development (TDD) with a strong emphasis on behaviour-driv
 **Preferred Tools:**
 
 - **Language**: TypeScript (strict mode)
-- **Testing**: Jest (lib.*) + Vitest (service.backend, apps) + React Testing Library
+- **Testing**: Vitest everywhere (`lib.*`, `service.backend`, `app.*`) + React Testing Library for React
 - **State Management**: Prefer immutable patterns
 
 ---
@@ -97,7 +97,7 @@ adopt-dont-shop/
 ├── app.client/         # Client-facing app (React + Vite)
 ├── app.rescue/         # Rescue organization app (React + Vite)
 ├── service.backend/    # API server (Express + Sequelize)
-└── lib.*/             # Shared libraries (21 packages)
+└── lib.*/             # Shared libraries (23 packages)
     ├── lib.analytics
     ├── lib.api
     ├── lib.applications
@@ -109,8 +109,10 @@ adopt-dont-shop/
     ├── lib.discovery
     ├── lib.feature-flags
     ├── lib.invitations
+    ├── lib.legal
     ├── lib.moderation
     ├── lib.notifications
+    ├── lib.observability
     ├── lib.permissions
     ├── lib.pets
     ├── lib.rescue
@@ -199,8 +201,7 @@ npx turbo test --filter=@adopt-dont-shop/service-backend
 
 #### Testing Tools
 
-- **Jest** — used by Node libraries under `lib.*` (e.g. `lib.auth`, `lib.api`)
-- **Vitest** — used by the React apps (`app.admin`, `app.client`, `app.rescue`) and by `service.backend`
+- **Vitest** — used by every workspace package: the React apps (`app.admin`, `app.client`, `app.rescue`), `service.backend`, and every `lib.*` (each ships a `vitest.config.ts` and an `npm test` script that runs `vitest run`)
 - **React Testing Library** for React components
 - **MSW (Mock Service Worker)** for API mocking when needed
 - All test code must follow the same TypeScript strict mode rules as production code

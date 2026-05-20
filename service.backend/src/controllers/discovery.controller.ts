@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { DiscoveryService, DiscoveryFilters } from '../services/discovery.service';
 import { SwipeService } from '../services/swipe.service';
 import { logger } from '../utils/logger';
 import { parsePaginationLimit } from '../utils/pagination';
+import { AuthenticatedRequest } from '../types/auth';
 
 export class DiscoveryController {
   private discoveryService: DiscoveryService;
@@ -62,7 +63,10 @@ export class DiscoveryController {
   /**
    * Get discovery queue of pets based on filters and user preferences
    */
-  getDiscoveryQueue = async (req: Request, res: Response): Promise<Response | void> => {
+  getDiscoveryQueue = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<Response | void> => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -86,230 +90,177 @@ export class DiscoveryController {
       default: DEFAULT_PAGE_SIZE,
       max: MAX_PAGE_SIZE,
     });
-    const userId = req.query.userId as string;
+    // Authenticated user takes precedence so personalised matching engages
+    // even when the client omits the query param. Explicit `?userId=` still
+    // wins (admin / debug surfaces).
+    const userId = (req.query.userId as string | undefined) ?? req.user?.userId;
 
-    try {
-      const discoveryQueue = await this.discoveryService.getDiscoveryQueue(filters, limit, userId);
+    const discoveryQueue = await this.discoveryService.getDiscoveryQueue(filters, limit, userId);
 
-      res.status(200).json({
-        success: true,
-        message: 'Discovery queue retrieved successfully',
-        data: discoveryQueue,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Error getting discovery queue:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : '',
-        filtersProvided: filters,
-        userIdProvided: userId,
-        limitProvided: limit,
-      });
-
-      // Return a more user-friendly error response
-      res.status(500).json({
-        success: false,
-        message:
-          'Failed to get discovery queue. This might be due to database connectivity issues.',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      });
-    }
+    res.status(200).json({
+      success: true,
+      message: 'Discovery queue retrieved successfully',
+      data: discoveryQueue,
+      timestamp: new Date().toISOString(),
+    });
   };
 
   /**
    * Load more pets for infinite scroll
    */
-  loadMorePets = async (req: Request, res: Response): Promise<Response | void> => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      const { sessionId, lastPetId, limit = 10 } = req.body;
-
-      const pets = await this.discoveryService.loadMorePets(sessionId, lastPetId, limit);
-
-      res.status(200).json({
-        success: true,
-        message: 'More pets loaded successfully',
-        data: { pets },
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Error loading more pets:', error);
-      res.status(500).json({
+  loadMorePets = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to load more pets',
+        message: 'Validation failed',
+        errors: errors.array(),
         timestamp: new Date().toISOString(),
       });
     }
+
+    const { sessionId, lastPetId, limit = 10 } = req.body;
+
+    const pets = await this.discoveryService.loadMorePets(sessionId, lastPetId, limit);
+
+    res.status(200).json({
+      success: true,
+      message: 'More pets loaded successfully',
+      data: { pets },
+      timestamp: new Date().toISOString(),
+    });
   };
 
   /**
    * Record a swipe action
    */
-  recordSwipeAction = async (req: Request, res: Response): Promise<Response | void> => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      const swipeAction = {
-        action: req.body.action,
-        petId: req.body.petId,
-        sessionId: req.body.sessionId,
-        timestamp: req.body.timestamp,
-        userId: req.body.userId, // Optional
-      };
-
-      await this.swipeService.recordSwipeAction(swipeAction);
-
-      res.status(200).json({
-        success: true,
-        message: 'Swipe action recorded successfully',
-        data: null,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Error recording swipe action:', error);
-      res.status(500).json({
+  recordSwipeAction = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<Response | void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to record swipe action',
+        message: 'Validation failed',
+        errors: errors.array(),
         timestamp: new Date().toISOString(),
       });
     }
+
+    const swipeAction = {
+      action: req.body.action,
+      petId: req.body.petId,
+      sessionId: req.body.sessionId,
+      timestamp: req.body.timestamp,
+      userId: req.body.userId, // Optional
+    };
+
+    await this.swipeService.recordSwipeAction(swipeAction);
+
+    res.status(200).json({
+      success: true,
+      message: 'Swipe action recorded successfully',
+      data: null,
+      timestamp: new Date().toISOString(),
+    });
   };
 
   /**
    * Get user's swipe statistics
    */
-  getSwipeStats = async (req: Request, res: Response): Promise<Response | void> => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      const { userId } = req.params;
-
-      const stats = await this.swipeService.getUserSwipeStats(userId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Swipe statistics retrieved successfully',
-        data: stats,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Error getting swipe stats:', error);
-      res.status(500).json({
+  getSwipeStats = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to get swipe statistics',
+        message: 'Validation failed',
+        errors: errors.array(),
         timestamp: new Date().toISOString(),
       });
     }
+
+    const { userId } = req.params;
+
+    const stats = await this.swipeService.getUserSwipeStats(userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Swipe statistics retrieved successfully',
+      data: stats,
+      timestamp: new Date().toISOString(),
+    });
   };
 
   /**
    * Get session statistics
    */
-  getSessionStats = async (req: Request, res: Response): Promise<Response | void> => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      const { sessionId } = req.params;
-
-      const stats = await this.swipeService.getSessionStats(sessionId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Session statistics retrieved successfully',
-        data: stats,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Error getting session stats:', error);
-      res.status(500).json({
+  getSessionStats = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to get session statistics',
+        message: 'Validation failed',
+        errors: errors.array(),
         timestamp: new Date().toISOString(),
       });
     }
+
+    const { sessionId } = req.params;
+
+    const stats = await this.swipeService.getSessionStats(sessionId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Session statistics retrieved successfully',
+      data: stats,
+      timestamp: new Date().toISOString(),
+    });
   };
 
   /**
    * Get discovery queue via POST (filters passed in request body)
    */
-  addToQueue = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-        return;
-      }
-
-      const {
-        filters = {},
-        userId,
-        limit = 20,
-      } = req.body as {
-        filters?: DiscoveryFilters;
-        userId?: string;
-        limit?: number;
-      };
-
-      logger.info('Discovery queue request received', {
-        service: 'discovery',
-        type: 'queue_request',
-        data: { filters, limit },
-        ip: req.ip,
-      });
-
-      const discoveryQueue = await this.discoveryService.getDiscoveryQueue(filters, limit, userId);
-
-      res.status(200).json({
-        pets: discoveryQueue.pets,
-        currentIndex: 0,
-        hasMore: discoveryQueue.hasMore,
-        nextBatchSize: limit,
-      });
-    } catch (error) {
-      logger.error('Error getting discovery queue:', error);
-      res.status(500).json({
+  addToQueue = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.status(400).json({
         success: false,
-        message: 'Failed to get discovery queue',
-        timestamp: new Date().toISOString(),
+        message: 'Validation failed',
+        errors: errors.array(),
       });
+      return;
     }
+
+    const {
+      filters = {},
+      userId: bodyUserId,
+      limit = 20,
+    } = req.body as {
+      filters?: DiscoveryFilters;
+      userId?: string;
+      limit?: number;
+    };
+
+    // Prefer the authenticated user over a body-supplied id so personalised
+    // matching kicks in even when the client doesn't plumb the id through.
+    // Body still wins when present (admin tools / debug flows).
+    const userId = bodyUserId ?? req.user?.userId;
+
+    logger.info('Discovery queue request received', {
+      service: 'discovery',
+      type: 'queue_request',
+      data: { filters, limit, userId },
+      ip: req.ip,
+    });
+
+    const discoveryQueue = await this.discoveryService.getDiscoveryQueue(filters, limit, userId);
+
+    res.status(200).json({
+      pets: discoveryQueue.pets,
+      currentIndex: 0,
+      hasMore: discoveryQueue.hasMore,
+      nextBatchSize: limit,
+    });
   };
 }

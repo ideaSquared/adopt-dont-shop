@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import { errorHandler } from '../../middleware/error-handler';
 
 vi.mock('../../utils/logger', () => ({
   logger: {
@@ -32,6 +33,7 @@ const buildApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/invitations', invitationRouter);
+  app.use(errorHandler);
   return app;
 };
 

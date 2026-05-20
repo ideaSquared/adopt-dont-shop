@@ -59,7 +59,7 @@ export const logo = recipe({
     alignItems: 'center',
     gap: '0.75rem',
     fontWeight: '700',
-    color: vars.colors.primary['400'],
+    color: vars.colors.primary,
   },
   variants: {
     collapsed: {
@@ -82,7 +82,7 @@ export const toggleButton = style({
   transition: 'all 0.2s ease',
   ':hover': {
     background: '#374151',
-    borderColor: vars.colors.primary['500'],
+    borderColor: vars.colors.primary,
   },
 });
 
@@ -163,7 +163,7 @@ export const styledNavLinkBase = style({
   },
   selectors: {
     '&.active': {
-      background: vars.colors.primary['600'],
+      background: vars.colors.primaryHover,
       color: '#ffffff',
     },
     '&.active::before': {
@@ -174,7 +174,7 @@ export const styledNavLinkBase = style({
       transform: 'translateY(-50%)',
       width: '3px',
       height: '70%',
-      background: vars.colors.primary['300'],
+      background: vars.colors.primaryBorderSubtle,
       borderRadius: '0 2px 2px 0',
     },
   },

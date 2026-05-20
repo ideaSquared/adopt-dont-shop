@@ -33,8 +33,8 @@ export const select = style({
   },
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['500'],
-    boxShadow: `0 0 0 3px ${vars.colors.primary['100']}`,
+    borderColor: vars.colors.primary,
+    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
   },
 });
 

@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import type { ParamsFlatDictionary } from 'express-serve-static-core';
 import User, { UserType } from '../models/User';
 import { TokenPair } from './api';
 import { JsonObject, JsonValue } from './common';
@@ -40,8 +41,11 @@ export interface TwoFactorVerifyRequest {
   token: string;
 }
 
-// Express Request with authenticated user
-export interface AuthenticatedRequest extends Request {
+// Express Request with authenticated user.
+// `Request<ParamsFlatDictionary>` keeps named path params typed as `string`
+// (the v4 default). Express 5's wildcard support widened the default to
+// `string | string[]`, which broke every `req.params.foo` destructure.
+export interface AuthenticatedRequest extends Request<ParamsFlatDictionary> {
   user?: User;
 }
 

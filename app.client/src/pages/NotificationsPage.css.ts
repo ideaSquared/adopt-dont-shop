@@ -1,4 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
@@ -16,7 +18,7 @@ export const header = style({
 
 globalStyle(`${header} h1`, {
   margin: '0',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const notificationCard = recipe({
@@ -49,23 +51,23 @@ export const notificationContent = style({
 globalStyle(`${notificationContent} .title`, {
   fontWeight: '600',
   marginBottom: '0.5rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${notificationContent} .message`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginBottom: '0.5rem',
 });
 
 globalStyle(`${notificationContent} .timestamp`, {
   fontSize: '0.875rem',
-  color: '#9ca3af',
+  color: vars.text.muted,
 });
 
 export const emptyState = style({
   textAlign: 'center',
   padding: '3rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${emptyState} .icon`, {

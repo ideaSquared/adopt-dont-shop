@@ -1,7 +1,16 @@
 import { AdopterProfileSummary, ProfileEditForm, SettingsForm } from '@/components/profile';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, authService, Application, User } from '@/services';
-import { Alert, Button, Spinner, toast } from '@adopt-dont-shop/lib.components';
+import {
+  Alert,
+  Button,
+  ConfirmDialog,
+  Input,
+  Modal,
+  Spinner,
+  toast,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as styles from './ProfilePage.css';
@@ -45,6 +54,12 @@ export const ProfilePage: React.FC = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { confirmProps } = useConfirm();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteTwoFactorToken, setDeleteTwoFactorToken] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const loadApplications = useCallback(async () => {
     try {
@@ -207,22 +222,49 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+  const handleDeleteAccount = () => {
+    setDeletePassword('');
+    setDeleteTwoFactorToken('');
+    setDeleteError(null);
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleting) {
+      return;
+    }
+    setIsDeleteModalOpen(false);
+    setDeletePassword('');
+    setDeleteTwoFactorToken('');
+    setDeleteError(null);
+  };
+
+  const submitDeleteAccount = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!deletePassword) {
+      setDeleteError('Please enter your password to confirm.');
       return;
     }
 
     try {
-      setError(null);
+      setIsDeleting(true);
+      setDeleteError(null);
 
-      // Call the API to delete account
-      await authService.deleteAccount('User requested account deletion');
+      await authService.deleteAccount(deletePassword, {
+        twoFactorToken: deleteTwoFactorToken || undefined,
+        reason: 'User requested account deletion',
+      });
 
-      // Navigate to home page
+      setIsDeleteModalOpen(false);
       navigate('/');
     } catch (error) {
       console.error('Failed to delete account:', error);
-      setError('Failed to delete account. Please try again.');
+      const message =
+        error instanceof Error && error.message ? error.message : 'Failed to delete account.';
+      setDeleteError(message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -437,6 +479,73 @@ export const ProfilePage: React.FC = () => {
       {activeTab === 'profile' && renderProfileTab()}
       {activeTab === 'applications' && renderApplicationsTab()}
       {activeTab === 'settings' && renderSettingsTab()}
+
+      <ConfirmDialog {...confirmProps} />
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        title='Delete account?'
+        size='sm'
+      >
+        <form onSubmit={submitDeleteAccount}>
+          <p>
+            This will permanently delete your profile, applications, and all associated data.
+            Re-enter your password to confirm.
+          </p>
+          <div style={{ marginTop: '1rem' }}>
+            <Input
+              type='password'
+              label='Current password'
+              value={deletePassword}
+              onChange={e => setDeletePassword(e.target.value)}
+              autoComplete='current-password'
+              autoFocus
+              required
+              disabled={isDeleting}
+            />
+          </div>
+          {user?.twoFactorEnabled && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <Input
+                type='text'
+                label='Two-factor code'
+                value={deleteTwoFactorToken}
+                onChange={e => setDeleteTwoFactorToken(e.target.value)}
+                autoComplete='one-time-code'
+                inputMode='numeric'
+                pattern='[0-9]*'
+                disabled={isDeleting}
+              />
+            </div>
+          )}
+          {deleteError && (
+            <div style={{ marginTop: '0.75rem' }} role='alert'>
+              <Alert variant='error'>{deleteError}</Alert>
+            </div>
+          )}
+          <div
+            style={{
+              marginTop: '1.25rem',
+              display: 'flex',
+              gap: '0.5rem',
+              justifyContent: 'flex-end',
+            }}
+          >
+            <Button
+              type='button'
+              variant='secondary'
+              onClick={closeDeleteModal}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button type='submit' variant='danger' isLoading={isDeleting} disabled={isDeleting}>
+              Delete account
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

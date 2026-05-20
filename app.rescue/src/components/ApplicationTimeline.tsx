@@ -3,7 +3,6 @@ import { formatDateTime } from '@adopt-dont-shop/lib.utils';
 import * as styles from './ApplicationTimeline.css';
 
 // Timeline Event Types (matching backend)
-// eslint-disable-next-line react-refresh/only-export-components
 export enum TimelineEventType {
   STAGE_CHANGE = 'stage_change',
   STATUS_UPDATE = 'status_update',
@@ -116,6 +115,7 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
   loading = false,
   onAddNote,
 }) => {
+  'use memo';
   const [noteText, setNoteText] = React.useState('');
   const [noteType, setNoteType] = React.useState('general');
   const [submitting, setSubmitting] = React.useState(false);

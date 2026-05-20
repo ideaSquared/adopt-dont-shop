@@ -31,7 +31,12 @@ export {
 // Context + provider for React apps
 export { ChatProvider } from './context/ChatProvider';
 export { useChat } from './context/use-chat';
-export type { ChatContextValue, ChatProviderProps, ChatUser } from './context/chat-context-types';
+export type {
+  ChatContextValue,
+  ChatProviderProps,
+  ChatUser,
+  ConversationStatus,
+} from './context/chat-context-types';
 export type {
   ConnectionQuality,
   OfflineAdapter,
@@ -50,6 +55,7 @@ export { AvatarComponent } from './components/AvatarComponent';
 export { ChatWindow } from './components/ChatWindow';
 export { ConnectionStatusBanner } from './components/ConnectionStatusBanner';
 export { ConversationList } from './components/ConversationList';
+export type { ConversationListFilter } from './components/ConversationList';
 export { ImageLightbox } from './components/ImageLightbox';
 export { MessageBubbleComponent } from './components/MessageBubbleComponent';
 export { MessageInput } from './components/MessageInput';

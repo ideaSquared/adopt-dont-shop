@@ -1,10 +1,17 @@
 import { Response } from 'express';
 import { body, query } from 'express-validator';
 import { BulkUserUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
-import { UserType } from '../models/User';
+import User, { UserType } from '../models/User';
 import UserService from '../services/user.service';
+import AuthService from '../services/auth.service';
+import {
+  ACCESS_TOKEN_COOKIE,
+  ACCESS_TOKEN_COOKIE_OPTIONS,
+  REFRESH_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE_OPTIONS,
+} from './auth.controller';
 import { AuthenticatedRequest } from '../types';
-import { logger } from '../utils/logger';
+import { logger, loggerHelpers } from '../utils/logger';
 import { validateBody } from '../middleware/zod-validate';
 
 // Validation rules
@@ -78,14 +85,9 @@ export class UserController {
    * Get current user profile
    */
   async getCurrentUserProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const user = await UserService.getUserById(userId);
-      res.json(user);
-    } catch (error) {
-      logger.error('Get current user profile failed:', error);
-      res.status(500).json({ error: 'Failed to get user profile' });
-    }
+    const userId = req.user!.userId;
+    const user = await UserService.getUserById(userId);
+    res.json(user);
   }
 
   /**
@@ -228,16 +230,11 @@ export class UserController {
    * Search users with filters
    */
   async searchUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const filters = UserService.processSearchFilters(
-        req.query as Record<string, string | undefined>
-      );
-      const result = await UserService.searchUsers(filters);
-      res.json(result);
-    } catch (error) {
-      logger.error('Search users failed:', error);
-      res.status(500).json({ error: 'Failed to search users' });
-    }
+    const filters = UserService.processSearchFilters(
+      req.query as Record<string, string | undefined>
+    );
+    const result = await UserService.searchUsers(filters);
+    res.json(result);
   }
 
   /**
@@ -273,77 +270,48 @@ export class UserController {
    * Get user statistics
    */
   async getUserStats(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const stats = await UserService.getUserStatistics();
-      res.json(stats);
-    } catch (error) {
-      logger.error('Get user stats failed:', error);
-      res.status(500).json({ error: 'Failed to get user statistics' });
-    }
+    const stats = await UserService.getUserStatistics();
+    res.json(stats);
   }
 
   /**
    * Get user preferences
    */
   async getUserPreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const preferences = await UserService.getUserPreferences(userId);
-      res.json({
-        success: true,
-        data: preferences,
-      });
-    } catch (error) {
-      logger.error('Get user preferences failed:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get user preferences',
-      });
-    }
+    const userId = req.user!.userId;
+    const preferences = await UserService.getUserPreferences(userId);
+    res.json({
+      success: true,
+      data: preferences,
+    });
   }
 
   /**
    * Update user preferences
    */
   async updateUserPreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const preferences = req.body;
+    const userId = req.user!.userId;
+    const preferences = req.body;
 
-      const updatedPreferences = await UserService.updateUserPreferences(userId, preferences);
-      res.json({
-        success: true,
-        data: updatedPreferences,
-        message: 'Preferences updated successfully',
-      });
-    } catch (error) {
-      logger.error('Update user preferences failed:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to update user preferences',
-      });
-    }
+    const updatedPreferences = await UserService.updateUserPreferences(userId, preferences);
+    res.json({
+      success: true,
+      data: updatedPreferences,
+      message: 'Preferences updated successfully',
+    });
   }
 
   /**
    * Reset user preferences to defaults
    */
   async resetUserPreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const resetPreferences = await UserService.resetUserPreferences(userId);
-      res.json({
-        success: true,
-        data: resetPreferences,
-        message: 'Preferences reset to defaults',
-      });
-    } catch (error) {
-      logger.error('Reset user preferences failed:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to reset user preferences',
-      });
-    }
+    const userId = req.user!.userId;
+    const resetPreferences = await UserService.resetUserPreferences(userId);
+    res.json({
+      success: true,
+      data: resetPreferences,
+      message: 'Preferences reset to defaults',
+    });
   }
 
   /**
@@ -452,42 +420,73 @@ export class UserController {
   }
 
   /**
-   * Delete current user account
+   * Delete current user account.
+   *
+   * ADS-592: requires step-up auth — the caller must re-supply their current
+   * password (and a TOTP code if 2FA is enabled). On success, both
+   * `accessToken` and `refreshToken` cookies are cleared and the underlying
+   * tokens are revoked so a stolen session cannot continue to act as the
+   * deleted user.
    */
   async deleteAccount(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
+    const userId = req.user!.userId;
 
     try {
-      const userId = req.user!.userId;
-      const { reason } = req.body;
+      const { password, twoFactorToken, reason } = req.body ?? {};
+
+      if (typeof password !== 'string' || password.length === 0) {
+        return res.status(401).json({ error: 'Password is required' });
+      }
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      try {
+        await AuthService.verifyStepUpCredentials(user, password, twoFactorToken);
+      } catch (verifyError) {
+        const message = verifyError instanceof Error ? verifyError.message : 'Invalid credentials';
+        loggerHelpers.logSecurity('Account deletion step-up auth failed', {
+          userId,
+          reason: message,
+        });
+        return res.status(401).json({ error: message });
+      }
+
+      const accessToken =
+        req.cookies?.[ACCESS_TOKEN_COOKIE] || req.headers.authorization?.replace(/^Bearer\s+/i, '');
+      const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
+
+      // Revoke tokens before destroying the user so any race with a parallel
+      // request sees the revocation. AuthService.logout is best-effort and
+      // does not throw on missing/invalid tokens.
+      await AuthService.logout(refreshToken, accessToken, userId);
 
       await UserService.deleteAccount(userId, reason);
 
-      // Clear the user's session by logging them out
-      res.clearCookie('authToken');
+      res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
+      res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
 
-      res.json({
+      logger.info('User account deleted', { userId, duration: Date.now() - startTime });
+
+      return res.json({
         success: true,
         message: 'Account deleted successfully',
       });
-
-      logger.info('User account deleted', { userId, duration: Date.now() - startTime });
     } catch (error) {
       logger.error('Error deleting account:', {
         error: error instanceof Error ? error.message : String(error),
-        userId: req.user?.userId,
+        userId,
         duration: Date.now() - startTime,
       });
 
       if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({
-          error: 'User not found',
-        });
+        return res.status(404).json({ error: 'User not found' });
       }
 
-      res.status(500).json({
-        error: 'Failed to delete account',
-      });
+      return res.status(500).json({ error: 'Failed to delete account' });
     }
   }
 
@@ -539,32 +538,20 @@ export class UserController {
     const startTime = Date.now();
     const { userId } = req.params;
 
-    try {
-      const userWithPermissions = await UserService.getUserWithPermissions(userId);
+    const userWithPermissions = await UserService.getUserWithPermissions(userId);
 
-      if (!userWithPermissions) {
-        return res.status(404).json({
-          error: 'User not found',
-        });
-      }
-
-      logger.info('User with permissions retrieved', {
-        userId,
-        duration: Date.now() - startTime,
-      });
-
-      return res.json(userWithPermissions);
-    } catch (error) {
-      logger.error('Error getting user with permissions:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId,
-        duration: Date.now() - startTime,
-      });
-
-      return res.status(500).json({
-        error: 'Failed to get user with permissions',
+    if (!userWithPermissions) {
+      return res.status(404).json({
+        error: 'User not found',
       });
     }
+
+    logger.info('User with permissions retrieved', {
+      userId,
+      duration: Date.now() - startTime,
+    });
+
+    return res.json(userWithPermissions);
   }
 }
 

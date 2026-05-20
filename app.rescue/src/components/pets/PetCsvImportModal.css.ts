@@ -123,3 +123,33 @@ export const warning = style({
   fontSize: '0.85rem',
   color: '#92400e',
 });
+
+export const helpText = style({
+  fontSize: '0.85rem',
+  color: '#6b7280',
+});
+
+export const hiddenInput = style({
+  display: 'none',
+});
+
+export const stepDescription = style({
+  margin: 0,
+  fontSize: '0.9rem',
+  color: '#374151',
+});
+
+export const scrollableTable = style({
+  maxHeight: '320px',
+  overflow: 'auto',
+});
+
+export const importingMessage = style({
+  padding: '2rem',
+  textAlign: 'center',
+});
+
+export const failureTable = style({
+  maxHeight: '240px',
+  overflow: 'auto',
+});

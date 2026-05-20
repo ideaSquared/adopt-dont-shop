@@ -2,10 +2,11 @@
 // Testing hot reload functionality - if you see this change, hot reload is working!
 
 // Theme exports
-export { darkTheme, lightTheme } from './styles/theme';
+export { darkTheme, lightTheme, normalTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
-export { ThemeProvider, useTheme } from './styles/ThemeProvider';
-export { vars, lightThemeClass, darkThemeClass } from './styles/theme.css';
+export { THEME_STORAGE_KEY, ThemeProvider, useTheme } from './styles/ThemeProvider';
+export { darkThemeClass, lightThemeClass, normalThemeClass, vars } from './styles/theme.css';
+export { ThemeToggle } from './components/ui/ThemeToggle/ThemeToggle';
 
 // Hooks
 export { useConfirm } from './hooks/useConfirm';
@@ -14,8 +15,16 @@ export { useToast } from './hooks/useToast';
 export type { ToastMessage, UseToastReturn } from './hooks/useToast';
 
 // Foundation Components
+export { Logo } from './components/ui/Logo';
+export type { LogoProps } from './components/ui/Logo';
 export { Avatar } from './components/ui/Avatar';
 export { Badge } from './components/ui/Badge';
+export { MatchReasonChips } from './components/ui/MatchReasonChips';
+export type {
+  MatchReasonChip,
+  MatchReasonChipKind,
+  MatchReasonChipsProps,
+} from './components/ui/MatchReasonChips';
 export { Button } from './components/ui/Button';
 export { default as DateTime } from './components/ui/DateTime/DateTime';
 export { Heading } from './components/ui/Heading';
@@ -35,6 +44,13 @@ export type { SelectOption } from './components/form/SelectInput/';
 export { TextArea } from './components/form/TextArea';
 export { TextInput } from './components/form/TextInput';
 export { Input } from './components/ui/Input';
+export { FormField, FormRow, FormSection } from './components/form/FormField';
+export type {
+  FormFieldProps,
+  FormRowColumns,
+  FormRowProps,
+  FormSectionProps,
+} from './components/form/FormField';
 
 // Feedback Components
 export { Alert } from './components/ui/Alert';
@@ -55,7 +71,7 @@ export * from './components/form/FileUpload';
 // export * from './components/form/RadioInput';
 
 // UI components - commenting out problematic ones
-// export * from './components/ui/EmptyState';
+export * from './components/ui/EmptyState';
 // export * from './components/ui/Pagination';
 // export * from './components/ui/ProgressBar';
 export { Toast, ToastContainer } from './components/ui/Toast';
@@ -126,3 +142,11 @@ export {
 export type { WidgetPickerProps, WidgetPreset } from './components/reports/WidgetPicker';
 export { DrillDownModal } from './components/reports/DrillDownModal';
 export type { DrillDownModalProps } from './components/reports/DrillDownModal';
+
+// ADS-14: Shared image component
+export { ProgressiveImage } from './components/ui/ProgressiveImage';
+export type { ProgressiveImageProps } from './components/ui/ProgressiveImage';
+
+// PWA install prompt
+export { InstallPwaBanner } from './components/ui/InstallPwaBanner';
+export type { InstallPwaBannerProps } from './components/ui/InstallPwaBanner';

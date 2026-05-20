@@ -4,12 +4,12 @@ import { vars } from '../../../styles/theme.css';
 
 export const input = style({
   width: '100%',
-  padding: vars.spacing.sm,
-  border: `${vars.border.width.thin} solid ${vars.border.color.primary}`,
+  padding: vars.spacing['2'],
+  border: `${vars.border.width.thin} solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.sm,
   fontSize: vars.typography.size.base,
   color: vars.text.primary,
-  background: vars.background.primary,
+  background: vars.background.body,
   transition: `all ${vars.transitions.fast}`,
 
   selectors: {

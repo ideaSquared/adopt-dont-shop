@@ -6,6 +6,24 @@ import { vi } from 'vitest';
  * Tests are organized by business scenarios and validate that business rules are correctly enforced.
  */
 
+// ADS-579: mock NotificationService so that the rejection notification path
+// is observable without touching the real Notification table.
+vi.mock('../../services/notification.service', () => ({
+  NotificationService: {
+    createNotification: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// ADS-579: extend the global email service mock (defined in setup-tests.ts)
+// with getTemplateByName so the rejection-email path can resolve a template.
+vi.mock('../../services/email.service', () => ({
+  default: {
+    sendEmail: vi.fn().mockResolvedValue('email-id-default'),
+    queueEmail: vi.fn().mockResolvedValue(undefined),
+    getTemplateByName: vi.fn().mockResolvedValue(null),
+  },
+}));
+
 import { ApplicationService } from '../../services/application.service';
 import Application, { ApplicationStatus, ApplicationPriority } from '../../models/Application';
 import ApplicationAnswer from '../../models/ApplicationAnswer';
@@ -14,6 +32,8 @@ import ApplicationStatusTransition from '../../models/ApplicationStatusTransitio
 import Pet, { PetStatus } from '../../models/Pet';
 import StaffMember from '../../models/StaffMember';
 import User, { UserType } from '../../models/User';
+import emailService from '../../services/email.service';
+import { NotificationService } from '../../services/notification.service';
 import { CreateApplicationRequest, ApplicationStatusUpdateRequest } from '../../types/application';
 
 // Cast models to mocked versions
@@ -606,6 +626,31 @@ describe('ApplicationService - Business Logic', () => {
       expect(result).toBeDefined();
     });
 
+    it('denies unverified rescue staff (ADS-591)', async () => {
+      // Given: Application owned by rescue, but the staff lookup with
+      // isVerified: true returns no match.
+      const mockApplication = createMockApplication();
+      mockApplication.rescueId = mockRescueId;
+
+      MockedApplication.findOne = vi.fn().mockResolvedValue(mockApplication);
+      MockedStaffMember.findOne = vi.fn().mockResolvedValue(null);
+
+      // When & Then: Access denied
+      await expect(
+        ApplicationService.getApplicationById(
+          mockApplicationId,
+          'unverified-staff-123',
+          UserType.RESCUE_STAFF
+        )
+      ).rejects.toThrow('Access denied');
+
+      expect(MockedStaffMember.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ isVerified: true }),
+        })
+      );
+    });
+
     it('allows admin to view any application', async () => {
       // Given: Any application
       const mockApplication = createMockApplication();
@@ -850,6 +895,177 @@ describe('ApplicationService - Business Logic', () => {
           { page: 1, limit: 10, sortBy: 'notAField', sortOrder: 'DESC' }
         )
       ).rejects.toThrow('Failed to search applications');
+    });
+  });
+
+  describe('Business Rule: Pet-shape filters (ADS-575)', () => {
+    // ADS-575: rescue staff need to narrow the application list by the
+    // applied-for pet's type / breed. Both must reach the SQL query so
+    // the rendered list actually changes — previously these filters
+    // round-tripped through state without affecting the database read.
+    const mockApplicationRow = () => {
+      const app = createMockApplication();
+      return {
+        ...app,
+        toJSON: vi.fn().mockReturnValue(app),
+        Answers: [],
+      };
+    };
+
+    beforeEach(() => {
+      MockedApplication.findAndCountAll = vi.fn().mockResolvedValue({
+        rows: [mockApplicationRow()],
+        count: 1,
+      });
+    });
+
+    it('narrows the search by pet type using a case-insensitive match', async () => {
+      await ApplicationService.searchApplications({ petType: 'Dog' }, { page: 1, limit: 10 });
+
+      // The Pet.type filter is keyed by Sequelize's $association$ syntax
+      // so it reaches the eager-loaded Pet record rather than the
+      // Application table directly. Comparing against the canonical
+      // `[Op.iLike]: 'Dog'` shape would tie the test to the Sequelize
+      // symbol implementation, so we just assert the path is present.
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ '$Pet.type$': expect.anything() }),
+        })
+      );
+    });
+
+    it('narrows the search by pet breed using a case-insensitive substring match', async () => {
+      await ApplicationService.searchApplications({ petBreed: 'golden' }, { page: 1, limit: 10 });
+
+      // Breed lives on the lookup table eager-loaded via Pet->Breed.
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ '$Pet->Breed.name$': expect.anything() }),
+        })
+      );
+    });
+
+    it('omits pet filters from the query when no value is provided', async () => {
+      await ApplicationService.searchApplications({}, { page: 1, limit: 10 });
+
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({ '$Pet.type$': expect.anything() }),
+        })
+      );
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.not.objectContaining({ '$Pet->Breed.name$': expect.anything() }),
+        })
+      );
+    });
+  });
+
+  describe('Business Rule: Rejection Notification (ADS-579)', () => {
+    const mockEmailSend = vi.mocked(emailService.sendEmail);
+    const mockCreateNotification = vi.mocked(NotificationService.createNotification);
+
+    beforeEach(() => {
+      mockEmailSend.mockResolvedValue('email-id-rej');
+      mockCreateNotification.mockResolvedValue({} as never);
+    });
+
+    it('notifies the applicant by email and in-app when application is rejected', async () => {
+      // Given: Application in SUBMITTED status, applicant + pet exist
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+      MockedUser.findByPk = vi.fn().mockResolvedValue({
+        userId: mockUserId,
+        email: 'applicant@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+      });
+      MockedPet.findByPk = vi.fn().mockResolvedValue({
+        petId: mockPetId,
+        name: 'Buddy',
+      });
+      const mockTemplate = { templateId: 'tmpl-rejected' };
+      vi.mocked(emailService.getTemplateByName).mockResolvedValue(mockTemplate as never);
+
+      // When: Rescue rejects application with a reason
+      const updateRequest: ApplicationStatusUpdateRequest = {
+        status: ApplicationStatus.REJECTED,
+        rejectionReason: 'Home is not suitable for a large dog',
+        actionedBy: 'rescue-staff-123',
+      };
+      await ApplicationService.updateApplicationStatus(
+        mockApplicationId,
+        updateRequest,
+        'rescue-staff-123'
+      );
+
+      // Then: an email was queued to the applicant referencing the pet + reason
+      expect(mockEmailSend).toHaveBeenCalledTimes(1);
+      const emailArgs = mockEmailSend.mock.calls[0][0];
+      expect(emailArgs.toEmail).toBe('applicant@example.com');
+      expect(emailArgs.templateId).toBe('tmpl-rejected');
+      expect(emailArgs.templateData).toMatchObject({
+        applicantName: expect.stringContaining('John'),
+        petName: 'Buddy',
+        rejectionReason: 'Home is not suitable for a large dog',
+      });
+
+      // And: an in-app notification row was created for the applicant
+      expect(mockCreateNotification).toHaveBeenCalledTimes(1);
+      const notifArgs = mockCreateNotification.mock.calls[0][0];
+      expect(notifArgs.userId).toBe(mockUserId);
+      expect(notifArgs.type).toBe('adoption_rejected');
+    });
+
+    it('does not notify when application is approved (no symmetric send on approval here)', async () => {
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+
+      await ApplicationService.updateApplicationStatus(
+        mockApplicationId,
+        { status: ApplicationStatus.APPROVED, actionedBy: 'rescue-staff-123' },
+        'rescue-staff-123'
+      );
+
+      expect(mockEmailSend).not.toHaveBeenCalled();
+      expect(mockCreateNotification).not.toHaveBeenCalled();
+    });
+
+    it('does not fail the status update when the email send throws', async () => {
+      // Given: A rejection transition, email service throws
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+      MockedUser.findByPk = vi.fn().mockResolvedValue({
+        userId: mockUserId,
+        email: 'applicant@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+      });
+      MockedPet.findByPk = vi.fn().mockResolvedValue({ petId: mockPetId, name: 'Buddy' });
+      vi.mocked(emailService.getTemplateByName).mockResolvedValue({
+        templateId: 'tmpl-rejected',
+      } as never);
+      mockEmailSend.mockRejectedValueOnce(new Error('Email provider down'));
+
+      // When & Then: the status update succeeds despite the email failure
+      await expect(
+        ApplicationService.updateApplicationStatus(
+          mockApplicationId,
+          {
+            status: ApplicationStatus.REJECTED,
+            rejectionReason: 'Not a fit',
+            actionedBy: 'rescue-staff-123',
+          },
+          'rescue-staff-123'
+        )
+      ).resolves.toBeDefined();
+      // The transition is still recorded.
+      expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
+        expect.objectContaining({ toStatus: ApplicationStatus.REJECTED })
+      );
     });
   });
 

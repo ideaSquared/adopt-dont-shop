@@ -6,26 +6,26 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const container = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing['6'],
+  gap: vars.spacing['4'],
 });
 
 export const statusBadge = recipe({
   base: {
     display: 'inline-block',
-    padding: `${vars.spacing['1']} ${vars.spacing['3']}`,
-    borderRadius: vars.border.radius.full,
+    padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+    borderRadius: vars.border.radius.pill,
     fontSize: vars.typography.size.xs,
     fontWeight: vars.typography.weight.semibold,
   },
   variants: {
     enabled: {
       true: {
-        backgroundColor: vars.colors.semantic.success['100'],
-        color: vars.colors.semantic.success['700'],
+        backgroundColor: vars.colors.successBgSubtle,
+        color: vars.colors.successActive,
       },
       false: {
-        backgroundColor: vars.colors.neutral['100'],
-        color: vars.colors.neutral['600'],
+        backgroundColor: vars.background.muted,
+        color: vars.text.tertiary,
       },
     },
   },
@@ -35,7 +35,7 @@ export const statusBadge = recipe({
 export const setupStep = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing['4'],
+  gap: vars.spacing['3'],
 });
 
 export const stepNumber = style({
@@ -44,8 +44,8 @@ export const stepNumber = style({
   justifyContent: 'center',
   width: '28px',
   height: '28px',
-  borderRadius: vars.border.radius.full,
-  backgroundColor: vars.colors.primary['500'],
+  borderRadius: vars.border.radius.pill,
+  backgroundColor: vars.colors.primary,
   color: 'white',
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
@@ -55,7 +55,7 @@ export const stepNumber = style({
 export const stepHeader = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing['3'],
+  gap: vars.spacing['2'],
   fontWeight: vars.typography.weight.medium,
   color: vars.text.primary,
 });
@@ -64,7 +64,7 @@ export const qrCodeImage = style({
   display: 'block',
   maxWidth: '200px',
   height: 'auto',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.lg,
   padding: vars.spacing['2'],
   background: 'white',
@@ -72,10 +72,10 @@ export const qrCodeImage = style({
 
 export const secretKey = style({
   display: 'block',
-  padding: vars.spacing['3'],
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
-  borderRadius: vars.border.radius.md,
+  padding: vars.spacing['2'],
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.base,
   fontSize: vars.typography.size.sm,
   letterSpacing: vars.typography.letterSpacing.wide,
   wordBreak: 'break-all',
@@ -83,20 +83,20 @@ export const secretKey = style({
 });
 
 export const tokenInput = style({
-  padding: vars.spacing['3'],
-  border: `1px solid ${vars.border.color.primary}`,
-  borderRadius: vars.border.radius.md,
+  padding: vars.spacing['2'],
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.base,
   fontSize: vars.typography.size.xl,
   letterSpacing: vars.typography.letterSpacing.widest,
   textAlign: 'center',
   maxWidth: '200px',
-  background: vars.background.primary,
+  background: vars.background.body,
   color: vars.text.primary,
   selectors: {
     '&:focus': {
       outline: 'none',
-      borderColor: vars.colors.primary['500'],
-      boxShadow: `0 0 0 2px ${vars.colors.primary['100']}`,
+      borderColor: vars.colors.primary,
+      boxShadow: `0 0 0 2px ${vars.colors.primaryBgSubtle}`,
     },
   },
 });
@@ -109,9 +109,9 @@ export const backupCodesGrid = style({
 });
 
 export const backupCode = style({
-  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  padding: `${vars.spacing['2']} ${vars.spacing['2']}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.sm,
   fontSize: vars.typography.size.sm,
   textAlign: 'center',
@@ -127,15 +127,15 @@ export const description = style({
 
 export const buttonRow = style({
   display: 'flex',
-  gap: vars.spacing['3'],
+  gap: vars.spacing['2'],
   flexWrap: 'wrap',
 });
 
 export const warningBox = style({
-  padding: vars.spacing['4'],
-  background: vars.colors.semantic.warning['50'],
-  border: `1px solid ${vars.colors.semantic.warning['300']}`,
-  borderRadius: vars.border.radius.md,
+  padding: vars.spacing['3'],
+  background: vars.colors.warningBgSubtle,
+  border: `1px solid ${vars.colors.warningBorderSubtle}`,
+  borderRadius: vars.border.radius.base,
   fontSize: vars.typography.size.sm,
-  color: vars.colors.semantic.warning['800'],
+  color: vars.colors.warningTextEmphasis,
 });

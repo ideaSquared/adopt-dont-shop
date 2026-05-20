@@ -1,13 +1,20 @@
-import { AuthLayout, LoginForm } from '@adopt-dont-shop/lib.auth';
-import React from 'react';
+import { AuthLayout, LoginForm, useAuth } from '@adopt-dont-shop/lib.auth';
+import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import * as styles from './LoginPage.css';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
 
   const from = location.state?.from?.pathname || '/';
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, from, navigate]);
 
   const handleSuccess = () => {
     navigate(from, { replace: true });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { useAuth, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
-import { toast } from '@adopt-dont-shop/lib.components';
+import { ThemeToggle, toast } from '@adopt-dont-shop/lib.components';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
@@ -12,7 +12,7 @@ import QuestionsBuilder from '../components/rescue/QuestionsBuilder';
 import type { RescueProfile, AdoptionPolicy } from '../types/rescue';
 import * as styles from './RescueSettings.css';
 
-type TabType = 'profile' | 'policies' | 'questions' | 'preferences' | 'security';
+type TabType = 'profile' | 'policies' | 'questions' | 'preferences' | 'security' | 'appearance';
 
 const RescueSettings: React.FC = () => {
   const { user } = useAuth();
@@ -160,6 +160,12 @@ const RescueSettings: React.FC = () => {
           >
             Security
           </button>
+          <button
+            className={clsx(styles.tab, activeTab === 'appearance' && styles.tabActive)}
+            onClick={() => setActiveTab('appearance')}
+          >
+            Appearance
+          </button>
         </div>
       </div>
 
@@ -198,6 +204,14 @@ const RescueSettings: React.FC = () => {
             sign in.
           </p>
           <TwoFactorSettings />
+        </div>
+      </div>
+
+      <div className={clsx(activeTab === 'appearance' ? styles.tabPanel : styles.tabPanelHidden)}>
+        <div className={styles.securitySection}>
+          <h2>Theme</h2>
+          <p>Choose how the rescue tools look — light, cosy (warm cream), or dark.</p>
+          <ThemeToggle />
         </div>
       </div>
     </div>

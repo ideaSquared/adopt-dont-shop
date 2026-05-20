@@ -19,25 +19,25 @@ export const labelContainer = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: vars.spacing.xs,
+  marginBottom: vars.spacing['1'],
 });
 
 export const label = style({
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.medium,
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
 });
 
 export const valueText = style({
   fontSize: vars.typography.size.sm,
-  color: vars.colors.neutral['600'],
+  color: vars.text.tertiary,
 });
 
 export const progressTrack = recipe({
   base: {
     width: '100%',
-    backgroundColor: vars.colors.neutral['200'],
-    borderRadius: vars.border.radius.full,
+    backgroundColor: vars.border.color.muted,
+    borderRadius: vars.border.radius.pill,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -60,10 +60,10 @@ export const progressFill = recipe({
   },
   variants: {
     variant: {
-      default: { backgroundColor: vars.colors.primary['500'] },
-      success: { backgroundColor: vars.colors.semantic.success['500'] },
-      warning: { backgroundColor: vars.colors.semantic.warning['500'] },
-      error: { backgroundColor: vars.colors.semantic.error['500'] },
+      default: { backgroundColor: vars.colors.primary },
+      success: { backgroundColor: vars.colors.success },
+      warning: { backgroundColor: vars.colors.warning },
+      error: { backgroundColor: vars.colors.danger },
     },
     striped: {
       true: {
@@ -74,11 +74,18 @@ export const progressFill = recipe({
       false: {},
     },
     animated: {
-      true: { animation: `${pulseStripes} 2s infinite linear` },
+      true: {
+        animation: `${pulseStripes} 2s infinite linear`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
       false: {},
     },
     indeterminate: {
-      true: { width: '25%', animation: `${indeterminateSlide} 2s infinite linear` },
+      true: {
+        width: '25%',
+        animation: `${indeterminateSlide} 2s infinite linear`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
       false: {},
     },
   },

@@ -25,26 +25,26 @@ export const tile = style({
     transform: 'scale(0.98)',
   },
   ':focus-within': {
-    outline: `2px solid ${vars.colors.primary['400']}`,
+    outline: `2px solid ${vars.colors.primary}`,
     outlineOffset: '2px',
   },
 });
 
 export const tileVariants = styleVariants({
   selected: {
-    background: vars.colors.primary['50'],
-    borderColor: vars.colors.primary['500'],
-    ':hover': { background: vars.colors.primary['50'] },
+    background: vars.colors.primaryBgSubtle,
+    borderColor: vars.colors.primary,
+    ':hover': { background: vars.colors.primaryBgSubtle },
   },
   unselected: {
-    background: vars.background.primary,
-    borderColor: vars.border.color.primary,
-    ':hover': { background: vars.colors.primary['50'] },
+    background: vars.background.body,
+    borderColor: vars.border.color.default,
+    ':hover': { background: vars.colors.primaryBgSubtle },
   },
   error: {
-    background: vars.background.primary,
-    borderColor: vars.colors.semantic.error['400'],
-    ':hover': { background: vars.colors.primary['50'] },
+    background: vars.background.body,
+    borderColor: vars.colors.danger,
+    ':hover': { background: vars.colors.primaryBgSubtle },
   },
 });
 
@@ -67,6 +67,6 @@ export const label = style({
 });
 
 export const labelVariants = styleVariants({
-  selected: { fontWeight: '600', color: vars.colors.primary['700'] },
+  selected: { fontWeight: '600', color: vars.colors.primaryActive },
   unselected: { fontWeight: '500', color: vars.text.primary },
 });

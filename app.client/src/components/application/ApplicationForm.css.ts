@@ -23,7 +23,7 @@ export const reviewDescription = style({
 export const reviewCategory = style({
   marginBottom: '1.5rem',
   padding: '1.25rem 1.5rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '0.5rem',
 });
 
@@ -33,7 +33,7 @@ export const reviewCategoryTitle = style({
   color: vars.text.primary,
   margin: '0 0 1rem 0',
   paddingBottom: '0.5rem',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 export const reviewItem = style({
@@ -43,7 +43,7 @@ export const reviewItem = style({
   padding: '0.5rem 0',
   selectors: {
     '& + &': {
-      borderTop: `1px solid ${vars.border.color.primary}`,
+      borderTop: `1px solid ${vars.border.color.default}`,
     },
   },
 });
@@ -64,7 +64,7 @@ export const navigationButtons = style({
   alignItems: 'center',
   marginTop: '2rem',
   paddingTop: '2rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
   '@media': {
     'screen and (max-width: 768px)': {
       flexDirection: 'column',
@@ -108,8 +108,8 @@ export const saveStatusText = style({
 });
 
 export const saveStatusVariants = styleVariants({
-  saved: { color: vars.colors.semantic.success['600'] },
-  saving: { color: vars.colors.neutral['500'] },
-  error: { color: vars.colors.semantic.error['600'] },
-  idle: { color: vars.colors.neutral['400'] },
+  saved: { color: vars.colors.successHover },
+  saving: { color: vars.text.muted },
+  error: { color: vars.colors.dangerHover },
+  idle: { color: vars.border.color.strong },
 });

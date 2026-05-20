@@ -2,8 +2,8 @@ import { globalStyle, keyframes, style, styleVariants } from '@vanilla-extract/c
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const conversationContainer = style({
-  background: vars.background.primary,
-  borderRight: `1px solid ${vars.border.color.secondary}`,
+  background: vars.background.body,
+  borderRight: `1px solid ${vars.border.color.muted}`,
   height: '100%',
   overflowY: 'auto',
   display: 'flex',
@@ -11,15 +11,15 @@ export const conversationContainer = style({
   '@media': {
     '(max-width: 768px)': {
       borderRight: 'none',
-      borderBottom: `1px solid ${vars.border.color.secondary}`,
+      borderBottom: `1px solid ${vars.border.color.muted}`,
     },
   },
 });
 
 export const header = style({
   padding: '1.5rem 1.25rem 1rem 1.25rem',
-  borderBottom: `1px solid ${vars.border.color.tertiary}`,
-  background: vars.background.primary,
+  borderBottom: `1px solid ${vars.border.color.muted}`,
+  background: vars.background.body,
   position: 'sticky',
   top: '0',
   zIndex: '10',
@@ -59,7 +59,7 @@ const conversationItemBase = style({
   cursor: 'pointer',
   transition: 'background 0.12s ease, transform 0.12s ease',
   border: 'none',
-  borderBottom: `1px solid ${vars.border.color.tertiary}`,
+  borderBottom: `1px solid ${vars.border.color.muted}`,
   color: 'inherit',
   font: 'inherit',
   position: 'relative',
@@ -73,10 +73,10 @@ export const conversationItem = styleVariants({
       borderLeft: '3px solid transparent',
       selectors: {
         '&:hover': {
-          background: vars.background.secondary,
+          background: vars.background.surface,
         },
         '&:focus-visible': {
-          outline: `2px solid ${vars.colors.primary['500']}`,
+          outline: `2px solid ${vars.colors.primary}`,
           outlineOffset: '-2px',
         },
       },
@@ -85,14 +85,14 @@ export const conversationItem = styleVariants({
   active: [
     conversationItemBase,
     {
-      background: vars.colors.primary['50'],
-      borderLeft: `3px solid ${vars.colors.primary['500']}`,
+      background: vars.colors.primaryBgSubtle,
+      borderLeft: `3px solid ${vars.colors.primary}`,
       selectors: {
         '&:hover': {
-          background: vars.colors.primary['100'],
+          background: vars.colors.primaryBgSubtle,
         },
         '&:focus-visible': {
-          outline: `2px solid ${vars.colors.primary['500']}`,
+          outline: `2px solid ${vars.colors.primary}`,
           outlineOffset: '-2px',
         },
       },
@@ -101,14 +101,14 @@ export const conversationItem = styleVariants({
   unread: [
     conversationItemBase,
     {
-      background: vars.background.secondary,
+      background: vars.background.surface,
       borderLeft: '3px solid transparent',
       selectors: {
         '&:hover': {
-          background: vars.background.secondary,
+          background: vars.background.surface,
         },
         '&:focus-visible': {
-          outline: `2px solid ${vars.colors.primary['500']}`,
+          outline: `2px solid ${vars.colors.primary}`,
           outlineOffset: '-2px',
         },
       },
@@ -139,9 +139,9 @@ export const avatar = style({
   justifyContent: 'center',
   fontSize: '1rem',
   fontWeight: '700',
-  color: vars.colors.primary['700'],
-  background: `linear-gradient(135deg, ${vars.colors.primary['100']}, ${vars.colors.primary['200']})`,
-  boxShadow: `inset 0 0 0 2px ${vars.background.primary}`,
+  color: vars.colors.primaryActive,
+  background: `linear-gradient(135deg, ${vars.colors.primaryBgSubtle}, ${vars.colors.primaryBorderSubtle})`,
+  boxShadow: `inset 0 0 0 2px ${vars.background.body}`,
   position: 'relative',
 });
 
@@ -155,9 +155,9 @@ export const avatarWithUnread = style({
   justifyContent: 'center',
   fontSize: '1rem',
   fontWeight: '700',
-  color: vars.colors.primary['700'],
-  background: `linear-gradient(135deg, ${vars.colors.primary['100']}, ${vars.colors.primary['200']})`,
-  boxShadow: `inset 0 0 0 2px ${vars.background.primary}`,
+  color: vars.colors.primaryActive,
+  background: `linear-gradient(135deg, ${vars.colors.primaryBgSubtle}, ${vars.colors.primaryBorderSubtle})`,
+  boxShadow: `inset 0 0 0 2px ${vars.background.body}`,
   position: 'relative',
   selectors: {
     '&::after': {
@@ -168,8 +168,8 @@ export const avatarWithUnread = style({
       width: '12px',
       height: '12px',
       borderRadius: '50%',
-      background: vars.colors.semantic.error['500'],
-      boxShadow: `0 0 0 2px ${vars.background.primary}`,
+      background: vars.colors.danger,
+      boxShadow: `0 0 0 2px ${vars.background.body}`,
     },
   },
 });
@@ -208,7 +208,7 @@ export const timestamp = style({
 
 export const timestampUnread = style({
   fontSize: '0.75rem',
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   fontWeight: '600',
   flex: '0 0 auto',
   fontVariantNumeric: 'tabular-nums',
@@ -238,7 +238,7 @@ export const lastMessageUnread = style({
 
 export const petInfo = style({
   fontSize: '0.6875rem',
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   marginTop: '0.375rem',
   fontWeight: '600',
   textTransform: 'uppercase',
@@ -259,7 +259,7 @@ export const unreadBadge = style({
   height: '22px',
   padding: '0 7px',
   borderRadius: '11px',
-  background: vars.colors.semantic.error['500'],
+  background: vars.colors.danger,
   color: vars.text.inverse,
   fontSize: '0.75rem',
   fontWeight: '700',

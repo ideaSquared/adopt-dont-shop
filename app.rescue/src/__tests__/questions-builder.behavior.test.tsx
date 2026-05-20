@@ -32,6 +32,37 @@ vi.mock('../utils/env', () => ({
   isDevelopment: () => false,
 }));
 
+// ADS-586: Override the global lib.components mock with a controllable
+// `useConfirm` so tests can simulate accept/reject of the destructive delete
+// confirmation. The other exports kept here match the global mock so existing
+// rendering still works.
+const confirmFn = vi.fn().mockResolvedValue(true);
+vi.mock('@adopt-dont-shop/lib.components', async () => {
+  const React = await import('react');
+  return {
+    lightTheme: {},
+    darkTheme: {},
+    ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+    Card: ({ children, ...props }: Record<string, unknown>) =>
+      React.createElement('div', props, children as React.ReactNode),
+    Button: ({ children, ...props }: Record<string, unknown>) =>
+      React.createElement('button', props, children as React.ReactNode),
+    Alert: ({ children, ...props }: Record<string, unknown>) =>
+      React.createElement('div', { role: 'alert', ...props }, children as React.ReactNode),
+    useConfirm: () => ({
+      isOpen: false,
+      confirm: confirmFn,
+      confirmProps: {
+        isOpen: false,
+        onClose: () => {},
+        onConfirm: () => {},
+        message: '',
+      },
+    }),
+    ConfirmDialog: () => null,
+  };
+});
+
 import { apiService } from '../services/libraryServices';
 
 const RESCUE_ID = 'rescue-uuid-123';
@@ -373,7 +404,7 @@ describe('Questions Builder - Behavioral Tests', () => {
   describe('Deleting questions', () => {
     it('deletes a question after confirmation', async () => {
       const user = userEvent.setup();
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      confirmFn.mockResolvedValueOnce(true);
 
       renderWithProviders(<QuestionsBuilder rescueId={RESCUE_ID} />);
 
@@ -394,7 +425,7 @@ describe('Questions Builder - Behavioral Tests', () => {
 
     it('does not delete when confirmation is cancelled', async () => {
       const user = userEvent.setup();
-      vi.spyOn(window, 'confirm').mockReturnValue(false);
+      confirmFn.mockResolvedValueOnce(false);
 
       renderWithProviders(<QuestionsBuilder rescueId={RESCUE_ID} />);
 
@@ -404,6 +435,8 @@ describe('Questions Builder - Behavioral Tests', () => {
 
       await user.click(screen.getByTestId(`delete-${mockCustomQuestion.questionId}`));
 
+      // Give the async confirm() promise a tick to resolve before asserting.
+      await new Promise(resolve => setTimeout(resolve, 0));
       expect(vi.mocked(apiService.delete)).not.toHaveBeenCalled();
     });
   });

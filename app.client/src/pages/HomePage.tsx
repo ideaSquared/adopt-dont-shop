@@ -157,15 +157,7 @@ export const HomePage: React.FC = () => {
             </p>
             <div className={styles.heroActions}>
               <Link to='/search' onClick={() => handleCTAClick('browse_pets')}>
-                <Button
-                  variant='primary'
-                  size='lg'
-                  style={{
-                    background: 'white',
-                    color: '#BE123C',
-                    borderColor: 'white',
-                  }}
-                >
+                <Button variant='primary' size='lg' className={styles.heroPrimaryButton}>
                   Start Browsing Pets
                 </Button>
               </Link>
@@ -173,11 +165,7 @@ export const HomePage: React.FC = () => {
                 variant='outline'
                 size='lg'
                 onClick={() => handleCTAClick('get_started')}
-                style={{
-                  color: 'white',
-                  borderColor: 'rgba(255,255,255,0.5)',
-                  background: 'rgba(255,255,255,0.08)',
-                }}
+                className={styles.heroSecondaryButton}
               >
                 Learn More
               </Button>
@@ -209,7 +197,7 @@ export const HomePage: React.FC = () => {
                 ))}
               </div>
 
-              <div style={{ textAlign: 'center' }}>
+              <div className={styles.centerAlign}>
                 <Link to='/search' onClick={handleViewAllPetsClick}>
                   <Button variant='outline'>View All Pets</Button>
                 </Link>

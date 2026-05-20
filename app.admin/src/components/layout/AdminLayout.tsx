@@ -17,10 +17,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   return (
     <div className={styles.layoutContainer}>
+      <a href='#main-content' className={styles.skipLink}>
+        Skip to main content
+      </a>
       <AdminSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
       <main className={styles.mainContent({ sidebarCollapsed })}>
         <AdminHeader sidebarCollapsed={sidebarCollapsed} />
-        <div className={styles.contentWrapper}>{children}</div>
+        <div id='main-content' className={styles.contentWrapper} tabIndex={-1}>
+          {children}
+        </div>
         <footer className={styles.layoutFooter}>
           <ManageCookiesLink />
         </footer>

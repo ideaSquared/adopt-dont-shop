@@ -490,7 +490,7 @@ Application.init(
         where: {
           deleted_at: null,
           status: {
-            [Op.not]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
+            [Op.notIn]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
           },
         },
       },
@@ -501,6 +501,17 @@ Application.init(
       {
         fields: ['rescue_id', 'status', { name: 'created_at', order: 'DESC' }],
         name: 'applications_rescue_status_created_idx',
+      },
+      // ADS-504: partial index on active rows for the rescue dashboard's
+      // primary query (`WHERE rescue_id = ? AND status IN (...) AND
+      // deleted_at IS NULL`). Paranoid mode always rewrites the
+      // `deleted_at IS NULL` clause, so a partial index lets Postgres
+      // skip the heap recheck once soft-deleted applications
+      // accumulate.
+      {
+        fields: ['rescue_id', 'status'],
+        name: 'applications_rescue_status_active_idx',
+        where: { deleted_at: null },
       },
       { fields: ['deleted_at'], name: 'applications_deleted_at_idx' },
       ...auditIndexes('applications'),
@@ -559,7 +570,7 @@ Application.init(
       active: {
         where: {
           status: {
-            [Op.not]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
+            [Op.notIn]: [ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN],
           },
         },
       },
@@ -579,7 +590,7 @@ Application.init(
             [Op.between]: [new Date(), new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)],
           },
           status: {
-            [Op.not]: [
+            [Op.notIn]: [
               ApplicationStatus.APPROVED,
               ApplicationStatus.REJECTED,
               ApplicationStatus.WITHDRAWN,

@@ -1,5 +1,7 @@
 import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 const spin = keyframes({
   '0%': { transform: 'rotate(0deg)' },
   '100%': { transform: 'rotate(360deg)' },
@@ -7,7 +9,7 @@ const spin = keyframes({
 
 export const pageContainer = style({
   minHeight: '100vh',
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  background: vars.colors.gradientPrimary,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -24,7 +26,7 @@ export const card = style({
 });
 
 export const cardHeader = style({
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  background: vars.colors.gradientPrimary,
   color: 'white',
   padding: '2rem',
   textAlign: 'center',
@@ -79,7 +81,7 @@ export const formLabel = style({
 });
 
 export const requiredIndicator = style({
-  color: '#dc3545',
+  color: vars.colors.dangerHover,
 });
 
 export const formInput = style({
@@ -93,7 +95,7 @@ export const formInput = style({
   selectors: {
     '&:focus': {
       outline: 'none',
-      borderColor: '#667eea',
+      borderColor: vars.colors.primary,
     },
     '&:disabled': {
       backgroundColor: '#f8f9fa',
@@ -103,18 +105,18 @@ export const formInput = style({
 });
 
 export const formInputError = style({
-  borderColor: '#dc3545',
+  borderColor: vars.colors.dangerHover,
   selectors: {
     '&:focus': {
       outline: 'none',
-      borderColor: '#dc3545',
+      borderColor: vars.colors.dangerHover,
     },
   },
 });
 
 export const formError = style({
   display: 'block',
-  color: '#dc3545',
+  color: vars.colors.dangerHover,
   fontSize: '0.875rem',
   marginTop: '0.25rem',
 });
@@ -122,7 +124,7 @@ export const formError = style({
 export const submitButton = style({
   width: '100%',
   padding: '0.875rem',
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  background: vars.colors.gradientPrimary,
   color: 'white',
   border: 'none',
   borderRadius: '8px',
@@ -202,7 +204,7 @@ export const successIcon = style({
 
 export const loginButton = style({
   padding: '0.875rem 2rem',
-  background: '#667eea',
+  background: vars.colors.primary,
   color: 'white',
   border: 'none',
   borderRadius: '8px',

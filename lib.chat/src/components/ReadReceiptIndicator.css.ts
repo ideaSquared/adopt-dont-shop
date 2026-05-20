@@ -14,7 +14,7 @@ export const checkIcon = styleVariants({
   filled: {
     fontSize: '0.75rem',
     fontWeight: '700',
-    color: vars.colors.primary['500'],
+    color: vars.colors.primary,
   },
   unfilled: {
     fontSize: '0.75rem',

@@ -8,26 +8,26 @@ export const navbar = recipe({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingLeft: vars.spacing.lg,
-    paddingRight: vars.spacing.lg,
+    paddingLeft: vars.spacing['4'],
+    paddingRight: vars.spacing['4'],
     height: '64px',
     zIndex: '100',
     transition: `all ${vars.transitions.fast}`,
     '@media': {
       '(max-width: 768px)': {
-        paddingLeft: vars.spacing.md,
-        paddingRight: vars.spacing.md,
+        paddingLeft: vars.spacing['3'],
+        paddingRight: vars.spacing['3'],
       },
     },
   },
   variants: {
     variant: {
       default: {
-        backgroundColor: vars.colors.neutral['50'],
-        borderBottom: `1px solid ${vars.colors.neutral['200']}`,
+        backgroundColor: vars.background.body,
+        borderBottom: `1px solid ${vars.border.color.muted}`,
         selectors: {
           [`:is(html.${darkThemeClass}) &`]: {
-            backgroundColor: vars.background.primary,
+            backgroundColor: vars.background.body,
           },
         },
       },
@@ -36,7 +36,7 @@ export const navbar = recipe({
         borderBottom: 'none',
       },
       solid: {
-        backgroundColor: vars.colors.primary['500'],
+        backgroundColor: vars.colors.primary,
         borderBottom: 'none',
       },
     },
@@ -54,7 +54,7 @@ export const navbar = recipe({
 });
 
 export const navbarSolidContent = style({
-  color: `${vars.colors.neutral['50']} !important`,
+  color: `${vars.background.body} !important`,
 });
 
 export const brand = style({
@@ -62,7 +62,7 @@ export const brand = style({
   alignItems: 'center',
   fontSize: vars.typography.size.xl,
   fontWeight: vars.typography.weight.bold,
-  color: vars.colors.neutral['900'],
+  color: vars.text.primary,
   textDecoration: 'none',
   cursor: 'pointer',
   selectors: {
@@ -83,7 +83,7 @@ export const brandLink = style({
 export const navItems = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing.lg,
+  gap: vars.spacing['4'],
   '@media': {
     '(max-width: 768px)': {
       position: 'absolute',
@@ -91,10 +91,10 @@ export const navItems = style({
       left: '0',
       right: '0',
       flexDirection: 'column',
-      backgroundColor: vars.colors.neutral['50'],
-      borderBottom: `1px solid ${vars.colors.neutral['200']}`,
-      padding: vars.spacing.md,
-      gap: vars.spacing.md,
+      backgroundColor: vars.background.body,
+      borderBottom: `1px solid ${vars.border.color.muted}`,
+      padding: vars.spacing['3'],
+      gap: vars.spacing['3'],
       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
     },
   },
@@ -120,13 +120,13 @@ export const navItem = recipe({
   base: {
     display: 'flex',
     alignItems: 'center',
-    gap: vars.spacing.xs,
-    paddingTop: vars.spacing.sm,
-    paddingBottom: vars.spacing.sm,
-    paddingLeft: vars.spacing.md,
-    paddingRight: vars.spacing.md,
+    gap: vars.spacing['1'],
+    paddingTop: vars.spacing['2'],
+    paddingBottom: vars.spacing['2'],
+    paddingLeft: vars.spacing['3'],
+    paddingRight: vars.spacing['3'],
     textDecoration: 'none',
-    borderRadius: vars.spacing.xs,
+    borderRadius: vars.spacing['1'],
     transition: `all ${vars.transitions.fast}`,
     '@media': {
       '(max-width: 768px)': {
@@ -138,16 +138,16 @@ export const navItem = recipe({
   variants: {
     active: {
       true: {
-        color: vars.colors.primary['500'],
+        color: vars.colors.primary,
         fontWeight: vars.typography.weight.medium,
       },
       false: {
-        color: vars.colors.neutral['700'],
+        color: vars.text.secondary,
         fontWeight: vars.typography.weight.normal,
         selectors: {
           '&:hover': {
-            backgroundColor: vars.colors.neutral['100'],
-            color: vars.colors.primary['500'],
+            backgroundColor: vars.background.muted,
+            color: vars.colors.primary,
           },
         },
       },
@@ -178,7 +178,7 @@ export const navItem = recipe({
 export const rightSection = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing.md,
+  gap: vars.spacing['3'],
 });
 
 export const userMenuContainer = style({
@@ -188,16 +188,16 @@ export const userMenuContainer = style({
 export const userMenuTrigger = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing.sm,
+  gap: vars.spacing['2'],
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  padding: vars.spacing.xs,
-  borderRadius: vars.spacing.sm,
+  padding: vars.spacing['1'],
+  borderRadius: vars.spacing['2'],
   transition: `background-color ${vars.transitions.fast}`,
   selectors: {
     '&:hover': {
-      backgroundColor: vars.colors.neutral['100'],
+      backgroundColor: vars.background.muted,
     },
   },
 });
@@ -216,7 +216,7 @@ export const userInfo = style({
 export const userName = style({
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.medium,
-  color: vars.colors.neutral['900'],
+  color: vars.text.primary,
   selectors: {
     [`:is(html.${darkThemeClass}) &`]: {
       color: vars.text.primary,
@@ -226,7 +226,7 @@ export const userName = style({
 
 export const userEmail = style({
   fontSize: vars.typography.size.xs,
-  color: vars.colors.neutral['600'],
+  color: vars.text.tertiary,
   selectors: {
     [`:is(html.${darkThemeClass}) &`]: {
       color: vars.text.secondary,
@@ -238,16 +238,16 @@ export const userMenu = style({
   position: 'absolute',
   top: '100%',
   right: '0',
-  backgroundColor: vars.colors.neutral['50'],
-  border: `1px solid ${vars.colors.neutral['200']}`,
-  borderRadius: vars.spacing.sm,
+  backgroundColor: vars.background.body,
+  border: `1px solid ${vars.border.color.muted}`,
+  borderRadius: vars.spacing['2'],
   boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
   minWidth: '200px',
   zIndex: '1000',
-  marginTop: vars.spacing.xs,
+  marginTop: vars.spacing['1'],
   selectors: {
     [`:is(html.${darkThemeClass}) &`]: {
-      backgroundColor: vars.background.primary,
+      backgroundColor: vars.background.body,
     },
   },
 });
@@ -264,22 +264,22 @@ export const userMenuAction = recipe({
   base: {
     display: 'flex',
     alignItems: 'center',
-    gap: vars.spacing.sm,
+    gap: vars.spacing['2'],
     width: '100%',
-    paddingTop: vars.spacing.sm,
-    paddingBottom: vars.spacing.sm,
-    paddingLeft: vars.spacing.md,
-    paddingRight: vars.spacing.md,
+    paddingTop: vars.spacing['2'],
+    paddingBottom: vars.spacing['2'],
+    paddingLeft: vars.spacing['3'],
+    paddingRight: vars.spacing['3'],
     background: 'none',
     border: 'none',
     textAlign: 'left',
     cursor: 'pointer',
     fontSize: vars.typography.size.sm,
-    color: vars.colors.neutral['700'],
+    color: vars.text.secondary,
     transition: `background-color ${vars.transitions.fast}`,
     selectors: {
       '&:hover': {
-        backgroundColor: vars.colors.neutral['50'],
+        backgroundColor: vars.background.body,
       },
       [`:is(html.${darkThemeClass}) &`]: {
         color: vars.text.secondary,
@@ -289,7 +289,7 @@ export const userMenuAction = recipe({
   variants: {
     divider: {
       true: {
-        borderTop: `1px solid ${vars.colors.neutral['200']}`,
+        borderTop: `1px solid ${vars.border.color.muted}`,
       },
       false: {},
     },
@@ -304,8 +304,8 @@ export const mobileMenuButton = style({
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  padding: vars.spacing.xs,
-  color: vars.colors.neutral['700'],
+  padding: vars.spacing['1'],
+  color: vars.text.secondary,
   '@media': {
     '(max-width: 768px)': {
       display: 'flex',

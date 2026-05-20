@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   padding: '3rem 0',
   minHeight: 'calc(100vh - 200px)',
@@ -13,13 +15,13 @@ export const pageHeader = style({
 globalStyle(`${pageHeader} h1`, {
   fontSize: '2.5rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 1rem 0',
 });
 
 globalStyle(`${pageHeader} p`, {
   fontSize: '1.1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   maxWidth: '600px',
   margin: '0 auto',
 });
@@ -33,8 +35,8 @@ export const postGrid = style({
 export const postCard = style({
   display: 'flex',
   flexDirection: 'column',
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   overflow: 'hidden',
   textDecoration: 'none',
@@ -54,7 +56,7 @@ export const postImage = style({
 export const postImagePlaceholder = style({
   width: '100%',
   height: '200px',
-  background: '#f9fafb',
+  background: vars.background.body,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -72,14 +74,14 @@ export const postBody = style({
 export const postTitle = style({
   fontSize: '1.25rem',
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0',
   lineHeight: '1.4',
 });
 
 export const postExcerpt = style({
   fontSize: '0.9rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: '0',
   lineHeight: '1.6',
   flex: '1',
@@ -91,14 +93,14 @@ export const postExcerpt = style({
 
 export const postDate = style({
   fontSize: '0.8rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginTop: '0.5rem',
 });
 
 export const emptyState = style({
   textAlign: 'center',
   padding: '4rem 2rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: '1.1rem',
 });
 

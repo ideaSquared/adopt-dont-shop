@@ -61,13 +61,7 @@ Full guidelines are in [.claude/CLAUDE.md](./.claude/CLAUDE.md). Key rules:
 
 ## Test requirements
 
-| Package scope | Test runner |
-|---|---|
-| `lib.*` shared libraries | Jest |
-| `app.*` React apps | Vitest + React Testing Library |
-| `service.backend` | Vitest |
-
-> Note: ADS-385 will consolidate all packages onto Vitest. Until then, use the runner already configured in the package.
+Every package uses **Vitest** (`vitest run`). The React apps and `lib.components` add React Testing Library on top. Use the `npm test` / `npm run test:watch` / `npm run test:coverage` scripts defined in each package.
 
 Tests must cover **behaviour**, not implementation. 100% coverage is expected but tests must always be grounded in business requirements, not internal structure.
 
@@ -125,7 +119,7 @@ npm run test:e2e:report
 
 - Playwright runs with `retries: 2` in CI. A test must fail 3 times in a row before it counts as a failure.
 - Flaky retry counts are printed in the "Report E2E retry counts" CI step.
-- The `test-e2e` job currently has `continue-on-error: true` — failures are surfaced but do not block merge. This will be removed once the suite has 10 consecutive green runs on `main` (see ADS-386).
+- The `test-e2e` job is a blocking signal — a failure fails the PR check (see ADS-419 and the comment block at `.github/workflows/ci.yml:339`).
 
 ### Selector guidelines
 

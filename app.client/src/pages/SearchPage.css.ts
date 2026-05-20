@@ -203,7 +203,7 @@ export const locationStatus = recipe({
   variants: {
     variant: {
       success: { color: vars.text.success },
-      error: { color: vars.text.error },
+      error: { color: vars.text.danger },
       info: { color: vars.text.tertiary },
     },
   },

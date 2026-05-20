@@ -3,25 +3,25 @@ import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const navbarContainer = style({
-  background: vars.colors.gradients.primary,
+  background: vars.colors.gradientPrimary,
   position: 'sticky',
   top: 0,
   zIndex: 1000,
-  boxShadow: vars.shadows.md,
+  boxShadow: vars.shadows.base,
 });
 
 export const navContent = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  padding: `0 ${vars.spacing['4']}`,
+  padding: `0 ${vars.spacing['3']}`,
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing['4'],
+  gap: vars.spacing['3'],
   height: '64px',
   '@media': {
     '(max-width: 768px)': {
       height: '56px',
-      padding: `0 ${vars.spacing['3']}`,
+      padding: `0 ${vars.spacing['2']}`,
       gap: vars.spacing['2'],
     },
   },
@@ -41,11 +41,6 @@ export const logo = style({
     outlineOffset: '2px',
     borderRadius: vars.border.radius.sm,
   },
-});
-
-export const logoIcon = style({
-  fontSize: '1.75rem',
-  lineHeight: 1,
 });
 
 export const primaryLinks = style({
@@ -73,7 +68,7 @@ export const iconLinkAnchorBase = style({
   justifyContent: 'center',
   width: '40px',
   height: '40px',
-  borderRadius: vars.border.radius.md,
+  borderRadius: vars.border.radius.base,
   color: '#fff',
   textDecoration: 'none',
   transition: `background ${vars.transitions.fast}`,
@@ -120,8 +115,8 @@ globalStyle(`${badgeOverlay} span[role='status']`, {
   fontWeight: 800,
   lineHeight: 1,
   letterSpacing: '0.02em',
-  background: vars.colors.semantic.error['600'],
+  background: vars.colors.dangerHover,
   color: vars.text.inverse,
-  border: `2px solid ${vars.colors.primary['700']}`,
+  border: `2px solid ${vars.colors.primaryActive}`,
   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.25)',
 });

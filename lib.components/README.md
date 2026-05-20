@@ -60,7 +60,7 @@ lib.components/src/
 ```bash
 npm run dev               # vite build --watch
 npm run build             # vite build (lib + theme bundle)
-npm run test              # jest
+npm run test              # vitest run
 npm run storybook         # storybook dev server on :6006
 npm run build-storybook   # static storybook build
 ```

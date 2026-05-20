@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from '@adopt-dont-shop/lib.components';
 import {
   ApplicationStage,
   STAGE_CONFIG,
@@ -35,8 +36,9 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Failed to transition stage:', error);
-      alert(
-        `Failed to transition stage: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to transition stage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: handleSubmit } }
       );
     } finally {
       setIsSubmitting(false);
@@ -103,14 +105,7 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
 
         {availableActions.length === 0 ? (
           <div className={styles.formField}>
-            <p
-              style={{
-                fontSize: '0.875rem',
-                color: '#6b7280',
-                textAlign: 'center',
-                padding: '1rem',
-              }}
-            >
+            <p className={styles.noActionsMessage}>
               No stage transitions available for {STAGE_CONFIG[currentStage]?.label || currentStage}
               .
             </p>

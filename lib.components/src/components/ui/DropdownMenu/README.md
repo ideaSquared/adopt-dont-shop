@@ -1,41 +1,22 @@
-# DropdownMenu Component
+# Dropdown (DropdownMenu)
 
-A dropdown menu component with support for menu items, separators, and nested menus.
-
-## Usage
+Click-trigger dropdown that renders a list of label/route/onClick items. Default export from `DropdownMenu.tsx` (component is named `Dropdown`, file is `DropdownMenu.tsx`). Not re-exported from `lib.components/src/index.ts`.
 
 ```tsx
-import { DropdownMenu } from '@/components/ui/DropdownMenu'
+import Dropdown from '@adopt-dont-shop/lib.components/src/components/ui/DropdownMenu/DropdownMenu';
 
-// Basic usage
-<DropdownMenu
-  trigger={<button>Menu</button>}
-  items={menuItems}
-/>
-
-// With custom configuration
-<DropdownMenu
-  trigger={triggerElement}
-  items={menuItems}
-  position="bottom-start"
-  onItemClick={handleItemClick}
-  className="custom-menu"
+<Dropdown
+  triggerLabel="Account"
+  items={[
+    { label: 'Profile', to: '/profile' },
+    { label: 'Sign out', onClick: handleSignOut },
+  ]}
 />
 ```
 
 ## Props
 
-- `trigger`: Element that triggers the menu
-- `items`: Array of menu items
-- `position`: Menu position relative to trigger
-- `onItemClick`: Function called when item is clicked
-- `className`: Optional CSS class names
-- Additional props are forwarded to the underlying element
-
-## Features
-
-- Keyboard navigation
-- Menu item icons and shortcuts
-- Separators and groups
-- Accessible markup
-- TypeScript support
+| Prop           | Type             | Required | Description                                                       |
+| -------------- | ---------------- | -------- | ----------------------------------------------------------------- |
+| `triggerLabel` | `string`         | Yes      | Text rendered on the trigger button.                              |
+| `items`        | `DropdownItem[]` | Yes      | Each item has `label`, and either `to` (route) or `onClick`.      |

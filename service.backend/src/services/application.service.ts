@@ -8,6 +8,7 @@ import ApplicationReferenceModel, {
 import HomeVisit, { HomeVisitStatus } from '../models/HomeVisit';
 import HomeVisitStatusTransition from '../models/HomeVisitStatusTransition';
 import StaffMember from '../models/StaffMember';
+import Rescue from '../models/Rescue';
 import { validateSortField } from '../utils/sort-validation';
 
 const APPLICATION_SORT_FIELDS = [
@@ -35,6 +36,9 @@ import sequelize from '../sequelize';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import ApplicationTimelineService from './applicationTimeline.service';
+import emailService from './email.service';
+import { NotificationService } from './notification.service';
+import { NotificationType } from '../models/Notification';
 import { TimelineEventType } from '../models/ApplicationTimeline';
 import { JsonObject, JsonValue } from '../types/common';
 
@@ -110,14 +114,12 @@ const formatHomeVisit = (visit: HomeVisit): HomeVisitDto => ({
 
 export class ApplicationService {
   /**
-   * Look up the rescueId for any StaffMember row owned by the user.
-   * Mirrors the previous controller-side `StaffMember.findOne({ where:
-   * { userId } })` lookup (no `isVerified` filter), centralised in the
-   * service layer so the controller stays thin (ADS-489).
+   * Look up the rescueId for a verified StaffMember row owned by the user.
+   * Unverified rows must not grant rescue-scoped access (ADS-591).
    */
   static async getStaffRescueIdForUser(userId: string): Promise<string | null> {
     const membership = await StaffMember.findOne({
-      where: { userId },
+      where: { userId, isVerified: true },
       attributes: ['rescueId'],
     });
     return membership?.rescueId ?? null;
@@ -545,7 +547,10 @@ export class ApplicationService {
         }
         if (userType === UserType.RESCUE_STAFF) {
           const StaffMember = (await import('../models/StaffMember')).default;
-          const membership = await StaffMember.findOne({ where: { userId } });
+          const membership = await StaffMember.findOne({
+            where: { userId, isVerified: true },
+            attributes: ['rescueId'],
+          });
           if (!membership || membership.rescueId !== application.rescueId) {
             throw new Error('Access denied');
           }
@@ -586,6 +591,7 @@ export class ApplicationService {
         sortOrder = 'DESC',
         include_user = true,
         include_pet = true,
+        include_rescue = false,
         include_deleted = false,
       } = options;
 
@@ -664,9 +670,13 @@ export class ApplicationService {
         whereConditions.score = scoreFilter;
       }
 
-      // Tags filtering
+      // Tags filtering — Sequelize 7 narrows `Op.overlap` to `Rangable`
+      // (a 2-element tuple for range types), but PG's array && operator
+      // works with arbitrary-length string[] at runtime, so we cast.
       if (filters.tags && filters.tags.length > 0) {
-        whereConditions.tags = { [Op.overlap]: filters.tags };
+        whereConditions.tags = {
+          [Op.overlap]: filters.tags as unknown as readonly [string, string],
+        };
       }
 
       // Date range filtering
@@ -703,6 +713,21 @@ export class ApplicationService {
         whereConditions.homeVisitNotes = filters.hasHomeVisitNotes
           ? { [Op.not]: null }
           : { [Op.is]: null };
+      }
+
+      // ADS-575: pet-type / pet-breed filters. Both are matched
+      // case-insensitively against the eager-loaded Pet association so
+      // the rescue dashboard's "Dog" dropdown matches the lowercase
+      // enum value stored on Pet.type.
+      if (filters.petType) {
+        (whereConditions as Record<string, unknown>)['$Pet.type$'] = {
+          [Op.iLike]: filters.petType,
+        };
+      }
+      if (filters.petBreed) {
+        (whereConditions as Record<string, unknown>)['$Pet->Breed.name$'] = {
+          [Op.iLike]: `%${filters.petBreed}%`,
+        };
       }
 
       // Text search
@@ -759,6 +784,13 @@ export class ApplicationService {
             'status',
           ],
           include: [{ model: Breed, as: 'Breed', attributes: ['breed_id', 'name'] }],
+        });
+      }
+      if (include_rescue) {
+        includeOptions.push({
+          model: Rescue,
+          as: 'Rescue',
+          attributes: ['rescueId', 'name'],
         });
       }
       // Always eager-load answer rows so the projected `answers`
@@ -1163,6 +1195,13 @@ export class ApplicationService {
         actionedBy,
       });
 
+      // ADS-579: On rejection, notify the applicant via email and in-app.
+      // Best-effort — a notification failure must not roll back the status
+      // change, but it must be logged so a human can chase it up.
+      if (statusUpdate.status === ApplicationStatus.REJECTED) {
+        await ApplicationService.notifyApplicantOfRejection(application, statusUpdate);
+      }
+
       await application.reload();
       return {
         ...(application.toJSON() as ApplicationData),
@@ -1171,6 +1210,84 @@ export class ApplicationService {
     } catch (error) {
       logger.error('Update application status failed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * ADS-579: Email + in-app notification for application rejection.
+   *
+   * Best-effort: any failure here is logged but never propagates — the
+   * status transition is already committed by the time this runs, so an
+   * email-provider hiccup must not appear to the caller as a failed
+   * rejection.
+   */
+  private static async notifyApplicantOfRejection(
+    application: Application,
+    statusUpdate: ApplicationStatusUpdateRequest
+  ): Promise<void> {
+    try {
+      const [applicant, pet] = await Promise.all([
+        User.findByPk(application.userId),
+        Pet.findByPk(application.petId),
+      ]);
+
+      if (!applicant) {
+        logger.warn('Rejection notification skipped: applicant not found', {
+          applicationId: application.applicationId,
+          userId: application.userId,
+        });
+        return;
+      }
+
+      const applicantName = [applicant.firstName, applicant.lastName].filter(Boolean).join(' ');
+      const petName = pet?.name ?? 'the pet';
+      const rejectionReason = statusUpdate.rejectionReason ?? statusUpdate.notes ?? '';
+
+      // In-app notification — applicant sees this in /notifications.
+      await NotificationService.createNotification({
+        userId: application.userId,
+        type: NotificationType.ADOPTION_REJECTED,
+        title: `Update on your application for ${petName}`,
+        message:
+          rejectionReason ||
+          `Your application to adopt ${petName} was not approved. Please log in for details.`,
+        data: {
+          applicationId: application.applicationId,
+          petId: application.petId,
+          rejectionReason,
+        },
+      });
+
+      // Email — uses the seeded 'Application Not Approved' template.
+      if (applicant.email) {
+        const template = await emailService.getTemplateByName('Application Not Approved');
+        if (template) {
+          await emailService.sendEmail({
+            toEmail: applicant.email,
+            toName: applicantName || undefined,
+            templateId: template.templateId,
+            templateData: {
+              applicantName: applicantName || 'there',
+              petName,
+              rejectionReason,
+              applicationId: application.applicationId,
+            },
+            userId: application.userId,
+            type: 'transactional',
+            priority: 'normal',
+          });
+        } else {
+          logger.warn(
+            "Rejection email template 'Application Not Approved' not found; skipping email",
+            { applicationId: application.applicationId }
+          );
+        }
+      }
+    } catch (error) {
+      logger.error('Rejection notification failed (non-fatal):', {
+        applicationId: application.applicationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

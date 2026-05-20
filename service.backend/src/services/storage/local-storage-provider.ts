@@ -4,8 +4,9 @@ import sharp from 'sharp';
 import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import { config } from '../../config';
 import { logger } from '../../utils/logger';
+import { FileInfo, StorageCategory, StorageProvider, UploadResult } from './base-provider';
 
-export class LocalStorageProvider {
+export class LocalStorageProvider implements StorageProvider {
   private uploadDir: string;
   private publicPath: string;
 
@@ -34,8 +35,8 @@ export class LocalStorageProvider {
     file: Buffer,
     originalName: string,
     contentType: string,
-    category: 'pets' | 'users' | 'documents' = 'documents'
-  ): Promise<{ url: string; filename: string; size: number }> {
+    category: StorageCategory = 'documents'
+  ): Promise<UploadResult> {
     try {
       const fileExtension = path.extname(originalName);
       const filename = `${uuidv4()}${fileExtension}`;
@@ -110,7 +111,7 @@ export class LocalStorageProvider {
     }
   }
 
-  async getFileInfo(filename: string, category: string = 'documents') {
+  async getFileInfo(filename: string, category: string = 'documents'): Promise<FileInfo> {
     try {
       const filePath = path.join(this.uploadDir, category, filename);
       const stats = await fs.stat(filePath);
@@ -122,5 +123,21 @@ export class LocalStorageProvider {
     } catch (error) {
       return { exists: false };
     }
+  }
+
+  getName(): string {
+    return 'local';
+  }
+
+  validateConfiguration(): boolean {
+    return Boolean(this.uploadDir);
+  }
+
+  supportsSignedUrls(): boolean {
+    return false;
+  }
+
+  async getSignedUrl(): Promise<string> {
+    throw new Error('Local storage provider does not generate signed URLs');
   }
 }

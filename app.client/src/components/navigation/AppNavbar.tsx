@@ -1,7 +1,7 @@
 import React from 'react';
 import { MdChat, MdFavorite, MdNotifications, MdSearch, MdSwipe } from 'react-icons/md';
 import { Link, useLocation } from 'react-router-dom';
-import { Badge } from '@adopt-dont-shop/lib.components';
+import { Badge, Logo } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useChat } from '@/contexts/ChatContext';
 import { useNotifications } from '@/contexts/NotificationsContext';
@@ -63,10 +63,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
     <nav className={`${styles.navbarContainer}${className ? ` ${className}` : ''}`}>
       <div className={styles.navContent}>
         <Link className={styles.logo} to='/'>
-          <span className={styles.logoIcon} aria-hidden='true'>
-            🐾
-          </span>
-          Adopt Don&apos;t Shop
+          <Logo size={32} showWordmark darkBg />
         </Link>
 
         <div className={styles.primaryLinks}>

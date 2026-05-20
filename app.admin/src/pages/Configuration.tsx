@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  useFeatureGate,
-  useConfigValue,
-  KNOWN_GATES,
-  KNOWN_CONFIGS,
-} from '@adopt-dont-shop/lib.feature-flags';
+import { useConfigValue, KNOWN_CONFIGS } from '@adopt-dont-shop/lib.feature-flags';
 import { openExternal } from '../utils/openExternal';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import { FiRefreshCw, FiSettings, FiFlag, FiExternalLink, FiInfo } from 'react-icons/fi';
@@ -18,70 +13,6 @@ import {
   CardContent,
 } from '../components/ui';
 import * as styles from './Configuration.css';
-
-const GATE_METADATA: Record<string, { name: string; description: string }> = {
-  [KNOWN_GATES.ENABLE_REAL_TIME_MESSAGING]: {
-    name: 'Real-Time Messaging',
-    description: 'Enable real-time messaging with Socket.IO',
-  },
-  [KNOWN_GATES.ENABLE_ADVANCED_SEARCH]: {
-    name: 'Advanced Search',
-    description: 'Enable advanced pet search filters',
-  },
-  [KNOWN_GATES.ENABLE_NOTIFICATION_CENTER]: {
-    name: 'Notification Center',
-    description: 'Enable in-app notification center',
-  },
-  [KNOWN_GATES.ENABLE_APPLICATION_WORKFLOW]: {
-    name: 'Application Workflow',
-    description: 'Enable advanced application workflow',
-  },
-  [KNOWN_GATES.ENABLE_CONTENT_MODERATION]: {
-    name: 'Content Moderation',
-    description: 'Enable content moderation system',
-  },
-  [KNOWN_GATES.UI_SHOW_BETA_FEATURES]: {
-    name: 'Beta Features UI',
-    description: 'Show beta features in UI',
-  },
-  [KNOWN_GATES.FEATURE_SOCIAL_SHARING]: {
-    name: 'Social Sharing',
-    description: 'Enable social media sharing',
-  },
-  [KNOWN_GATES.ENABLE_ANALYTICS_TRACKING]: {
-    name: 'Analytics Tracking',
-    description: 'Enable analytics and user behavior tracking',
-  },
-  [KNOWN_GATES.ALLOW_BULK_OPERATIONS]: {
-    name: 'Bulk Operations',
-    description: 'Allow bulk operations for administrators',
-  },
-  [KNOWN_GATES.FEATURE_RATING_SYSTEM]: {
-    name: 'Rating System',
-    description: 'Enable user and rescue rating system',
-  },
-};
-
-const GateDisplay: React.FC<{ gateName: string }> = ({ gateName }) => {
-  const { value: isEnabled } = useFeatureGate(gateName);
-  const metadata = GATE_METADATA[gateName] || {
-    name: gateName,
-    description: 'No description available',
-  };
-
-  return (
-    <div className={styles.gateItem}>
-      <div className={styles.gateInfo}>
-        <div className={styles.gateName}>{metadata.name}</div>
-        <div className={styles.gateDescription}>{metadata.description}</div>
-        <div className={styles.gateKey}>{gateName}</div>
-      </div>
-      <div className={isEnabled ? styles.statusBadgeEnabled : styles.statusBadgeDisabled}>
-        {isEnabled ? 'Enabled' : 'Disabled'}
-      </div>
-    </div>
-  );
-};
 
 const Configuration: React.FC = () => {
   const maxApplicationsPerUser = useConfigValue(
@@ -165,7 +96,7 @@ const Configuration: React.FC = () => {
         </HeaderLeft>
         <div className={styles.headerActions}>
           <Button variant='outline' size='md' onClick={handleRefresh}>
-            <FiRefreshCw style={{ marginRight: '0.5rem' }} />
+            <FiRefreshCw className={styles.inlineIcon} />
             Reload
           </Button>
           <Button
@@ -173,7 +104,7 @@ const Configuration: React.FC = () => {
             size='md'
             onClick={() => openExternal('https://console.statsig.com')}
           >
-            <FiExternalLink style={{ marginRight: '0.5rem' }} />
+            <FiExternalLink className={styles.inlineIcon} />
             Open Statsig Console
           </Button>
         </div>
@@ -201,21 +132,30 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiFlag style={{ display: 'inline', marginRight: '0.5rem' }} />
+              <FiFlag className={styles.sectionIcon} />
               Feature Gates
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {Object.values(KNOWN_GATES).map(gateName => (
-              <GateDisplay key={gateName} gateName={gateName} />
-            ))}
+            <Text>
+              Feature gates are managed in the Statsig console. This app no longer surfaces a
+              gate-by-gate view — open the console to inspect or toggle gates.
+            </Text>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => openExternal('https://console.statsig.com')}
+            >
+              <FiExternalLink className={styles.inlineIcon} />
+              Manage gates in Statsig
+            </Button>
           </CardContent>
         </Card>
 
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiSettings style={{ display: 'inline', marginRight: '0.5rem' }} />
+              <FiSettings className={styles.sectionIcon} />
               Application Settings
             </CardTitle>
           </CardHeader>
@@ -252,7 +192,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiSettings style={{ display: 'inline', marginRight: '0.5rem' }} />
+              <FiSettings className={styles.sectionIcon} />
               System Settings
             </CardTitle>
           </CardHeader>
@@ -279,7 +219,7 @@ const Configuration: React.FC = () => {
         <Card className={styles.sectionCard}>
           <CardHeader>
             <CardTitle>
-              <FiSettings style={{ display: 'inline', marginRight: '0.5rem' }} />
+              <FiSettings className={styles.sectionIcon} />
               Moderation Settings
             </CardTitle>
           </CardHeader>

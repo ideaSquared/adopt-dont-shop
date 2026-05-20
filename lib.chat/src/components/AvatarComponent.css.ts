@@ -7,8 +7,8 @@ export const avatar = style({
   minWidth: '40px',
   minHeight: '40px',
   borderRadius: '50%',
-  background: `linear-gradient(135deg, ${vars.colors.primary['100']}, ${vars.colors.primary['300']})`,
-  color: vars.colors.primary['700'],
+  background: `linear-gradient(135deg, ${vars.colors.primaryBgSubtle}, ${vars.colors.primaryBorderSubtle})`,
+  color: vars.colors.primaryActive,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -16,6 +16,6 @@ export const avatar = style({
   fontSize: '1.15rem',
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
   marginRight: '0.4rem',
-  border: `2px solid ${vars.colors.primary['300']}`,
+  border: `2px solid ${vars.colors.primaryBorderSubtle}`,
   userSelect: 'none',
 });

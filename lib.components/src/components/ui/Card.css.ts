@@ -7,13 +7,13 @@ export const card = recipe({
   base: {
     position: 'relative',
     borderRadius: vars.border.radius.xl,
-    transition: `all ${vars.transitions.normal} ${vars.animations.easing.smooth}`,
+    transition: `all ${vars.transitions.base} ${vars.animations.easing.smooth}`,
     overflow: 'hidden',
     isolation: 'isolate',
     selectors: {
       '&:focus-visible': {
         outline: 'none',
-        boxShadow: vars.shadows.focusPrimary,
+        boxShadow: vars.shadows.focus,
         transform: 'translateY(-2px)',
       },
     },
@@ -30,27 +30,27 @@ export const card = recipe({
   variants: {
     variant: {
       default: {
-        background: vars.background.secondary,
-        border: `1px solid ${vars.border.color.primary}`,
-        boxShadow: vars.shadows.md,
+        background: vars.background.surface,
+        border: `1px solid ${vars.border.color.default}`,
+        boxShadow: vars.shadows.base,
         backdropFilter: 'blur(10px)',
       },
       outlined: {
-        background: vars.background.secondary,
-        border: `1px solid ${vars.border.color.primary}`,
+        background: vars.background.surface,
+        border: `1px solid ${vars.border.color.default}`,
         boxShadow: 'none',
         backdropFilter: 'blur(10px)',
       },
       elevated: {
-        background: vars.background.secondary,
+        background: vars.background.surface,
         border: 'none',
         boxShadow: vars.shadows.xl,
         backdropFilter: 'blur(10px)',
       },
       filled: {
-        background: vars.background.tertiary,
+        background: vars.background.muted,
         border: 'none',
-        boxShadow: vars.shadows.md,
+        boxShadow: vars.shadows.base,
         backdropFilter: 'blur(10px)',
       },
       glass: {
@@ -76,9 +76,9 @@ export const card = recipe({
     },
     padding: {
       none: { padding: 0 },
-      sm: { padding: vars.spacing['3'] },
-      md: { padding: vars.spacing['4'] },
-      lg: { padding: vars.spacing['6'] },
+      sm: { padding: vars.spacing['2'] },
+      md: { padding: vars.spacing['3'] },
+      lg: { padding: vars.spacing['4'] },
     },
     clickable: {
       true: { cursor: 'pointer', userSelect: 'none' },
@@ -87,14 +87,14 @@ export const card = recipe({
     hoverable: {
       true: {
         selectors: {
-          '&:hover': { transform: 'translateY(-4px) scale(1.02)', boxShadow: vars.shadows['2xl'] },
+          '&:hover': { transform: 'translateY(-4px) scale(1.02)', boxShadow: vars.shadows.xl },
           '&:active': { transform: 'translateY(-2px) scale(1.01)', boxShadow: vars.shadows.xl },
         },
       },
       false: {},
     },
     bordered: {
-      true: { border: `1px solid ${vars.border.color.secondary}` },
+      true: { border: `1px solid ${vars.border.color.muted}` },
       false: {},
     },
   },
@@ -108,11 +108,11 @@ export const card = recipe({
 });
 
 const cardHeaderBase = style({
-  paddingTop: vars.spacing['4'],
-  paddingLeft: vars.spacing['4'],
-  paddingRight: vars.spacing['4'],
+  paddingTop: vars.spacing['3'],
+  paddingLeft: vars.spacing['3'],
+  paddingRight: vars.spacing['3'],
   paddingBottom: '0',
-  marginBottom: vars.spacing['4'],
+  marginBottom: vars.spacing['3'],
 });
 globalStyle(
   `${cardHeaderBase} h1, ${cardHeaderBase} h2, ${cardHeaderBase} h3, ${cardHeaderBase} h4, ${cardHeaderBase} h5, ${cardHeaderBase} h6`,
@@ -129,8 +129,8 @@ export const cardHeader = recipe({
   variants: {
     bordered: {
       true: {
-        borderBottom: `1px solid ${vars.border.color.tertiary}`,
-        paddingBottom: vars.spacing['4'],
+        borderBottom: `1px solid ${vars.border.color.muted}`,
+        paddingBottom: vars.spacing['3'],
       },
       false: {},
     },
@@ -146,21 +146,21 @@ export const cardContent = style({
 
 export const cardFooter = recipe({
   base: {
-    paddingLeft: vars.spacing['4'],
-    paddingRight: vars.spacing['4'],
-    paddingBottom: vars.spacing['4'],
+    paddingLeft: vars.spacing['3'],
+    paddingRight: vars.spacing['3'],
+    paddingBottom: vars.spacing['3'],
     paddingTop: '0',
-    marginTop: vars.spacing['4'],
+    marginTop: vars.spacing['3'],
     display: 'flex',
-    gap: vars.spacing['3'],
+    gap: vars.spacing['2'],
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
   variants: {
     bordered: {
       true: {
-        borderTop: `1px solid ${vars.border.color.tertiary}`,
-        paddingTop: vars.spacing['4'],
+        borderTop: `1px solid ${vars.border.color.muted}`,
+        paddingTop: vars.spacing['3'],
       },
       false: {},
     },

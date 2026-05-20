@@ -6,7 +6,7 @@ import * as styles from './ProtectedRoute.css';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'moderator' | 'super_admin';
+  requiredRole?: 'admin' | 'moderator' | 'super_admin' | 'support_agent';
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {

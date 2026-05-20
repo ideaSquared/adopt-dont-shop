@@ -1,8 +1,7 @@
 # Node 20 → Node 22 LTS Migration Plan
 
 **Linear**: ADS-532
-**Status**: Not started — planning only
-**Recommended quarter**: Q3 2026 (well before Node 20 EOL in April 2026)
+**Status**: ✅ Shipped — Node 22 is the current target (`.nvmrc` 22.15.1, `engines.node` `>=22 <23`, Dockerfiles pin `ARG NODE_VERSION=22.15.1`). The historical plan below is retained for context only; do not treat it as live work.
 
 > Node 20 enters end-of-life on **2026-04-30**. Node 22 ("Jod") became Active LTS
 > on **2024-10-29** and is supported through **2027-04-30**. We have plenty of
@@ -46,7 +45,7 @@ Highlights that may bite us:
 | **`fetch`/`Headers`/`Request` stable** | Low | Current code uses axios; future code may switch but nothing forces it. |
 | **`--watch` mode default behaviour tweaks** | None | Not used in production, only in scripts. |
 | **OpenSSL 3.x stricter defaults** (already in 20) | None | Already vetted on Node 20. |
-| **`node:test` runner improvements** | None | We use Vitest/Jest. |
+| **`node:test` runner improvements** | None | We use Vitest. |
 | **GLIBC bump** (alpine: needs 3.18+) | Medium | `node:22-alpine` ships on Alpine 3.20; our base image moves with the upstream tag. Verify glibc-linked native deps (`bcrypt`, `pg-native` if added) still link. |
 
 ## 3. Risk inventory
@@ -188,8 +187,9 @@ release-blockers, but we should track them):
 - **DEP0166** `Invalid URL escape characters in import specifiers` — fires
   only if a dep ships malformed URLs in package.json `exports`. Should be
   zero hits for us.
-- Generic `ExperimentalWarning` for `--experimental-vm-modules` if Jest tests
-  in any lib opt into it (Vitest does not require it).
+- (Was previously a risk only for Jest-based suites opting into
+  `--experimental-vm-modules`; every package is on Vitest now, which does
+  not require that flag, so this is no longer a concern.)
 
 ## 11. Linear follow-up sub-issues to file (titles only)
 

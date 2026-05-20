@@ -55,10 +55,19 @@ export const validateQuery = <T>(schema: ZodSchema<T>) => {
       res.status(422).json(zodErrorPayload(result.error));
       return;
     }
-    // Express types `req.query` as a ParsedQs; we knowingly replace it
-    // with the parsed Zod output (mirrors what handleValidationErrors +
-    // req.query mutation already does in practice).
-    (req as unknown as { query: T }).query = result.data;
+    // Express 5: `req.query` is a getter on the prototype, not a writable
+    // property. Plain assignment is a no-op (or throws in strict mode),
+    // which silently leaves downstream handlers reading unparsed query
+    // strings — surfaced as 500s on routes that depend on Zod coercion
+    // (numeric pagination, default-applied filters, etc.). Redefine the
+    // property on the request instance so the getter is shadowed for the
+    // remainder of this request.
+    Object.defineProperty(req, 'query', {
+      value: result.data,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    });
     next();
   };
 };

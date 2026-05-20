@@ -3,14 +3,14 @@ import { style } from '@vanilla-extract/css';
 import { darkThemeClass, vars } from '../../../styles/theme.css';
 
 export const footer = style({
-  background: vars.background.secondary,
-  borderTop: `1px solid ${vars.border.color.primary}`,
-  paddingTop: vars.spacing.xl,
-  paddingBottom: vars.spacing.xl,
+  background: vars.background.surface,
+  borderTop: `1px solid ${vars.border.color.default}`,
+  paddingTop: vars.spacing['5'],
+  paddingBottom: vars.spacing['5'],
   marginTop: 'auto',
   selectors: {
     [`:is(html.${darkThemeClass}) &`]: {
-      background: vars.background.primary,
+      background: vars.background.body,
     },
   },
 });
@@ -18,8 +18,8 @@ export const footer = style({
 export const footerContainer = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  paddingLeft: vars.spacing.md,
-  paddingRight: vars.spacing.md,
+  paddingLeft: vars.spacing['3'],
+  paddingRight: vars.spacing['3'],
   textAlign: 'center',
 });
 
@@ -32,8 +32,8 @@ export const footerText = style({
 export const footerLinks = style({
   display: 'flex',
   justifyContent: 'center',
-  gap: vars.spacing.lg,
-  marginBottom: vars.spacing.md,
+  gap: vars.spacing['4'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const footerLink = style({

@@ -1,9 +1,10 @@
 import * as dotenv from 'dotenv';
+import path from 'path';
 import { Sequelize, DataTypes } from 'sequelize';
 import { env, getDatabaseName, resolveDbSslMode, DbSslMode } from './config/env';
 import { logger } from './utils/logger';
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 /**
  * Connection pool + statement/lock timeouts (ADS-401).

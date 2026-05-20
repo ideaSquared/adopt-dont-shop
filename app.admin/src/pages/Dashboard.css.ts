@@ -1,13 +1,12 @@
 import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 
-export const dashboardContainer = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '2rem',
-});
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
+// Stack handles direction/gap; the className only adds page-level overrides.
+export const dashboardContainer = style({});
 
 export const pageHeader = style({
-  marginBottom: '1rem',
+  marginBottom: vars.spacing['3'],
 });
 
 export const metricsGrid = style({
@@ -18,9 +17,9 @@ export const metricsGrid = style({
 });
 
 export const metricCard = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '12px',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.xl,
   padding: '1.5rem',
   transition: 'all 0.2s ease',
   ':hover': {
@@ -43,7 +42,7 @@ globalStyle(`${metricHeader} span`, {
 export const metricLabel = style({
   fontSize: '0.875rem',
   fontWeight: '600',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   textTransform: 'uppercase',
   letterSpacing: '0.025em',
 });
@@ -51,19 +50,19 @@ export const metricLabel = style({
 export const metricValue = style({
   fontSize: '2.25rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '0.5rem',
 });
 
 export const metricChangePositive = style({
   fontSize: '0.875rem',
-  color: '#10b981',
+  color: vars.colors.success,
   fontWeight: '500',
 });
 
 export const metricChangeNegative = style({
   fontSize: '0.875rem',
-  color: '#ef4444',
+  color: vars.colors.danger,
   fontWeight: '500',
 });
 
@@ -73,8 +72,8 @@ const shimmerAnim = keyframes({
 });
 
 export const skeletonBlock = style({
-  borderRadius: '6px',
-  background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+  borderRadius: vars.border.radius.base,
+  background: `linear-gradient(90deg, ${vars.background.muted} 25%, ${vars.background.body} 50%, ${vars.background.muted} 75%)`,
   backgroundSize: '200px 100%',
   animationName: shimmerAnim,
   animationDuration: '1.4s',
@@ -83,10 +82,45 @@ export const skeletonBlock = style({
 });
 
 export const errorBanner = style({
-  background: '#fee2e2',
-  border: '1px solid #fecaca',
-  borderRadius: '12px',
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
+  borderRadius: vars.border.radius.xl,
   padding: '1.5rem',
-  color: '#991b1b',
+  color: vars.colors.dangerTextEmphasis,
+  fontSize: '0.875rem',
+});
+
+export const skeletonIcon = style({
+  width: '32px',
+  height: '32px',
+});
+
+export const skeletonLabel = style({
+  width: '120px',
+  height: '0.875rem',
+});
+
+export const skeletonValue = style({
+  width: '80px',
+  height: '2.25rem',
+  marginBottom: '0.5rem',
+});
+
+export const skeletonChange = style({
+  width: '140px',
+  height: '0.875rem',
+});
+
+export const widgetPlaceholder = style({
+  background: '#ffffff',
+  border: '1px solid #e5e7eb',
+  borderRadius: '12px',
+  padding: '2rem',
+  textAlign: 'center',
+  color: '#6b7280',
+});
+
+export const widgetPlaceholderText = style({
+  margin: 0,
   fontSize: '0.875rem',
 });

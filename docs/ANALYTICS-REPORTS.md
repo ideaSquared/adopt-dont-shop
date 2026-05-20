@@ -23,7 +23,7 @@ Browser  ──WS────►  Socket.IO  ──►  analytics:invalidate / m
 
 | Path | Purpose |
 | --- | --- |
-| `service.backend/src/migrations/08-create-analytics-reports.ts` | Tables: `report_templates`, `saved_reports`, `scheduled_reports`, `report_shares` |
+| `service.backend/src/migrations/00-baseline-041..046-*.ts` | Tables: `reports`, `report_status_transitions`, `report_templates`, `report_shares`, `saved_reports`, `scheduled_reports` |
 | `service.backend/src/models/{ReportTemplate,SavedReport,ScheduledReport,ReportShare}.ts` | Sequelize models (audit-columns + paranoid soft-delete) |
 | `service.backend/src/schemas/reports.schema.ts` | Canonical Zod schemas for the report config |
 | `service.backend/src/services/reports.service.ts` | CRUD + execute + share + schedule orchestration |
@@ -42,7 +42,7 @@ Browser  ──WS────►  Socket.IO  ──►  analytics:invalidate / m
 | --- | --- |
 | `lib.analytics/src/schemas/reports.ts` | Zod schemas mirroring the backend (single source of truth for types) |
 | `lib.analytics/src/services/report-service.ts` | Typed API client over `lib.api`'s `ApiService` |
-| `lib.analytics/src/hooks/useReports.ts` | React Query v3 hooks: `useReports`, `useReport`, `useExecuteSavedReport`, `useExecuteReportPreview`, `useSaveReport`, `useUpdateReport`, `useDeleteReport`, `useUpsertSchedule`, `useCreateUserShare`, `useCreateTokenShare`, `useRevokeShare` |
+| `lib.analytics/src/hooks/useReports.ts` | React Query v5 hooks: `useReports`, `useReport`, `useExecuteSavedReport`, `useExecuteReportPreview`, `useSaveReport`, `useUpdateReport`, `useDeleteReport`, `useUpsertSchedule`, `useCreateUserShare`, `useCreateTokenShare`, `useRevokeShare` |
 | `lib.analytics/src/hooks/useRealtimeAnalytics.ts` | Socket.IO subscription + `useAnalyticsInvalidator` (mount once at app root) |
 | `lib.components/src/components/charts/*` | Recharts-backed primitives: `LineChart`, `BarChart`, `PieChart`, `AreaChart`, `MetricCard`, `DataTable`, `ChartFrame` |
 | `lib.components/src/components/reports/*` | `ReportBuilder`, `ReportRenderer`, `WidgetPicker`, `FilterPanel`, `DrillDownModal` |

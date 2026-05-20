@@ -14,7 +14,7 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 │  @adopt-dont-shop/lib.api, lib-auth, lib-chat...   │
 └─────────────────────────────────────────────────────┘
                            │
-                    workspace:* dependency
+                    "*" dependency
                            │
 ┌─────────────────────────────────────────────────────┐
 │                  Applications                        │
@@ -36,7 +36,7 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 
 **✅ Shared Libraries**
 
-- 21 libraries with consistent ESM architecture
+- 23 libraries with consistent ESM architecture
 - TypeScript-first with full type safety
 - Linked as npm workspace dependencies (`"*"` version)
 - Tested independently
@@ -63,7 +63,7 @@ All libraries follow these standards:
 
 - **Module System**: ES Modules first; a few libraries (`lib.api`, `lib.permissions`, `lib.types`, `lib.validation`) also emit a CJS bundle for backend consumers
 - **Build Tool**: TypeScript Compiler (`tsc`) for most libs; `lib.components` uses Vite to bundle assets and styles
-- **Testing**: Jest for Node libs, Vitest for libs co-located with apps and `service.backend`
+- **Testing**: Vitest in every package (`lib.*`, `service.backend`, and the React apps). Each library ships its own `vitest.config.ts` and an `npm test` script that runs `vitest run`.
 - **Code Quality**: ESLint + Prettier
 - **Documentation**: Each library has its own README next to the source
 
@@ -105,11 +105,13 @@ The canonical index with links is in [`docs/libraries/README.md`](../libraries/R
 
 - `lib.applications`, `lib.chat`, `lib.discovery`, `lib.notifications`, `lib.pets`, `lib.rescue`, `lib.search`, `lib.moderation`, `lib.support-tickets`, `lib.audit-logs`
 
-**UI & analytics (3)**
+**UI & analytics (5)**
 
 - `lib.components` — shared React components
 - `lib.analytics` — event tracking
-- `lib.feature-flags` — Statsig types
+- `lib.feature-flags` — Statsig hooks + typed gate/config constants
+- `lib.observability` — Sentry init, Web Vitals reporter, analytics-consent gate
+- `lib.legal` — legal re-acceptance modal, cookie banner, consent service
 
 **Utilities (2)**
 
@@ -192,8 +194,8 @@ npm install -D typescript @types/node
 // package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib.api": "workspace:*",
-    "@adopt-dont-shop/lib.auth": "workspace:*"
+    "@adopt-dont-shop/lib.api": "*",
+    "@adopt-dont-shop/lib.auth": "*"
   }
 }
 
@@ -237,7 +239,7 @@ const user = authService.getCurrentUser();
 
 ```dockerfile
 # Base stage - install workspace
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci

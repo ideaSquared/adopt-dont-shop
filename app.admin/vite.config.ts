@@ -38,7 +38,14 @@ export default defineConfig(({ mode }) => {
       : {};
 
   return {
-    plugins: [react(), vanillaExtractPlugin()],
+    plugins: [
+      react({
+        babel: {
+          plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
+        },
+      }),
+      vanillaExtractPlugin(),
+    ],
     envDir: resolve(__dirname, '..'), // Load .env from monorepo root
     cacheDir: '/tmp/.vite-app-admin',
     resolve: {
@@ -51,10 +58,9 @@ export default defineConfig(({ mode }) => {
         '@/pages': resolve(__dirname, './src/pages'),
         ...libraryAliases,
       },
-      dedupe: ['styled-components', 'react', 'react-dom'],
+      dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
-      include: ['styled-components'],
       exclude: [
         '@testing-library/dom',
         '@testing-library/react',
@@ -117,9 +123,6 @@ export default defineConfig(({ mode }) => {
             }
             if (id.includes('react-router')) {
               return 'router-vendor';
-            }
-            if (id.includes('styled-components')) {
-              return 'styled-components';
             }
             if (id.includes('react-dom') || /\/react\//.test(id)) {
               return 'react-vendor';

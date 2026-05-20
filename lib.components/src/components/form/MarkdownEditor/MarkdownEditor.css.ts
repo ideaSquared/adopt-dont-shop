@@ -11,10 +11,10 @@ export const editorContainer = style({
 export const textarea = style({
   width: '100%',
   height: '150px',
-  padding: vars.spacing.md,
-  backgroundColor: vars.background.primary,
-  border: `${vars.border.width.thin} solid ${vars.border.color.primary}`,
-  borderRadius: vars.border.radius.md,
+  padding: vars.spacing['3'],
+  backgroundColor: vars.background.body,
+  border: `${vars.border.width.thin} solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.base,
   fontFamily: 'monospace',
   fontSize: vars.typography.size.sm,
   lineHeight: '1.5',
@@ -38,8 +38,8 @@ export const textarea = style({
 
 export const markdownHint = style({
   position: 'absolute',
-  right: vars.spacing.sm,
-  bottom: vars.spacing.sm,
+  right: vars.spacing['2'],
+  bottom: vars.spacing['2'],
   fontSize: vars.typography.size.xs,
   color: vars.text.secondary,
   pointerEvents: 'none',

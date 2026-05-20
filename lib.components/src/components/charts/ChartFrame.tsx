@@ -1,4 +1,6 @@
 import React from 'react';
+import clsx from 'clsx';
+import * as styles from './ChartFrame.css';
 
 /**
  * ADS-105: Common frame around a chart widget.
@@ -22,55 +24,6 @@ export type ChartFrameProps = {
   onClick?: () => void;
 };
 
-const frameStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  background: 'var(--color-surface, #fff)',
-  border: '1px solid var(--color-border, #e5e7eb)',
-  borderRadius: '8px',
-  padding: '16px',
-  height: '100%',
-  minHeight: '220px',
-  boxSizing: 'border-box',
-};
-
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'baseline',
-  justifyContent: 'space-between',
-  gap: '8px',
-  marginBottom: '12px',
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: '14px',
-  fontWeight: 600,
-  color: 'var(--color-text, #111827)',
-  margin: 0,
-};
-
-const subtitleStyle: React.CSSProperties = {
-  fontSize: '12px',
-  color: 'var(--color-text-muted, #6b7280)',
-  marginTop: '2px',
-};
-
-const bodyStyle: React.CSSProperties = {
-  flex: 1,
-  position: 'relative',
-  minHeight: 0,
-};
-
-const stateStyle: React.CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: 'var(--color-text-muted, #6b7280)',
-  fontSize: '13px',
-};
-
 export const ChartFrame: React.FC<ChartFrameProps> = ({
   title,
   subtitle,
@@ -83,7 +36,7 @@ export const ChartFrame: React.FC<ChartFrameProps> = ({
   onClick,
 }) => (
   <div
-    style={frameStyle}
+    className={styles.frame}
     onClick={onClick}
     onKeyDown={
       onClick
@@ -99,27 +52,24 @@ export const ChartFrame: React.FC<ChartFrameProps> = ({
     tabIndex={onClick ? 0 : undefined}
     data-testid='chart-frame'
   >
-    <div style={headerStyle}>
+    <div className={styles.header}>
       <div>
-        <h4 style={titleStyle}>{title}</h4>
-        {subtitle ? <div style={subtitleStyle}>{subtitle}</div> : null}
+        <h4 className={styles.title}>{title}</h4>
+        {subtitle ? <div className={styles.subtitle}>{subtitle}</div> : null}
       </div>
       {actions ? <div>{actions}</div> : null}
     </div>
-    <div style={bodyStyle}>
+    <div className={styles.body}>
       {isLoading ? (
-        <div style={stateStyle} data-testid='chart-loading'>
+        <div className={styles.state} data-testid='chart-loading'>
           Loading…
         </div>
       ) : error ? (
-        <div
-          style={{ ...stateStyle, color: 'var(--color-danger, #dc2626)' }}
-          data-testid='chart-error'
-        >
+        <div className={clsx(styles.state, styles.stateError)} data-testid='chart-error'>
           {error.message}
         </div>
       ) : isEmpty ? (
-        <div style={stateStyle} data-testid='chart-empty'>
+        <div className={styles.state} data-testid='chart-empty'>
           {emptyMessage}
         </div>
       ) : (

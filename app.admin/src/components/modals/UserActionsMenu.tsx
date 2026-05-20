@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import * as styles from './UserActionsMenu.css';
 import { ActionMenu, type ActionMenuItem } from '../ui/ActionMenu';
 import type { AdminUser } from '@/types';
-import { FiCheckCircle, FiLock, FiUnlock, FiTrash2, FiShield } from 'react-icons/fi';
+import { FiCheckCircle, FiLock, FiUnlock, FiTrash2, FiShield, FiKey } from 'react-icons/fi';
 import { Modal, Button } from '@adopt-dont-shop/lib.components';
 
 type UserActionsMenuProps = {
@@ -11,6 +11,7 @@ type UserActionsMenuProps = {
   onUnsuspend: (userId: string) => Promise<void>;
   onVerify: (userId: string) => Promise<void>;
   onDelete: (userId: string, reason?: string) => Promise<void>;
+  onResetPassword?: (userId: string) => Promise<void>;
 };
 
 type ConfirmationModalProps = {
@@ -125,9 +126,10 @@ export const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
   onUnsuspend,
   onVerify,
   onDelete,
+  onResetPassword,
 }) => {
   const [confirmationModal, setConfirmationModal] = useState<{
-    type: 'suspend' | 'unsuspend' | 'verify' | 'delete' | null;
+    type: 'suspend' | 'unsuspend' | 'verify' | 'delete' | 'reset_password' | null;
   }>({ type: null });
 
   const handleSuspend = async (reason?: string) => {
@@ -144,6 +146,12 @@ export const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
 
   const handleDelete = async (reason?: string) => {
     await onDelete(user.userId, reason);
+  };
+
+  const handleResetPassword = async () => {
+    if (onResetPassword) {
+      await onResetPassword(user.userId);
+    }
   };
 
   const menuItems: ActionMenuItem[] = [];
@@ -173,6 +181,16 @@ export const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
       icon: <FiLock />,
       danger: true,
       onClick: () => setConfirmationModal({ type: 'suspend' }),
+    });
+  }
+
+  // Reset password
+  if (onResetPassword) {
+    menuItems.push({
+      id: 'reset_password',
+      label: 'Send Password Reset',
+      icon: <FiKey />,
+      onClick: () => setConfirmationModal({ type: 'reset_password' }),
     });
   }
 
@@ -238,6 +256,16 @@ export const UserActionsMenu: React.FC<UserActionsMenuProps> = ({
         isDanger
         requiresReason
         confirmButtonText='Delete User'
+      />
+
+      <ConfirmationModal
+        isOpen={confirmationModal.type === 'reset_password'}
+        onClose={() => setConfirmationModal({ type: null })}
+        onConfirm={handleResetPassword}
+        title='Send Password Reset'
+        message='Send a password reset link to this user via email?'
+        userName={`${user.firstName} ${user.lastName} (${user.email})`}
+        confirmButtonText='Send Reset Link'
       />
     </>
   );

@@ -41,9 +41,9 @@ export const searchInput = style({
   transition: 'all 0.2s ease',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['500'],
+    borderColor: vars.colors.primary,
     background: '#ffffff',
-    boxShadow: `0 0 0 3px ${vars.colors.primary['100']}`,
+    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
   },
   '::placeholder': {
     color: '#9ca3af',
@@ -81,8 +81,8 @@ export const iconButton = recipe({
     transition: 'all 0.2s ease',
     ':hover': {
       background: '#f9fafb',
-      borderColor: vars.colors.primary['500'],
-      color: vars.colors.primary['600'],
+      borderColor: vars.colors.primary,
+      color: vars.colors.primaryHover,
     },
   },
   variants: {
@@ -127,7 +127,7 @@ export const userButton = style({
   transition: 'all 0.2s ease',
   ':hover': {
     background: '#f9fafb',
-    borderColor: vars.colors.primary['500'],
+    borderColor: vars.colors.primary,
   },
 });
 
@@ -135,7 +135,7 @@ export const userAvatar = style({
   width: '36px',
   height: '36px',
   borderRadius: '50%',
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   display: 'flex',
   alignItems: 'center',

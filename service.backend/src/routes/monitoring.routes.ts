@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { Op } from 'sequelize';
+import { Op, type WhereOptions } from 'sequelize';
 import { config } from '../config';
 import { authenticateToken } from '../middleware/auth';
 import { apiLimiter, authLimiter, uploadLimiter } from '../middleware/rate-limiter';
@@ -26,6 +26,80 @@ router.use(monitoringGuard);
 // inside `authenticateToken`. Once we're past the rate gate the standard
 // admin-auth chain runs.
 router.use(apiLimiter);
+
+// Dev-login user list is consumed pre-auth by the DevLoginPanel so the
+// user has *something* to log in as. `monitoringGuard` already 404s
+// this in production; admin auth on top would defeat the purpose.
+router.get('/api/dev/seeded-users', async (req, res) => {
+  const User = (await import('../models/User')).default;
+
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const userTypeRaw = typeof req.query.userType === 'string' ? req.query.userType : '';
+  const userTypes = userTypeRaw
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  const limitRaw = typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 100;
+  const limit = Number.isFinite(limitRaw) ? Math.min(500, Math.max(1, limitRaw)) : 100;
+
+  const andClauses: WhereOptions[] = [];
+  if (userTypes.length > 0) {
+    andClauses.push({ userType: { [Op.in]: userTypes } });
+  }
+  if (q) {
+    const like = `%${q}%`;
+    andClauses.push({
+      [Op.or]: [
+        { firstName: { [Op.iLike]: like } },
+        { lastName: { [Op.iLike]: like } },
+        { email: { [Op.iLike]: like } },
+      ],
+    });
+  }
+  const where: WhereOptions = andClauses.length > 0 ? { [Op.and]: andClauses } : {};
+
+  const seededUsers = await User.findAll({
+    where,
+    attributes: [
+      'userId',
+      'firstName',
+      'lastName',
+      'email',
+      'userType',
+      'status',
+      'emailVerified',
+      'country',
+      'city',
+      'addressLine1',
+      'postalCode',
+      'timezone',
+      'language',
+      'bio',
+      'dateOfBirth',
+      'phoneNumber',
+      'termsAcceptedAt',
+      'privacyPolicyAcceptedAt',
+      'createdAt',
+      'updatedAt',
+    ],
+    order: [['createdAt', 'DESC']],
+    limit,
+  });
+
+  const transformedUsers = seededUsers.map(user => ({
+    ...user.toJSON(),
+    description: getDevUserDescription(user.userType, user.email),
+  }));
+
+  res.json({
+    users: transformedUsers,
+    source: 'database',
+    limit,
+    returned: transformedUsers.length,
+    timestamp: new Date(),
+  });
+});
+
 router.use(authenticateToken);
 router.use(requireAdmin);
 
@@ -577,12 +651,8 @@ if (process.env.NODE_ENV === 'development') {
    *         $ref: '#/components/responses/NotFoundError'
    */
   router.get('/api/health', async (req, res) => {
-    try {
-      const health = await HealthCheckService.getFullHealthCheck();
-      res.json(health);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get health status' });
-    }
+    const health = await HealthCheckService.getFullHealthCheck();
+    res.json(health);
   });
 
   // Individual service health endpoints for frontend
@@ -695,12 +765,8 @@ if (process.env.NODE_ENV === 'development') {
    *         $ref: '#/components/responses/NotFoundError'
    */
   router.get('/api/health/database', async (req, res) => {
-    try {
-      const dbHealth = await HealthCheckService.checkDatabaseHealth();
-      res.json(dbHealth);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to check database health' });
-    }
+    const dbHealth = await HealthCheckService.checkDatabaseHealth();
+    res.json(dbHealth);
   });
 
   /**
@@ -811,12 +877,8 @@ if (process.env.NODE_ENV === 'development') {
    *         $ref: '#/components/responses/NotFoundError'
    */
   router.get('/api/health/email', async (req, res) => {
-    try {
-      const emailHealth = await HealthCheckService.checkEmailHealth();
-      res.json(emailHealth);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to check email health' });
-    }
+    const emailHealth = await HealthCheckService.checkEmailHealth();
+    res.json(emailHealth);
   });
 
   /**
@@ -927,12 +989,8 @@ if (process.env.NODE_ENV === 'development') {
    *         $ref: '#/components/responses/NotFoundError'
    */
   router.get('/api/health/storage', async (req, res) => {
-    try {
-      const storageHealth = await HealthCheckService.checkStorageHealth();
-      res.json(storageHealth);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to check storage health' });
-    }
+    const storageHealth = await HealthCheckService.checkStorageHealth();
+    res.json(storageHealth);
   });
 
   /**
@@ -1043,18 +1101,14 @@ if (process.env.NODE_ENV === 'development') {
    *         $ref: '#/components/responses/NotFoundError'
    */
   router.get('/api/health/system', async (req, res) => {
-    try {
-      const health = await HealthCheckService.getFullHealthCheck();
-      res.json({
-        uptime: health.uptime,
-        metrics: health.metrics,
-        timestamp: health.timestamp,
-        version: health.version,
-        environment: health.environment,
-      });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get system metrics' });
-    }
+    const health = await HealthCheckService.getFullHealthCheck();
+    res.json({
+      uptime: health.uptime,
+      metrics: health.metrics,
+      timestamp: health.timestamp,
+      version: health.version,
+      environment: health.environment,
+    });
   });
 
   // Email provider info (development only)
@@ -1167,113 +1221,22 @@ if (process.env.NODE_ENV === 'development') {
    *         $ref: '#/components/responses/NotFoundError'
    */
   router.get('/api/email/provider-info', async (req, res) => {
-    try {
-      const EmailService = (await import('../services/email.service')).default;
-      const providerInfo = EmailService.getProviderInfo();
+    const EmailService = (await import('../services/email.service')).default;
+    const providerInfo = EmailService.getProviderInfo();
 
-      if (!providerInfo) {
-        return res.json({
-          provider: 'none',
-          message: 'No email provider info available',
-        });
-      }
-
-      res.json({
-        provider: 'ethereal',
-        ...providerInfo,
-        loginUrl: 'https://ethereal.email/login',
-        messagesUrl: 'https://ethereal.email/messages',
-      });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to get email provider info' });
-    }
-  });
-
-  // Dev seeded users endpoint — dynamic, queries the live DB so any
-  // faker-generated demo user is logged-in-able. NEVER exposed in prod
-  // (User table has real PII).
-  router.get('/api/dev/seeded-users', async (req, res) => {
-    // Production gate is enforced by `monitoringGuard` at the router level;
-    // we keep an admin-auth requirement (router.use(requireAdmin)) since the
-    // response includes user PII even outside production.
-    try {
-      const User = (await import('../models/User')).default;
-
-      const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-      const userTypeRaw = typeof req.query.userType === 'string' ? req.query.userType : '';
-      const userTypes = userTypeRaw
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
-      const limitRaw =
-        typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : 100;
-      const limit = Number.isFinite(limitRaw) ? Math.min(500, Math.max(1, limitRaw)) : 100;
-
-      const where: Record<string | symbol, unknown> = {};
-      if (userTypes.length > 0) {
-        where.userType = { [Op.in]: userTypes };
-      }
-      if (q) {
-        const like = `%${q}%`;
-        where[Op.or] = [
-          { firstName: { [Op.iLike]: like } },
-          { lastName: { [Op.iLike]: like } },
-          // email is citext, so iLike here is redundant but harmless and
-          // matches the firstName/lastName pattern.
-          { email: { [Op.iLike]: like } },
-        ];
-      }
-
-      const seededUsers = await User.findAll({
-        where,
-        attributes: [
-          'userId',
-          'firstName',
-          'lastName',
-          'email',
-          'userType',
-          'status',
-          'emailVerified',
-          'country',
-          'city',
-          'addressLine1',
-          'postalCode',
-          'timezone',
-          'language',
-          'bio',
-          'dateOfBirth',
-          'phoneNumber',
-          'termsAcceptedAt',
-          'privacyPolicyAcceptedAt',
-          'createdAt',
-          'updatedAt',
-        ],
-        order: [['createdAt', 'DESC']],
-        limit,
-      });
-
-      const transformedUsers = seededUsers.map(user => ({
-        ...user.toJSON(),
-        description: getDevUserDescription(user.userType, user.email),
-      }));
-
-      // ADS-398: never return a shared dev password in the response. The
-      // dev password is documented in the seeder README; emitting it here
-      // turned a misconfigured NODE_ENV into a one-shot credential leak.
-      res.json({
-        users: transformedUsers,
-        source: 'database',
-        limit,
-        returned: transformedUsers.length,
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      logger.error('Failed to fetch seeded users:', { error });
-      res.status(500).json({
-        error: 'Failed to fetch seeded users',
-        fallback: 'Use local data',
+    if (!providerInfo) {
+      return res.json({
+        provider: 'none',
+        message: 'No email provider info available',
       });
     }
+
+    res.json({
+      provider: 'ethereal',
+      ...providerInfo,
+      loginUrl: 'https://ethereal.email/login',
+      messagesUrl: 'https://ethereal.email/messages',
+    });
   });
 
   // Rate limit testing endpoint (development only)

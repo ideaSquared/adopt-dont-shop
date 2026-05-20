@@ -12,18 +12,27 @@ export interface UserFilters {
   created_to?: string;
 }
 
+export type AdminCreateRole =
+  | 'admin'
+  | 'moderator'
+  | 'super_admin'
+  | 'support_agent'
+  | 'rescue_staff'
+  | 'adopter';
+
 export interface CreateUserRequest {
   email: string;
   first_name: string;
   last_name: string;
-  role: 'admin' | 'moderator';
+  role: AdminCreateRole;
   is_active?: boolean;
+  send_invitation?: boolean;
 }
 
 export interface UpdateUserRequest {
   first_name?: string;
   last_name?: string;
-  role?: 'admin' | 'moderator';
+  role?: AdminCreateRole;
   is_active?: boolean;
 }
 

@@ -1,19 +1,21 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const loginPrompt = style({
   textAlign: 'center',
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${loginPrompt} p`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginBottom: '0.5rem',
 });
 
 globalStyle(`${loginPrompt} a`, {
-  color: '#667eea',
+  color: vars.colors.primary,
   textDecoration: 'none',
   fontWeight: '500',
 });
@@ -24,10 +26,10 @@ globalStyle(`${loginPrompt} a:hover`, {
 
 export const helperText = style({
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: 1.4,
 });
 
 globalStyle(`${helperText} strong`, {
-  color: '#374151',
+  color: vars.text.secondary,
 });

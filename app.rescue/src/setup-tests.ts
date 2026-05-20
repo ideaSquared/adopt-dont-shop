@@ -135,4 +135,54 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   TextInput: ({ children, ...props }: any) =>
     React.createElement('input', { type: 'text', ...props }),
   TextArea: ({ children, ...props }: any) => React.createElement('textarea', props, children),
+  EmptyState: ({ title, description, ...props }: any) =>
+    React.createElement(
+      'div',
+      { role: 'status', ...props },
+      React.createElement('h3', null, title),
+      description ? React.createElement('p', null, description) : null
+    ),
+  FormSection: ({ title, description, children, ...props }: any) =>
+    React.createElement(
+      'section',
+      props,
+      title ? React.createElement('h3', null, title) : null,
+      description ? React.createElement('p', null, description) : null,
+      children
+    ),
+  FormRow: ({ children, ...props }: any) => React.createElement('div', props, children),
+  FormField: ({ label, error, description, children, ...props }: any) =>
+    React.createElement(
+      'div',
+      props,
+      label ? React.createElement('label', null, label) : null,
+      children,
+      error ? React.createElement('span', { role: 'alert' }, error) : null,
+      description ? React.createElement('span', null, description) : null
+    ),
+  // ADS-586: useConfirm / ConfirmDialog mocks so tests can intercept the
+  // promise-based confirm flow without rendering the real modal. Default
+  // returns `true` so existing flows don't break.
+  useConfirm: () => ({
+    isOpen: false,
+    confirm: vi.fn().mockResolvedValue(true),
+    confirmProps: {
+      isOpen: false,
+      onClose: () => {},
+      onConfirm: () => {},
+      message: '',
+    },
+  }),
+  ConfirmDialog: () => null,
+  InstallPwaBanner: () => null,
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    message: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
 }));

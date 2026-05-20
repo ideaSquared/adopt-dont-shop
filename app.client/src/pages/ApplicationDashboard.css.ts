@@ -64,7 +64,7 @@ export const statusBadge = recipe({
   base: {
     display: 'inline-block',
     padding: '0.25rem 0.75rem',
-    borderRadius: vars.border.radius.full,
+    borderRadius: vars.border.radius.pill,
     fontSize: '0.75rem',
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -72,11 +72,11 @@ export const statusBadge = recipe({
   },
   variants: {
     status: {
-      submitted: { background: vars.colors.semantic.info['500'] },
-      under_review: { background: vars.colors.semantic.warning['500'] },
-      approved: { background: vars.colors.semantic.success['500'] },
-      rejected: { background: vars.colors.semantic.error['500'] },
-      default: { background: vars.colors.neutral['500'] },
+      submitted: { background: vars.colors.info },
+      under_review: { background: vars.colors.warning },
+      approved: { background: vars.colors.success },
+      rejected: { background: vars.colors.danger },
+      default: { background: vars.text.muted },
     },
   },
 });

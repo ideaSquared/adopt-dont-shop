@@ -5,7 +5,9 @@ import * as styles from './ApplicationPage.css';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { ApplicationForm, ApplicationProgress, QuickApplyView } from '@/components/application';
 import type { CategoryGroup } from '@/components/application/ApplicationForm';
+import { DraftRestoreBanner } from '@/components/application/DraftRestoreBanner';
 import type { Question } from '@/components/application/QuestionField';
+import { SubmissionSuccess } from '@/components/application/SubmissionSuccess';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { petService, apiService, type Pet } from '@/services';
 import { applicationProfileService } from '@/services/applicationProfileService';
@@ -14,7 +16,10 @@ import {
   canQuickApply,
   splitAnswersForPersistence,
 } from '@/utils/applicationFieldMapping';
-import { applyConditionalDefaults } from '@/components/application/questionConditions';
+import {
+  applyConditionalDefaults,
+  shouldShowQuestion,
+} from '@/components/application/questionConditions';
 import type { ApplicationDefaults } from '@/types';
 
 type MacroStepDef = {
@@ -66,6 +71,26 @@ const CATEGORY_ORDER = [
   'references_verification',
   'final_acknowledgments',
 ];
+
+const hasAnswer = (value: unknown): boolean => {
+  if (value === null || value === undefined || value === '') {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  return true;
+};
+
+const findMissingRequiredLabels = (
+  questions: Question[],
+  answers: Record<string, unknown>
+): string[] =>
+  questions
+    .filter(
+      q => q.isRequired && shouldShowQuestion(q, answers) && !hasAnswer(answers[q.questionKey])
+    )
+    .map(q => q.questionText);
 
 const groupQuestionsByMacroStep = (questions: Question[], petName?: string): CategoryGroup[] => {
   const byCategory = new Map<string, Question[]>();
@@ -156,7 +181,14 @@ export const ApplicationPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // ADS-581: once the user submits, swap the form for a rich success view
+  // that names the next steps (confirmation email, response window, links to
+  // the dashboard) instead of a vague toast + 3s auto-redirect.
+  const [submittedApplicationId, setSubmittedApplicationId] = useState<string | null>(null);
+  // ADS-581: draft restore is now explicit — the user has to opt in to seeing
+  // their previous answers, or opt out by starting over. `null` = undecided
+  // (banner showing); 'resume'/'startOver' = decided and banner hidden.
+  const [draftDecision, setDraftDecision] = useState<'resume' | 'startOver' | null>(null);
 
   const { saveStatus, lastSaved, scheduleSave, saveNow, clearDraft, loadedDraft } =
     useAutoSave<Record<string, unknown>>(petId);
@@ -211,7 +243,7 @@ export const ApplicationPage: React.FC = () => {
     }
   }, [petId, navigate, user]);
 
-  useEffect(() => {
+  const handleResumeDraft = useCallback(() => {
     if (!loadedDraft) {
       return;
     }
@@ -222,7 +254,13 @@ export const ApplicationPage: React.FC = () => {
     // draft reflects the user's own typed answers.
     setPrefilledKeys(new Set());
     setViewMode('guided');
+    setDraftDecision('resume');
   }, [loadedDraft]);
+
+  const handleStartOver = useCallback(() => {
+    clearDraft();
+    setDraftDecision('startOver');
+  }, [clearDraft]);
 
   useEffect(() => {
     if (authLoading) {
@@ -257,6 +295,13 @@ export const ApplicationPage: React.FC = () => {
   const handleStepBack = useCallback(() => {
     setCurrentStep(prev => Math.max(1, prev - 1));
   }, []);
+
+  // Without this, moving between steps leaves the user mid-page on the
+  // bottom of the previous form. Scroll back to the top so the new step's
+  // heading is the first thing in view.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
 
   const handleSubmit = async () => {
     if (!pet) {
@@ -293,9 +338,7 @@ export const ApplicationPage: React.FC = () => {
       }
 
       clearDraft();
-      setSuccessMessage(
-        `You're in! 🎉 We've sent your application to ${pet.name}'s rescue — taking you to your application details now.`
-      );
+      setSubmittedApplicationId(result.data.applicationId);
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       // ADS-125: toast confirmation with a quick action to jump straight there.
@@ -305,20 +348,21 @@ export const ApplicationPage: React.FC = () => {
           onClick: () => navigate(`/applications/${result.data.applicationId}`),
         },
       });
-
-      setTimeout(() => {
-        navigate(`/applications/${result.data.applicationId}`, {
-          state: { message: `Application for ${pet.name} sent! 🐾` },
-        });
-      }, 3000);
     } catch (err) {
       console.error('Failed to submit application:', err);
       const message = err instanceof Error ? err.message : null;
-      setError(
-        message?.includes('validation failed')
-          ? `A few required answers are still missing — pop back through and double-check each section.`
-          : (message ?? 'Something went wrong sending your application. Mind giving it another go?')
-      );
+      if (message?.includes('validation failed')) {
+        const missing = findMissingRequiredLabels(allQuestions, answers);
+        const intro =
+          missing.length > 0
+            ? `${missing.length} required ${missing.length === 1 ? 'answer is' : 'answers are'} still missing: ${missing.join(', ')}.`
+            : 'A few required answers are still missing.';
+        setError(`${intro} Pop back through and double-check each section.`);
+      } else {
+        setError(
+          message ?? 'Something went wrong sending your application. Mind giving it another go?'
+        );
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
@@ -365,6 +409,21 @@ export const ApplicationPage: React.FC = () => {
     );
   }
 
+  if (submittedApplicationId && pet) {
+    return (
+      <div className={styles.container}>
+        <SubmissionSuccess
+          petName={pet.name}
+          rescueName={pet.rescue?.name ?? 'this rescue'}
+          email={user?.email ?? ''}
+          applicationId={submittedApplicationId}
+          onViewApplication={() => navigate(`/applications/${submittedApplicationId}`)}
+          onViewAllApplications={() => navigate('/applications')}
+        />
+      </div>
+    );
+  }
+
   const showQuickApply = viewMode === 'quick' && pet && allQuestions.length > 0;
 
   return (
@@ -373,26 +432,21 @@ export const ApplicationPage: React.FC = () => {
         <div className={styles.header}>
           <h1>Let&apos;s get you adopting {pet?.name} 🐾</h1>
           <p>A few quick questions and {pet?.name}&apos;s rescue will take it from there.</p>
-          {loadedDraft && (
-            <p className={styles.draftWelcome}>
-              Welcome back — we picked up where you left off. ✨
-            </p>
-          )}
         </div>
+      )}
+
+      {loadedDraft && draftDecision === null && (
+        <DraftRestoreBanner
+          savedAt={new Date(loadedDraft.savedAt)}
+          onResume={handleResumeDraft}
+          onStartOver={handleStartOver}
+        />
       )}
 
       {error && (
         <div className={styles.sectionAlert}>
           <Alert variant='error' title='Error' onClose={() => setError(null)}>
             {error}
-          </Alert>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className={styles.sectionAlert}>
-          <Alert variant='success' title='Success' onClose={() => setSuccessMessage(null)}>
-            {successMessage}
           </Alert>
         </div>
       )}

@@ -18,267 +18,239 @@ The Client App is the public-facing React application for potential pet adopters
 
 **Swipe Interface (`/discover`)**
 
-- Tinder-style swipe interface for engaging discovery
-- Gesture support: touch, mouse, keyboard navigation
+- Tinder-style swipe interface with React Spring + Use-Gesture
+- Gesture support: touch, mouse, keyboard navigation (arrows / Enter / Esc)
 - Smart actions: right (like), left (pass), up (super like), down (info)
-- Color-coded overlays with animations
-- Infinite queue with intelligent preloading
-- Session tracking and analytics
+- Color-coded overlays with spring animations
+- Infinite queue with intelligent preloading (next 5 pets)
+- **Session resume**: persisted via `localStorage` (`discovery.sessionId` + last viewed pet IDs); queue resumes excluding already-viewed pets across reloads
+- Per-swipe analytics via Statsig + `discoveryService.recordSwipeAction`
 
 **Traditional Search (`/search`)**
 
-- Advanced search with comprehensive filters
+- Advanced search with filters
 - Grid view with card-based browsing
-- Filters: type, breed, age, size, location, special needs, gender
-- Sorting: distance, age, date added, urgency
+- **Active filters**: type, size, gender, age group, status, distance, free-text
+- **Sorting**: distance, age, date added
+
+*Out of scope / roadmap:* breed filter, special-needs filter, urgency sort.
 
 **Unified Features**
 
 - Seamless switching between modes
 - Detailed pet profiles with photo galleries
-- Favorites across both interfaces
-- Smart recommendations based on behavior
+- Favorites across both interfaces (swipe likes auto-add to favorites server-side)
+
+*Out of scope / roadmap:* Smart recommendations engine — see [recommendations plan](./recommendations-plan.md) (separate doc, design only).
 
 ### 2. User Authentication & Account Management
 
-- Email-based registration with verification
-- Secure login/logout with JWT tokens
-- Password reset and recovery
-- Complete profile with preferences
-- Account settings management
+- Email-based registration with verification (`RegisterPage` → `CheckYourEmailPage` → `VerifyEmailPage`)
+- Secure login/logout with JWT (15-min access tokens + httpOnly refresh cookie)
+- Password reset and recovery (`ForgotPasswordPage`, `ResetPasswordPage`)
+- 2FA via `TwoFactorSettings` from `lib.auth`
+- Complete profile with preferences (`ProfilePage`, `ProfileEditForm`)
+- Account settings management (`SettingsForm`)
+- Account deletion via `authService.deleteAccount`
 
 ### 3. Adoption Application System
 
-- Dynamic forms based on rescue-specific questions
-- Application tracking and status updates
-- Document upload support
-- Application history viewing
+- **Question-driven dynamic forms** fetched per rescue (`/api/v1/rescues/:id/questions`)
+- Progressive form with validation, conditional question logic, and auto-save (drafts)
+- Draft restore banner on return
+- Pre-fill from previous applications (`applicationProfileService`)
+- Quick-apply vs guided modes
+- Application history and status tracking (`ApplicationDashboard`, `ApplicationDetailsPage`)
+- Application withdrawal flow
+
+*Implementation note:* The earlier "step-component" application flow (`steps/BasicInfo`, `LivingSituation`, etc.) was removed. The live application form is fully question-driven via dynamic rescue questions.
+
+*Out of scope / roadmap:* Document upload as a first-class step (rescue questions can include file inputs but there is no dedicated step UI).
 
 ### 4. Communication
 
-- Real-time messaging with rescues (Socket.IO)
+- Real-time messaging with rescues (Socket.IO via `lib.chat`)
 - Message history and conversation archive
-- File attachments for documents and images
-- Message reactions and read receipts
-- Typing indicators
-- Email and in-app notifications
-- Multi-participant chat support
+- File attachments
+- Message reactions, read receipts, typing indicators
+- Email + in-app notifications
+
+*Out of scope / roadmap:* Group / multi-participant chat (data model supports it, UX is 1:1 only today).
 
 ### 5. User Settings & Preferences
 
-- Profile information management
-- Discovery preferences (swipe sensitivity, characteristics, radius)
-- Notification preferences (email, push)
-- Privacy controls (data sharing, analytics visibility)
-- Search preferences (default criteria, location)
-- Accessibility settings (motion, keyboard nav, high contrast)
+- **Profile information** (name, email, phone, address)
+- **Discovery preferences**: pet types, search radius
+- **Notification preferences**: email, push, SMS, marketing, applications, messages, system, reminders, quiet hours
+- **Privacy controls**: profile visibility, show email/phone toggles
+- **Accessibility**: keyboard nav (built-in), theme toggle (`ThemeToggle` — light/normal/dark)
+
+*Out of scope / roadmap:* Swipe sensitivity preference, characteristic preferences (size/age/energy), reduce-motion preference, default saved-search.
 
 ### 6. Analytics & Personalization
 
-- Swipe analytics and engagement tracking
-- Behavioral learning for recommendations
-- Session management and resume capability
-- Personal adoption readiness scores
+- Swipe analytics + engagement tracking via Statsig + backend `recordSwipeAction`
+- Session persistence: `localStorage`-backed session ID + last-viewed pet IDs (see §1)
+- Backend `discovery` endpoint returns a sorted queue (proximity, freshness, sponsored)
+
+*Out of scope / roadmap:* Behavioural learning / recommendation engine — see [recommendations plan](./recommendations-plan.md). Personal adoption readiness scores — roadmap.
 
 ## Technical Requirements
 
 ### Performance
 
-- Page Load: < 2 seconds
-- Search Response: < 500ms
-- Swipe Responsiveness: < 100ms gesture response
-- Image Loading: Progressive with lazy loading and preloading
-- Offline Support: Basic offline browsing
-- Animation Performance: 60fps with hardware acceleration
+- Page load < 2s target
+- Search response < 500ms target
+- Swipe responsiveness < 100ms
+- Image lazy loading + preloading next 5 pets (`useImagePreloader`)
+- Animation 60fps via react-spring CSS transforms
 
 ### Accessibility
 
-- WCAG 2.1 AA compliance
-- Screen reader support
-- Full keyboard navigation
-- High contrast mode support
+- High-contrast toggle in Settings
+- Keyboard navigation across swipe + bottom-tab nav
+- ARIA labels on swipe cards + nav
+- WCAG 2.1 AA targeted (no formal audit artefact)
+
+*Out of scope / roadmap:* `prefers-reduced-motion` handling.
 
 ### Security
 
-- HTTPS encryption for all data
-- JWT-based authentication with refresh tokens
-- Client and server-side validation
-- Content Security Policy (XSS protection)
+- TLS at edge (HTTPS in prod)
+- JWT-based auth with httpOnly refresh cookie
+- Client + server zod validation
+- Backend CSP headers; `SafeHtml` component for sanitised HTML rendering
 
-### Mobile Responsiveness
+### Mobile / PWA
 
-- Mobile-first design
-- Advanced touch gesture support with physics
-- Responsive gestures for different device sizes
-- Progressive Web App capabilities
-- Cross-platform support (iOS, Android, desktop)
-- Offline discovery with cached data
+- Mobile-first responsive design
+- Bottom-tab nav on mobile
+- Touch gestures with spring physics
+- **PWA enabled** via `vite-plugin-pwa`:
+  - `registerType: 'autoUpdate'`
+  - Workbox runtime caches: pet list endpoints (NetworkFirst, short TTL), image CDN (CacheFirst, 30 days)
+  - Skip caching for chat endpoints (real-time)
+  - Manifest + icons (192/512)
+  - Install prompt component (`lib.components/InstallPwaBanner`)
+- **Offline scope**: chat message queueing only (`offlineManager.ts` buffers outbound messages). Offline pet browsing is roadmap.
+
+### Legal Routes
+
+- `/terms` and `/privacy` routes render content from CMS via `LegalPage.tsx` (same pattern as `BlogPostPage.tsx`)
+- Content authored via admin `ContentManagement.tsx`
 
 ## Discovery Interface Architecture
 
 ### Core Components
 
-- **SwipeCard**: Pet cards with gesture handling and feedback
-- **SwipeStack**: Card stack rendering and infinite loading
-- **SwipeControls**: Action buttons for non-gesture interactions
-- **SwipeOverlay**: Visual feedback with animations
-- **DiscoveryPage**: Main interface with filters and session management
+- `SwipeCard` — pet card with gesture handling + overlay
+- `SwipeStack` — stack rendering + infinite loading
+- `SwipeControls` — buttons for non-gesture interaction
+- `DiscoveryPage` — orchestrator: filters, session, queue
+- Overlay implemented inline in `SwipeCard` (not a separate component)
 
 ### Gesture System
 
-- Libraries: React Spring (animations), Use-Gesture (detection)
-- Supported actions with keyboard alternatives
-- Realistic physics with spring animations
-- Full accessibility support
+- React Spring (animations) + Use-Gesture (detection)
+- Keyboard alternatives for every gesture
+- Spring physics `{ tension: 300, friction: 30 }`
 
 ### Backend Integration
 
-- Smart queue API for personalized pet ordering
-- Real-time action recording for analytics
-- Session analytics tracking
-- Dynamic filter application
+- `GET /api/v1/discovery` for queue, with `lastViewedPetIds` exclusion for resume
+- `POST` to record swipe actions
+- Filters applied server-side
 
 ## User Journey
 
 ### New User Flow
 
-1. Landing page with compelling CTA and preview
-2. Immediate swipe interface access (no login required)
-3. Interactive demo with sample pets
-4. Registration prompt after interest shown
-5. Simple account creation with verification
-6. Optional preference setup
-7. Full personalized discovery access
+1. Landing page with CTA + preview
+2. Immediate swipe access (no login required for browsing)
+3. Login prompt triggers on apply (`LoginPromptModal`)
+4. Account creation with email verification
+5. Optional preference setup (Settings)
+
+*Out of scope / roadmap:* Interactive sample-pet demo for unauthenticated users; registration prompt after N interactions in swipe.
 
 ### Returning User Flow
 
-1. Quick login with saved credentials
-2. Personal dashboard with statistics
-3. Resume previous session
-4. View recent updates and messages
-5. AI-enhanced recommendations
+1. Quick login
+2. **Session resume** in `/discover` (queue continues excluding previously viewed)
+3. Notifications + messages surfaces
+
+*Out of scope / roadmap:* Personalised dashboard with personal stats; AI-enhanced recommendations.
 
 ### Application Flow
 
-1. Pet selection from search or favorites
-2. Dynamic form based on rescue requirements
-3. Progressive form with validation and auto-save
-4. Document upload support
-5. Review and submit
-6. Immediate confirmation
-7. Status tracking and communication
+1. Pet selection from search/favorites/swipe
+2. Dynamic question-driven form (per rescue)
+3. Auto-save with draft restore
+4. Submit confirmation
+5. Track status from `ApplicationDashboard`
 
 ## Success Metrics
 
 ### User Engagement
 
-- MAU: 15,000+ within 6 months
-- Session Duration: 10+ minutes average
-- Discovery Engagement: 75%+ try swipe interface
-- Swipe Volume: 20+ swipes per session average
-- Return Visits: 40%+ retention rate
-- Cross-Mode Usage: 60%+ use both discovery modes
+- MAU 15,000+ within 6 months
+- Session duration 10+ min average
+- Discovery engagement: 75%+ try swipe
+- 20+ swipes per session average
+- 40%+ return retention
 
-### Conversion Metrics
+### Conversion
 
-- Registration Rate: 20%+ of visitors
-- Discovery to Favorites: 15%+ sessions result in saves
-- Application Submission: 50%+ of registered users
-- Application Completion: 85%+ form completion
-- Time to Apply: < 8 minutes from discovery
-- Super Like Conversion: 80%+ result in applications
+- 20%+ visitor registration
+- 15%+ sessions result in favorites
+- 85%+ form completion
+- < 8 min discover → apply
 
-### Technical Performance
+### Technical
 
-- Page Load: 95% under 3 seconds
-- Discovery Responsiveness: 95% gestures under 100ms
-- Image Preloading: Next 5 pets preloaded
-- Uptime: 99.9% availability
-- Error Rate: < 0.1%
-- Accessibility Score: 95+ Lighthouse
-- PWA Performance: 90+ Lighthouse
+- 95% page loads < 3s
+- 95% swipe gestures < 100ms
+- Image preload next 5
+- 99.9% backend uptime
+- < 0.1% error rate
+- Lighthouse a11y 95+
+- Lighthouse PWA 90+
 
 ## Launch Strategy
 
-### Soft Launch (Phase 1)
-
-- Limited beta with 200 selected users
-- Both discovery modes testing
-- Feature validation across devices
-- Analytics baseline establishment
-- User feedback collection
-- Performance optimization based on usage
-
-### Public Launch (Phase 2)
-
-- Marketing campaign highlighting swipe experience
-- Discovery interface onboarding
-- SEO optimization for discovery features
-- Full analytics tracking
-- Complete help documentation
-- Influencer partnerships
-
-### Post-Launch (Phase 3)
-
-- Feature enhancements based on feedback
-- Personalization refinement
-- Native mobile app development
-- Advanced discovery features (video, AR)
-- Integration expansion
-- Gamification elements
+(Unchanged from prior PRD — soft launch, public launch, post-launch phases.)
 
 ## Risk Mitigation
 
-### Technical Risks
-
-- Browser compatibility: Comprehensive testing
-- Performance: Load testing and optimization
-- Security: Regular audits and updates
-- API dependencies: Fallback mechanisms
-
-### User Experience Risks
-
-- Discovery learning curve: User onboarding
-- Gesture compatibility: Cross-device testing
-- Mobile usability: Extensive device testing
-- Accessibility: Comprehensive audit
-- Information overload: Balance simplicity and detail
-
-### Business Risks
-
-- Low adoption: Marketing and acquisition strategy
-- Competition: Unique value proposition
-- Rescue participation: Incentive programs
-- Legal compliance: Privacy law compliance
+(Unchanged.)
 
 ## Future Roadmap
 
-### Short Term (3-6 months)
+### Near Term
 
-- Enhanced discovery with advanced filters
-- Personalization engine with ML
-- Social features (sharing, reviews)
-- Mobile PWA with offline capabilities
-- User engagement analytics dashboard
+- Recommendations engine (see [recommendations plan](./recommendations-plan.md))
+- Breed + special-needs filters
+- `prefers-reduced-motion` support
+- Swipe sensitivity + characteristic preferences
+- Offline pet browsing via PWA cache
 
-### Medium Term (6-12 months)
+### Medium Term
 
-- Native mobile apps (iOS/Android)
-- Video discovery and swipeable content
-- AR integration for pet previews
-- Advanced analytics and predictions
-- Gamification and achievements
+- Group / multi-participant chat UI
+- Personal dashboard with personal stats
+- Native mobile apps
+- Video discovery
 
-### Long Term (12+ months)
+### Deferred / De-scoped
 
-- AI matching engine for compatibility
-- Virtual reality pet interaction
-- Marketplace integration for supplies
-- Global expansion with multi-language
-- Community platform for user content
+- Adoption readiness scores
+- AR previews
+- Marketplace integration
+- VR pet interaction
 
 ## Additional Resources
 
 - **Implementation Plan**: [implementation-plan.md](./implementation-plan.md)
 - **Technical Architecture**: [technical-architecture.md](./technical-architecture.md)
+- **Recommendations Plan**: [recommendations-plan.md](./recommendations-plan.md)
 - **API Documentation**: [../backend/api-endpoints.md](../backend/api-endpoints.md)

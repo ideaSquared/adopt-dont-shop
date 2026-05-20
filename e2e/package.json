@@ -6,6 +6,7 @@
   "description": "End-to-end tests for adopt-dont-shop. Behaviour-focused journeys across app.client, app.rescue and app.admin driven by Playwright.",
   "scripts": {
     "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
     "test:ui": "playwright test --ui",
     "test:debug": "PWDEBUG=1 playwright test",
     "test:headed": "playwright test --headed",

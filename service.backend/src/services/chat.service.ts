@@ -1,4 +1,4 @@
-import { Op, WhereOptions } from 'sequelize';
+import { Op, WhereOptions, type Includeable } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
 import MessageReaction from '../models/MessageReaction';
 import MessageRead from '../models/MessageRead';
@@ -448,21 +448,7 @@ export class ChatService {
       }
 
       // Build includes array
-      const includes: Array<{
-        model?: typeof Message | typeof ChatParticipant;
-        as?: string;
-        association?: string;
-        attributes?: string[];
-        limit?: number;
-        order?: [string, string][];
-        where?: Record<string, unknown>;
-        required?: boolean;
-        include?: Array<{
-          model: typeof User;
-          as: string;
-          attributes: string[];
-        }>;
-      }> = [
+      const includes: Includeable[] = [
         {
           model: Message,
           as: 'Messages',

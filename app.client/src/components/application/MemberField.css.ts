@@ -4,12 +4,12 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const container = style({
   borderRadius: '0.5rem',
   padding: '1rem',
-  background: vars.background.primary,
+  background: vars.background.body,
 });
 
 export const containerVariants = styleVariants({
-  normal: { border: `1px solid ${vars.border.color.primary}` },
-  error: { border: `1px solid ${vars.colors.semantic.error['500']}` },
+  normal: { border: `1px solid ${vars.border.color.default}` },
+  error: { border: `1px solid ${vars.colors.danger}` },
 });
 
 export const addSection = style({
@@ -25,15 +25,15 @@ export const addButton = style({
   gap: '0.25rem',
   padding: '0.625rem 0.875rem',
   minWidth: '4.5rem',
-  border: `2px dashed ${vars.border.color.primary}`,
+  border: `2px dashed ${vars.border.color.default}`,
   borderRadius: '0.5rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   cursor: 'pointer',
   position: 'relative',
   transition: 'border-color 0.15s, background 0.15s',
   ':hover': {
-    borderColor: vars.colors.primary['400'],
-    background: vars.colors.primary['50'],
+    borderColor: vars.colors.primary,
+    background: vars.colors.primaryBgSubtle,
   },
 });
 
@@ -53,7 +53,7 @@ export const countBadge = style({
   position: 'absolute',
   top: '-0.4rem',
   right: '-0.4rem',
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   borderRadius: '9999px',
   minWidth: '1.25rem',
@@ -75,7 +75,7 @@ export const plusIcon = style({
 export const itemsSection = style({
   marginTop: '1rem',
   paddingTop: '1rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
   display: 'flex',
   flexWrap: 'wrap',
   gap: '0.5rem',
@@ -86,8 +86,8 @@ export const itemCard = style({
   alignItems: 'center',
   gap: '0.5rem',
   padding: '0.375rem 0.5rem 0.375rem 0.75rem',
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '2rem',
 });
 
@@ -151,14 +151,14 @@ export const ageInput = style({
   width: '3rem',
   padding: '0.125rem 0.25rem',
   fontSize: '0.75rem',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.25rem',
   color: vars.text.primary,
-  background: vars.background.primary,
+  background: vars.background.body,
   outline: 'none',
   textAlign: 'center',
   ':focus': {
-    borderColor: vars.colors.primary['500'],
+    borderColor: vars.colors.primary,
   },
 });
 
@@ -166,14 +166,14 @@ export const ageInputNarrow = style({
   width: '2.75rem',
   padding: '0.125rem 0.25rem',
   fontSize: '0.75rem',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.25rem',
   color: vars.text.primary,
-  background: vars.background.primary,
+  background: vars.background.body,
   outline: 'none',
   textAlign: 'center',
   ':focus': {
-    borderColor: vars.colors.primary['500'],
+    borderColor: vars.colors.primary,
   },
 });
 
@@ -195,15 +195,15 @@ export const removeButton = style({
   alignItems: 'center',
   transition: 'color 0.15s, background 0.15s',
   ':hover': {
-    color: vars.colors.semantic.error['600'],
-    background: vars.colors.semantic.error['50'],
+    color: vars.colors.dangerHover,
+    background: vars.colors.dangerBgSubtle,
   },
 });
 
 export const emptyHint = style({
   margin: '0.75rem 0 0',
   paddingTop: '0.75rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
   fontSize: '0.8125rem',
   color: vars.text.secondary,
   textAlign: 'center',

@@ -85,27 +85,31 @@ const getStepLabel = (stepIndex: number, stage: string, finalOutcome?: string): 
   return labels[stepIndex] || '';
 };
 
-const getActionButtons = (application: ApplicationListItem) => {
+const getActionButtons = (
+  application: ApplicationListItem,
+  onSelect: (application: ApplicationListItem) => void
+) => {
   const actions = [];
   const stage = application.stage || 'PENDING';
+  const select = () => onSelect(application);
 
   // Stage-based actions
   switch (stage) {
     case 'PENDING':
-      actions.push({ label: 'Start Review', action: () => {}, variant: 'primary' as const });
+      actions.push({ label: 'Start Review', action: select, variant: 'primary' as const });
       break;
     case 'REVIEWING':
-      actions.push({ label: 'Schedule Visit', action: () => {}, variant: 'primary' as const });
+      actions.push({ label: 'Schedule Visit', action: select, variant: 'primary' as const });
       break;
     case 'VISITING':
     case 'DECIDING':
-      actions.push({ label: 'View Details', action: () => {}, variant: 'secondary' as const });
+      actions.push({ label: 'View Details', action: select, variant: 'secondary' as const });
       break;
     case 'RESOLVED':
-      actions.push({ label: 'View Details', action: () => {}, variant: 'secondary' as const });
+      actions.push({ label: 'View Details', action: select, variant: 'secondary' as const });
       break;
     default:
-      actions.push({ label: 'View', action: () => {}, variant: 'secondary' as const });
+      actions.push({ label: 'View', action: select, variant: 'secondary' as const });
   }
 
   return actions.slice(0, 2);
@@ -126,8 +130,8 @@ interface ApplicationListProps {
   onFilterChange: (filter: ApplicationFilter) => void;
   onSortChange: (sort: ApplicationSort) => void;
   onApplicationSelect: (application: ApplicationListItem) => void;
-  selectedApplications: string[];
-  onSelectionChange: (selected: string[]) => void;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (next: Set<string>) => void;
 }
 
 const ApplicationList: React.FC<ApplicationListProps> = ({
@@ -140,9 +144,34 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
   onFilterChange,
   onSortChange,
   onApplicationSelect,
-  selectedApplications,
+  selectedIds,
   onSelectionChange,
 }) => {
+  const selectionEnabled = selectedIds !== undefined && onSelectionChange !== undefined;
+  const toggleOne = (id: string) => {
+    if (!selectionEnabled) {
+      return;
+    }
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    onSelectionChange(next);
+  };
+  const allSelected =
+    selectionEnabled && applications.length > 0 && applications.every(a => selectedIds.has(a.id));
+  const toggleAll = () => {
+    if (!selectionEnabled) {
+      return;
+    }
+    if (allSelected) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(applications.map(a => a.id)));
+    }
+  };
   // Convert complex ApplicationFilter to simple string-based filters for UI
   const getDateRangeValue = () => {
     if (!filter.dateRange) {
@@ -183,8 +212,13 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
     petBreed: filter.petBreed || '',
   };
 
-  // Convert simple string-based filters back to complex ApplicationFilter
-  // Only search and status filters actually work for filtering data
+  // Convert simple string-based filters back to complex ApplicationFilter.
+  // ADS-575: search, status, priority, petType, petBreed, dateRange are
+  // all honoured server-side. referencesStatus / homeVisitStatus are
+  // still synthetic — the list derives them from application.status (see
+  // RescueApplicationService.calculateReferencesStatus /
+  // calculateHomeVisitStatus), so filtering on them server-side would
+  // require persisting the real reference-check / home-visit records.
   const handleFilterChange = (key: string, value: string) => {
     const newFilter = { ...filter };
 
@@ -234,22 +268,6 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
     onFilterChange(newFilter);
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      onSelectionChange(applications.map(app => app.id));
-    } else {
-      onSelectionChange([]);
-    }
-  };
-
-  const handleSelectApplication = (id: string, checked: boolean) => {
-    if (checked) {
-      onSelectionChange([...selectedApplications, id]);
-    } else {
-      onSelectionChange(selectedApplications.filter(appId => appId !== id));
-    }
-  };
-
   if (error) {
     return (
       <div className={styles.errorContainer}>
@@ -286,10 +304,6 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
         </div>
 
         <div className={styles.headerRight}>
-          {selectedApplications.length > 0 && (
-            <span className={styles.selectionCount}>{selectedApplications.length} selected</span>
-          )}
-
           <select
             className={styles.sortSelect}
             value={`${sort.field}-${sort.direction}`}
@@ -326,17 +340,16 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
             <table className={styles.table}>
               <thead className={styles.tableHead}>
                 <tr>
-                  <th className={styles.tableHeader}>
-                    <input
-                      className={styles.checkbox}
-                      type="checkbox"
-                      checked={
-                        applications.length > 0 &&
-                        applications.every(app => selectedApplications.includes(app.id))
-                      }
-                      onChange={e => handleSelectAll(e.target.checked)}
-                    />
-                  </th>
+                  {selectionEnabled && (
+                    <th className={styles.tableHeader}>
+                      <input
+                        type="checkbox"
+                        aria-label="Select all applications"
+                        checked={allSelected}
+                        onChange={toggleAll}
+                      />
+                    </th>
+                  )}
                   <th className={styles.tableHeader}>Applicant</th>
                   <th className={styles.tableHeader}>Pet</th>
                   <th className={styles.tableHeader}>Status</th>
@@ -353,14 +366,16 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                     className={styles.tableRow}
                     onClick={() => onApplicationSelect(application)}
                   >
-                    <td className={styles.checkboxCell} onClick={e => e.stopPropagation()}>
-                      <input
-                        className={styles.checkbox}
-                        type="checkbox"
-                        checked={selectedApplications.includes(application.id)}
-                        onChange={e => handleSelectApplication(application.id, e.target.checked)}
-                      />
-                    </td>
+                    {selectionEnabled && (
+                      <td className={styles.tableCell} onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select application ${application.id}`}
+                          checked={selectedIds.has(application.id)}
+                          onChange={() => toggleOne(application.id)}
+                        />
+                      </td>
+                    )}
                     <td className={styles.tableCell}>
                       <div className={styles.applicantInfo}>
                         <div className={styles.applicantName}>{application.applicantName}</div>
@@ -432,7 +447,7 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
                     </td>
                     <td className={styles.tableCell} onClick={e => e.stopPropagation()}>
                       <div className={styles.actionsContainer}>
-                        {getActionButtons(application).map(action => (
+                        {getActionButtons(application, onApplicationSelect).map(action => (
                           <button
                             key={action.label}
                             className={styles.actionButton({ variant: action.variant })}

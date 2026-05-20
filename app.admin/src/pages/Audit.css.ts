@@ -1,178 +1,154 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const headerActions = style({
   display: 'flex',
-  gap: '0.75rem',
+  gap: vars.spacing['2'],
 });
 
 export const logDetails = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: vars.spacing['1'],
 });
 
 export const logAction = style({
-  fontWeight: '600',
-  color: '#111827',
+  fontWeight: vars.typography.weight.semibold,
+  color: vars.text.primary,
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 globalStyle(`${logAction} svg`, {
-  fontSize: '0.875rem',
-  color: '#6b7280',
+  fontSize: vars.typography.size.sm,
+  color: vars.text.tertiary,
 });
 
 export const logResource = style({
-  fontSize: '0.8125rem',
-  color: '#6b7280',
+  fontSize: vars.typography.size.sm,
+  color: vars.text.tertiary,
 });
 
 export const userInfo = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: vars.spacing['2'],
 });
 
 export const userAvatar = style({
   width: '24px',
   height: '24px',
-  borderRadius: '50%',
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  borderRadius: vars.border.radius.pill,
+  background: vars.colors.gradientPrimary,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#ffffff',
-  fontWeight: '600',
-  fontSize: '0.625rem',
+  color: vars.text.inverse,
+  fontWeight: vars.typography.weight.semibold,
+  fontSize: vars.typography.size.xs,
   flexShrink: 0,
 });
 
 export const userName = style({
-  fontSize: '0.875rem',
-  color: '#111827',
-  fontWeight: '500',
+  fontSize: vars.typography.size.sm,
+  color: vars.text.primary,
+  fontWeight: vars.typography.weight.medium,
 });
 
-export const actionIconCreate = style({
+const actionIconBase = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   width: '24px',
   height: '24px',
-  borderRadius: '6px',
-  background: '#d1fae5',
-  color: '#065f46',
+  borderRadius: vars.border.radius.base,
   flexShrink: 0,
+} as const;
+
+export const actionIconCreate = style({
+  ...actionIconBase,
+  background: vars.colors.successBgSubtle,
+  color: vars.colors.successTextEmphasis,
 });
 
 globalStyle(`${actionIconCreate} svg`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const actionIconUpdate = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '24px',
-  height: '24px',
-  borderRadius: '6px',
-  background: '#dbeafe',
-  color: '#1e40af',
-  flexShrink: 0,
+  ...actionIconBase,
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoTextEmphasis,
 });
 
 globalStyle(`${actionIconUpdate} svg`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const actionIconDelete = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '24px',
-  height: '24px',
-  borderRadius: '6px',
-  background: '#fee2e2',
-  color: '#991b1b',
-  flexShrink: 0,
+  ...actionIconBase,
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerTextEmphasis,
 });
 
 globalStyle(`${actionIconDelete} svg`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const actionIconLogin = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '24px',
-  height: '24px',
-  borderRadius: '6px',
-  background: '#fef3c7',
-  color: '#92400e',
-  flexShrink: 0,
+  ...actionIconBase,
+  background: vars.colors.warningBgSubtle,
+  color: vars.colors.warningTextEmphasis,
 });
 
 globalStyle(`${actionIconLogin} svg`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const actionIconLogout = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '24px',
-  height: '24px',
-  borderRadius: '6px',
-  background: '#f3f4f6',
-  color: '#374151',
-  flexShrink: 0,
+  ...actionIconBase,
+  background: vars.background.muted,
+  color: vars.text.secondary,
 });
 
 globalStyle(`${actionIconLogout} svg`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const actionIconDefault = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '24px',
-  height: '24px',
-  borderRadius: '6px',
-  background: '#e0e7ff',
-  color: '#3730a3',
-  flexShrink: 0,
+  ...actionIconBase,
+  background: vars.colors.primaryBgSubtle,
+  color: vars.colors.primaryTextEmphasis,
 });
 
 globalStyle(`${actionIconDefault} svg`, {
-  fontSize: '0.875rem',
+  fontSize: vars.typography.size.sm,
 });
 
 export const changesButton = style({
-  padding: '0.25rem 0.625rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '6px',
-  background: '#ffffff',
-  color: '#6b7280',
-  fontSize: '0.75rem',
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+  border: `1px solid ${vars.border.color.muted}`,
+  borderRadius: vars.border.radius.base,
+  background: vars.background.surface,
+  color: vars.text.tertiary,
+  fontSize: vars.typography.size.xs,
   cursor: 'pointer',
-  transition: 'all 0.2s ease',
+  transition: `all ${vars.transitions.fast}`,
   ':hover': {
-    background: '#f9fafb',
-    borderColor: '#9ca3af',
+    background: vars.background.muted,
+    borderColor: vars.border.color.muted,
   },
 });
 
 export const ipAddress = style({
-  fontFamily: "'Monaco', 'Courier New', monospace",
-  fontSize: '0.75rem',
-  color: '#6b7280',
-  background: '#f3f4f6',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '4px',
+  fontFamily: vars.typography.family.mono,
+  fontSize: vars.typography.size.xs,
+  color: vars.text.tertiary,
+  background: vars.background.muted,
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+  borderRadius: vars.border.radius.sm,
 });
 
 export const modal = style({
@@ -181,44 +157,44 @@ export const modal = style({
   left: 0,
   right: 0,
   bottom: 0,
-  background: 'rgba(0, 0, 0, 0.5)',
+  background: vars.background.overlay,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  zIndex: 1000,
+  zIndex: vars.zIndex.modal,
 });
 
 export const modalContent = style({
-  background: 'white',
-  borderRadius: '12px',
-  padding: '1.5rem',
+  background: vars.background.surface,
+  borderRadius: vars.border.radius.xl,
+  padding: vars.spacing['4'],
   maxWidth: '600px',
   maxHeight: '80vh',
   overflow: 'auto',
-  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+  boxShadow: vars.shadows.xl,
 });
 
 export const modalHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: '1rem',
-  paddingBottom: '1rem',
-  borderBottom: '1px solid #e5e7eb',
+  marginBottom: vars.spacing['3'],
+  paddingBottom: vars.spacing['3'],
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 export const modalTitle = style({
-  fontSize: '1.125rem',
-  fontWeight: '600',
-  color: '#111827',
+  fontSize: vars.typography.size.lg,
+  fontWeight: vars.typography.weight.semibold,
+  color: vars.text.primary,
   margin: 0,
 });
 
 export const closeButton = style({
   background: 'none',
   border: 'none',
-  fontSize: '1.5rem',
-  color: '#6b7280',
+  fontSize: vars.typography.size.xl,
+  color: vars.text.tertiary,
   cursor: 'pointer',
   padding: 0,
   width: '32px',
@@ -226,39 +202,39 @@ export const closeButton = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  borderRadius: '6px',
-  transition: 'all 0.2s ease',
+  borderRadius: vars.border.radius.base,
+  transition: `all ${vars.transitions.fast}`,
   ':hover': {
-    background: '#f3f4f6',
-    color: '#111827',
+    background: vars.background.muted,
+    color: vars.text.primary,
   },
 });
 
 export const jsonBlock = style({
-  background: '#1f2937',
-  color: '#f9fafb',
-  padding: '1rem',
-  borderRadius: '8px',
+  background: vars.text.primary,
+  color: vars.background.body,
+  padding: vars.spacing['3'],
+  borderRadius: vars.border.radius.lg,
   overflow: 'auto',
-  fontFamily: "'Monaco', 'Courier New', monospace",
-  fontSize: '0.875rem',
-  lineHeight: 1.5,
+  fontFamily: vars.typography.family.mono,
+  fontSize: vars.typography.size.sm,
+  lineHeight: vars.typography.lineHeight.relaxed,
   margin: 0,
 });
 
 export const subUserType = style({
-  fontSize: '0.75rem',
-  color: '#9ca3af',
+  fontSize: vars.typography.size.xs,
+  color: vars.text.muted,
 });
 
 export const buttonIcon = style({
-  marginRight: '0.5rem',
+  marginRight: vars.spacing['2'],
 });
 
 export const errorBanner = style({
-  padding: '1rem',
-  color: '#dc2626',
-  background: '#fee2e2',
-  borderRadius: '8px',
-  margin: '1rem 0',
+  padding: vars.spacing['3'],
+  color: vars.text.danger,
+  background: vars.background.danger,
+  borderRadius: vars.border.radius.lg,
+  margin: `${vars.spacing['3']} 0`,
 });

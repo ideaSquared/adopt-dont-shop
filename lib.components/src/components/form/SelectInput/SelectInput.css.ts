@@ -39,10 +39,10 @@ export const container = recipe({
 export const label = recipe({
   base: {
     display: 'block',
-    marginBottom: vars.spacing.xs,
+    marginBottom: vars.spacing['1'],
     fontSize: vars.typography.size.sm,
     fontWeight: vars.typography.weight.medium,
-    color: vars.colors.neutral['700'],
+    color: vars.text.secondary,
   },
   variants: {
     required: {
@@ -50,7 +50,7 @@ export const label = recipe({
         selectors: {
           '&::after': {
             content: ' *',
-            color: vars.colors.semantic.error['500'],
+            color: vars.colors.danger,
           },
         },
       },
@@ -80,10 +80,10 @@ export const trigger = recipe({
     justifyContent: 'space-between',
     minWidth: '200px',
     border: '1px solid',
-    borderRadius: vars.spacing.xs,
-    backgroundColor: vars.colors.neutral['50'],
+    borderRadius: vars.spacing['1'],
+    backgroundColor: vars.background.body,
     transition: `all ${vars.transitions.fast}`,
-    gap: vars.spacing.xs,
+    gap: vars.spacing['1'],
     selectors: {
       '&:focus': {
         outline: 'none',
@@ -95,64 +95,64 @@ export const trigger = recipe({
       sm: {
         minHeight: '32px',
         fontSize: '14px',
-        paddingLeft: vars.spacing.xs,
-        paddingRight: vars.spacing.xs,
+        paddingLeft: vars.spacing['1'],
+        paddingRight: vars.spacing['1'],
       },
       md: {
         minHeight: '40px',
         fontSize: '16px',
-        paddingLeft: vars.spacing.sm,
-        paddingRight: vars.spacing.sm,
+        paddingLeft: vars.spacing['2'],
+        paddingRight: vars.spacing['2'],
       },
       lg: {
         minHeight: '48px',
         fontSize: '18px',
-        paddingLeft: vars.spacing.md,
-        paddingRight: vars.spacing.md,
+        paddingLeft: vars.spacing['3'],
+        paddingRight: vars.spacing['3'],
       },
     },
     state: {
       default: {
-        borderColor: vars.colors.neutral['300'],
+        borderColor: vars.border.color.default,
         selectors: {
           '&:focus-within': {
-            borderColor: vars.colors.primary['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.primary['200']}`,
+            borderColor: vars.colors.primary,
+            boxShadow: `0 0 0 3px ${vars.colors.primaryBorderSubtle}`,
           },
         },
       },
       error: {
-        borderColor: vars.colors.semantic.error['500'],
+        borderColor: vars.colors.danger,
         selectors: {
           '&:focus-within': {
-            borderColor: vars.colors.semantic.error['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.error['200']}`,
+            borderColor: vars.colors.danger,
+            boxShadow: `0 0 0 3px ${vars.colors.dangerBorderSubtle}`,
           },
         },
       },
       success: {
-        borderColor: vars.colors.semantic.success['500'],
+        borderColor: vars.colors.success,
         selectors: {
           '&:focus-within': {
-            borderColor: vars.colors.semantic.success['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.success['200']}`,
+            borderColor: vars.colors.success,
+            boxShadow: `0 0 0 3px ${vars.colors.successBorderSubtle}`,
           },
         },
       },
       warning: {
-        borderColor: vars.colors.semantic.warning['500'],
+        borderColor: vars.colors.warning,
         selectors: {
           '&:focus-within': {
-            borderColor: vars.colors.semantic.warning['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.warning['200']}`,
+            borderColor: vars.colors.warning,
+            boxShadow: `0 0 0 3px ${vars.colors.warningBorderSubtle}`,
           },
         },
       },
     },
     disabled: {
       true: {
-        backgroundColor: vars.colors.neutral['100'],
-        color: vars.colors.neutral['400'],
+        backgroundColor: vars.background.muted,
+        color: vars.border.color.strong,
         cursor: 'not-allowed',
       },
       false: {
@@ -173,9 +173,9 @@ export const trigger = recipe({
 });
 
 export const content = style({
-  background: vars.colors.neutral['50'],
-  border: `1px solid ${vars.colors.neutral['300']}`,
-  borderRadius: vars.spacing.xs,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.spacing['1'],
   boxShadow: vars.shadows.lg,
   maxHeight: '300px',
   overflow: 'hidden',
@@ -207,7 +207,7 @@ export const content = style({
 });
 
 export const viewport = style({
-  padding: vars.spacing.xs,
+  padding: vars.spacing['1'],
   maxHeight: '250px',
   overflowY: 'auto',
   selectors: {
@@ -218,31 +218,31 @@ export const viewport = style({
       background: 'transparent',
     },
     '&::-webkit-scrollbar-thumb': {
-      backgroundColor: vars.colors.neutral['300'],
+      backgroundColor: vars.border.color.default,
       borderRadius: '3px',
     },
     '&::-webkit-scrollbar-thumb:hover': {
-      backgroundColor: vars.colors.neutral['400'],
+      backgroundColor: vars.border.color.strong,
     },
   },
 });
 
 export const searchContainer = style({
-  padding: vars.spacing.xs,
-  borderBottom: `1px solid ${vars.colors.neutral['200']}`,
+  padding: vars.spacing['1'],
+  borderBottom: `1px solid ${vars.border.color.muted}`,
 });
 
 export const searchInput = style({
   width: '100%',
-  padding: `${vars.spacing.xs} ${vars.spacing.sm}`,
-  border: `1px solid ${vars.colors.neutral['300']}`,
-  borderRadius: vars.spacing.xs,
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.spacing['1'],
   fontSize: vars.typography.size.sm,
   outline: 'none',
   selectors: {
     '&:focus': {
-      borderColor: vars.colors.primary['500'],
-      boxShadow: `0 0 0 2px ${vars.colors.primary['200']}`,
+      borderColor: vars.colors.primary,
+      boxShadow: `0 0 0 2px ${vars.colors.primaryBorderSubtle}`,
     },
   },
 });
@@ -251,15 +251,15 @@ export const selectItem = recipe({
   base: {
     display: 'flex',
     alignItems: 'center',
-    padding: vars.spacing.sm,
+    padding: vars.spacing['2'],
     transition: `background-color ${vars.transitions.fast}`,
     outline: 'none',
-    borderRadius: vars.spacing.xs,
+    borderRadius: vars.spacing['1'],
     margin: '1px 0',
-    gap: vars.spacing.xs,
+    gap: vars.spacing['1'],
     selectors: {
       '&[data-state="checked"]': {
-        backgroundColor: vars.colors.primary['100'],
+        backgroundColor: vars.colors.primaryBgSubtle,
       },
     },
   },
@@ -267,7 +267,7 @@ export const selectItem = recipe({
     disabled: {
       true: {
         cursor: 'not-allowed',
-        color: vars.colors.neutral['400'],
+        color: vars.border.color.strong,
         selectors: {
           '&[data-highlighted]': {
             backgroundColor: 'transparent',
@@ -276,10 +276,10 @@ export const selectItem = recipe({
       },
       false: {
         cursor: 'pointer',
-        color: vars.colors.neutral['900'],
+        color: vars.text.primary,
         selectors: {
           '&[data-highlighted]': {
-            backgroundColor: vars.colors.neutral['100'],
+            backgroundColor: vars.background.muted,
           },
         },
       },
@@ -292,7 +292,7 @@ export const valueContainer = style({
   display: 'flex',
   alignItems: 'center',
   flexWrap: 'wrap',
-  gap: vars.spacing.xs,
+  gap: vars.spacing['1'],
   flex: 1,
   minWidth: 0,
 });
@@ -300,8 +300,8 @@ export const valueContainer = style({
 export const singleValue = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing.xs,
-  color: vars.colors.neutral['900'],
+  gap: vars.spacing['1'],
+  color: vars.text.primary,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
@@ -310,12 +310,12 @@ export const singleValue = style({
 export const multiValue = style({
   display: 'inline-flex',
   alignItems: 'center',
-  backgroundColor: vars.colors.primary['100'],
-  color: vars.colors.primary['700'],
-  padding: `2px ${vars.spacing.xs}`,
-  borderRadius: vars.spacing.xs,
+  backgroundColor: vars.colors.primaryBgSubtle,
+  color: vars.colors.primaryActive,
+  padding: `2px ${vars.spacing['1']}`,
+  borderRadius: vars.spacing['1'],
   fontSize: vars.typography.size.sm,
-  gap: vars.spacing.xs,
+  gap: vars.spacing['1'],
   maxWidth: '200px',
   overflow: 'hidden',
 });
@@ -332,10 +332,10 @@ export const multiValueRemove = style({
   justifyContent: 'center',
   borderRadius: '50%',
   transition: `background-color ${vars.transitions.fast}`,
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   selectors: {
     '&:hover': {
-      backgroundColor: vars.colors.primary['200'],
+      backgroundColor: vars.colors.primaryBorderSubtle,
     },
   },
 });
@@ -352,31 +352,31 @@ export const clearButton = style({
   justifyContent: 'center',
   borderRadius: '50%',
   transition: `background-color ${vars.transitions.fast}`,
-  color: vars.colors.neutral['400'],
+  color: vars.border.color.strong,
   selectors: {
     '&:hover': {
-      backgroundColor: vars.colors.neutral['100'],
+      backgroundColor: vars.background.muted,
     },
   },
 });
 
 export const placeholder = style({
-  color: vars.colors.neutral['400'],
+  color: vars.border.color.strong,
   flex: 1,
   textAlign: 'left',
 });
 
 export const helperText = recipe({
   base: {
-    marginTop: vars.spacing.xs,
+    marginTop: vars.spacing['1'],
     fontSize: vars.typography.size.sm,
   },
   variants: {
     state: {
-      default: { color: vars.colors.neutral['600'] },
-      error: { color: vars.colors.semantic.error['500'] },
-      success: { color: vars.colors.semantic.success['500'] },
-      warning: { color: vars.colors.semantic.warning['500'] },
+      default: { color: vars.text.tertiary },
+      error: { color: vars.colors.danger },
+      success: { color: vars.colors.success },
+      warning: { color: vars.colors.warning },
     },
   },
   defaultVariants: { state: 'default' },

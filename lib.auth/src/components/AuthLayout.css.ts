@@ -7,20 +7,20 @@ export const container = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: vars.spacing.xl,
-  background: `linear-gradient(135deg, ${vars.background.primary} 0%, ${vars.background.tertiary} 100%)`,
+  padding: vars.spacing['5'],
+  background: `linear-gradient(135deg, ${vars.background.body} 0%, ${vars.background.muted} 100%)`,
 });
 
 export const authCard = style({
   width: '100%',
   maxWidth: '500px',
-  padding: vars.spacing.xl,
+  padding: vars.spacing['5'],
   boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
 });
 
 export const header = style({
   textAlign: 'center',
-  marginBottom: vars.spacing.xl,
+  marginBottom: vars.spacing['5'],
 });
 
 globalStyle(`${header} h1`, {

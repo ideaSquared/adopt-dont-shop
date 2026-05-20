@@ -43,6 +43,11 @@ const MockedSpeakeasy = speakeasy as vi.MockedObject<typeof speakeasy>;
 vi.mock('../../models/RefreshToken');
 const MockedRefreshToken = RefreshToken as vi.MockedObject<typeof RefreshToken>;
 
+// Mock auth cache
+vi.mock('../../lib/auth-cache');
+import { invalidateAuthCache } from '../../lib/auth-cache';
+const MockedInvalidateAuthCache = invalidateAuthCache as vi.Mock;
+
 // Mock qrcode
 vi.mock('qrcode', () => ({
   default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,mockqrcode') },
@@ -619,10 +624,16 @@ describe('AuthService - Security Business Logic', () => {
     });
 
     it('should enable 2FA after verifying setup token', async () => {
-      // Given: Valid setup token
+      // Given: Valid setup token, pending secret present on the user row
+      // (ADS-599: secret is no longer accepted from the client).
       MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
-      const mockUser = createMockUser();
-      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      const mockUser = createMockUser({
+        twoFactorPendingSecret: 'JBSWY3DPEHPK3PXP',
+        twoFactorPendingExpiresAt: new Date(Date.now() + 60_000),
+      });
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findByPk: vi.fn().mockResolvedValue(mockUser),
+      });
 
       const mockCrypto = crypto as vi.MockedObject<typeof crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
@@ -630,24 +641,65 @@ describe('AuthService - Security Business Logic', () => {
       });
 
       // When: Enabling 2FA
-      const result = await AuthService.enableTwoFactor(mockUserId, 'JBSWY3DPEHPK3PXP', '123456');
+      const result = await AuthService.enableTwoFactor(mockUserId, '123456');
 
-      // Then: 2FA is enabled with backup codes
+      // Then: 2FA is enabled with backup codes; pending fields cleared
       expect(mockUser.twoFactorEnabled).toBe(true);
       expect(mockUser.twoFactorSecret).toBe('JBSWY3DPEHPK3PXP');
+      expect(mockUser.twoFactorPendingSecret).toBeNull();
+      expect(mockUser.twoFactorPendingExpiresAt).toBeNull();
       expect(mockUser.backupCodes).toHaveLength(10);
       expect(result.backupCodes).toHaveLength(10);
       expect(mockUser.save).toHaveBeenCalled();
     });
 
     it('should reject enabling 2FA with invalid setup token', async () => {
-      // Given: Invalid setup token
+      // Given: Invalid setup token, pending secret present
       MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(false);
+      const mockUser = createMockUser({
+        twoFactorPendingSecret: 'JBSWY3DPEHPK3PXP',
+        twoFactorPendingExpiresAt: new Date(Date.now() + 60_000),
+      });
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findByPk: vi.fn().mockResolvedValue(mockUser),
+      });
 
       // When & Then: Enabling fails
-      await expect(
-        AuthService.enableTwoFactor(mockUserId, 'JBSWY3DPEHPK3PXP', 'wrong-token')
-      ).rejects.toThrow('Invalid verification code. Please try again.');
+      await expect(AuthService.enableTwoFactor(mockUserId, 'wrong-token')).rejects.toThrow(
+        'Invalid verification code. Please try again.'
+      );
+    });
+
+    it('should reject enabling 2FA when setup was not initiated', async () => {
+      // ADS-599: with no pending secret on the row the enable must fail
+      // — the client can no longer pin its own.
+      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+      const mockUser = createMockUser({
+        twoFactorPendingSecret: null,
+        twoFactorPendingExpiresAt: null,
+      });
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findByPk: vi.fn().mockResolvedValue(mockUser),
+      });
+
+      await expect(AuthService.enableTwoFactor(mockUserId, '123456')).rejects.toThrow(
+        'Two-factor setup has not been initiated'
+      );
+    });
+
+    it('should reject enabling 2FA when pending secret has expired', async () => {
+      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+      const mockUser = createMockUser({
+        twoFactorPendingSecret: 'JBSWY3DPEHPK3PXP',
+        twoFactorPendingExpiresAt: new Date(Date.now() - 1_000),
+      });
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findByPk: vi.fn().mockResolvedValue(mockUser),
+      });
+
+      await expect(AuthService.enableTwoFactor(mockUserId, '123456')).rejects.toThrow(
+        'Two-factor setup has expired'
+      );
     });
 
     it('should disable 2FA and clear secret and backup codes', async () => {
@@ -671,17 +723,56 @@ describe('AuthService - Security Business Logic', () => {
 
     it('should throw error when enabling 2FA for non-existent user', async () => {
       MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
-      MockedUser.findByPk = vi.fn().mockResolvedValue(null);
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findByPk: vi.fn().mockResolvedValue(null),
+      });
 
-      await expect(
-        AuthService.enableTwoFactor('non-existent', 'JBSWY3DPEHPK3PXP', '123456')
-      ).rejects.toThrow('User not found');
+      await expect(AuthService.enableTwoFactor('non-existent', '123456')).rejects.toThrow(
+        'User not found'
+      );
     });
 
     it('should throw error when disabling 2FA for non-existent user', async () => {
       MockedUser.findByPk = vi.fn().mockResolvedValue(null);
 
       await expect(AuthService.disableTwoFactor('non-existent')).rejects.toThrow('User not found');
+    });
+
+    it('revokes all active refresh tokens after disabling 2FA (ADS-589)', async () => {
+      // Given: User with 2FA enabled
+      const mockUser = createMockUser({
+        userId: mockUserId,
+        twoFactorEnabled: true,
+        twoFactorSecret: 'JBSWY3DPEHPK3PXP',
+        backupCodes: ['code1'],
+      });
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+
+      // When: 2FA is disabled
+      await AuthService.disableTwoFactor(mockUserId);
+
+      // Then: All active refresh tokens are revoked
+      expect(MockedRefreshToken.update).toHaveBeenCalledWith(
+        { is_revoked: true },
+        { where: { user_id: mockUserId, is_revoked: false } }
+      );
+    });
+
+    it('invalidates auth cache after disabling 2FA (ADS-589)', async () => {
+      // Given: User with 2FA enabled
+      const mockUser = createMockUser({
+        userId: mockUserId,
+        twoFactorEnabled: true,
+        twoFactorSecret: 'JBSWY3DPEHPK3PXP',
+        backupCodes: ['code1'],
+      });
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+
+      // When: 2FA is disabled
+      await AuthService.disableTwoFactor(mockUserId);
+
+      // Then: Auth cache is invalidated
+      expect(MockedInvalidateAuthCache).toHaveBeenCalledWith(mockUserId);
     });
   });
 
@@ -1059,6 +1150,49 @@ describe('AuthService - Security Business Logic', () => {
       expect(mockUser.resetToken).toBeNull();
       expect(mockUser.resetTokenExpiration).toBeNull();
       expect(mockUser.resetTokenForceFlag).toBe(false);
+    });
+
+    it('revokes all active refresh tokens after password reset (ADS-589)', async () => {
+      // Given: User with valid reset token
+      const futureDate = new Date(Date.now() + 30 * 60 * 1000);
+      const mockUser = createMockUser({
+        userId: mockUserId,
+        resetToken: 'valid-token',
+        resetTokenExpiration: futureDate,
+      });
+      MockedUser.findOne = vi.fn().mockResolvedValue(mockUser);
+
+      // When: Password reset completes
+      await new AuthService().confirmPasswordReset({
+        token: 'valid-token',
+        newPassword: 'NewPassword123!',
+      });
+
+      // Then: All active refresh tokens are revoked
+      expect(MockedRefreshToken.update).toHaveBeenCalledWith(
+        { is_revoked: true },
+        { where: { user_id: mockUserId, is_revoked: false } }
+      );
+    });
+
+    it('invalidates auth cache after password reset (ADS-589)', async () => {
+      // Given: User with valid reset token
+      const futureDate = new Date(Date.now() + 30 * 60 * 1000);
+      const mockUser = createMockUser({
+        userId: mockUserId,
+        resetToken: 'valid-token',
+        resetTokenExpiration: futureDate,
+      });
+      MockedUser.findOne = vi.fn().mockResolvedValue(mockUser);
+
+      // When: Password reset completes
+      await new AuthService().confirmPasswordReset({
+        token: 'valid-token',
+        newPassword: 'NewPassword123!',
+      });
+
+      // Then: Auth cache is invalidated so cached sessions don't persist
+      expect(MockedInvalidateAuthCache).toHaveBeenCalledWith(mockUserId);
     });
   });
 

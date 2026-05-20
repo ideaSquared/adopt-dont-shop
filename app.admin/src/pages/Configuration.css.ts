@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const headerActions = style({
   display: 'flex',
   gap: '0.75rem',
@@ -22,11 +24,11 @@ export const infoBanner = style({
   alignItems: 'flex-start',
   gap: '0.75rem',
   padding: '1rem',
-  background: '#eff6ff',
-  border: '1px solid #bfdbfe',
+  background: vars.colors.infoBgSubtle,
+  border: `1px solid ${vars.colors.infoBorderSubtle}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  color: '#1e40af',
+  color: vars.colors.infoTextEmphasis,
   marginBottom: '1rem',
 });
 
@@ -36,7 +38,7 @@ globalStyle(`${infoBanner} svg`, {
 });
 
 globalStyle(`${infoBanner} a`, {
-  color: '#2563eb',
+  color: vars.colors.infoHover,
   fontWeight: '600',
   textDecoration: 'none',
 });
@@ -50,12 +52,12 @@ export const gateItem = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '1rem',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   transition: 'all 0.2s ease',
   ':hover': {
-    borderColor: '#d1d5db',
-    background: '#f9fafb',
+    borderColor: vars.border.color.muted,
+    background: vars.background.body,
   },
 });
 
@@ -68,20 +70,20 @@ export const gateInfo = style({
 
 export const gateName = style({
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
   fontSize: '0.9375rem',
 });
 
 export const gateDescription = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: 1.4,
 });
 
 export const gateKey = style({
   fontFamily: 'monospace',
   fontSize: '0.75rem',
-  color: '#9ca3af',
+  color: vars.text.muted,
   marginTop: '0.25rem',
 });
 
@@ -92,8 +94,8 @@ export const statusBadgeEnabled = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#d1fae5',
-  color: '#065f46',
+  background: vars.colors.successBgSubtle,
+  color: vars.colors.successTextEmphasis,
 });
 
 export const statusBadgeDisabled = style({
@@ -103,8 +105,8 @@ export const statusBadgeDisabled = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#f3f4f6',
-  color: '#6b7280',
+  background: vars.background.muted,
+  color: vars.text.tertiary,
 });
 
 export const settingItem = style({
@@ -112,22 +114,22 @@ export const settingItem = style({
   flexDirection: 'column',
   gap: '0.5rem',
   padding: '1rem',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
 });
 
 export const settingLabel = style({
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
   fontSize: '0.875rem',
 });
 
 export const settingValue = style({
   fontFamily: 'monospace',
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   padding: '0.5rem',
-  background: '#f9fafb',
+  background: vars.background.body,
   borderRadius: '6px',
 });
 
@@ -135,11 +137,20 @@ export const statsigLink = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.375rem',
-  color: '#2563eb',
+  color: vars.colors.infoHover,
   textDecoration: 'none',
   fontSize: '0.875rem',
   fontWeight: '600',
   ':hover': {
     textDecoration: 'underline',
   },
+});
+
+export const inlineIcon = style({
+  marginRight: '0.5rem',
+});
+
+export const sectionIcon = style({
+  display: 'inline',
+  marginRight: '0.5rem',
 });

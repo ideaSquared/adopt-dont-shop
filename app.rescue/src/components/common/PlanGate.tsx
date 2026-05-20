@@ -18,7 +18,9 @@ const UpgradeNotice: React.FC = () => (
 export const PlanGate: React.FC<PlanGateProps> = ({ minPlan, feature, children, fallback }) => {
   const { plan, hasFeature, isLoading } = usePlan();
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return null;
+  }
 
   const allowed = minPlan !== undefined ? meetsMinPlan(plan, minPlan) : hasFeature(feature!);
 

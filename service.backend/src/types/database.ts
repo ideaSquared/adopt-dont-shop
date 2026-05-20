@@ -312,22 +312,27 @@ export interface ValidationConstraint {
 }
 
 // Sequelize Operator Filter Types
+//
+// Sequelize 7's `WhereOperators` is narrowly typed (e.g. `Op.in` is
+// `readonly (string | number | Literal)[] | Literal`, `Op.is` is `null`
+// only). We expose a project-local superset that still type-checks
+// against `WhereOperators` for the operators we actually use.
 export interface SequelizeOperatorFilter {
   [Op.gte]?: Date | number;
   [Op.lte]?: Date | number;
   [Op.gt]?: Date | number;
   [Op.lt]?: Date | number;
-  [Op.between]?: [Date | number, Date | number];
-  [Op.in]?: (string | number)[];
-  [Op.notIn]?: (string | number)[];
+  [Op.between]?: readonly [number, number] | readonly [Date, Date];
+  [Op.in]?: readonly (string | number)[];
+  [Op.notIn]?: readonly (string | number)[];
   [Op.like]?: string;
   [Op.iLike]?: string;
   [Op.or]?: WhereOptions[];
   [Op.and]?: WhereOptions[];
-  [Op.is]?: null | boolean;
-  [Op.not]?: WhereOptions;
-  [Op.ne]?: JsonValue;
-  [Op.eq]?: JsonValue;
+  [Op.is]?: null;
+  [Op.not]?: string | number | boolean | null;
+  [Op.ne]?: string | number | null;
+  [Op.eq]?: string | number | boolean | null;
 }
 
 export interface SequelizeWhereConditions {

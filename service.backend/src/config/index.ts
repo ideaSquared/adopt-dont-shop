@@ -161,6 +161,35 @@ export const config = {
     from: process.env.EMAIL_FROM || 'noreply@adoptdontshop.com',
   },
 
+  // Antivirus scanning configuration
+  av: {
+    provider: process.env.AV_PROVIDER || 'noop', // 'noop' | 'clamav'
+    clamav: {
+      host: process.env.CLAMAV_HOST,
+      port: process.env.CLAMAV_PORT ? parseInt(process.env.CLAMAV_PORT, 10) : undefined,
+      timeoutMs: parseInt(process.env.CLAMAV_TIMEOUT_MS || '30000', 10),
+    },
+  },
+
+  // Push notification configuration
+  push: {
+    provider: process.env.PUSH_PROVIDER || 'console', // 'console' | 'fcm'
+    fcm: {
+      serviceAccountJson: process.env.FCM_SERVICE_ACCOUNT_JSON,
+      projectId: process.env.FCM_PROJECT_ID,
+    },
+  },
+
+  // SMS configuration
+  sms: {
+    provider: process.env.SMS_PROVIDER || 'console', // 'console' | 'twilio'
+    twilio: {
+      accountSid: process.env.TWILIO_ACCOUNT_SID,
+      authToken: process.env.TWILIO_AUTH_TOKEN,
+      fromNumber: process.env.TWILIO_FROM_NUMBER,
+    },
+  },
+
   // Rate limiting configuration
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes

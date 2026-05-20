@@ -1,4 +1,5 @@
 import React from 'react';
+import clsx from 'clsx';
 import { Card, Button, Text } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import PetCard from './PetCard.tsx';
@@ -27,6 +28,7 @@ const PetGrid: React.FC<PetGridProps> = ({
   onDeletePet,
   pagination,
 }) => {
+  'use memo';
   if (loading && pets.length === 0) {
     return (
       <div className={styles.loadingGrid}>
@@ -87,7 +89,7 @@ const PetGrid: React.FC<PetGridProps> = ({
           variant="outline"
           disabled={!hasPrev}
           onClick={() => onPageChange(currentPage - 1)}
-          style={{ minWidth: '40px', height: '40px', padding: '0.5rem' }}
+          className={styles.pageButton}
         >
           ←
         </Button>
@@ -100,12 +102,10 @@ const PetGrid: React.FC<PetGridProps> = ({
               <Button
                 variant="outline"
                 onClick={() => onPageChange(page as number)}
-                style={{
-                  minWidth: '40px',
-                  height: '40px',
-                  padding: '0.5rem',
-                  ...(page === currentPage ? { backgroundColor: '#2563eb', color: 'white' } : {}),
-                }}
+                className={clsx(
+                  styles.pageButton,
+                  page === currentPage && styles.pageButtonCurrent
+                )}
               >
                 {page}
               </Button>
@@ -117,12 +117,12 @@ const PetGrid: React.FC<PetGridProps> = ({
           variant="outline"
           disabled={!hasNext}
           onClick={() => onPageChange(currentPage + 1)}
-          style={{ minWidth: '40px', height: '40px', padding: '0.5rem' }}
+          className={styles.pageButton}
         >
           →
         </Button>
 
-        <Text style={{ fontSize: '0.875rem', color: '#6b7280', whiteSpace: 'nowrap' }}>
+        <Text className={styles.pageCounter}>
           Page {currentPage} of {totalPages}
         </Text>
       </div>

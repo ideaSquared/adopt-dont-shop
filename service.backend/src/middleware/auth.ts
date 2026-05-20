@@ -8,17 +8,10 @@ import StaffMember from '../models/StaffMember';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger, loggerHelpers } from '../utils/logger';
 import { setUserId } from '../utils/request-context';
-import { env } from '../config/env';
 import { getCachedUser, setCachedUser } from '../lib/auth-cache';
+import { verifyAccessToken, AccessTokenPayload } from '../utils/jwt';
 
-export interface JWTPayload {
-  userId: string;
-  email: string;
-  userType?: string;
-  jti?: string;
-  iat?: number;
-  exp?: number;
-}
+export type JWTPayload = AccessTokenPayload;
 
 const userInclude = [
   {
@@ -81,7 +74,7 @@ const attachRescueAffiliation = async (user: User): Promise<void> => {
  * them without false 401s.
  */
 const authenticateRequest = async (token: string): Promise<User> => {
-  const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] }) as JWTPayload;
+  const decoded = verifyAccessToken(token);
 
   // Revocation check runs *before* the cache lookup so a revoked token
   // can't ride a stale entry through to the request handler.

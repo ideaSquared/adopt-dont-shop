@@ -6,6 +6,9 @@ export { ApiService, apiService, api } from './services/api-service';
 // Path constants for URL construction
 export { API_PATHS, buildApiPath } from './constants/api-paths';
 
+// Schemas (Zod) and inferred types
+export { ImageUploadResponseSchema, type ImageUploadResponse } from './schemas/upload-schemas';
+
 // Infrastructure
 export * from './interceptors';
 export * from './errors';

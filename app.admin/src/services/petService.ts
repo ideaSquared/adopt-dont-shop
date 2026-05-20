@@ -19,6 +19,7 @@ export type AdminPet = {
 export type PetFilters = {
   search?: string;
   status?: PetStatus;
+  type?: string;
   rescueId?: string;
   archived?: boolean;
   page?: number;
@@ -33,7 +34,9 @@ export type BulkPetResult = {
   errors: Array<{ petId: string; error: string }>;
 };
 
-type PaginatedPetsResponse = {
+export type PetType = 'dog' | 'cat' | 'rabbit' | 'bird' | 'reptile' | 'other';
+
+type PetsPaginatedResponse = {
   success: boolean;
   data: AdminPet[];
   pagination: { page: number; limit: number; total: number; pages: number };
@@ -57,16 +60,18 @@ class PetService {
       params.rescueId = filters.rescueId;
     }
     if (filters.archived !== undefined) {
-      params.archived = String(filters.archived);
+      params.includeArchived = String(filters.archived);
+    }
+    if (filters.type) {
+      params.type = filters.type;
     }
     if (filters.page) {
       params.page = String(filters.page);
     }
-    if (filters.limit) {
-      params.limit = String(filters.limit);
-    }
+    const limit = filters.limit ?? 20;
+    params.limit = String(limit);
 
-    const response = await apiService.get<PaginatedPetsResponse>(this.baseUrl, params);
+    const response = await apiService.get<PetsPaginatedResponse>(this.baseUrl, params);
     return { data: response.data, pagination: response.pagination };
   }
 

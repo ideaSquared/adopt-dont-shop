@@ -28,10 +28,10 @@ The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, 
 | POST   | `/api/v1/auth/register`               | Create new user account                | No                  |
 | POST   | `/api/v1/auth/login`                  | Authenticate and get tokens            | No                  |
 | POST   | `/api/v1/auth/logout`                 | Invalidate current session             | Yes                 |
-| POST   | `/api/v1/auth/refresh-token`          | Refresh access token                   | Yes (refresh token) |
+| POST   | `/api/v1/auth/refresh-token`          | Refresh access token (refresh token in body) | No (rate-limited)  |
 | POST   | `/api/v1/auth/forgot-password`        | Request password reset                 | No                  |
 | POST   | `/api/v1/auth/reset-password`         | Reset password with token              | No                  |
-| GET    | `/api/v1/auth/verify-email/:token`    | Verify email address                   | No                  |
+| POST   | `/api/v1/auth/verify-email`           | Verify email address (token in body)   | No                  |
 | POST   | `/api/v1/auth/resend-verification`    | Resend verification email              | No                  |
 | GET    | `/api/v1/auth/me`                     | Get current user profile               | Yes                 |
 | PUT    | `/api/v1/auth/me`                     | Update current user profile            | Yes                 |
@@ -44,14 +44,17 @@ The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, 
 
 ### Users
 
-| Method | Endpoint                            | Description                              |
-| ------ | ----------------------------------- | ---------------------------------------- |
-| GET    | `/api/v1/users`                     | List users (admin only, with pagination) |
-| GET    | `/api/v1/users/:userId`             | Get user details                         |
-| PUT    | `/api/v1/users/:userId`             | Update user profile                      |
-| DELETE | `/api/v1/users/:userId`             | Delete user account (soft delete)        |
-| GET    | `/api/v1/users/:userId/preferences` | Get user preferences                     |
-| PUT    | `/api/v1/users/:userId/preferences` | Update preferences                       |
+User listing lives under [Admin Endpoints](#admin-endpoints) (`GET /api/v1/admin/users`); the `/api/v1/users` mount is for the current user's own resources.
+
+| Method | Endpoint                       | Description                                          |
+| ------ | ------------------------------ | ---------------------------------------------------- |
+| GET    | `/api/v1/users/profile`        | Get current user profile                             |
+| PUT    | `/api/v1/users/profile`        | Update current user profile                          |
+| GET    | `/api/v1/users/preferences`    | Get current user's preferences                       |
+| PUT    | `/api/v1/users/preferences`    | Update current user's preferences                    |
+| POST   | `/api/v1/users/preferences/reset` | Reset preferences to defaults                     |
+| DELETE | `/api/v1/users/account`        | Delete own account (soft delete; rate-limited)       |
+| GET    | `/api/v1/users/:userId`        | Get another user's public profile                    |
 
 ### Pets
 
@@ -62,8 +65,9 @@ The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, 
 | GET    | `/api/v1/pets/:petId`                 | Get pet details                                     |
 | PUT    | `/api/v1/pets/:petId`                 | Update pet information                              |
 | DELETE | `/api/v1/pets/:petId`                 | Delete pet (soft delete)                            |
-| POST   | `/api/v1/pets/:petId/images`          | Upload pet images                                   |
-| DELETE | `/api/v1/pets/:petId/images/:imageId` | Delete specific image                               |
+| POST   | `/api/v1/pets/:petId/images`          | Upload / replace pet images                         |
+| DELETE | `/api/v1/pets/:petId/images`          | Delete pet image (identifier in body)               |
+| PATCH  | `/api/v1/pets/:petId/status`          | Update pet availability status                      |
 | POST   | `/api/v1/pets/:petId/favorite`        | Add to favorites                                    |
 | DELETE | `/api/v1/pets/:petId/favorite`        | Remove from favorites                               |
 
@@ -84,7 +88,7 @@ The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, 
 | POST   | `/api/v1/applications`                        | Submit new application               |
 | GET    | `/api/v1/applications/:applicationId`         | Get application details              |
 | PATCH  | `/api/v1/applications/:applicationId/status`  | Update application status            |
-| DELETE | `/api/v1/applications/:applicationId`         | Withdraw application                 |
+| POST   | `/api/v1/applications/:applicationId/withdraw`| Withdraw application                 |
 | GET    | `/api/v1/applications/:applicationId/history` | Get status history                   |
 
 ### Rescues
@@ -140,17 +144,20 @@ Chat routes are mounted at `/api/v1/chats` (canonical). `/api/v1/conversations` 
 
 ## Admin Endpoints
 
-| Method | Endpoint                                             | Description                     |
-| ------ | ---------------------------------------------------- | ------------------------------- |
-| GET    | `/api/v1/admin/users`                                | List all users (with filtering) |
-| PATCH  | `/api/v1/admin/users/:userId/status`                 | Update user status              |
-| POST   | `/api/v1/admin/users/:userId/suspend`                | Suspend user                    |
-| GET    | `/api/v1/admin/rescues`                              | List all rescues                |
-| POST   | `/api/v1/admin/rescues/:rescueId/verify`             | Verify rescue organization      |
-| GET    | `/api/v1/admin/moderation/reports`                   | Get content reports             |
-| POST   | `/api/v1/admin/moderation/reports/:reportId/actions` | Take moderation action          |
-| GET    | `/api/v1/admin/system/health`                        | System health status            |
-| GET    | `/api/v1/admin/analytics/dashboard`                  | Admin dashboard analytics       |
+Mounted at `/api/v1/admin`. Moderation routes live under the separate `/api/v1/admin/moderation` mount.
+
+| Method | Endpoint                                             | Description                                                            |
+| ------ | ---------------------------------------------------- | ---------------------------------------------------------------------- |
+| GET    | `/api/v1/admin/users`                                | List all users (with filtering)                                        |
+| PATCH  | `/api/v1/admin/users/:userId`                        | Update a user record                                                   |
+| PATCH  | `/api/v1/admin/users/:userId/action`                 | Perform an admin action (suspend, restore, force-logout, etc.)         |
+| GET    | `/api/v1/admin/rescues`                              | List all rescues                                                       |
+| PATCH  | `/api/v1/admin/rescues/:rescueId/moderate`           | Verify / reject a rescue (sets `verification_status`)                  |
+| PATCH  | `/api/v1/admin/rescues/:rescueId/plan`               | Change rescue subscription plan                                        |
+| GET    | `/api/v1/admin/moderation/reports`                   | Get content reports                                                    |
+| POST   | `/api/v1/admin/moderation/reports/:reportId/actions` | Take moderation action                                                 |
+| GET    | `/api/v1/admin/system/health`                        | System health status                                                   |
+| GET    | `/api/v1/admin/analytics/dashboard`                  | Admin dashboard analytics                                              |
 
 ## Common Patterns
 

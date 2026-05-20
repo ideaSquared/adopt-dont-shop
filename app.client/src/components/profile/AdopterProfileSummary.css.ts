@@ -5,8 +5,8 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const wrap = style({
   marginTop: '2rem',
   padding: '1.5rem',
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.75rem',
 });
 
@@ -46,12 +46,12 @@ export const statusPill = recipe({
   variants: {
     known: {
       true: {
-        background: vars.colors.semantic.success['50'],
-        border: `1px solid ${vars.colors.semantic.success['200']}`,
+        background: vars.colors.successBgSubtle,
+        border: `1px solid ${vars.colors.successBorderSubtle}`,
       },
       false: {
-        background: vars.background.primary,
-        border: `1px solid ${vars.border.color.primary}`,
+        background: vars.background.body,
+        border: `1px solid ${vars.border.color.default}`,
       },
     },
   },

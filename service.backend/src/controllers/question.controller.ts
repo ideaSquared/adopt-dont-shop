@@ -121,15 +121,8 @@ export class QuestionController {
 
     const { rescueId } = req.params;
 
-    try {
-      const questions = await QuestionService.getQuestionsForRescue(rescueId);
-      res.status(200).json({ success: true, questions });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to retrieve questions',
-      });
-    }
+    const questions = await QuestionService.getQuestionsForRescue(rescueId);
+    res.status(200).json({ success: true, questions });
   }
 
   async createQuestion(req: AuthenticatedRequest, res: Response): Promise<void> {

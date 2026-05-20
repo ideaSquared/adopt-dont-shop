@@ -4,8 +4,10 @@
 **Last updated:** 10 May 2026
 
 > Placeholder copy — must be reviewed and approved by legal counsel before
-> production launch. The version string above is the canonical
-> identifier persisted in `consent_events.privacy_version` when a user accepts.
+> production launch. The version string above is the canonical identifier
+> recorded against the user via `users.privacy_policy_accepted_at`
+> (`service.backend/src/models/User.ts`) and surfaced through the
+> `ConsentRecord` type in `service.backend/src/services/consent.service.ts`.
 
 ## 1. Who we are
 

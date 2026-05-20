@@ -28,7 +28,7 @@ describe('PublicAuthLayout', () => {
 
   it('renders the logo linking back to home', () => {
     renderAt('/login');
-    expect(screen.getByRole('link', { name: /adopt don't shop/i })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: /adoptdontshop/i })).toHaveAttribute('href', '/');
   });
 
   it('shows a "Sign up" switch link on the /login route', () => {

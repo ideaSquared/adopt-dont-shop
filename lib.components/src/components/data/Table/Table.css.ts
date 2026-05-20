@@ -10,7 +10,7 @@ export const pulse = keyframes({
 export const tableContainer = recipe({
   base: {
     position: 'relative',
-    background: vars.background.secondary,
+    background: vars.background.surface,
     borderRadius: vars.border.radius.lg,
 
     selectors: {
@@ -22,11 +22,11 @@ export const tableContainer = recipe({
         background: 'transparent',
       },
       '&::-webkit-scrollbar-thumb': {
-        background: vars.border.color.tertiary,
+        background: vars.border.color.muted,
         borderRadius: '3px',
       },
       '&::-webkit-scrollbar-thumb:hover': {
-        background: vars.border.color.quaternary,
+        background: vars.border.color.strong,
       },
     },
   },
@@ -45,33 +45,33 @@ const tableSizeSm = style({ fontSize: vars.typography.size.sm });
 const tableSizeMd = style({ fontSize: vars.typography.size.base });
 const tableSizeLg = style({ fontSize: vars.typography.size.lg });
 globalStyle(`${tableSizeSm} th, ${tableSizeSm} td`, {
-  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+  padding: `${vars.spacing['2']} ${vars.spacing['2']}`,
 });
 globalStyle(`${tableSizeMd} th, ${tableSizeMd} td`, {
-  padding: `${vars.spacing['3']} ${vars.spacing['4']}`,
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
 });
 globalStyle(`${tableSizeLg} th, ${tableSizeLg} td`, {
-  padding: `${vars.spacing['4']} ${vars.spacing['5']}`,
+  padding: `${vars.spacing['3']} ${vars.spacing['3']}`,
 });
 
 const tableVariantMinimal = style({ border: 'none' });
 globalStyle(`${tableVariantMinimal} thead th`, {
-  borderBottom: `2px solid ${vars.border.color.primary}`,
+  borderBottom: `2px solid ${vars.border.color.default}`,
 });
 
 const tableVariantBordered = style({
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.lg,
   overflow: 'hidden',
 });
 globalStyle(`${tableVariantBordered} th, ${tableVariantBordered} td`, {
-  borderRight: `1px solid ${vars.border.color.primary}`,
+  borderRight: `1px solid ${vars.border.color.default}`,
 });
 globalStyle(`${tableVariantBordered} th:last-child, ${tableVariantBordered} td:last-child`, {
   borderRight: 'none',
 });
 globalStyle(`${tableVariantBordered} tbody tr`, {
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 globalStyle(`${tableVariantBordered} tbody tr:last-child`, { borderBottom: 'none' });
 
@@ -80,7 +80,7 @@ export const styledTable = recipe({
     width: '100%',
     borderCollapse: 'collapse',
     fontFamily: vars.typography.family.sans,
-    background: vars.background.secondary,
+    background: vars.background.surface,
   },
   variants: {
     size: {
@@ -90,7 +90,7 @@ export const styledTable = recipe({
     },
     variant: {
       default: {
-        border: `1px solid ${vars.border.color.primary}`,
+        border: `1px solid ${vars.border.color.default}`,
         borderRadius: vars.border.radius.lg,
         overflow: 'hidden',
       },
@@ -108,7 +108,7 @@ export const tableHead = recipe({
         position: 'sticky',
         top: 0,
         zIndex: vars.zIndex.sticky,
-        background: vars.background.secondary,
+        background: vars.background.surface,
       },
       false: {},
     },
@@ -129,7 +129,7 @@ export const tableRow = recipe({
       true: {
         selectors: {
           '&:hover': {
-            background: vars.background.tertiary,
+            background: vars.background.muted,
           },
         },
       },
@@ -150,18 +150,18 @@ export const tableRow = recipe({
 
 // Striped rows use a separate style applied by JS based on index parity
 export const stripedRow = style({
-  background: vars.colors.neutral['100'],
+  background: vars.background.muted,
 });
 
 export const tableHeaderCell = recipe({
   base: {
     fontWeight: vars.typography.weight.semibold,
     color: vars.text.primary,
-    background: vars.background.secondary,
+    background: vars.background.surface,
     userSelect: 'none',
     position: 'relative',
     whiteSpace: 'nowrap',
-    borderBottom: `1px solid ${vars.border.color.primary}`,
+    borderBottom: `1px solid ${vars.border.color.default}`,
     transition: vars.transitions.fast,
     '@media': {
       '(prefers-reduced-motion: reduce)': {
@@ -175,12 +175,12 @@ export const tableHeaderCell = recipe({
         cursor: 'pointer',
         selectors: {
           '&:hover': {
-            background: vars.background.tertiary,
+            background: vars.background.muted,
           },
           '&:focus-visible': {
             outline: 'none',
-            background: vars.background.tertiary,
-            boxShadow: `inset 0 0 0 2px ${vars.colors.primary['500']}`,
+            background: vars.background.muted,
+            boxShadow: `inset 0 0 0 2px ${vars.colors.primary}`,
           },
         },
       },
@@ -197,7 +197,7 @@ export const tableHeaderCell = recipe({
 });
 
 export const sortIconBase = style({
-  marginLeft: vars.spacing['1.5'],
+  marginLeft: vars.spacing['1'],
   transition: `opacity ${vars.transitions.fast}`,
   fontSize: vars.typography.size.sm,
   '@media': {
@@ -233,14 +233,14 @@ export const emptyState = style({
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: `${vars.spacing['12']} ${vars.spacing['6']}`,
+  padding: `${vars.spacing['6']} ${vars.spacing['4']}`,
   color: vars.text.tertiary,
   textAlign: 'center',
 });
 
 export const loadingRowTd = style({
-  padding: vars.spacing['4'],
-  background: vars.background.tertiary,
+  padding: vars.spacing['3'],
+  background: vars.background.muted,
   animationName: pulse,
   animationDuration: '1.5s',
   animationTimingFunction: 'ease-in-out',

@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button, Heading, ReportRenderer, Text } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  ConfirmDialog,
+  Heading,
+  ReportRenderer,
+  Text,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import {
   useDeleteReport,
   useExecuteSavedReport,
@@ -8,7 +15,9 @@ import {
   useUpsertSchedule,
   useCreateTokenShare,
 } from '@adopt-dont-shop/lib.analytics';
+import clsx from 'clsx';
 import { PageContainer, PageHeader, HeaderLeft } from '../components/ui';
+import * as styles from './ReportViewPage.css';
 
 /**
  * ADS-105: View page for a saved report.
@@ -30,6 +39,7 @@ const ReportViewPage: React.FC = () => {
   const [cron, setCron] = useState('0 9 * * 1');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const { confirm, confirmProps } = useConfirm();
 
   if (!id) {
     return (
@@ -54,7 +64,14 @@ const ReportViewPage: React.FC = () => {
   }
 
   const handleDelete = async (): Promise<void> => {
-    if (!confirm('Delete this report?')) {
+    const confirmed = await confirm({
+      title: 'Delete report?',
+      message: 'Delete this saved report? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
     await deleteMutation.mutateAsync(id);
@@ -88,7 +105,7 @@ const ReportViewPage: React.FC = () => {
           <Heading level='h1'>{reportQuery.data.name}</Heading>
           {reportQuery.data.description ? <Text>{reportQuery.data.description}</Text> : null}
         </HeaderLeft>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className={styles.headerActions}>
           <Link to={`/reports/${id}/edit`}>
             <Button variant='outline'>Edit</Button>
           </Link>
@@ -105,35 +122,22 @@ const ReportViewPage: React.FC = () => {
       </PageHeader>
 
       {scheduleOpen ? (
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            marginBottom: '12px',
-            background: '#f9fafb',
-          }}
-        >
+        <div className={clsx(styles.panel, styles.schedulePanel)}>
           <Text>Schedule (cron + recipient)</Text>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+          <div className={styles.scheduleRow}>
             <input
               type='text'
               value={cron}
               onChange={e => setCron(e.target.value)}
               placeholder='0 9 * * 1'
-              style={{ padding: '6px', border: '1px solid #e5e7eb', borderRadius: '6px' }}
+              className={styles.cronInput}
             />
             <input
               type='email'
               value={recipientEmail}
               onChange={e => setRecipientEmail(e.target.value)}
               placeholder='recipient@example.com'
-              style={{
-                flex: 1,
-                padding: '6px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-              }}
+              className={styles.emailInput}
             />
             <Button variant='primary' onClick={handleSchedule}>
               Save schedule
@@ -143,17 +147,9 @@ const ReportViewPage: React.FC = () => {
       ) : null}
 
       {shareUrl ? (
-        <div
-          style={{
-            padding: '12px',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            marginBottom: '12px',
-            background: '#ecfdf5',
-          }}
-        >
+        <div className={clsx(styles.panel, styles.sharePanel)}>
           <Text>Share link (expires in 7 days):</Text>
-          <code style={{ wordBreak: 'break-all' }}>{shareUrl}</code>
+          <code className={styles.shareCode}>{shareUrl}</code>
         </div>
       ) : null}
 
@@ -169,6 +165,8 @@ const ReportViewPage: React.FC = () => {
           error={(executeQuery.error as Error | null) ?? null}
         />
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </PageContainer>
   );
 };

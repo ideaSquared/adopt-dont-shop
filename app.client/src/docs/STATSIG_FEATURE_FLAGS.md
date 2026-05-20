@@ -36,9 +36,10 @@ function MyComponent() {
 
 ### Currently Used Gates:
 
-- `pdf_viewer_enabled` - Controls PDF preview functionality in chat
-- `image_lightbox_enabled` - Controls image lightbox/modal functionality
-- `chat_attachments_enabled` - Controls chat attachment features
+- `advanced_search_filters` — toggles the advanced filter UI in `SearchPage`
+- `new_hero_design` — toggles the new hero variant in `HomePage`
+
+Gate identifiers ship as constants in `@adopt-dont-shop/lib.feature-flags` under `KNOWN_GATES` — see that package's README for the full list and prefer the constants over string literals.
 
 ### Setting up new gates in Statsig Console:
 
@@ -100,31 +101,10 @@ logEvent('feature_used', 1, {
 
 ## Examples in the Codebase
 
-- **MessageBubbleComponent**: Shows PDF viewer and image lightbox feature gates
-- **StatsigFeatureExample**: Demonstrates all Statsig features in one component
+- **`SearchPage.tsx`** — `useFeatureGate('advanced_search_filters')` toggles the advanced filter UI.
+- **`HomePage.tsx`** — `useFeatureGate('new_hero_design')` swaps the hero variant.
 
-## Migration from Static Features
-
-Old way (features.ts):
-
-```tsx
-import { FEATURES } from '@/config/features';
-
-{
-  FEATURES.PDF_VIEWER_ENABLED && <PDFViewer />;
-}
-```
-
-New way (Statsig):
-
-```tsx
-import { useStatsig } from '@/hooks/useStatsig';
-
-const { checkGate } = useStatsig();
-{
-  checkGate('pdf_viewer_enabled') && <PDFViewer />;
-}
-```
+Prefer the `useFeatureGate` / `useDynamicConfig` hooks from `@adopt-dont-shop/lib.feature-flags` for new code; the `useStatsig` hook is the imperative escape hatch for places that need to log events or fetch experiments alongside a gate check.
 
 ## Troubleshooting
 

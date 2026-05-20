@@ -5,7 +5,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const form = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing['6'],
+  gap: vars.spacing['4'],
 });
 
 export const formGroup = style({
@@ -15,7 +15,7 @@ export const formGroup = style({
 });
 
 export const styledAlert = style({
-  marginBottom: vars.spacing['4'],
+  marginBottom: vars.spacing['3'],
 });
 
 export const helperText = style({
@@ -33,10 +33,10 @@ globalStyle(`${helperText} strong`, {
 export const twoFactorGroup = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing['3'],
-  padding: vars.spacing['4'],
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  gap: vars.spacing['2'],
+  padding: vars.spacing['3'],
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.lg,
 });
 
@@ -53,20 +53,20 @@ export const twoFactorDescription = style({
 });
 
 export const tokenInput = style({
-  padding: vars.spacing['3'],
-  border: `1px solid ${vars.border.color.primary}`,
-  borderRadius: vars.border.radius.md,
+  padding: vars.spacing['2'],
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.base,
   fontSize: vars.typography.size.xl,
   letterSpacing: vars.typography.letterSpacing.widest,
   textAlign: 'center',
   maxWidth: '200px',
-  background: vars.background.primary,
+  background: vars.background.body,
   color: vars.text.primary,
   selectors: {
     '&:focus': {
       outline: 'none',
-      borderColor: vars.colors.primary['500'],
-      boxShadow: `0 0 0 2px ${vars.colors.primary['100']}`,
+      borderColor: vars.colors.primary,
+      boxShadow: `0 0 0 2px ${vars.colors.primaryBgSubtle}`,
     },
   },
 });
@@ -74,7 +74,7 @@ export const tokenInput = style({
 export const backLink = style({
   background: 'none',
   border: 'none',
-  color: vars.colors.primary['500'],
+  color: vars.colors.primary,
   cursor: 'pointer',
   fontSize: vars.typography.size.sm,
   padding: '0',

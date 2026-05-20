@@ -150,12 +150,12 @@ Implementation roadmap for the Rescue App (app.rescue) - a comprehensive managem
 
 ### Core Technologies
 
-- **Framework**: React 18+ with TypeScript
+- **Framework**: React 19 with TypeScript
 - **Build Tool**: Vite
-- **Styling**: Styled-components with theme support
+- **Styling**: vanilla-extract (`*.css.ts` files)
 - **State Management**: React Context + Custom Hooks
 - **Routing**: React Router v6
-- **HTTP Client**: Axios
+- **HTTP Client**: native `fetch` (via `@adopt-dont-shop/lib.api`)
 - **WebSocket**: Socket.IO client
 - **Forms**: React Hook Form + Zod validation
 - **Testing**: Vitest + React Testing Library + Playwright

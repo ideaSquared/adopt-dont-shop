@@ -664,6 +664,34 @@ export class ChatService {
   }
 
   /**
+   * Update a conversation's status (e.g. mark as resolved/archived,
+   * or reopen by setting it back to active). The backend's
+   * `ChatStatus` enum currently accepts `active | locked | archived`.
+   */
+  async updateConversationStatus(conversationId: string, status: string): Promise<Conversation> {
+    try {
+      const response = await fetch(`${this.config.apiUrl}/api/v1/chats/${conversationId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: await this.getMutatingHeaders(),
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      if (this.config.debug) {
+        console.error(`${ChatService.name} updateConversationStatus error:`, error);
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Create a new conversation
    */
   async createConversation(data: {

@@ -19,13 +19,16 @@ import {
   useVerifyUser,
   useDeleteUser,
   useBulkUpdateUsers,
+  useCreateUser,
 } from '../hooks';
 import { apiService, type AdminUser } from '../services/libraryServices';
 import { exportData, type ExportColumn } from '../services/exportService';
+import { userManagementService } from '../services/userManagementService';
 import { ExportButton, BulkActionToolbar } from '../components/ui';
 import {
   UserDetailModal,
   EditUserModal,
+  AddUserModal,
   CreateSupportTicketModal,
   UserActionsMenu,
   BulkConfirmationModal,
@@ -99,6 +102,7 @@ const Users: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
   // Bulk selection state
@@ -121,6 +125,7 @@ const Users: React.FC = () => {
   const unsuspendUser = useUnsuspendUser();
   const verifyUser = useVerifyUser();
   const deleteUser = useDeleteUser();
+  const createUser = useCreateUser();
   const { toasts, showToast, hideToast } = useToast();
 
   // Load user from URL parameter
@@ -242,6 +247,15 @@ const Users: React.FC = () => {
     }
   };
 
+  const handleResetPassword = async (userId: string) => {
+    try {
+      await userManagementService.resetUserPassword(userId);
+      showToast('Password reset triggered', 'success');
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Failed to reset password');
+    }
+  };
+
   const handleBulkConfirm = async (reason?: string) => {
     if (!bulkAction) {
       return;
@@ -289,18 +303,9 @@ const Users: React.FC = () => {
             <Heading level='h1'>User Management</Heading>
           </div>
         </div>
-        <div
-          style={{
-            background: '#fee2e2',
-            border: '1px solid #fecaca',
-            borderRadius: '12px',
-            padding: '2rem',
-            textAlign: 'center',
-            color: '#991b1b',
-          }}
-        >
-          <p style={{ margin: '0 0 1rem 0', fontWeight: 600 }}>Failed to load users</p>
-          <p style={{ margin: '0', fontSize: '0.875rem' }}>{(error as Error).message}</p>
+        <div className={styles.errorPanel}>
+          <p className={styles.errorTitle}>Failed to load users</p>
+          <p className={styles.errorMessage}>{(error as Error).message}</p>
         </div>
       </div>
     );
@@ -431,6 +436,7 @@ const Users: React.FC = () => {
             onUnsuspend={handleUnsuspendUser}
             onVerify={handleVerifyUser}
             onDelete={handleDeleteUser}
+            onResetPassword={handleResetPassword}
           />
         </div>
       ),
@@ -448,8 +454,8 @@ const Users: React.FC = () => {
         </div>
         <div className={styles.headerActions}>
           <ExportButton onExport={handleExport} disabled={isLoading || users.length === 0} />
-          <Button variant='primary' size='md'>
-            <FiUserPlus style={{ marginRight: '0.5rem' }} />
+          <Button variant='primary' size='md' onClick={() => setIsAddModalOpen(true)}>
+            <FiUserPlus className={styles.addUserIcon} />
             Add User
           </Button>
         </div>
@@ -555,6 +561,15 @@ const Users: React.FC = () => {
         onSave={handleSaveUser}
       />
 
+      <AddUserModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onCreate={async payload => {
+          await createUser.mutateAsync(payload);
+          showToast('User created', 'success');
+        }}
+      />
+
       <CreateSupportTicketModal
         isOpen={isMessageModalOpen}
         onClose={() => setIsMessageModalOpen(false)}
@@ -566,13 +581,13 @@ const Users: React.FC = () => {
         isOpen={bulkAction !== null}
         onClose={handleBulkModalClose}
         onConfirm={handleBulkConfirm}
-        title={
-          bulkAction === 'delete'
-            ? 'Delete Users'
-            : bulkAction === 'activate'
-              ? 'Activate Users'
-              : 'Deactivate Users'
-        }
+        title={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} user${count !== 1 ? 's' : ''}`;
+          if (bulkAction === 'delete') return `Delete ${noun}?`;
+          if (bulkAction === 'activate') return `Activate ${noun}?`;
+          return `Deactivate ${noun}?`;
+        })()}
         description={
           bulkAction === 'delete'
             ? 'This will permanently delete the selected users. This action cannot be undone.'

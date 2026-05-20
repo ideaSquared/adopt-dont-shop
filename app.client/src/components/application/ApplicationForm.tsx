@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Button } from '@adopt-dont-shop/lib.components';
 import type { SaveStatus } from '@/hooks/use-auto-save';
@@ -42,10 +42,25 @@ const formatLastSaved = (date: Date): string => {
   return diffMinutes === 1 ? '1 minute ago' : `${diffMinutes} minutes ago`;
 };
 
+const LAST_SAVED_TICK_MS = 30_000;
+
 const SaveStatusMessage: React.FC<{ status: SaveStatus; lastSaved: Date | null }> = ({
   status,
   lastSaved,
 }) => {
+  // Tick a render every 30s so the relative "X minutes ago" label stays fresh
+  // even while the user is idle and the save status has settled.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!lastSaved) {
+      return;
+    }
+    const interval = setInterval(() => {
+      setTick(t => t + 1);
+    }, LAST_SAVED_TICK_MS);
+    return () => clearInterval(interval);
+  }, [lastSaved]);
+
   if (status === 'saving') {
     return (
       <span className={clsx(styles.saveStatusText, styles.saveStatusVariants.saving)}>
@@ -53,17 +68,19 @@ const SaveStatusMessage: React.FC<{ status: SaveStatus; lastSaved: Date | null }
       </span>
     );
   }
-  if (status === 'saved' && lastSaved) {
-    return (
-      <span className={clsx(styles.saveStatusText, styles.saveStatusVariants.saved)}>
-        Draft saved {formatLastSaved(lastSaved)}
-      </span>
-    );
-  }
   if (status === 'error') {
     return (
       <span className={clsx(styles.saveStatusText, styles.saveStatusVariants.error)}>
         Failed to save draft
+      </span>
+    );
+  }
+  // Keep the confirmation visible for the whole session once a save has
+  // happened, not just immediately after — anxiety reducer.
+  if (lastSaved) {
+    return (
+      <span className={clsx(styles.saveStatusText, styles.saveStatusVariants.saved)}>
+        Draft saved {formatLastSaved(lastSaved)}
       </span>
     );
   }

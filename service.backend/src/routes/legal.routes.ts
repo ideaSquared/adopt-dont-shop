@@ -7,7 +7,6 @@ import {
 } from '../services/legal-content.service';
 import { authenticateToken } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types/api';
-import { logger } from '../utils/logger';
 
 /**
  * ADS-495: public legal endpoints for /terms and /privacy.
@@ -24,39 +23,18 @@ import { logger } from '../utils/logger';
 const router = Router();
 
 router.get('/terms', (_req, res) => {
-  try {
-    const doc = getTermsDocument();
-    res.json({ data: doc });
-  } catch (error) {
-    logger.error('Failed to read terms document', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    res.status(500).json({ error: 'Failed to load terms' });
-  }
+  const doc = getTermsDocument();
+  res.json({ data: doc });
 });
 
 router.get('/privacy', (_req, res) => {
-  try {
-    const doc = getPrivacyDocument();
-    res.json({ data: doc });
-  } catch (error) {
-    logger.error('Failed to read privacy document', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    res.status(500).json({ error: 'Failed to load privacy policy' });
-  }
+  const doc = getPrivacyDocument();
+  res.json({ data: doc });
 });
 
 router.get('/cookies', (_req, res) => {
-  try {
-    const doc = getCookiesDocument();
-    res.json({ data: doc });
-  } catch (error) {
-    logger.error('Failed to read cookies document', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    res.status(500).json({ error: 'Failed to load cookies policy' });
-  }
+  const doc = getCookiesDocument();
+  res.json({ data: doc });
 });
 
 /**
@@ -78,16 +56,8 @@ router.get(
       return;
     }
 
-    try {
-      const result = await getPendingReacceptance(userId);
-      res.json(result);
-    } catch (error) {
-      logger.error('Failed to compute pending re-acceptance', {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      res.status(500).json({ error: 'Failed to load pending re-acceptance' });
-    }
+    const result = await getPendingReacceptance(userId);
+    res.json(result);
   }
 );
 

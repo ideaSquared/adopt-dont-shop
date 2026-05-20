@@ -1,5 +1,7 @@
 import { globalStyle, style, keyframes } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const headerActions = style({
   display: 'flex',
   gap: '0.75rem',
@@ -50,7 +52,7 @@ export const barLabel = style({
   position: 'absolute',
   bottom: '-30px',
   fontSize: '0.75rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontWeight: '500',
   whiteSpace: 'nowrap',
 });
@@ -60,7 +62,7 @@ export const barValue = style({
   top: '-30px',
   fontSize: '0.875rem',
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const lineChart = style({
@@ -103,14 +105,14 @@ export const legendColor = style({
 
 export const legendLabel = style({
   fontSize: '0.875rem',
-  color: '#374151',
+  color: vars.text.secondary,
   flex: 1,
 });
 
 export const legendValue = style({
   fontSize: '0.875rem',
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const metricChangePositive = style({
@@ -131,7 +133,7 @@ export const metricChangeNegative = style({
   alignItems: 'center',
   gap: '0.25rem',
   fontSize: '0.875rem',
-  color: '#dc2626',
+  color: vars.colors.dangerHover,
   fontWeight: '600',
 });
 
@@ -151,12 +153,12 @@ export const topItem = style({
   alignItems: 'center',
   justifyContent: 'space-between',
   padding: '0.875rem',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: '#f9fafb',
-    borderColor: '#d1d5db',
+    background: vars.background.body,
+    borderColor: vars.border.color.muted,
   },
 });
 
@@ -164,8 +166,8 @@ export const topItemRank = style({
   width: '32px',
   height: '32px',
   borderRadius: '8px',
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  color: '#ffffff',
+  background: vars.colors.gradientPrimary,
+  color: vars.background.surface,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -181,20 +183,20 @@ export const topItemInfo = style({
 
 export const topItemName = style({
   fontWeight: '600',
-  color: '#111827',
+  color: vars.text.primary,
   fontSize: '0.875rem',
 });
 
 export const topItemMeta = style({
   fontSize: '0.75rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginTop: '0.125rem',
 });
 
 export const topItemValue = style({
   fontSize: '1.125rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 const shimmerAnim = keyframes({
@@ -213,10 +215,72 @@ export const skeletonBlock = style({
 });
 
 export const errorBanner = style({
-  background: '#fee2e2',
-  border: '1px solid #fecaca',
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
   borderRadius: '8px',
   padding: '1rem',
-  color: '#991b1b',
+  color: vars.colors.dangerTextEmphasis,
   fontSize: '0.875rem',
+});
+
+export const filterBarOverride = style({
+  padding: '0.5rem 0.75rem',
+  marginBottom: 0,
+});
+
+export const filterGroupOverride = style({
+  minWidth: '140px',
+  marginBottom: 0,
+});
+
+export const exportIcon = style({
+  marginRight: '0.5rem',
+});
+
+export const skeletonStat80 = style({
+  width: '80px',
+  height: '1.5rem',
+});
+
+export const skeletonStat60 = style({
+  width: '60px',
+  height: '1.5rem',
+});
+
+export const skeletonFullHeight = style({
+  height: '100%',
+});
+
+export const skeletonRow3rem = style({
+  height: '3rem',
+});
+
+export const skeletonPie = style({
+  width: '200px',
+  height: '200px',
+  borderRadius: '50%',
+});
+
+export const chartEmptyState = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '100%',
+  color: '#9ca3af',
+  fontSize: '0.875rem',
+});
+
+export const pieEmptyState = style({
+  color: '#9ca3af',
+  fontSize: '0.875rem',
+});
+
+export const emptyStatePadded = style({
+  color: '#9ca3af',
+  fontSize: '0.875rem',
+  padding: '1rem 0',
+});
+
+export const barLabelCapitalize = style({
+  textTransform: 'capitalize',
 });

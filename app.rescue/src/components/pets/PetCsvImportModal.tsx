@@ -212,7 +212,7 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
               <p>
                 <strong>Click to upload a CSV</strong>
               </p>
-              <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+              <p className={styles.helpText}>
                 First row must be column headers. Required columns:{' '}
                 {IMPORTABLE_FIELDS.filter(f => f.required)
                   .map(f => f.label)
@@ -223,7 +223,7 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
                 ref={fileRef}
                 type="file"
                 accept=".csv,text/csv"
-                style={{ display: 'none' }}
+                className={styles.hiddenInput}
                 onChange={e => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -242,7 +242,7 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
 
         {step === 'map' && parsed && (
           <>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#374151' }}>
+            <p className={styles.stepDescription}>
               We auto-matched columns by header name. Adjust any that look wrong, then continue to
               the preview step.
             </p>
@@ -315,7 +315,7 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
                 de-duplication across imports.
               </div>
             )}
-            <div style={{ maxHeight: '320px', overflow: 'auto' }}>
+            <div className={styles.scrollableTable}>
               <table className={styles.previewTable}>
                 <thead>
                   <tr>
@@ -367,9 +367,7 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
           </>
         )}
 
-        {step === 'importing' && (
-          <p style={{ padding: '2rem', textAlign: 'center' }}>Importing pets…</p>
-        )}
+        {step === 'importing' && <p className={styles.importingMessage}>Importing pets…</p>}
 
         {step === 'done' && summary && (
           <>
@@ -388,7 +386,7 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
               </div>
             </div>
             {summary.failed.length > 0 && (
-              <div style={{ maxHeight: '240px', overflow: 'auto' }}>
+              <div className={styles.failureTable}>
                 <table className={styles.previewTable}>
                   <thead>
                     <tr>

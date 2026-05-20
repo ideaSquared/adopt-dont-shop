@@ -34,7 +34,7 @@ export const colors = styleVariants({
   primary: { color: vars.text.primary },
   secondary: { color: vars.text.secondary },
   success: { color: vars.text.success },
-  danger: { color: vars.text.error },
+  danger: { color: vars.text.danger },
   warning: { color: vars.text.warning },
   info: { color: vars.text.info },
 });
@@ -48,12 +48,12 @@ export const aligns = styleVariants({
 
 // Level margins and noMargin all in one map so only one class is ever applied
 export const margins = styleVariants({
-  h1: { margin: `0 0 ${vars.spacing.xl} 0` },
-  h2: { margin: `0 0 ${vars.spacing.lg} 0` },
-  h3: { margin: `0 0 ${vars.spacing.md} 0` },
-  h4: { margin: `0 0 ${vars.spacing.sm} 0` },
-  h5: { margin: `0 0 ${vars.spacing.sm} 0` },
-  h6: { margin: `0 0 ${vars.spacing.sm} 0` },
+  h1: { margin: `0 0 ${vars.spacing['5']} 0` },
+  h2: { margin: `0 0 ${vars.spacing['4']} 0` },
+  h3: { margin: `0 0 ${vars.spacing['3']} 0` },
+  h4: { margin: `0 0 ${vars.spacing['2']} 0` },
+  h5: { margin: `0 0 ${vars.spacing['2']} 0` },
+  h6: { margin: `0 0 ${vars.spacing['2']} 0` },
   none: { margin: 0 },
 });
 

@@ -17,7 +17,7 @@ export const alertContainer = recipe({
     borderRadius: vars.border.radius.lg,
     fontFamily: vars.typography.family.sans,
     lineHeight: vars.typography.lineHeight.relaxed,
-    animation: `${slideIn} ${vars.transitions.normal}`,
+    animation: `${slideIn} ${vars.transitions.base}`,
     '@media': {
       '(prefers-reduced-motion: reduce)': { animation: 'none' },
     },
@@ -25,34 +25,34 @@ export const alertContainer = recipe({
   variants: {
     variant: {
       success: {
-        background: vars.colors.semantic.success['50'],
-        borderColor: vars.colors.semantic.success['200'],
-        color: vars.colors.semantic.success['800'],
+        background: vars.colors.successBgSubtle,
+        borderColor: vars.colors.successBorderSubtle,
+        color: vars.colors.successTextEmphasis,
       },
       error: {
-        background: vars.colors.semantic.error['50'],
-        borderColor: vars.colors.semantic.error['200'],
-        color: vars.colors.semantic.error['800'],
+        background: vars.colors.dangerBgSubtle,
+        borderColor: vars.colors.dangerBorderSubtle,
+        color: vars.colors.dangerTextEmphasis,
       },
       warning: {
-        background: vars.colors.semantic.warning['50'],
-        borderColor: vars.colors.semantic.warning['200'],
-        color: vars.colors.semantic.warning['800'],
+        background: vars.colors.warningBgSubtle,
+        borderColor: vars.colors.warningBorderSubtle,
+        color: vars.colors.warningTextEmphasis,
       },
       info: {
-        background: vars.colors.semantic.info['50'],
-        borderColor: vars.colors.semantic.info['200'],
-        color: vars.colors.semantic.info['800'],
+        background: vars.colors.infoBgSubtle,
+        borderColor: vars.colors.infoBorderSubtle,
+        color: vars.colors.infoTextEmphasis,
       },
     },
     size: {
-      sm: { padding: vars.spacing['3'], gap: vars.spacing['2'], fontSize: vars.typography.size.sm },
+      sm: { padding: vars.spacing['2'], gap: vars.spacing['2'], fontSize: vars.typography.size.sm },
       md: {
-        padding: vars.spacing['4'],
-        gap: vars.spacing['3'],
+        padding: vars.spacing['3'],
+        gap: vars.spacing['2'],
         fontSize: vars.typography.size.base,
       },
-      lg: { padding: vars.spacing['5'], gap: vars.spacing['4'], fontSize: vars.typography.size.lg },
+      lg: { padding: vars.spacing['3'], gap: vars.spacing['3'], fontSize: vars.typography.size.lg },
     },
   },
   defaultVariants: { variant: 'info', size: 'md' },
@@ -76,10 +76,10 @@ globalStyle(`${alertIconSize.md} svg`, { width: '20px', height: '20px' });
 globalStyle(`${alertIconSize.lg} svg`, { width: '24px', height: '24px' });
 
 export const alertIconColor = styleVariants({
-  success: { color: vars.colors.semantic.success['600'] },
-  error: { color: vars.colors.semantic.error['600'] },
-  warning: { color: vars.colors.semantic.warning['600'] },
-  info: { color: vars.colors.semantic.info['600'] },
+  success: { color: vars.colors.successHover },
+  error: { color: vars.colors.dangerHover },
+  warning: { color: vars.colors.warningHover },
+  info: { color: vars.colors.infoHover },
 });
 
 export const alertContent = style({ flex: '1', minWidth: 0 });
@@ -91,15 +91,15 @@ export const alertTitleBase = style({
 
 export const alertTitleSize = styleVariants({
   sm: { fontSize: vars.typography.size.sm, marginBottom: vars.spacing['1'] },
-  md: { fontSize: vars.typography.size.base, marginBottom: vars.spacing['1.5'] },
+  md: { fontSize: vars.typography.size.base, marginBottom: vars.spacing['1'] },
   lg: { fontSize: vars.typography.size.lg, marginBottom: vars.spacing['2'] },
 });
 
 export const alertTitleColor = styleVariants({
-  success: { color: vars.colors.semantic.success['900'] },
-  error: { color: vars.colors.semantic.error['900'] },
-  warning: { color: vars.colors.semantic.warning['900'] },
-  info: { color: vars.colors.semantic.info['900'] },
+  success: { color: vars.colors.successTextEmphasis },
+  error: { color: vars.colors.dangerTextEmphasis },
+  warning: { color: vars.colors.warningTextEmphasis },
+  info: { color: vars.colors.infoTextEmphasis },
 });
 
 export const alertMessage = style({ lineHeight: vars.typography.lineHeight.relaxed });
@@ -130,6 +130,6 @@ export const alertCloseButtonBase = style({
 
 export const alertCloseButtonSize = styleVariants({
   sm: { width: '20px', height: '20px', top: vars.spacing['2'], right: vars.spacing['2'] },
-  md: { width: '24px', height: '24px', top: vars.spacing['3'], right: vars.spacing['3'] },
-  lg: { width: '28px', height: '28px', top: vars.spacing['4'], right: vars.spacing['4'] },
+  md: { width: '24px', height: '24px', top: vars.spacing['2'], right: vars.spacing['2'] },
+  lg: { width: '28px', height: '28px', top: vars.spacing['3'], right: vars.spacing['3'] },
 });

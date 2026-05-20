@@ -8,6 +8,7 @@ import sequelize, {
 } from '../sequelize';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { encryptSecret, hashBackupCode, hashToken } from '../utils/secrets';
+import { invalidateAuthCache } from '../lib/auth-cache';
 import { JsonObject } from '../types/common';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
@@ -43,6 +44,8 @@ export enum UserType {
   RESCUE_STAFF = 'rescue_staff',
   ADMIN = 'admin',
   MODERATOR = 'moderator',
+  SUPER_ADMIN = 'super_admin',
+  SUPPORT_AGENT = 'support_agent',
 }
 
 // Define the UserAttributes interface with enhanced fields
@@ -70,6 +73,8 @@ interface UserAttributes {
   lockedUntil?: Date | null;
   twoFactorEnabled?: boolean;
   twoFactorSecret?: string | null;
+  twoFactorPendingSecret?: string | null;
+  twoFactorPendingExpiresAt?: Date | null;
   backupCodes?: string[] | null;
   timezone?: string | null;
   language?: string | null;
@@ -142,6 +147,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public lockedUntil!: Date | null;
   public twoFactorEnabled!: boolean;
   public twoFactorSecret!: string | null;
+  public twoFactorPendingSecret!: string | null;
+  public twoFactorPendingExpiresAt!: Date | null;
   public backupCodes!: string[] | null;
   public timezone!: string | null;
   public language!: string | null;
@@ -363,6 +370,20 @@ User.init(
       allowNull: true,
       field: 'two_factor_secret',
     },
+    // ADS-599: pending TOTP secret stored server-side between
+    // twoFactorSetup and enableTwoFactor so the client can't supply
+    // its own secret. Encrypted at rest via the same beforeUpdate
+    // hook that handles twoFactorSecret.
+    twoFactorPendingSecret: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'two_factor_pending_secret',
+    },
+    twoFactorPendingExpiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'two_factor_pending_expires_at',
+    },
     backupCodes: {
       type: getArrayType(DataTypes.STRING),
       allowNull: true,
@@ -481,7 +502,13 @@ User.init(
     scopes: {
       defaultScope: {
         attributes: {
-          exclude: ['password', 'resetToken', 'verificationToken', 'twoFactorSecret'],
+          exclude: [
+            'password',
+            'resetToken',
+            'verificationToken',
+            'twoFactorSecret',
+            'twoFactorPendingSecret',
+          ],
         },
       },
       withSecrets: {
@@ -509,6 +536,19 @@ User.init(
       {
         fields: ['deleted_at'],
         name: 'users_deleted_at_idx',
+      },
+      // ADS-504: partial UNIQUE on active rows so the planner can satisfy
+      // the very hot `email = ? AND deleted_at IS NULL` lookup (login,
+      // "is this email taken") with an index-only scan instead of
+      // hitting the full `users_email_unique` and re-checking deleted_at
+      // in the heap. The full unique above stays — it's what stops a
+      // soft-deleted user re-registering with the same address — and the
+      // partial unique is the performance-only sibling.
+      {
+        fields: ['email'],
+        unique: true,
+        name: 'users_email_active_idx',
+        where: { deleted_at: null },
       },
       ...auditIndexes('users'),
     ],
@@ -538,6 +578,19 @@ User.init(
           user.password = await hashPassword(user.password);
         }
         await protectSecretsIfChanged(user);
+      },
+      // ADS-596: blanket auth-cache invalidation. The in-process auth cache
+      // holds the full User instance (status, emailVerified, roles, etc.)
+      // for 60s; any persisted change to those fields must propagate to the
+      // next authenticated request. Doing it here removes the burden from
+      // every individual writer (deactivate, suspend, password reset, 2FA
+      // toggle, email verify, …) and is safe to over-fire — the worst case
+      // is one extra DB round-trip on the next request for that user.
+      afterSave: (user: User) => {
+        invalidateAuthCache(user.userId);
+      },
+      afterDestroy: (user: User) => {
+        invalidateAuthCache(user.userId);
       },
       // Plan 5.6 — every user gets typed pref rows at creation time so
       // consumers can always assume they exist. Defaults are declared on

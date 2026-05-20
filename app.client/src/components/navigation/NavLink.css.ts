@@ -7,7 +7,7 @@ export const styledLink = recipe({
     display: 'inline-flex',
     alignItems: 'center',
     gap: vars.spacing['2'],
-    borderRadius: vars.border.radius.md,
+    borderRadius: vars.border.radius.base,
     color: '#fff',
     textDecoration: 'none',
     fontWeight: 500,
@@ -41,7 +41,7 @@ export const styledLink = recipe({
         padding: vars.spacing['2'],
       },
       false: {
-        padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+        padding: `${vars.spacing['2']} ${vars.spacing['2']}`,
       },
     },
   },

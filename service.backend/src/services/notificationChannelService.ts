@@ -3,6 +3,8 @@ import User from '../models/User';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import logger from '../utils/logger';
 import emailService from './email.service';
+import { getPushProvider } from './push-providers';
+import { getSmsProvider } from './sms-providers';
 import { NotificationPreferences } from './notification.service';
 
 interface NotificationData {
@@ -319,18 +321,31 @@ export class NotificationChannelService {
         };
       }
 
-      // Mock push notification - in production, integrate with FCM/APNS
-      await Promise.all(
-        deviceTokens.map(async token => {
-          // Simulate push notification sending
-          logger.info('Mock push notification sent', {
-            token: token.device_token.substring(0, 10) + '...',
+      const provider = getPushProvider();
+      const results = await Promise.all(
+        deviceTokens.map(token =>
+          provider.send({
+            token: token.device_token,
+            platform: token.platform,
             title: notification.title,
-            message: notification.message,
-          });
-          return { success: true, token: token.device_token };
-        })
+            body: notification.message,
+            data: notification.data,
+          })
+        )
       );
+
+      const anySuccess = results.some(r => r.success);
+      if (!anySuccess) {
+        return {
+          channel: 'push',
+          success: false,
+          error:
+            results
+              .map(r => r.error)
+              .filter(Boolean)
+              .join('; ') || 'All push deliveries failed',
+        };
+      }
 
       return {
         channel: 'push',
@@ -367,18 +382,25 @@ export class NotificationChannelService {
         };
       }
 
-      // Mock SMS sending - in production, integrate with Twilio/AWS SNS
       const smsContent = `${notification.title}: ${notification.message}`;
-
-      logger.info('Mock SMS notification sent', {
-        phone: user.phoneNumber,
-        content: smsContent.substring(0, 50) + '...',
+      const provider = getSmsProvider();
+      const result = await provider.send({
+        to: user.phoneNumber,
+        message: smsContent,
       });
+
+      if (!result.success) {
+        return {
+          channel: 'sms',
+          success: false,
+          error: result.error || 'SMS delivery failed',
+        };
+      }
 
       return {
         channel: 'sms',
         success: true,
-        deliveryId: `sms_${Date.now()}`,
+        deliveryId: result.messageId || `sms_${Date.now()}`,
       };
     } catch (error) {
       return {

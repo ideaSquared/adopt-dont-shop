@@ -1,12 +1,14 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const container = style({
   minHeight: 'calc(100vh - 200px)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   padding: '2rem',
-  background: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+  background: `linear-gradient(135deg, ${vars.background.surface} 0%, ${vars.background.body} 100%)`,
 });
 
 export const resetPasswordCard = style({
@@ -23,11 +25,11 @@ export const header = style({
 globalStyle(`${header} h1`, {
   fontSize: '2rem',
   marginBottom: '0.5rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${header} p`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: '1.6',
 });
 
@@ -44,8 +46,8 @@ export const formGroup = style({
 });
 
 export const passwordRequirements = style({
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   padding: '1rem',
   marginTop: '0.5rem',
@@ -53,7 +55,7 @@ export const passwordRequirements = style({
 
 globalStyle(`${passwordRequirements} h4`, {
   fontSize: '0.9rem',
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
@@ -65,13 +67,13 @@ globalStyle(`${passwordRequirements} ul`, {
 
 globalStyle(`${passwordRequirements} li`, {
   fontSize: '0.85rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: '1.5',
 });
 
 export const backToLoginLink = style({
   fontSize: '0.9rem',
-  color: '#6366f1',
+  color: vars.colors.primary,
   textDecoration: 'none',
   textAlign: 'center',
   marginTop: '1rem',
@@ -96,14 +98,14 @@ globalStyle(`${successContainer} h2`, {
 });
 
 globalStyle(`${successContainer} p`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: '1.6',
   marginBottom: '1.5rem',
 });
 
 globalStyle(`${successContainer} .redirect-message`, {
   fontSize: '0.9rem',
-  color: '#9ca3af',
+  color: vars.text.muted,
   fontStyle: 'italic',
 });
 

@@ -31,6 +31,7 @@ const mockUseVerifyUser = vi.fn();
 const mockUseDeleteUser = vi.fn();
 const mockUseBulkUpdateUsers = vi.fn();
 const mockUseBulkUpdateRescues = vi.fn();
+const mockUseCreateUser = vi.fn();
 
 vi.mock('../hooks', () => ({
   useUsers: (...args: unknown[]) => mockUseUsers(...args),
@@ -40,6 +41,7 @@ vi.mock('../hooks', () => ({
   useDeleteUser: () => mockUseDeleteUser(),
   useBulkUpdateUsers: () => mockUseBulkUpdateUsers(),
   useBulkUpdateRescues: () => mockUseBulkUpdateRescues(),
+  useCreateUser: () => mockUseCreateUser(),
 }));
 
 const mockGetAll = vi.fn();
@@ -65,6 +67,7 @@ vi.mock('@/services/exportService', () => ({
 }));
 
 vi.mock('../components/modals', () => ({
+  AddUserModal: () => null,
   UserDetailModal: () => null,
   EditUserModal: () => null,
   CreateSupportTicketModal: () => null,
@@ -235,6 +238,7 @@ const setupUsers = (users: AdminUser[] = mockAdminUsers) => {
   mockUseVerifyUser.mockReturnValue(mockMutationResult);
   mockUseDeleteUser.mockReturnValue(mockMutationResult);
   mockUseBulkUpdateUsers.mockReturnValue(mockMutationResult);
+  mockUseCreateUser.mockReturnValue(mockMutationResult);
 };
 
 const setupRescues = (rescues: AdminRescue[] = mockAdminRescues) => {
@@ -334,7 +338,7 @@ describe('Bulk operations — Users page', () => {
       await user.click(within(toolbar).getByRole('button', { name: /^activate$/i }));
 
       expect(screen.getByTestId('bulk-confirmation-modal')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-title')).toHaveTextContent('Activate Users');
+      expect(screen.getByTestId('modal-title')).toHaveTextContent(/Activate \d+ users?\?/);
     });
 
     it('opens the bulk confirmation modal when Deactivate is clicked', async () => {
@@ -347,7 +351,7 @@ describe('Bulk operations — Users page', () => {
       await user.click(within(toolbar).getByRole('button', { name: /^deactivate$/i }));
 
       expect(screen.getByTestId('bulk-confirmation-modal')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-title')).toHaveTextContent('Deactivate Users');
+      expect(screen.getByTestId('modal-title')).toHaveTextContent(/Deactivate \d+ users?\?/);
     });
 
     it('opens the bulk confirmation modal when Delete is clicked', async () => {
@@ -360,7 +364,7 @@ describe('Bulk operations — Users page', () => {
       await user.click(within(toolbar).getByRole('button', { name: /^delete$/i }));
 
       expect(screen.getByTestId('bulk-confirmation-modal')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-title')).toHaveTextContent('Delete Users');
+      expect(screen.getByTestId('modal-title')).toHaveTextContent(/Delete \d+ users?\?/);
     });
 
     it('shows the number of selected items in the confirmation modal', async () => {

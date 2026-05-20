@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { Logo } from '@adopt-dont-shop/lib.components';
 import { useChat } from '@/contexts/ChatContext';
 import clsx from 'clsx';
 import * as styles from './Navigation.css';
@@ -22,6 +23,9 @@ const Navigation: React.FC = () => {
       badge: unreadMessageCount,
     },
     { path: '/events', label: 'Events', icon: '🗓️' },
+    { path: '/foster', label: 'Foster', icon: '🏠' },
+    { path: '/analytics', label: 'Analytics', icon: '📈' },
+    { path: '/reports', label: 'Reports', icon: '📑' },
     { path: '/settings', label: 'Settings', icon: '⚙️' },
   ];
 
@@ -58,7 +62,7 @@ const Navigation: React.FC = () => {
   return (
     <nav className={styles.mainNavigation}>
       <div className={styles.navHeader}>
-        <h2>🏠 Rescue Portal</h2>
+        <Logo size={32} showWordmark darkBg />
       </div>
 
       <ul className={styles.navList}>

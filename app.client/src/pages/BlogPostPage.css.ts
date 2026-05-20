@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   padding: '3rem 0',
   maxWidth: '800px',
@@ -9,12 +11,12 @@ export const backLink = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.5rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   textDecoration: 'none',
   fontSize: '0.9rem',
   marginBottom: '2rem',
   ':hover': {
-    color: '#111827',
+    color: vars.text.primary,
   },
 });
 
@@ -29,7 +31,7 @@ export const featuredImage = style({
 export const postTitle = style({
   fontSize: '2.5rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 1rem 0',
   lineHeight: '1.3',
   '@media': {
@@ -42,15 +44,15 @@ export const postTitle = style({
 export const postMeta = style({
   display: 'flex',
   gap: '1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: '0.9rem',
   marginBottom: '2.5rem',
   paddingBottom: '1.5rem',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 export const postContent = style({
-  color: '#111827',
+  color: vars.text.primary,
   lineHeight: '1.8',
   fontSize: '1.05rem',
 });
@@ -58,7 +60,7 @@ export const postContent = style({
 globalStyle(
   `${postContent} h1, ${postContent} h2, ${postContent} h3, ${postContent} h4, ${postContent} h5, ${postContent} h6`,
   {
-    color: '#111827',
+    color: vars.text.primary,
     margin: '2rem 0 1rem',
   }
 );
@@ -68,7 +70,7 @@ globalStyle(`${postContent} p`, {
 });
 
 globalStyle(`${postContent} a`, {
-  color: '#2563eb',
+  color: vars.colors.infoHover,
 });
 
 globalStyle(`${postContent} a:hover`, {
@@ -87,10 +89,10 @@ globalStyle(`${postContent} ul, ${postContent} ol`, {
 });
 
 globalStyle(`${postContent} blockquote`, {
-  borderLeft: '4px solid #2563eb',
+  borderLeft: `4px solid ${vars.colors.infoHover}`,
   margin: '1.5rem 0',
   padding: '0.5rem 1.5rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontStyle: 'italic',
 });
 
@@ -103,5 +105,5 @@ export const spinnerWrapper = style({
 export const notFound = style({
   textAlign: 'center',
   padding: '4rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });

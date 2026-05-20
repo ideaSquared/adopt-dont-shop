@@ -1,9 +1,19 @@
 import { useStatsig } from '@/hooks/useStatsig';
 import { DiscoveryPet } from '@/services';
-import { animated, useSpring } from '@react-spring/web';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { MatchReasonChips, ProgressiveImage } from '@adopt-dont-shop/lib.components';
+import { animated, to, useSpring } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import React, { useCallback, useRef, useState } from 'react';
-import { MdCheckCircle, MdPets, MdRefresh, MdStar } from 'react-icons/md';
+import {
+  MdCheckCircle,
+  MdExpandLess,
+  MdLocationOn,
+  MdLock,
+  MdPets,
+  MdRefresh,
+  MdStar,
+} from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { resolveFileUrl } from '../../utils/fileUtils';
 import * as styles from './SwipeCard.css';
@@ -24,13 +34,6 @@ const petTypeGradients: Record<string, string> = {
   bird: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
 };
 
-const overlayColors: Record<string, string> = {
-  like: 'rgba(76, 217, 100, 0.9)',
-  pass: 'rgba(255, 59, 92, 0.9)',
-  super_like: 'rgba(0, 149, 246, 0.9)',
-  info: 'rgba(255, 193, 7, 0.9)',
-};
-
 const PlaceholderIcon: React.FC<{ isLoading?: boolean; petType?: string }> = ({
   isLoading,
   petType,
@@ -38,7 +41,6 @@ const PlaceholderIcon: React.FC<{ isLoading?: boolean; petType?: string }> = ({
   if (isLoading) {
     return <MdRefresh className={styles.placeholderIconSpin} />;
   }
-
   switch (petType) {
     case 'dog':
       return <MdPets className='placeholder-icon' />;
@@ -50,7 +52,46 @@ const PlaceholderIcon: React.FC<{ isLoading?: boolean; petType?: string }> = ({
 };
 
 const SWIPE_THRESHOLD = 100;
-const ROTATION_MULTIPLIER = 0.1;
+const ROTATION_MULTIPLIER = 0.08;
+const STAMP_FADE_DISTANCE = 120;
+
+const formatAge = (pet: DiscoveryPet): string => {
+  if (pet.ageYears && pet.ageYears > 0) {
+    return `${pet.ageYears} yr${pet.ageYears > 1 ? 's' : ''}`;
+  }
+  if (pet.ageMonths && pet.ageMonths > 0) {
+    return `${pet.ageMonths} mo`;
+  }
+  return pet.ageGroup ?? '';
+};
+
+const formatDistance = (distance?: number): string | null => {
+  if (distance === undefined || distance === null) {
+    return null;
+  }
+  if (distance < 1) {
+    return '< 1 mi';
+  }
+  return `${Math.round(distance)} mi away`;
+};
+
+const sizeLabels: Record<string, string> = {
+  extra_small: 'XS',
+  small: 'Small',
+  medium: 'Medium',
+  large: 'Large',
+  extra_large: 'XL',
+};
+
+type MatchTier = { label: string; variant: 'pawfect' | 'match' };
+
+// Score is 0..100 from the backend. Hide low scores so badges feel meaningful
+// (dating-app pattern: only highlight standouts).
+const getMatchTier = (score: number | null): MatchTier | null => {
+  if (score === null || score < 70) return null;
+  if (score >= 90) return { label: 'Pawfect Match', variant: 'pawfect' };
+  return { label: 'Great Match', variant: 'match' };
+};
 
 export const SwipeCard: React.FC<SwipeCardProps> = ({
   pet,
@@ -60,14 +101,24 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
   style,
   disabled = false,
 }) => {
-  const [overlayAction, setOverlayAction] = useState<string>('');
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { logEvent } = useStatsig();
+  const { isAuthenticated } = useAuth();
+  const [imageIndex, setImageIndex] = useState(0);
 
-  // Log when card is displayed
+  const openSignup = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      logEvent('swipe_match_teaser_clicked', 1, {
+        pet_id: pet.petId,
+        pet_name: pet.name || 'unknown',
+      });
+      navigate('/register');
+    },
+    [logEvent, navigate, pet.petId, pet.name]
+  );
+
   React.useEffect(() => {
     if (isTop) {
       logEvent('swipe_card_displayed', 1, {
@@ -81,53 +132,28 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     }
   }, [isTop, pet, logEvent]);
 
-  // Image loading handlers
-  const handleImageLoad = useCallback(() => {
-    setImageLoaded(true);
-    setImageError(false);
-  }, []);
-
-  const handleImageError = useCallback(() => {
-    setImageLoaded(false);
-    setImageError(true);
-  }, []);
-
-  // Reset image state when pet changes
-  React.useEffect(() => {
-    setImageLoaded(false);
-    setImageError(false);
-  }, [pet.petId]);
-
-  // Keyboard navigation handler
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       if (!isTop) {
         return;
       }
-
-      let action: string = '';
+      let action = '';
       switch (event.key) {
         case 'ArrowLeft':
           event.preventDefault();
-          if (disabled) {
-            return;
-          }
+          if (disabled) return;
           action = 'pass';
           onSwipe('pass', pet.petId);
           break;
         case 'ArrowRight':
           event.preventDefault();
-          if (disabled) {
-            return;
-          }
+          if (disabled) return;
           action = 'like';
           onSwipe('like', pet.petId);
           break;
         case 'ArrowUp':
           event.preventDefault();
-          if (disabled) {
-            return;
-          }
+          if (disabled) return;
           action = 'super_like';
           onSwipe('super_like', pet.petId);
           break;
@@ -147,15 +173,11 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
           break;
         case 'Escape':
           event.preventDefault();
-          if (disabled) {
-            return;
-          }
+          if (disabled) return;
           action = 'pass';
           onSwipe('pass', pet.petId);
           break;
       }
-
-      // Log keyboard interaction
       if (action) {
         logEvent('swipe_keyboard_action', 1, {
           pet_id: pet.petId,
@@ -168,20 +190,21 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     [isTop, onSwipe, pet, navigate, logEvent, disabled]
   );
 
-  const [{ x, y, rotate, scale, opacity }, api] = useSpring(() => ({
+  const [{ x, y, rotate, opacity }, api] = useSpring(() => ({
     x: 0,
     y: 0,
     rotate: 0,
-    scale: 1,
     opacity: 1,
     config: { tension: 300, friction: 30 },
   }));
 
-  const [overlaySpring, overlayApi] = useSpring(() => ({
-    opacity: 0,
-    scale: 0.8,
-    config: { tension: 400, friction: 25 },
-  }));
+  // Live drag stamp opacities (computed from x/y in a derived style)
+  const likeOpacity = to([x], (vx: number) => Math.min(1, Math.max(0, vx / STAMP_FADE_DISTANCE)));
+  const passOpacity = to([x], (vx: number) => Math.min(1, Math.max(0, -vx / STAMP_FADE_DISTANCE)));
+  const superOpacity = to([x, y], (vx: number, vy: number) => {
+    if (Math.abs(vx) > 60) return 0;
+    return Math.min(1, Math.max(0, -vy / STAMP_FADE_DISTANCE));
+  });
 
   const bind = useDrag(
     ({
@@ -190,86 +213,39 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
       velocity: [vx],
       direction: [dx],
       cancel,
+      tap,
     }: {
       active: boolean;
       movement: [number, number];
       velocity: [number, number];
       direction: [number, number];
       cancel?: () => void;
+      tap?: boolean;
     }) => {
-      if (!isTop || disabled) {
+      if (!isTop || disabled || tap) {
         return;
       }
 
       const trigger = Math.abs(mx) > SWIPE_THRESHOLD;
+      const isSuperGesture = my < -SWIPE_THRESHOLD && Math.abs(mx) < 60;
       const isFlick = Math.abs(vx) > 0.5;
 
-      let action = '';
-      if (Math.abs(mx) > 50) {
-        if (mx > 0) {
-          action = 'like';
-        } else {
-          action = 'pass';
-        }
-      } else if (my < -50) {
-        action = 'super_like';
-      } else if (my > 50) {
-        action = 'info';
-      }
-
-      // Update overlay
-      if (active && action !== overlayAction) {
-        setOverlayAction(action);
-        overlayApi.start({
-          opacity: action ? 1 : 0,
-          scale: action ? 1 : 0.8,
-        });
-      }
-
       if (active) {
-        // Card follows the drag
         api.start({
           x: mx,
           y: my,
           rotate: mx * ROTATION_MULTIPLIER,
-          scale: 1.05,
           immediate: true,
         });
       } else {
-        // Released
-        overlayApi.start({ opacity: 0, scale: 0.8 });
-        setOverlayAction('');
-
-        if (trigger || isFlick) {
-          // Handle special actions based on movement patterns
-          let finalAction: 'like' | 'pass' | 'super_like' | 'info';
-          if (overlayAction === 'info' && my > 50) {
-            // Navigate to pet details instead of swiping away
-            logEvent('swipe_pet_details_viewed', 1, {
-              pet_id: pet.petId,
-              pet_name: pet.name || 'unknown',
-              pet_type: pet.type || 'unknown',
-              interaction_method: 'swipe_down',
-              movement_y: my.toString(),
-            });
-            navigate(`/pets/${pet.petId}`);
-            // Reset card position
-            api.start({
-              x: 0,
-              y: 0,
-              rotate: 0,
-              scale: 1,
-              opacity: 1,
-            });
-            return;
-          } else if (overlayAction === 'super_like' && my < -50) {
+        if (trigger || isFlick || isSuperGesture) {
+          let finalAction: 'like' | 'pass' | 'super_like';
+          if (isSuperGesture) {
             finalAction = 'super_like';
           } else {
-            // Regular horizontal swipe
             finalAction = mx > 0 ? 'like' : 'pass';
           }
 
-          // Log swipe action
           logEvent('swipe_action_performed', 1, {
             pet_id: pet.petId,
             pet_name: pet.name || 'unknown',
@@ -283,114 +259,111 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             is_flick: isFlick.toString(),
           });
 
-          // Animate card off screen
+          const exitX = finalAction === 'pass' ? -800 : finalAction === 'like' ? 800 : 0;
+          const exitY = finalAction === 'super_like' ? -900 : my * 0.5;
+
           api.start({
-            x: dx * 1000,
-            y: my + dx * 1000 * 0.1,
-            rotate: dx * 30,
-            scale: 0.8,
+            x: exitX,
+            y: exitY,
+            rotate: finalAction === 'super_like' ? 0 : dx * 25,
             opacity: 0,
-            config: { tension: 200, friction: 20 },
+            config: { tension: 220, friction: 24 },
           });
 
-          // Trigger callback after a short delay
-          setTimeout(() => {
-            onSwipe(finalAction, pet.petId);
-          }, 100);
-
-          if (cancel) {
-            cancel();
-          }
+          setTimeout(() => onSwipe(finalAction, pet.petId), 120);
+          if (cancel) cancel();
         } else {
-          // Return to center
-          api.start({
-            x: 0,
-            y: 0,
-            rotate: 0,
-            scale: 1,
-            opacity: 1,
-          });
+          api.start({ x: 0, y: 0, rotate: 0, opacity: 1 });
         }
       }
     },
     {
-      axis: undefined,
-      bounds: { left: -300, right: 300, top: -200, bottom: 200 },
-      rubberband: true,
+      filterTaps: true,
+      bounds: { left: -400, right: 400, top: -300, bottom: 200 },
+      rubberband: 0.15,
     }
   );
 
-  const primaryImage = pet.images?.[0];
+  const images = pet.images && pet.images.length > 0 ? pet.images : [];
+  const currentImage = images[imageIndex];
+  const imageUrl = resolveFileUrl(currentImage);
+  const hasMultipleImages = images.length > 1;
 
-  const imageUrl = resolveFileUrl(primaryImage);
+  const cycleImage = (delta: number) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!hasMultipleImages) return;
+    setImageIndex(prev => (prev + delta + images.length) % images.length);
+  };
 
-  // Calculate age display - handle undefined values properly
-  let age = '';
-  if (pet.ageYears && pet.ageYears > 0) {
-    age = `${pet.ageYears}y`;
-  } else if (pet.ageMonths && pet.ageMonths > 0) {
-    age = `${pet.ageMonths}m`;
-  } else {
-    // Fallback to age group if specific age not available
-    age = pet.ageGroup || 'Unknown age';
-  }
+  const openDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    logEvent('swipe_pet_details_viewed', 1, {
+      pet_id: pet.petId,
+      pet_name: pet.name || 'unknown',
+      pet_type: pet.type || 'unknown',
+      interaction_method: 'info_button',
+    });
+    navigate(`/pets/${pet.petId}`);
+  };
 
+  const age = formatAge(pet);
+  const distanceLabel = formatDistance(pet.distance);
+  const compatibilityScore =
+    pet.compatibilityScore !== undefined && pet.compatibilityScore !== null
+      ? pet.compatibilityScore
+      : null;
+  const matchTier = getMatchTier(compatibilityScore);
   const placeholderBackground =
     petTypeGradients[pet.type ?? ''] ?? 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
 
   return (
     <animated.div
       ref={cardRef}
-      {...(disabled ? {} : bind())}
+      {...(disabled || !isTop ? {} : bind())}
       className={styles.cardContainer({ isTop, disabled })}
       tabIndex={isTop ? 0 : -1}
       onKeyDown={handleKeyDown}
       role='button'
-      aria-label={`${pet.name}, ${pet.breed}, ${age} old. Use arrow keys to swipe or Enter to view details.`}
+      aria-label={`${pet.name}, ${pet.breed ?? pet.type}, ${age}. Swipe right to like, left to pass, up to super like, or press Enter for details.`}
       style={{
         ...style,
         zIndex,
-        transform: x.to(
-          (x: number) =>
-            `translateX(${x}px) translateY(${y.get()}px) rotate(${rotate.get()}deg) scale(${scale.get()})`
+        transform: to(
+          [x, y, rotate],
+          (vx, vy, vr) => `translate3d(${vx}px, ${vy}px, 0) rotate(${vr}deg)`
         ),
         opacity,
       }}
     >
       <div className={styles.imageContainer}>
         {imageUrl ? (
-          <>
-            <img
-              src={imageUrl}
-              alt={`${pet.name} - ${pet.breed || 'pet'}`}
-              draggable={false}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-              style={{
-                opacity: imageLoaded && !imageError ? 1 : 0,
-                transition: 'opacity 0.3s ease-in-out',
-              }}
-            />
-            {(!imageLoaded || imageError) && (
+          <ProgressiveImage
+            src={imageUrl}
+            alt={`${pet.name} - ${pet.breed || 'pet'}`}
+            eager={isTop}
+            placeholder={
               <div
                 className={styles.placeholderImage}
                 style={{ background: placeholderBackground }}
               >
-                <PlaceholderIcon isLoading={!imageError && !imageLoaded} petType={pet.type} />
-                {!imageLoaded && !imageError ? (
-                  <>
-                    <div className={styles.placeholderText}>Loading...</div>
-                    <div className={styles.placeholderSubtext}>{pet.name}</div>
-                  </>
-                ) : (
-                  <>
-                    <div className={styles.placeholderText}>{pet.name}</div>
-                    <div className={styles.placeholderSubtext}>{pet.breed || pet.type}</div>
-                  </>
-                )}
+                <PlaceholderIcon isLoading petType={pet.type} />
+                <div className={styles.placeholderText}>Loading...</div>
+                <div className={styles.placeholderSubtext}>{pet.name}</div>
               </div>
-            )}
-          </>
+            }
+            errorFallback={
+              <div
+                className={styles.placeholderImage}
+                style={{ background: placeholderBackground }}
+                role='img'
+                aria-label={`${pet.name} image unavailable`}
+              >
+                <PlaceholderIcon petType={pet.type} />
+                <div className={styles.placeholderText}>{pet.name}</div>
+                <div className={styles.placeholderSubtext}>{pet.breed || pet.type}</div>
+              </div>
+            }
+          />
         ) : (
           <div className={styles.placeholderImage} style={{ background: placeholderBackground }}>
             <PlaceholderIcon petType={pet.type} />
@@ -399,35 +372,143 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
           </div>
         )}
 
-        <animated.div
-          className={styles.swipeOverlay}
-          style={{
-            opacity: overlaySpring.opacity,
-            transform: overlaySpring.scale.to(s => `translate(-50%, -50%) scale(${s})`),
-            background: overlayColors[overlayAction] ?? 'transparent',
-          }}
-        >
-          {overlayAction === 'like' && '❤️'}
-          {overlayAction === 'pass' && '❌'}
-          {overlayAction === 'super_like' && '⭐'}
-          {overlayAction === 'info' && 'ℹ️'}
-        </animated.div>
-      </div>
+        <div className={styles.gradientScrim} />
 
-      <div className={styles.cardContent}>
-        <div>
-          <h3 className={styles.petName}>{pet.name}</h3>
-          <div className={styles.petDetails}>
-            <div className={styles.detailRow}>
-              <span className={styles.badge({ variant: 'age' })}>{age} old</span>
-              <span className={styles.badge({ variant: 'size' })}>{pet.size}</span>
+        {hasMultipleImages && (
+          <>
+            <div className={styles.imageDots} aria-hidden='true'>
+              {images.map((src, i) => (
+                <div key={src + i} className={styles.imageDot({ active: i === imageIndex })} />
+              ))}
             </div>
-            <div className={styles.detailRow}>
-              <span className={styles.badge({ variant: 'breed' })}>{pet.breed}</span>
-              <span>{pet.gender}</span>
-            </div>
+            {isTop && (
+              <>
+                <button
+                  type='button'
+                  className={styles.tapZone({ side: 'left' })}
+                  onClick={cycleImage(-1)}
+                  aria-label='Previous photo'
+                  tabIndex={-1}
+                />
+                <button
+                  type='button'
+                  className={styles.tapZone({ side: 'right' })}
+                  onClick={cycleImage(1)}
+                  aria-label='Next photo'
+                  tabIndex={-1}
+                />
+              </>
+            )}
+          </>
+        )}
+
+        {(pet.isSponsored ||
+          !isAuthenticated ||
+          matchTier !== null ||
+          (pet.matchReasons && pet.matchReasons.length > 0)) && (
+          <div className={styles.topBadges}>
+            {!isAuthenticated ? (
+              <button
+                type='button'
+                className={styles.topBadge({ variant: 'locked' })}
+                onClick={openSignup}
+                aria-label='Sign up to see your match score'
+              >
+                <MdLock /> See Your Match
+              </button>
+            ) : (
+              matchTier && (
+                <span className={styles.topBadge({ variant: matchTier.variant })}>
+                  <MdStar /> {matchTier.label}
+                </span>
+              )
+            )}
+            {pet.isSponsored && (
+              <span className={styles.topBadge({ variant: 'sponsored' })}>
+                <MdStar /> Featured
+              </span>
+            )}
+            {pet.matchReasons && pet.matchReasons.length > 0 && (
+              <MatchReasonChips reasons={pet.matchReasons} />
+            )}
           </div>
+        )}
+
+        {isTop && (
+          <>
+            <animated.div
+              className={styles.stamp({ variant: 'like' })}
+              style={{ opacity: likeOpacity }}
+              aria-hidden='true'
+            >
+              Like
+            </animated.div>
+            <animated.div
+              className={styles.stamp({ variant: 'pass' })}
+              style={{ opacity: passOpacity }}
+              aria-hidden='true'
+            >
+              Nope
+            </animated.div>
+            <animated.div
+              className={styles.stamp({ variant: 'super_like' })}
+              style={{ opacity: superOpacity }}
+              aria-hidden='true'
+            >
+              Super Like
+            </animated.div>
+          </>
+        )}
+
+        <div className={styles.cardContent}>
+          <div className={styles.nameRow}>
+            <h3 className={styles.petName}>{pet.name}</h3>
+            {age && <span className={styles.petAge}>{age}</span>}
+          </div>
+
+          <div className={styles.metaRow}>
+            {pet.breed && <span className={styles.metaItem}>{pet.breed}</span>}
+            {pet.gender && pet.gender !== 'unknown' && (
+              <>
+                <span className={styles.metaDot} />
+                <span className={styles.metaItem} style={{ textTransform: 'capitalize' }}>
+                  {pet.gender}
+                </span>
+              </>
+            )}
+            {pet.size && (
+              <>
+                <span className={styles.metaDot} />
+                <span className={styles.metaItem}>{sizeLabels[pet.size] ?? pet.size}</span>
+              </>
+            )}
+          </div>
+
+          {(pet.rescueName || distanceLabel) && (
+            <div className={styles.metaRow}>
+              {distanceLabel && (
+                <span className={styles.metaItem}>
+                  <MdLocationOn /> {distanceLabel}
+                </span>
+              )}
+              {pet.rescueName && distanceLabel && <span className={styles.metaDot} />}
+              {pet.rescueName && <span className={styles.metaItem}>{pet.rescueName}</span>}
+            </div>
+          )}
+
+          {pet.shortDescription && <p className={styles.description}>{pet.shortDescription}</p>}
         </div>
+
+        {isTop && (
+          <button
+            type='button'
+            className={styles.infoButton}
+            onClick={openDetails}
+            aria-label={`View full details for ${pet.name}`}
+          >
+            <MdExpandLess />
+          </button>
+        )}
       </div>
 
       <div className={styles.loginPromptOverlay({ show: disabled && isTop })}>

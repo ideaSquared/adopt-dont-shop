@@ -11,7 +11,7 @@ has its own RPO / RTO and backup mechanism.
 | `postgres_data`       | `database` service (Postgres 16+PostGIS) | Tier-1 (full)  | 30 days   |
 | `uploads`             | `service-backend` user uploads         | Tier-1 (full)  | 90 days   |
 | `letsencrypt`         | nginx TLS state                        | Regenerable — no backup |  N/A     |
-| Application images    | Docker registry (Docker Hub)           | Immutable tags | indefinite (per-tag) |
+| Application images    | GitHub Container Registry (GHCR)       | Immutable tags | indefinite (per-tag) |
 
 ## Postgres — `pg_dump` to S3
 

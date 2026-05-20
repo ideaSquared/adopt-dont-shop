@@ -7,8 +7,8 @@ export const card = style({
   alignItems: 'center',
   padding: '1.5rem',
   marginBottom: '2rem',
-  background: vars.background.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '1rem',
   boxShadow: '0 4px 12px rgba(244, 63, 94, 0.06)',
   '@media': {
@@ -26,7 +26,7 @@ export const imageWrap = style({
   height: '112px',
   borderRadius: '0.75rem',
   overflow: 'hidden',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   '@media': {
     '(max-width: 640px)': {
       width: '100%',

@@ -1,6 +1,8 @@
 import { ApiServiceConfig, FetchOptions } from '../types';
 import { InterceptorManager } from '../interceptors';
 import { createHttpError, TimeoutError, NetworkError } from '../errors';
+import { UPLOAD_PATHS } from '../constants/api-paths';
+import { ImageUploadResponseSchema, type ImageUploadResponse } from '../schemas/upload-schemas';
 
 /**
  * ApiService - Pure HTTP transport layer with interceptors and error handling
@@ -461,6 +463,29 @@ export class ApiService {
       method: 'POST',
       body: formData,
     });
+  }
+
+  /**
+   * ADS-574: typed client for the staged image upload endpoint
+   * (`POST /api/v1/uploads/images`).
+   *
+   * The backend route expects `multipart/form-data` with field name `image`
+   * (singular) — different from {@link uploadFile}'s generic `file` field —
+   * and returns the public URL + thumbnail URL pair that the rescue UI
+   * embeds in the `images: string[]` payload of a subsequent create/update
+   * pet request. We validate the response shape with the Zod schema to
+   * catch backend drift early.
+   */
+  async uploadImage(file: File): Promise<ImageUploadResponse> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const raw = await this.fetchWithAuth<unknown>(UPLOAD_PATHS.IMAGES, {
+      method: 'POST',
+      body: formData,
+    });
+
+    return ImageUploadResponseSchema.parse(raw);
   }
 
   /**

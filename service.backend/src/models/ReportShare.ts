@@ -121,7 +121,19 @@ ReportShare.init(
     indexes: [
       { fields: ['saved_report_id'], name: 'report_shares_saved_report_idx' },
       { fields: ['shared_with_user_id'], name: 'report_shares_shared_with_user_idx' },
-      { fields: ['token_hash'], name: 'report_shares_token_hash_idx' },
+      // ADS-505: partial UNIQUE on token-typed shares. `token_hash`
+      // stores `sha256(share-jwt-jti)`; two rows with the same hash
+      // would resolve the same signed share to two different rows,
+      // leaking unauthorised access on a JTI collision or app bug.
+      // Partial because `token_hash` is NULL for `share_type = 'user'`
+      // rows; pairs with the existing `report_shares_unique_user_idx`
+      // partial unique on user-typed shares.
+      {
+        fields: ['token_hash'],
+        unique: true,
+        name: 'report_shares_token_hash_unique_idx',
+        where: { share_type: 'token' },
+      },
       ...auditIndexes('report_shares'),
     ],
   })

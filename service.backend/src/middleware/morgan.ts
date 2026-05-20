@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { loggerHelpers } from '../utils/logger';
+import type { AuthenticatedRequest } from '../types/auth';
 
 /**
  * ADS-448 / ADS-462: structured HTTP access log middleware.
@@ -15,7 +16,7 @@ export const httpAccessLog = (req: Request, res: Response, next: NextFunction): 
 
   res.on('finish', () => {
     const duration = Number((process.hrtime.bigint() - start) / 1_000_000n);
-    loggerHelpers.logRequest(req, res, duration);
+    loggerHelpers.logRequest(req as AuthenticatedRequest, res, duration);
   });
 
   next();

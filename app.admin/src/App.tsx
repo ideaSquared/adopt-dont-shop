@@ -33,6 +33,7 @@ const SecurityCenter = lazy(() => import('./pages/SecurityCenter'));
 const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
 const ContentManagement = lazy(() => import('./pages/ContentManagement'));
 const BroadcastNotifications = lazy(() => import('./pages/BroadcastNotifications'));
+const PrivacyTools = lazy(() => import('./pages/PrivacyTools'));
 
 const PageLoader = () => (
   <div className={styles.pageLoader}>
@@ -114,30 +115,10 @@ const AdminApp: React.FC = () => {
                   </RouteBoundary>
                 }
               />
-              <Route
-                path='/moderation/queue'
-                element={
-                  <RouteBoundary name='moderation'>
-                    <Moderation />
-                  </RouteBoundary>
-                }
-              />
-              <Route
-                path='/moderation/reports'
-                element={
-                  <RouteBoundary name='moderation'>
-                    <Moderation />
-                  </RouteBoundary>
-                }
-              />
-              <Route
-                path='/moderation/sanctions'
-                element={
-                  <RouteBoundary name='moderation'>
-                    <Moderation />
-                  </RouteBoundary>
-                }
-              />
+              {/* legacy sub-routes redirect to single Moderation page */}
+              <Route path='/moderation/queue' element={<Navigate to='/moderation' replace />} />
+              <Route path='/moderation/reports' element={<Navigate to='/moderation' replace />} />
+              <Route path='/moderation/sanctions' element={<Navigate to='/moderation' replace />} />
 
               {/* Support System */}
               <Route path='/support' element={<Support />} />
@@ -179,6 +160,9 @@ const AdminApp: React.FC = () => {
 
               {/* Field-Level Permissions */}
               <Route path='/field-permissions' element={<FieldPermissions />} />
+
+              {/* Privacy / GDPR Tools */}
+              <Route path='/privacy-tools' element={<PrivacyTools />} />
 
               {/* Audit & Monitoring */}
               <Route path='/audit' element={<Audit />} />

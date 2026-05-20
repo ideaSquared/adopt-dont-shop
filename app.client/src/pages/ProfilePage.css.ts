@@ -1,4 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
@@ -23,13 +25,13 @@ export const header = style({
 
 globalStyle(`${header} h1`, {
   fontSize: '2.5rem',
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '0.5rem',
 });
 
 globalStyle(`${header} p`, {
   fontSize: '1.1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${header} h1`, {
@@ -41,7 +43,7 @@ globalStyle(`${header} h1`, {
 });
 
 export const tabContainer = style({
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.default}`,
   marginBottom: '2rem',
 });
 
@@ -60,17 +62,17 @@ export const tab = recipe({
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     ':hover': {
-      color: '#4f46e5',
+      color: vars.colors.primaryHover,
     },
   },
   variants: {
     active: {
       true: {
-        color: '#4f46e5',
+        color: vars.colors.primaryHover,
         borderBottom: '2px solid #4f46e5',
       },
       false: {
-        color: '#6b7280',
+        color: vars.text.tertiary,
         borderBottom: '2px solid transparent',
       },
     },
@@ -78,8 +80,8 @@ export const tab = recipe({
 });
 
 export const section = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '2rem',
   marginBottom: '2rem',
@@ -87,7 +89,7 @@ export const section = style({
 
 export const sectionTitle = style({
   fontSize: '1.5rem',
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '1rem',
 });
 
@@ -101,7 +103,7 @@ export const infoItem = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '1rem 0',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.default}`,
   selectors: {
     '&:last-child': {
       borderBottom: 'none',
@@ -111,11 +113,11 @@ export const infoItem = style({
 
 export const infoLabel = style({
   fontWeight: '500',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const infoValue = style({
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const applicationsGrid = style({
@@ -124,8 +126,8 @@ export const applicationsGrid = style({
 });
 
 export const applicationCard = style({
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   padding: '1.5rem',
   display: 'flex',
@@ -137,12 +139,12 @@ export const applicationInfo = style({});
 
 globalStyle(`${applicationInfo} h3`, {
   fontSize: '1.1rem',
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '0.5rem',
 });
 
 globalStyle(`${applicationInfo} p`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: '0.875rem',
 });
 
@@ -161,16 +163,16 @@ export const statusBadge = recipe({
         color: '#6d28d9',
       },
       approved: {
-        background: '#d1fae5',
-        color: '#065f46',
+        background: vars.colors.successBgSubtle,
+        color: vars.colors.successTextEmphasis,
       },
       rejected: {
-        background: '#fee2e2',
-        color: '#991b1b',
+        background: vars.colors.dangerBgSubtle,
+        color: vars.colors.dangerTextEmphasis,
       },
       default: {
-        background: '#f3f4f6',
-        color: '#374151',
+        background: vars.background.muted,
+        color: vars.text.secondary,
       },
     },
   },

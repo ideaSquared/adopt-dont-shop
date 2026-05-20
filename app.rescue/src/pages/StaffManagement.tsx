@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
 import {
   StaffList,
   StaffForm,
@@ -34,6 +35,9 @@ const StaffManagement: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  // ADS-586: confirm dialog for destructive staff/invitation actions.
+  const { confirm, confirmProps } = useConfirm();
 
   // Check permissions using the permissions service
   const canDeleteStaff = hasPermission(STAFF_DELETE);
@@ -100,7 +104,14 @@ const StaffManagement: React.FC = () => {
   };
 
   const handleCancelInvitation = async (invitationId: number) => {
-    if (!confirm('Are you sure you want to cancel this invitation?')) {
+    const confirmed = await confirm({
+      title: 'Cancel invitation?',
+      message: 'Are you sure you want to cancel this invitation?',
+      confirmText: 'Cancel invitation',
+      cancelText: 'Keep invitation',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -183,11 +194,14 @@ const StaffManagement: React.FC = () => {
       return;
     }
 
-    if (
-      !confirm(
-        `Are you sure you want to remove ${staffMember.firstName} ${staffMember.lastName} from your staff?`
-      )
-    ) {
+    const confirmed = await confirm({
+      title: 'Remove staff member?',
+      message: `Are you sure you want to remove ${staffMember.firstName} ${staffMember.lastName} from your staff?`,
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -338,6 +352,8 @@ const StaffManagement: React.FC = () => {
           loading={actionLoading}
         />
       )}
+
+      <ConfirmDialog {...confirmProps} />
     </div>
   );
 };

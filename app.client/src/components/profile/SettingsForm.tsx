@@ -1,6 +1,6 @@
 import notificationService from '@/services/notificationService';
 import { User } from '@/types';
-import { Button } from '@adopt-dont-shop/lib.components';
+import { Button, ThemeToggle } from '@adopt-dont-shop/lib.components';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import React, { useEffect, useState } from 'react';
 import * as styles from './SettingsForm.css';
@@ -164,6 +164,19 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
 
   return (
     <div className={styles.wrapper}>
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Appearance</h3>
+        <div className={styles.settingItem}>
+          <div className={styles.settingLabel}>
+            <h4>Theme</h4>
+            <p>Choose how the app looks — light, cosy (warm cream), or dark.</p>
+          </div>
+          <div className={styles.settingControl}>
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
+
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>Security</h3>
         <div className={styles.settingItem}>

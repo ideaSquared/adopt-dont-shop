@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
 import { formatStatusName } from '../../utils/statusUtils';
 import {
   TimelineEventType,
@@ -95,6 +96,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   // Stage transition state
   const [showStageTransition, setShowStageTransition] = useState(false);
+
+  // ADS-579: confirmation modal for destructive status transitions (rejection)
+  const { confirm, confirmProps } = useConfirm();
 
   // Staff data
   const { staff, loading: staffLoading } = useStaff();
@@ -195,7 +199,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       setShowAddEvent(false);
     } catch (error) {
       console.error('Failed to add timeline event:', error);
-      alert('Failed to add timeline event. Please try again.');
+      toast.error('Failed to add timeline event. Please try again.', {
+        action: { label: 'Retry', onClick: handleAddEvent },
+      });
     } finally {
       setIsAddingEvent(false);
     }
@@ -369,8 +375,14 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     } catch (error) {
       console.error('Failed to update reference:', error);
       // Show user-friendly error message
-      alert(
-        `Failed to update reference: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to update reference: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        {
+          action: {
+            label: 'Retry',
+            onClick: () => handleReferenceUpdate(referenceId, status, notes),
+          },
+        }
       );
     }
   };
@@ -422,8 +434,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to schedule visit:', error);
-      alert(
-        `Failed to schedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to schedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: handleScheduleVisit } }
       );
     } finally {
       setIsSchedulingVisit(false);
@@ -442,7 +455,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to mark visit as in progress:', error);
-      alert(`Failed to update visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to mark visit as in progress: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: () => handleMarkVisitInProgress(visitId) } }
+      );
     }
   };
 
@@ -468,8 +484,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to reschedule visit:', error);
-      alert(
-        `Failed to reschedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to reschedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: () => handleRescheduleVisit(visitId) } }
       );
     }
   };
@@ -502,8 +519,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to complete visit:', error);
-      alert(
-        `Failed to complete visit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to complete visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: () => handleCompleteVisit(visitId) } }
       );
     }
   };
@@ -526,7 +544,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       }
     } catch (error) {
       console.error('Failed to cancel visit:', error);
-      alert(`Failed to cancel visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to cancel visit: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: () => handleCancelVisit(visitId) } }
+      );
     }
   };
 
@@ -574,6 +595,23 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   }
 
   const handleStatusUpdate = async () => {
+    // ADS-579: Rejection is irreversible and must notify the applicant.
+    // Require explicit confirmation before committing; other transitions
+    // proceed without a prompt as before.
+    if (newStatus === 'rejected') {
+      const confirmed = await confirm({
+        title: 'Reject this application?',
+        message:
+          'The applicant will be notified by email. This action cannot be undone via the status dropdown.',
+        confirmText: 'Reject application',
+        cancelText: 'Cancel',
+        variant: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+
     try {
       setIsUpdatingStatus(true);
       await onStatusUpdate(newStatus, statusNotes);
@@ -592,8 +630,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     } catch (error) {
       console.error('Failed to update application status:', error);
       // Show user-friendly error message
-      alert(
-        `Failed to update application status: ${error instanceof Error ? error.message : 'Unknown error'}`
+      toast.error(
+        `Failed to update application status: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { action: { label: 'Retry', onClick: handleStatusUpdate } }
       );
     } finally {
       setIsUpdatingStatus(false);
@@ -724,7 +763,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 ))}
               </select>
               {getValidStatusOptions(currentStatus).length === 0 && (
-                <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                <p className={styles.noStatusOptionsText}>
                   No status changes available for {formatStatusName(currentStatus)}.
                 </p>
               )}
@@ -1785,18 +1824,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                               <div className={styles.timelineData}>
                                 <strong>Additional Details:</strong>
                                 {event.data.oldStatus && event.data.newStatus ? (
-                                  <div style={{ marginTop: '0.5rem' }}>
-                                    <span style={{ color: '#ef4444' }}>
+                                  <div className={styles.statusChangeBlock}>
+                                    <span className={styles.oldStatusText}>
                                       From: {formatStatusName(event.data.oldStatus)}
                                     </span>
                                     <br />
-                                    <span style={{ color: '#10b981' }}>
+                                    <span className={styles.newStatusText}>
                                       To: {formatStatusName(event.data.newStatus)}
                                     </span>
                                     {event.data.notes && (
                                       <>
                                         <br />
-                                        <span style={{ color: '#6b7280' }}>
+                                        <span className={styles.notesText}>
                                           Notes: {event.data.notes}
                                         </span>
                                       </>
@@ -1839,7 +1878,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                 ×
               </button>
             </div>
-            <div style={{ padding: '1rem' }}>
+            <div className={styles.visitDetailsBody}>
               {(() => {
                 const visit = homeVisits.find(v => v.id === viewingVisit);
                 if (!visit) {
@@ -1943,6 +1982,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           onTransition={handleStageTransition}
         />
       )}
+
+      {/* ADS-579: Confirmation dialog for destructive status transitions */}
+      <ConfirmDialog {...confirmProps} data-testid="reject-confirm-dialog" />
     </div>
   );
 };

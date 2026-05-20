@@ -6,6 +6,7 @@ export type AdminApplication = {
   applicationId: string;
   status: ApplicationStatus;
   petName: string;
+  petType?: string;
   petId: string;
   rescueName: string;
   rescueId: string;
@@ -19,6 +20,7 @@ export type ApplicationFilters = {
   search?: string;
   status?: ApplicationStatus;
   rescueId?: string;
+  petType?: string;
   page?: number;
   limit?: number;
 };
@@ -29,11 +31,39 @@ export type BulkApplicationResult = {
   failures: Array<{ applicationId: string; error: string }>;
 };
 
-type PaginatedApplicationsResponse = {
+type BackendApplication = {
+  id: string;
+  status: ApplicationStatus;
+  petId: string;
+  petName?: string;
+  petType?: string;
+  rescueId: string;
+  rescueName?: string;
+  userName?: string;
+  userEmail?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ApplicationsPaginatedResponse = {
   success: boolean;
-  data: AdminApplication[];
+  data: BackendApplication[];
   pagination: { page: number; limit: number; total: number; pages: number };
 };
+
+const toAdminApplication = (a: BackendApplication): AdminApplication => ({
+  applicationId: a.id,
+  status: a.status,
+  petId: a.petId,
+  petName: a.petName ?? '',
+  petType: a.petType,
+  rescueId: a.rescueId,
+  rescueName: a.rescueName ?? '',
+  applicantName: a.userName ?? '',
+  applicantEmail: a.userEmail ?? '',
+  createdAt: a.createdAt,
+  updatedAt: a.updatedAt,
+});
 
 class ApplicationServiceClient {
   private baseUrl = '/api/v1/applications';
@@ -52,15 +82,20 @@ class ApplicationServiceClient {
     if (filters.rescueId) {
       params.rescueId = filters.rescueId;
     }
+    if (filters.petType) {
+      params.petType = filters.petType;
+    }
     if (filters.page) {
       params.page = String(filters.page);
     }
-    if (filters.limit) {
-      params.limit = String(filters.limit);
-    }
+    const limit = filters.limit ?? 20;
+    params.limit = String(limit);
 
-    const response = await apiService.get<PaginatedApplicationsResponse>(this.baseUrl, params);
-    return { data: response.data, pagination: response.pagination };
+    const response = await apiService.get<ApplicationsPaginatedResponse>(this.baseUrl, params);
+    return {
+      data: response.data.map(toAdminApplication),
+      pagination: response.pagination,
+    };
   }
 
   async bulkUpdate(

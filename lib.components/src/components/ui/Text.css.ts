@@ -61,7 +61,7 @@ export const colors = styleVariants({
   primary: { color: vars.text.primary },
   secondary: { color: vars.text.secondary },
   success: { color: vars.text.success },
-  danger: { color: vars.text.error },
+  danger: { color: vars.text.danger },
   warning: { color: vars.text.warning },
   info: { color: vars.text.info },
 });

@@ -202,11 +202,7 @@ export const ApplicationDetailsPage: React.FC = () => {
           <Button
             variant='secondary'
             onClick={() => setIsWithdrawModalOpen(true)}
-            style={{
-              backgroundColor: '#dc2626',
-              borderColor: '#dc2626',
-              color: 'white',
-            }}
+            className={styles.withdrawButton}
           >
             Withdraw Application
           </Button>

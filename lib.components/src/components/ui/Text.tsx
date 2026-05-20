@@ -35,48 +35,43 @@ export interface TextProps extends React.HTMLAttributes<HTMLElement> {
   underline?: boolean;
   className?: string;
   children: React.ReactNode;
+  ref?: React.Ref<HTMLElement>;
 }
 
-export const Text = React.forwardRef<HTMLElement, TextProps>(
-  (
-    {
-      variant = 'body',
-      size = 'base',
-      weight = 'normal',
-      align = 'left',
-      color = 'body',
-      as = 'span' as keyof React.JSX.IntrinsicElements,
-      truncate = false,
-      italic = false,
-      underline = false,
-      className = '',
-      children,
-      ...rest
-    },
-    ref
-  ) => {
-    const Component = as as React.ElementType;
-    return (
-      <Component
-        ref={ref}
-        className={clsx(
-          styles.base,
-          styles.variants[variant],
-          styles.sizes[size],
-          styles.weights[weight],
-          styles.colors[color],
-          styles.aligns[align],
-          truncate && styles.truncate,
-          italic && styles.italic,
-          underline && styles.underline,
-          className
-        )}
-        {...rest}
-      >
-        {children}
-      </Component>
-    );
-  }
-);
-
-Text.displayName = 'Text';
+export const Text = ({
+  variant = 'body',
+  size = 'base',
+  weight = 'normal',
+  align = 'left',
+  color = 'body',
+  as = 'span' as keyof React.JSX.IntrinsicElements,
+  truncate = false,
+  italic = false,
+  underline = false,
+  className = '',
+  children,
+  ref,
+  ...rest
+}: TextProps) => {
+  const Component = as as React.ElementType;
+  return (
+    <Component
+      ref={ref}
+      className={clsx(
+        styles.base,
+        styles.variants[variant],
+        styles.sizes[size],
+        styles.weights[weight],
+        styles.colors[color],
+        styles.aligns[align],
+        truncate && styles.truncate,
+        italic && styles.italic,
+        underline && styles.underline,
+        className
+      )}
+      {...rest}
+    >
+      {children}
+    </Component>
+  );
+};

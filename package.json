@@ -23,6 +23,7 @@
     "lib.feature-flags",
     "lib.invitations",
     "lib.legal",
+    "lib.matching",
     "lib.moderation",
     "lib.notifications",
     "lib.observability",
@@ -58,6 +59,7 @@
     "build:apps": "turbo run build --filter='@adopt-dont-shop/app.*'",
     "test": "turbo run test",
     "test:e2e": "npm run -w @adopt-dont-shop/e2e test",
+    "test:e2e:smoke": "npm run -w @adopt-dont-shop/e2e test:smoke",
     "test:e2e:ui": "npm run -w @adopt-dont-shop/e2e test:ui",
     "test:e2e:debug": "npm run -w @adopt-dont-shop/e2e test:debug",
     "test:e2e:headed": "npm run -w @adopt-dont-shop/e2e test:headed",
@@ -114,7 +116,9 @@
   "overrides": {
     "lodash": "^4.18.1",
     "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "@types/react-dom": "^19.0.0",
+    "@types/express": "^5.0.0",
+    "@types/express-serve-static-core": "^5.0.0"
   },
   "engines": {
     "node": ">=22.0.0 <23.0.0",

@@ -14,14 +14,17 @@ export const backLink = style({
   marginBottom: '2rem',
   textDecoration: 'none',
   color: vars.text.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
-  borderRadius: vars.border.radius.md,
+  background: 'transparent',
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.base,
   fontSize: '0.9rem',
+  font: 'inherit',
+  cursor: 'pointer',
   transition: `all ${vars.transitions.fast}`,
   ':hover': {
     color: vars.text.primary,
-    borderColor: vars.border.color.secondary,
-    background: vars.background.tertiary,
+    borderColor: vars.border.color.muted,
+    background: vars.background.muted,
   },
 });
 
@@ -38,11 +41,11 @@ export const actionLink = style({
 });
 
 export const actionLinkPrimary = style({
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   ':hover': {
-    background: vars.colors.primary['600'],
-    boxShadow: vars.shadows.md,
+    background: vars.colors.primaryHover,
+    boxShadow: vars.shadows.base,
     transform: 'translateY(-1px)',
   },
 });
@@ -50,10 +53,10 @@ export const actionLinkPrimary = style({
 export const actionLinkOutline = style({
   background: 'transparent',
   color: vars.text.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   ':hover': {
-    background: vars.background.tertiary,
-    borderColor: vars.border.color.secondary,
+    background: vars.background.muted,
+    borderColor: vars.border.color.muted,
   },
 });
 
@@ -71,10 +74,10 @@ export const errorActionLink = style({
   borderRadius: vars.border.radius.lg,
   fontWeight: '500',
   transition: `all ${vars.transitions.fast}`,
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   ':hover': {
-    background: vars.colors.primary['600'],
+    background: vars.colors.primaryHover,
     transform: 'translateY(-1px)',
   },
 });
@@ -140,7 +143,7 @@ globalStyle(`${imageSection} .primary-image`, {
   overflow: 'hidden',
   marginBottom: '1rem',
   position: 'relative',
-  boxShadow: vars.shadows.md,
+  boxShadow: vars.shadows.base,
 });
 
 globalStyle(`${imageSection} .primary-image img`, {
@@ -168,11 +171,11 @@ globalStyle(`${imageSection} .thumbnail`, {
 });
 
 globalStyle(`${imageSection} .thumbnail.active`, {
-  borderColor: vars.colors.primary['500'],
+  borderColor: vars.colors.primary,
 });
 
 globalStyle(`${imageSection} .thumbnail:hover`, {
-  borderColor: vars.border.color.primary,
+  borderColor: vars.border.color.default,
 });
 
 globalStyle(`${imageSection} .thumbnail img`, {
@@ -184,7 +187,7 @@ globalStyle(`${imageSection} .thumbnail img`, {
 export const placeholderImage = style({
   width: '100%',
   height: '100%',
-  background: `linear-gradient(135deg, ${vars.colors.neutral['100']} 0%, ${vars.colors.neutral['200']} 100%)`,
+  background: `linear-gradient(135deg, ${vars.background.muted} 0%, ${vars.border.color.muted} 100%)`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -218,7 +221,7 @@ export const placeholderImage = style({
 export const thumbnailPlaceholder = style({
   width: '100%',
   height: '100%',
-  background: `linear-gradient(135deg, ${vars.colors.neutral['100']} 0%, ${vars.colors.neutral['200']} 100%)`,
+  background: `linear-gradient(135deg, ${vars.background.muted} 0%, ${vars.border.color.muted} 100%)`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -264,7 +267,7 @@ globalStyle(`${infoCard} .info-item`, {
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '0.75rem 0',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${infoCard} .info-item:last-child`, {
@@ -298,7 +301,7 @@ globalStyle(`${actionCard} h3`, {
 });
 
 globalStyle(`${actionCard} .rescue-info`, {
-  background: vars.background.tertiary,
+  background: vars.background.muted,
   borderRadius: vars.border.radius.lg,
   padding: '1rem',
   marginBottom: '1.5rem',
@@ -352,7 +355,7 @@ export const loadingContainer = style({
 export const errorContainer = style({
   textAlign: 'center',
   padding: '3rem',
-  color: vars.text.error,
+  color: vars.text.danger,
 });
 
 globalStyle(`${errorContainer} h2`, {

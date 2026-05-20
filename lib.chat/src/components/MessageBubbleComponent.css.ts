@@ -64,7 +64,7 @@ export const messageBubbleOwn = styleVariants({
     bubbleBase,
     {
       borderRadius: '18px 18px 4px 18px',
-      background: vars.colors.primary['600'],
+      background: vars.colors.primaryHover,
       color: vars.text.inverse,
       border: 'none',
     },
@@ -73,7 +73,7 @@ export const messageBubbleOwn = styleVariants({
     bubbleBase,
     {
       borderRadius: '18px 18px 4px 18px',
-      background: vars.colors.primary['600'],
+      background: vars.colors.primaryHover,
       color: vars.text.inverse,
       border: 'none',
     },
@@ -82,7 +82,7 @@ export const messageBubbleOwn = styleVariants({
     bubbleBase,
     {
       borderRadius: '18px 4px 4px 18px',
-      background: vars.colors.primary['600'],
+      background: vars.colors.primaryHover,
       color: vars.text.inverse,
       border: 'none',
     },
@@ -91,7 +91,7 @@ export const messageBubbleOwn = styleVariants({
     bubbleBase,
     {
       borderRadius: '18px 4px 18px 18px',
-      background: vars.colors.primary['600'],
+      background: vars.colors.primaryHover,
       color: vars.text.inverse,
       border: 'none',
     },
@@ -103,36 +103,36 @@ export const messageBubbleOther = styleVariants({
     bubbleBase,
     {
       borderRadius: '18px 18px 18px 4px',
-      background: vars.background.secondary,
+      background: vars.background.surface,
       color: vars.text.primary,
-      border: `1px solid ${vars.border.color.tertiary}`,
+      border: `1px solid ${vars.border.color.muted}`,
     },
   ],
   first: [
     bubbleBase,
     {
       borderRadius: '18px 18px 18px 4px',
-      background: vars.background.secondary,
+      background: vars.background.surface,
       color: vars.text.primary,
-      border: `1px solid ${vars.border.color.tertiary}`,
+      border: `1px solid ${vars.border.color.muted}`,
     },
   ],
   middle: [
     bubbleBase,
     {
       borderRadius: '4px 18px 18px 4px',
-      background: vars.background.secondary,
+      background: vars.background.surface,
       color: vars.text.primary,
-      border: `1px solid ${vars.border.color.tertiary}`,
+      border: `1px solid ${vars.border.color.muted}`,
     },
   ],
   last: [
     bubbleBase,
     {
       borderRadius: '4px 18px 18px 18px',
-      background: vars.background.secondary,
+      background: vars.background.surface,
       color: vars.text.primary,
-      border: `1px solid ${vars.border.color.tertiary}`,
+      border: `1px solid ${vars.border.color.muted}`,
     },
   ],
 });
@@ -203,13 +203,13 @@ export const attachmentItemOther = style({
   alignItems: 'center',
   gap: '0.5rem',
   padding: '0.5rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '8px',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   transition: 'all 0.2s ease',
   selectors: {
     '&:hover': {
-      background: vars.background.tertiary,
+      background: vars.background.muted,
     },
   },
 });
@@ -253,8 +253,8 @@ export const fileIconOther = style({
   alignItems: 'center',
   justifyContent: 'center',
   borderRadius: '4px',
-  background: vars.colors.primary['100'],
-  color: vars.colors.primary['800'],
+  background: vars.colors.primaryBgSubtle,
+  color: vars.colors.primaryTextEmphasis,
 });
 
 export const fileInfo = style({
@@ -316,13 +316,13 @@ export const downloadButtonOther = style({
   width: '32px',
   height: '32px',
   borderRadius: '4px',
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   textDecoration: 'none',
   transition: 'all 0.2s ease',
   selectors: {
     '&:hover': {
-      background: vars.colors.primary['600'],
+      background: vars.colors.primaryHover,
       transform: 'scale(1.05)',
     },
   },

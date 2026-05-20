@@ -2,6 +2,7 @@ import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   // Check if we're running in Docker (service-backend hostname is available)
@@ -36,7 +37,65 @@ export default defineConfig(({ mode }) => {
       : {};
 
   return {
-    plugins: [react(), vanillaExtractPlugin()],
+    plugins: [
+      react({
+        babel: {
+          plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
+        },
+      }),
+      vanillaExtractPlugin(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.svg', 'favicon-16.png', 'favicon-32.png', 'apple-touch-icon.png'],
+        manifest: {
+          id: '/?source=pwa',
+          name: "Adopt Don't Shop — Rescue",
+          short_name: 'ADS Rescue',
+          description: 'Rescue operations dashboard.',
+          start_url: '/?source=pwa',
+          scope: '/',
+          lang: 'en-GB',
+          dir: 'ltr',
+          theme_color: '#2563eb',
+          background_color: '#ffffff',
+          display: 'standalone',
+          orientation: 'any',
+          categories: ['business', 'productivity'],
+          icons: [
+            { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          ],
+        },
+        workbox: {
+          navigateFallback: '/index.html',
+          runtimeCaching: [
+            {
+              urlPattern: ({ url }: { url: URL }) =>
+                /\/api\/v1\/(pets|applications)(?:\/|\?|$)/.test(url.pathname),
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'rescue-lists',
+                networkTimeoutSeconds: 3,
+                expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 },
+              },
+            },
+            {
+              urlPattern: ({ request }: { request: Request }) => request.destination === 'image',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images',
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
+          ],
+          globPatterns: ['**/*.{js,css,html,svg,png,ico,webp}'],
+        },
+        devOptions: {
+          enabled: false,
+        },
+      }),
+    ],
     envDir: resolve(__dirname, '..'), // Load .env from monorepo root
     cacheDir: '/tmp/.vite-app-rescue',
     resolve: {
@@ -51,10 +110,9 @@ export default defineConfig(({ mode }) => {
         '@/pages': resolve(__dirname, './src/pages'),
         ...libraryAliases,
       },
-      dedupe: ['styled-components', 'react', 'react-dom'],
+      dedupe: ['react', 'react-dom'],
     },
     optimizeDeps: {
-      include: ['styled-components'],
       exclude: [
         '@testing-library/dom',
         '@testing-library/react',
@@ -117,9 +175,6 @@ export default defineConfig(({ mode }) => {
             }
             if (id.includes('react-router')) {
               return 'router-vendor';
-            }
-            if (id.includes('styled-components')) {
-              return 'styled-components';
             }
             if (id.includes('react-dom') || /\/react\//.test(id)) {
               return 'react-vendor';

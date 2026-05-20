@@ -51,7 +51,7 @@ export const petGrid = style({
 export const emptyState = style({
   textAlign: 'center',
   padding: '4rem 2rem',
-  background: vars.background.tertiary,
+  background: vars.background.muted,
   borderRadius: vars.border.radius['2xl'],
   margin: '2rem 0',
 });
@@ -80,7 +80,7 @@ export const ctaButton = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: '0.5rem',
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   padding: '0.8rem 1.5rem',
   borderRadius: vars.border.radius.lg,
@@ -89,8 +89,8 @@ export const ctaButton = style({
   boxShadow: vars.shadows.sm,
   transition: `all ${vars.transitions.fast}`,
   ':hover': {
-    background: vars.colors.primary['600'],
-    boxShadow: vars.shadows.md,
+    background: vars.colors.primaryHover,
+    boxShadow: vars.shadows.base,
     transform: 'translateY(-1px)',
   },
 });
@@ -98,7 +98,7 @@ export const ctaButton = style({
 export const loginPrompt = style({
   textAlign: 'center',
   padding: '4rem 2rem',
-  background: vars.background.tertiary,
+  background: vars.background.muted,
   borderRadius: vars.border.radius['2xl'],
   margin: '2rem 0',
 });
@@ -131,8 +131,8 @@ export const statsContainer = style({
 });
 
 export const statCard = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: vars.border.radius.lg,
   padding: '1.5rem',
   textAlign: 'center',
@@ -144,7 +144,7 @@ globalStyle(`${statCard} .number`, {
   fontFamily: vars.typography.family.display,
   fontSize: '2rem',
   fontWeight: vars.typography.weight.bold,
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   marginBottom: '0.5rem',
 });
 

@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   display: 'flex',
   flexDirection: 'column',
@@ -19,13 +21,13 @@ export const headerLeft = style({});
 globalStyle(`${headerLeft} h1`, {
   fontSize: '2rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
 globalStyle(`${headerLeft} p`, {
   fontSize: '1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   margin: 0,
 });
 
@@ -37,8 +39,8 @@ export const statsBar = style({
 });
 
 export const statCard = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.25rem',
   display: 'flex',
@@ -54,18 +56,18 @@ export const statDetails = style({
 
 export const statLabel = style({
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const statValue = style({
   fontSize: '1.5rem',
   fontWeight: '700',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 export const filterBar = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.5rem',
   display: 'flex',
@@ -85,24 +87,24 @@ export const filterGroup = style({
 export const filterLabel = style({
   fontSize: '0.875rem',
   fontWeight: '600',
-  color: '#374151',
+  color: vars.text.secondary,
 });
 
 export const select = style({
   padding: '0.625rem 1rem',
-  border: '1px solid #d1d5db',
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  color: '#111827',
-  background: '#ffffff',
+  color: vars.text.primary,
+  background: vars.background.surface,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    borderColor: '#9ca3af',
+    borderColor: vars.text.muted,
   },
   ':focus': {
     outline: 'none',
-    borderColor: '#3b82f6',
+    borderColor: vars.colors.info,
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
   },
 });
@@ -118,7 +120,7 @@ export const searchIcon = style({
   left: '1rem',
   top: '50%',
   transform: 'translateY(-50%)',
-  color: '#9ca3af',
+  color: vars.text.muted,
   pointerEvents: 'none',
 });
 
@@ -128,8 +130,8 @@ export const badgeSuccess = style({
   fontSize: '0.75rem',
   fontWeight: '600',
   display: 'inline-block',
-  background: '#dcfce7',
-  color: '#15803d',
+  background: vars.colors.successBgSubtle,
+  color: vars.colors.successActive,
 });
 
 export const badgeDanger = style({
@@ -138,8 +140,8 @@ export const badgeDanger = style({
   fontSize: '0.75rem',
   fontWeight: '600',
   display: 'inline-block',
-  background: '#fee2e2',
-  color: '#dc2626',
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerHover,
 });
 
 export const badgeInfo = style({
@@ -148,8 +150,8 @@ export const badgeInfo = style({
   fontSize: '0.75rem',
   fontWeight: '600',
   display: 'inline-block',
-  background: '#dbeafe',
-  color: '#1e40af',
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoTextEmphasis,
 });
 
 export const badgeNeutral = style({
@@ -158,15 +160,15 @@ export const badgeNeutral = style({
   fontSize: '0.75rem',
   fontWeight: '600',
   display: 'inline-block',
-  background: '#f3f4f6',
-  color: '#4b5563',
+  background: vars.background.muted,
+  color: vars.text.tertiary,
 });
 
 export const priorityIndicatorCritical = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: '#dc2626',
+  background: vars.colors.dangerHover,
   flexShrink: 0,
 });
 
@@ -190,7 +192,7 @@ export const priorityIndicatorLow = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: '#2563eb',
+  background: vars.colors.infoHover,
   flexShrink: 0,
 });
 
@@ -198,7 +200,7 @@ export const priorityIndicatorDefault = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: '#9ca3af',
+  background: vars.text.muted,
   flexShrink: 0,
 });
 
@@ -207,7 +209,7 @@ export const priorityLabel = style({
   alignItems: 'center',
   gap: '0.5rem',
   fontSize: '0.875rem',
-  color: '#374151',
+  color: vars.text.secondary,
 });
 
 export const actionButtons = style({
@@ -221,16 +223,16 @@ export const iconButton = style({
   justifyContent: 'center',
   width: '32px',
   height: '32px',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '6px',
-  background: '#ffffff',
-  color: '#6b7280',
+  background: vars.background.surface,
+  color: vars.text.tertiary,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: '#f9fafb',
-    color: '#111827',
-    borderColor: '#d1d5db',
+    background: vars.background.body,
+    color: vars.text.primary,
+    borderColor: vars.border.color.muted,
   },
   ':active': {
     transform: 'scale(0.95)',
@@ -251,8 +253,8 @@ export const contentTypeTagMessage = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#dbeafe',
-  color: '#1e40af',
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoTextEmphasis,
 });
 
 export const contentTypeTagUser = style({
@@ -269,8 +271,8 @@ export const contentTypeTagRescue = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#fef3c7',
-  color: '#92400e',
+  background: vars.colors.warningBgSubtle,
+  color: vars.colors.warningTextEmphasis,
 });
 
 export const contentTypeTagDefault = style({
@@ -278,8 +280,8 @@ export const contentTypeTagDefault = style({
   borderRadius: '6px',
   fontSize: '0.75rem',
   fontWeight: '600',
-  background: '#f3f4f6',
-  color: '#374151',
+  background: vars.background.muted,
+  color: vars.text.secondary,
 });
 
 export const reportTitle = style({
@@ -289,7 +291,7 @@ export const reportTitle = style({
 
 export const reportSummary = style({
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginBottom: '0.25rem',
 });
 
@@ -299,13 +301,13 @@ export const reportTagRow = style({
 
 export const reportedAt = style({
   fontSize: '0.875rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const errorBanner = style({
   padding: '2rem',
   textAlign: 'center',
-  color: '#dc2626',
+  color: vars.colors.dangerHover,
 });
 
 const statIconBase = style({
@@ -318,13 +320,22 @@ const statIconBase = style({
   fontSize: '1.5rem',
 });
 
-export const statIconRed = style([statIconBase, { background: '#dc262620', color: '#dc2626' }]);
+export const statIconRed = style([
+  statIconBase,
+  { background: '#dc262620', color: vars.colors.dangerHover },
+]);
 
-export const statIconBlue = style([statIconBase, { background: '#3b82f620', color: '#3b82f6' }]);
+export const statIconBlue = style([
+  statIconBase,
+  { background: '#3b82f620', color: vars.colors.info },
+]);
 
 export const statIconOrange = style([statIconBase, { background: '#ea580c20', color: '#ea580c' }]);
 
-export const statIconGreen = style([statIconBase, { background: '#16a34a20', color: '#16a34a' }]);
+export const statIconGreen = style([
+  statIconBase,
+  { background: '#16a34a20', color: vars.colors.successHover },
+]);
 
 export const searchInputPadded = style({
   paddingLeft: '2.75rem',

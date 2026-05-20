@@ -1,12 +1,14 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const container = style({
   minHeight: 'calc(100vh - 200px)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   padding: '2rem',
-  background: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+  background: `linear-gradient(135deg, ${vars.background.surface} 0%, ${vars.background.body} 100%)`,
 });
 
 export const verifyEmailCard = style({
@@ -23,11 +25,11 @@ export const header = style({
 globalStyle(`${header} h1`, {
   fontSize: '2rem',
   marginBottom: '0.5rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${header} p`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
   lineHeight: '1.6',
   fontSize: '1rem',
 });
@@ -54,8 +56,8 @@ export const loadingSpinner = style({
     content: '""',
     width: '48px',
     height: '48px',
-    border: '5px solid #e5e7eb',
-    borderBottomColor: '#6366f1',
+    border: `5px solid ${vars.border.color.default}`,
+    borderBottomColor: vars.colors.primary,
     borderRadius: '50%',
     animationName: 'rotation',
     animationDuration: '1s',
@@ -68,11 +70,11 @@ export const resendSection = style({
   textAlign: 'center',
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${resendSection} p`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
   marginBottom: '1rem',
   fontSize: '0.95rem',
 });

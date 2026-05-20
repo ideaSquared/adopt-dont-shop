@@ -14,8 +14,8 @@ export const form = style({
 });
 
 export const section = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   padding: '1.5rem',
 });
@@ -31,7 +31,7 @@ export const settingItem = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '1rem 0',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   selectors: {
     '&:last-child': {
       borderBottom: 'none',
@@ -88,7 +88,7 @@ globalStyle(`${switchLabel} span`, {
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: vars.colors.neutral['300'],
+  backgroundColor: vars.border.color.default,
   transition: '0.3s',
   borderRadius: '24px',
 });
@@ -106,7 +106,7 @@ globalStyle(`${switchLabel} span:before`, {
 });
 
 globalStyle(`${switchLabel} input:checked + span`, {
-  backgroundColor: vars.colors.primary['500'],
+  backgroundColor: vars.colors.primary,
 });
 
 globalStyle(`${switchLabel} input:checked + span:before`, {
@@ -115,15 +115,15 @@ globalStyle(`${switchLabel} input:checked + span:before`, {
 
 export const select = style({
   padding: '0.5rem',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '6px',
-  background: vars.background.primary,
+  background: vars.background.body,
   color: vars.text.primary,
   fontSize: '0.875rem',
   minWidth: '150px',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['500'],
+    borderColor: vars.colors.primary,
   },
 });
 
@@ -140,19 +140,19 @@ export const buttonGroup = style({
 });
 
 export const dangerZone = style({
-  border: `1px solid ${vars.colors.semantic.error['300']}`,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
   borderRadius: '8px',
   padding: '1.5rem',
-  background: vars.colors.semantic.error['50'],
+  background: vars.colors.dangerBgSubtle,
 });
 
 globalStyle(`${dangerZone} h3`, {
-  color: vars.colors.semantic.error['700'],
+  color: vars.colors.dangerActive,
   marginBottom: '1rem',
 });
 
 globalStyle(`${dangerZone} p`, {
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
   marginBottom: '1rem',
   fontSize: '0.875rem',
 });

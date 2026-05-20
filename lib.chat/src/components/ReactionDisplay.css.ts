@@ -29,11 +29,11 @@ export const reactionBadge = styleVariants({
   active: [
     reactionBadgeBase,
     {
-      border: `1px solid ${vars.colors.primary['300']}`,
-      background: vars.colors.primary['50'],
+      border: `1px solid ${vars.colors.primaryBorderSubtle}`,
+      background: vars.colors.primaryBgSubtle,
       selectors: {
         '&:hover': {
-          background: vars.colors.primary['100'],
+          background: vars.colors.primaryBgSubtle,
           transform: 'scale(1.05)',
         },
       },
@@ -42,11 +42,11 @@ export const reactionBadge = styleVariants({
   inactive: [
     reactionBadgeBase,
     {
-      border: `1px solid ${vars.border.color.secondary}`,
-      background: vars.background.primary,
+      border: `1px solid ${vars.border.color.muted}`,
+      background: vars.background.body,
       selectors: {
         '&:hover': {
-          background: vars.background.secondary,
+          background: vars.background.surface,
           transform: 'scale(1.05)',
         },
       },

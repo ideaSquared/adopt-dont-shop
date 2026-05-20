@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button } from '@adopt-dont-shop/lib.components';
+import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetCard.css';
@@ -66,6 +66,7 @@ interface PetCardProps {
 }
 
 const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete }) => {
+  'use memo';
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newStatus, setNewStatus] = useState<PetStatus>(pet.status as PetStatus);
@@ -112,7 +113,11 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
       <Card className={styles.styledCard}>
         <div className={styles.petImageContainer}>
           {primaryImage ? (
-            <img className={styles.petImage} src={primaryImage.url} alt={pet.name} />
+            <ProgressiveImage
+              src={primaryImage.url}
+              alt={pet.name}
+              errorFallback={<div className={styles.placeholderImage}>🐾</div>}
+            />
           ) : (
             <div className={styles.placeholderImage}>🐾</div>
           )}
@@ -172,7 +177,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
               size="sm"
               onClick={handleDelete}
               disabled={isDeleting}
-              style={{ color: '#ef4444' }}
+              className={styles.dangerText}
             >
               {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
@@ -247,7 +252,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
           >
             <h3>Delete Pet: {pet.name}</h3>
 
-            <p style={{ marginBottom: '1rem', color: '#666' }}>
+            <p className={styles.deleteWarning}>
               Are you sure you want to delete this pet? This action cannot be undone.
             </p>
 
@@ -270,7 +275,7 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
                 variant="primary"
                 onClick={confirmDelete}
                 disabled={isDeleting}
-                style={{ backgroundColor: '#ef4444', borderColor: '#ef4444' }}
+                className={styles.dangerButton}
               >
                 {isDeleting ? 'Deleting...' : 'Delete Pet'}
               </Button>

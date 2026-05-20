@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
 import { AuthenticatedRequest } from '../../types';
+import { errorHandler } from '../../middleware/error-handler';
 
 vi.mock('../../utils/logger', () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
@@ -45,6 +46,7 @@ const buildApp = (
     app.use(authMiddleware);
   }
   app.use('/api/applications', applicationTimelineRouter);
+  app.use(errorHandler);
   return app;
 };
 
@@ -94,7 +96,7 @@ describe('Application timeline routes', () => {
       mockGetTimeline.mockRejectedValue(new Error('boom'));
       const res = await request(buildApp()).get('/api/applications/app-1/timeline');
       expect(res.status).toBe(500);
-      expect(res.body.success).toBe(false);
+      expect(res.body.status).toBe('error');
     });
   });
 

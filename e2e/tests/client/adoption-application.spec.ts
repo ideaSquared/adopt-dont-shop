@@ -1,9 +1,5 @@
 import { test, expect } from '../../fixtures';
-import {
-  SEEDED_PET_IDS,
-  createAdopterApplication,
-  patchWithCsrf,
-} from '../../helpers/seeds';
+import { SEEDED_PET_IDS, createAdopterApplication, patchWithCsrf } from '../../helpers/seeds';
 
 /**
  * Adoption golden path (ADS-420).
@@ -45,7 +41,7 @@ test.describe('adoption application submission', () => {
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15_000 });
   });
 
-  test('full adoption journey: submit application → rescue approves → adopter sees approval', async ({
+  test('full adoption journey: submit application → rescue approves → adopter sees approval @smoke', async ({
     page,
     apiAs,
   }) => {

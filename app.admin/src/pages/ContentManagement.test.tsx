@@ -5,6 +5,28 @@ import { MemoryRouter } from 'react-router-dom';
 import ContentManagement from './ContentManagement';
 import { cmsService, type Content, type NavigationMenu } from '../services/cmsService';
 
+// ADS-585: drive the useConfirm() flow per-test by routing the spy below
+// through the mocked hook from @adopt-dont-shop/lib.components.
+const confirmSpy = vi.fn();
+
+vi.mock('@adopt-dont-shop/lib.components', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('@adopt-dont-shop/lib.components');
+  return {
+    ...actual,
+    useConfirm: () => ({
+      isOpen: false,
+      confirm: confirmSpy,
+      confirmProps: {
+        isOpen: false,
+        onClose: () => {},
+        onConfirm: () => {},
+        message: '',
+      },
+    }),
+    ConfirmDialog: () => null,
+  };
+});
+
 vi.mock('../services/cmsService', () => ({
   cmsService: {
     listContent: vi.fn(),
@@ -98,6 +120,8 @@ const renderPage = () =>
 describe('ContentManagement page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    confirmSpy.mockReset();
+    confirmSpy.mockResolvedValue(true);
     vi.mocked(cmsService.listContent).mockResolvedValue({
       content: mockContent,
       total: 2,
@@ -206,7 +230,7 @@ describe('ContentManagement page', () => {
   });
 
   it('calls deleteContent after user confirms deletion', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    confirmSpy.mockResolvedValue(true);
     vi.mocked(cmsService.deleteContent).mockResolvedValue(undefined);
     renderPage();
     await waitFor(() => screen.getByText('Welcome Page'));
@@ -217,10 +241,13 @@ describe('ContentManagement page', () => {
   });
 
   it('does not delete content when confirmation is cancelled', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    confirmSpy.mockResolvedValue(false);
     renderPage();
     await waitFor(() => screen.getByText('Welcome Page'));
     fireEvent.click(screen.getAllByTitle('Delete')[0]);
+    await waitFor(() => {
+      expect(confirmSpy).toHaveBeenCalled();
+    });
     expect(cmsService.deleteContent).not.toHaveBeenCalled();
   });
 

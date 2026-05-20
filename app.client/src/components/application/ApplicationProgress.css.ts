@@ -54,7 +54,7 @@ export const stepItemDefault = style({
 export const stepItemActiveMobile = style({
   '@media': {
     'screen and (max-width: 768px)': {
-      background: vars.colors.primary['50'],
+      background: vars.colors.primaryBgSubtle,
     },
   },
 });
@@ -83,19 +83,19 @@ export const stepNumber = style({
 
 export const stepNumberVariants = styleVariants({
   completed: {
-    background: vars.colors.semantic.success['500'],
-    borderColor: vars.colors.semantic.success['500'],
+    background: vars.colors.success,
+    borderColor: vars.colors.success,
     color: 'white',
   },
   active: {
-    background: vars.colors.primary['500'],
-    borderColor: vars.colors.primary['500'],
+    background: vars.colors.primary,
+    borderColor: vars.colors.primary,
     color: 'white',
   },
   inactive: {
     background: 'transparent',
-    borderColor: vars.colors.neutral['300'],
-    color: vars.colors.neutral['400'],
+    borderColor: vars.border.color.default,
+    color: vars.border.color.strong,
   },
 });
 
@@ -151,21 +151,21 @@ export const stepConnector = style({
 });
 
 export const stepConnectorVariants = styleVariants({
-  completed: { background: vars.colors.semantic.success['500'] },
-  incomplete: { background: vars.colors.neutral['200'] },
+  completed: { background: vars.colors.success },
+  incomplete: { background: vars.border.color.muted },
 });
 
 export const progressBar = style({
   width: '100%',
   height: '4px',
-  background: vars.colors.neutral['200'],
+  background: vars.border.color.muted,
   borderRadius: '2px',
   overflow: 'hidden',
 });
 
 export const progressFill = style({
   height: '100%',
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   transition: 'width 0.3s ease',
   borderRadius: '2px',
 });

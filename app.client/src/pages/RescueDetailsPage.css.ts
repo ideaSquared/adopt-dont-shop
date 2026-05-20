@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const pageContainer = style({
   maxWidth: '1200px',
   margin: '0 auto',
@@ -11,7 +13,7 @@ export const backButton = style({
 });
 
 export const rescueHeader = style({
-  background: '#f9fafb',
+  background: vars.background.body,
   borderRadius: '16px',
   padding: '3rem',
   marginBottom: '3rem',
@@ -22,7 +24,7 @@ globalStyle(`${rescueHeader} h1`, {
   fontSize: '3rem',
   fontWeight: '700',
   marginBottom: '1rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${rescueHeader} .rescue-meta`, {
@@ -39,7 +41,7 @@ globalStyle(`${rescueHeader} .rescue-meta .meta-item`, {
   alignItems: 'center',
   gap: '0.5rem',
   fontSize: '1.1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${rescueHeader} .rescue-meta .meta-item .icon`, {
@@ -79,19 +81,19 @@ globalStyle(`${descriptionCard} h2`, {
   fontSize: '1.5rem',
   fontWeight: '600',
   marginBottom: '1.5rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${descriptionCard} h3`, {
   fontSize: '1.2rem',
   fontWeight: '600',
   margin: '2rem 0 1rem 0',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${descriptionCard} p`, {
   lineHeight: '1.6',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   whiteSpace: 'pre-wrap',
 });
 
@@ -103,7 +105,7 @@ globalStyle(`${contactCard} h2`, {
   fontSize: '1.5rem',
   fontWeight: '600',
   marginBottom: '1.5rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${contactCard} .contact-item`, {
@@ -112,35 +114,35 @@ globalStyle(`${contactCard} .contact-item`, {
   gap: '1rem',
   marginBottom: '1rem',
   padding: '1rem',
-  background: '#ffffff',
+  background: vars.background.surface,
   borderRadius: '8px',
 });
 
 globalStyle(`${contactCard} .contact-item .icon`, {
   width: '20px',
   height: '20px',
-  fill: '#6b7280',
+  fill: vars.text.tertiary,
   flexShrink: 0,
 });
 
 globalStyle(`${contactCard} .contact-item .details .label`, {
   fontWeight: '500',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   fontSize: '0.9rem',
 });
 
 globalStyle(`${contactCard} .contact-item .details .value`, {
-  color: '#111827',
+  color: vars.text.primary,
   fontWeight: '600',
 });
 
 globalStyle(`${contactCard} .website-link`, {
-  color: '#2563eb',
+  color: vars.colors.infoHover,
   textDecoration: 'none',
 });
 
 globalStyle(`${contactCard} .website-link:hover`, {
-  color: '#1d4ed8',
+  color: vars.colors.infoActive,
   textDecoration: 'underline',
 });
 
@@ -150,7 +152,7 @@ globalStyle(`${petsSection} h2`, {
   fontSize: '2rem',
   fontWeight: '600',
   marginBottom: '2rem',
-  color: '#111827',
+  color: vars.text.primary,
   textAlign: 'center',
 });
 
@@ -165,7 +167,7 @@ globalStyle(`${petsSection} .pets-header`, {
 
 globalStyle(`${petsSection} .pets-header .pets-count`, {
   fontSize: '1.1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${petsSection} .pets-header .view-toggle`, {
@@ -190,13 +192,13 @@ export const loadingContainer = style({
   alignItems: 'center',
   minHeight: '400px',
   fontSize: '1.1rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const errorContainer = style({
   textAlign: 'center',
   padding: '3rem',
-  color: '#ef4444',
+  color: vars.colors.danger,
 });
 
 globalStyle(`${errorContainer} h2`, {
@@ -211,7 +213,7 @@ globalStyle(`${errorContainer} p`, {
 export const emptyState = style({
   textAlign: 'center',
   padding: '3rem',
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 globalStyle(`${emptyState} .icon`, {
@@ -225,7 +227,7 @@ globalStyle(`${emptyState} .icon`, {
 globalStyle(`${emptyState} h3`, {
   fontSize: '1.5rem',
   marginBottom: '1rem',
-  color: '#111827',
+  color: vars.text.primary,
 });
 
 globalStyle(`${emptyState} p`, {

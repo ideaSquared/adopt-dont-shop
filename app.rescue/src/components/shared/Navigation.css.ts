@@ -6,7 +6,7 @@ export const mainNavigation = style({
   width: '280px',
   minWidth: '280px',
   height: '100vh',
-  background: `linear-gradient(180deg, ${vars.colors.primary['600']} 0%, ${vars.colors.primary['800']} 100%)`,
+  background: `linear-gradient(180deg, ${vars.colors.primaryHover} 0%, ${vars.colors.primaryTextEmphasis} 100%)`,
   color: 'white',
   display: 'flex',
   flexDirection: 'column',
@@ -85,7 +85,7 @@ export const navLabel = style({
 
 const badgePulse = keyframes({
   '0%': {
-    boxShadow: `0 0 0 0 color-mix(in srgb, ${vars.colors.semantic.error['500']} 60%, transparent)`,
+    boxShadow: `0 0 0 0 color-mix(in srgb, ${vars.colors.danger} 60%, transparent)`,
   },
   '70%': { boxShadow: '0 0 0 7px transparent' },
   '100%': { boxShadow: '0 0 0 0 transparent' },
@@ -99,7 +99,7 @@ export const navBadge = style({
   height: '22px',
   padding: '0 7px',
   borderRadius: '11px',
-  background: vars.colors.semantic.error['500'],
+  background: vars.colors.danger,
   color: vars.text.inverse,
   fontSize: '0.75rem',
   fontWeight: '700',

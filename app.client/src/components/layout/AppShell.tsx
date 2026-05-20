@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Footer } from '@adopt-dont-shop/lib.components';
+import { Footer, InstallPwaBanner } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AppNavbar } from '@/components/navigation/AppNavbar';
 import { BottomTabBar } from '@/components/navigation/BottomTabBar';
@@ -13,14 +13,20 @@ export const AppShell: React.FC = () => {
 
   return (
     <div className={styles.shell}>
-      <AppNavbar />
-      <main className={styles.main}>
+      <a href='#main-content' className={styles.skipLink}>
+        Skip to main content
+      </a>
+      <header>
+        <AppNavbar />
+      </header>
+      <main id='main-content' className={styles.main} tabIndex={-1}>
         <Outlet />
       </main>
       <SwipeFloatingButton />
       <BottomTabBar />
       {showOnboarding && <SwipeOnboarding onClose={() => setShowOnboarding(false)} />}
       <Footer extraLinks={<ManageCookiesLink />} />
+      <InstallPwaBanner appName="Adopt Don't Shop" />
     </div>
   );
 };

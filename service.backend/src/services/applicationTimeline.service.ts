@@ -1,3 +1,4 @@
+import type { WhereAttributeHash } from 'sequelize';
 import ApplicationTimeline, { TimelineEventType } from '../models/ApplicationTimeline';
 import User from '../models/User';
 import { ApplicationStage } from '../models/Application';
@@ -56,7 +57,7 @@ export class ApplicationTimelineService {
       event_types?: TimelineEventType[];
     }
   ): Promise<ApplicationTimeline[]> {
-    const whereClause: Record<string, unknown> = { application_id };
+    const whereClause: WhereAttributeHash = { application_id };
 
     if (options?.event_types && options.event_types.length > 0) {
       whereClause.event_type = options.event_types;

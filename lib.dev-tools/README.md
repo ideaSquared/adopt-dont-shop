@@ -18,7 +18,7 @@ See [src/index.ts](./src/index.ts) for the authoritative list.
 
 ### Components
 
-- **`DevPanelComponent`** — dev-user quick-switcher panel. Takes a `DevPanelAuthContext` (your auth's `login`/`logout`/`currentUser`) and a list of `DevUser`s.
+- **`DevPanelComponent`** — dev-user quick-switcher panel. Required props: `title: string` and `authContext: DevPanelAuthContext` (your auth's `user`, `login`, `logout`, `isAuthenticated`). Optional `seededUsers?: DevUser[]` to override the built-in list.
 - **`EtherealCredentialsPanel`** — shows the per-session Ethereal SMTP credentials backend issues when `EMAIL_PROVIDER=ethereal`.
 - **`DevOnly`** — wraps children and only renders them when `isDevelopmentMode()` is true. Accepts an optional `fallback`.
 
@@ -44,14 +44,15 @@ import { DevOnly, DevPanelComponent, useSeededUsers } from '@adopt-dont-shop/lib
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 
 export function DevHeader() {
-  const { login, logout, currentUser } = useAuth();
+  const { user, login, logout, isAuthenticated } = useAuth();
   const { data: users } = useSeededUsers();
 
   return (
     <DevOnly>
       <DevPanelComponent
-        auth={{ login, logout, currentUser }}
-        users={users ?? []}
+        title="Dev panel"
+        authContext={{ user, login, logout, isAuthenticated }}
+        seededUsers={users}
       />
     </DevOnly>
   );
@@ -63,7 +64,7 @@ export function DevHeader() {
 ```bash
 npm run build           # tsc
 npm run dev             # tsc --watch
-npm test                # jest --passWithNoTests
+npm test                # vitest run
 npm run test:watch
 npm run test:coverage
 npm run lint

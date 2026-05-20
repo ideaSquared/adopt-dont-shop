@@ -48,8 +48,66 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
   Container: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  Stack: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  EmptyState: ({
+    title,
+    description,
+    ...props
+  }: {
+    title: string;
+    description?: string;
+    [k: string]: unknown;
+  }) =>
+    React.createElement(
+      'div',
+      { role: 'status', ...props },
+      React.createElement('h3', null, title),
+      description ? React.createElement('p', null, description) : null
+    ),
+  FormSection: ({
+    title,
+    description,
+    children,
+    ...props
+  }: {
+    title?: string;
+    description?: string;
+    children: React.ReactNode;
+    [k: string]: unknown;
+  }) =>
+    React.createElement(
+      'section',
+      props,
+      title ? React.createElement('h3', null, title) : null,
+      description ? React.createElement('p', null, description) : null,
+      children
+    ),
+  FormRow: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
+    React.createElement('div', props, children),
+  FormField: ({
+    label,
+    error,
+    description,
+    children,
+    ...props
+  }: {
+    label?: string;
+    error?: string;
+    description?: string;
+    children: React.ReactNode;
+    [k: string]: unknown;
+  }) =>
+    React.createElement(
+      'div',
+      props,
+      label ? React.createElement('label', null, label) : null,
+      children,
+      error ? React.createElement('span', { role: 'alert' }, error) : null,
+      description ? React.createElement('span', null, description) : null
+    ),
   Button: ({ children, ...props }: React.ComponentPropsWithoutRef<'button'>) =>
     React.createElement('button', props, children),
   Text: ({ children, ...props }: React.ComponentPropsWithoutRef<'span'>) =>
@@ -63,10 +121,29 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   DateTime: ({ value }: { value: string }) => React.createElement('span', null, value),
   ConfirmDialog: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  // ADS-585: useConfirm mock returns both `confirm` and `confirmProps` so tests
+  // covering pages that spread `confirmProps` into ConfirmDialog don't crash.
   useConfirm: () => ({
+    isOpen: false,
     confirm: vi.fn().mockResolvedValue(true),
-    ConfirmDialog: () => null,
+    confirmProps: {
+      isOpen: false,
+      onClose: () => {},
+      onConfirm: () => {},
+      message: '',
+    },
   }),
+  // ADS-585: toast.* is the replacement for native window.alert in app.admin.
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    message: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
   useToast: () => {
     const [toasts, setToasts] = React.useState<
       Array<{ id: string; message: string; type: string }>

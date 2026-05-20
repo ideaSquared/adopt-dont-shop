@@ -2,7 +2,7 @@ import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { Pet } from '@/services';
-import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { Badge, Button, Card, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import React, { useState } from 'react';
 import { MdFavorite, MdFavoriteBorder, MdLocationOn } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +23,7 @@ export const PetCard: React.FC<PetCardProps> = ({
   onFavoriteToggle,
   isFavorite: propIsFavorite,
 }) => {
+  'use memo';
   const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { isAuthenticated } = useAuth();
@@ -190,18 +191,12 @@ export const PetCard: React.FC<PetCardProps> = ({
     >
       <div className={styles.imageContainer}>
         {resolvedImageUrl ? (
-          <>
-            <img
-              src={resolvedImageUrl}
-              alt={pet.name}
-              loading='lazy'
-              onError={e => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
-              }}
-            />
-            <div className={styles.placeholderImage} style={{ display: 'none' }} />
-          </>
+          <ProgressiveImage
+            src={resolvedImageUrl}
+            alt={pet.name}
+            errorFallback={<div className={styles.placeholderImage} />}
+            placeholder={<div className={styles.placeholderImage} />}
+          />
         ) : (
           <div className={styles.placeholderImage} />
         )}
@@ -262,11 +257,16 @@ export const PetCard: React.FC<PetCardProps> = ({
         {pet.rescue_id && <div className={styles.rescueInfo}>Rescue ID: {pet.rescue_id}</div>}
 
         <div className={styles.cardActions}>
-          <Button size='sm' variant='primary' style={{ flex: 1 }}>
+          <Button size='sm' variant='primary' className={styles.actionButton}>
             View Details
           </Button>
           {pet.status === 'available' && (
-            <Button size='sm' variant='outline' style={{ flex: 1 }} onClick={handleApplyClick}>
+            <Button
+              size='sm'
+              variant='outline'
+              className={styles.actionButton}
+              onClick={handleApplyClick}
+            >
               Apply
             </Button>
           )}

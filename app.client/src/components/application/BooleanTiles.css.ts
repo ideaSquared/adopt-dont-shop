@@ -29,41 +29,41 @@ export const tile = style({
     transform: 'scale(0.98)',
   },
   ':focus-within': {
-    outline: `2px solid ${vars.colors.primary['400']}`,
+    outline: `2px solid ${vars.colors.primary}`,
     outlineOffset: '2px',
   },
 });
 
 export const tileVariants = styleVariants({
   yesSelected: {
-    background: vars.colors.semantic.success['50'],
-    borderColor: vars.colors.semantic.success['500'],
-    ':hover': { background: vars.colors.semantic.success['50'] },
+    background: vars.colors.successBgSubtle,
+    borderColor: vars.colors.success,
+    ':hover': { background: vars.colors.successBgSubtle },
   },
   noSelected: {
-    background: vars.colors.neutral['100'],
-    borderColor: vars.colors.neutral['500'],
-    ':hover': { background: vars.colors.neutral['100'] },
+    background: vars.background.muted,
+    borderColor: vars.text.muted,
+    ':hover': { background: vars.background.muted },
   },
   yesUnselected: {
-    background: vars.background.primary,
-    borderColor: vars.border.color.primary,
-    ':hover': { background: vars.colors.semantic.success['50'] },
+    background: vars.background.body,
+    borderColor: vars.border.color.default,
+    ':hover': { background: vars.colors.successBgSubtle },
   },
   noUnselected: {
-    background: vars.background.primary,
-    borderColor: vars.border.color.primary,
-    ':hover': { background: vars.colors.neutral['100'] },
+    background: vars.background.body,
+    borderColor: vars.border.color.default,
+    ':hover': { background: vars.background.muted },
   },
   yesError: {
-    background: vars.background.primary,
-    borderColor: vars.colors.semantic.error['400'],
-    ':hover': { background: vars.colors.semantic.success['50'] },
+    background: vars.background.body,
+    borderColor: vars.colors.danger,
+    ':hover': { background: vars.colors.successBgSubtle },
   },
   noError: {
-    background: vars.background.primary,
-    borderColor: vars.colors.semantic.error['400'],
-    ':hover': { background: vars.colors.neutral['100'] },
+    background: vars.background.body,
+    borderColor: vars.colors.danger,
+    ':hover': { background: vars.background.muted },
   },
 });
 
@@ -85,7 +85,7 @@ export const label = style({
 });
 
 export const labelVariants = styleVariants({
-  yesSelected: { fontWeight: '600', color: vars.colors.semantic.success['700'] },
-  noSelected: { fontWeight: '600', color: vars.colors.neutral['700'] },
+  yesSelected: { fontWeight: '600', color: vars.colors.successActive },
+  noSelected: { fontWeight: '600', color: vars.text.secondary },
   unselected: { fontWeight: '500', color: vars.text.primary },
 });

@@ -2,11 +2,18 @@ import React, { useState } from 'react';
 import { useApplications, useApplicationDetails } from '../hooks/useApplications';
 import ApplicationList from '../components/applications/ApplicationList';
 import ApplicationReview from '../components/applications/ApplicationReview';
+import BulkActionBar from '../components/applications/BulkActionBar';
+import { applicationService } from '../services/applicationService';
 import type { ApplicationListItem } from '../types/applications';
 
 const Applications: React.FC = () => {
   const [selectedApplication, setSelectedApplication] = useState<ApplicationListItem | null>(null);
-  const [selectedApplications, setSelectedApplications] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{
+    successCount: number;
+    failedCount: number;
+  } | null>(null);
 
   // Main applications data
   const {
@@ -71,6 +78,37 @@ const Applications: React.FC = () => {
         <p>Review and process adoption applications.</p>
       </div>
 
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        onClearSelection={() => {
+          setSelectedIds(new Set());
+          setBulkResult(null);
+        }}
+        busy={bulkBusy}
+        resultSummary={bulkResult}
+        onBulkAction={async (action, reason) => {
+          setBulkBusy(true);
+          setBulkResult(null);
+          try {
+            const result = await applicationService.performBulkAction({
+              type: action,
+              applicationIds: Array.from(selectedIds),
+              data: reason ? { reason } : undefined,
+            });
+            setBulkResult({
+              successCount: result?.successCount ?? selectedIds.size,
+              failedCount: result?.failureCount ?? 0,
+            });
+            setSelectedIds(new Set());
+            refetch();
+          } catch (err) {
+            setBulkResult({ successCount: 0, failedCount: selectedIds.size });
+          } finally {
+            setBulkBusy(false);
+          }
+        }}
+      />
+
       {/* Applications List */}
       <ApplicationList
         applications={applications}
@@ -82,8 +120,8 @@ const Applications: React.FC = () => {
         onFilterChange={updateFilter}
         onSortChange={updateSort}
         onApplicationSelect={handleApplicationSelect}
-        selectedApplications={selectedApplications}
-        onSelectionChange={setSelectedApplications}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
       />
 
       {/* Application Review Modal */}

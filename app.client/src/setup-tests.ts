@@ -36,12 +36,44 @@ global.Image = class MockImage {
   onload: ((ev: Event) => void) | null = null;
   onerror: ((ev: Event) => void) | null = null;
   src: string = '';
+  decoding: string = 'auto';
 } as any;
+
+// Mock IntersectionObserver. The default behaviour is to fire intersection
+// immediately so lazy-loaded components reveal their content in tests.
+class MockIntersectionObserver {
+  callback: IntersectionObserverCallback;
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+  observe(target: Element) {
+    this.callback(
+      [{ isIntersecting: true, target } as IntersectionObserverEntry],
+      this as unknown as IntersectionObserver
+    );
+  }
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+  root = null;
+  rootMargin = '';
+  thresholds: ReadonlyArray<number> = [];
+}
+global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 vi.mock('@adopt-dont-shop/lib.components', () => ({
   lightTheme: {},
+  normalTheme: {},
   darkTheme: {},
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  ThemeToggle: () => React.createElement('button', { type: 'button' }, 'Theme'),
+  useTheme: () => ({
+    theme: {},
+    themeMode: 'normal',
+    setThemeMode: () => {},
+  }),
   Container: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
   Card: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
@@ -131,6 +163,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     ...props
   }: React.ComponentPropsWithoutRef<'footer'> & { extraLinks?: React.ReactNode }) =>
     React.createElement('footer', props, children, extraLinks),
+  InstallPwaBanner: () => null,
   TextInput: ({
     label,
     id,
@@ -175,4 +208,80 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       )
     );
   },
+  // ADS-587: useConfirm / ConfirmDialog mocks so tests can intercept the
+  // promise-based confirm flow without rendering the real modal.
+  useConfirm: () => ({
+    isOpen: false,
+    confirm: vi.fn().mockResolvedValue(true),
+    confirmProps: {
+      isOpen: false,
+      onClose: () => {},
+      onConfirm: () => {},
+      message: '',
+    },
+  }),
+  ConfirmDialog: () => null,
+  ProgressiveImage: ({
+    src,
+    alt,
+    eager,
+    placeholder,
+    errorFallback,
+  }: {
+    src: string;
+    alt: string;
+    eager?: boolean;
+    placeholder?: React.ReactNode;
+    errorFallback?: React.ReactNode;
+    webpSrc?: string;
+    rootMargin?: string;
+    className?: string;
+    draggable?: boolean;
+    onLoad?: () => void;
+    onError?: () => void;
+  }) => {
+    const [errored, setErrored] = React.useState(false);
+    const [loaded, setLoaded] = React.useState(false);
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement('img', {
+        src,
+        alt,
+        loading: eager ? 'eager' : 'lazy',
+        onLoad: () => setLoaded(true),
+        onError: () => setErrored(true),
+      }),
+      !loaded && !errored ? placeholder : null,
+      errored ? errorFallback : null
+    );
+  },
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+    message: vi.fn(),
+    loading: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+  Toaster: () => null,
+  Logo: ({
+    showWordmark,
+    darkBg: _darkBg,
+    size: _size,
+    className,
+    ...props
+  }: {
+    size?: number;
+    showWordmark?: boolean;
+    darkBg?: boolean;
+    className?: string;
+    [key: string]: unknown;
+  }) =>
+    React.createElement(
+      'span',
+      { 'aria-label': 'AdoptDontShop', className, ...props },
+      showWordmark ? 'AdoptDontShop' : null
+    ),
 }));

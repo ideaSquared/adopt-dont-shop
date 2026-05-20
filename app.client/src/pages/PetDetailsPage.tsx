@@ -3,7 +3,7 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { petService, Pet } from '@/services';
-import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { Badge, Button, Card, toast } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { LoginPromptModal } from '../components/modals/LoginPromptModal';
@@ -25,7 +25,19 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [loginPromptAction, setLoginPromptAction] = useState('apply for adoption');
   const navigate = useNavigate();
+
+  // Use real browser history so the back button returns to wherever the
+  // user actually came from (favourites, home, search). Falls back to the
+  // home page when there's no history (e.g. user opened a shared link).
+  const handleBackClick = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate('/');
+  };
 
   useEffect(() => {
     const fetchPet = async () => {
@@ -142,13 +154,27 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
         error_message: error instanceof Error ? error.message : 'unknown_error',
         user_authenticated: isAuthenticated.toString(),
       });
+
+      // Surface failure to the user — without this the button silently
+      // snaps back and the user assumes the save succeeded.
+      toast.error(
+        isFavorite
+          ? 'Could not remove from favorites. Please try again.'
+          : 'Could not save to favorites. Please try again.',
+        { action: { label: 'Retry', onClick: handleFavoriteToggle } }
+      );
     } finally {
       setFavoriteLoading(false);
     }
   };
 
   const handleContactRescue = async () => {
-    if (!pet?.rescue_id || !isAuthenticated) {
+    if (!pet?.rescue_id) {
+      return;
+    }
+    if (!isAuthenticated) {
+      setLoginPromptAction('contact this rescue');
+      setShowLoginPrompt(true);
       return;
     }
 
@@ -190,8 +216,14 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
         user_authenticated: isAuthenticated.toString(),
       });
 
-      // Add user-visible error handling
-      alert('Failed to start conversation. Please try again.');
+      // Add user-visible error handling. Chat init failures are usually
+      // transient, so offer a Retry action on the toast.
+      toast.error('Failed to start conversation. Please try again.', {
+        action: {
+          label: 'Retry',
+          onClick: handleContactRescue,
+        },
+      });
     }
   };
 
@@ -215,6 +247,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     // Check if user is authenticated
     if (!isAuthenticated) {
       e.preventDefault();
+      setLoginPromptAction('apply for adoption');
       setShowLoginPrompt(true);
       return;
     }
@@ -352,9 +385,9 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
 
   return (
     <div className={styles.pageContainer}>
-      <Link className={styles.backLink} to='/'>
-        ← Back to Search
-      </Link>
+      <button type='button' className={styles.backLink} onClick={handleBackClick}>
+        ← Back
+      </button>
 
       <div className={styles.petHeader}>
         <div className={styles.petTitle}>
@@ -391,7 +424,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                 alt={pet.name}
                 onError={e => {
                   e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
+                  const fallback = e.currentTarget.nextElementSibling;
+                  if (fallback instanceof HTMLElement) {
+                    fallback.style.display = 'flex';
+                  }
                 }}
               />
             ) : null}
@@ -482,9 +518,15 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
 
           <Card className={styles.actionCard}>
             <h3>Interested in {pet.name}?</h3>
-            {pet.rescue_id && (
+            {pet.rescue_id && pet.rescue?.name && (
               <div className='rescue-info'>
-                <div className='rescue-name'>Rescue ID: {pet.rescue_id}</div>
+                <div className='rescue-name'>
+                  From{' '}
+                  <Link to={`/rescues/${pet.rescue_id}`} onClick={handleRescueProfileClick}>
+                    {pet.rescue.name}
+                  </Link>
+                  {pet.rescue.location ? ` · ${pet.rescue.location}` : ''}
+                </div>
               </div>
             )}
             <div className='actions'>
@@ -506,7 +548,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                   View Rescue Profile
                 </Link>
               )}
-              {pet.rescue_id && isAuthenticated && (
+              {pet.rescue_id && (
                 <Button
                   className={styles.contactButton}
                   variant='primary'
@@ -531,7 +573,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
       <LoginPromptModal
         isOpen={showLoginPrompt}
         onClose={handleCloseLoginPrompt}
-        action='apply for adoption'
+        action={loginPromptAction}
       />
     </div>
   );

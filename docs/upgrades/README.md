@@ -1,18 +1,20 @@
 # Major-version Upgrade Plans
 
-This directory holds **planning documents** for the next round of major-framework
+This directory holds **planning documents** for the round of major-framework
 upgrades flagged by the Production Readiness Audit (Linear: ADS-531, ADS-532).
-None of the upgrades have been executed yet — these documents exist to scope the
-work, identify risk, and let us file follow-up tickets with confidence.
+Node 22, Express 5 and React 19 have all shipped; Sequelize is on 7-alpha. The
+individual planning docs below retain the original scoping, risk inventory and
+migration notes for posterity — re-read the **Status** banner at the top of
+each one before treating it as live guidance.
 
 ## Index
 
-| Doc | Linear | Driver |
-| --- | --- | --- |
-| [Node 20 → 22 LTS](./node-22-migration.md) | ADS-532 | Node 20 enters EOL April 2026 |
-| [Express 4 → 5](./express-5-migration.md) | ADS-531 | Express 5 stable since Oct 2024; v4 long-term security supply will dry up |
-| [Sequelize 6 → 7](./sequelize-7-migration.md) | ADS-531 | Sequelize 7 has the active maintenance line |
-| [React 18 → 19](./react-19-migration.md) | ADS-531 | React 19 stable since Dec 2024; ecosystem libs starting to deprecate v18 |
+| Doc | Linear | Status | Driver |
+| --- | --- | --- | --- |
+| [Node 20 → 22 LTS](./node-22-migration.md) | ADS-532 | ✅ Shipped | Node 20 EOL April 2026 |
+| [Express 4 → 5](./express-5-migration.md) | ADS-531 | ✅ Shipped | Express 5 stable Oct 2024 |
+| [Sequelize 6 → 7](./sequelize-7-migration.md) | ADS-531 | ⚠️ On 7.0.0-alpha — stable bump pending | Active maintenance line |
+| [React 18 → 19](./react-19-migration.md) | ADS-531 | ✅ Shipped | React 19 stable Dec 2024 |
 
 ## Sequencing recommendation
 

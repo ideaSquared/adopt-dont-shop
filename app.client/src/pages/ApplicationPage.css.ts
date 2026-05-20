@@ -1,5 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 export const container = style({
   maxWidth: '800px',
   margin: '0 auto',
@@ -12,12 +14,12 @@ export const header = style({
 });
 
 globalStyle(`${header} h1`, {
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '0.5rem',
 });
 
 globalStyle(`${header} p`, {
-  color: '#4b5563',
+  color: vars.text.tertiary,
   fontSize: '1.1rem',
 });
 
@@ -30,11 +32,6 @@ export const loadingContainer = style({
 
 export const backToSearchButton = style({
   marginTop: '1rem',
-});
-
-export const draftWelcome = style({
-  fontSize: '0.9rem',
-  fontStyle: 'italic',
 });
 
 export const sectionAlert = style({

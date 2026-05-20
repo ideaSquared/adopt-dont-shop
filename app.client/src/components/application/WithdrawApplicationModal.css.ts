@@ -7,13 +7,13 @@ export const modalContent = style({
 });
 
 export const title = style({
-  color: vars.colors.neutral['900'],
+  color: vars.text.primary,
   marginBottom: '1rem',
   fontSize: '1.5rem',
 });
 
 export const description = style({
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
   marginBottom: '1.5rem',
   lineHeight: 1.6,
 });
@@ -25,7 +25,7 @@ export const reasonSection = style({
 export const label = style({
   display: 'block',
   fontWeight: 500,
-  color: vars.colors.neutral['900'],
+  color: vars.text.primary,
   marginBottom: '0.5rem',
 });
 
@@ -33,15 +33,15 @@ export const textArea = style({
   width: '100%',
   minHeight: '100px',
   padding: '0.75rem',
-  border: `1px solid ${vars.colors.neutral['300']}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.5rem',
   fontFamily: 'inherit',
   fontSize: '0.9rem',
   resize: 'vertical',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['500'],
-    boxShadow: `0 0 0 3px ${vars.colors.primary['100']}`,
+    borderColor: vars.colors.primary,
+    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
   },
 });
 

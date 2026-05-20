@@ -116,13 +116,11 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
   const selectedTemplateData = EMAIL_TEMPLATES.find(t => t.id === selectedTemplate);
 
   const modalHeader = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <div className={styles.modalHeader}>
       <FiMail size={20} />
       <div>
-        <div style={{ fontWeight: 600, fontSize: '1.125rem' }}>Send Email</div>
-        <div style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: '0.125rem' }}>
-          Send an email to {rescue.name}
-        </div>
+        <div className={styles.modalHeaderTitle}>Send Email</div>
+        <div className={styles.modalHeaderSubtitle}>Send an email to {rescue.name}</div>
       </div>
     </div>
   );

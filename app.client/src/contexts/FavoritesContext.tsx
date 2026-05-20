@@ -149,7 +149,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
     clearError,
   };
 
-  return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>;
+  return <FavoritesContext value={value}>{children}</FavoritesContext>;
 };
 
 export { useFavorites };

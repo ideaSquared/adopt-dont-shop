@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { Logo } from '@adopt-dont-shop/lib.components';
 import * as styles from './AdminSidebar.css';
 import {
   FiHome,
@@ -18,6 +19,8 @@ import {
   FiSliders,
   FiLayout,
   FiSend,
+  FiHeart,
+  FiFile,
 } from 'react-icons/fi';
 
 interface SidebarProps {
@@ -30,8 +33,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
     <aside className={styles.sidebarContainer({ collapsed })}>
       <div className={styles.sidebarHeader({ collapsed })}>
         <div className={styles.logo({ collapsed })}>
-          <span>🐾</span>
-          {!collapsed && <span>Admin</span>}
+          <Logo size={32} showWordmark={!collapsed} darkBg />
         </div>
         {!collapsed && (
           <button className={styles.toggleButton} onClick={onToggle} aria-label='Toggle sidebar'>
@@ -99,6 +101,24 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           >
             <FiShield />
             <span className={styles.navLinkSpan({ collapsed })}>Rescues</span>
+          </NavLink>
+          <NavLink
+            to='/pets'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiHeart />
+            <span className={styles.navLinkSpan({ collapsed })}>Pets</span>
+          </NavLink>
+          <NavLink
+            to='/applications'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiFile />
+            <span className={styles.navLinkSpan({ collapsed })}>Applications</span>
           </NavLink>
         </div>
 
@@ -189,6 +209,15 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           >
             <FiSliders />
             <span className={styles.navLinkSpan({ collapsed })}>Field Permissions</span>
+          </NavLink>
+          <NavLink
+            to='/privacy-tools'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiShield />
+            <span className={styles.navLinkSpan({ collapsed })}>Privacy Tools</span>
           </NavLink>
           <NavLink
             to='/audit'

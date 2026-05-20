@@ -18,17 +18,17 @@ export const container = recipe({
 
 export const label = style({
   display: 'block',
-  marginBottom: vars.spacing.xs,
+  marginBottom: vars.spacing['1'],
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.medium,
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
 });
 
 export const labelRequired = style({
   selectors: {
     '&::after': {
       content: '" *"',
-      color: vars.colors.semantic.error['500'],
+      color: vars.colors.danger,
     },
   },
 });
@@ -43,16 +43,16 @@ export const textArea = recipe({
     border: 'none',
     outline: 'none',
     transition: `all ${vars.transitions.fast}`,
-    color: vars.colors.neutral['900'],
+    color: vars.text.primary,
     fontFamily: 'inherit',
     lineHeight: vars.typography.lineHeight.relaxed,
     selectors: {
       '&::placeholder': {
-        color: vars.colors.neutral['400'],
+        color: vars.border.color.strong,
       },
       '&:disabled': {
-        backgroundColor: vars.colors.neutral['100'],
-        color: vars.colors.neutral['400'],
+        backgroundColor: vars.background.muted,
+        color: vars.border.color.strong,
         cursor: 'not-allowed',
         resize: 'none',
       },
@@ -81,38 +81,38 @@ export const textArea = recipe({
     },
     variant: {
       default: {
-        border: `1px solid ${vars.colors.neutral['300']}`,
-        backgroundColor: vars.colors.neutral['50'],
-        borderRadius: vars.spacing.xs,
+        border: `1px solid ${vars.border.color.default}`,
+        backgroundColor: vars.background.body,
+        borderRadius: vars.spacing['1'],
         selectors: {
           '&:focus': {
-            borderColor: vars.colors.primary['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.primary['100']}40`,
+            borderColor: vars.colors.primary,
+            boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
           },
         },
       },
       filled: {
         border: '1px solid transparent',
-        backgroundColor: vars.colors.neutral['100'],
-        borderRadius: vars.spacing.xs,
+        backgroundColor: vars.background.muted,
+        borderRadius: vars.spacing['1'],
         selectors: {
           '&:focus': {
-            backgroundColor: vars.colors.neutral['50'],
-            borderColor: vars.colors.primary['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.primary['100']}40`,
+            backgroundColor: vars.background.body,
+            borderColor: vars.colors.primary,
+            boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
           },
         },
       },
       underlined: {
         border: 'none',
-        borderBottom: `2px solid ${vars.colors.neutral['300']}`,
+        borderBottom: `2px solid ${vars.border.color.default}`,
         backgroundColor: 'transparent',
         borderRadius: '0',
         paddingLeft: '0',
         paddingRight: '0',
         selectors: {
           '&:focus': {
-            borderBottomColor: vars.colors.primary['500'],
+            borderBottomColor: vars.colors.primary,
             boxShadow: 'none',
           },
         },
@@ -121,29 +121,29 @@ export const textArea = recipe({
     state: {
       default: {},
       error: {
-        borderColor: vars.colors.semantic.error['500'],
+        borderColor: vars.colors.danger,
         selectors: {
           '&:focus': {
-            borderColor: vars.colors.semantic.error['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.error['100']}40`,
+            borderColor: vars.colors.danger,
+            boxShadow: `0 0 0 3px ${vars.colors.dangerBgSubtle}40`,
           },
         },
       },
       success: {
-        borderColor: vars.colors.semantic.success['500'],
+        borderColor: vars.colors.success,
         selectors: {
           '&:focus': {
-            borderColor: vars.colors.semantic.success['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.success['100']}40`,
+            borderColor: vars.colors.success,
+            boxShadow: `0 0 0 3px ${vars.colors.successBgSubtle}40`,
           },
         },
       },
       warning: {
-        borderColor: vars.colors.semantic.warning['500'],
+        borderColor: vars.colors.warning,
         selectors: {
           '&:focus': {
-            borderColor: vars.colors.semantic.warning['500'],
-            boxShadow: `0 0 0 3px ${vars.colors.semantic.warning['100']}40`,
+            borderColor: vars.colors.warning,
+            boxShadow: `0 0 0 3px ${vars.colors.warningBgSubtle}40`,
           },
         },
       },
@@ -165,8 +165,8 @@ export const footerContainer = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-start',
-  marginTop: vars.spacing.xs,
-  gap: vars.spacing.sm,
+  marginTop: vars.spacing['1'],
+  gap: vars.spacing['2'],
 });
 
 export const helperText = recipe({
@@ -177,10 +177,10 @@ export const helperText = recipe({
   },
   variants: {
     state: {
-      default: { color: vars.colors.neutral['600'] },
-      error: { color: vars.colors.semantic.error['500'] },
-      success: { color: vars.colors.semantic.success['500'] },
-      warning: { color: vars.colors.semantic.warning['500'] },
+      default: { color: vars.text.tertiary },
+      error: { color: vars.colors.danger },
+      success: { color: vars.colors.success },
+      warning: { color: vars.colors.warning },
     },
   },
   defaultVariants: {
@@ -196,8 +196,8 @@ export const characterCount = recipe({
   },
   variants: {
     isOverLimit: {
-      true: { color: vars.colors.semantic.error['500'] },
-      false: { color: vars.colors.neutral['500'] },
+      true: { color: vars.colors.danger },
+      false: { color: vars.text.muted },
     },
   },
   defaultVariants: {

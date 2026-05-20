@@ -1,13 +1,14 @@
 # @adopt-dont-shop/lib.feature-flags
 
-Simplified feature flag library providing type definitions and constants for Statsig integration.
+Feature-flag library providing typed hooks and constants for Statsig integration across the apps.
 
 ## Overview
 
 This library has been refactored to support Statsig-only feature flag management. It provides:
 
+- React hooks (`useFeatureGate`, `useDynamicConfig`, `useConfigValue`) layered on top of `@statsig/react-bindings`
 - TypeScript type definitions for gates and dynamic configs
-- Constants for known feature gates
+- Constants for known feature gates (`KNOWN_GATES`, `KNOWN_CONFIGS`)
 - Type-safe config shapes for admin settings
 
 ## Migration

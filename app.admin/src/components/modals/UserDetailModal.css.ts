@@ -137,3 +137,10 @@ export const emptyValue = style({
   color: '#9ca3af',
   fontStyle: 'italic',
 });
+
+export const headerBadges = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+  alignItems: 'flex-end',
+});

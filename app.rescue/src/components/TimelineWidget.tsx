@@ -74,6 +74,7 @@ export const TimelineWidget: React.FC<TimelineWidgetProps> = ({
   showViewAll = true,
   onViewAll,
 }) => {
+  'use memo';
   const displayEvents = events.slice(0, maxEvents);
   const hasMoreEvents = events.length > maxEvents;
 

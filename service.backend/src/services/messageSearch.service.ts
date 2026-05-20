@@ -4,7 +4,7 @@
  * Part of Phase 3 - Message Search Implementation
  */
 
-import { Op, QueryTypes } from 'sequelize';
+import { Op, QueryTypes, type WhereAttributeHash } from 'sequelize';
 import { Chat, Message, User } from '../models';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
@@ -75,7 +75,7 @@ export class MessageSearchService {
       const searchTerms = this.prepareSearchTerms(query);
 
       // Build base where conditions
-      const whereConditions: Record<string, unknown> = {};
+      const whereConditions: WhereAttributeHash = {};
 
       if (conversationId) {
         whereConditions.chat_id = conversationId;

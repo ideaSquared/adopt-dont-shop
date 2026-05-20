@@ -17,6 +17,15 @@ const computeInitials = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+/**
+ * Status filter for the list:
+ * - `'active'`: show conversations whose status is `active` or undefined
+ *   (legacy/default backend rows).
+ * - `'resolved'`: show conversations whose status is `archived` or `closed`.
+ * - `'all'` (default): no filtering, show everything from context.
+ */
+export type ConversationListFilter = 'active' | 'resolved' | 'all';
+
 type ConversationListProps = {
   /**
    * Called after a conversation is selected and the active conversation has
@@ -34,6 +43,20 @@ type ConversationListProps = {
     label: string;
     onClick: () => void;
   };
+  /** Show only active or only resolved conversations. Defaults to `'all'`. */
+  filter?: ConversationListFilter;
+};
+
+const matchesFilter = (conversation: Conversation, filter: ConversationListFilter): boolean => {
+  if (filter === 'all') {
+    return true;
+  }
+  const status = conversation.status;
+  if (filter === 'resolved') {
+    return status === 'archived' || status === 'closed';
+  }
+  // 'active' — treat undefined/null status as active (legacy rows).
+  return !status || status === 'active';
 };
 
 export function ConversationList({
@@ -41,6 +64,7 @@ export function ConversationList({
   title = 'Conversations',
   emptyStateDescription = 'Start a conversation when you have a matching pet or application to discuss.',
   emptyAction,
+  filter = 'all',
 }: ConversationListProps) {
   const { conversations, activeConversation, setActiveConversation, isLoading } = useChat();
 
@@ -51,7 +75,9 @@ export function ConversationList({
 
   const getUnreadCount = (conversation: Conversation) => conversation.unreadCount || 0;
 
-  const totalUnread = (conversations || []).reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
+  const visibleConversations = (conversations || []).filter((c) => matchesFilter(c, filter));
+
+  const totalUnread = visibleConversations.reduce((sum, c) => sum + (c.unreadCount ?? 0), 0);
 
   if (isLoading && (!conversations || conversations.length === 0)) {
     return (
@@ -70,7 +96,7 @@ export function ConversationList({
         {totalUnread > 0 && <span className={styles.headerCount}>{totalUnread} unread</span>}
       </div>
 
-      {!conversations || conversations.length === 0 ? (
+      {visibleConversations.length === 0 ? (
         <div className={styles.emptyState}>
           <div className="illustration" aria-hidden>
             {'\u{1F4AC}'}
@@ -85,7 +111,7 @@ export function ConversationList({
         </div>
       ) : (
         <div className={styles.conversationsList}>
-          {(conversations || []).map((conversationRaw) => {
+          {visibleConversations.map((conversationRaw) => {
             const conversation = conversationRaw as ConversationWithRescueName;
             const unreadCount = getUnreadCount(conversation);
             const isActive = activeConversation?.id === conversation.id;

@@ -4,7 +4,7 @@ import { URLS } from '../../playwright.config';
 import { request as playwrightRequest } from '@playwright/test';
 
 test.describe('adopter registration and login', () => {
-  test('a new adopter can register via the public API', async () => {
+  test('a new adopter can register via the public API @smoke', async () => {
     // Drive registration through the backend directly.  The UI form has a
     // custom-styled Terms checkbox whose onChange handler only fires under
     // an actual user gesture — Playwright's check({ force: true }) under

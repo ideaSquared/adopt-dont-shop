@@ -104,6 +104,9 @@ const requirePermissionMock = vi.fn();
 vi.mock('../../middleware/auth', () => ({
   authenticateToken: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
     authenticateTokenMock(req, res, next),
+  optionalAuth: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  authenticateOptionalToken: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+    next(),
 }));
 
 vi.mock('../../middleware/rbac', () => ({

@@ -1,4 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
+
 import { recipe } from '@vanilla-extract/recipes';
 
 export const container = style({
@@ -18,17 +20,17 @@ export const header = style({
 
 globalStyle(`${header} h1`, {
   fontSize: '2rem',
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '0.5rem',
 });
 
 globalStyle(`${header} p`, {
-  color: '#6b7280',
+  color: vars.text.tertiary,
 });
 
 export const section = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '2rem',
   marginBottom: '2rem',
@@ -36,7 +38,7 @@ export const section = style({
 
 export const sectionTitle = style({
   fontSize: '1.25rem',
-  color: '#111827',
+  color: vars.text.primary,
   marginBottom: '1rem',
 });
 
@@ -50,7 +52,7 @@ export const infoItem = style({
   justifyContent: 'space-between',
   alignItems: 'flex-start',
   padding: '0.75rem 0',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${vars.border.color.default}`,
   selectors: {
     '&:last-child': {
       borderBottom: 'none',
@@ -60,12 +62,12 @@ export const infoItem = style({
 
 export const infoLabel = style({
   fontWeight: '500',
-  color: '#6b7280',
+  color: vars.text.tertiary,
   minWidth: '120px',
 });
 
 export const infoValue = style({
-  color: '#111827',
+  color: vars.text.primary,
   textAlign: 'right',
   flex: '1',
 });
@@ -85,21 +87,21 @@ export const statusBadge = recipe({
         color: '#6d28d9',
       },
       approved: {
-        background: '#d1fae5',
-        color: '#065f46',
+        background: vars.colors.successBgSubtle,
+        color: vars.colors.successTextEmphasis,
       },
       rejected: {
-        background: '#fee2e2',
-        color: '#991b1b',
+        background: vars.colors.dangerBgSubtle,
+        color: vars.colors.dangerTextEmphasis,
       },
       withdrawn: {
-        background: '#e5e7eb',
-        color: '#4b5563',
-        border: '1px solid #d1d5db',
+        background: vars.border.color.default,
+        color: vars.text.tertiary,
+        border: `1px solid ${vars.border.color.muted}`,
       },
       default: {
-        background: '#f3f4f6',
-        color: '#374151',
+        background: vars.background.muted,
+        color: vars.text.secondary,
       },
     },
   },
@@ -116,4 +118,10 @@ export const buttonGroup = style({
   display: 'flex',
   gap: '1rem',
   marginTop: '2rem',
+});
+
+export const withdrawButton = style({
+  backgroundColor: '#dc2626',
+  borderColor: '#dc2626',
+  color: 'white',
 });

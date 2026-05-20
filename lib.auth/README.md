@@ -33,7 +33,7 @@ From `@adopt-dont-shop/lib.auth`:
 
 - `User`, `LoginRequest`, `RegisterRequest`, `AuthResponse`, `ChangePasswordRequest`, `RefreshTokenRequest`, `RefreshTokenResponse`
 - `TwoFactorSetupResponse`, `TwoFactorEnableResponse`, `TwoFactorDisableResponse`, `TwoFactorBackupCodesResponse`
-- `Rescue`, `RescueRole`, `Permission`, `rolePermissions`
+- `RescueRole`, `Permission`, `rolePermissions`
 - And everything re-exported from `./types`
 
 ## Quick Start
@@ -89,7 +89,7 @@ Profile:
 
 - `getProfile(): Promise<User>`
 - `updateProfile(partial: Partial<User>): Promise<User>`
-- `deleteAccount(reason?: string): Promise<void>`
+- `deleteAccount(password: string, options?: { twoFactorToken?: string; reason?: string }): Promise<void>` — backend requires step-up auth (ADS-592)
 
 Password / email:
 
@@ -109,8 +109,7 @@ Two-factor:
 Token storage (local):
 
 - `getToken(): string | null`
-- `getRefreshToken(): string | null`
-- `setToken(token: string): void`
+- `setToken(token: string | null | undefined): void`
 - `clearTokens(): void`
 
 ## useAuth hook

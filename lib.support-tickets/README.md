@@ -18,7 +18,7 @@ See [src/index.ts](./src/index.ts) for the authoritative list.
 
 ### Service
 
-- **`SupportTicketService`** — class client over the `/api/v1/support-tickets` endpoints
+- **`SupportTicketService`** — class client over the `/api/v1/admin/support` endpoints
 - **`supportTicketService`** — ready-to-use singleton
 
 Core methods: `getTickets`, `getTicketById`, `getTicketStats`, `getMyTickets`, `createTicket`, `updateTicket`, `assignTicket`, `addResponse`, `escalateTicket`, `getTicketMessages`, `closeTicket`, `resolveTicket`, `reopenTicket`, `setPriority`, `rateTicket`.
@@ -72,7 +72,7 @@ export function MyTickets() {
 ```bash
 npm run build           # tsc
 npm run dev             # tsc --watch
-npm test                # jest
+npm test                # vitest run
 npm run test:watch
 npm run test:coverage
 npm run lint

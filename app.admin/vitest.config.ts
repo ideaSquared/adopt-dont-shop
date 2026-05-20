@@ -45,7 +45,14 @@ const veCssMock: Plugin = {
 };
 
 export default defineConfig({
-  plugins: [react(), veCssMock],
+  plugins: [
+    react({
+      babel: {
+        plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
+      },
+    }),
+    veCssMock,
+  ],
   test: {
     globals: true,
     environment: 'jsdom',
