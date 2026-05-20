@@ -73,6 +73,8 @@ interface UserAttributes {
   lockedUntil?: Date | null;
   twoFactorEnabled?: boolean;
   twoFactorSecret?: string | null;
+  twoFactorPendingSecret?: string | null;
+  twoFactorPendingExpiresAt?: Date | null;
   backupCodes?: string[] | null;
   timezone?: string | null;
   language?: string | null;
@@ -145,6 +147,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public lockedUntil!: Date | null;
   public twoFactorEnabled!: boolean;
   public twoFactorSecret!: string | null;
+  public twoFactorPendingSecret!: string | null;
+  public twoFactorPendingExpiresAt!: Date | null;
   public backupCodes!: string[] | null;
   public timezone!: string | null;
   public language!: string | null;
@@ -366,6 +370,20 @@ User.init(
       allowNull: true,
       field: 'two_factor_secret',
     },
+    // ADS-599: pending TOTP secret stored server-side between
+    // twoFactorSetup and enableTwoFactor so the client can't supply
+    // its own secret. Encrypted at rest via the same beforeUpdate
+    // hook that handles twoFactorSecret.
+    twoFactorPendingSecret: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'two_factor_pending_secret',
+    },
+    twoFactorPendingExpiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'two_factor_pending_expires_at',
+    },
     backupCodes: {
       type: getArrayType(DataTypes.STRING),
       allowNull: true,
@@ -484,7 +502,13 @@ User.init(
     scopes: {
       defaultScope: {
         attributes: {
-          exclude: ['password', 'resetToken', 'verificationToken', 'twoFactorSecret'],
+          exclude: [
+            'password',
+            'resetToken',
+            'verificationToken',
+            'twoFactorSecret',
+            'twoFactorPendingSecret',
+          ],
         },
       },
       withSecrets: {

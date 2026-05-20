@@ -10,6 +10,7 @@ import { RescueListResponse, SystemStatistics, UserListResponse } from '../types
 import { JsonObject } from '../types/common';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { disconnectAllSockets } from '../socket/socket-registry';
 
 export type ExportType = 'users' | 'rescues' | 'pets' | 'applications' | 'audit_logs';
 export type ExportFormat = 'json' | 'jsonl' | 'csv';
@@ -289,6 +290,11 @@ class AdminService {
 
       user.status = UserStatus.SUSPENDED;
       await user.save();
+
+      // ADS-597: tear down any live Socket.IO connections so a
+      // suspended user can't continue receiving events. The HTTP path
+      // is already blocked by authenticateRequest's status check.
+      disconnectAllSockets(userId);
 
       await AuditLogService.log({
         action: 'SUSPEND',
