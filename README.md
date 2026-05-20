@@ -25,6 +25,9 @@ That's it. `npm run setup` is the one-shot bootstrap and it will:
 4. Install all dependencies (`npm ci`)
 5. Build shared libraries (required by apps)
 6. Run `npm run validate:env` to surface any remaining required values
+7. Install Playwright browsers so `npm run test:e2e` works out of the box (~200 MB download)
+
+Skip the Playwright step with `npm run setup -- --skip-playwright` if you don't plan to run E2E tests locally; install them later with `npm run test:e2e:install`.
 
 After it finishes, set `POSTGRES_PASSWORD` and any third-party API keys in `.env`, then start the stack with `npm run docker:dev`.
 
