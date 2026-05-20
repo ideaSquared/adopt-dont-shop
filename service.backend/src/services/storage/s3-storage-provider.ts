@@ -1,3 +1,11 @@
+import {
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import path from 'path';
+import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import { logger } from '../../utils/logger';
 import { FileInfo, StorageCategory, StorageProvider, UploadResult } from './base-provider';
 
@@ -9,39 +17,90 @@ export type S3Config = {
   cloudFrontDomain?: string;
 };
 
-/**
- * S3 storage provider scaffold. Vendor wiring deferred — install
- * `@aws-sdk/client-s3` and implement upload/delete/getFileInfo when the
- * production deploy is ready.
- *
- * `validateConfiguration` returns true only when all required creds are
- * present so startup can fail fast in production.
- */
 export class S3StorageProvider implements StorageProvider {
   private readonly config: S3Config;
+  private readonly client: S3Client;
 
-  constructor(s3Config: S3Config) {
+  constructor(s3Config: S3Config, client?: S3Client) {
     this.config = s3Config;
+    this.client =
+      client ??
+      new S3Client({
+        region: s3Config.region ?? 'us-east-1',
+        credentials:
+          s3Config.accessKeyId && s3Config.secretAccessKey
+            ? {
+                accessKeyId: s3Config.accessKeyId,
+                secretAccessKey: s3Config.secretAccessKey,
+              }
+            : undefined,
+      });
   }
 
   async uploadFile(
-    _file: Buffer,
-    _originalName: string,
-    _contentType: string,
-    _category: StorageCategory = 'documents'
+    file: Buffer,
+    originalName: string,
+    contentType: string,
+    category: StorageCategory = 'documents'
   ): Promise<UploadResult> {
-    logger.error('S3StorageProvider.uploadFile invoked but not implemented');
-    throw new Error('S3 storage provider not implemented — vendor wiring required');
+    const ext = path.extname(originalName);
+    const filename = `${uuidv4()}${ext}`;
+    const key = `${category}/${filename}`;
+
+    try {
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: this.config.bucket!,
+          Key: key,
+          Body: file,
+          ContentType: contentType,
+        })
+      );
+
+      const url = this.buildUrl(key);
+
+      logger.info('File uploaded to S3', { key, size: file.length, category, url });
+
+      return { url, filename, size: file.length };
+    } catch (error) {
+      logger.error('Failed to upload file to S3:', error);
+      throw error;
+    }
   }
 
-  async deleteFile(_filename: string, _category: string = 'documents'): Promise<void> {
-    logger.error('S3StorageProvider.deleteFile invoked but not implemented');
-    throw new Error('S3 storage provider not implemented — vendor wiring required');
+  async deleteFile(filename: string, category: string = 'documents'): Promise<void> {
+    const key = `${category}/${filename}`;
+    try {
+      await this.client.send(
+        new DeleteObjectCommand({
+          Bucket: this.config.bucket!,
+          Key: key,
+        })
+      );
+      logger.info(`File deleted from S3: ${key}`);
+    } catch (error) {
+      logger.error('Failed to delete file from S3:', error);
+      throw error;
+    }
   }
 
-  async getFileInfo(_filename: string, _category: string = 'documents'): Promise<FileInfo> {
-    logger.error('S3StorageProvider.getFileInfo invoked but not implemented');
-    throw new Error('S3 storage provider not implemented — vendor wiring required');
+  async getFileInfo(filename: string, category: string = 'documents'): Promise<FileInfo> {
+    const key = `${category}/${filename}`;
+    try {
+      const response = await this.client.send(
+        new HeadObjectCommand({
+          Bucket: this.config.bucket!,
+          Key: key,
+        })
+      );
+      return {
+        exists: true,
+        size: response.ContentLength ?? 0,
+        modified: response.LastModified ?? new Date(),
+      };
+    } catch {
+      return { exists: false };
+    }
   }
 
   getName(): string {
@@ -55,5 +114,12 @@ export class S3StorageProvider implements StorageProvider {
       this.config.accessKeyId &&
       this.config.secretAccessKey
     );
+  }
+
+  private buildUrl(key: string): string {
+    if (this.config.cloudFrontDomain) {
+      return `https://${this.config.cloudFrontDomain}/${key}`;
+    }
+    return `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${key}`;
   }
 }
