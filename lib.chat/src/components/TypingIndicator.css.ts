@@ -12,7 +12,7 @@ export const typingContainer = style({
   gap: '0.5rem',
   padding: '0.5rem 1rem',
   margin: '0.25rem 1rem 0.5rem 1rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '18px 18px 18px 4px',
   maxWidth: '200px',
   color: vars.text.secondary,

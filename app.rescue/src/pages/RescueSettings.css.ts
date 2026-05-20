@@ -15,7 +15,7 @@ export const pageHeader = style({
 globalStyle(`${pageHeader} h1`, {
   fontSize: '2rem',
   fontWeight: 700,
-  color: vars.colors.neutral['800'],
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
@@ -26,7 +26,7 @@ globalStyle(`${pageHeader} p`, {
 });
 
 export const tabContainer = style({
-  borderBottom: `2px solid ${vars.border.color.primary}`,
+  borderBottom: `2px solid ${vars.border.color.default}`,
   marginBottom: '2rem',
 });
 
@@ -49,14 +49,14 @@ export const tab = style({
   bottom: '-2px',
   selectors: {
     '&:hover': {
-      color: vars.colors.semantic.info['500'],
+      color: vars.colors.info,
     },
   },
 });
 
 export const tabActive = style({
-  color: vars.colors.semantic.info['500'],
-  borderBottomColor: vars.colors.semantic.info['500'],
+  color: vars.colors.info,
+  borderBottomColor: vars.colors.info,
 });
 
 export const tabPanel = style({
@@ -77,8 +77,8 @@ export const loadingContainer = style({
 });
 
 export const errorContainer = style({
-  backgroundColor: vars.colors.semantic.error['100'],
-  color: vars.colors.semantic.error['800'],
+  backgroundColor: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerTextEmphasis,
   padding: '2rem',
   borderRadius: '0.5rem',
   textAlign: 'center',
@@ -94,8 +94,8 @@ globalStyle(`${errorContainer} p`, {
 });
 
 export const placeholderSection = style({
-  background: vars.background.primary,
-  border: `2px dashed ${vars.border.color.secondary}`,
+  background: vars.background.body,
+  border: `2px dashed ${vars.border.color.muted}`,
   borderRadius: '0.75rem',
   padding: '3rem',
   textAlign: 'center',
@@ -114,8 +114,8 @@ globalStyle(`${placeholderSection} p`, {
 });
 
 export const securitySection = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.75rem',
   padding: '2rem',
 });

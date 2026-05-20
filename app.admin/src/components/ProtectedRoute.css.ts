@@ -18,7 +18,7 @@ export const loadingSpinner = style({
   width: '48px',
   height: '48px',
   border: '4px solid #e5e7eb',
-  borderTopColor: vars.colors.primary['500'],
+  borderTopColor: vars.colors.primary,
   borderRadius: '50%',
   animation: `${spin} 1s linear infinite`,
 });
@@ -68,7 +68,7 @@ export const unauthorizedMessage = style({
 });
 
 export const backButton = style({
-  background: vars.colors.primary['600'],
+  background: vars.colors.primaryHover,
   color: 'white',
   padding: '0.75rem 1.5rem',
   border: 'none',
@@ -78,6 +78,6 @@ export const backButton = style({
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: vars.colors.primary['700'],
+    background: vars.colors.primaryActive,
   },
 });

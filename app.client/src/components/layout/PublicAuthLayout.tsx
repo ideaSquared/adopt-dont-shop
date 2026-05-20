@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Logo } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import * as styles from './PublicAuthLayout.css';
 
@@ -13,10 +14,7 @@ export const PublicAuthLayout: React.FC = () => {
     <div className={styles.shell}>
       <header className={styles.header}>
         <Link className={styles.logo} to='/'>
-          <span className={styles.logoIcon} aria-hidden='true'>
-            🐾
-          </span>
-          Adopt Don&apos;t Shop
+          <Logo size={32} showWordmark />
         </Link>
         <Link className={styles.switchLink} to={switchTo}>
           {switchLabel}

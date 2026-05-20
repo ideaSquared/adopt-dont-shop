@@ -116,7 +116,7 @@ export const checkbox = style({
   width: '1rem',
   height: '1rem',
   cursor: 'pointer',
-  accentColor: vars.colors.primary['600'],
+  accentColor: vars.colors.primaryHover,
 });
 
 export const emptyRow = style({});
@@ -174,11 +174,11 @@ export const pageButton = recipe({
   variants: {
     active: {
       true: {
-        background: vars.colors.primary['600'],
+        background: vars.colors.primaryHover,
         color: '#ffffff',
-        borderColor: vars.colors.primary['600'],
+        borderColor: vars.colors.primaryHover,
         ':hover': {
-          background: vars.colors.primary['700'],
+          background: vars.colors.primaryActive,
         },
       },
       false: {

@@ -7,7 +7,7 @@ export const container = recipe({
   base: {
     display: 'inline-flex',
     flexDirection: 'column',
-    gap: vars.spacing['1.5'],
+    gap: vars.spacing['1'],
   },
   variants: {
     fullWidth: {
@@ -35,7 +35,7 @@ export const labelRequired = style({
   selectors: {
     '&::after': {
       content: '" *"',
-      color: vars.colors.semantic.error['500'],
+      color: vars.colors.danger,
     },
   },
 });
@@ -56,45 +56,45 @@ export const inputWrapper = recipe({
   variants: {
     size: {
       sm: {
-        height: vars.spacing['8'],
+        height: vars.spacing['5'],
+        paddingTop: vars.spacing['2'],
+        paddingBottom: vars.spacing['2'],
+        paddingLeft: vars.spacing['2'],
+        paddingRight: vars.spacing['2'],
+        fontSize: vars.typography.size.sm,
+      },
+      md: {
+        height: vars.spacing['5'],
+        paddingTop: vars.spacing['2'],
+        paddingBottom: vars.spacing['2'],
+        paddingLeft: vars.spacing['2'],
+        paddingRight: vars.spacing['2'],
+        fontSize: vars.typography.size.base,
+      },
+      lg: {
+        height: vars.spacing['6'],
         paddingTop: vars.spacing['2'],
         paddingBottom: vars.spacing['2'],
         paddingLeft: vars.spacing['3'],
         paddingRight: vars.spacing['3'],
-        fontSize: vars.typography.size.sm,
-      },
-      md: {
-        height: vars.spacing['10'],
-        paddingTop: vars.spacing['2.5'],
-        paddingBottom: vars.spacing['2.5'],
-        paddingLeft: vars.spacing['3'],
-        paddingRight: vars.spacing['3'],
-        fontSize: vars.typography.size.base,
-      },
-      lg: {
-        height: vars.spacing['12'],
-        paddingTop: vars.spacing['3'],
-        paddingBottom: vars.spacing['3'],
-        paddingLeft: vars.spacing['4'],
-        paddingRight: vars.spacing['4'],
         fontSize: vars.typography.size.lg,
       },
     },
     variant: {
       default: {
-        background: vars.background.secondary,
-        border: `1px solid ${vars.border.color.primary}`,
+        background: vars.background.surface,
+        border: `1px solid ${vars.border.color.default}`,
         borderRadius: vars.border.radius.lg,
       },
       filled: {
-        background: vars.background.tertiary,
+        background: vars.background.muted,
         border: '1px solid transparent',
         borderRadius: vars.border.radius.lg,
       },
       underlined: {
         background: 'transparent',
         border: 'none',
-        borderBottom: `2px solid ${vars.border.color.primary}`,
+        borderBottom: `2px solid ${vars.border.color.default}`,
         borderRadius: '0',
         paddingLeft: '0',
         paddingRight: '0',
@@ -102,54 +102,54 @@ export const inputWrapper = recipe({
     },
     state: {
       default: {
-        borderColor: vars.border.color.primary,
+        borderColor: vars.border.color.default,
         selectors: {
           '&:hover:not(:has(input:disabled))': {
-            borderColor: vars.border.color.secondary,
+            borderColor: vars.border.color.muted,
           },
           '&:focus-within': {
             outline: 'none',
-            borderColor: vars.colors.primary['500'],
-            boxShadow: vars.shadows.focusPrimary,
+            borderColor: vars.colors.primary,
+            boxShadow: vars.shadows.focus,
           },
         },
       },
       error: {
-        borderColor: vars.colors.semantic.error['300'],
+        borderColor: vars.colors.dangerBorderSubtle,
         selectors: {
           '&:hover:not(:has(input:disabled))': {
-            borderColor: vars.colors.semantic.error['400'],
+            borderColor: vars.colors.danger,
           },
           '&:focus-within': {
             outline: 'none',
-            borderColor: vars.colors.semantic.error['500'],
-            boxShadow: vars.shadows.focusError,
+            borderColor: vars.colors.danger,
+            boxShadow: vars.shadows.focusDanger,
           },
         },
       },
       success: {
-        borderColor: vars.colors.semantic.success['300'],
+        borderColor: vars.colors.successBorderSubtle,
         selectors: {
           '&:hover:not(:has(input:disabled))': {
-            borderColor: vars.colors.semantic.success['400'],
+            borderColor: vars.colors.success,
           },
           '&:focus-within': {
             outline: 'none',
-            borderColor: vars.colors.semantic.success['500'],
-            boxShadow: vars.shadows.focusSuccess,
+            borderColor: vars.colors.success,
+            boxShadow: vars.shadows.focus,
           },
         },
       },
       warning: {
-        borderColor: vars.colors.semantic.warning['300'],
+        borderColor: vars.colors.warningBorderSubtle,
         selectors: {
           '&:hover:not(:has(input:disabled))': {
-            borderColor: vars.colors.semantic.warning['400'],
+            borderColor: vars.colors.warning,
           },
           '&:focus-within': {
             outline: 'none',
-            borderColor: vars.colors.semantic.warning['500'],
-            boxShadow: vars.shadows.focusWarning,
+            borderColor: vars.colors.warning,
+            boxShadow: vars.shadows.focus,
           },
         },
       },
@@ -207,7 +207,7 @@ export const input = recipe({
     lineHeight: vars.typography.lineHeight.normal,
     selectors: {
       '&::placeholder': {
-        color: vars.text.quaternary,
+        color: vars.text.muted,
       },
       '&:disabled': {
         cursor: 'not-allowed',
@@ -233,27 +233,27 @@ export const input = recipe({
   compoundVariants: [
     {
       variants: { hasLeftIcon: true, size: 'sm' },
-      style: { paddingLeft: vars.spacing['8'] },
+      style: { paddingLeft: vars.spacing['5'] },
     },
     {
       variants: { hasLeftIcon: true, size: 'md' },
-      style: { paddingLeft: vars.spacing['10'] },
+      style: { paddingLeft: vars.spacing['5'] },
     },
     {
       variants: { hasLeftIcon: true, size: 'lg' },
-      style: { paddingLeft: vars.spacing['12'] },
+      style: { paddingLeft: vars.spacing['6'] },
     },
     {
       variants: { hasRightIcon: true, size: 'sm' },
-      style: { paddingRight: vars.spacing['8'] },
+      style: { paddingRight: vars.spacing['5'] },
     },
     {
       variants: { hasRightIcon: true, size: 'md' },
-      style: { paddingRight: vars.spacing['10'] },
+      style: { paddingRight: vars.spacing['5'] },
     },
     {
       variants: { hasRightIcon: true, size: 'lg' },
-      style: { paddingRight: vars.spacing['12'] },
+      style: { paddingRight: vars.spacing['6'] },
     },
   ],
   defaultVariants: {
@@ -296,27 +296,27 @@ export const iconContainer = recipe({
   compoundVariants: [
     {
       variants: { position: 'left', size: 'sm' },
-      style: { left: vars.spacing['3'] },
+      style: { left: vars.spacing['2'] },
     },
     {
       variants: { position: 'left', size: 'md' },
-      style: { left: vars.spacing['3'] },
+      style: { left: vars.spacing['2'] },
     },
     {
       variants: { position: 'left', size: 'lg' },
-      style: { left: vars.spacing['4'] },
+      style: { left: vars.spacing['3'] },
     },
     {
       variants: { position: 'right', size: 'sm' },
-      style: { right: vars.spacing['3'] },
+      style: { right: vars.spacing['2'] },
     },
     {
       variants: { position: 'right', size: 'md' },
-      style: { right: vars.spacing['3'] },
+      style: { right: vars.spacing['2'] },
     },
     {
       variants: { position: 'right', size: 'lg' },
-      style: { right: vars.spacing['4'] },
+      style: { right: vars.spacing['3'] },
     },
   ],
   defaultVariants: {
@@ -330,14 +330,14 @@ export const addon = recipe({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: vars.background.tertiary,
-    border: `1px solid ${vars.border.color.primary}`,
+    background: vars.background.muted,
+    border: `1px solid ${vars.border.color.default}`,
     color: vars.text.secondary,
     fontSize: vars.typography.size.sm,
     fontWeight: vars.typography.weight.medium,
     whiteSpace: 'nowrap',
-    paddingLeft: vars.spacing['3'],
-    paddingRight: vars.spacing['3'],
+    paddingLeft: vars.spacing['2'],
+    paddingRight: vars.spacing['2'],
   },
   variants: {
     position: {
@@ -354,15 +354,15 @@ export const addon = recipe({
     },
     size: {
       sm: {
-        height: vars.spacing['8'],
+        height: vars.spacing['5'],
         fontSize: vars.typography.size.sm,
       },
       md: {
-        height: vars.spacing['10'],
+        height: vars.spacing['5'],
         fontSize: vars.typography.size.base,
       },
       lg: {
-        height: vars.spacing['12'],
+        height: vars.spacing['6'],
         fontSize: vars.typography.size.lg,
       },
     },
@@ -372,7 +372,7 @@ export const addon = recipe({
       underlined: {
         background: 'transparent',
         border: 'none',
-        borderBottom: `2px solid ${vars.border.color.primary}`,
+        borderBottom: `2px solid ${vars.border.color.default}`,
         borderRadius: '0',
       },
     },
@@ -392,9 +392,9 @@ export const helperText = recipe({
   variants: {
     state: {
       default: { color: vars.text.tertiary },
-      error: { color: vars.colors.semantic.error['600'] },
-      success: { color: vars.colors.semantic.success['600'] },
-      warning: { color: vars.colors.semantic.warning['600'] },
+      error: { color: vars.colors.dangerHover },
+      success: { color: vars.colors.successHover },
+      warning: { color: vars.colors.warningHover },
     },
   },
   defaultVariants: {

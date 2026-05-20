@@ -52,7 +52,7 @@ globalStyle(`${articleContent} p`, {
 });
 
 globalStyle(`${articleContent} a`, {
-  color: vars.colors.semantic.info['600'],
+  color: vars.colors.infoHover,
 });
 
 globalStyle(`${articleContent} a:hover`, {
@@ -71,7 +71,7 @@ globalStyle(`${articleContent} ul, ${articleContent} ol`, {
 });
 
 globalStyle(`${articleContent} blockquote`, {
-  borderLeft: `4px solid ${vars.colors.semantic.info['600']}`,
+  borderLeft: `4px solid ${vars.colors.infoHover}`,
   margin: '1.5rem 0',
   padding: '0.5rem 1.5rem',
   color: vars.text.tertiary,

@@ -47,8 +47,8 @@ export const timeValue = recipe({
   },
   variants: {
     compliant: {
-      true: { color: vars.colors.semantic.success['600'] },
-      false: { color: vars.colors.semantic.error['600'] },
+      true: { color: vars.colors.successHover },
+      false: { color: vars.colors.dangerHover },
     },
   },
   defaultVariants: {
@@ -71,7 +71,7 @@ export const bar = style({
 });
 
 export const targetBar = style({
-  background: vars.colors.neutral['200'],
+  background: vars.border.color.muted,
   opacity: 0.6,
   zIndex: 1,
 });
@@ -92,10 +92,10 @@ export const actualBar = recipe({
   variants: {
     compliant: {
       true: {
-        background: `linear-gradient(135deg, ${vars.colors.semantic.success['500']}, ${vars.colors.semantic.success['600']})`,
+        background: `linear-gradient(135deg, ${vars.colors.success}, ${vars.colors.successHover})`,
       },
       false: {
-        background: `linear-gradient(135deg, ${vars.colors.semantic.error['500']}, ${vars.colors.semantic.error['600']})`,
+        background: `linear-gradient(135deg, ${vars.colors.danger}, ${vars.colors.dangerHover})`,
       },
     },
     active: {
@@ -130,8 +130,8 @@ export const complianceIndicator = recipe({
   },
   variants: {
     compliant: {
-      true: { color: vars.colors.semantic.success['600'] },
-      false: { color: vars.colors.semantic.error['600'] },
+      true: { color: vars.colors.successHover },
+      false: { color: vars.colors.dangerHover },
     },
   },
   defaultVariants: {
@@ -150,7 +150,7 @@ export const legend = style({
   gap: '2rem',
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
-  borderTop: `1px solid ${vars.colors.neutral['200']}`,
+  borderTop: `1px solid ${vars.border.color.muted}`,
 });
 
 export const legendItem = style({
@@ -174,7 +174,7 @@ const shimmer = keyframes({
 
 export const loadingSkeletonRow = style({
   height: '40px',
-  background: vars.colors.neutral['100'],
+  background: vars.background.muted,
   borderRadius: '8px',
   marginBottom: '1.5rem',
   position: 'relative',
@@ -186,7 +186,7 @@ export const loadingSkeletonRow = style({
     left: 0,
     width: '100%',
     height: '100%',
-    background: `linear-gradient(90deg, transparent, ${vars.colors.neutral['200']}, transparent)`,
+    background: `linear-gradient(90deg, transparent, ${vars.border.color.muted}, transparent)`,
     animation: `${shimmer} 1.5s infinite`,
   },
 });

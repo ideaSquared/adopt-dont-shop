@@ -63,7 +63,7 @@ export const filterBar = style({
 export const filterSelect = style({
   padding: '0.625rem 1rem',
   background: 'white',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
   color: vars.text.primary,
@@ -71,12 +71,12 @@ export const filterSelect = style({
   transition: 'all 0.2s ease',
   selectors: {
     '&:hover': {
-      borderColor: vars.colors.semantic.info['400'],
+      borderColor: vars.colors.info,
     },
     '&:focus': {
       outline: 'none',
-      borderColor: vars.colors.semantic.info['400'],
-      boxShadow: `0 0 0 3px ${vars.colors.semantic.info['100']}`,
+      borderColor: vars.colors.info,
+      boxShadow: `0 0 0 3px ${vars.colors.infoBgSubtle}`,
     },
   },
 });
@@ -108,7 +108,7 @@ export const twoColumnGrid = style({
 
 export const cardHeader = style({
   padding: '1.5rem 1.5rem 1rem 1.5rem',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -128,7 +128,7 @@ globalStyle(`${cardTitle} h3`, {
 });
 
 globalStyle(`${cardTitle} svg`, {
-  color: vars.colors.semantic.info['600'],
+  color: vars.colors.infoHover,
   fontSize: '1.25rem',
 });
 
@@ -144,7 +144,7 @@ export const emptyState = style({
 
 globalStyle(`${emptyState} svg`, {
   fontSize: '3rem',
-  color: vars.border.color.secondary,
+  color: vars.border.color.muted,
   marginBottom: '1rem',
 });
 
@@ -162,9 +162,9 @@ globalStyle(`${emptyState} p`, {
 export const errorState = style({
   textAlign: 'center',
   padding: '2rem',
-  color: vars.colors.semantic.error['600'],
-  background: vars.colors.semantic.error['50'],
-  border: `1px solid ${vars.colors.semantic.error['200']}`,
+  color: vars.colors.dangerHover,
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
   borderRadius: '8px',
 });
 

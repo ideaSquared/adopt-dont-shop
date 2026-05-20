@@ -9,17 +9,17 @@ export const link = style({
   border: 'none',
   padding: 0,
   cursor: 'pointer',
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
   fontSize: '0.875rem',
   fontFamily: 'inherit',
   textDecoration: 'none',
   selectors: {
     '&:hover': {
-      color: vars.colors.neutral['900'],
+      color: vars.text.primary,
       textDecoration: 'underline',
     },
     '&:focus-visible': {
-      outline: `2px solid ${vars.colors.primary['600']}`,
+      outline: `2px solid ${vars.colors.primaryHover}`,
       outlineOffset: '2px',
     },
   },

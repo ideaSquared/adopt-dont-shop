@@ -13,7 +13,7 @@ export const backButton = style({
 });
 
 export const rescueHeader = style({
-  background: vars.background.primary,
+  background: vars.background.body,
   borderRadius: '16px',
   padding: '3rem',
   marginBottom: '3rem',
@@ -114,7 +114,7 @@ globalStyle(`${contactCard} .contact-item`, {
   gap: '1rem',
   marginBottom: '1rem',
   padding: '1rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '8px',
 });
 
@@ -137,12 +137,12 @@ globalStyle(`${contactCard} .contact-item .details .value`, {
 });
 
 globalStyle(`${contactCard} .website-link`, {
-  color: vars.colors.semantic.info['600'],
+  color: vars.colors.infoHover,
   textDecoration: 'none',
 });
 
 globalStyle(`${contactCard} .website-link:hover`, {
-  color: vars.colors.semantic.info['700'],
+  color: vars.colors.infoActive,
   textDecoration: 'underline',
 });
 
@@ -198,7 +198,7 @@ export const loadingContainer = style({
 export const errorContainer = style({
   textAlign: 'center',
   padding: '3rem',
-  color: vars.colors.semantic.error['500'],
+  color: vars.colors.danger,
 });
 
 globalStyle(`${errorContainer} h2`, {

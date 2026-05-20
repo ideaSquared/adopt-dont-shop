@@ -7,18 +7,18 @@ export const chatContainer = style({
   height: '100%',
   flex: '1',
   minWidth: '0',
-  background: vars.background.primary,
+  background: vars.background.body,
   borderRadius: '0',
   overflow: 'hidden',
 });
 
 export const chatHeader = style({
   padding: '1rem 1.25rem',
-  borderBottom: `1px solid ${vars.border.color.secondary}`,
+  borderBottom: `1px solid ${vars.border.color.muted}`,
   display: 'flex',
   alignItems: 'center',
   gap: '0.75rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
   minHeight: '64px',
   '@media': {
@@ -54,9 +54,9 @@ export const headerAvatar = style({
   justifyContent: 'center',
   fontSize: '0.9rem',
   fontWeight: '700',
-  color: vars.colors.primary['700'],
-  background: `linear-gradient(135deg, ${vars.colors.primary['100']}, ${vars.colors.primary['200']})`,
-  boxShadow: `inset 0 0 0 2px ${vars.background.primary}`,
+  color: vars.colors.primaryActive,
+  background: `linear-gradient(135deg, ${vars.colors.primaryBgSubtle}, ${vars.colors.primaryBorderSubtle})`,
+  boxShadow: `inset 0 0 0 2px ${vars.background.body}`,
 });
 
 export const conversationInfo = style({
@@ -92,7 +92,7 @@ export const chatBody = style({
   flexDirection: 'column',
   minHeight: '0',
   position: 'relative',
-  background: vars.background.primary,
+  background: vars.background.body,
 });
 
 export const emptyState = style({
@@ -127,16 +127,16 @@ export const loadingContainer = style({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  background: vars.background.secondary,
+  background: vars.background.surface,
 });
 
 export const errorMessage = style({
   margin: '1.5rem',
   padding: '1.25rem',
-  background: vars.colors.semantic.error['100'],
-  border: `1px solid ${vars.colors.semantic.error['600']}`,
-  color: vars.colors.semantic.error['500'],
-  borderRadius: vars.border.radius.md,
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerHover}`,
+  color: vars.colors.danger,
+  borderRadius: vars.border.radius.base,
   textAlign: 'center',
   fontSize: '1.05rem',
 });
@@ -147,7 +147,7 @@ export const messagesContainer = style({
   display: 'flex',
   flexDirection: 'column',
   minHeight: '0',
-  background: vars.background.primary,
+  background: vars.background.body,
 });
 
 export const typingContainerWrap = style({
@@ -156,5 +156,5 @@ export const typingContainerWrap = style({
 
 export const inputArea = style({
   flex: '0 0 auto',
-  background: vars.background.primary,
+  background: vars.background.body,
 });

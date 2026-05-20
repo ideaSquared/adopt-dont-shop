@@ -22,7 +22,9 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
 
   const fetchStaff = async (showLoading = true) => {
     try {
-      if (showLoading) setLoadingStaff(true);
+      if (showLoading) {
+        setLoadingStaff(true);
+      }
       setStaffError(null);
 
       const [staffData, invitationsData] = await Promise.all([
@@ -35,7 +37,9 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
     } catch (err) {
       setStaffError(err instanceof Error ? err.message : 'Failed to load staff');
     } finally {
-      if (showLoading) setLoadingStaff(false);
+      if (showLoading) {
+        setLoadingStaff(false);
+      }
     }
   };
 
@@ -79,7 +83,9 @@ export const StaffTab: React.FC<StaffTabProps> = ({ rescueId }) => {
       cancelText: 'Cancel',
       variant: 'danger',
     });
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       setLoadingStaff(true);

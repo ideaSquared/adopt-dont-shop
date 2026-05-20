@@ -3,8 +3,8 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   padding: '2rem',
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.75rem',
   textAlign: 'center',
 });
@@ -33,8 +33,8 @@ export const nextSteps = style({
 
 export const nextStepItem = style({
   padding: '0.75rem 1rem',
-  background: vars.background.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.5rem',
   color: vars.text.primary,
   fontSize: '0.9375rem',

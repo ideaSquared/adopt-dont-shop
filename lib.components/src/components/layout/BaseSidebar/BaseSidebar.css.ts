@@ -7,7 +7,7 @@ export const sidebarContainer = style({
   top: 0,
   right: 0,
   height: '100%',
-  backgroundColor: vars.background.primary,
+  backgroundColor: vars.background.body,
   boxShadow: '-2px 0 5px rgba(0, 0, 0, 0.1)',
   transition: 'transform 0.3s ease-in-out',
   zIndex: vars.zIndex.modal,
@@ -20,7 +20,7 @@ export const sidebarHeader = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '16px',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 export const sidebarTitle = style({

@@ -8,7 +8,7 @@ export const triggerButton = style({
   background: 'transparent',
   border: 'none',
   padding: vars.spacing['1'],
-  borderRadius: vars.border.radius.full,
+  borderRadius: vars.border.radius.pill,
   cursor: 'pointer',
   color: 'inherit',
   transition: `background ${vars.transitions.fast}`,
@@ -23,20 +23,20 @@ export const triggerButton = style({
 
 export const content = style({
   minWidth: '240px',
-  background: vars.background.primary,
+  background: vars.background.body,
   color: vars.text.primary,
-  border: `1px solid ${vars.border.color.primary}`,
-  borderRadius: vars.border.radius.md,
-  boxShadow: vars.shadows.md,
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.base,
+  boxShadow: vars.shadows.base,
   padding: `${vars.spacing['1']} 0`,
   zIndex: 1100,
 });
 
 export const header = style({
-  padding: `${vars.spacing['3']} ${vars.spacing['4']} ${vars.spacing['2']}`,
+  padding: `${vars.spacing['2']} ${vars.spacing['3']} ${vars.spacing['2']}`,
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.spacing['0.5'],
+  gap: vars.spacing['1'],
 });
 
 export const name = style({
@@ -51,7 +51,7 @@ export const email = style({
 
 export const separator = style({
   height: '1px',
-  background: vars.border.color.primary,
+  background: vars.border.color.default,
   margin: `${vars.spacing['1']} 0`,
 });
 
@@ -59,7 +59,7 @@ export const item = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.spacing['2'],
-  padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   color: vars.text.primary,
   textDecoration: 'none',
   cursor: 'pointer',
@@ -67,10 +67,10 @@ export const item = style({
   fontSize: vars.typography.size.sm,
   selectors: {
     '&[data-highlighted]': {
-      background: vars.background.tertiary,
+      background: vars.background.muted,
     },
     '&:focus-visible': {
-      background: vars.background.tertiary,
+      background: vars.background.muted,
     },
   },
 });
@@ -85,20 +85,20 @@ export const dangerItem = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.spacing['2'],
-  padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
   textDecoration: 'none',
   cursor: 'pointer',
   outline: 'none',
   fontSize: vars.typography.size.sm,
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
   selectors: {
     '&[data-highlighted]': {
-      background: vars.colors.semantic.error['50'],
-      color: vars.colors.semantic.error['700'],
+      background: vars.colors.dangerBgSubtle,
+      color: vars.colors.dangerActive,
     },
     '&:focus-visible': {
-      background: vars.colors.semantic.error['50'],
-      color: vars.colors.semantic.error['700'],
+      background: vars.colors.dangerBgSubtle,
+      color: vars.colors.dangerActive,
     },
   },
 });

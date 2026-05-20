@@ -9,21 +9,21 @@ export const errorContainer = style({
   padding: '2rem',
   textAlign: 'center',
   minHeight: '200px',
-  background: vars.colors.semantic.error['50'],
-  border: `1px solid ${vars.colors.semantic.error['200']}`,
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
   borderRadius: vars.border.radius.lg,
   margin: '1rem',
 });
 
 export const errorTitle = style({
-  color: vars.colors.semantic.error['700'],
+  color: vars.colors.dangerActive,
   margin: '0 0 1rem 0',
   fontSize: '1.5rem',
   fontWeight: '600',
 });
 
 export const errorMessage = style({
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
   margin: '0 0 1.5rem 0',
   fontSize: '1rem',
   maxWidth: '500px',
@@ -46,20 +46,20 @@ export const errorPre = style({
 });
 
 export const retryButton = style({
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   border: 'none',
   padding: '0.75rem 1.5rem',
-  borderRadius: vars.border.radius.md,
+  borderRadius: vars.border.radius.base,
   fontSize: '1rem',
   fontWeight: '500',
   cursor: 'pointer',
   transition: 'background-color 0.2s ease',
   ':hover': {
-    background: vars.colors.primary['600'],
+    background: vars.colors.primaryHover,
   },
   ':focus': {
-    outline: `2px solid ${vars.colors.primary['300']}`,
+    outline: `2px solid ${vars.colors.primaryBorderSubtle}`,
     outlineOffset: '2px',
   },
 });

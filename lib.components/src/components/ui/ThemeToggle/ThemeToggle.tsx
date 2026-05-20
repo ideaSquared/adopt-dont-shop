@@ -1,23 +1,36 @@
 import React from 'react';
 
 import { useTheme } from '../../../styles/ThemeProvider';
+import type { ThemeMode } from '../../../styles/theme';
 import * as styles from './ThemeToggle.css';
+
+const order: ThemeMode[] = ['light', 'normal', 'dark'];
+
+const labelFor: Record<ThemeMode, string> = {
+  light: 'Light',
+  normal: 'Cosy',
+  dark: 'Dark',
+};
+
+const iconFor: Record<ThemeMode, string> = {
+  light: '☀',
+  normal: '☕',
+  dark: '🌙',
+};
 
 export const ThemeToggle: React.FC = () => {
   const { themeMode, setThemeMode } = useTheme();
 
-  const toggleTheme = () => {
-    setThemeMode(themeMode === 'light' ? 'dark' : 'light');
-  };
+  const next = order[(order.indexOf(themeMode) + 1) % order.length];
 
   return (
     <button
       className={styles.toggleButton}
-      onClick={toggleTheme}
-      aria-label={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}
+      onClick={() => setThemeMode(next)}
+      aria-label={`Switch to ${labelFor[next]} theme`}
     >
-      <span className={styles.icon}>{themeMode === 'light' ? '🌙' : '☀️'}</span>
-      {themeMode === 'light' ? 'Dark' : 'Light'} Mode
+      <span className={styles.icon}>{iconFor[themeMode]}</span>
+      {labelFor[themeMode]}
     </button>
   );
 };

@@ -98,7 +98,7 @@ export const statCard = style({
 export const statNumber = style({
   fontSize: '2rem',
   fontWeight: 700,
-  color: vars.colors.semantic.info['600'],
+  color: vars.colors.infoHover,
   marginBottom: '0.5rem',
 });
 
@@ -120,8 +120,8 @@ export const loadingContainer = style({
 export const errorContainer = style({
   padding: '2rem',
   textAlign: 'center',
-  border: `1px solid ${vars.colors.semantic.error['500']}`,
-  backgroundColor: vars.colors.semantic.error['50'],
-  color: vars.colors.semantic.error['600'],
+  border: `1px solid ${vars.colors.danger}`,
+  backgroundColor: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerHover,
   borderRadius: '0.5rem',
 });

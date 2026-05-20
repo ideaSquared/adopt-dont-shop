@@ -1,10 +1,6 @@
 import notificationService from '@/services/notificationService';
 import { User } from '@/types';
-import {
-  Button,
-  HIGH_CONTRAST_SHORTCUT_HINT,
-  HighContrastToggle,
-} from '@adopt-dont-shop/lib.components';
+import { Button, ThemeToggle } from '@adopt-dont-shop/lib.components';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import React, { useEffect, useState } from 'react';
 import * as styles from './SettingsForm.css';
@@ -169,17 +165,14 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
   return (
     <div className={styles.wrapper}>
       <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>Accessibility</h3>
+        <h3 className={styles.sectionTitle}>Appearance</h3>
         <div className={styles.settingItem}>
           <div className={styles.settingLabel}>
-            <h4>High-Contrast Mode</h4>
-            <p>
-              Increases text and border contrast to meet WCAG AA. Toggle with{' '}
-              <kbd>{HIGH_CONTRAST_SHORTCUT_HINT}</kbd>.
-            </p>
+            <h4>Theme</h4>
+            <p>Choose how the app looks — light, cosy (warm cream), or dark.</p>
           </div>
           <div className={styles.settingControl}>
-            <HighContrastToggle />
+            <ThemeToggle />
           </div>
         </div>
       </div>

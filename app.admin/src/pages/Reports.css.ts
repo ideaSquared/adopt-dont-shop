@@ -18,7 +18,7 @@ export const reportCard = style({
   transition: 'all 0.2s ease',
   position: 'relative',
   ':hover': {
-    borderColor: vars.border.color.secondary,
+    borderColor: vars.border.color.muted,
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
     transform: 'translateY(-2px)',
   },
@@ -43,7 +43,7 @@ export const reportMeta = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   paddingTop: '1rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 export const reportFrequency = style({
@@ -75,13 +75,13 @@ export const scheduledReportItem = style({
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '1.25rem',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   transition: 'all 0.2s ease',
   ':hover': {
-    background: vars.background.primary,
-    borderColor: vars.border.color.secondary,
+    background: vars.background.body,
+    borderColor: vars.border.color.muted,
   },
 });
 
@@ -117,7 +117,7 @@ export const scheduledReportStatus = style({
 
 export const lastRun = style({
   fontSize: '0.75rem',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
 });
 
 export const quickStatsGrid = style({
@@ -128,8 +128,8 @@ export const quickStatsGrid = style({
 });
 
 export const quickStatCard = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.25rem',
   display: 'flex',
@@ -168,7 +168,7 @@ export const reportRow = style({
   display: 'flex',
   justifyContent: 'space-between',
   padding: '12px',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   textDecoration: 'none',
   color: 'inherit',
@@ -197,7 +197,7 @@ export const templatesGrid = style({
 export const templateCard = style({
   display: 'block',
   padding: '14px',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '8px',
   textDecoration: 'none',
   color: 'inherit',

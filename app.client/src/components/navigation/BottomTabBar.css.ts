@@ -9,8 +9,8 @@ export const bar = style({
   right: 0,
   bottom: 0,
   zIndex: 1000,
-  background: vars.background.primary,
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  borderTop: `1px solid ${vars.border.color.default}`,
   paddingBottom: 'env(safe-area-inset-bottom, 0)',
   '@media': {
     '(min-width: 769px)': {
@@ -40,7 +40,7 @@ export const tabLinkBase = style({
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: vars.spacing['0.5'],
+  gap: vars.spacing['1'],
   padding: `${vars.spacing['2']} ${vars.spacing['1']}`,
   fontSize: vars.typography.size.xs,
   textDecoration: 'none',
@@ -61,7 +61,7 @@ export const tabLink = recipe({
   variants: {
     active: {
       true: {
-        color: vars.colors.primary['600'],
+        color: vars.colors.primaryHover,
       },
       false: {
         color: vars.text.secondary,

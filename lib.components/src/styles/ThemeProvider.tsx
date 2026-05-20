@@ -1,28 +1,19 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-import { darkTheme, highContrastTheme, lightTheme, Theme, ThemeMode } from './theme';
-import { darkThemeClass, highContrastThemeClass, lightThemeClass } from './theme.css';
+import { darkTheme, lightTheme, normalTheme, Theme, ThemeMode } from './theme';
+import { darkThemeClass, lightThemeClass, normalThemeClass } from './theme.css';
 import './GlobalStyles.css';
 
 type ThemeContextType = {
   theme: Theme;
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
-  // ADS-137: high-contrast is an orthogonal accessibility preference. When
-  // true, it overrides themeMode so the WCAG-AA palette is applied regardless
-  // of the user's underlying light/dark preference.
-  highContrast: boolean;
-  setHighContrast: (enabled: boolean) => void;
-  toggleHighContrast: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: lightTheme,
-  themeMode: 'light',
+  theme: normalTheme,
+  themeMode: 'normal',
   setThemeMode: () => {},
-  highContrast: false,
-  setHighContrast: () => {},
-  toggleHighContrast: () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
@@ -30,10 +21,8 @@ export const useTheme = () => useContext(ThemeContext);
 type ThemeProviderProps = {
   children: React.ReactNode;
   initialTheme?: ThemeMode;
-  initialHighContrast?: boolean;
 };
 
-export const HIGH_CONTRAST_STORAGE_KEY = 'theme-high-contrast';
 export const THEME_STORAGE_KEY = 'theme';
 
 const readStoredThemeMode = (fallback: ThemeMode): ThemeMode => {
@@ -41,49 +30,39 @@ const readStoredThemeMode = (fallback: ThemeMode): ThemeMode => {
     return fallback;
   }
   const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  if (stored === 'light' || stored === 'dark' || stored === 'high-contrast') {
+  if (stored === 'light' || stored === 'normal' || stored === 'dark') {
     return stored;
   }
   return fallback;
 };
 
-const readStoredHighContrast = (fallback: boolean): boolean => {
-  if (typeof window === 'undefined') {
-    return fallback;
+const themeFor = (mode: ThemeMode): Theme => {
+  if (mode === 'dark') {
+    return darkTheme;
   }
-  const stored = window.localStorage.getItem(HIGH_CONTRAST_STORAGE_KEY);
-  if (stored === 'true') {
-    return true;
+  if (mode === 'light') {
+    return lightTheme;
   }
-  if (stored === 'false') {
-    return false;
+  return normalTheme;
+};
+
+const classFor = (mode: ThemeMode): string => {
+  if (mode === 'dark') {
+    return darkThemeClass;
   }
-  return fallback;
+  if (mode === 'light') {
+    return lightThemeClass;
+  }
+  return normalThemeClass;
 };
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children,
-  initialTheme = 'light',
-  initialHighContrast = false,
+  initialTheme = 'normal',
 }) => {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => readStoredThemeMode(initialTheme));
-  const [highContrast, setHighContrast] = useState<boolean>(() =>
-    readStoredHighContrast(initialHighContrast)
-  );
-
-  const activeMode: ThemeMode = highContrast ? 'high-contrast' : themeMode;
-  const theme =
-    activeMode === 'high-contrast'
-      ? highContrastTheme
-      : activeMode === 'dark'
-        ? darkTheme
-        : lightTheme;
-  const themeClass =
-    activeMode === 'high-contrast'
-      ? highContrastThemeClass
-      : activeMode === 'dark'
-        ? darkThemeClass
-        : lightThemeClass;
+  const theme = themeFor(themeMode);
+  const themeClass = classFor(themeMode);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -91,19 +70,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     }
   }, [themeMode]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(HIGH_CONTRAST_STORAGE_KEY, String(highContrast));
-    }
-  }, [highContrast]);
-
   // Apply VE theme class to <html> so CSS variables are available document-wide,
-  // including in global styles and portalled elements. The truthiness guards
-  // also keep vitest's vanilla-extract stub (which returns non-string values)
-  // from blowing up classList with empty tokens.
+  // including in portalled elements. Truthiness guards keep vitest's
+  // vanilla-extract stub (which can return non-strings) from crashing classList.
   useEffect(() => {
     const root = document.documentElement;
-    [lightThemeClass, darkThemeClass, highContrastThemeClass].forEach(cls => {
+    [lightThemeClass, normalThemeClass, darkThemeClass].forEach(cls => {
       if (typeof cls === 'string' && cls.length > 0) {
         root.classList.remove(cls);
       }
@@ -111,45 +83,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     if (typeof themeClass === 'string' && themeClass.length > 0) {
       root.classList.add(themeClass);
     }
-    // Surface the mode as a data attribute so app/global CSS can opt-in to
-    // per-mode adjustments and assistive tech can inspect the current state.
-    root.setAttribute('data-theme', activeMode);
-    root.setAttribute('data-high-contrast', String(highContrast));
-  }, [themeClass, activeMode, highContrast]);
+    root.setAttribute('data-theme', themeMode);
+  }, [themeClass, themeMode]);
 
-  const toggleHighContrast = useCallback(() => {
-    setHighContrast(prev => !prev);
-  }, []);
-
-  // ADS-137: Alt+Shift+H toggles high-contrast mode globally. Chosen to avoid
-  // common browser/OS shortcuts and to mirror the convention used by other
-  // accessibility-first products. Documented in docs/accessibility.md.
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    const handler = (event: KeyboardEvent) => {
-      if (event.altKey && event.shiftKey && (event.key === 'H' || event.key === 'h')) {
-        event.preventDefault();
-        toggleHighContrast();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [toggleHighContrast]);
-
-  return (
-    <ThemeContext
-      value={{
-        theme,
-        themeMode,
-        setThemeMode,
-        highContrast,
-        setHighContrast,
-        toggleHighContrast,
-      }}
-    >
-      {children}
-    </ThemeContext>
-  );
+  return <ThemeContext value={{ theme, themeMode, setThemeMode }}>{children}</ThemeContext>;
 };

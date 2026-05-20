@@ -18,28 +18,28 @@ export const container = style({
 export const code = style({
   fontSize: '4rem',
   margin: 0,
-  color: vars.colors.semantic.success['700'],
+  color: vars.colors.successActive,
 });
 
 export const title = style({
   margin: '0.5rem 0 1rem',
   fontSize: '1.5rem',
-  color: vars.colors.neutral['800'],
+  color: vars.text.primary,
 });
 
 export const body = style({
-  color: vars.colors.neutral['600'],
+  color: vars.text.tertiary,
   maxWidth: '32rem',
   margin: '0 0 1.5rem',
 });
 
 export const homeLink = style({
   color: 'white',
-  backgroundColor: vars.colors.semantic.success['700'],
+  backgroundColor: vars.colors.successActive,
   padding: '0.5rem 1rem',
   borderRadius: '0.375rem',
   textDecoration: 'none',
   ':hover': {
-    backgroundColor: vars.colors.semantic.success['800'],
+    backgroundColor: vars.colors.successTextEmphasis,
   },
 });

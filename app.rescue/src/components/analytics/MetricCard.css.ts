@@ -5,7 +5,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const card = recipe({
   base: {
     background: 'white',
-    border: `1px solid ${vars.colors.neutral['200']}`,
+    border: `1px solid ${vars.border.color.muted}`,
     borderRadius: '12px',
     padding: '1.5rem',
     transition: 'all 0.2s ease',
@@ -18,7 +18,7 @@ export const card = recipe({
       true: {
         cursor: 'pointer',
         ':hover': {
-          borderColor: vars.colors.primary['300'],
+          borderColor: vars.colors.primaryBorderSubtle,
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
           transform: 'translateY(-2px)',
         },
@@ -58,8 +58,8 @@ export const iconContainer = style({
   width: '2.5rem',
   height: '2.5rem',
   borderRadius: '8px',
-  background: vars.colors.primary['50'],
-  color: vars.colors.primary['600'],
+  background: vars.colors.primaryBgSubtle,
+  color: vars.colors.primaryHover,
   fontSize: '1.25rem',
 });
 
@@ -81,8 +81,8 @@ export const trendContainer = recipe({
   },
   variants: {
     positive: {
-      true: { color: vars.colors.semantic.success['600'] },
-      false: { color: vars.colors.semantic.error['600'] },
+      true: { color: vars.colors.successHover },
+      false: { color: vars.colors.dangerHover },
     },
   },
   defaultVariants: {
@@ -109,7 +109,7 @@ const shimmer = keyframes({
 
 export const loadingBar = style({
   height: '4px',
-  background: vars.colors.neutral['200'],
+  background: vars.border.color.muted,
   borderRadius: '2px',
   overflow: 'hidden',
   marginTop: 'auto',
@@ -118,7 +118,7 @@ export const loadingBar = style({
     display: 'block',
     height: '100%',
     width: '40%',
-    background: vars.colors.primary['500'],
+    background: vars.colors.primary,
     animation: `${shimmer} 1.5s infinite`,
   },
 });

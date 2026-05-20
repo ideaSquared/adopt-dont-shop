@@ -7,12 +7,12 @@ export const container = recipe({
     width: '100%',
     marginLeft: 'auto',
     marginRight: 'auto',
-    paddingLeft: vars.spacing.md,
-    paddingRight: vars.spacing.md,
+    paddingLeft: vars.spacing['3'],
+    paddingRight: vars.spacing['3'],
     '@media': {
       '(max-width: 768px)': {
-        paddingLeft: vars.spacing.sm,
-        paddingRight: vars.spacing.sm,
+        paddingLeft: vars.spacing['2'],
+        paddingRight: vars.spacing['2'],
       },
     },
   },

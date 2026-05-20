@@ -24,20 +24,20 @@ export const section = style({
 globalStyle(`${section} h2`, {
   textAlign: 'center',
   fontSize: vars.typography.size['4xl'],
-  marginBottom: vars.spacing[12],
+  marginBottom: vars.spacing['6'],
   color: vars.text.primary,
 });
 
 export const heroSection = style({
   position: 'relative',
   overflow: 'hidden',
-  padding: `${vars.spacing[20]} 0`,
-  background: vars.colors.gradients.brand,
-  color: vars.colors.neutral[50],
+  padding: `${vars.spacing['7']} 0`,
+  background: vars.colors.gradientBrand,
+  color: vars.background.body,
   textAlign: 'center',
   '@media': {
     '(max-width: 768px)': {
-      padding: `${vars.spacing[16]} 0`,
+      padding: `${vars.spacing['7']} 0`,
     },
   },
 });
@@ -56,16 +56,16 @@ export const heroInner = style({
 export const heroEyebrow = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: vars.spacing[2],
-  padding: `${vars.spacing[2]} ${vars.spacing[4]}`,
-  borderRadius: vars.border.radius.full,
+  gap: vars.spacing['2'],
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+  borderRadius: vars.border.radius.pill,
   background: 'rgba(255,255,255,0.18)',
   border: '1px solid rgba(255,255,255,0.35)',
   backdropFilter: 'blur(4px)',
   color: 'white',
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.semibold,
-  marginBottom: vars.spacing[4],
+  marginBottom: vars.spacing['3'],
 });
 
 export const heroTitle = style({
@@ -74,7 +74,7 @@ export const heroTitle = style({
   fontWeight: vars.typography.weight.bold,
   lineHeight: 1.05,
   letterSpacing: '-0.03em',
-  margin: `${vars.spacing[2]} 0 ${vars.spacing[4]}`,
+  margin: `${vars.spacing['2']} 0 ${vars.spacing['3']}`,
   color: 'white',
   '@media': {
     '(max-width: 768px)': {
@@ -89,12 +89,12 @@ export const heroSubtitle = style({
   color: 'rgba(255,255,255,0.92)',
   maxWidth: '560px',
   margin: '0 auto',
-  marginBottom: vars.spacing[8],
+  marginBottom: vars.spacing['5'],
 });
 
 export const heroActions = style({
   display: 'flex',
-  gap: vars.spacing[3],
+  gap: vars.spacing['2'],
   justifyContent: 'center',
   flexWrap: 'wrap',
 });
@@ -113,7 +113,7 @@ export const petGrid = style({
 });
 
 export const statsSection = style({
-  backgroundColor: vars.background.tertiary,
+  backgroundColor: vars.background.muted,
   padding: '4rem 0',
 });
 
@@ -128,7 +128,7 @@ globalStyle(`${statsSection} .stat-item h3`, {
   fontFamily: vars.typography.family.display,
   fontSize: '3rem',
   fontWeight: vars.typography.weight.bold,
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   marginBottom: '0.5rem',
 });
 
@@ -154,8 +154,8 @@ globalStyle(`${statsSection} .stat-item p`, {
 });
 
 export const ctaSection = style({
-  background: vars.colors.gradients.primary,
-  color: vars.colors.neutral[50],
+  background: vars.colors.gradientPrimary,
+  color: vars.background.body,
   padding: '4rem 0',
   textAlign: 'center',
 });
@@ -184,8 +184,8 @@ export const loadingContainer = style({
 export const errorMessage = style({
   textAlign: 'center',
   padding: '2rem',
-  color: vars.text.error,
-  backgroundColor: vars.background.error,
+  color: vars.text.danger,
+  backgroundColor: vars.background.danger,
   borderRadius: vars.border.radius.lg,
   margin: '2rem 0',
 });

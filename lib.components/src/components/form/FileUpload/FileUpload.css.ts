@@ -18,17 +18,17 @@ export const container = recipe({
 
 export const label = style({
   display: 'block',
-  marginBottom: vars.spacing.xs,
+  marginBottom: vars.spacing['1'],
   fontSize: vars.typography.size.sm,
   fontWeight: vars.typography.weight.medium,
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
 });
 
 export const labelRequired = style({
   selectors: {
     '&::after': {
       content: '" *"',
-      color: vars.colors.semantic.error['500'],
+      color: vars.colors.danger,
     },
   },
 });
@@ -47,15 +47,15 @@ export const dropZone = recipe({
     alignItems: 'center',
     justifyContent: 'center',
     border: '2px dashed',
-    borderRadius: vars.border.radius.md,
-    backgroundColor: vars.colors.neutral['50'],
+    borderRadius: vars.border.radius.base,
+    backgroundColor: vars.background.body,
     transition: `all ${vars.transitions.fast}`,
     textAlign: 'center',
 
     selectors: {
       '&:hover': {
-        borderColor: vars.colors.primary['500'],
-        backgroundColor: vars.colors.primary['100'],
+        borderColor: vars.colors.primary,
+        backgroundColor: vars.colors.primaryBgSubtle,
       },
     },
   },
@@ -63,50 +63,50 @@ export const dropZone = recipe({
     size: {
       sm: {
         minHeight: '80px',
-        padding: vars.spacing.md,
+        padding: vars.spacing['3'],
       },
       md: {
         minHeight: '120px',
-        padding: vars.spacing.lg,
+        padding: vars.spacing['4'],
       },
       lg: {
         minHeight: '160px',
-        padding: vars.spacing.xl,
+        padding: vars.spacing['5'],
       },
     },
     state: {
       default: {
-        borderColor: vars.colors.neutral['300'],
+        borderColor: vars.border.color.default,
       },
       error: {
-        borderColor: vars.colors.semantic.error['500'],
-        backgroundColor: vars.colors.semantic.error['100'],
+        borderColor: vars.colors.danger,
+        backgroundColor: vars.colors.dangerBgSubtle,
       },
       success: {
-        borderColor: vars.colors.semantic.success['500'],
-        backgroundColor: vars.colors.semantic.success['100'],
+        borderColor: vars.colors.success,
+        backgroundColor: vars.colors.successBgSubtle,
       },
       warning: {
-        borderColor: vars.colors.semantic.warning['500'],
-        backgroundColor: vars.colors.semantic.warning['100'],
+        borderColor: vars.colors.warning,
+        backgroundColor: vars.colors.warningBgSubtle,
       },
     },
     isDragOver: {
       true: {
-        borderColor: vars.colors.primary['500'],
-        backgroundColor: vars.colors.primary['100'],
+        borderColor: vars.colors.primary,
+        backgroundColor: vars.colors.primaryBgSubtle,
       },
       false: {},
     },
     disabled: {
       true: {
-        backgroundColor: vars.colors.neutral['100'],
-        color: vars.colors.neutral['400'],
+        backgroundColor: vars.background.muted,
+        color: vars.border.color.strong,
         cursor: 'not-allowed',
         selectors: {
           '&:hover': {
             borderColor: 'inherit',
-            backgroundColor: vars.colors.neutral['100'],
+            backgroundColor: vars.background.muted,
           },
         },
       },
@@ -126,35 +126,35 @@ export const dropZone = recipe({
 export const uploadIcon = style({
   width: '32px',
   height: '32px',
-  marginBottom: vars.spacing.sm,
-  color: vars.colors.neutral['400'],
+  marginBottom: vars.spacing['2'],
+  color: vars.border.color.strong,
 });
 globalStyle(`${uploadIcon} svg`, { width: '100%', height: '100%' });
 
 export const uploadText = style({
   fontSize: vars.typography.size.sm,
-  color: vars.colors.neutral['600'],
-  marginBottom: vars.spacing.xs,
+  color: vars.text.tertiary,
+  marginBottom: vars.spacing['1'],
 });
 
 export const uploadSubtext = style({
   fontSize: vars.typography.size.xs,
-  color: vars.colors.neutral['500'],
+  color: vars.text.muted,
 });
 
 export const fileList = style({
-  marginTop: vars.spacing.md,
+  marginTop: vars.spacing['3'],
 });
 
 export const fileItem = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: vars.spacing.sm,
-  border: `1px solid ${vars.colors.neutral['200']}`,
+  padding: vars.spacing['2'],
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: vars.border.radius.sm,
-  backgroundColor: vars.colors.neutral['50'],
-  marginBottom: vars.spacing.xs,
+  backgroundColor: vars.background.body,
+  marginBottom: vars.spacing['1'],
 
   selectors: {
     '&:last-child': {
@@ -166,34 +166,34 @@ export const fileItem = style({
 export const fileInfo = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.spacing.sm,
+  gap: vars.spacing['2'],
 });
 
 export const fileName = style({
   fontSize: vars.typography.size.sm,
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
 });
 
 export const fileSize = style({
   fontSize: vars.typography.size.xs,
-  color: vars.colors.neutral['500'],
+  color: vars.text.muted,
 });
 
 export const removeButton = style({
   background: 'none',
   border: 'none',
-  color: vars.colors.semantic.error['500'],
+  color: vars.colors.danger,
   cursor: 'pointer',
-  padding: vars.spacing.xs,
+  padding: vars.spacing['1'],
   borderRadius: vars.border.radius.sm,
   transition: `background-color ${vars.transitions.fast}`,
 
   selectors: {
     '&:hover': {
-      backgroundColor: vars.colors.semantic.error['100'],
+      backgroundColor: vars.colors.dangerBgSubtle,
     },
     '&:focus': {
-      outline: `2px solid ${vars.colors.semantic.error['500']}`,
+      outline: `2px solid ${vars.colors.danger}`,
       outlineOffset: '2px',
     },
   },
@@ -201,15 +201,15 @@ export const removeButton = style({
 
 export const helperText = recipe({
   base: {
-    marginTop: vars.spacing.xs,
+    marginTop: vars.spacing['1'],
     fontSize: vars.typography.size.xs,
   },
   variants: {
     state: {
-      default: { color: vars.colors.neutral['600'] },
-      error: { color: vars.colors.semantic.error['500'] },
-      success: { color: vars.colors.semantic.success['500'] },
-      warning: { color: vars.colors.semantic.warning['500'] },
+      default: { color: vars.text.tertiary },
+      error: { color: vars.colors.danger },
+      success: { color: vars.colors.success },
+      warning: { color: vars.colors.warning },
     },
   },
   defaultVariants: {

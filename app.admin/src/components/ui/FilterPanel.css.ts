@@ -85,8 +85,8 @@ export const select = style({
   transition: 'all 0.2s ease',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['500'],
-    boxShadow: `0 0 0 3px ${vars.colors.primary['100']}`,
+    borderColor: vars.colors.primary,
+    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
   },
   ':disabled': {
     background: '#f9fafb',
@@ -105,8 +105,8 @@ export const input = style({
   transition: 'all 0.2s ease',
   ':focus': {
     outline: 'none',
-    borderColor: vars.colors.primary['500'],
-    boxShadow: `0 0 0 3px ${vars.colors.primary['100']}`,
+    borderColor: vars.colors.primary,
+    boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
   },
   '::placeholder': {
     color: '#9ca3af',
@@ -121,7 +121,7 @@ export const applyButton = style({
   marginTop: '1rem',
   width: '100%',
   padding: '0.75rem',
-  background: vars.colors.primary['600'],
+  background: vars.colors.primaryHover,
   border: 'none',
   borderRadius: '6px',
   color: 'white',
@@ -130,6 +130,6 @@ export const applyButton = style({
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: vars.colors.primary['700'],
+    background: vars.colors.primaryActive,
   },
 });

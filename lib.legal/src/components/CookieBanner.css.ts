@@ -7,8 +7,8 @@ export const banner = style({
   right: 0,
   bottom: 0,
   zIndex: 1000,
-  background: vars.colors.neutral['50'],
-  borderTop: `1px solid ${vars.colors.neutral['300']}`,
+  background: vars.background.body,
+  borderTop: `1px solid ${vars.border.color.default}`,
   boxShadow: '0 -2px 8px rgba(0, 0, 0, 0.08)',
   padding: '1rem 1.25rem',
   display: 'flex',
@@ -25,19 +25,19 @@ export const headerRow = style({
 export const title = style({
   fontWeight: 600,
   fontSize: '1rem',
-  color: vars.colors.neutral['900'],
+  color: vars.text.primary,
   margin: 0,
 });
 
 export const description = style({
   margin: 0,
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
   fontSize: '0.9rem',
   lineHeight: 1.5,
 });
 
 export const policyLink = style({
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   textDecoration: 'underline',
 });
 
@@ -49,7 +49,7 @@ export const actionRow = style({
 });
 
 export const detailsBlock = style({
-  borderTop: `1px solid ${vars.colors.neutral['200']}`,
+  borderTop: `1px solid ${vars.border.color.muted}`,
   paddingTop: '0.75rem',
   display: 'flex',
   flexDirection: 'column',
@@ -67,19 +67,19 @@ export const categoryLabel = style({
   alignItems: 'center',
   gap: '0.5rem',
   fontWeight: 600,
-  color: vars.colors.neutral['900'],
+  color: vars.text.primary,
 });
 
 export const categoryMeta = style({
   fontSize: '0.85rem',
-  color: vars.colors.neutral['600'],
+  color: vars.text.tertiary,
   fontWeight: 400,
 });
 
 export const categoryDescription = style({
   margin: 0,
   fontSize: '0.85rem',
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
   lineHeight: 1.5,
 });
 

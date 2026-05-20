@@ -15,7 +15,7 @@ export const pageHeader = style({
 globalStyle(`${pageHeader} h1`, {
   fontSize: '2rem',
   fontWeight: '700',
-  color: vars.colors.neutral['800'],
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
@@ -26,8 +26,8 @@ globalStyle(`${pageHeader} p`, {
 });
 
 export const section = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.75rem',
   padding: '2rem',
   marginBottom: '1.5rem',

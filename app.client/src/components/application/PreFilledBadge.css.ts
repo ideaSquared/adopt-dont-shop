@@ -10,9 +10,9 @@ export const chip = style({
   borderRadius: '9999px',
   fontSize: '0.6875rem',
   fontWeight: '500',
-  background: vars.colors.primary['100'],
-  color: vars.colors.primary['700'],
-  border: `1px solid ${vars.colors.primary['200']}`,
+  background: vars.colors.primaryBgSubtle,
+  color: vars.colors.primaryActive,
+  border: `1px solid ${vars.colors.primaryBorderSubtle}`,
   verticalAlign: 'middle',
   whiteSpace: 'nowrap',
 });

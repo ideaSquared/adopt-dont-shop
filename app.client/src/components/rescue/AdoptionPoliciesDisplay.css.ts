@@ -33,14 +33,14 @@ export const requirementItem = style({
   alignItems: 'flex-start',
   gap: '0.75rem',
   padding: '1rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '8px',
 });
 
 globalStyle(`${requirementItem} .icon`, {
   width: '20px',
   height: '20px',
-  color: vars.colors.semantic.success['600'],
+  color: vars.colors.successHover,
   flexShrink: 0,
   marginTop: '2px',
 });
@@ -56,7 +56,7 @@ export const feeRange = style({
   alignItems: 'center',
   gap: '1rem',
   padding: '1.5rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '12px',
   marginBottom: '2rem',
 });
@@ -64,7 +64,7 @@ export const feeRange = style({
 globalStyle(`${feeRange} .icon`, {
   width: '32px',
   height: '32px',
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
 });
 
 globalStyle(`${feeRange} .fee-info`, {
@@ -105,7 +105,7 @@ globalStyle(`${listSection} li`, {
   alignItems: 'flex-start',
   gap: '0.75rem',
   padding: '0.75rem 0',
-  borderBottom: `1px solid ${vars.border.color.secondary}`,
+  borderBottom: `1px solid ${vars.border.color.muted}`,
 });
 
 globalStyle(`${listSection} li:last-child`, {
@@ -115,7 +115,7 @@ globalStyle(`${listSection} li:last-child`, {
 globalStyle(`${listSection} li .bullet`, {
   width: '6px',
   height: '6px',
-  background: vars.colors.primary['600'],
+  background: vars.colors.primaryHover,
   borderRadius: '50%',
   flexShrink: 0,
   marginTop: '0.5rem',
@@ -144,7 +144,7 @@ globalStyle(`${policyDetailSection} p`, {
   lineHeight: 1.6,
   margin: 0,
   padding: '1rem',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '8px',
 });
 

@@ -4,7 +4,11 @@ All visual styling in this monorepo flows from a single source of truth: the
 theme contract defined in
 [`lib.components/src/styles/theme.css.ts`](./lib.components/src/styles/theme.css.ts).
 Three themes derive from the same contract: `lightThemeClass`,
-`darkThemeClass`, and `highContrastThemeClass`.
+`normalThemeClass`, and `darkThemeClass`.
+
+The token system follows **Bootstrap 5.3 conventions** — single named values
+plus explicit `Hover`, `Active`, `BgSubtle`, `BorderSubtle`, and
+`TextEmphasis` variants. No 50→950 ramps.
 
 ## Importing tokens
 
@@ -14,103 +18,100 @@ In any `*.css.ts` file inside a `lib.*` package:
 import { vars } from '../../../styles/theme.css';
 ```
 
-In any `*.css.ts` file inside an `app.*` package:
+From an app or any package that depends on `lib.components`:
 
 ```ts
 import { vars } from '@adopt-dont-shop/lib.components/theme';
 ```
 
-In React/TS files (rare — usually only for dynamic style props):
+## What's in `vars`
+
+### Colors — brand + semantic
+
+Every brand/semantic color is one named token (no scale step), plus five
+explicit variants. Use the base for filled CTAs; the variants for states and
+tints.
 
 ```ts
-import { vars } from '@adopt-dont-shop/lib.components';
+vars.colors.primary              // brand rose (#F43F5E)
+vars.colors.primaryHover         // darker rose for :hover
+vars.colors.primaryActive        // darker still for :active
+vars.colors.primaryBgSubtle      // very light rose tint for badge/alert fills
+vars.colors.primaryBorderSubtle  // pale rose for borders on tinted surfaces
+vars.colors.primaryTextEmphasis  // deep rose for text on tinted surfaces
 ```
 
-## Token reference
+The same shape exists for `secondary`, `success`, `danger`, `warning`,
+`info`. Logo accents are flat: `accentPaw`, `accentSky`, `accentLeaf`.
+Gradients: `gradientPrimary`, `gradientBrand`.
 
-### Colors
+### Gray ramp
 
-Use semantic tokens whenever possible — they switch with the active theme.
+A single 9-step gray (`vars.gray['100']` → `vars.gray['900']`) for cases
+where the semantic surface tokens aren't enough. **The gray scale is the
+same in every theme** — it does not flip in dark mode. Use the semantic
+tokens below for surfaces and text that need to flip.
 
-| Token group | Use for |
-|---|---|
-| `vars.text.primary / secondary / tertiary / quaternary` | Body text, in descending emphasis |
-| `vars.text.inverse / disabled / link / linkHover` | Inverted, muted, and link text |
-| `vars.text.success / error / warning / info` | Status text on default surfaces |
-| `vars.background.primary / secondary / tertiary` | Page, surface, raised-surface fills |
-| `vars.background.inverse / overlay / disabled` | Inverted, modal scrims, disabled fills |
-| `vars.background.success / error / warning / info` | Status surface fills (e.g. alert banner) |
-| `vars.border.color.primary / secondary / tertiary` | Borders/dividers, in descending emphasis |
-| `vars.border.color.focus / success / error / warning / info` | Status borders, focus rings |
-
-If you need a specific shade, use the 11-step scale (`50` → `950`):
+### Theme-aware surfaces
 
 ```ts
-vars.colors.primary['500']           // brand primary
-vars.colors.neutral['100']           // light surface
-vars.colors.semantic.success['600']  // strong success
+vars.background.body      // page bg                       (flips by theme)
+vars.background.surface   // raised surface (cards)
+vars.background.muted     // subtle bg
+vars.background.inverse | overlay | disabled
+vars.background.danger | success | warning | info  // tinted alert/badge fills
+
+vars.text.primary | secondary | tertiary | muted
+vars.text.disabled | inverse | link | linkHover
+vars.text.danger | success | warning | info
+
+vars.border.color.default | muted | strong | focus
+vars.border.color.danger | success | warning | info
 ```
 
-**Never** hardcode hex codes (`#ffffff`, `#6b7280`, …) in app or library styles.
-The theme cannot follow them across light/dark/high-contrast modes.
+### Spacing — Bootstrap-style spacers
 
-### Spacing (4 px base)
-
-Two equivalent scales. Prefer the named one in component-level code.
-
-| Named | Numeric | px |
-|---|---|---|
-| `vars.spacing.xs` | `vars.spacing['1']` | 4 |
-| `vars.spacing.sm` | `vars.spacing['2']` | 8 |
-| `vars.spacing.md` | `vars.spacing['4']` | 16 |
-| `vars.spacing.lg` | `vars.spacing['6']` | 24 |
-| `vars.spacing.xl` | `vars.spacing['8']` | 32 |
-| `vars.spacing['2xl']` | `vars.spacing['12']` | 48 |
-| `vars.spacing['3xl']` | `vars.spacing['16']` | 64 |
-| `vars.spacing['4xl']` | `vars.spacing['20']` | 80 |
-
-The numeric scale also covers half-steps (`0.5`, `1.5`, `2.5`, `3.5`) for fine
-adjustments. Anything not on the scale (`13px`, `0.625rem`) is a smell.
+```ts
+vars.spacing['0']  // 0
+vars.spacing['1']  // 0.25rem  (4px)
+vars.spacing['2']  // 0.5rem   (8px)
+vars.spacing['3']  // 1rem     (16px) — Bootstrap's $spacer base
+vars.spacing['4']  // 1.5rem   (24px)
+vars.spacing['5']  // 2rem     (32px)
+vars.spacing['6']  // 3rem     (48px)
+vars.spacing['7']  // 4rem     (64px)
+vars.spacing['8']  // 6rem     (96px)
+```
 
 ### Border radius
 
-| Token | px |
-|---|---|
-| `vars.border.radius.none` | 0 |
-| `vars.border.radius.xs` | 2 |
-| `vars.border.radius.sm` | 4 |
-| `vars.border.radius.md` | 6 |
-| `vars.border.radius.lg` | 8 |
-| `vars.border.radius.xl` | 12 |
-| `vars.border.radius['2xl']` | 16 |
-| `vars.border.radius['3xl']` | 24 |
-| `vars.border.radius.full` | 9999 (pill/circle) |
+```ts
+vars.border.radius.sm    // 4px
+vars.border.radius.base  // 8px  — default for buttons, inputs
+vars.border.radius.lg    // 12px
+vars.border.radius.xl    // 16px — default for cards
+vars.border.radius['2xl'] // 24px
+vars.border.radius.pill  // 9999px — pills, avatars
+```
 
 ### Typography
 
 ```ts
-vars.typography.family.sans     // body
-vars.typography.family.mono     // code, IPs, IDs
-vars.typography.family.display  // marketing headings
+vars.typography.family.sans     // Inter — body, UI
+vars.typography.family.display  // Fredoka — wordmark + h1/h2
+vars.typography.family.mono     // JetBrains Mono — code
 
-vars.typography.size.xs   // 12px-ish (captions)
-vars.typography.size.sm   // 14px (helper text)
-vars.typography.size.base // 16px (body)
-vars.typography.size.lg   // 18px (section titles)
-vars.typography.size.xl   // 20px
-vars.typography.size['2xl'] // 24px (page titles)
-// …up to 9xl
-
-vars.typography.weight.normal | medium | semibold | bold
+vars.typography.size.xs | sm | base | lg | xl | 2xl | 3xl | 4xl | 5xl | 6xl | 7xl
+vars.typography.weight.light | normal | medium | semibold | bold
 vars.typography.lineHeight.tight | snug | normal | relaxed | loose
 ```
 
 ### Shadows, transitions, z-index
 
 ```ts
-vars.shadows.sm | md | lg | xl | 2xl
-vars.shadows.focus | focusPrimary | focusError | focusWarning | focusSuccess
-vars.transitions.fast | normal | slow      // includes timing + easing
+vars.shadows.sm | base | lg | xl
+vars.shadows.focus | focusDanger | inner
+vars.transitions.fast | base | slow
 vars.zIndex.dropdown | sticky | overlay | modal | popover | toast | tooltip
 ```
 
@@ -134,22 +135,14 @@ need. Frequently overlooked:
 - **`Card`** / **`CardHeader`** / **`CardContent`** / **`CardFooter`**
 - **`EmptyState`** — empty/error/loading/search states with consistent styling
 - **`FormSection`** / **`FormRow`** / **`FormField`** — form layout primitives
-- **`Badge`** / **`Alert`** / **`Heading`** / **`Text`**
+- **`Badge`** / **`Alert`** / **`Heading`** / **`Text`** / **`Logo`**
 
 ## Checklist when reviewing styles
 
 - [ ] No hardcoded hex codes (`#…`) — use `vars.*`
-- [ ] No off-scale spacing (`13px`, `0.625rem`, `padding: 11px 19px`) — use `vars.spacing.*`
-- [ ] No raw `borderRadius: '12px'` — use `vars.border.radius.xl`
+- [ ] No off-scale spacing — use `vars.spacing['1'..'8']`
+- [ ] No raw `borderRadius: '12px'` — use `vars.border.radius.lg`
 - [ ] Uses `vars.text.*` / `vars.background.*` for theme-aware foregrounds/backgrounds
-- [ ] Status colors use `vars.colors.semantic.*` rather than ad-hoc greens/reds
+- [ ] Status colors use `vars.colors.danger|success|warning|info` rather than ad-hoc greens/reds
+- [ ] States use `vars.colors.primaryHover` / `…Active` — not raw alternate colors
 - [ ] Page layout uses `Stack` / `Container` / `FormRow` rather than hand-rolled grids
-- [ ] Empty/error/loading states use `EmptyState`, not raw divs
-
-## Why this matters
-
-The library already supports light, dark, and high-contrast (WCAG-AAA) themes
-via the same token contract. Every hardcoded color is a value that **cannot**
-follow theme changes — it locks light-mode colors into dark-mode UI and breaks
-high-contrast accessibility. Centralising on tokens is what makes
-theme-switching, brand updates, and a11y compliance one-line changes.

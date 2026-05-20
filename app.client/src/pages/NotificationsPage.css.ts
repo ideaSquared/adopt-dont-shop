@@ -61,7 +61,7 @@ globalStyle(`${notificationContent} .message`, {
 
 globalStyle(`${notificationContent} .timestamp`, {
   fontSize: '0.875rem',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
 });
 
 export const emptyState = style({

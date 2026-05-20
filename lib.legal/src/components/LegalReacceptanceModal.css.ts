@@ -7,7 +7,7 @@ export const modalContent = style({
 });
 
 export const description = style({
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
   marginBottom: '1.5rem',
   lineHeight: 1.6,
 });
@@ -20,7 +20,7 @@ export const documentList = style({
 });
 
 export const documentItem = style({
-  border: `1px solid ${vars.colors.neutral['200']}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '0.5rem',
   padding: '1rem',
 });
@@ -47,17 +47,17 @@ export const documentTextBlock = style({
 
 export const documentTitle = style({
   fontWeight: 600,
-  color: vars.colors.neutral['900'],
+  color: vars.text.primary,
 });
 
 export const documentMeta = style({
   fontSize: '0.85rem',
-  color: vars.colors.neutral['600'],
+  color: vars.text.tertiary,
 });
 
 export const documentLink = style({
   fontSize: '0.85rem',
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   textDecoration: 'underline',
 });
 

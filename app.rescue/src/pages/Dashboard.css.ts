@@ -27,8 +27,8 @@ globalStyle(`${dashboardHeader} p`, {
 });
 
 export const welcomeMessage = style({
-  background: `linear-gradient(135deg, ${vars.colors.semantic.info['50']} 0%, ${vars.colors.semantic.info['100']} 100%)`,
-  border: `1px solid ${vars.colors.semantic.info['200']}`,
+  background: `linear-gradient(135deg, ${vars.colors.infoBgSubtle} 0%, ${vars.colors.infoBgSubtle} 100%)`,
+  border: `1px solid ${vars.colors.infoBorderSubtle}`,
   borderRadius: '12px',
   padding: '1.5rem',
   marginBottom: '2rem',
@@ -36,13 +36,13 @@ export const welcomeMessage = style({
 
 globalStyle(`${welcomeMessage} h2`, {
   margin: '0 0 0.5rem 0',
-  color: vars.colors.semantic.info['800'],
+  color: vars.colors.infoTextEmphasis,
   fontSize: '1.25rem',
 });
 
 globalStyle(`${welcomeMessage} p`, {
   margin: 0,
-  color: vars.colors.semantic.info['700'],
+  color: vars.colors.infoActive,
 });
 
 export const metricsGrid = style({

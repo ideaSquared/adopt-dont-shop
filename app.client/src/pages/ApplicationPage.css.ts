@@ -19,7 +19,7 @@ globalStyle(`${header} h1`, {
 });
 
 globalStyle(`${header} p`, {
-  color: vars.colors.neutral['600'],
+  color: vars.text.tertiary,
   fontSize: '1.1rem',
 });
 

@@ -4,7 +4,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 export const appLayout = style({
   display: 'flex',
   minHeight: '100vh',
-  background: vars.background.primary,
+  background: vars.background.body,
 });
 
 export const mainColumn = style({
@@ -25,11 +25,11 @@ export const mainContent = style({
 // smallest surface that keeps the cookies-policy promise of an on-page
 // withdrawal control.
 export const layoutFooter = style({
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
   padding: '0.75rem 2rem',
   display: 'flex',
   justifyContent: 'flex-end',
-  background: vars.background.secondary,
+  background: vars.background.surface,
 });
 
 export const skipLink = style({
@@ -48,11 +48,11 @@ export const skipLink = style({
       height: 'auto',
       padding: '0.5rem 0.875rem',
       background: vars.text.primary,
-      color: vars.background.primary,
+      color: vars.background.body,
       borderRadius: '0.375rem',
       textDecoration: 'none',
       fontWeight: 600,
-      outline: `2px solid ${vars.background.primary}`,
+      outline: `2px solid ${vars.background.body}`,
       outlineOffset: '2px',
     },
   },

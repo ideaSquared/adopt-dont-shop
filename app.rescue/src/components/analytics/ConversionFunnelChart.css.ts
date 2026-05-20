@@ -58,7 +58,7 @@ export const applicantCount = style({
 export const barContainer = style({
   position: 'relative',
   height: '48px',
-  background: vars.colors.neutral['100'],
+  background: vars.background.muted,
   borderRadius: '8px',
   overflow: 'hidden',
 });
@@ -99,7 +99,7 @@ export const dropOffIndicator = style({
   alignItems: 'center',
   gap: '0.5rem',
   fontSize: '0.75rem',
-  color: vars.colors.semantic.error['600'],
+  color: vars.colors.dangerHover,
   margin: '0.25rem 0 0.5rem 0',
   paddingLeft: '0.5rem',
 });
@@ -114,7 +114,7 @@ export const summary = style({
   gap: '1rem',
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
-  borderTop: `1px solid ${vars.colors.neutral['200']}`,
+  borderTop: `1px solid ${vars.border.color.muted}`,
 });
 
 export const summaryItem = style({
@@ -142,7 +142,7 @@ const shimmer = keyframes({
 
 export const loadingSkeletonRow = style({
   height: '48px',
-  background: vars.colors.neutral['100'],
+  background: vars.background.muted,
   borderRadius: '8px',
   marginBottom: '0.75rem',
   position: 'relative',
@@ -154,7 +154,7 @@ export const loadingSkeletonRow = style({
     left: 0,
     width: '100%',
     height: '100%',
-    background: `linear-gradient(90deg, transparent, ${vars.colors.neutral['200']}, transparent)`,
+    background: `linear-gradient(90deg, transparent, ${vars.border.color.muted}, transparent)`,
     animation: `${shimmer} 1.5s infinite`,
   },
 });

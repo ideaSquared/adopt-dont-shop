@@ -15,7 +15,7 @@ export const pageHeader = style({
 globalStyle(`${pageHeader} h1`, {
   fontSize: '2rem',
   fontWeight: 700,
-  color: vars.colors.neutral['800'],
+  color: vars.text.primary,
   margin: '0 0 0.5rem 0',
 });
 
@@ -29,7 +29,7 @@ export const tabBar = style({
   display: 'flex',
   flexWrap: 'wrap',
   gap: '0.25rem',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
   marginBottom: '1.5rem',
 });
 
@@ -45,16 +45,16 @@ export const tabButton = style({
   selectors: {
     '&:hover': { color: vars.text.primary },
     '&[aria-selected="true"]': {
-      color: vars.colors.semantic.info['700'],
-      borderBottomColor: vars.colors.semantic.info['700'],
+      color: vars.colors.infoActive,
+      borderBottomColor: vars.colors.infoActive,
       fontWeight: 600,
     },
   },
 });
 
 export const section = style({
-  background: vars.background.secondary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '0.75rem',
   padding: '1.5rem',
   marginBottom: '1.25rem',
@@ -80,14 +80,14 @@ export const table = style({
 globalStyle(`${table} th, ${table} td`, {
   padding: '0.5rem 0.75rem',
   textAlign: 'left',
-  borderBottom: `1px solid ${vars.background.tertiary}`,
+  borderBottom: `1px solid ${vars.background.muted}`,
   fontSize: '0.875rem',
 });
 
 globalStyle(`${table} th`, {
   fontWeight: 600,
   color: vars.text.secondary,
-  background: vars.background.primary,
+  background: vars.background.body,
 });
 
 export const inlineForm = style({
@@ -100,7 +100,7 @@ export const inlineForm = style({
 
 export const input = style({
   padding: '0.4rem 0.6rem',
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '0.375rem',
   fontSize: '0.875rem',
   minWidth: '140px',
@@ -109,7 +109,7 @@ export const input = style({
 export const select = style([input]);
 
 export const dangerButton = style({
-  background: vars.colors.semantic.error['600'],
+  background: vars.colors.dangerHover,
   color: 'white',
   border: 'none',
   padding: '0.4rem 0.75rem',
@@ -117,13 +117,13 @@ export const dangerButton = style({
   fontSize: '0.85rem',
   cursor: 'pointer',
   selectors: {
-    '&:hover': { background: vars.colors.semantic.error['700'] },
+    '&:hover': { background: vars.colors.dangerActive },
     '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
   },
 });
 
 export const primaryButton = style({
-  background: vars.colors.semantic.info['700'],
+  background: vars.colors.infoActive,
   color: 'white',
   border: 'none',
   padding: '0.4rem 0.75rem',
@@ -131,7 +131,7 @@ export const primaryButton = style({
   fontSize: '0.85rem',
   cursor: 'pointer',
   selectors: {
-    '&:hover': { background: vars.colors.semantic.info['800'] },
+    '&:hover': { background: vars.colors.infoTextEmphasis },
     '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
   },
 });
@@ -139,12 +139,12 @@ export const primaryButton = style({
 export const secondaryButton = style({
   background: 'white',
   color: vars.text.secondary,
-  border: `1px solid ${vars.border.color.secondary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   padding: '0.4rem 0.75rem',
   borderRadius: '0.375rem',
   fontSize: '0.85rem',
   cursor: 'pointer',
-  selectors: { '&:hover': { background: vars.background.primary } },
+  selectors: { '&:hover': { background: vars.background.body } },
 });
 
 export const emptyState = style({
@@ -156,9 +156,9 @@ export const emptyState = style({
 
 export const errorBanner = style({
   padding: '0.75rem 1rem',
-  background: vars.colors.semantic.error['50'],
-  border: `1px solid ${vars.colors.semantic.error['200']}`,
-  color: vars.colors.semantic.error['800'],
+  background: vars.colors.dangerBgSubtle,
+  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
+  color: vars.colors.dangerTextEmphasis,
   borderRadius: '0.375rem',
   marginBottom: '1rem',
   fontSize: '0.875rem',
@@ -174,15 +174,15 @@ export const statusPill = style({
 
 export const statusSuccess = style([
   statusPill,
-  { background: vars.colors.semantic.success['100'], color: vars.colors.semantic.success['800'] },
+  { background: vars.colors.successBgSubtle, color: vars.colors.successTextEmphasis },
 ]);
 export const statusFailure = style([
   statusPill,
-  { background: vars.colors.semantic.error['100'], color: vars.colors.semantic.error['800'] },
+  { background: vars.colors.dangerBgSubtle, color: vars.colors.dangerTextEmphasis },
 ]);
 export const statusNeutral = style([
   statusPill,
-  { background: vars.border.color.primary, color: vars.text.secondary },
+  { background: vars.border.color.default, color: vars.text.secondary },
 ]);
 
 export const userIdSubtext = style({
@@ -195,6 +195,6 @@ export const successBanner = style([
   {
     background: '#ecfdf5',
     borderColor: '#a7f3d0',
-    color: vars.colors.semantic.success['800'],
+    color: vars.colors.successTextEmphasis,
   },
 ]);

@@ -16,7 +16,7 @@ const pulse = keyframes({
 export const container = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: vars.spacing.sm,
+  gap: vars.spacing['2'],
 });
 
 export const spinner = recipe({
@@ -40,15 +40,15 @@ export const spinner = recipe({
     },
     variant: {
       default: {
-        borderColor: vars.border.color.primary,
+        borderColor: vars.border.color.default,
         borderRightColor: 'transparent',
       },
       primary: {
-        borderColor: vars.background.primary,
+        borderColor: vars.background.body,
         borderRightColor: 'transparent',
       },
       secondary: {
-        borderColor: vars.background.secondary,
+        borderColor: vars.background.surface,
         borderRightColor: 'transparent',
       },
       current: {
@@ -94,9 +94,9 @@ export const dot = recipe({
       xl: { width: '0.75rem', height: '0.75rem' },
     },
     variant: {
-      default: { backgroundColor: vars.border.color.primary },
-      primary: { backgroundColor: vars.background.primary },
-      secondary: { backgroundColor: vars.background.secondary },
+      default: { backgroundColor: vars.border.color.default },
+      primary: { backgroundColor: vars.background.body },
+      secondary: { backgroundColor: vars.background.surface },
       current: { backgroundColor: 'currentColor' },
     },
   },

@@ -14,7 +14,9 @@ export const useNearbySearch = (): UseNearbySearchReturn => {
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
   const handleUseLocationText = async (locationText: string) => {
-    if (!locationText.trim()) return;
+    if (!locationText.trim()) {
+      return;
+    }
 
     setIsGeocodingLocation(true);
     setGeocodeError(null);

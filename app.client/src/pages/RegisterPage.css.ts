@@ -6,7 +6,7 @@ export const loginPrompt = style({
   textAlign: 'center',
   marginTop: '1.5rem',
   paddingTop: '1.5rem',
-  borderTop: `1px solid ${vars.border.color.secondary}`,
+  borderTop: `1px solid ${vars.border.color.muted}`,
 });
 
 globalStyle(`${loginPrompt} p`, {
@@ -15,7 +15,7 @@ globalStyle(`${loginPrompt} p`, {
 });
 
 globalStyle(`${loginPrompt} a`, {
-  color: vars.colors.primary['600'],
+  color: vars.colors.primaryHover,
   textDecoration: 'none',
   fontWeight: '500',
 });

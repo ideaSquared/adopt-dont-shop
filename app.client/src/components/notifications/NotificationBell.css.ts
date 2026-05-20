@@ -176,8 +176,8 @@ export const overlay = recipe({
 });
 
 export const quickPreview = style({
-  background: vars.background.primary,
-  border: `1px solid ${vars.border.color.primary}`,
+  background: vars.background.body,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '12px',
   padding: '1.5rem',
   width: '420px',
@@ -199,7 +199,7 @@ export const previewHeader = style({
   alignItems: 'center',
   marginBottom: '1.25rem',
   paddingBottom: '0.75rem',
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 globalStyle(`${previewHeader} h3`, {
@@ -210,7 +210,7 @@ globalStyle(`${previewHeader} h3`, {
 });
 
 export const viewAllButton = style({
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   border: 'none',
   color: 'white',
   fontSize: '0.875rem',
@@ -220,7 +220,7 @@ export const viewAllButton = style({
   borderRadius: '6px',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: vars.colors.primary['600'],
+    background: vars.colors.primaryHover,
     transform: 'translateY(-1px)',
   },
   ':active': {
@@ -232,7 +232,7 @@ export const quickNotificationItem = recipe({
   base: {
     padding: '1rem',
     borderRadius: '10px',
-    border: `1px solid ${vars.border.color.primary}`,
+    border: `1px solid ${vars.border.color.default}`,
     marginBottom: '0.75rem',
     cursor: 'pointer',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -240,7 +240,7 @@ export const quickNotificationItem = recipe({
     ':hover': {
       transform: 'translateY(-2px)',
       boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
-      borderColor: vars.colors.primary['300'],
+      borderColor: vars.colors.primaryBorderSubtle,
     },
     ':active': {
       transform: 'translateY(-1px)',
@@ -254,10 +254,10 @@ export const quickNotificationItem = recipe({
   variants: {
     isRead: {
       true: {
-        background: vars.background.primary,
+        background: vars.background.body,
       },
       false: {
-        background: vars.background.secondary,
+        background: vars.background.surface,
         borderLeft: '3px solid transparent',
         paddingLeft: '1.25rem',
         '::before': {

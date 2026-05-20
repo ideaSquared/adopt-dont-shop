@@ -101,12 +101,12 @@ export const navigationDots = style({
 
 export const dot = recipe({
   base: {
-    width: vars.spacing.xs,
-    height: vars.spacing.xs,
-    marginLeft: vars.spacing.xs,
-    marginRight: vars.spacing.xs,
+    width: vars.spacing['1'],
+    height: vars.spacing['1'],
+    marginLeft: vars.spacing['1'],
+    marginRight: vars.spacing['1'],
     border: 'none',
-    borderRadius: vars.border.radius.full,
+    borderRadius: vars.border.radius.pill,
     cursor: 'pointer',
     transition: `background-color ${vars.transitions.fast}`,
     selectors: {
@@ -130,10 +130,10 @@ export const uploadButton = style({
   display: 'block',
   backgroundColor: vars.background.info,
   color: vars.text.inverse,
-  padding: `${vars.spacing.sm} ${vars.spacing.md}`,
-  margin: `${vars.spacing.md} auto`,
+  padding: `${vars.spacing['2']} ${vars.spacing['3']}`,
+  margin: `${vars.spacing['3']} auto`,
   textAlign: 'center',
-  borderRadius: vars.border.radius.md,
+  borderRadius: vars.border.radius.base,
   cursor: 'pointer',
   fontSize: vars.typography.size.base,
   transition: `background-color ${vars.transitions.fast}`,
@@ -151,5 +151,5 @@ export const hiddenInput = style({
 export const centeredBadgeContainer = style({
   display: 'flex',
   justifyContent: 'center',
-  marginTop: vars.spacing.md,
+  marginTop: vars.spacing['3'],
 });

@@ -9,24 +9,24 @@ export const messageListWrapper = style({
   flex: '1 1 auto',
   overflowY: 'auto',
   padding: '1rem 0.75rem 0.5rem 0.75rem',
-  background: vars.background.primary,
+  background: vars.background.body,
   scrollbarWidth: 'thin',
-  scrollbarColor: `${vars.colors.neutral['300']} ${vars.background.primary}`,
+  scrollbarColor: `${vars.border.color.default} ${vars.background.body}`,
 });
 
 globalStyle(`${messageListWrapper}::-webkit-scrollbar`, {
   width: '6px',
-  background: vars.background.primary,
+  background: vars.background.body,
 });
 
 globalStyle(`${messageListWrapper}::-webkit-scrollbar-thumb`, {
-  background: vars.colors.neutral['300'],
+  background: vars.border.color.default,
   borderRadius: '6px',
   transition: 'background 0.15s ease',
 });
 
 globalStyle(`${messageListWrapper}::-webkit-scrollbar-thumb:hover`, {
-  background: vars.colors.neutral['400'],
+  background: vars.border.color.strong,
 });
 
 export const emptyMessages = style({
@@ -58,9 +58,9 @@ export const loadEarlierButton = style({
   alignSelf: 'center',
   margin: '0.5rem 0 0.75rem 0',
   padding: '0.5rem 0.875rem',
-  background: vars.background.primary,
+  background: vars.background.body,
   color: vars.text.secondary,
-  border: `1px solid ${vars.border.color.tertiary}`,
+  border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '999px',
   fontSize: '0.8rem',
   fontWeight: '500',
@@ -68,11 +68,11 @@ export const loadEarlierButton = style({
   transition: 'background 0.15s ease, color 0.15s ease',
   selectors: {
     '&:hover': {
-      background: vars.colors.neutral['100'],
+      background: vars.background.muted,
       color: vars.text.primary,
     },
     '&:focus-visible': {
-      outline: `2px solid ${vars.colors.primary['500']}`,
+      outline: `2px solid ${vars.colors.primary}`,
       outlineOffset: '2px',
     },
   },
@@ -93,13 +93,13 @@ export const daySeparator = style({
       content: '""',
       flex: '1',
       height: '1px',
-      background: vars.border.color.tertiary,
+      background: vars.border.color.muted,
     },
     '&::after': {
       content: '""',
       flex: '1',
       height: '1px',
-      background: vars.border.color.tertiary,
+      background: vars.border.color.muted,
     },
   },
 });

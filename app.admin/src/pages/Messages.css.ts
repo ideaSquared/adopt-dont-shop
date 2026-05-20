@@ -20,7 +20,7 @@ export const messageParticipants = style({
 
 globalStyle(`${messageParticipants} svg`, {
   fontSize: '0.875rem',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
 });
 
 export const messageSubject = style({
@@ -35,7 +35,7 @@ export const messageMeta = style({
   display: 'flex',
   gap: '0.75rem',
   fontSize: '0.75rem',
-  color: vars.text.quaternary,
+  color: vars.text.muted,
 });
 
 export const participantInfo = style({
@@ -66,16 +66,16 @@ export const actionButton = style({
   justifyContent: 'center',
   width: '32px',
   height: '32px',
-  border: `1px solid ${vars.border.color.primary}`,
+  border: `1px solid ${vars.border.color.default}`,
   borderRadius: '6px',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   color: vars.text.tertiary,
   cursor: 'pointer',
   transition: 'all 0.2s ease',
   ':hover': {
-    background: vars.background.primary,
+    background: vars.background.body,
     color: vars.text.primary,
-    borderColor: vars.border.color.secondary,
+    borderColor: vars.border.color.muted,
   },
   ':active': {
     transform: 'scale(0.95)',
@@ -86,7 +86,7 @@ export const statusDotActive = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: vars.colors.semantic.success['500'],
+  background: vars.colors.success,
   flexShrink: 0,
 });
 
@@ -94,7 +94,7 @@ export const statusDotFlagged = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: vars.colors.semantic.warning['500'],
+  background: vars.colors.warning,
   flexShrink: 0,
 });
 
@@ -102,7 +102,7 @@ export const statusDotArchived = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  background: vars.text.quaternary,
+  background: vars.text.muted,
   flexShrink: 0,
 });
 

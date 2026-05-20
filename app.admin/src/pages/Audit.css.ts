@@ -4,7 +4,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const headerActions = style({
   display: 'flex',
-  gap: vars.spacing['3'],
+  gap: vars.spacing['2'],
 });
 
 export const logDetails = style({
@@ -40,8 +40,8 @@ export const userInfo = style({
 export const userAvatar = style({
   width: '24px',
   height: '24px',
-  borderRadius: vars.border.radius.full,
-  background: vars.colors.gradients.primary,
+  borderRadius: vars.border.radius.pill,
+  background: vars.colors.gradientPrimary,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -63,14 +63,14 @@ const actionIconBase = {
   justifyContent: 'center',
   width: '24px',
   height: '24px',
-  borderRadius: vars.border.radius.md,
+  borderRadius: vars.border.radius.base,
   flexShrink: 0,
 } as const;
 
 export const actionIconCreate = style({
   ...actionIconBase,
-  background: vars.colors.semantic.success['100'],
-  color: vars.colors.semantic.success['800'],
+  background: vars.colors.successBgSubtle,
+  color: vars.colors.successTextEmphasis,
 });
 
 globalStyle(`${actionIconCreate} svg`, {
@@ -79,8 +79,8 @@ globalStyle(`${actionIconCreate} svg`, {
 
 export const actionIconUpdate = style({
   ...actionIconBase,
-  background: vars.colors.semantic.info['100'],
-  color: vars.colors.semantic.info['800'],
+  background: vars.colors.infoBgSubtle,
+  color: vars.colors.infoTextEmphasis,
 });
 
 globalStyle(`${actionIconUpdate} svg`, {
@@ -89,8 +89,8 @@ globalStyle(`${actionIconUpdate} svg`, {
 
 export const actionIconDelete = style({
   ...actionIconBase,
-  background: vars.colors.semantic.error['100'],
-  color: vars.colors.semantic.error['800'],
+  background: vars.colors.dangerBgSubtle,
+  color: vars.colors.dangerTextEmphasis,
 });
 
 globalStyle(`${actionIconDelete} svg`, {
@@ -99,8 +99,8 @@ globalStyle(`${actionIconDelete} svg`, {
 
 export const actionIconLogin = style({
   ...actionIconBase,
-  background: vars.colors.semantic.warning['100'],
-  color: vars.colors.semantic.warning['800'],
+  background: vars.colors.warningBgSubtle,
+  color: vars.colors.warningTextEmphasis,
 });
 
 globalStyle(`${actionIconLogin} svg`, {
@@ -109,8 +109,8 @@ globalStyle(`${actionIconLogin} svg`, {
 
 export const actionIconLogout = style({
   ...actionIconBase,
-  background: vars.colors.neutral['100'],
-  color: vars.colors.neutral['700'],
+  background: vars.background.muted,
+  color: vars.text.secondary,
 });
 
 globalStyle(`${actionIconLogout} svg`, {
@@ -119,8 +119,8 @@ globalStyle(`${actionIconLogout} svg`, {
 
 export const actionIconDefault = style({
   ...actionIconBase,
-  background: vars.colors.primary['100'],
-  color: vars.colors.primary['800'],
+  background: vars.colors.primaryBgSubtle,
+  color: vars.colors.primaryTextEmphasis,
 });
 
 globalStyle(`${actionIconDefault} svg`, {
@@ -128,17 +128,17 @@ globalStyle(`${actionIconDefault} svg`, {
 });
 
 export const changesButton = style({
-  padding: `${vars.spacing['1']} ${vars.spacing['2.5']}`,
-  border: `1px solid ${vars.border.color.secondary}`,
-  borderRadius: vars.border.radius.md,
-  background: vars.background.secondary,
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
+  border: `1px solid ${vars.border.color.muted}`,
+  borderRadius: vars.border.radius.base,
+  background: vars.background.surface,
   color: vars.text.tertiary,
   fontSize: vars.typography.size.xs,
   cursor: 'pointer',
   transition: `all ${vars.transitions.fast}`,
   ':hover': {
-    background: vars.background.tertiary,
-    borderColor: vars.border.color.tertiary,
+    background: vars.background.muted,
+    borderColor: vars.border.color.muted,
   },
 });
 
@@ -146,8 +146,8 @@ export const ipAddress = style({
   fontFamily: vars.typography.family.mono,
   fontSize: vars.typography.size.xs,
   color: vars.text.tertiary,
-  background: vars.background.tertiary,
-  padding: `${vars.spacing['0.5']} ${vars.spacing['2']}`,
+  background: vars.background.muted,
+  padding: `${vars.spacing['1']} ${vars.spacing['2']}`,
   borderRadius: vars.border.radius.sm,
 });
 
@@ -165,9 +165,9 @@ export const modal = style({
 });
 
 export const modalContent = style({
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: vars.border.radius.xl,
-  padding: vars.spacing.lg,
+  padding: vars.spacing['4'],
   maxWidth: '600px',
   maxHeight: '80vh',
   overflow: 'auto',
@@ -178,9 +178,9 @@ export const modalHeader = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginBottom: vars.spacing.md,
-  paddingBottom: vars.spacing.md,
-  borderBottom: `1px solid ${vars.border.color.primary}`,
+  marginBottom: vars.spacing['3'],
+  paddingBottom: vars.spacing['3'],
+  borderBottom: `1px solid ${vars.border.color.default}`,
 });
 
 export const modalTitle = style({
@@ -202,18 +202,18 @@ export const closeButton = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  borderRadius: vars.border.radius.md,
+  borderRadius: vars.border.radius.base,
   transition: `all ${vars.transitions.fast}`,
   ':hover': {
-    background: vars.background.tertiary,
+    background: vars.background.muted,
     color: vars.text.primary,
   },
 });
 
 export const jsonBlock = style({
-  background: vars.colors.neutral['900'],
-  color: vars.colors.neutral['50'],
-  padding: vars.spacing.md,
+  background: vars.text.primary,
+  color: vars.background.body,
+  padding: vars.spacing['3'],
   borderRadius: vars.border.radius.lg,
   overflow: 'auto',
   fontFamily: vars.typography.family.mono,
@@ -224,7 +224,7 @@ export const jsonBlock = style({
 
 export const subUserType = style({
   fontSize: vars.typography.size.xs,
-  color: vars.text.quaternary,
+  color: vars.text.muted,
 });
 
 export const buttonIcon = style({
@@ -232,9 +232,9 @@ export const buttonIcon = style({
 });
 
 export const errorBanner = style({
-  padding: vars.spacing.md,
-  color: vars.text.error,
-  background: vars.background.error,
+  padding: vars.spacing['3'],
+  color: vars.text.danger,
+  background: vars.background.danger,
   borderRadius: vars.border.radius.lg,
-  margin: `${vars.spacing.md} 0`,
+  margin: `${vars.spacing['3']} 0`,
 });

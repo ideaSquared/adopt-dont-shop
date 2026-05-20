@@ -19,10 +19,10 @@ export const radioContainer = recipe({
 export const groupLabel = recipe({
   base: {
     display: 'block',
-    marginBottom: vars.spacing.xs,
+    marginBottom: vars.spacing['1'],
     fontSize: vars.typography.size.sm,
     fontWeight: vars.typography.weight.medium,
-    color: vars.colors.neutral['700'],
+    color: vars.text.secondary,
   },
   variants: {
     required: {
@@ -30,7 +30,7 @@ export const groupLabel = recipe({
         selectors: {
           '&::after': {
             content: '" *"',
-            color: vars.colors.semantic.error['500'],
+            color: vars.colors.danger,
           },
         },
       },
@@ -46,13 +46,13 @@ export const radioGroup = styleVariants({
   horizontal: {
     display: 'flex',
     flexDirection: 'row',
-    gap: vars.spacing.lg,
+    gap: vars.spacing['4'],
     flexWrap: 'wrap',
   },
   vertical: {
     display: 'flex',
     flexDirection: 'column',
-    gap: vars.spacing.sm,
+    gap: vars.spacing['2'],
     flexWrap: 'wrap',
   },
 });
@@ -61,7 +61,7 @@ export const radioOptionContainer = recipe({
   base: {
     display: 'flex',
     alignItems: 'center',
-    gap: vars.spacing.xs,
+    gap: vars.spacing['1'],
     cursor: 'pointer',
     opacity: 1,
   },
@@ -101,24 +101,24 @@ export const styledRadio = recipe({
     flexShrink: 0,
     selectors: {
       'input:focus + &': {
-        boxShadow: `0 0 0 3px ${vars.colors.primary['100']}40`,
+        boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
       },
       'input:focus-visible + &': {
-        boxShadow: `0 0 0 3px ${vars.colors.primary['100']}40`,
+        boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}40`,
       },
     },
   },
   variants: {
     state: {
-      default: { borderColor: vars.colors.neutral['300'] },
-      error: { borderColor: vars.colors.semantic.error['500'] },
-      success: { borderColor: vars.colors.semantic.success['500'] },
-      warning: { borderColor: vars.colors.semantic.warning['500'] },
+      default: { borderColor: vars.border.color.default },
+      error: { borderColor: vars.colors.danger },
+      success: { borderColor: vars.colors.success },
+      warning: { borderColor: vars.colors.warning },
     },
     checked: {
       true: {
-        borderColor: vars.colors.primary['500'],
-        backgroundColor: vars.colors.primary['500'],
+        borderColor: vars.colors.primary,
+        backgroundColor: vars.colors.primary,
         selectors: {
           '&::after': {
             content: '""',
@@ -129,7 +129,7 @@ export const styledRadio = recipe({
             width: '6px',
             height: '6px',
             borderRadius: '50%',
-            backgroundColor: vars.colors.neutral['50'],
+            backgroundColor: vars.background.body,
           },
         },
       },
@@ -137,7 +137,7 @@ export const styledRadio = recipe({
     },
     disabled: {
       true: {
-        backgroundColor: vars.colors.neutral['100'],
+        backgroundColor: vars.background.muted,
         cursor: 'not-allowed',
       },
       false: {},
@@ -152,29 +152,29 @@ export const styledRadio = recipe({
 
 export const optionLabel = style({
   fontSize: vars.typography.size.sm,
-  color: vars.colors.neutral['700'],
+  color: vars.text.secondary,
   userSelect: 'none',
 });
 
 export const helperText = styleVariants({
   default: {
-    marginTop: vars.spacing.xs,
+    marginTop: vars.spacing['1'],
     fontSize: vars.typography.size.xs,
-    color: vars.colors.neutral['600'],
+    color: vars.text.tertiary,
   },
   error: {
-    marginTop: vars.spacing.xs,
+    marginTop: vars.spacing['1'],
     fontSize: vars.typography.size.xs,
-    color: vars.colors.semantic.error['500'],
+    color: vars.colors.danger,
   },
   success: {
-    marginTop: vars.spacing.xs,
+    marginTop: vars.spacing['1'],
     fontSize: vars.typography.size.xs,
-    color: vars.colors.semantic.success['500'],
+    color: vars.colors.success,
   },
   warning: {
-    marginTop: vars.spacing.xs,
+    marginTop: vars.spacing['1'],
     fontSize: vars.typography.size.xs,
-    color: vars.colors.semantic.warning['500'],
+    color: vars.colors.warning,
   },
 });

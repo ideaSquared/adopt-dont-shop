@@ -17,16 +17,16 @@ export const clocksContainer = style({
 
 export const clockContainer = style({
   backgroundColor: vars.background.overlay,
-  padding: vars.spacing.sm,
-  borderRadius: vars.border.radius.md,
+  padding: vars.spacing['2'],
+  borderRadius: vars.border.radius.base,
   boxShadow: vars.shadows.sm,
 });
 
 export const tooltipContent = style({
   backgroundColor: vars.background.overlay,
-  padding: vars.spacing.sm,
+  padding: vars.spacing['2'],
   borderRadius: vars.border.radius.lg,
-  boxShadow: vars.shadows.md,
+  boxShadow: vars.shadows.base,
   fontSize: vars.typography.size.sm,
   zIndex: vars.zIndex.tooltip,
 });

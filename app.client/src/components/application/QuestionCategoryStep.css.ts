@@ -23,12 +23,12 @@ export const requiredNote = style({
 });
 
 export const errorSummary = style({
-  border: `1px solid ${vars.colors.semantic.error['500']}`,
-  background: vars.colors.semantic.error['50'],
+  border: `1px solid ${vars.colors.danger}`,
+  background: vars.colors.dangerBgSubtle,
   padding: '0.75rem 1rem',
   borderRadius: '0.375rem',
   margin: '0 0 1.5rem 0',
-  color: vars.colors.semantic.error['700'],
+  color: vars.colors.dangerActive,
 });
 
 export const visuallyHidden = style({

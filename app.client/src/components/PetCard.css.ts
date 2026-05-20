@@ -155,7 +155,7 @@ export const rescueInfo = style({
   color: vars.text.secondary,
   marginBottom: '1rem',
   paddingTop: '0.5rem',
-  borderTop: `1px solid ${vars.border.color.primary}`,
+  borderTop: `1px solid ${vars.border.color.default}`,
 });
 
 export const distanceBadge = style({

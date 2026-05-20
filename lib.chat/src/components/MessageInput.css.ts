@@ -3,7 +3,7 @@ import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const inputContainer = style({
   padding: '0.75rem 1rem 1.25rem 1rem',
-  background: vars.background.primary,
+  background: vars.background.body,
 });
 
 export const inputRow = style({
@@ -30,8 +30,8 @@ export const attachmentItem = style({
   alignItems: 'center',
   gap: '0.5rem',
   padding: '0.5rem 0.75rem',
-  background: vars.colors.primary['100'],
-  border: `1px solid ${vars.colors.primary['500']}`,
+  background: vars.colors.primaryBgSubtle,
+  border: `1px solid ${vars.colors.primary}`,
   borderRadius: '18px',
   fontSize: '0.875rem',
 });
@@ -52,7 +52,7 @@ export const removeButton = style({
   width: '18px',
   height: '18px',
   border: 'none',
-  background: vars.colors.semantic.error['500'],
+  background: vars.colors.danger,
   color: 'white',
   borderRadius: '50%',
   cursor: 'pointer',
@@ -60,11 +60,11 @@ export const removeButton = style({
   transition: 'all 0.15s ease',
   selectors: {
     '&:hover': {
-      background: vars.colors.semantic.error['600'],
+      background: vars.colors.dangerHover,
       transform: 'scale(1.1)',
     },
     '&:focus': {
-      outline: `2px solid ${vars.colors.semantic.error['200']}`,
+      outline: `2px solid ${vars.colors.dangerBorderSubtle}`,
       outlineOffset: '2px',
     },
   },
@@ -77,7 +77,7 @@ export const attachButton = style({
   width: '44px',
   height: '44px',
   border: 'none',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   borderRadius: '50%',
   cursor: 'pointer',
   transition: 'all 0.2s ease',
@@ -86,12 +86,12 @@ export const attachButton = style({
   position: 'relative',
   selectors: {
     '&:hover': {
-      background: vars.colors.primary['100'],
-      color: vars.colors.primary['500'],
+      background: vars.colors.primaryBgSubtle,
+      color: vars.colors.primary,
       transform: 'scale(1.05)',
     },
     '&:focus-within': {
-      outline: `2px solid ${vars.colors.primary['500']}`,
+      outline: `2px solid ${vars.colors.primary}`,
       outlineOffset: '2px',
     },
   },
@@ -119,7 +119,7 @@ export const sendButton = style({
   justifyContent: 'center',
   transition: 'all 0.2s ease',
   border: 'none',
-  background: vars.colors.primary['500'],
+  background: vars.colors.primary,
   color: 'white',
   boxShadow: '0 2px 4px rgba(0, 0, 0, 0.15)',
   cursor: 'pointer',
@@ -173,7 +173,7 @@ globalStyle(`${messageTextAreaWrapper} textarea`, {
   padding: '0.75rem 1rem',
   fontSize: '0.95rem',
   lineHeight: '1.4',
-  background: vars.background.secondary,
+  background: vars.background.surface,
   border: 'none',
   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
   transition: 'all 0.2s ease',
@@ -184,7 +184,7 @@ globalStyle(`${messageTextAreaWrapper} textarea`, {
 
 globalStyle(`${messageTextAreaWrapper} textarea:focus`, {
   outline: 'none',
-  background: vars.background.primary,
+  background: vars.background.body,
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
   transform: 'translateY(-1px)',
 });
