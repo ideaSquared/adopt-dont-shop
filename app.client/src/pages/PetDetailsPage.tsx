@@ -424,7 +424,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                 alt={pet.name}
                 onError={e => {
                   e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.setAttribute('style', 'display: flex');
+                  const fallback = e.currentTarget.nextElementSibling;
+                  if (fallback instanceof HTMLElement) {
+                    fallback.style.display = 'flex';
+                  }
                 }}
               />
             ) : null}

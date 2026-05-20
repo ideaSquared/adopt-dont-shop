@@ -136,7 +136,11 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"], // Required for styled-components runtime style injection; remove when migrating to CSS modules
+        // ADS-594: styled-components is no longer used and React's `style={{}}`
+        // prop applies styles via CSSOM (not the parsed `style=""` attribute),
+        // so no `'unsafe-inline'` is required for style-src. Google Fonts is
+        // whitelisted explicitly because the frontend pulls it via <link>.
+        styleSrc: ["'self'", 'https://fonts.googleapis.com'],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: [
@@ -147,7 +151,7 @@ app.use(
           (process.env.API_URL ?? 'ws://localhost:5000').replace(/^https?/, 'ws'),
           (process.env.API_URL ?? 'wss://localhost:5000').replace(/^https?/, 'wss'),
         ],
-        fontSrc: ["'self'", 'https:', 'data:'],
+        fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
         objectSrc: ["'none'"], // Disallow plugins
         mediaSrc: ["'self'"],
         frameSrc: ["'none'"], // Prevent clickjacking via iframes

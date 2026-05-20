@@ -35,11 +35,11 @@ describe('Security Headers', () => {
         contentSecurityPolicy: {
           directives: {
             defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", 'https://fonts.googleapis.com'],
             scriptSrc: ["'self'"],
             imgSrc: ["'self'", 'data:', 'https:'],
             connectSrc: ["'self'", 'ws:', 'wss:'],
-            fontSrc: ["'self'", 'https:', 'data:'],
+            fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
             objectSrc: ["'none'"],
             mediaSrc: ["'self'"],
             frameSrc: ["'none'"],
@@ -201,6 +201,43 @@ describe('Security Headers', () => {
 
       expect(csp).toContain('data:');
       expect(csp).toContain('https:');
+    });
+
+    // ADS-594: lock in the script-src tightening so the unsafes can't silently
+    // come back.
+    it("should not allow 'unsafe-eval' in script-src", async () => {
+      const response = await request(app).get('/test');
+      const csp = response.headers['content-security-policy'];
+
+      const scriptSrc = csp?.split(';').find((d: string) => d.trim().startsWith('script-src'));
+      expect(scriptSrc).toBeDefined();
+      expect(scriptSrc).not.toContain("'unsafe-eval'");
+    });
+
+    it("should not allow 'unsafe-inline' in script-src", async () => {
+      const response = await request(app).get('/test');
+      const csp = response.headers['content-security-policy'];
+
+      const scriptSrc = csp?.split(';').find((d: string) => d.trim().startsWith('script-src'));
+      expect(scriptSrc).toBeDefined();
+      expect(scriptSrc).not.toContain("'unsafe-inline'");
+    });
+
+    it("should not allow 'unsafe-inline' in style-src", async () => {
+      const response = await request(app).get('/test');
+      const csp = response.headers['content-security-policy'];
+
+      const styleSrc = csp?.split(';').find((d: string) => d.trim().startsWith('style-src'));
+      expect(styleSrc).toBeDefined();
+      expect(styleSrc).not.toContain("'unsafe-inline'");
+    });
+
+    it('should whitelist Google Fonts hosts explicitly', async () => {
+      const response = await request(app).get('/test');
+      const csp = response.headers['content-security-policy'];
+
+      expect(csp).toContain('https://fonts.googleapis.com');
+      expect(csp).toContain('https://fonts.gstatic.com');
     });
   });
 
