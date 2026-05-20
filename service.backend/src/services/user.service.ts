@@ -23,6 +23,7 @@ import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { redactSensitiveFields } from '../utils/redact';
+import RefreshToken from '../models/RefreshToken';
 import { invalidateAuthCache } from '../lib/auth-cache';
 
 const USER_SORT_FIELDS = [
@@ -1376,8 +1377,23 @@ export class UserService {
       // Remove from chats
       await ChatParticipant.destroy({ where: { participant_id: userId } });
 
+      // Revoke all active sessions before destroying the account
+      const revokedCount = await RefreshToken.update(
+        { is_revoked: true },
+        { where: { user_id: userId, is_revoked: false } }
+      );
+      invalidateAuthCache(userId);
+
       // Soft delete the user
       await user.destroy();
+
+      await AuditLogService.log({
+        action: 'REFRESH_TOKENS_REVOKED',
+        entity: 'User',
+        entityId: userId,
+        details: { reason: 'account_deleted', count: revokedCount[0] },
+        userId,
+      });
 
       await AuditLogService.log({
         action: 'DELETE',

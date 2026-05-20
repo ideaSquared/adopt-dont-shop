@@ -43,6 +43,11 @@ const MockedSpeakeasy = speakeasy as vi.MockedObject<typeof speakeasy>;
 vi.mock('../../models/RefreshToken');
 const MockedRefreshToken = RefreshToken as vi.MockedObject<typeof RefreshToken>;
 
+// Mock auth cache
+vi.mock('../../lib/auth-cache');
+import { invalidateAuthCache } from '../../lib/auth-cache';
+const MockedInvalidateAuthCache = invalidateAuthCache as vi.Mock;
+
 // Mock qrcode
 vi.mock('qrcode', () => ({
   default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,mockqrcode') },
@@ -732,6 +737,43 @@ describe('AuthService - Security Business Logic', () => {
 
       await expect(AuthService.disableTwoFactor('non-existent')).rejects.toThrow('User not found');
     });
+
+    it('revokes all active refresh tokens after disabling 2FA (ADS-589)', async () => {
+      // Given: User with 2FA enabled
+      const mockUser = createMockUser({
+        userId: mockUserId,
+        twoFactorEnabled: true,
+        twoFactorSecret: 'JBSWY3DPEHPK3PXP',
+        backupCodes: ['code1'],
+      });
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+
+      // When: 2FA is disabled
+      await AuthService.disableTwoFactor(mockUserId);
+
+      // Then: All active refresh tokens are revoked
+      expect(MockedRefreshToken.update).toHaveBeenCalledWith(
+        { is_revoked: true },
+        { where: { user_id: mockUserId, is_revoked: false } }
+      );
+    });
+
+    it('invalidates auth cache after disabling 2FA (ADS-589)', async () => {
+      // Given: User with 2FA enabled
+      const mockUser = createMockUser({
+        userId: mockUserId,
+        twoFactorEnabled: true,
+        twoFactorSecret: 'JBSWY3DPEHPK3PXP',
+        backupCodes: ['code1'],
+      });
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+
+      // When: 2FA is disabled
+      await AuthService.disableTwoFactor(mockUserId);
+
+      // Then: Auth cache is invalidated
+      expect(MockedInvalidateAuthCache).toHaveBeenCalledWith(mockUserId);
+    });
   });
 
   // ==========================================================================
@@ -1108,6 +1150,49 @@ describe('AuthService - Security Business Logic', () => {
       expect(mockUser.resetToken).toBeNull();
       expect(mockUser.resetTokenExpiration).toBeNull();
       expect(mockUser.resetTokenForceFlag).toBe(false);
+    });
+
+    it('revokes all active refresh tokens after password reset (ADS-589)', async () => {
+      // Given: User with valid reset token
+      const futureDate = new Date(Date.now() + 30 * 60 * 1000);
+      const mockUser = createMockUser({
+        userId: mockUserId,
+        resetToken: 'valid-token',
+        resetTokenExpiration: futureDate,
+      });
+      MockedUser.findOne = vi.fn().mockResolvedValue(mockUser);
+
+      // When: Password reset completes
+      await new AuthService().confirmPasswordReset({
+        token: 'valid-token',
+        newPassword: 'NewPassword123!',
+      });
+
+      // Then: All active refresh tokens are revoked
+      expect(MockedRefreshToken.update).toHaveBeenCalledWith(
+        { is_revoked: true },
+        { where: { user_id: mockUserId, is_revoked: false } }
+      );
+    });
+
+    it('invalidates auth cache after password reset (ADS-589)', async () => {
+      // Given: User with valid reset token
+      const futureDate = new Date(Date.now() + 30 * 60 * 1000);
+      const mockUser = createMockUser({
+        userId: mockUserId,
+        resetToken: 'valid-token',
+        resetTokenExpiration: futureDate,
+      });
+      MockedUser.findOne = vi.fn().mockResolvedValue(mockUser);
+
+      // When: Password reset completes
+      await new AuthService().confirmPasswordReset({
+        token: 'valid-token',
+        newPassword: 'NewPassword123!',
+      });
+
+      // Then: Auth cache is invalidated so cached sessions don't persist
+      expect(MockedInvalidateAuthCache).toHaveBeenCalledWith(mockUserId);
     });
   });
 

@@ -617,6 +617,13 @@ Need help? Contact us at support@adoptdontshop.com
       user.resetTokenForceFlag = false;
 
       await user.save();
+
+      const revokedCount = await RefreshToken.update(
+        { is_revoked: true },
+        { where: { user_id: user.userId, is_revoked: false } }
+      );
+      invalidateAuthCache(user.userId);
+
       logger.info('Password reset completed', { userId: user.userId });
 
       // ADS-597: a password reset invalidates the user's sessions on
@@ -631,6 +638,14 @@ Need help? Contact us at support@adoptdontshop.com
         entity: 'User',
         entityId: user.userId,
         details: { email: user.email },
+        userId: user.userId,
+      });
+
+      await AuditLogService.log({
+        action: 'REFRESH_TOKENS_REVOKED',
+        entity: 'User',
+        entityId: user.userId,
+        details: { reason: 'password_reset', count: revokedCount[0] },
         userId: user.userId,
       });
 
@@ -1144,6 +1159,15 @@ Need help? Contact us at support@adoptdontshop.com
     user.backupCodes = null;
     await user.save();
 
+    // ADS-589: a 2FA disable downgrades the account's security posture
+    // — revoke every active refresh token so any session that
+    // pre-dates the disable can't continue to refresh.
+    const revokedCount = await RefreshToken.update(
+      { is_revoked: true },
+      { where: { user_id: userId, is_revoked: false } }
+    );
+    invalidateAuthCache(userId);
+
     // ADS-597: a 2FA disable is a security-state change; force live
     // sockets to reconnect so they pick up the new state.
     disconnectAllSockets(user.userId);
@@ -1154,6 +1178,14 @@ Need help? Contact us at support@adoptdontshop.com
       entity: 'User',
       entityId: user.userId,
       details: { email: user.email },
+    });
+
+    await AuditLogService.log({
+      userId,
+      action: 'REFRESH_TOKENS_REVOKED',
+      entity: 'User',
+      entityId: userId,
+      details: { reason: '2fa_disabled', count: revokedCount[0] },
     });
 
     loggerHelpers.logSecurity('2FA disabled', { userId: user.userId });
