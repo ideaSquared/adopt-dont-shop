@@ -403,6 +403,16 @@ export class FileUploadService {
       }
     };
 
+    let validatedFilePath: string;
+    try {
+      validatedFilePath = this.safeResolveUploadPath(file.path);
+    } catch (error) {
+      await deleteFile();
+      throw new Error(
+        `Invalid upload path: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
     // Check file size
     if (file.size > UPLOAD_CONFIG.maxFileSize) {
       await deleteFile();
@@ -434,7 +444,7 @@ export class FileUploadService {
     }
 
     // Scan for malware
-    const isSafe = await this.scanForMalware(file.path);
+    const isSafe = await this.scanForMalware(validatedFilePath);
     if (!isSafe) {
       await deleteFile();
       throw new Error('File failed malware scan and has been removed');

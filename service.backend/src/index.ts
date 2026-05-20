@@ -18,6 +18,7 @@ import { apiLimiter } from './middleware/rate-limiter';
 import { requestContextMiddleware } from './middleware/request-context';
 import { verifyEmailDeliveryWebhook } from './middleware/webhook-signature';
 import sequelize from './sequelize';
+import { initializeAvProvider } from './services/av-providers';
 import { initializeMessageBroker } from './services/messageBroker.service';
 import { SocketHandlers } from './socket/socket-handlers';
 import { logger } from './utils/logger';
@@ -516,6 +517,12 @@ const startServer = async () => {
     // Initialize message broker for scaling
     await initializeMessageBroker();
     logger.info('Message broker initialized');
+
+    // ADS-602: verify the configured AV provider is actually reachable.
+    // For ClamAV this is a PING/PONG round-trip. We fail boot here so a
+    // misconfigured daemon doesn't silently reject 100% of uploads at
+    // request time. Noop is a no-op.
+    await initializeAvProvider();
 
     // Initialize Socket.IO handlers
     new SocketHandlers(io);
