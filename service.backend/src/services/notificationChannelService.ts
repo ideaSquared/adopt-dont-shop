@@ -11,6 +11,22 @@ interface NotificationData {
   [key: string]: string | number | boolean | null;
 }
 
+/**
+ * Escape HTML special characters so user-supplied notification text cannot
+ * inject markup (links, scripts, inline event handlers) when interpolated
+ * into an email's HTML body. Matches the standard OWASP HTML-context escape
+ * set: &, <, >, ", ', /.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;');
+}
+
 export interface ChannelDeliveryResult {
   channel: 'email' | 'push' | 'sms';
   success: boolean;
@@ -275,7 +291,7 @@ export class NotificationChannelService {
         toEmail: user.email,
         toName: userName,
         subject: notification.title,
-        htmlContent: `<p>${notification.message}</p>`,
+        htmlContent: `<p>${escapeHtml(notification.message)}</p>`,
         textContent: notification.message,
         type: 'notification',
         userId: notification.userId,
