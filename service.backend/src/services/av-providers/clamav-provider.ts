@@ -9,6 +9,11 @@ export type ClamAvConfig = {
   host?: string;
   port?: number;
   timeoutMs?: number;
+  // Absolute directories that scan targets must live inside. The factory
+  // populates this with the configured upload root; tests pass their tmp
+  // dir. The provider rejects any path that resolves outside this list,
+  // which is also the CodeQL-recognised sanitiser for the fs reads below.
+  allowedRoots: readonly string[];
 };
 
 // ClamAV INSTREAM chunk size. 64 KiB is well under the daemon's default
@@ -41,12 +46,15 @@ export class ClamAvProvider extends BaseAvProvider {
       return { clean: false, details: 'ClamAV provider misconfigured: host/port missing' };
     }
 
-    // Canonicalize and validate the scan target before opening a stream.
-    // path.resolve collapses any `..` traversal sequences and produces an
-    // absolute path; fs.statSync rejects directories, devices, and broken
-    // symlinks. Together they keep clamd from being asked to read an
-    // unintended file if a malformed path ever reaches the provider.
+    // Canonicalise and confirm the scan target sits inside an allowed
+    // root before any fs read. path.resolve collapses `..` traversal;
+    // the allowlist check rejects anything outside the configured upload
+    // directory (and is the sanitiser CodeQL recognises for the fs reads
+    // below).
     const resolvedPath = path.resolve(filePath);
+    if (!isWithinAllowedRoot(resolvedPath, this.config.allowedRoots)) {
+      return { clean: false, details: 'ClamAV scan target is outside the allowed upload roots' };
+    }
     try {
       const stats = fs.statSync(resolvedPath);
       if (!stats.isFile()) {
@@ -190,6 +198,19 @@ export class ClamAvProvider extends BaseAvProvider {
       });
     });
   }
+}
+
+function isWithinAllowedRoot(resolvedPath: string, allowedRoots: readonly string[]): boolean {
+  if (allowedRoots.length === 0) {
+    return false;
+  }
+  return allowedRoots.some(root => {
+    const resolvedRoot = path.resolve(root);
+    if (resolvedPath === resolvedRoot) {
+      return true;
+    }
+    return resolvedPath.startsWith(resolvedRoot + path.sep);
+  });
 }
 
 /**

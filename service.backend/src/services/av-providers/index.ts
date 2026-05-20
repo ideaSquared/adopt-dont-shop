@@ -1,3 +1,5 @@
+import * as path from 'path';
+
 import { config } from '../../config';
 import { logger, loggerHelpers } from '../../utils/logger';
 import { AvProvider } from './base-provider';
@@ -41,6 +43,7 @@ export function getAvProvider(): AvProvider {
         host: config.av.clamav.host,
         port: config.av.clamav.port,
         timeoutMs: config.av.clamav.timeoutMs,
+        allowedRoots: [path.resolve(config.storage.local.directory)],
       });
       if (!provider.validateConfiguration()) {
         throw new Error('ClamAV provider misconfigured: CLAMAV_HOST and CLAMAV_PORT are required');

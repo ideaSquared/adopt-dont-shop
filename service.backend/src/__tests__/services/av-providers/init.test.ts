@@ -30,6 +30,7 @@ const setupModuleWith = async (configOverrides: {
           timeoutMs: configOverrides.timeoutMs ?? 500,
         },
       },
+      storage: { local: { directory: 'uploads' } },
     },
   }));
   const mod = await import('../../../services/av-providers');

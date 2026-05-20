@@ -185,7 +185,11 @@ describe('ClamAvProvider against a clamd-compatible mock', () => {
     daemon = await startMockDaemon();
     const file = writeTempFile(EICAR);
     tempFiles.push(file);
-    const provider = new ClamAvProvider({ host: '127.0.0.1', port: daemon.port });
+    const provider = new ClamAvProvider({
+      allowedRoots: [os.tmpdir()],
+      host: '127.0.0.1',
+      port: daemon.port,
+    });
 
     const result = await provider.scan(file);
 
@@ -197,7 +201,11 @@ describe('ClamAvProvider against a clamd-compatible mock', () => {
     daemon = await startMockDaemon();
     const file = writeTempFile('hello, world\n'.repeat(50));
     tempFiles.push(file);
-    const provider = new ClamAvProvider({ host: '127.0.0.1', port: daemon.port });
+    const provider = new ClamAvProvider({
+      allowedRoots: [os.tmpdir()],
+      host: '127.0.0.1',
+      port: daemon.port,
+    });
 
     const result = await provider.scan(file);
 
@@ -206,25 +214,33 @@ describe('ClamAvProvider against a clamd-compatible mock', () => {
 
   it('PINGs successfully when the daemon answers PONG', async () => {
     daemon = await startMockDaemon();
-    const provider = new ClamAvProvider({ host: '127.0.0.1', port: daemon.port });
+    const provider = new ClamAvProvider({
+      allowedRoots: [os.tmpdir()],
+      host: '127.0.0.1',
+      port: daemon.port,
+    });
 
     await expect(provider.ping()).resolves.toBeUndefined();
   });
 
   it('ping rejects when the daemon hangs up immediately', async () => {
     daemon = await startMockDaemon({ rejectImmediately: true });
-    const provider = new ClamAvProvider({ host: '127.0.0.1', port: daemon.port });
+    const provider = new ClamAvProvider({
+      allowedRoots: [os.tmpdir()],
+      host: '127.0.0.1',
+      port: daemon.port,
+    });
 
     await expect(provider.ping()).rejects.toThrow();
   });
 
   it('ping rejects when no host/port is configured', async () => {
-    const provider = new ClamAvProvider({});
+    const provider = new ClamAvProvider({ allowedRoots: [os.tmpdir()] });
     await expect(provider.ping()).rejects.toThrow(/misconfigured/);
   });
 
   it('scan returns a fail-closed error when no host/port is configured', async () => {
-    const provider = new ClamAvProvider({});
+    const provider = new ClamAvProvider({ allowedRoots: [os.tmpdir()] });
     const result = await provider.scan('/tmp/whatever');
     expect(result.clean).toBe(false);
     expect(result.details).toMatch(/misconfigured/);
@@ -236,7 +252,7 @@ describe('ClamAvProvider against a clamd-compatible mock', () => {
     const port = ephemeral.port;
     await ephemeral.close();
     daemon = null;
-    const provider = new ClamAvProvider({ host: '127.0.0.1', port });
+    const provider = new ClamAvProvider({ allowedRoots: [os.tmpdir()], host: '127.0.0.1', port });
 
     const file = writeTempFile('ok');
     tempFiles.push(file);
@@ -250,6 +266,7 @@ describe('ClamAvProvider against a clamd-compatible mock', () => {
   it('scan times out when the daemon never replies', async () => {
     daemon = await startMockDaemon({ blackhole: true });
     const provider = new ClamAvProvider({
+      allowedRoots: [os.tmpdir()],
       host: '127.0.0.1',
       port: daemon.port,
       timeoutMs: 100,
@@ -264,15 +281,23 @@ describe('ClamAvProvider against a clamd-compatible mock', () => {
   });
 
   it('reports its name as clamav and validates configuration', () => {
-    const provider = new ClamAvProvider({ host: '127.0.0.1', port: 3310 });
+    const provider = new ClamAvProvider({
+      allowedRoots: [os.tmpdir()],
+      host: '127.0.0.1',
+      port: 3310,
+    });
     expect(provider.getName()).toBe('clamav');
     expect(provider.validateConfiguration()).toBe(true);
-    expect(new ClamAvProvider({}).validateConfiguration()).toBe(false);
+    expect(new ClamAvProvider({ allowedRoots: [os.tmpdir()] }).validateConfiguration()).toBe(false);
   });
 
   it('scan rejects a path that points to a directory', async () => {
     daemon = await startMockDaemon();
-    const provider = new ClamAvProvider({ host: '127.0.0.1', port: daemon.port });
+    const provider = new ClamAvProvider({
+      allowedRoots: [os.tmpdir()],
+      host: '127.0.0.1',
+      port: daemon.port,
+    });
 
     const result = await provider.scan(os.tmpdir());
 
@@ -281,7 +306,11 @@ describe('ClamAvProvider against a clamd-compatible mock', () => {
   });
 
   it('scan rejects a non-existent path before opening any socket', async () => {
-    const provider = new ClamAvProvider({ host: '127.0.0.1', port: 65535 });
+    const provider = new ClamAvProvider({
+      allowedRoots: [os.tmpdir()],
+      host: '127.0.0.1',
+      port: 65535,
+    });
 
     const result = await provider.scan(
       path.join(os.tmpdir(), `clamav-missing-${Date.now()}-${Math.random()}`)
