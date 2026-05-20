@@ -73,7 +73,10 @@ describe('S3StorageProvider', () => {
 
     it('returns false when secretAccessKey is missing', () => {
       expect(
-        new S3StorageProvider({ ...validConfig, secretAccessKey: undefined }).validateConfiguration()
+        new S3StorageProvider({
+          ...validConfig,
+          secretAccessKey: undefined,
+        }).validateConfiguration()
       ).toBe(false);
     });
   });

@@ -110,9 +110,9 @@ export class S3StorageProvider implements StorageProvider {
   validateConfiguration(): boolean {
     return Boolean(
       this.config.bucket &&
-        this.config.region &&
-        this.config.accessKeyId &&
-        this.config.secretAccessKey
+      this.config.region &&
+      this.config.accessKeyId &&
+      this.config.secretAccessKey
     );
   }
 

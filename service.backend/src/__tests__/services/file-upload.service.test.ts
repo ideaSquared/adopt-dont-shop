@@ -600,7 +600,9 @@ describe('FileUploadService', () => {
     });
 
     afterEach(() => {
-      vi.mocked(getStorageProvider).mockReturnValue({ getName: () => 'local' } as ReturnType<typeof getStorageProvider>);
+      vi.mocked(getStorageProvider).mockReturnValue({ getName: () => 'local' } as ReturnType<
+        typeof getStorageProvider
+      >);
     });
 
     describe('upload', () => {
@@ -667,10 +669,16 @@ describe('FileUploadService', () => {
 
     describe('delete', () => {
       it('delegates deletion to the S3 provider using the stored file path as key', async () => {
-        const mockRecord = makeMockRecord({ file_path: 'pets/photo_123.jpg', uploaded_by: 'user-456' });
+        const mockRecord = makeMockRecord({
+          file_path: 'pets/photo_123.jpg',
+          uploaded_by: 'user-456',
+        });
         vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
 
-        await FileUploadService.deleteFile('upload-abc-123', { id: 'user-456', type: UserType.ADOPTER });
+        await FileUploadService.deleteFile('upload-abc-123', {
+          id: 'user-456',
+          type: UserType.ADOPTER,
+        });
 
         expect(s3ProviderDeleteFile).toHaveBeenCalledWith('photo_123.jpg', 'pets');
         expect(vi.mocked(fs.promises.unlink)).not.toHaveBeenCalled();
@@ -680,7 +688,10 @@ describe('FileUploadService', () => {
         const mockRecord = makeMockRecord({ file_path: 'orphan.jpg', uploaded_by: 'user-456' });
         vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
 
-        await FileUploadService.deleteFile('upload-abc-123', { id: 'user-456', type: UserType.ADOPTER });
+        await FileUploadService.deleteFile('upload-abc-123', {
+          id: 'user-456',
+          type: UserType.ADOPTER,
+        });
 
         expect(s3ProviderDeleteFile).toHaveBeenCalledWith('orphan.jpg', 'documents');
       });
