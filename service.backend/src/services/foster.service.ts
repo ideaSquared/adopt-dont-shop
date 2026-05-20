@@ -74,6 +74,9 @@ class FosterService {
         { transaction: t }
       );
 
+      pet.status = PetStatus.FOSTER;
+      await pet.save({ transaction: t });
+
       return placement.get({ plain: true });
     });
   }
@@ -120,6 +123,9 @@ class FosterService {
           },
           { transaction: t }
         );
+
+        pet.status = nextStatus;
+        await pet.save({ transaction: t });
       }
 
       return placement.get({ plain: true });
