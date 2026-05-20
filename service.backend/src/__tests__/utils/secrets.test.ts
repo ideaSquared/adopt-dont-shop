@@ -1,3 +1,6 @@
+import { beforeAll, vi, describe, it, expect } from 'vitest';
+import bcrypt from 'bcryptjs';
+
 import {
   decryptSecret,
   encryptSecret,
@@ -5,6 +8,18 @@ import {
   hashToken,
   verifyBackupCode,
 } from '../../utils/secrets';
+
+// ADS-619: secrets.ts now uses `bcryptjs` (previously the native `bcrypt`).
+// setup-tests.ts globally mocks bcryptjs to return constants for speed in the
+// auth-service suites. These backup-code tests rely on real salted hashes and
+// real verify behaviour. setupFiles mocks can't be undone with vi.unmock, so
+// we splice the real bcryptjs methods onto the mocked module for this suite.
+beforeAll(async () => {
+  const real = await vi.importActual<typeof import('bcryptjs')>('bcryptjs');
+  bcrypt.hash = real.hash;
+  bcrypt.compare = real.compare;
+  bcrypt.genSalt = real.genSalt;
+});
 
 describe('secrets util', () => {
   describe('hashToken', () => {
