@@ -48,3 +48,6 @@ docker-compose.yml
 
 # Markdown files (optional)
 *.md
+
+# Scaffolding templates — contain {{PLACEHOLDER}} tokens that prettier can't parse
+scripts/templates/

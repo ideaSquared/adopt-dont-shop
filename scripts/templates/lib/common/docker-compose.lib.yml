@@ -1,0 +1,30 @@
+# Docker Compose for lib.{{LIB_NAME}} standalone development
+services:
+  lib-{{LIB_NAME}}:
+    build:
+      context: ./lib.{{LIB_NAME}}
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./lib.{{LIB_NAME}}:/app
+      - /app/node_modules
+      - lib_{{LIB_NAME_UNDERSCORE}}_dist:/app/dist
+    environment:
+      NODE_ENV: development
+    command: npm run dev
+
+  # Test service for the library
+  lib-{{LIB_NAME}}-test:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./lib.{{LIB_NAME}}:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: test
+    command: npm test
+    depends_on:
+      - lib-{{LIB_NAME}}
+
+volumes:
+  lib_{{LIB_NAME_UNDERSCORE}}_dist:
