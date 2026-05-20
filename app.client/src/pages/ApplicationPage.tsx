@@ -296,6 +296,13 @@ export const ApplicationPage: React.FC = () => {
     setCurrentStep(prev => Math.max(1, prev - 1));
   }, []);
 
+  // Without this, moving between steps leaves the user mid-page on the
+  // bottom of the previous form. Scroll back to the top so the new step's
+  // heading is the first thing in view.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
   const handleSubmit = async () => {
     if (!pet) {
       return;

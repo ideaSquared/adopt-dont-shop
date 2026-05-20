@@ -157,9 +157,11 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
             {galleryImages.map((_, index) => (
               <button
                 key={index}
+                type='button'
                 className={clsx(dot({ active: index === currentImageIndex }))}
                 onClick={() => setCurrentImageIndex(index)}
-                aria-label={`dot ${index + 1}`}
+                aria-label={`View image ${index + 1} of ${galleryImages.length}`}
+                aria-current={index === currentImageIndex ? 'true' : undefined}
               />
             ))}
           </div>

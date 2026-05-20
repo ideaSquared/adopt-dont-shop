@@ -590,13 +590,13 @@ const Users: React.FC = () => {
         isOpen={bulkAction !== null}
         onClose={handleBulkModalClose}
         onConfirm={handleBulkConfirm}
-        title={
-          bulkAction === 'delete'
-            ? 'Delete Users'
-            : bulkAction === 'activate'
-              ? 'Activate Users'
-              : 'Deactivate Users'
-        }
+        title={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} user${count !== 1 ? 's' : ''}`;
+          if (bulkAction === 'delete') return `Delete ${noun}?`;
+          if (bulkAction === 'activate') return `Activate ${noun}?`;
+          return `Deactivate ${noun}?`;
+        })()}
         description={
           bulkAction === 'delete'
             ? 'This will permanently delete the selected users. This action cannot be undone.'

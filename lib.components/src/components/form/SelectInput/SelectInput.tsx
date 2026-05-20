@@ -256,6 +256,7 @@ export const SelectInput = ({
                   <input
                     className={searchInput}
                     placeholder='Search options...'
+                    aria-label='Search options'
                     value={searchQuery}
                     onChange={handleSearchChange}
                     onClick={e => e.stopPropagation()}

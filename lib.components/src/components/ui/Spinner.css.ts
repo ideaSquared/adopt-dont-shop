@@ -24,6 +24,11 @@ export const spinner = recipe({
     borderRadius: '50%',
     borderStyle: 'solid',
     animation: `${spin} 0.75s linear infinite`,
+    '@media': {
+      '(prefers-reduced-motion: reduce)': {
+        animation: 'none',
+      },
+    },
   },
   variants: {
     size: {
@@ -74,6 +79,11 @@ export const dot = recipe({
     borderRadius: '50%',
     animation: `${pulse} 1.4s ease-in-out infinite both`,
     animationDelay: 'var(--dot-delay)',
+    '@media': {
+      '(prefers-reduced-motion: reduce)': {
+        animation: 'none',
+      },
+    },
   },
   variants: {
     size: {

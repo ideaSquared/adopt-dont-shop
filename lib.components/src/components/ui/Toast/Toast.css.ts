@@ -82,12 +82,30 @@ export const toastWrapper = recipe({
       },
     },
     position: {
-      'top-left': { animation: `${slideInLeft} 300ms ease-out` },
-      'top-center': { animation: `${slideInTop} 300ms ease-out` },
-      'top-right': { animation: `${slideInRight} 300ms ease-out` },
-      'bottom-left': { animation: `${slideInLeft} 300ms ease-out` },
-      'bottom-center': { animation: `${slideInBottom} 300ms ease-out` },
-      'bottom-right': { animation: `${slideInRight} 300ms ease-out` },
+      'top-left': {
+        animation: `${slideInLeft} 300ms ease-out`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
+      'top-center': {
+        animation: `${slideInTop} 300ms ease-out`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
+      'top-right': {
+        animation: `${slideInRight} 300ms ease-out`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
+      'bottom-left': {
+        animation: `${slideInLeft} 300ms ease-out`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
+      'bottom-center': {
+        animation: `${slideInBottom} 300ms ease-out`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
+      'bottom-right': {
+        animation: `${slideInRight} 300ms ease-out`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
     },
     exiting: {
       true: {},
@@ -97,27 +115,45 @@ export const toastWrapper = recipe({
   compoundVariants: [
     {
       variants: { position: 'top-left', exiting: true },
-      style: { animation: `${slideOutLeft} 200ms ease-in-out forwards` },
+      style: {
+        animation: `${slideOutLeft} 200ms ease-in-out forwards`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 } },
+      },
     },
     {
       variants: { position: 'bottom-left', exiting: true },
-      style: { animation: `${slideOutLeft} 200ms ease-in-out forwards` },
+      style: {
+        animation: `${slideOutLeft} 200ms ease-in-out forwards`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 } },
+      },
     },
     {
       variants: { position: 'top-right', exiting: true },
-      style: { animation: `${slideOutRight} 200ms ease-in-out forwards` },
+      style: {
+        animation: `${slideOutRight} 200ms ease-in-out forwards`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 } },
+      },
     },
     {
       variants: { position: 'bottom-right', exiting: true },
-      style: { animation: `${slideOutRight} 200ms ease-in-out forwards` },
+      style: {
+        animation: `${slideOutRight} 200ms ease-in-out forwards`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 } },
+      },
     },
     {
       variants: { position: 'top-center', exiting: true },
-      style: { animation: `${slideOutTop} 200ms ease-in-out forwards` },
+      style: {
+        animation: `${slideOutTop} 200ms ease-in-out forwards`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 } },
+      },
     },
     {
       variants: { position: 'bottom-center', exiting: true },
-      style: { animation: `${slideOutBottom} 200ms ease-in-out forwards` },
+      style: {
+        animation: `${slideOutBottom} 200ms ease-in-out forwards`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none', opacity: 0 } },
+      },
     },
   ],
   defaultVariants: { type: 'info', position: 'top-right', exiting: false },

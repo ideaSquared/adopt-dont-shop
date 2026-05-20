@@ -13,8 +13,13 @@ export const AppShell: React.FC = () => {
 
   return (
     <div className={styles.shell}>
-      <AppNavbar />
-      <main className={styles.main}>
+      <a href='#main-content' className={styles.skipLink}>
+        Skip to main content
+      </a>
+      <header>
+        <AppNavbar />
+      </header>
+      <main id='main-content' className={styles.main} tabIndex={-1}>
         <Outlet />
       </main>
       <SwipeFloatingButton />

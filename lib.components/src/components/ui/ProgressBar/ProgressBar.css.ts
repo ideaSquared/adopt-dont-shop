@@ -74,11 +74,18 @@ export const progressFill = recipe({
       false: {},
     },
     animated: {
-      true: { animation: `${pulseStripes} 2s infinite linear` },
+      true: {
+        animation: `${pulseStripes} 2s infinite linear`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
       false: {},
     },
     indeterminate: {
-      true: { width: '25%', animation: `${indeterminateSlide} 2s infinite linear` },
+      true: {
+        width: '25%',
+        animation: `${indeterminateSlide} 2s infinite linear`,
+        '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+      },
       false: {},
     },
   },
