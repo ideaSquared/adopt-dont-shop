@@ -52,6 +52,13 @@ uploads
 ### Turbo ###
 .turbo
 
+### Per-package lockfiles ###
+# Per-package lockfiles aren't authoritative in npm workspaces; only the
+# root package-lock.json is. Delete any that get accidentally created.
+/service.backend/package-lock.json
+/app.*/package-lock.json
+/lib.*/package-lock.json
+
 ### Docker ###
 docker-compose.override.yml
 

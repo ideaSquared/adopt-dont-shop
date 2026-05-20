@@ -27,6 +27,17 @@ jobs:
           actual=$(ls -d lib.* | sort)
           diff <(echo "$expected") <(echo "$actual") || (echo "Workspace drift!" && exit 1)
 
+      # ADS-618: Only the root package-lock.json is authoritative in an npm
+      # workspaces setup. Per-package lockfiles drift silently and confuse
+      # contributors — fail CI if any get committed.
+      - name: Verify no per-package lockfiles exist
+        run: |
+          if find lib.* app.* service.backend -maxdepth 2 -name package-lock.json | grep -q .; then
+            echo "Per-package lockfiles found — only the root package-lock.json is authoritative."
+            find lib.* app.* service.backend -maxdepth 2 -name package-lock.json
+            exit 1
+          fi
+
   # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================
