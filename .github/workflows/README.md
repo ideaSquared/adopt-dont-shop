@@ -2,6 +2,24 @@
 
 This directory contains GitHub Actions workflows for the Adopt Don't Shop platform, following industry-standard practices for modern web applications.
 
+## Workflow Files
+
+| File                       | Purpose                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `ci.yml`                   | Main CI pipeline: workspace drift, change detection, backend / frontend / library tests, Playwright E2E. |
+| `quality.yml`              | Code quality, formatting, type checking, dependency health.                                             |
+| `security.yml`             | Dependency audit and weekly security scans.                                                             |
+| `codeql.yml`               | GitHub CodeQL static analysis for JavaScript / TypeScript (ADS-498).                                    |
+| `docker.yml`               | Builds backend and per-app Docker images, then tests the docker-compose stack.                          |
+| `lib-test-guard.yml`       | Fails when any `lib.*` package has zero test files (ADS-186 / ADS-328 safety net).                      |
+| `schema-equivalence.yml`   | Bootstraps DB-A (migrate) and DB-B (sync), diffs normalised `pg_dump` to detect schema drift.            |
+| `deploy.yml`               | Manual deploy to staging or production via GHCR + SSH.                                                  |
+| `rollback.yml`             | Manual rollback to a previously published GHCR image SHA.                                               |
+| `release.yml`              | Creates GitHub releases on tags and pushes images on successful CI runs to `main`.                      |
+| `storybook.yml`            | Builds and deploys `lib.components` Storybook to GitHub Pages.                                          |
+| `labeler.yml`              | Auto-labels pull requests using `.github/labeler.yml` rules.                                            |
+| `sync-labels.yml`          | Syncs `.github/labels.yml` to the repository's label set on changes to `main`.                          |
+
 ## Workflow Overview
 
 ### 🔄 **CI Workflow** (`ci.yml`)
@@ -131,9 +149,15 @@ Recommended branch protection rules for `main`:
 - ✅ Require status checks to pass before merging
 - ✅ Require branches to be up to date before merging
 - ✅ Required status checks (names taken directly from the workflow files):
+  - `Verify Workspace ↔ Filesystem Alignment` (from `ci.yml`)
   - `Detect Changes` (from `ci.yml`)
   - `Backend Tests` (from `ci.yml`, gated by path filter)
-  - `Frontend App Tests (Vitest)` (from `ci.yml`, gated by path filter)
+  - `Frontend Tests (app.client)` (from `ci.yml`, gated by path filter)
+  - `Frontend Tests (app.admin)` (from `ci.yml`, gated by path filter)
+  - `Frontend Tests (app.rescue)` (from `ci.yml`, gated by path filter)
+  - `Library Tests` (from `ci.yml`, gated by path filter)
+  - `E2E Tests (Playwright)` (from `ci.yml`, ADS-419 blocking signal)
+  - `Verify every lib.* package has tests` (from `lib-test-guard.yml`)
 
 ---
 
