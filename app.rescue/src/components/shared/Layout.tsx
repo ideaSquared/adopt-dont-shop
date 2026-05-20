@@ -1,4 +1,5 @@
 import React from 'react';
+import { InstallPwaBanner } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import Navigation from './Navigation';
 import * as styles from './Layout.css';
@@ -22,6 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <ManageCookiesLink />
         </footer>
       </div>
+      <InstallPwaBanner appName="Rescue Portal" />
     </div>
   );
 };

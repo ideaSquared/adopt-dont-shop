@@ -146,3 +146,7 @@ export type { DrillDownModalProps } from './components/reports/DrillDownModal';
 // ADS-14: Shared image component
 export { ProgressiveImage } from './components/ui/ProgressiveImage';
 export type { ProgressiveImageProps } from './components/ui/ProgressiveImage';
+
+// PWA install prompt
+export { InstallPwaBanner } from './components/ui/InstallPwaBanner';
+export type { InstallPwaBannerProps } from './components/ui/InstallPwaBanner';

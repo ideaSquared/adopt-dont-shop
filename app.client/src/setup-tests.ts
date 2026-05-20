@@ -163,6 +163,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     ...props
   }: React.ComponentPropsWithoutRef<'footer'> & { extraLinks?: React.ReactNode }) =>
     React.createElement('footer', props, children, extraLinks),
+  InstallPwaBanner: () => null,
   TextInput: ({
     label,
     id,
