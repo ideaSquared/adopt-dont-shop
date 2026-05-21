@@ -21,6 +21,16 @@ import type SavedReport from '../models/SavedReport';
 
 type WidgetTitle = { id: string; title: string; chartType: string };
 
+const HTML_ESCAPE_MAP: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, ch => HTML_ESCAPE_MAP[ch]);
+
 const titlesFromReport = (report: SavedReport): WidgetTitle[] => {
   const config = report.config as {
     widgets?: Array<{ id: string; title: string; chartType: string }>;
@@ -120,7 +130,8 @@ export const ReportRenderer = {
           const headers = Object.keys(rows[0]);
           body = `<table style="border-collapse:collapse;width:100%"><thead><tr>${headers
             .map(
-              h => `<th style="text-align:left;border-bottom:1px solid #ccc;padding:4px">${h}</th>`
+              h =>
+                `<th style="text-align:left;border-bottom:1px solid #ccc;padding:4px">${escapeHtml(h)}</th>`
             )
             .join('')}</tr></thead><tbody>${rows
             .slice(0, 50)
@@ -129,7 +140,7 @@ export const ReportRenderer = {
                 `<tr>${headers
                   .map(
                     h =>
-                      `<td style="padding:4px;border-bottom:1px solid #eee">${String(row[h] ?? '')}</td>`
+                      `<td style="padding:4px;border-bottom:1px solid #eee">${escapeHtml(String(row[h] ?? ''))}</td>`
                   )
                   .join('')}</tr>`
             )
@@ -138,17 +149,17 @@ export const ReportRenderer = {
           body = `<dl>${Object.entries(data as Record<string, unknown>)
             .map(
               ([k, v]) =>
-                `<dt style="font-weight:bold">${k}</dt><dd>${
+                `<dt style="font-weight:bold">${escapeHtml(k)}</dt><dd>${escapeHtml(
                   typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')
-                }</dd>`
+                )}</dd>`
             )
             .join('')}</dl>`;
         } else {
-          body = `<p>${String(data ?? '')}</p>`;
+          body = `<p>${escapeHtml(String(data ?? ''))}</p>`;
         }
-        return `<section style="margin-bottom:24px"><h3>${title}</h3>${body}</section>`;
+        return `<section style="margin-bottom:24px"><h3>${escapeHtml(title)}</h3>${body}</section>`;
       })
       .join('');
-    return `<!doctype html><html><body style="font-family:system-ui,sans-serif"><h1>${report.name}</h1><p style="color:#666">Computed at: ${executed.computedAt}</p>${widgetHtml}</body></html>`;
+    return `<!doctype html><html><body style="font-family:system-ui,sans-serif"><h1>${escapeHtml(report.name)}</h1><p style="color:#666">Computed at: ${escapeHtml(executed.computedAt)}</p>${widgetHtml}</body></html>`;
   },
 };
