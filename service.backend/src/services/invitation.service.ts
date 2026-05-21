@@ -324,14 +324,20 @@ export class InvitationService {
    */
   static async cancelInvitation(
     invitationId: string,
+    rescueId: string,
     cancelledBy: string
   ): Promise<{ success: boolean; message: string }> {
     const transaction = await Invitation.sequelize!.transaction();
 
     try {
+      // Scope by rescue_id so platform admins (who bypass requireRescueTenant)
+      // can't cancel an invitation belonging to a different rescue by hitting
+      // the wrong URL. On mismatch we return the same NotFoundError as a
+      // genuinely-missing invitation to avoid leaking cross-tenant existence.
       const invitation = await Invitation.findOne({
         where: {
           invitation_id: invitationId,
+          rescue_id: rescueId,
           used: false,
           expiration: { [Op.gt]: new Date() },
         },

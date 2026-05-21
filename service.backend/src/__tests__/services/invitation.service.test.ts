@@ -585,7 +585,11 @@ describe('InvitationService', () => {
         const mockInvitation = buildInvitation();
         MockedInvitation.findOne = vi.fn().mockResolvedValue(mockInvitation);
 
-        const result = await InvitationService.cancelInvitation('inv-001', 'admin-user-id');
+        const result = await InvitationService.cancelInvitation(
+          'inv-001',
+          'rescue-001',
+          'admin-user-id'
+        );
 
         expect(result.success).toBe(true);
 
@@ -599,6 +603,22 @@ describe('InvitationService', () => {
         expect(mockTransaction.rollback).not.toHaveBeenCalled();
       });
 
+      it('should scope the lookup by rescue_id to prevent cross-tenant cancellation', async () => {
+        const mockInvitation = buildInvitation();
+        MockedInvitation.findOne = vi.fn().mockResolvedValue(mockInvitation);
+
+        await InvitationService.cancelInvitation('inv-001', 'rescue-001', 'admin-user-id');
+
+        const findArgs = (MockedInvitation.findOne as vi.Mock).mock.calls[0][0] as {
+          where: Record<string, unknown>;
+        };
+        expect(findArgs.where).toMatchObject({
+          invitation_id: 'inv-001',
+          rescue_id: 'rescue-001',
+          used: false,
+        });
+      });
+
       it('should cause getInvitationDetails to return null after cancellation', async () => {
         // After cancel sets expiry to now, getInvitationDetails (which filters by
         // expiration > now) should return null.
@@ -608,7 +628,7 @@ describe('InvitationService', () => {
           .mockResolvedValueOnce(mockInvitation) // cancelInvitation lookup
           .mockResolvedValueOnce(null); // getInvitationDetails lookup after cancel
 
-        await InvitationService.cancelInvitation('inv-001', 'admin-user-id');
+        await InvitationService.cancelInvitation('inv-001', 'rescue-001', 'admin-user-id');
         const details = await InvitationService.getInvitationDetails('valid-token');
 
         expect(details).toBeNull();
@@ -620,8 +640,33 @@ describe('InvitationService', () => {
         MockedInvitation.findOne = vi.fn().mockResolvedValue(null);
 
         await expect(
-          InvitationService.cancelInvitation('nonexistent-id', 'admin-user-id')
+          InvitationService.cancelInvitation('nonexistent-id', 'rescue-001', 'admin-user-id')
         ).rejects.toThrow('Invitation not found or already expired');
+
+        expect(mockTransaction.rollback).toHaveBeenCalledOnce();
+        expect(mockTransaction.commit).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('when the rescueId in the URL does not match the invitation', () => {
+      it('should throw the same NotFoundError without leaking cross-tenant existence', async () => {
+        // The invitation belongs to rescue-001, but a platform admin (who
+        // bypasses requireRescueTenant) hits the rescue-002 path. The DB
+        // lookup must not match — and the error message must not differ
+        // from a genuinely-missing invitation.
+        MockedInvitation.findOne = vi.fn().mockResolvedValue(null);
+
+        await expect(
+          InvitationService.cancelInvitation('inv-001', 'rescue-002', 'platform-admin-id')
+        ).rejects.toThrow('Invitation not found or already expired');
+
+        const findArgs = (MockedInvitation.findOne as vi.Mock).mock.calls[0][0] as {
+          where: Record<string, unknown>;
+        };
+        expect(findArgs.where).toMatchObject({
+          invitation_id: 'inv-001',
+          rescue_id: 'rescue-002',
+        });
 
         expect(mockTransaction.rollback).toHaveBeenCalledOnce();
         expect(mockTransaction.commit).not.toHaveBeenCalled();
