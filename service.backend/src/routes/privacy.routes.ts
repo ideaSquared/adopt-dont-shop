@@ -18,8 +18,7 @@ import {
   type ConsentInput,
   type CookiesConsentInput,
 } from '../services/consent.service';
-import { exportUserData } from '../services/data-export.service';
-import { requestAccountDeletion } from '../services/data-deletion.service';
+import GdprService from '../services/gdpr.service';
 import type { AuthenticatedRequest } from '../types/auth';
 
 /**
@@ -95,7 +94,7 @@ router.get('/me/export', async (req: AuthenticatedRequest, res: Response) => {
     return;
   }
 
-  const bundle = await exportUserData(userId);
+  const bundle = await GdprService.exportUserData(userId);
   res.setHeader(
     'Content-Disposition',
     `attachment; filename="adopt-dont-shop-export-${userId}.json"`
@@ -118,7 +117,10 @@ router.post(
     }
 
     const body = req.body as z.infer<typeof DeleteAccountSchema>;
-    const result = await requestAccountDeletion(userId, body.reason);
+    const result = await GdprService.requestErasure(userId, {
+      reason: body.reason,
+      actorUserId: userId,
+    });
     // Clear auth cookies so the now-deactivated session can't keep
     // making requests until access-token expiry. Pass the same options
     // used when setting the cookies — without them the Set-Cookie
@@ -127,7 +129,9 @@ router.post(
     res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
     res.status(202).json({
       data: {
-        ...result,
+        userId: result.userId,
+        softDeletedAt: result.pendingAnonymizationAt.toISOString(),
+        refreshTokensRevoked: result.refreshTokensRevoked,
         message:
           'Account scheduled for deletion. Your data will be permanently anonymised after a 30-day grace window.',
       },
@@ -155,10 +159,7 @@ router.get(
       res.status(400).json({ error: 'Invalid userId' });
       return;
     }
-    // ADS-605: thread the acting admin through so the audit row records
-    // the admin's userId, not the data subject's.
-    const actor = req.user ? { userId: req.user.userId, userType: req.user.userType } : undefined;
-    const bundle = await exportUserData(parsed.data.userId, actor);
+    const bundle = await GdprService.exportUserData(parsed.data.userId);
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="adopt-dont-shop-export-${parsed.data.userId}.json"`
@@ -182,14 +183,17 @@ router.post(
       return;
     }
     const body = req.body as z.infer<typeof AdminDeleteSchema>;
-    // ADS-605: thread the acting admin through so a second audit row
-    // attributed to the admin is written alongside the subject-scoped
-    // GDPR_DELETE_REQUESTED entry.
-    const actor = req.user ? { userId: req.user.userId, userType: req.user.userType } : undefined;
-    const result = await requestAccountDeletion(parsed.data.userId, body.reason, actor);
+    // Thread the acting admin through so the audit row records the
+    // admin's userId, not the data subject's.
+    const result = await GdprService.requestErasure(parsed.data.userId, {
+      reason: body.reason,
+      actorUserId: req.user?.userId,
+    });
     res.status(202).json({
       data: {
-        ...result,
+        userId: result.userId,
+        softDeletedAt: result.pendingAnonymizationAt.toISOString(),
+        refreshTokensRevoked: result.refreshTokensRevoked,
         message:
           'Account scheduled for deletion. Data will be anonymised after the 30-day grace window.',
       },

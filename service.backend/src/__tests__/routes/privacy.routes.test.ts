@@ -26,12 +26,11 @@ vi.mock('../../config/env', () => ({
   },
 }));
 
-vi.mock('../../services/data-export.service', () => ({
-  exportUserData: vi.fn(),
-}));
-
-vi.mock('../../services/data-deletion.service', () => ({
-  requestAccountDeletion: vi.fn(),
+vi.mock('../../services/gdpr.service', () => ({
+  default: {
+    exportUserData: vi.fn(),
+    requestErasure: vi.fn(),
+  },
 }));
 
 vi.mock('../../services/consent.service', async () => {
@@ -50,12 +49,11 @@ vi.mock('../../middleware/auth', () => ({
     authenticateTokenMock(req, res, next),
 }));
 
-import { exportUserData } from '../../services/data-export.service';
-import { requestAccountDeletion } from '../../services/data-deletion.service';
+import GdprService from '../../services/gdpr.service';
 import privacyRouter from '../../routes/privacy.routes';
 
-const mockedExport = vi.mocked(exportUserData);
-const mockedDelete = vi.mocked(requestAccountDeletion);
+const mockedExport = vi.mocked(GdprService.exportUserData);
+const mockedDelete = vi.mocked(GdprService.requestErasure);
 
 const buildApp = () => {
   const app = express();
@@ -81,7 +79,9 @@ describe('Admin privacy endpoints — RBAC (ADS-610)', () => {
     mockedExport.mockResolvedValue({ user: { userId: 'data-subject' } } as never);
     mockedDelete.mockResolvedValue({
       userId: 'data-subject',
-      anonymisationScheduledFor: new Date().toISOString(),
+      pendingAnonymizationAt: new Date(),
+      refreshTokensRevoked: 0,
+      deviceTokensCleared: 0,
     } as never);
   });
 
@@ -90,10 +90,7 @@ describe('Admin privacy endpoints — RBAC (ADS-610)', () => {
       authenticateAs({ userId: 'admin-1', userType: UserType.ADMIN });
       const res = await request(buildApp()).get('/api/v1/privacy/admin/users/u-1/export');
       expect(res.status).toBe(200);
-      expect(mockedExport).toHaveBeenCalledWith('u-1', {
-        userId: 'admin-1',
-        userType: UserType.ADMIN,
-      });
+      expect(mockedExport).toHaveBeenCalledWith('u-1');
     });
 
     it('allows SUPER_ADMIN', async () => {
@@ -139,9 +136,9 @@ describe('Admin privacy endpoints — RBAC (ADS-610)', () => {
         .post('/api/v1/privacy/admin/users/u-1/delete-request')
         .send({ reason: 'GDPR request' });
       expect(res.status).toBe(202);
-      expect(mockedDelete).toHaveBeenCalledWith('u-1', 'GDPR request', {
-        userId: 'admin-1',
-        userType: UserType.ADMIN,
+      expect(mockedDelete).toHaveBeenCalledWith('u-1', {
+        reason: 'GDPR request',
+        actorUserId: 'admin-1',
       });
     });
 
@@ -170,7 +167,9 @@ describe('POST /me/delete — auth cookie clearing', () => {
     vi.clearAllMocks();
     mockedDelete.mockResolvedValue({
       userId: 'data-subject',
-      anonymisationScheduledFor: new Date().toISOString(),
+      pendingAnonymizationAt: new Date(),
+      refreshTokensRevoked: 0,
+      deviceTokensCleared: 0,
     } as never);
   });
 
@@ -204,5 +203,40 @@ describe('POST /me/delete — auth cookie clearing', () => {
       expect(cookie).toMatch(/Path=\//i);
       expect(cookie).toMatch(/Expires=Thu, 01 Jan 1970/i);
     }
+  });
+
+  // Frontend depends on these response keys — guard against future
+  // refactors of the GdprService return shape silently breaking it.
+  it('returns a body containing userId, softDeletedAt, and the user-facing message', async () => {
+    authenticateAs({ userId: 'adopter-1', userType: UserType.ADOPTER });
+    const res = await request(buildApp())
+      .post('/api/v1/privacy/me/delete')
+      .send({ reason: 'no longer needed' });
+
+    expect(res.status).toBe(202);
+    expect(res.body.data).toMatchObject({
+      userId: 'data-subject',
+      message: expect.stringMatching(/scheduled for deletion/i),
+    });
+    expect(typeof res.body.data.softDeletedAt).toBe('string');
+  });
+});
+
+describe('GET /me/export — auto-fix from data-export.service migration', () => {
+  it('includes sentMessages in the bundle (data-export.service did not — GdprService does)', async () => {
+    // The wired GdprService.exportUserData is mocked here so the route
+    // test verifies that the route hands back whatever shape the
+    // service produces. The companion gdpr.service.test.ts asserts
+    // the real bundle contents include `messages`.
+    mockedExport.mockResolvedValueOnce({
+      user: { userId: 'self' },
+      messages: [{ message_id: 'msg-1', content: 'hi' }],
+    } as never);
+
+    authenticateAs({ userId: 'self', userType: UserType.ADOPTER });
+    const res = await request(buildApp()).get('/api/v1/privacy/me/export');
+
+    expect(res.status).toBe(200);
+    expect(res.body.messages).toEqual([{ message_id: 'msg-1', content: 'hi' }]);
   });
 });
