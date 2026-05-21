@@ -169,4 +169,109 @@ describe('ReportRenderer.renderInlineHtml', () => {
     expect(html).toContain('<!doctype html>');
     expect(html).toContain('</html>');
   });
+
+  describe('HTML escaping of user-controlled content', () => {
+    it('escapes script tags in the report name', () => {
+      const report = makeReport({ name: '<script>alert(1)</script>' });
+      const html = ReportRenderer.renderInlineHtml(report, makeExecuted());
+      expect(html).not.toContain('<script>alert(1)</script>');
+      expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    });
+
+    it('escapes script tags in widget titles', () => {
+      const report = makeReport({
+        config: {
+          widgets: [{ id: 'w1', title: '<script>alert(2)</script>', chartType: 'bar' }],
+        },
+      });
+      const executed: ExecutedReport = {
+        computedAt: '2026-01-01T00:00:00.000Z',
+        cacheHit: false,
+        filters: {},
+        widgets: [{ id: 'w1', meta: metaStub, data: [{ month: 'Jan', count: 1 }] }],
+      };
+      const html = ReportRenderer.renderInlineHtml(report, executed);
+      expect(html).not.toContain('<script>alert(2)</script>');
+      expect(html).toContain('&lt;script&gt;alert(2)&lt;/script&gt;');
+    });
+
+    it('escapes injection attempts in table header keys', () => {
+      const executed: ExecutedReport = {
+        computedAt: '2026-01-01T00:00:00.000Z',
+        cacheHit: false,
+        filters: {},
+        widgets: [
+          {
+            id: 'w1',
+            meta: metaStub,
+            data: [{ '"><img src=x onerror=alert(1)>': 'value' }],
+          },
+        ],
+      };
+      const html = ReportRenderer.renderInlineHtml(makeReport(), executed);
+      expect(html).not.toContain('<img src=x onerror=alert(1)>');
+      expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    });
+
+    it('escapes injection attempts in table cell values', () => {
+      const executed: ExecutedReport = {
+        computedAt: '2026-01-01T00:00:00.000Z',
+        cacheHit: false,
+        filters: {},
+        widgets: [
+          {
+            id: 'w1',
+            meta: metaStub,
+            data: [{ month: '<script>alert(3)</script>' }],
+          },
+        ],
+      };
+      const html = ReportRenderer.renderInlineHtml(makeReport(), executed);
+      expect(html).not.toContain('<script>alert(3)</script>');
+      expect(html).toContain('&lt;script&gt;alert(3)&lt;/script&gt;');
+    });
+
+    it('escapes injection attempts in metric object keys and values', () => {
+      const executed: ExecutedReport = {
+        computedAt: '2026-01-01T00:00:00.000Z',
+        cacheHit: false,
+        filters: {},
+        widgets: [
+          {
+            id: 'w1',
+            meta: metaStub,
+            data: { '<b>key</b>': '<script>alert(4)</script>' },
+          },
+        ],
+      };
+      const html = ReportRenderer.renderInlineHtml(makeReport(), executed);
+      expect(html).not.toContain('<b>key</b>');
+      expect(html).not.toContain('<script>alert(4)</script>');
+      expect(html).toContain('&lt;b&gt;key&lt;/b&gt;');
+      expect(html).toContain('&lt;script&gt;alert(4)&lt;/script&gt;');
+    });
+
+    it('escapes scalar widget data containing HTML', () => {
+      const executed: ExecutedReport = {
+        computedAt: '2026-01-01T00:00:00.000Z',
+        cacheHit: false,
+        filters: {},
+        widgets: [{ id: 'w1', meta: metaStub, data: '<script>alert(5)</script>' }],
+      };
+      const html = ReportRenderer.renderInlineHtml(makeReport(), executed);
+      expect(html).not.toContain('<script>alert(5)</script>');
+      expect(html).toContain('&lt;script&gt;alert(5)&lt;/script&gt;');
+    });
+
+    it('leaves alphanumeric content unchanged (regression)', () => {
+      const html = ReportRenderer.renderInlineHtml(makeReport(), makeExecuted());
+      expect(html).toContain('Monthly Adoptions');
+      expect(html).toContain('Total Adoptions');
+      expect(html).toContain('Active Rescues');
+      expect(html).toContain('Jan');
+      expect(html).toContain('Feb');
+      expect(html).toContain('total');
+      expect(html).toContain('42');
+    });
+  });
 });

@@ -94,3 +94,16 @@ describe('RichTextProcessingService.sanitize', () => {
     });
   });
 });
+
+describe('RichTextProcessingService.processMarkdown', () => {
+  it('does not pass raw <script> HTML through from markdown input', async () => {
+    const result = await RichTextProcessingService.processMarkdown('<script>alert(1)</script>');
+    expect(result.html).not.toContain('<script>');
+    expect(result.html).not.toContain('alert(1)');
+  });
+
+  it('still converts markdown bold to <strong>', async () => {
+    const result = await RichTextProcessingService.processMarkdown('**bold**');
+    expect(result.html).toContain('<strong>bold</strong>');
+  });
+});

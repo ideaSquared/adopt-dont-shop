@@ -2,6 +2,20 @@ import DOMPurify from 'isomorphic-dompurify';
 import { marked } from 'marked';
 import { logger } from '../utils/logger';
 
+// Configure marked once at module load. `marked.use({ tokenizer: { html } })`
+// is the modern equivalent of marked's removed `html: false` flag — by
+// overriding the html tokenizer to never match, raw HTML in markdown input
+// is never tokenized as HTML, so dangerous tags never reach the renderer.
+// This is defense-in-depth alongside the DOMPurify sanitization performed
+// in sanitizeHtml().
+marked.use({
+  tokenizer: {
+    html() {
+      return undefined;
+    },
+  },
+});
+
 export interface RichTextOptions {
   allowedTags?: string[];
   allowedAttributes?: Record<string, string[]>;
