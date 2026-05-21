@@ -1,4 +1,5 @@
 import { style } from '@vanilla-extract/css';
+import { vars } from '@adopt-dont-shop/lib.components/theme';
 
 export const container = style({
   padding: '1.5rem',
@@ -19,7 +20,7 @@ export const fieldGroupSpaced = style({
 });
 
 export const section = style({
-  borderTop: '1px solid #e5e7eb',
+  borderTop: `1px solid ${vars.border.color.default}`,
   paddingTop: '1rem',
 });
 
@@ -37,11 +38,11 @@ export const message = style({
 });
 
 export const messageSuccess = style({
-  background: '#dcfce7',
-  color: '#166534',
+  background: vars.background.success,
+  color: vars.text.success,
 });
 
 export const messageError = style({
-  background: '#fee2e2',
-  color: '#991b1b',
+  background: vars.background.danger,
+  color: vars.text.danger,
 });
