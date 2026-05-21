@@ -171,4 +171,48 @@ describe('redactSentryEvent', () => {
     expect(result.request?.env).toEqual({ REMOTE_ADDR: '1.2.3.4' });
     expect(result.request?.headers?.['x-trace-id']).toBe('abc');
   });
+
+  it('replaces all UUIDs in request.url with :id', () => {
+    const event = baseEvent();
+    event.request = {
+      url: 'https://example.com/api/v1/users/0a1b2c3d-4e5f-6789-abcd-ef0123456789/documents/9f8e7d6c-5b4a-3210-fedc-ba9876543210',
+    };
+
+    const result = redactSentryEvent(event);
+
+    expect(result.request?.url).toBe('https://example.com/api/v1/users/:id/documents/:id');
+  });
+
+  it('replaces numeric path segments in request.url with :id', () => {
+    const event = baseEvent();
+    event.request = {
+      url: 'https://example.com/users/123/foo',
+    };
+
+    const result = redactSentryEvent(event);
+
+    expect(result.request?.url).toBe('https://example.com/users/:id/foo');
+  });
+
+  it('preserves query strings and fragments while scrubbing path IDs', () => {
+    const event = baseEvent();
+    event.request = {
+      url: 'https://example.com/users/123/posts/456?sort=desc&page=2#top',
+    };
+
+    const result = redactSentryEvent(event);
+
+    expect(result.request?.url).toBe(
+      'https://example.com/users/:id/posts/:id?sort=desc&page=2#top'
+    );
+  });
+
+  it('scrubs UUIDs and numeric IDs from event.transaction', () => {
+    const event = baseEvent();
+    event.transaction = 'GET /api/v1/users/0a1b2c3d-4e5f-6789-abcd-ef0123456789/pets/42';
+
+    const result = redactSentryEvent(event);
+
+    expect(result.transaction).toBe('GET /api/v1/users/:id/pets/:id');
+  });
 });
