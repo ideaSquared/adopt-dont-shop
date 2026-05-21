@@ -16,10 +16,23 @@ import { getStorageProvider } from './storage';
 import { StorageCategory } from './storage/base-provider';
 
 // File upload configuration
+//
+// ADS-598: `image/svg+xml` is intentionally absent from the `images`
+// allowlist. SVGs render as same-origin documents and stored XSS via
+// DOMPurify bypass (mutation XSS, foreign content, animate/set event
+// hooks) has shipped in CVEs before. JPEG/PNG/GIF/WebP cover every
+// current product use case for user-uploaded images. The
+// `sanitizeSvgFile` helper and its caller in `processFile` are kept
+// as defence-in-depth for any code path that bypasses the multer
+// filter (e.g. seeders), but no normal user upload path will ever
+// reach it. The production serving path additionally forces
+// `Content-Disposition: attachment` and `Content-Type:
+// application/octet-stream` for any historical `.svg` already on disk
+// (see `streamFile` here and the `~* \\.svg$` block in `nginx.prod.conf`).
 const UPLOAD_CONFIG = {
   maxFileSize: config.storage.local.maxFileSize,
   allowedMimeTypes: {
-    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+    images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
     documents: [
       'application/pdf',
       'application/msword',
