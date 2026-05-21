@@ -6,6 +6,7 @@ import AdopterMatchProfile from '../models/AdopterMatchProfile';
 import { NotificationType } from '../models/Notification';
 import Pet, { PetStatus } from '../models/Pet';
 import Rescue from '../models/Rescue';
+import User, { UserStatus } from '../models/User';
 import { buildWorker, getReportsQueue, isQueueAvailable } from '../lib/queue';
 import { NotificationService } from '../services/notification.service';
 import { logger } from '../utils/logger';
@@ -64,6 +65,19 @@ export const runMatchDigest = async (): Promise<{ scanned: number; notified: num
   let notified = 0;
   for (const profile of profiles) {
     try {
+      // Defense-in-depth: re-verify the recipient User still exists
+      // and is ACTIVE. The `notify_new_matches=true` WHERE clause
+      // doesn't join through User.status, so a suspended/deleted user
+      // with a stale profile would otherwise still get notifications.
+      const recipient = await User.findByPk(profile.user_id);
+      if (!recipient || recipient.status !== UserStatus.ACTIVE) {
+        logger.warn('match-digest: skipping — recipient missing or inactive', {
+          userId: profile.user_id,
+          status: recipient?.status ?? null,
+        });
+        continue;
+      }
+
       const since = profile.last_notified_at ?? new Date(Date.now() - FALLBACK_LOOKBACK_MS);
       const candidates = await Pet.findAll({
         where: {
@@ -74,12 +88,16 @@ export const runMatchDigest = async (): Promise<{ scanned: number; notified: num
         limit: 50,
       });
 
-      if (candidates.length === 0) continue;
+      if (candidates.length === 0) {
+        continue;
+      }
 
       const scored = await matchService.rankPets(profile.user_id, candidates);
       const top = scored.filter(s => s.score >= profile.min_notification_score).slice(0, TOP_N);
 
-      if (top.length === 0) continue;
+      if (top.length === 0) {
+        continue;
+      }
 
       const petNames = top
         .map(s => candidates.find(c => c.petId === s.petId)?.name)
@@ -112,13 +130,17 @@ export const runMatchDigest = async (): Promise<{ scanned: number; notified: num
 let workerInstance: Worker | null = null;
 
 export const startMatchDigestWorker = (): Worker | null => {
-  if (workerInstance) return workerInstance;
+  if (workerInstance) {
+    return workerInstance;
+  }
   if (!isQueueAvailable()) {
     logger.warn('REDIS_URL not set — match digest worker not started');
     return null;
   }
   workerInstance = buildWorker(async job => {
-    if (job.name !== MATCH_DIGEST_JOB_NAME) return;
+    if (job.name !== MATCH_DIGEST_JOB_NAME) {
+      return;
+    }
     const result = await runMatchDigest();
     logger.info('Match digest finished', result);
   });

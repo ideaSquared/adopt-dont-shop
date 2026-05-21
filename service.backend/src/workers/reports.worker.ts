@@ -9,6 +9,7 @@ import ScheduledReport, {
   ScheduledReportStatus,
   type ScheduledReportRecipient,
 } from '../models/ScheduledReport';
+import User, { UserType } from '../models/User';
 import { logger } from '../utils/logger';
 import type { ReportConfig } from '../schemas/reports.schema';
 
@@ -43,6 +44,14 @@ export type RenderAndEmailJob = {
   recipients: ScheduledReportRecipient[];
   format: ScheduledReportFormat;
   triggeredBy: 'schedule' | 'manual';
+  /**
+   * Defense-in-depth ownership re-check. The worker re-verifies that
+   * this user still exists and still has edit access to the report
+   * before sending. Optional for backward compatibility with any
+   * in-flight legacy jobs; new enqueues from `handleScheduledRun`
+   * always populate it.
+   */
+  requestedBy?: string;
 };
 
 const SCHEDULED_RUN = 'report:scheduled-run';
@@ -88,12 +97,59 @@ export const removeScheduleRepeat = async (schedule: ScheduledReport): Promise<v
   });
 };
 
+/**
+ * Defense-in-depth ownership re-check. Returns true only when the
+ * requester is an admin or `ReportsService.canEdit` still holds at
+ * job execution time. Mirrors the admin-bypass policy used in the
+ * controllers (`reports.read.platform` permission ⇢ admin role).
+ *
+ * Returns false (rather than throwing) on missing requester or
+ * missing report — throwing would retry the job, which is the wrong
+ * behaviour for an authorisation failure.
+ */
+const requesterCanStillEditReport = async (
+  requestedBy: string,
+  report: SavedReport
+): Promise<boolean> => {
+  const requester = await User.findByPk(requestedBy);
+  if (!requester) {
+    return false;
+  }
+  if (requester.userType === UserType.ADMIN || requester.userType === UserType.SUPER_ADMIN) {
+    return true;
+  }
+  return ReportsService.canEdit(report, { userId: requester.userId });
+};
+
 const handleScheduledRun = async (data: ScheduledRunJob): Promise<void> => {
   const schedule = await ScheduledReport.findByPk(data.scheduleId);
   if (!schedule || !schedule.is_enabled) {
     logger.debug('Schedule missing or disabled — skipping', { scheduleId: data.scheduleId });
     return;
   }
+
+  // Defense-in-depth: re-verify the schedule creator still has access
+  // to the report. Falls back to the report owner when `created_by` is
+  // null (legacy schedules created before audit-columns shipped).
+  const report = await SavedReport.findByPk(schedule.saved_report_id);
+  if (!report) {
+    logger.warn('reports.worker: skipping scheduled-run — saved report missing', {
+      scheduleId: schedule.schedule_id,
+      savedReportId: schedule.saved_report_id,
+    });
+    return;
+  }
+  const requestedBy = schedule.created_by ?? report.user_id;
+  const allowed = await requesterCanStillEditReport(requestedBy, report);
+  if (!allowed) {
+    logger.warn('reports.worker: skipping scheduled-run — requester no longer has access', {
+      scheduleId: schedule.schedule_id,
+      savedReportId: report.saved_report_id,
+      requestedBy,
+    });
+    return;
+  }
+
   schedule.last_status = ScheduledReportStatus.PENDING;
   schedule.last_run_at = new Date();
   await schedule.save();
@@ -104,14 +160,38 @@ const handleScheduledRun = async (data: ScheduledRunJob): Promise<void> => {
     recipients: schedule.recipients,
     format: schedule.format,
     triggeredBy: 'schedule',
+    requestedBy,
   } satisfies RenderAndEmailJob);
 };
 
 const handleRenderAndEmail = async (data: RenderAndEmailJob): Promise<void> => {
   const report = await SavedReport.findByPk(data.savedReportId);
   if (!report) {
-    throw new Error(`Report ${data.savedReportId} not found for render-and-email`);
+    // Defense-in-depth: a missing report is not a transient error.
+    // Throwing would retry indefinitely; log and drop instead.
+    logger.warn('reports.worker: skipping render-and-email — saved report missing', {
+      savedReportId: data.savedReportId,
+      scheduleId: data.scheduleId,
+    });
+    return;
   }
+
+  // Defense-in-depth: re-verify the requester still has edit access
+  // at job-execution time. Guards against queue replay after a
+  // permission revocation, and against any future "retry job" admin
+  // tool that lets an operator re-fire a payload.
+  if (data.requestedBy) {
+    const allowed = await requesterCanStillEditReport(data.requestedBy, report);
+    if (!allowed) {
+      logger.warn('reports.worker: skipping render-and-email — requester no longer has access', {
+        savedReportId: report.saved_report_id,
+        scheduleId: data.scheduleId,
+        requestedBy: data.requestedBy,
+      });
+      return;
+    }
+  }
+
   const scope: string | 'platform' = report.rescue_id ?? 'platform';
   const executed = await ReportsService.executeReport(report.config as unknown as ReportConfig, {
     scope,
@@ -212,4 +292,13 @@ export const stopReportsWorker = async (): Promise<void> => {
     await workerInstance.close();
     workerInstance = null;
   }
+};
+
+/**
+ * Internal handlers exposed for behaviour tests only. Not part of the
+ * public worker API — production code dispatches via BullMQ.
+ */
+export const __testables = {
+  handleScheduledRun,
+  handleRenderAndEmail,
 };
