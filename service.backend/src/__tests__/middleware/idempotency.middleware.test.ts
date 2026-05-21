@@ -3,6 +3,7 @@ import { NextFunction, Response } from 'express';
 import sequelize from '../../sequelize';
 import '../../models/index';
 import IdempotencyKey from '../../models/IdempotencyKey';
+import User, { UserType } from '../../models/User';
 import { idempotency, IDEMPOTENCY_RETENTION_MS } from '../../middleware/idempotency';
 import { hashToken } from '../../utils/secrets';
 import { AuthenticatedRequest } from '../../types/auth';
@@ -126,6 +127,46 @@ describe('idempotency middleware', () => {
     expect(next).toHaveBeenCalledTimes(1);
     expect(res.status).not.toHaveBeenCalled();
     expect(await IdempotencyKey.count()).toBe(0);
+  });
+
+  it('does not replay a cached response across users — same key from a different user is a cache miss', async () => {
+    // Create two real users so the user_id FK on idempotency_keys resolves.
+    const userA = await User.create({
+      email: 'a@example.com',
+      password: 'hashed-password',
+      firstName: 'A',
+      lastName: 'User',
+      userType: UserType.ADOPTER,
+    });
+    const userB = await User.create({
+      email: 'b@example.com',
+      password: 'hashed-password',
+      firstName: 'B',
+      lastName: 'User',
+      userType: UserType.ADOPTER,
+    });
+
+    // user A wrote a cached response for this key + endpoint.
+    await IdempotencyKey.create({
+      key_hash: hashToken('cross-user-key'),
+      endpoint: 'POST /api/v1/applications/',
+      user_id: userA.userId,
+      response_status: 201,
+      response_body: { applicationId: 'private-to-a' },
+      expires_at: new Date(Date.now() + IDEMPOTENCY_RETENTION_MS),
+    });
+
+    // user B sends the same client key against the same endpoint.
+    const req = buildReq('cross-user-key', userB.userId);
+    const res = buildRes();
+    const next: NextFunction = vi.fn();
+
+    await idempotency(req, res as unknown as Response, next);
+
+    // The middleware must NOT replay user A's response to user B —
+    // user B's request should fall through to next() as a cache miss.
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.status).not.toHaveBeenCalled();
   });
 
   it('scopes cache by endpoint — same key against different paths is a different entry', async () => {
