@@ -174,6 +174,26 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     },
   }),
   ConfirmDialog: () => null,
+  // Render Modal contents inline when open so tests can interact with the
+  // form fields without needing a portal target. Matching the real Modal
+  // API ensures pages that depend on `title` get the heading rendered.
+  Modal: ({
+    isOpen,
+    title,
+    children,
+  }: {
+    isOpen: boolean;
+    title?: string;
+    children: React.ReactNode;
+  }) =>
+    isOpen
+      ? React.createElement(
+          'div',
+          { role: 'dialog' },
+          title ? React.createElement('h2', null, title) : null,
+          children
+        )
+      : null,
   InstallPwaBanner: () => null,
   toast: Object.assign(vi.fn(), {
     success: vi.fn(),
