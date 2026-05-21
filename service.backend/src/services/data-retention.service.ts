@@ -5,7 +5,7 @@ import Notification from '../models/Notification';
 import RefreshToken from '../models/RefreshToken';
 import SwipeAction from '../models/SwipeAction';
 import User from '../models/User';
-import { anonymizeUser } from './data-deletion.service';
+import GdprService, { GDPR_ANONYMIZATION_GRACE_DAYS } from './gdpr.service';
 import { logger } from '../utils/logger';
 
 /**
@@ -21,7 +21,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
 export const RETENTION_POLICIES = {
-  softDeletedUsersGraceDays: 30,
+  // GDPR phase-2 grace window — kept here for the audit trail. The
+  // canonical value is GDPR_ANONYMIZATION_GRACE_DAYS exported from
+  // gdpr.service; this constant is just the retention-side mirror.
+  softDeletedUsersGraceDays: GDPR_ANONYMIZATION_GRACE_DAYS,
   notificationsDays: 90,
   emailQueueDays: 365,
   refreshTokensExpiredDays: 30,
@@ -72,20 +75,20 @@ const purgeSwipeActions = async (): Promise<number> => {
 };
 
 const anonymiseExpiredSoftDeletedUsers = async (): Promise<number> => {
+  // Phase-1 erasure stamps users with pending_anonymization_at. Once
+  // that timestamp is older than the grace window, GdprService is
+  // asked to perform the phase-2 PII scrub. The column is the
+  // canonical signal; we no longer sniff the email domain.
   const cutoff = cutoffDaysAgo(RETENTION_POLICIES.softDeletedUsersGraceDays);
   const candidates = await User.findAll({
     paranoid: false,
-    where: { deletedAt: { [Op.lt]: cutoff, [Op.ne]: null } },
-    attributes: ['userId', 'email'],
+    where: { pendingAnonymizationAt: { [Op.lt]: cutoff } },
+    attributes: ['userId'],
   });
 
   let count = 0;
   for (const candidate of candidates) {
-    if (candidate.email.endsWith('@deleted.invalid')) {
-      continue; // already anonymised on a previous pass
-    }
-
-    const result = await anonymizeUser(candidate.userId);
+    const result = await GdprService.executeAnonymization(candidate.userId);
     if (result.anonymized) {
       count += 1;
     }
