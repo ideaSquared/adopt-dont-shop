@@ -8,13 +8,14 @@ vi.mock('fs', () => {
   const readFile = vi.fn().mockResolvedValue(Buffer.from('file-content'));
   const writeFile = vi.fn().mockResolvedValue(undefined);
   const unlink = vi.fn().mockResolvedValue(undefined);
+  const rename = vi.fn().mockResolvedValue(undefined);
   const existsSync = vi.fn().mockReturnValue(true);
   const mkdirSync = vi.fn();
   return {
-    default: { existsSync, mkdirSync, promises: { stat, readFile, writeFile, unlink } },
+    default: { existsSync, mkdirSync, promises: { stat, readFile, writeFile, unlink, rename } },
     existsSync,
     mkdirSync,
-    promises: { stat, readFile, writeFile, unlink },
+    promises: { stat, readFile, writeFile, unlink, rename },
   };
 });
 
@@ -112,8 +113,19 @@ const makeMockRecord = (overrides: Record<string, unknown> = {}) => ({
  * - fs.promises.readFile returns a buffer (used by generateChecksum)
  * - FileUpload.create returns a mock record
  */
+const mimeToExt: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+};
+
 const setupSuccessfulUpload = (mimetype = 'image/jpeg') => {
-  vi.mocked(fileTypeFromFile).mockResolvedValue({ mime: mimetype, ext: 'jpg' });
+  vi.mocked(fileTypeFromFile).mockResolvedValue({
+    mime: mimetype,
+    ext: mimeToExt[mimetype] ?? 'bin',
+  });
   vi.mocked(fs.promises.stat).mockResolvedValue({
     mtime: new Date('2024-01-01'),
   } as unknown as import('fs').Stats);
@@ -245,6 +257,52 @@ describe('FileUploadService', () => {
       await expect(
         FileUploadService.uploadFile(file, 'pets', { uploadedBy: 'user-456' })
       ).rejects.toThrow('File upload failed');
+    });
+
+    it('normalises the stored filename extension to match the verified MIME, regardless of user-supplied extension', async () => {
+      // Attacker uploads with double-extension `evil.exe.pdf` claiming application/pdf;
+      // actual bytes are a real PDF. The stored filename must end with `.pdf` (the
+      // canonical extension for the verified MIME), so direct-URL access can't
+      // present the file with a misleading extension downstream.
+      const file = makeFile({
+        originalname: 'evil.exe.pdf',
+        mimetype: 'application/pdf',
+        filename: 'documents_1234_uuid.pdf',
+        path: '/test-uploads/documents/documents_1234_uuid.pdf',
+      });
+      setupSuccessfulUpload('application/pdf');
+
+      const result = await FileUploadService.uploadFile(file, 'documents', {
+        uploadedBy: 'user-456',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.file?.filename).toMatch(/\.pdf$/);
+      expect(result.file?.filename).not.toMatch(/\.exe/);
+    });
+
+    it('rewrites the on-disk filename when the user-supplied extension does not match the verified MIME', async () => {
+      // User-supplied originalname has `.jpg` but the declared+detected MIME is
+      // application/pdf. The on-disk filename should be renamed so its extension
+      // matches the verified MIME (`.pdf`), not the user-supplied `.jpg`.
+      const file = makeFile({
+        originalname: 'photo.jpg',
+        mimetype: 'application/pdf',
+        filename: 'documents_1234_uuid.jpg',
+        path: '/test-uploads/documents/documents_1234_uuid.jpg',
+      });
+      setupSuccessfulUpload('application/pdf');
+
+      const result = await FileUploadService.uploadFile(file, 'documents', {
+        uploadedBy: 'user-456',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.file?.filename).toBe('documents_1234_uuid.pdf');
+      expect(vi.mocked(fs.promises.rename)).toHaveBeenCalledWith(
+        '/test-uploads/documents/documents_1234_uuid.jpg',
+        '/test-uploads/documents/documents_1234_uuid.pdf'
+      );
     });
   });
 

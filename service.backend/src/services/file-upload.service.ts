@@ -465,7 +465,15 @@ export class FileUploadService {
   }
 
   /**
-   * Validate file content matches declared MIME type using magic byte checking
+   * Validate file content matches declared MIME type using magic byte checking.
+   *
+   * Defence-in-depth against stored XSS / content spoofing: after confirming
+   * the file's magic bytes match the declared MIME, normalise the on-disk
+   * extension to the canonical extension reported by `file-type`. This
+   * prevents an attacker who learns the storage path from being able to
+   * request the file with a misleading extension (e.g. a PDF stored as
+   * `evil.html.jpg` would otherwise round-trip the attacker's chosen
+   * extension into the served URL).
    */
   private static async validateFileContent(file: Express.Multer.File): Promise<void> {
     try {
@@ -493,6 +501,12 @@ export class FileUploadService {
         );
       }
 
+      // Normalise the on-disk extension to the canonical extension for the
+      // verified MIME. Renames `file.path` and updates `file.filename` /
+      // `file.path` in place so downstream steps (metadata, storage transfer)
+      // see the canonical name.
+      await this.normaliseStoredExtension(file, fileTypeResult.ext);
+
       logger.info('File content validation passed', {
         filename: file.originalname,
         mimeType: file.mimetype,
@@ -502,6 +516,30 @@ export class FileUploadService {
       logger.error('File content validation failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Rename the on-disk file so its extension matches the canonical extension
+   * for the verified MIME type. No-op when the current extension already
+   * matches.
+   */
+  private static async normaliseStoredExtension(
+    file: Express.Multer.File,
+    canonicalExt: string
+  ): Promise<void> {
+    const currentExt = path.extname(file.filename).toLowerCase().replace(/^\./, '');
+    const targetExt = canonicalExt.toLowerCase();
+    if (currentExt === targetExt) {
+      return;
+    }
+    const safeCurrentPath = this.safeResolveUploadPath(file.path);
+    const dir = path.dirname(safeCurrentPath);
+    const base = path.basename(file.filename, path.extname(file.filename));
+    const newFilename = `${base}.${targetExt}`;
+    const newPath = path.join(dir, newFilename);
+    await fs.promises.rename(safeCurrentPath, newPath);
+    file.filename = newFilename;
+    file.path = newPath;
   }
 
   /**
