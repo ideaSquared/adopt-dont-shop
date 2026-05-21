@@ -1,6 +1,9 @@
 // Core RBAC types
 export * from './types';
 
+// User preference enums
+export * from './types/preferences';
+
 // Rescue-specific permission constants
 export * from './types/rescue-permissions';
 

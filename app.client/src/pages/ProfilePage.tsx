@@ -5,6 +5,7 @@ import {
   SettingsForm,
 } from '@/components/profile';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { ProfileVisibility } from '@adopt-dont-shop/lib.types';
 import { applicationService, authService, Application, User } from '@/services';
 import {
   Alert,
@@ -37,7 +38,7 @@ interface UserSettings {
     marketing?: boolean;
   };
   privacy?: {
-    profileVisibility?: 'public' | 'private';
+    profileVisibility?: ProfileVisibility;
     showEmail?: boolean;
     showPhone?: boolean;
   };

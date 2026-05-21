@@ -1,3 +1,7 @@
+import { ProfileVisibility } from '@adopt-dont-shop/lib.types';
+
+export { ProfileVisibility };
+
 // User and Authentication Types
 export interface User {
   userId: string;
@@ -26,7 +30,7 @@ export interface User {
     country?: string;
   };
   privacySettings?: {
-    profileVisibility?: string;
+    profileVisibility?: ProfileVisibility;
     showLocation?: boolean;
     allowMessages?: boolean;
     showAdoptionHistory?: boolean;

@@ -22,6 +22,7 @@
   "dependencies": {
     "@adopt-dont-shop/lib.analytics": "*",
     "@adopt-dont-shop/lib.api": "*",
+    "@adopt-dont-shop/lib.types": "*",
     "@adopt-dont-shop/lib.applications": "*",
     "@adopt-dont-shop/lib.auth": "*",
     "@adopt-dont-shop/lib.chat": "*",

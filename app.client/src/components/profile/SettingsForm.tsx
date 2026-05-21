@@ -2,6 +2,7 @@ import notificationService from '@/services/notificationService';
 import { User } from '@/types';
 import { Button, ThemeToggle } from '@adopt-dont-shop/lib.components';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
+import { ProfileVisibility } from '@adopt-dont-shop/lib.types';
 import React, { useEffect, useState } from 'react';
 import * as styles from './SettingsForm.css';
 
@@ -19,7 +20,7 @@ interface UserSettings {
     quietHoursEnd?: string;
   };
   privacy: {
-    profileVisibility: 'public' | 'private';
+    profileVisibility: ProfileVisibility;
     showEmail: boolean;
     showPhone: boolean;
   };
@@ -57,7 +58,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
       quietHoursEnd: '08:00',
     },
     privacy: {
-      profileVisibility: 'public',
+      profileVisibility: ProfileVisibility.PUBLIC,
       showEmail: false,
       showPhone: false,
     },
@@ -349,11 +350,18 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
               <select
                 className={styles.select}
                 value={settings.privacy.profileVisibility}
-                onChange={e => handleSelectChange('privacy', 'profileVisibility', e.target.value)}
+                onChange={e =>
+                  handleSelectChange(
+                    'privacy',
+                    'profileVisibility',
+                    e.target.value as ProfileVisibility
+                  )
+                }
                 disabled={isLoading}
               >
-                <option value='public'>Public</option>
-                <option value='private'>Private</option>
+                <option value={ProfileVisibility.PUBLIC}>Public</option>
+                <option value={ProfileVisibility.RESCUES_ONLY}>Rescues only</option>
+                <option value={ProfileVisibility.PRIVATE}>Private</option>
               </select>
             </div>
           </div>
@@ -516,7 +524,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({
                     quietHoursEnd: '08:00',
                   },
                   privacy: {
-                    profileVisibility: 'public',
+                    profileVisibility: ProfileVisibility.PUBLIC,
                     showEmail: false,
                     showPhone: false,
                   },

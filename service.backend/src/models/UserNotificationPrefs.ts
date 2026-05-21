@@ -1,13 +1,9 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType } from '../sequelize';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
+import { DigestFrequency } from '@adopt-dont-shop/lib.types';
 
-export enum DigestFrequency {
-  IMMEDIATE = 'immediate',
-  DAILY = 'daily',
-  WEEKLY = 'weekly',
-  NEVER = 'never',
-}
+export { DigestFrequency };
 
 /**
  * Per-user notification preferences (plan 5.6 — typed preference table

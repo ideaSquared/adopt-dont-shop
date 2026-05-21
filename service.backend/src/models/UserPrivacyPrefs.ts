@@ -1,12 +1,9 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType } from '../sequelize';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
+import { ProfileVisibility } from '@adopt-dont-shop/lib.types';
 
-export enum ProfileVisibility {
-  PUBLIC = 'public',
-  RESCUES_ONLY = 'rescues_only',
-  PRIVATE = 'private',
-}
+export { ProfileVisibility };
 
 /**
  * Per-user privacy preferences (plan 5.6 — typed preference table
