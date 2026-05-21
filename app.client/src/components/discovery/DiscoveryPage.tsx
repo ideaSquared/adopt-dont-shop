@@ -9,6 +9,11 @@ import { Container } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadDiscoveryState, recordViewedPet } from '@/utils/discoverySession';
+import {
+  hasReachedAnonSwipeLimit,
+  incrementAnonSwipeCount,
+  resetAnonSwipeBudget,
+} from '@/utils/anonSwipeBudget';
 import { useStatsig } from '@/hooks/useStatsig';
 import { MdWarning } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
@@ -18,6 +23,7 @@ import { SwipeStack } from '../swipe/SwipeStack';
 import { EndOfQueueEmptyState } from './EndOfQueueEmptyState';
 import { ANON_FIRST_LIKE_FIRED_KEY, AnonymousFirstLikeModal } from './AnonymousFirstLikeModal';
 import { ProfileCompletionMeter } from '../profile/ProfileCompletionMeter';
+import { AnonymousSwipePaywallModal } from './AnonymousSwipePaywallModal';
 
 export const DiscoveryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -39,10 +45,23 @@ export const DiscoveryPage: React.FC = () => {
   const [viewedPetIds, setViewedPetIds] = useState<string[]>(persistedState.viewedPetIds);
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
   const [undoStack, setUndoStack] = useState<SwipeAction[]>([]);
-  // ADS-626: first-like modal state for anonymous users.
+  // ADS-625 + ADS-626: anonymous-user state — first-like celebration modal
+  // and swipe-budget paywall share the same isAuthenticated / logEvent
+  // hooks.
   const { isAuthenticated } = useAuth();
   const { logEvent } = useStatsig();
   const [anonLikeModalPet, setAnonLikeModalPet] = useState<DiscoveryPet | null>(null);
+  const [anonPaywallPetId, setAnonPaywallPetId] = useState<string | null>(null);
+
+  // ADS-625: wipe the localStorage counter when the user becomes
+  // authenticated (signup or login) so the paywall never fires for
+  // logged-in users on subsequent visits.
+  useEffect(() => {
+    if (isAuthenticated) {
+      resetAnonSwipeBudget();
+      setAnonPaywallPetId(null);
+    }
+  }, [isAuthenticated]);
   // ADS-630: track whether `loadMorePets` has ever returned an empty page
   // — that's how we differentiate "queue truly exhausted" from "first
   // batch not arrived yet". Reset to true whenever the filter set
@@ -88,11 +107,26 @@ export const DiscoveryPage: React.FC = () => {
   }, []);
   const handleSwipe = useCallback(
     async (action: SwipeAction) => {
+      // ADS-625: anonymous-user soft block. Increment the localStorage
+      // counter on each swipe; once it crosses the configured limit
+      // surface the paywall and skip the rest of the handler so the
+      // card never progresses. The like-teaser modal from PR #572 is
+      // unaffected — it still fires on the locked badge.
+      if (!isAuthenticated) {
+        const next = incrementAnonSwipeCount();
+        if (hasReachedAnonSwipeLimit(next)) {
+          logEvent('anon_swipe_paywall_shown', 1, { pet_id: action.petId });
+          setAnonPaywallPetId(action.petId);
+          return;
+        }
+      }
+
       // ADS-626: surface the celebratory match modal on the *first*
       // anonymous like in this browser session. The flag lives in
       // sessionStorage so re-mounts within the same tab don't refire.
       // Only fires for `like` / `super_like` — `pass` is not a peak
-      // emotional moment.
+      // emotional moment. Runs after the ADS-625 budget check so the
+      // paywall takes precedence once the limit is hit.
       if (
         !isAuthenticated &&
         (action.action === 'like' || action.action === 'super_like') &&
@@ -233,6 +267,13 @@ export const DiscoveryPage: React.FC = () => {
     setAnonLikeModalPet(null);
   }, [anonLikeModalPet, logEvent]);
 
+  const dismissAnonPaywall = useCallback(() => {
+    if (anonPaywallPetId) {
+      logEvent('anon_swipe_paywall_dismissed', 1, { pet_id: anonPaywallPetId });
+    }
+    setAnonPaywallPetId(null);
+  }, [anonPaywallPetId, logEvent]);
+
   return (
     <Container className={styles.pageContainer}>
       {anonLikeModalPet && (
@@ -242,6 +283,18 @@ export const DiscoveryPage: React.FC = () => {
           petImage={anonLikeModalPet.images?.[0]}
           onDismiss={handleAnonModalDismiss}
           onCtaClick={handleAnonModalCta}
+        />
+      )}
+      {anonPaywallPetId && (
+        <AnonymousSwipePaywallModal
+          petId={anonPaywallPetId}
+          onSignUp={() => {
+            logEvent('anon_swipe_paywall_signup_clicked', 1, { pet_id: anonPaywallPetId });
+          }}
+          onLogIn={() => {
+            logEvent('anon_swipe_paywall_login_clicked', 1, { pet_id: anonPaywallPetId });
+          }}
+          onDismiss={dismissAnonPaywall}
         />
       )}
       <ProfileCompletionMeter />
