@@ -10,9 +10,9 @@
  * to select users whose grace window has elapsed, then calls
  * GdprService.executeAnonymization which clears the column.
  *
- * Replaces the previous email-domain sniff
- * (`endsWith('@deleted.invalid')`) used by data-deletion.service —
- * the column is the canonical signal.
+ * Canonical signal — the retention worker reads this column rather
+ * than sniffing the user's email domain to decide whether phase-2
+ * anonymization is due.
  */
 import { DataTypes, Op, type QueryInterface } from 'sequelize';
 import { runInTransaction } from './_helpers';
