@@ -382,4 +382,45 @@ describe('GdprService', () => {
       expect(r2.staffDowngraded).toBe(0);
     });
   });
+
+  // Previously cleared `authToken` — a cookie name that's never set —
+  // leaving the real `accessToken`/`refreshToken` cookies intact and the
+  // session resumable until access-token expiry. The fix must clear both
+  // real cookies with the same options used at set time.
+  describe('eraseSelf — auth cookie clearing', () => {
+    it('clears accessToken and refreshToken with matching options', async () => {
+      const { default: GdprController } = await import('../../controllers/gdpr.controller');
+      const user = await seedUser();
+
+      const clearCookieFn = vi.fn();
+      const statusFn = vi.fn().mockReturnThis();
+      const jsonFn = vi.fn();
+      const reqShape: Record<string, unknown> = {
+        body: {},
+        user: { ...user.toJSON() },
+      };
+      const resShape: Record<string, unknown> = {
+        clearCookie: clearCookieFn,
+        status: statusFn,
+        json: jsonFn,
+      };
+
+      await GdprController.eraseSelf(
+        reqShape as unknown as Parameters<typeof GdprController.eraseSelf>[0],
+        resShape as unknown as Response
+      );
+
+      expect(clearCookieFn).toHaveBeenCalledWith(
+        'accessToken',
+        expect.objectContaining({ httpOnly: true, sameSite: 'strict' })
+      );
+      expect(clearCookieFn).toHaveBeenCalledWith(
+        'refreshToken',
+        expect.objectContaining({ httpOnly: true, sameSite: 'strict' })
+      );
+      // Nothing should be cleared with the bogus `authToken` name.
+      expect(clearCookieFn).not.toHaveBeenCalledWith('authToken', expect.anything());
+      expect(clearCookieFn).not.toHaveBeenCalledWith('authToken');
+    });
+  });
 });

@@ -7,6 +7,12 @@ import { AuthenticatedRequest } from '../types';
 import { UserType } from '../models/User';
 import { logger } from '../utils/logger';
 import { validateBody } from '../middleware/zod-validate';
+import {
+  ACCESS_TOKEN_COOKIE,
+  ACCESS_TOKEN_COOKIE_OPTIONS,
+  REFRESH_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE_OPTIONS,
+} from './auth.controller';
 
 const RecordConsentSchema = z.object({
   purpose: z.nativeEnum(ConsentPurpose),
@@ -53,7 +59,10 @@ export class GdprController {
       const userId = req.user!.userId;
       const { reason } = req.body as { reason?: string };
       await GdprService.anonymizeUser(userId, { reason, actorUserId: userId });
-      res.clearCookie('authToken');
+      // Clear auth cookies with the same options used to set them so the
+      // browser actually removes them (path/secure/sameSite must match).
+      res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
+      res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
       res.json({ success: true, message: 'Account anonymised' });
     } catch (error) {
       logger.error('GDPR self-erase failed', { error });

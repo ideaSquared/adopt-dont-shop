@@ -5,6 +5,12 @@ import { requireRole } from '../middleware/rbac';
 import { validateBody } from '../middleware/zod-validate';
 import { UserType } from '../models/User';
 import {
+  ACCESS_TOKEN_COOKIE,
+  ACCESS_TOKEN_COOKIE_OPTIONS,
+  REFRESH_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE_OPTIONS,
+} from '../controllers/auth.controller';
+import {
   ConsentInputSchema,
   CookiesConsentInputSchema,
   recordConsent,
@@ -114,9 +120,11 @@ router.post(
     const body = req.body as z.infer<typeof DeleteAccountSchema>;
     const result = await requestAccountDeletion(userId, body.reason);
     // Clear auth cookies so the now-deactivated session can't keep
-    // making requests until access-token expiry.
-    res.clearCookie('refreshToken');
-    res.clearCookie('accessToken');
+    // making requests until access-token expiry. Pass the same options
+    // used when setting the cookies — without them the Set-Cookie
+    // expiry header doesn't match and the browser ignores the clear.
+    res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
+    res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
     res.status(202).json({
       data: {
         ...result,
