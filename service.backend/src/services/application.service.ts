@@ -10,6 +10,7 @@ import HomeVisitStatusTransition from '../models/HomeVisitStatusTransition';
 import StaffMember from '../models/StaffMember';
 import Rescue from '../models/Rescue';
 import { validateSortField } from '../utils/sort-validation';
+import { escapeLikePattern } from '../utils/escape-like';
 
 const APPLICATION_SORT_FIELDS = [
   'createdAt',
@@ -726,32 +727,33 @@ export class ApplicationService {
       // enum value stored on Pet.type.
       if (filters.petType) {
         (whereConditions as Record<string, unknown>)['$Pet.type$'] = {
-          [Op.iLike]: filters.petType,
+          [Op.iLike]: escapeLikePattern(filters.petType),
         };
       }
       if (filters.petBreed) {
         (whereConditions as Record<string, unknown>)['$Pet->Breed.name$'] = {
-          [Op.iLike]: `%${filters.petBreed}%`,
+          [Op.iLike]: `%${escapeLikePattern(filters.petBreed)}%`,
         };
       }
 
       // Text search
       if (filters.search) {
+        const safeSearch = escapeLikePattern(filters.search);
         const searchConditions = [
-          { notes: { [Op.iLike]: `%${filters.search}%` } },
-          { rejectionReason: { [Op.iLike]: `%${filters.search}%` } },
-          { interviewNotes: { [Op.iLike]: `%${filters.search}%` } },
-          { homeVisitNotes: { [Op.iLike]: `%${filters.search}%` } },
+          { notes: { [Op.iLike]: `%${safeSearch}%` } },
+          { rejectionReason: { [Op.iLike]: `%${safeSearch}%` } },
+          { interviewNotes: { [Op.iLike]: `%${safeSearch}%` } },
+          { homeVisitNotes: { [Op.iLike]: `%${safeSearch}%` } },
           // Search in user fields
-          { '$User.first_name$': { [Op.iLike]: `%${filters.search}%` } },
-          { '$User.last_name$': { [Op.iLike]: `%${filters.search}%` } },
-          { '$User.email$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$User.first_name$': { [Op.iLike]: `%${safeSearch}%` } },
+          { '$User.last_name$': { [Op.iLike]: `%${safeSearch}%` } },
+          { '$User.email$': { [Op.iLike]: `%${safeSearch}%` } },
           // Search in pet fields. Plan 2.4 — breed lives in the
           // breeds lookup table; the `$Pet->Breed.name$` path follows
           // the eager-loaded Breed association added to the include
           // chain below.
-          { '$Pet.name$': { [Op.iLike]: `%${filters.search}%` } },
-          { '$Pet->Breed.name$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$Pet.name$': { [Op.iLike]: `%${safeSearch}%` } },
+          { '$Pet->Breed.name$': { [Op.iLike]: `%${safeSearch}%` } },
         ];
         (whereConditions as Record<string | symbol, unknown>)[Op.or] = searchConditions;
       }

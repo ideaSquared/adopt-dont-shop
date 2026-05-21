@@ -7,6 +7,7 @@ import { invalidateAuthCache } from '../lib/auth-cache';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
 import { AuditLogService } from './auditLog.service';
 import { validateSortField } from '../utils/sort-validation';
+import { escapeLikePattern } from '../utils/escape-like';
 import { verifyCompaniesHouseNumber } from './companies-house.service';
 import { verifyCharityRegistrationNumber } from './charity-commission.service';
 
@@ -170,36 +171,39 @@ export class RescueService {
 
       // Text search across multiple fields (applied after status)
       if (search) {
+        const safeSearch = escapeLikePattern(search);
         whereClause = {
           ...whereClause,
           [Op.or]: [
-            { name: { [Op.iLike]: `%${search}%` } },
-            { email: { [Op.iLike]: `%${search}%` } },
-            { description: { [Op.iLike]: `%${search}%` } },
+            { name: { [Op.iLike]: `%${safeSearch}%` } },
+            { email: { [Op.iLike]: `%${safeSearch}%` } },
+            { description: { [Op.iLike]: `%${safeSearch}%` } },
           ],
         };
       }
 
       // Location filter (applied after search to avoid conflicts)
       if (location && !search) {
+        const safeLocation = escapeLikePattern(location);
         whereClause = {
           ...whereClause,
           [Op.or]: [
-            { city: { [Op.iLike]: `%${location}%` } },
-            { county: { [Op.iLike]: `%${location}%` } },
-            { country: { [Op.iLike]: `%${location}%` } },
+            { city: { [Op.iLike]: `%${safeLocation}%` } },
+            { county: { [Op.iLike]: `%${safeLocation}%` } },
+            { country: { [Op.iLike]: `%${safeLocation}%` } },
           ],
         };
       } else if (location && search) {
         // Combine search and location with AND
+        const safeLocation = escapeLikePattern(location);
         whereClause = {
           [Op.and]: [
             whereClause,
             {
               [Op.or]: [
-                { city: { [Op.iLike]: `%${location}%` } },
-                { county: { [Op.iLike]: `%${location}%` } },
-                { country: { [Op.iLike]: `%${location}%` } },
+                { city: { [Op.iLike]: `%${safeLocation}%` } },
+                { county: { [Op.iLike]: `%${safeLocation}%` } },
+                { country: { [Op.iLike]: `%${safeLocation}%` } },
               ],
             },
           ],
@@ -1409,10 +1413,11 @@ export class RescueService {
       if (search) {
         // Type assertion needed: Sequelize's types don't support Op.or as index signature
         // This is a valid runtime pattern - Op.or is a symbol used for OR queries
+        const safeSearch = escapeLikePattern(search);
         const orConditions = [
-          { firstName: { [Op.iLike]: `%${search}%` } },
-          { lastName: { [Op.iLike]: `%${search}%` } },
-          { email: { [Op.iLike]: `%${search}%` } },
+          { firstName: { [Op.iLike]: `%${safeSearch}%` } },
+          { lastName: { [Op.iLike]: `%${safeSearch}%` } },
+          { email: { [Op.iLike]: `%${safeSearch}%` } },
         ];
         Object.assign(userWhereConditions, { [Op.or]: orConditions });
       }

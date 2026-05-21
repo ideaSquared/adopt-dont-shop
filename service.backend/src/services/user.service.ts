@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { JsonObject } from '../types/common';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import { validateSortField } from '../utils/sort-validation';
+import { escapeLikePattern } from '../utils/escape-like';
 import Application from '../models/Application';
 import { AuditLog } from '../models/AuditLog';
 import Chat from '../models/Chat';
@@ -367,8 +368,7 @@ export class UserService {
       // Use Op.like for SQLite compatibility (iLike is PostgreSQL-specific)
       // Escape LIKE wildcards to prevent enumeration attacks (%  = any chars, _ = one char)
       if (search) {
-        // Escape wildcard characters by replacing them with literal values
-        const safeTerm = `%${search.replace(/[%_\\]/g, c => `\\${c}`)}%`;
+        const safeTerm = `%${escapeLikePattern(search)}%`;
 
         whereConditions = {
           ...whereConditions,

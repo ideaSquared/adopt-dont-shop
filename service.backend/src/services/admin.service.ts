@@ -9,6 +9,7 @@ import sequelize from '../sequelize';
 import { RescueListResponse, SystemStatistics, UserListResponse } from '../types/admin';
 import { JsonObject } from '../types/common';
 import { logger, loggerHelpers } from '../utils/logger';
+import { escapeLikePattern } from '../utils/escape-like';
 import { safeCsvCell } from '../utils/safe-csv-cell';
 import { AuditLogService } from './auditLog.service';
 import { disconnectAllSockets } from '../socket/socket-registry';
@@ -137,9 +138,9 @@ class AdminService {
       if (search) {
         Object.assign(whereConditions, {
           [Op.or]: [
-            { firstName: { [Op.iLike]: `%${search}%` } },
-            { lastName: { [Op.iLike]: `%${search}%` } },
-            { email: { [Op.iLike]: `%${search}%` } },
+            { firstName: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
+            { lastName: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
+            { email: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
           ],
         });
       }
@@ -453,9 +454,9 @@ class AdminService {
       if (search) {
         Object.assign(whereConditions, {
           [Op.or]: [
-            { name: { [Op.iLike]: `%${search}%` } },
-            { description: { [Op.iLike]: `%${search}%` } },
-            { email: { [Op.iLike]: `%${search}%` } },
+            { name: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
+            { description: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
+            { email: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
           ],
         });
       }

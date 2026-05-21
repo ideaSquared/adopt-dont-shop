@@ -8,6 +8,7 @@ import { Op, QueryTypes, type WhereAttributeHash } from 'sequelize';
 import { Chat, Message, User } from '../models';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
+import { escapeLikePattern } from '../utils/escape-like';
 
 export interface SearchOptions {
   query: string;
@@ -107,7 +108,7 @@ export class MessageSearchService {
       if (searchTerms.length > 0) {
         whereConditions.content = {
           [Op.or]: searchTerms.map(term => ({
-            [Op.iLike]: `%${term}%`,
+            [Op.iLike]: `%${escapeLikePattern(term)}%`,
           })),
         };
       }

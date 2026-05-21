@@ -6,6 +6,7 @@ import { apiLimiter, authLimiter, uploadLimiter } from '../middleware/rate-limit
 import { requireAdmin } from '../middleware/rbac';
 import { HealthCheckService } from '../services/health-check.service';
 import { logger } from '../utils/logger';
+import { escapeLikePattern } from '../utils/escape-like';
 
 const router = Router();
 
@@ -47,7 +48,7 @@ router.get('/api/dev/seeded-users', async (req, res) => {
     andClauses.push({ userType: { [Op.in]: userTypes } });
   }
   if (q) {
-    const like = `%${q}%`;
+    const like = `%${escapeLikePattern(q)}%`;
     andClauses.push({
       [Op.or]: [
         { firstName: { [Op.iLike]: like } },

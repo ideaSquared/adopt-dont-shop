@@ -5,6 +5,7 @@ import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
 import PetMedia, { PetMediaType } from '../models/PetMedia';
 import PetStatusTransition from '../models/PetStatusTransition';
 import { validateSortField } from '../utils/sort-validation';
+import { escapeLikePattern } from '../utils/escape-like';
 import Rescue from '../models/Rescue';
 import UserFavorite from '../models/UserFavorite';
 import Report, { ReportCategory, ReportStatus, ReportSeverity } from '../models/Report';
@@ -88,7 +89,7 @@ const invalidatePetCaches = async (): Promise<void> => {
  */
 const resolveBreedIdsByName = async (name: string): Promise<string[]> => {
   const rows = await Breed.findAll({
-    where: { name: { [getLikeOp()]: `%${name}%` } },
+    where: { name: { [getLikeOp()]: `%${escapeLikePattern(name)}%` } },
     attributes: ['breed_id'],
   });
   // Filter out undefined/null breed_ids defensively. In some integration
@@ -360,10 +361,11 @@ export class PetService {
       // the name / description LIKE clauses.
       if (search) {
         const searchBreedIds = await resolveBreedIdsByName(search);
+        const safeSearch = escapeLikePattern(search);
         const searchConditions: WhereOptions[] = [
-          { name: { [getLikeOp()]: `%${search}%` } },
-          { shortDescription: { [getLikeOp()]: `%${search}%` } },
-          { longDescription: { [getLikeOp()]: `%${search}%` } },
+          { name: { [getLikeOp()]: `%${safeSearch}%` } },
+          { shortDescription: { [getLikeOp()]: `%${safeSearch}%` } },
+          { longDescription: { [getLikeOp()]: `%${safeSearch}%` } },
         ];
         if (searchBreedIds.length > 0) {
           searchConditions.push({ breedId: { [Op.in]: searchBreedIds } });
@@ -1682,7 +1684,7 @@ export class PetService {
         whereClause.energyLevel = energyLevel;
       }
       if (location) {
-        whereClause.location = { [getLikeOp()]: `%${location}%` };
+        whereClause.location = { [getLikeOp()]: `%${escapeLikePattern(location)}%` };
       }
 
       // Numeric range filters. Filter values arrive in major units; the
@@ -1726,10 +1728,11 @@ export class PetService {
       // breed_ids and adds an FK IN-list term.
       if (search) {
         const searchBreedIds = await resolveBreedIdsByName(search);
+        const safeSearch = escapeLikePattern(search);
         const searchOr: WhereOptions[] = [
-          { name: { [getLikeOp()]: `%${search}%` } },
-          { shortDescription: { [getLikeOp()]: `%${search}%` } },
-          { longDescription: { [getLikeOp()]: `%${search}%` } },
+          { name: { [getLikeOp()]: `%${safeSearch}%` } },
+          { shortDescription: { [getLikeOp()]: `%${safeSearch}%` } },
+          { longDescription: { [getLikeOp()]: `%${safeSearch}%` } },
         ];
         if (searchBreedIds.length > 0) {
           searchOr.push({ breedId: { [Op.in]: searchBreedIds } });
