@@ -81,6 +81,10 @@ interface UserAttributes {
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
+  // GDPR phase-1 marker. Set when the user requests erasure (or an
+  // admin triggers it on their behalf). Cleared by the retention
+  // worker when phase-2 anonymization runs. See GdprService.
+  pendingAnonymizationAt?: Date | null;
   country?: string;
   city?: string;
   addressLine1?: string | null;
@@ -155,6 +159,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public createdAt!: Date;
   public updatedAt!: Date;
   public deletedAt!: Date | null;
+  public pendingAnonymizationAt!: Date | null;
   public country!: string;
   public city!: string;
   public addressLine1!: string | null;
@@ -449,6 +454,11 @@ User.init(
     location: {
       type: getGeometryType('POINT'),
       allowNull: true,
+    },
+    pendingAnonymizationAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'pending_anonymization_at',
     },
     // rescueId is intentionally not a DB column — see UserAttributes
     // comment. Sequelize won't persist it, but the model class exposes it
