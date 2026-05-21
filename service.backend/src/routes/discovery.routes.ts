@@ -462,10 +462,9 @@ router.post(
 router.post('/queue', optionalAuth, discoveryController.addToQueue);
 
 // Swipe action routes.
-// optionalAuth attaches `req.user` when a token is present so the anon
-// swipe paywall (ADS-625) can exempt authenticated callers. It is
-// idempotent with respect to the parallel auth fix in
-// `claude/sec-fix-swipe-action-unauth`.
+// optionalAuth attaches `req.user` when a token is present so the controller
+// can attribute the swipe to the authenticated caller (and the anon swipe
+// paywall middleware can exempt authenticated callers).
 router.post(
   '/swipe/action',
   optionalAuth,

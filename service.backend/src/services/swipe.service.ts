@@ -11,7 +11,9 @@ export interface SwipeAction {
   petId: string;
   sessionId: string;
   timestamp: string;
-  userId?: string;
+  // Anonymous swipes pass `null` explicitly so callers can never forge an
+  // attributed userId; the SQL replacement coerces both null/undefined to NULL.
+  userId?: string | null;
 }
 
 export interface SwipeStats {
