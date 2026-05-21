@@ -1020,6 +1020,161 @@ describe('AuthService', () => {
 
       expect(MockedRevokedToken.create).not.toHaveBeenCalled();
     });
+
+    it('writes a LOGOUT audit log entry when the caller is identified', async () => {
+      await AuthService.logout(undefined, undefined, 'user-logout-123', '10.0.0.1', 'TestAgent');
+
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGOUT',
+          userId: 'user-logout-123',
+          entity: 'User',
+          status: 'success',
+          ipAddress: '10.0.0.1',
+          userAgent: 'TestAgent',
+        })
+      );
+    });
+
+    it('does NOT write a LOGOUT audit log entry when no caller userId is supplied', async () => {
+      // Anonymous logout (e.g. token already invalid) — nothing to attribute.
+      await AuthService.logout();
+      expect(MockedAuditLogService.log).not.toHaveBeenCalled();
+    });
+  });
+
+  // Finding #6: forensics — every login attempt and every logout should
+  // produce an audit-log row regardless of outcome, so we can reconstruct
+  // who tried to authenticate, from where, and why it failed.
+  describe('auth event audit logging', () => {
+    const credentials: LoginCredentials = {
+      email: 'forensic@example.com',
+      password: 'Password123!',
+    };
+
+    const buildLoginUser = (overrides: Record<string, unknown> = {}) => ({
+      userId: 'user-forensic',
+      email: credentials.email,
+      password: 'hashedpassword',
+      status: UserStatus.ACTIVE,
+      emailVerified: true,
+      loginAttempts: 0,
+      lockedUntil: null,
+      lastLoginAt: null,
+      twoFactorEnabled: false,
+      userType: UserType.ADOPTER,
+      isAccountLocked: vi.fn().mockReturnValue(false),
+      toJSON: vi.fn().mockReturnValue({
+        userId: 'user-forensic',
+        email: credentials.email,
+        userType: UserType.ADOPTER,
+      }),
+      save: vi.fn(),
+      increment: vi.fn(),
+      reload: vi.fn(),
+      ...overrides,
+    });
+
+    it('writes a LOGIN success audit row with ipAddress and userAgent', async () => {
+      const mockUser = buildLoginUser();
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(mockUser),
+      } as unknown);
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+
+      await AuthService.login(credentials, '203.0.113.5', 'CuriousBrowser/1.0');
+
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN',
+          userId: 'user-forensic',
+          status: 'success',
+          ipAddress: '203.0.113.5',
+          userAgent: 'CuriousBrowser/1.0',
+        })
+      );
+    });
+
+    it('writes a LOGIN_FAILED audit row when the email is not registered', async () => {
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(null),
+      } as unknown);
+
+      await expect(AuthService.login(credentials, '198.51.100.7', 'AttackerAgent')).rejects.toThrow(
+        'Invalid credentials'
+      );
+
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          status: 'failure',
+          ipAddress: '198.51.100.7',
+          userAgent: 'AttackerAgent',
+          details: expect.objectContaining({ reason: 'unknown_email' }),
+        })
+      );
+      // Password must NOT appear anywhere in the audit details.
+      const auditCall = (MockedAuditLogService.log as Mock).mock.calls.find(
+        (c: unknown[]) => (c[0] as { action?: string } | undefined)?.action === 'LOGIN_FAILED'
+      );
+      expect(JSON.stringify(auditCall)).not.toContain(credentials.password);
+    });
+
+    it('writes a LOGIN_FAILED audit row with reason=invalid_password on wrong password', async () => {
+      const mockUser = buildLoginUser();
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(mockUser),
+      } as unknown);
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(false as never);
+
+      await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
+
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          userId: 'user-forensic',
+          status: 'failure',
+          details: expect.objectContaining({ reason: 'invalid_password' }),
+        })
+      );
+    });
+
+    it('writes a LOGIN_FAILED audit row with reason=account_locked', async () => {
+      const mockUser = buildLoginUser({
+        isAccountLocked: vi.fn().mockReturnValue(true),
+      });
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(mockUser),
+      } as unknown);
+
+      await expect(AuthService.login(credentials)).rejects.toThrow(/locked/i);
+
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          userId: 'user-forensic',
+          details: expect.objectContaining({ reason: 'account_locked' }),
+        })
+      );
+    });
+
+    it('writes a LOGIN_FAILED audit row with reason=email_not_verified', async () => {
+      const mockUser = buildLoginUser({ emailVerified: false });
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(mockUser),
+      } as unknown);
+      mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+
+      await expect(AuthService.login(credentials)).rejects.toThrow(/verify your email/i);
+
+      expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'LOGIN_FAILED',
+          userId: 'user-forensic',
+          details: expect.objectContaining({ reason: 'email_not_verified' }),
+        })
+      );
+    });
   });
 
   describe('verifyStepUpCredentials (ADS-592)', () => {
