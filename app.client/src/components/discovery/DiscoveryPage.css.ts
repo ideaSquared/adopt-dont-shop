@@ -247,3 +247,76 @@ export const retryButton = style({
     background: '#45b7b8',
   },
 });
+
+// ADS-630: end-of-queue empty state.
+export const emptyQueueState = style({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '3rem 2rem',
+  textAlign: 'center',
+  background: '#ffffff',
+  border: '1px solid #dee2e6',
+  borderRadius: '12px',
+  margin: '0 1rem',
+});
+
+export const emptyQueueIcon = style({
+  fontSize: '3rem',
+  color: '#4ecdc4',
+  marginBottom: '1rem',
+});
+
+export const emptyQueueTitle = style({
+  fontSize: '1.5rem',
+  fontWeight: 700,
+  color: '#333',
+  margin: '0 0 0.5rem 0',
+});
+
+export const emptyQueueSubtitle = style({
+  fontSize: '1rem',
+  color: '#6c757d',
+  margin: '0 0 1.5rem 0',
+});
+
+export const emptyQueueActions = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.75rem',
+  alignItems: 'center',
+});
+
+export const emptyQueueNotifyButton = style({
+  padding: '0.75rem 1.5rem',
+  background: '#4ecdc4',
+  color: 'white',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontWeight: 600,
+  ':hover': {
+    background: '#45b7b8',
+  },
+});
+
+export const emptyQueueOptedIn = style({
+  padding: '0.75rem 1.5rem',
+  background: '#e9f7f6',
+  color: '#1f7a73',
+  borderRadius: '8px',
+  fontWeight: 600,
+});
+
+export const emptyQueueBrowseLink = style({
+  color: '#4ecdc4',
+  textDecoration: 'underline',
+  fontWeight: 500,
+});
+
+export const emptyQueueError = style({
+  marginTop: '1rem',
+  color: '#e74c3c',
+  fontSize: '0.875rem',
+});
