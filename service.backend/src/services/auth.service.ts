@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { Op, Transaction } from 'sequelize';
+import sequelize from '../sequelize';
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
 import User, { UserStatus, UserType } from '../models/User';
@@ -1183,6 +1184,41 @@ Need help? Contact us at support@adoptdontshop.com
     user: User,
     code: string,
     transaction?: Transaction
+  ): Promise<boolean> {
+    // The login flow loads `user` via SELECT ... FOR UPDATE inside its
+    // own transaction, so concurrent logins for the same account already
+    // serialize and the in-place mutation below is safe. Callers without
+    // a transaction (e.g. step-up auth in user.controller.deleteAccount)
+    // share the same `user` object across parallel requests but hold no
+    // row lock, so two requests can both match and both clear the same
+    // backup code. Wrap that path in its own transaction with a
+    // SELECT ... FOR UPDATE re-read so the second request waits for the
+    // first to commit and then walks the already-consumed list.
+    if (!transaction) {
+      return sequelize.transaction(async tx => {
+        const locked = await User.scope('withSecrets').findByPk(user.userId, {
+          transaction: tx,
+          lock: tx.LOCK.UPDATE,
+        });
+        if (!locked) {
+          return false;
+        }
+        const consumed = await this.consumeBackupCode(locked, code, tx);
+        if (consumed) {
+          // Keep the caller's in-memory user in sync so it observes the
+          // updated list without an extra reload.
+          user.backupCodes = locked.backupCodes;
+        }
+        return consumed;
+      });
+    }
+    return this.consumeBackupCode(user, code, transaction);
+  }
+
+  private static async consumeBackupCode(
+    user: User,
+    code: string,
+    transaction: Transaction
   ): Promise<boolean> {
     if (!user.backupCodes || user.backupCodes.length === 0) {
       return false;
