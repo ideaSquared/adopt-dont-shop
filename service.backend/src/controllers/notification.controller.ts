@@ -5,6 +5,14 @@ import { NotificationService } from '../services/notification.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
+import { parsePaginationLimit } from '../utils/pagination';
+
+/**
+ * Hard cap mirroring the route-level express-validator (max 100). Acts as
+ * defense-in-depth so the service layer always receives a bounded `limit`
+ * even if that validator is later removed or misconfigured.
+ */
+const NOTIFICATION_MAX_LIMIT = 100;
 
 export class NotificationController {
   /**
@@ -20,18 +28,14 @@ export class NotificationController {
       });
     }
 
-    const {
-      page = 1,
-      limit = DEFAULT_PAGE_SIZE,
-      status,
-      type,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC',
-    } = req.query;
+    const { page = 1, status, type, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
 
     const options = {
       page: parseInt(page as string) || 1,
-      limit: parseInt(limit as string) || DEFAULT_PAGE_SIZE,
+      limit: parsePaginationLimit(req.query.limit as string | undefined, {
+        default: DEFAULT_PAGE_SIZE,
+        max: NOTIFICATION_MAX_LIMIT,
+      }),
       status: status as 'unread' | 'read',
       type: type as string,
       sortBy: (sortBy === 'readAt' ? 'read_at' : sortBy === 'createdAt' ? 'created_at' : sortBy) as
