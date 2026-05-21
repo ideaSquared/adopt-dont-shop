@@ -24,7 +24,7 @@ import {
   sensitiveWriteLimiter,
 } from '../middleware/rate-limiter';
 import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
-import { requirePermission } from '../middleware/rbac';
+import { requirePermission, requireRescueTenant } from '../middleware/rbac';
 import { requirePlanFeature } from '../middleware/plan-gate';
 
 const router = Router();
@@ -801,6 +801,7 @@ router.put(
   '/:rescueId',
   validateRescueId,
   validateUpdateRescue,
+  requireRescueTenant(),
   requirePermission('rescues.update'),
   fieldWriteGuard('rescues', { audit: true, resourceIdParam: 'rescueId' }),
   rescueController.updateRescue
@@ -810,6 +811,7 @@ router.patch(
   '/:rescueId',
   validateRescueId,
   validateUpdateRescue,
+  requireRescueTenant(),
   requirePermission('rescues.update'),
   fieldWriteGuard('rescues', { audit: true, resourceIdParam: 'rescueId' }),
   rescueController.updateRescue
@@ -819,6 +821,7 @@ router.patch(
 router.get(
   '/:rescueId/staff',
   validateRescueId,
+  requireRescueTenant(),
   requirePermission('staff.read'),
   rescueController.getRescueStaff
 );
@@ -827,6 +830,7 @@ router.post(
   '/:rescueId/staff',
   validateRescueId,
   validateAddStaff,
+  requireRescueTenant(),
   requirePermission('staff.create'),
   rescueController.addStaffMember
 );
@@ -835,6 +839,7 @@ router.put(
   '/:rescueId/staff/:userId',
   validateRescueAndUser,
   validateBody(z.object({ title: z.string().trim().max(100).optional() })),
+  requireRescueTenant(),
   requirePermission('staff.update'),
   rescueController.updateStaffMember
 );
@@ -842,6 +847,7 @@ router.put(
 router.delete(
   '/:rescueId/staff/:userId',
   validateRescueAndUser,
+  requireRescueTenant(),
   requirePermission('staff.delete'),
   rescueController.removeStaffMember
 );
@@ -852,6 +858,7 @@ router.post(
   invitationSendLimiter,
   validateRescueId,
   validateInviteStaff,
+  requireRescueTenant(),
   requirePermission('staff.create'),
   rescueController.inviteStaffMember
 );
@@ -859,6 +866,7 @@ router.post(
 router.get(
   '/:rescueId/invitations',
   validateRescueId,
+  requireRescueTenant(),
   requirePermission('staff.read'),
   rescueController.getPendingInvitations
 );
@@ -867,6 +875,7 @@ router.delete(
   '/:rescueId/invitations/:invitationId',
   validateRescueId,
   param('invitationId').isInt().withMessage('Invalid invitation ID'),
+  requireRescueTenant(),
   requirePermission('staff.delete'),
   rescueController.cancelInvitation
 );
@@ -875,6 +884,7 @@ router.delete(
 router.get(
   '/:rescueId/analytics',
   validateRescueId,
+  requireRescueTenant(),
   requirePermission('admin.reports'),
   requirePlanFeature('analytics'),
   rescueController.getRescueAnalytics
@@ -885,6 +895,7 @@ router.put(
   '/:rescueId/adoption-policies',
   validateRescueId,
   validateAdoptionPolicy,
+  requireRescueTenant(),
   requirePermission('rescues.update'),
   rescueController.updateAdoptionPolicies
 );
@@ -911,6 +922,7 @@ router.delete(
   sensitiveWriteLimiter,
   validateRescueId,
   validateDeletion,
+  requireRescueTenant(),
   requirePermission('rescues.delete'),
   rescueController.deleteRescue
 );
@@ -932,6 +944,7 @@ router.post(
   '/:rescueId/send-email',
   validateRescueId,
   validateSendEmail,
+  requireRescueTenant(),
   requirePermission('rescues.update'),
   rescueController.sendEmail
 );
@@ -958,6 +971,7 @@ router.post(
   '/:rescueId/questions',
   validateRescueId,
   QuestionController.validateCreateQuestion,
+  requireRescueTenant(),
   requirePermission('rescues.update'),
   requirePlanFeature('custom_questions'),
   questionController.createQuestion.bind(questionController)
@@ -968,6 +982,7 @@ router.put(
   validateRescueId,
   QuestionController.validateQuestionId,
   QuestionController.validateUpdateQuestion,
+  requireRescueTenant(),
   requirePermission('rescues.update'),
   requirePlanFeature('custom_questions'),
   questionController.updateQuestion.bind(questionController)
@@ -977,6 +992,7 @@ router.delete(
   '/:rescueId/questions/:questionId',
   validateRescueId,
   QuestionController.validateQuestionId,
+  requireRescueTenant(),
   requirePermission('rescues.update'),
   requirePlanFeature('custom_questions'),
   questionController.deleteQuestion.bind(questionController)
@@ -986,6 +1002,7 @@ router.patch(
   '/:rescueId/questions/reorder',
   validateRescueId,
   QuestionController.validateReorderQuestions,
+  requireRescueTenant(),
   requirePermission('rescues.update'),
   requirePlanFeature('custom_questions'),
   questionController.reorderQuestions.bind(questionController)

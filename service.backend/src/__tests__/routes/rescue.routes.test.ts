@@ -109,15 +109,23 @@ vi.mock('../../middleware/auth', () => ({
     next(),
 }));
 
-vi.mock('../../middleware/rbac', () => ({
-  requirePermission:
-    (perm: string) => (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
-      requirePermissionMock(perm, req, res, next),
-  requireRole:
-    (..._roles: string[]) =>
-    (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
-      next(),
-}));
+vi.mock('../../middleware/rbac', async () => {
+  // Tenant guard uses the *real* implementation so the cross-tenant tests
+  // exercise actual behaviour rather than a passthrough mock. Permission
+  // and role checks remain mocked so they don't interfere.
+  const actual =
+    await vi.importActual<typeof import('../../middleware/rbac')>('../../middleware/rbac');
+  return {
+    requirePermission:
+      (perm: string) => (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
+        requirePermissionMock(perm, req, res, next),
+    requireRole:
+      (..._roles: string[]) =>
+      (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+        next(),
+    requireRescueTenant: actual.requireRescueTenant,
+  };
+});
 
 import rescueRouter from '../../routes/rescue.routes';
 
@@ -126,7 +134,7 @@ const mockAdminUser = {
   email: 'admin@example.com',
   firstName: 'Admin',
   lastName: 'User',
-  userType: 'ADMIN',
+  userType: 'admin',
   Roles: [
     {
       Permissions: [
@@ -289,6 +297,173 @@ describe('Rescue routes', () => {
 
       expect(res.status).not.toBe(401);
       expect(res.status).not.toBe(403);
+    });
+  });
+
+  // Cross-tenant rescue access — staff of one rescue must not be able to act
+  // on another rescue, even with the relevant `rescues.*` / `staff.*`
+  // permissions. Platform admin / moderator user types bypass.
+  describe('Rescue tenant scoping', () => {
+    const otherRescueId = '22222222-2222-4222-8222-222222222222';
+
+    const staffOfRescueA = {
+      userId: 'staff-uuid-1',
+      email: 'staff@rescue-a.example.com',
+      firstName: 'Staff',
+      lastName: 'A',
+      userType: 'rescue_staff',
+      rescueId,
+      Roles: [
+        {
+          Permissions: [
+            { permissionName: 'rescues.update' },
+            { permissionName: 'rescues.delete' },
+            { permissionName: 'staff.read' },
+            { permissionName: 'staff.create' },
+            { permissionName: 'staff.update' },
+            { permissionName: 'staff.delete' },
+            { permissionName: 'admin.reports' },
+          ],
+        },
+      ],
+    };
+
+    const buildAppAsUser = (user: unknown) => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = user as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+      return buildApp();
+    };
+
+    type TenantEndpoint = {
+      label: string;
+      method: 'put' | 'patch' | 'delete' | 'get' | 'post';
+      path: (id: string) => string;
+      body?: Record<string, unknown>;
+    };
+
+    // Routes covered by requireRescueTenant. Analytics is intentionally
+    // omitted from the same-tenant pass-through assertion because the
+    // downstream requirePlanFeature middleware loads from the DB and is
+    // not mocked here; the tenant guard still runs first so cross-tenant
+    // rejection for analytics is asserted via the explicit case below.
+    const tenantScopedEndpoints: ReadonlyArray<TenantEndpoint> = [
+      {
+        label: 'PUT /:rescueId',
+        method: 'put',
+        path: id => `/api/v1/rescues/${id}`,
+        body: { name: 'New Name' },
+      },
+      {
+        label: 'PATCH /:rescueId',
+        method: 'patch',
+        path: id => `/api/v1/rescues/${id}`,
+        body: { name: 'New Name' },
+      },
+      {
+        label: 'DELETE /:rescueId',
+        method: 'delete',
+        path: id => `/api/v1/rescues/${id}`,
+        body: { reason: 'gone' },
+      },
+      {
+        label: 'GET /:rescueId/staff',
+        method: 'get',
+        path: id => `/api/v1/rescues/${id}/staff`,
+      },
+      {
+        label: 'POST /:rescueId/staff',
+        method: 'post',
+        path: id => `/api/v1/rescues/${id}/staff`,
+        body: { userId: 'u1' },
+      },
+      {
+        label: 'GET /:rescueId/invitations',
+        method: 'get',
+        path: id => `/api/v1/rescues/${id}/invitations`,
+      },
+      {
+        label: 'PUT /:rescueId/adoption-policies',
+        method: 'put',
+        path: id => `/api/v1/rescues/${id}/adoption-policies`,
+        body: { policies: [] },
+      },
+      {
+        label: 'POST /:rescueId/send-email',
+        method: 'post',
+        path: id => `/api/v1/rescues/${id}/send-email`,
+        body: { body: 'hi' },
+      },
+    ];
+
+    const crossTenantOnlyEndpoints: ReadonlyArray<TenantEndpoint> = [
+      ...tenantScopedEndpoints,
+      {
+        label: 'GET /:rescueId/analytics',
+        method: 'get',
+        path: id => `/api/v1/rescues/${id}/analytics`,
+      },
+    ];
+
+    it.each(crossTenantOnlyEndpoints)(
+      'rejects cross-tenant $label with 403 and does not invoke the service',
+      async ({ method, path, body }) => {
+        const { RescueService } = await import('../../services/rescue.service');
+        const app = buildAppAsUser(staffOfRescueA);
+
+        const req = request(app)[method](path(otherRescueId));
+        const res = await (body ? req.send(body) : req.send());
+
+        expect(res.status).toBe(403);
+        // Service must not be invoked when tenant guard rejects — verifies
+        // no data leak / no side effects from the spoofed call.
+        Object.values(RescueService).forEach(fn => {
+          if (typeof fn === 'function' && 'mock' in fn) {
+            expect(fn).not.toHaveBeenCalled();
+          }
+        });
+      }
+    );
+
+    it.each(tenantScopedEndpoints)(
+      'allows same-tenant $label through the tenant guard',
+      async ({ method, path, body }) => {
+        const app = buildAppAsUser(staffOfRescueA);
+        const req = request(app)[method](path(rescueId));
+        const res = await (body ? req.send(body) : req.send());
+
+        // Past the tenant guard — anything beyond is downstream concern.
+        expect(res.status).not.toBe(401);
+        // A 403 here would mean the tenant guard rejected — which it shouldn't.
+        expect(res.status).not.toBe(403);
+      }
+    );
+
+    it('allows platform admin to act cross-tenant', async () => {
+      const app = buildAppAsUser(mockAdminUser);
+      const res = await request(app)
+        .put(`/api/v1/rescues/${otherRescueId}`)
+        .send({ name: 'Admin Edit' });
+
+      expect(res.status).not.toBe(401);
+      expect(res.status).not.toBe(403);
+    });
+
+    it('returns 401 when unauthenticated', async () => {
+      authenticateTokenMock.mockImplementation(
+        (_req: AuthenticatedRequest, res: Response, _next: NextFunction) => {
+          res.status(401).json({ error: 'Authentication required' });
+        }
+      );
+
+      const res = await request(buildApp())
+        .put(`/api/v1/rescues/${otherRescueId}`)
+        .send({ name: 'Anon Edit' });
+
+      expect(res.status).toBe(401);
     });
   });
 });

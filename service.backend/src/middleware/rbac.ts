@@ -119,6 +119,53 @@ export const requirePermissionOrOwnership = (
   };
 };
 
+// Tenant scoping for rescue-owned resources. Permission middleware
+// (requirePermission) only checks that the caller *has* a permission like
+// `rescues.update`; it does not verify the caller belongs to the rescue
+// being acted upon. Without this guard, staff of Rescue A holding
+// `rescues.update` can mutate Rescue B (cross-tenant write). Platform
+// admin / moderator user types bypass — they operate cross-tenant by design.
+export const requireRescueTenant = (rescueIdParam: string = 'rescueId') => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const userType = req.user.userType;
+    const isPlatformAdmin =
+      userType === UserType.ADMIN ||
+      userType === UserType.SUPER_ADMIN ||
+      userType === UserType.MODERATOR;
+
+    if (isPlatformAdmin) {
+      next();
+      return;
+    }
+
+    const targetRescueId = req.params[rescueIdParam];
+    const userRescueId = req.user.rescueId;
+
+    if (userRescueId && targetRescueId && userRescueId === targetRescueId) {
+      next();
+      return;
+    }
+
+    logger.warn('Access denied - rescue tenant mismatch', {
+      userId: req.user.userId,
+      userType,
+      userRescueId,
+      targetRescueId,
+      endpoint: req.path,
+    });
+
+    res.status(403).json({
+      error: 'Access denied',
+      message: 'You do not have access to this rescue',
+    });
+  };
+};
+
 // Admin only access
 export const requireAdmin = requireRole(UserType.ADMIN);
 
@@ -174,6 +221,7 @@ export default {
   requireRole,
   requirePermission,
   requirePermissionOrOwnership,
+  requireRescueTenant,
   requireAdmin,
   requireRescue,
   requireAdminOrRescue,
