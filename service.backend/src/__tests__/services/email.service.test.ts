@@ -299,6 +299,72 @@ describe('EmailService - Real Database Testing', () => {
         ).rejects.toThrow('Template is not active');
       });
     });
+
+    describe('header field sanitisation (defense-in-depth)', () => {
+      // If toName / fromName / subject / replyToEmail are ever sourced from
+      // user-controlled input, a `\r\n` in the value would let an attacker
+      // inject extra headers (CC/BCC/X-headers) into the outbound email.
+      // The strip is done before persisting to the EmailQueue row so the
+      // value handed to any provider — Resend, Postmark, future — is clean.
+      it('strips CR/LF from toName before persisting', async () => {
+        const emailId = await emailService.sendEmail({
+          toEmail: 'user@example.com',
+          toName: 'Alice\r\nBcc: attacker@example.com',
+          subject: 'Hi',
+          htmlContent: '<p>Hi</p>',
+          type: EmailType.TRANSACTIONAL,
+        });
+
+        const queued = await EmailQueue.findByPk(emailId);
+        expect(queued?.toName).toBe('AliceBcc: attacker@example.com');
+        expect(queued?.toName).not.toMatch(/[\r\n]/);
+      });
+
+      it('strips CR/LF from subject', async () => {
+        const emailId = await emailService.sendEmail({
+          toEmail: 'user@example.com',
+          subject: 'Hello\nX-Spoof: yes',
+          htmlContent: '<p>body</p>',
+          type: EmailType.TRANSACTIONAL,
+        });
+
+        const queued = await EmailQueue.findByPk(emailId);
+        expect(queued?.subject).toBe('HelloX-Spoof: yes');
+      });
+
+      it('strips CR/LF from fromName (a *Name field paired with an email)', async () => {
+        // The email address fields are guarded by isEmail at the model
+        // level, but the display-name fields are free-form strings —
+        // they're the realistic header-injection surface.
+        const emailId = await emailService.sendEmail({
+          fromName: 'Sender\r\nName',
+          toEmail: 'user@example.com',
+          subject: 'Hi',
+          htmlContent: '<p>Hi</p>',
+          type: EmailType.TRANSACTIONAL,
+        });
+
+        const queued = await EmailQueue.findByPk(emailId);
+        expect(queued?.fromName).toBe('SenderName');
+        expect(queued?.fromName).not.toMatch(/[\r\n]/);
+      });
+
+      it('does NOT strip newlines from the html or text body', async () => {
+        const html = '<p>line one</p>\n<p>line two</p>';
+        const text = 'line one\nline two';
+        const emailId = await emailService.sendEmail({
+          toEmail: 'user@example.com',
+          subject: 'Hi',
+          htmlContent: html,
+          textContent: text,
+          type: EmailType.TRANSACTIONAL,
+        });
+
+        const queued = await EmailQueue.findByPk(emailId);
+        expect(queued?.htmlContent).toBe(html);
+        expect(queued?.textContent).toBe(text);
+      });
+    });
   });
 
   describe('User email preferences', () => {

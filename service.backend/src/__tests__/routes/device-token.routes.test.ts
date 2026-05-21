@@ -132,6 +132,106 @@ describe('POST /api/v1/device-tokens (ADS-611)', () => {
     expect(res.status).toBe(400);
     expect(mockedDeviceToken.findOrCreate).not.toHaveBeenCalled();
   });
+
+  it('preserves fingerprint metadata when re-registering an existing token', async () => {
+    // Defense-in-depth: if device fingerprinting / trust scoring is ever
+    // added, an attacker must not be able to overwrite the stored
+    // platform / appVersion / deviceInfo on an existing row by simply
+    // re-POSTing the same token with crafted values.
+    authenticateAs('user-1');
+    const existing = makeDeviceTokenRow({
+      platform: 'ios',
+      app_version: '1.0.0',
+      device_info: { model: 'iPhone' },
+    });
+    mockedDeviceToken.findOrCreate.mockResolvedValue([existing, false]);
+
+    const res = await request(buildApp())
+      .post('/api/v1/device-tokens')
+      .send({
+        token: 'fcm-token-abcdef0123',
+        platform: 'android',
+        appVersion: '9.9.9',
+        deviceInfo: { model: 'attacker-device' },
+      });
+
+    expect(res.status).toBe(201);
+    expect(markAsUsed).toHaveBeenCalled();
+    expect(save).toHaveBeenCalled();
+    // Metadata on the existing row must remain untouched.
+    expect(existing.platform).toBe('ios');
+    expect(existing.app_version).toBe('1.0.0');
+    expect(existing.device_info).toEqual({ model: 'iPhone' });
+  });
+
+  it('persists all metadata when a brand-new token is registered', async () => {
+    authenticateAs('user-1');
+    const created = makeDeviceTokenRow({
+      platform: 'android',
+      app_version: '2.0.0',
+      device_info: { model: 'Pixel' },
+    });
+    mockedDeviceToken.findOrCreate.mockResolvedValue([created, true]);
+
+    const res = await request(buildApp())
+      .post('/api/v1/device-tokens')
+      .send({
+        token: 'fcm-token-newdevice0123',
+        platform: 'android',
+        appVersion: '2.0.0',
+        deviceInfo: { model: 'Pixel' },
+      });
+
+    expect(res.status).toBe(201);
+    // defaults: are what created the row, so the row already carries
+    // the submitted metadata — assert the findOrCreate call captured it.
+    expect(mockedDeviceToken.findOrCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        defaults: expect.objectContaining({
+          platform: 'android',
+          app_version: '2.0.0',
+          device_info: { model: 'Pixel' },
+        }),
+      })
+    );
+  });
+
+  it('keeps two different tokens for the same user independent', async () => {
+    authenticateAs('user-1');
+    const rowA = makeDeviceTokenRow({ token_id: 'tok-a', device_token: 'token-a-0123456789' });
+    mockedDeviceToken.findOrCreate.mockResolvedValueOnce([rowA, true]);
+
+    const resA = await request(buildApp()).post('/api/v1/device-tokens').send({
+      token: 'token-a-0123456789',
+      platform: 'ios',
+    });
+    expect(resA.status).toBe(201);
+    expect(resA.body.data.tokenId).toBe('tok-a');
+
+    const rowB = makeDeviceTokenRow({ token_id: 'tok-b', device_token: 'token-b-0123456789' });
+    mockedDeviceToken.findOrCreate.mockResolvedValueOnce([rowB, true]);
+
+    const resB = await request(buildApp()).post('/api/v1/device-tokens').send({
+      token: 'token-b-0123456789',
+      platform: 'android',
+    });
+    expect(resB.status).toBe(201);
+    expect(resB.body.data.tokenId).toBe('tok-b');
+
+    // Each registration is scoped by both user_id AND device_token.
+    expect(mockedDeviceToken.findOrCreate).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: { user_id: 'user-1', device_token: 'token-a-0123456789' },
+      })
+    );
+    expect(mockedDeviceToken.findOrCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: { user_id: 'user-1', device_token: 'token-b-0123456789' },
+      })
+    );
+  });
 });
 
 describe('GET /api/v1/device-tokens (ADS-611)', () => {

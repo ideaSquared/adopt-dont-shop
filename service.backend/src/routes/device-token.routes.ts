@@ -45,14 +45,14 @@ router.post(
         },
       });
 
+      // Defense-in-depth (ADS-611): on re-registration of an EXISTING
+      // token, only bump last-used. Do NOT overwrite platform /
+      // app_version / device_info from the request payload — those
+      // fields are device-fingerprint inputs and any future fraud/
+      // trust-risk scoring must see the original values, not whatever
+      // the latest caller submitted. New tokens get full metadata via
+      // `defaults` above on creation only.
       device.markAsUsed();
-      device.platform = platform;
-      if (appVersion !== undefined) {
-        device.app_version = appVersion;
-      }
-      if (deviceInfo !== undefined) {
-        device.device_info = deviceInfo;
-      }
       await device.save();
 
       return res.status(201).json({ data: { tokenId: device.token_id } });

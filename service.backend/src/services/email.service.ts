@@ -26,6 +26,25 @@ type ProviderInfo = {
   inboxUrl: string;
 } | null;
 
+/**
+ * Defense-in-depth header-injection guard. Any field that ends up in an
+ * email header position (to, from, cc, bcc, replyTo, subject, *Name) is
+ * passed through this before being persisted / handed to the provider.
+ *
+ * Today these values are sourced from trusted internal data, but if any
+ * are ever extended to accept user input (display-name on a profile,
+ * custom subject from an admin tool, etc.) a `\r\n` in the value could
+ * inject additional headers (CC/BCC/X-headers). The underlying provider
+ * SDK probably strips these too, but enforcing it here means we don't
+ * depend on which provider is wired up.
+ *
+ * MUST NOT be applied to the email body — that would corrupt legitimate
+ * line breaks in html/text content.
+ */
+const stripHeaderField = (s: string): string => s.replace(/[\r\n]/g, '');
+const stripHeaderFieldOptional = (s: string | undefined): string | undefined =>
+  typeof s === 'string' ? stripHeaderField(s) : s;
+
 class EmailService {
   private provider: EmailProvider;
   private isProcessing = false;
@@ -479,18 +498,24 @@ class EmailService {
         }
       }
 
+      // Defense-in-depth: strip CR/LF from every field that ends up in
+      // a header position before persisting. See `stripHeaderField` doc
+      // at top of file. Body fields (htmlContent / textContent) MUST
+      // NOT be stripped — legitimate line breaks belong there.
+
       // Create email queue entry
       const email = await EmailQueue.create({
         templateId: options.templateId,
-        fromEmail:
-          options.fromEmail || process.env.DEFAULT_FROM_EMAIL || 'noreply@adoptdontshop.com',
-        fromName: options.fromName || "Adopt Don't Shop",
-        toEmail: options.toEmail,
-        toName: options.toName,
-        ccEmails: options.ccEmails || [],
-        bccEmails: options.bccEmails || [],
-        replyToEmail: options.replyToEmail,
-        subject,
+        fromEmail: stripHeaderField(
+          options.fromEmail || process.env.DEFAULT_FROM_EMAIL || 'noreply@adoptdontshop.com'
+        ),
+        fromName: stripHeaderField(options.fromName || "Adopt Don't Shop"),
+        toEmail: stripHeaderField(options.toEmail),
+        toName: stripHeaderFieldOptional(options.toName),
+        ccEmails: (options.ccEmails || []).map(stripHeaderField),
+        bccEmails: (options.bccEmails || []).map(stripHeaderField),
+        replyToEmail: stripHeaderFieldOptional(options.replyToEmail),
+        subject: stripHeaderField(subject),
         htmlContent,
         textContent,
         templateData: options.templateData || {},
