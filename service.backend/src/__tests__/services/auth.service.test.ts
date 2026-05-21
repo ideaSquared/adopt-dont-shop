@@ -486,6 +486,80 @@ describe('AuthService', () => {
       const authService = new AuthService();
       await expect(authService.requestPasswordReset({ email })).resolves.not.toThrow();
     });
+
+    it('should not include bare resetToken in templateData passed to email service', async () => {
+      const email = 'test@example.com';
+      const mockUser = {
+        userId: 'user-123',
+        email,
+        firstName: 'John',
+        lastName: 'Doe',
+        save: vi.fn(),
+      };
+
+      MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+
+      const sendEmail = vi.fn().mockResolvedValue(undefined);
+      vi.doMock('../../services/email.service', () => ({
+        default: { sendEmail },
+      }));
+
+      const authService = new AuthService();
+      await authService.requestPasswordReset({ email });
+
+      expect(sendEmail).toHaveBeenCalled();
+      const callArgs = sendEmail.mock.calls[0][0];
+      expect(callArgs.templateData).toBeDefined();
+      expect(callArgs.templateData).not.toHaveProperty('resetToken');
+      expect(callArgs.templateData.resetUrl).toEqual(
+        expect.stringContaining('/reset-password?token=')
+      );
+    });
+  });
+
+  describe('confirmPasswordReset (single-use token)', () => {
+    it('only one of two concurrent confirmations with the same token succeeds', async () => {
+      const token = 'shared-reset-token';
+      const mockUser = {
+        userId: 'user-456',
+        email: 'race@example.com',
+        save: vi.fn(),
+      };
+
+      MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+
+      // Atomic single-use claim: the first update affects 1 row, the
+      // second sees 0 rows because the token was already cleared.
+      let callCount = 0;
+      MockedUser.update = vi.fn().mockImplementation(() => {
+        callCount += 1;
+        return Promise.resolve([callCount === 1 ? 1 : 0]);
+      });
+
+      MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
+
+      const authService = new AuthService();
+      const results = await Promise.allSettled([
+        authService.confirmPasswordReset({ token, newPassword: 'NewPassword123!' }),
+        authService.confirmPasswordReset({ token, newPassword: 'NewPassword123!' }),
+      ]);
+
+      const fulfilled = results.filter(r => r.status === 'fulfilled');
+      const rejected = results.filter(r => r.status === 'rejected');
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      const rejectedResult = rejected[0] as PromiseRejectedResult;
+      expect((rejectedResult.reason as Error).message).toMatch(/invalid or expired/i);
+    });
+
+    it('rejects when the token does not match any user', async () => {
+      MockedUser.findOne = vi.fn().mockResolvedValue(null);
+
+      const authService = new AuthService();
+      await expect(
+        authService.confirmPasswordReset({ token: 'bogus', newPassword: 'NewPassword123!' })
+      ).rejects.toThrow(/invalid or expired/i);
+    });
   });
 
   describe('Email Verification Flow', () => {

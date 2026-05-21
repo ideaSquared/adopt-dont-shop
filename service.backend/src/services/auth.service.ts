@@ -565,7 +565,10 @@ Need help? Contact us at support@adoptdontshop.com
           `,
           templateData: {
             firstName: user.firstName,
-            resetToken: resetToken,
+            // Bare resetToken intentionally omitted: the signed resetUrl
+            // already embeds the token, and email-service / queue rows
+            // persist templateData — keeping the raw token here was a
+            // needless secondary copy.
             resetUrl: resetUrl,
             expiresAt: resetExpires.toISOString(),
           },
@@ -597,9 +600,11 @@ Need help? Contact us at support@adoptdontshop.com
    */
   async confirmPasswordReset(data: PasswordResetConfirm) {
     try {
+      const hashedToken = hashToken(data.token);
+
       const user = await User.findOne({
         where: {
-          resetToken: hashToken(data.token),
+          resetToken: hashedToken,
           resetTokenExpiration: {
             [Op.gt]: new Date(),
           },
@@ -610,13 +615,36 @@ Need help? Contact us at support@adoptdontshop.com
         throw new Error('Invalid or expired reset token');
       }
 
-      // Set new password (will be hashed by User model beforeUpdate hook)
-      user.password = data.newPassword;
-      user.resetToken = null;
-      user.resetTokenExpiration = null;
-      user.resetTokenForceFlag = false;
+      // ADS: atomic single-use claim of the reset token. Two concurrent
+      // confirm requests with the same token both pass the findOne above,
+      // but only one can win the conditional UPDATE — the WHERE clause
+      // requires the token to still be present and unexpired, and the
+      // first writer clears it. The loser sees affectedCount === 0 and
+      // falls through to the same "invalid or expired" path as a tampered
+      // token. Password hashing runs via the model's beforeUpdate hook;
+      // individualHooks ensures it fires during bulk update.
+      const [affectedCount] = await User.update(
+        {
+          password: data.newPassword,
+          resetToken: null,
+          resetTokenExpiration: null,
+          resetTokenForceFlag: false,
+        },
+        {
+          where: {
+            userId: user.userId,
+            resetToken: hashedToken,
+            resetTokenExpiration: {
+              [Op.gt]: new Date(),
+            },
+          },
+          individualHooks: true,
+        }
+      );
 
-      await user.save();
+      if (affectedCount === 0) {
+        throw new Error('Invalid or expired reset token');
+      }
 
       const revokedCount = await RefreshToken.update(
         { is_revoked: true },

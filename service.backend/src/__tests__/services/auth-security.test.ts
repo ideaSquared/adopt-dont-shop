@@ -158,6 +158,11 @@ describe('AuthService - Security Business Logic', () => {
     MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
     MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(null);
 
+    // Default User.update mock — atomic password-reset claim returns
+    // affectedCount=1 by default; individual tests can override to assert
+    // the lost-race path.
+    MockedUser.update = vi.fn().mockResolvedValue([1]);
+
     // ADS-169: refreshToken now wraps revoke/rotate in a sequelize
     // transaction. Provide a pass-through so the inner callback runs.
     (MockedRefreshToken as unknown as { sequelize: unknown }).sequelize = {
@@ -1120,12 +1125,19 @@ describe('AuthService - Security Business Logic', () => {
         newPassword: 'NewPassword123!',
       });
 
-      // Then: Password is reset successfully
+      // Then: Password reset succeeds via an atomic UPDATE — the new
+      // password and cleared token fields are written through User.update,
+      // not in-memory mutation + save().
       expect(result.message).toBe('Password reset successfully');
-      expect(mockUser.password).toBe('NewPassword123!');
-      expect(mockUser.resetToken).toBeNull();
-      expect(mockUser.resetTokenExpiration).toBeNull();
-      expect(mockUser.save).toHaveBeenCalled();
+      expect(MockedUser.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          password: 'NewPassword123!',
+          resetToken: null,
+          resetTokenExpiration: null,
+          resetTokenForceFlag: false,
+        }),
+        expect.any(Object)
+      );
     });
 
     it('should clear reset token after successful reset', async () => {
@@ -1146,10 +1158,21 @@ describe('AuthService - Security Business Logic', () => {
         newPassword: 'NewPassword123!',
       });
 
-      // Then: Reset token is cleared
-      expect(mockUser.resetToken).toBeNull();
-      expect(mockUser.resetTokenExpiration).toBeNull();
-      expect(mockUser.resetTokenForceFlag).toBe(false);
+      // Then: The atomic UPDATE both clears the token fields and gates on
+      // the existing token in the WHERE clause — preventing concurrent
+      // reuse of the same token.
+      expect(MockedUser.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          resetToken: null,
+          resetTokenExpiration: null,
+          resetTokenForceFlag: false,
+        }),
+        expect.objectContaining({
+          where: expect.objectContaining({
+            resetToken: expect.any(String),
+          }),
+        })
+      );
     });
 
     it('revokes all active refresh tokens after password reset (ADS-589)', async () => {
