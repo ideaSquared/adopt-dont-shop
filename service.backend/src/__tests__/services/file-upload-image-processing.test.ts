@@ -7,6 +7,7 @@ vi.unmock('fs');
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import * as zlib from 'zlib';
 import sharp from 'sharp';
 
 import { FileUploadService } from '../../services/file-upload.service';
@@ -111,5 +112,105 @@ describe('FileUploadService image processing [ADS-518]', () => {
     // Should remain at the original dimensions.
     expect(meta.width).toBe(800);
     expect(meta.height).toBe(600);
+  });
+});
+
+// Image-bomb DOS guard: a small-on-disk image with extreme decoded
+// dimensions can blow up sharp's memory usage during decode. The fix
+// inspects metadata and refuses any upload whose declared dimensions
+// exceed MAX_IMAGE_DIMENSION before any decode/resize happens.
+describe('FileUploadService image dimension guard (image-bomb DOS)', () => {
+  const TMP_DIR = path.join(os.tmpdir(), `ads-image-bomb-${Date.now()}`);
+  const ORIGINAL_DIR = config.storage.local.directory;
+
+  beforeAll(async () => {
+    await fs.promises.mkdir(TMP_DIR, { recursive: true });
+    config.storage.local.directory = TMP_DIR;
+  });
+
+  afterAll(async () => {
+    config.storage.local.directory = ORIGINAL_DIR;
+    await fs.promises.rm(TMP_DIR, { recursive: true, force: true });
+  });
+
+  // Write a real 1x1 PNG to disk, then rewrite the IHDR width/height bytes
+  // so the PNG header *claims* extreme dimensions. Sharp reads IHDR first;
+  // this is the metadata-spoofed image-bomb pattern. We also recompute the
+  // IHDR CRC32 so sharp's chunk-checksum validation accepts the tampered
+  // header.
+  const writeTamperedPng = async (
+    width: number,
+    height: number,
+    name: string
+  ): Promise<Express.Multer.File> => {
+    const png = await sharp({
+      create: { width: 1, height: 1, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    })
+      .png()
+      .toBuffer();
+    // PNG layout: signature(8) + IHDR_len(4) + IHDR_type(4) + IHDR_data(13) + CRC(4).
+    // IHDR data starts at byte 16; first 8 bytes are width(uint32 BE) + height.
+    png.writeUInt32BE(width, 16);
+    png.writeUInt32BE(height, 20);
+    // Recompute IHDR CRC32 over chunk_type (bytes 12-15) + chunk_data (16-28).
+    const crc = zlib.crc32(png.subarray(12, 29));
+    png.writeUInt32BE(crc, 29);
+
+    const filePath = path.join(TMP_DIR, name);
+    await fs.promises.writeFile(filePath, png);
+
+    return {
+      fieldname: 'file',
+      originalname: name,
+      encoding: '7bit',
+      mimetype: 'image/png',
+      size: png.length,
+      destination: TMP_DIR,
+      filename: name,
+      path: filePath,
+      buffer: Buffer.alloc(0),
+      stream: null as never,
+    };
+  };
+
+  it('rejects a PNG whose declared dimensions are extreme (50000x50000)', async () => {
+    const file = await writeTamperedPng(50000, 50000, `bomb-50k-${Date.now()}.png`);
+
+    await expect(FileUploadService.__assertImageDimensionsForTests(file)).rejects.toThrow();
+  });
+
+  it('rejects a PNG with one dimension just over the cap (8001x100)', async () => {
+    const file = await writeTamperedPng(8001, 100, `bomb-8001x100-${Date.now()}.png`);
+
+    await expect(FileUploadService.__assertImageDimensionsForTests(file)).rejects.toThrow(
+      /dimension/i
+    );
+  });
+
+  it('accepts a PNG under the cap (4000x4000)', async () => {
+    // 4000x4000 is well under the 8000 cap; build a real (untampered) PNG so
+    // sharp can read metadata cleanly.
+    const filename = `ok-4000-${Date.now()}.png`;
+    const filePath = path.join(TMP_DIR, filename);
+    await sharp({
+      create: { width: 4000, height: 4000, channels: 3, background: { r: 10, g: 20, b: 30 } },
+    })
+      .png()
+      .toFile(filePath);
+
+    const file: Express.Multer.File = {
+      fieldname: 'file',
+      originalname: filename,
+      encoding: '7bit',
+      mimetype: 'image/png',
+      size: (await fs.promises.stat(filePath)).size,
+      destination: TMP_DIR,
+      filename,
+      path: filePath,
+      buffer: Buffer.alloc(0),
+      stream: null as never,
+    };
+
+    await expect(FileUploadService.__assertImageDimensionsForTests(file)).resolves.toBeUndefined();
   });
 });
