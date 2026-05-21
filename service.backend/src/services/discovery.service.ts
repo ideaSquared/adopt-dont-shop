@@ -481,6 +481,6 @@ export class DiscoveryService {
    * Generate a unique session ID
    */
   private generateSessionId(): string {
-    return `session_${Date.now()}_${randomBytes(5).toString('hex')}`;
+    return `session_${randomBytes(16).toString('hex')}`;
   }
 }

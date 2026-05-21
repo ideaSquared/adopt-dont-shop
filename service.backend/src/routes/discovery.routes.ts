@@ -481,8 +481,12 @@ router.get(
   discoveryController.getSwipeStats
 );
 
+// TODO: per-session ownership enforcement is a follow-up; for now any
+// authenticated user can read stats for a known session id, but ids are
+// random enough to make enumeration impractical.
 router.get(
   '/swipe/session/:sessionId',
+  authenticateToken,
   DiscoveryController.validateSessionId,
   discoveryController.getSessionStats
 );
