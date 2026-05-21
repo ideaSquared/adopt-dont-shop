@@ -17,6 +17,7 @@ import { SwipeControls } from '../swipe/SwipeControls';
 import { SwipeStack } from '../swipe/SwipeStack';
 import { EndOfQueueEmptyState } from './EndOfQueueEmptyState';
 import { ANON_FIRST_LIKE_FIRED_KEY, AnonymousFirstLikeModal } from './AnonymousFirstLikeModal';
+import { ProfileCompletionMeter } from '../profile/ProfileCompletionMeter';
 
 export const DiscoveryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -243,6 +244,7 @@ export const DiscoveryPage: React.FC = () => {
           onCtaClick={handleAnonModalCta}
         />
       )}
+      <ProfileCompletionMeter />
       <div className={styles.header}>
         <h1 className={styles.title}>Discover Pets</h1>
         <div className={styles.headerActions}>

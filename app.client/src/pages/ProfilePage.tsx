@@ -1,4 +1,9 @@
-import { AdopterProfileSummary, ProfileEditForm, SettingsForm } from '@/components/profile';
+import {
+  AdopterProfileSummary,
+  ProfileCompletionMeter,
+  ProfileEditForm,
+  SettingsForm,
+} from '@/components/profile';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, authService, Application, User } from '@/services';
 import {
@@ -448,6 +453,7 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div className={styles.container}>
+      <ProfileCompletionMeter />
       <div className={styles.header}>
         <h1>My Profile</h1>
         <p>Manage your account, applications, and preferences</p>
