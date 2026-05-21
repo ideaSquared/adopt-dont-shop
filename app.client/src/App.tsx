@@ -7,6 +7,7 @@ import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { MatchAcknowledgementProvider } from '@/contexts/MatchAcknowledgementContext';
 import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppShell } from './components/layout/AppShell';
 import { PublicAuthLayout } from './components/layout/PublicAuthLayout';
@@ -107,81 +108,83 @@ function App() {
         <NotificationsProvider userId={user?.userId}>
           <ChatProvider>
             <FavoritesProvider>
-              <DevLoginPanel />
-              {/* ADS-497 (slice 5): on-page cookie banner. Bottom-anchored, does
+              <MatchAcknowledgementProvider>
+                <DevLoginPanel />
+                {/* ADS-497 (slice 5): on-page cookie banner. Bottom-anchored, does
                   not block the page. Mounted before the modal so the modal
                   renders on top if both ever surface together. */}
-              <CookieBanner />
-              {/* ADS-497 (slice 2): hard-block modal for users whose last
+                <CookieBanner />
+                {/* ADS-497 (slice 2): hard-block modal for users whose last
                   accepted ToS / Privacy version is older than current. */}
-              <LegalReacceptanceModal />
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
-                  <Route element={<PublicAuthLayout />}>
-                    <Route path='/login' element={<LoginPage />} />
-                    <Route path='/register' element={<RegisterPage />} />
-                    <Route path='/verify-email' element={<VerifyEmailPage />} />
-                    <Route path='/check-your-email' element={<CheckYourEmailPage />} />
-                    <Route path='/forgot-password' element={<ForgotPasswordPage />} />
-                    <Route path='/reset-password' element={<ResetPasswordPage />} />
-                  </Route>
+                <LegalReacceptanceModal />
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route element={<PublicAuthLayout />}>
+                      <Route path='/login' element={<LoginPage />} />
+                      <Route path='/register' element={<RegisterPage />} />
+                      <Route path='/verify-email' element={<VerifyEmailPage />} />
+                      <Route path='/check-your-email' element={<CheckYourEmailPage />} />
+                      <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+                      <Route path='/reset-password' element={<ResetPasswordPage />} />
+                    </Route>
 
-                  <Route element={<AppShell />}>
-                    <Route path='/' element={<HomePage />} />
-                    <Route
-                      path='/discover'
-                      element={
-                        <RouteBoundary name='discovery'>
-                          <DiscoveryPage />
-                        </RouteBoundary>
-                      }
-                    />
-                    <Route path='/search' element={<SearchPage />} />
-                    <Route path='/pets/:id' element={<PetDetailsPage />} />
-                    <Route path='/rescues/:id' element={<RescueDetailsPage />} />
-                    <Route
-                      path='/apply/:petId'
-                      element={
-                        <RouteBoundary name='application-form'>
-                          <ApplicationPage />
-                        </RouteBoundary>
-                      }
-                    />
-                    <Route path='/applications' element={<ApplicationDashboard />} />
-                    <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
-                    <Route path='/profile' element={<ProfilePage />} />
-                    <Route path='/favorites' element={<FavoritesPage />} />
-                    <Route path='/match/top-picks' element={<TopPicksPage />} />
-                    <Route path='/match/onboarding' element={<MatchOnboardingPage />} />
-                    <Route path='/onboarding/quiz' element={<OnboardingQuizPage />} />
-                    <Route path='/notifications' element={<NotificationsPage />} />
-                    <Route
-                      path='/chat'
-                      element={
-                        <RouteBoundary name='chat'>
-                          <ChatPage />
-                        </RouteBoundary>
-                      }
-                    />
-                    <Route
-                      path='/chat/:conversationId'
-                      element={
-                        <RouteBoundary name='chat'>
-                          <ChatPage />
-                        </RouteBoundary>
-                      }
-                    />
-                    <Route path='/blog' element={<BlogPage />} />
-                    <Route path='/blog/:slug' element={<BlogPostPage />} />
-                    <Route path='/help' element={<HelpPage />} />
-                    <Route path='/help/:slug' element={<HelpArticlePage />} />
-                    <Route path='/terms' element={<LegalPage slug='terms' />} />
-                    <Route path='/privacy' element={<LegalPage slug='privacy' />} />
-                    {/* ADS-480: 404 catch-all */}
-                    <Route path='*' element={<NotFoundPage />} />
-                  </Route>
-                </Routes>
-              </Suspense>
+                    <Route element={<AppShell />}>
+                      <Route path='/' element={<HomePage />} />
+                      <Route
+                        path='/discover'
+                        element={
+                          <RouteBoundary name='discovery'>
+                            <DiscoveryPage />
+                          </RouteBoundary>
+                        }
+                      />
+                      <Route path='/search' element={<SearchPage />} />
+                      <Route path='/pets/:id' element={<PetDetailsPage />} />
+                      <Route path='/rescues/:id' element={<RescueDetailsPage />} />
+                      <Route
+                        path='/apply/:petId'
+                        element={
+                          <RouteBoundary name='application-form'>
+                            <ApplicationPage />
+                          </RouteBoundary>
+                        }
+                      />
+                      <Route path='/applications' element={<ApplicationDashboard />} />
+                      <Route path='/applications/:id' element={<ApplicationDetailsPage />} />
+                      <Route path='/profile' element={<ProfilePage />} />
+                      <Route path='/favorites' element={<FavoritesPage />} />
+                      <Route path='/match/top-picks' element={<TopPicksPage />} />
+                      <Route path='/match/onboarding' element={<MatchOnboardingPage />} />
+                      <Route path='/onboarding/quiz' element={<OnboardingQuizPage />} />
+                      <Route path='/notifications' element={<NotificationsPage />} />
+                      <Route
+                        path='/chat'
+                        element={
+                          <RouteBoundary name='chat'>
+                            <ChatPage />
+                          </RouteBoundary>
+                        }
+                      />
+                      <Route
+                        path='/chat/:conversationId'
+                        element={
+                          <RouteBoundary name='chat'>
+                            <ChatPage />
+                          </RouteBoundary>
+                        }
+                      />
+                      <Route path='/blog' element={<BlogPage />} />
+                      <Route path='/blog/:slug' element={<BlogPostPage />} />
+                      <Route path='/help' element={<HelpPage />} />
+                      <Route path='/help/:slug' element={<HelpArticlePage />} />
+                      <Route path='/terms' element={<LegalPage slug='terms' />} />
+                      <Route path='/privacy' element={<LegalPage slug='privacy' />} />
+                      {/* ADS-480: 404 catch-all */}
+                      <Route path='*' element={<NotFoundPage />} />
+                    </Route>
+                  </Routes>
+                </Suspense>
+              </MatchAcknowledgementProvider>
             </FavoritesProvider>
           </ChatProvider>
         </NotificationsProvider>
