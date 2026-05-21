@@ -45,7 +45,22 @@ function isRateLimited(socketId: string, event: string, limit: number, windowMs:
 // Zod schemas for socket event payloads
 const JoinChatSchema = z.object({ chatId: z.string().uuid() });
 const LeaveChatSchema = z.object({ chatId: z.string().uuid() });
-const SendMessageSchema = z.object({
+
+// ADS-708: attachment URLs must point at this service's own upload routes.
+// Accepting arbitrary strings let a client paste `https://attacker.example/x`
+// (or `//attacker.example/x`, or even another local route) into a chat
+// message, which the frontend would then render — a stored-link / SSRF
+// vector. Restrict to the canonical upload paths produced by the
+// file-upload service (`/uploads/<category>/<filename>`) or the signed-URL
+// helper (`/uploads-signed/<expiresAt>/<signature>/...`). Anything else,
+// including absolute URLs and protocol-relative URLs, is rejected at the
+// schema level.
+const ATTACHMENT_URL_PATTERN = /^\/uploads(?:-signed)?\/[^\s?#]+$/;
+export const AttachmentUrlSchema = z.string().max(500).regex(ATTACHMENT_URL_PATTERN, {
+  message: 'Attachment URL must be a /uploads/ or /uploads-signed/ path on this server',
+});
+
+export const SendMessageSchema = z.object({
   chatId: z.string().uuid(),
   content: z.string().min(1).max(10_000),
   messageType: z.enum(['text', 'file', 'image']).optional(),
@@ -53,13 +68,7 @@ const SendMessageSchema = z.object({
     .array(
       z.object({
         type: z.string().max(50),
-        // Attachment URLs must be relative paths (no external SSRF vector)
-        url: z
-          .string()
-          .max(500)
-          .refine(u => !u.startsWith('http'), {
-            message: 'Attachment URL must be a relative path',
-          }),
+        url: AttachmentUrlSchema,
         name: z.string().max(255),
         size: z.number().int().nonnegative().optional(),
       })
@@ -90,14 +99,14 @@ interface AuthenticatedSocket extends Socket {
 }
 
 /**
- * ADS-597: per-event re-validation cache. We re-verify the JWT signature
- * and check the RevokedToken table on every inbound event, but bound the
- * DB cost by caching the "still valid" result for a short sliding
- * window. JWT verify is cheap (HMAC) and runs every time; only the
- * RevokedToken DB read is skipped while the window is open.
+ * ADS-708: revocation must be authoritative on every event. The previous
+ * 30s "still valid" cache meant a logged-out user could keep sending
+ * socket events for up to 30s after their token was revoked. We now
+ * query RevokedToken on every inbound event — the table
+ * is keyed by jti (indexed PK) so the read is a single point lookup, and
+ * Socket.IO middleware already serialises per-socket so a chatty client
+ * cannot stack concurrent reads here.
  */
-const REVALIDATE_CACHE_MS = 30_000;
-const socketRevalidateUntil = new Map<string, number>();
 
 /**
  * ADS-597: periodic re-fetch of authoritative auth state. Every
@@ -290,10 +299,11 @@ export class SocketHandlers {
   }
 
   /**
-   * ADS-597: per-event re-validation. JWT verify runs on every event
-   * (cheap); the RevokedToken DB read is gated by a 30s sliding cache so
-   * a chatty client doesn't slam the table. On failure we tear the
-   * socket down so no further events are processed.
+   * ADS-597 / ADS-708: per-event re-validation. JWT verify runs on every
+   * event, and the RevokedToken DB read also runs on every event so a
+   * revoked / logged-out token cannot keep emitting for any window of
+   * time. On failure we tear the socket down so no further events are
+   * processed.
    */
   private installPerEventRevalidation(socket: AuthenticatedSocket) {
     socket.use((_event, next) => {
@@ -313,14 +323,11 @@ export class SocketHandlers {
         return;
       }
 
-      const cachedUntil = socketRevalidateUntil.get(socket.id) ?? 0;
-      if (Date.now() < cachedUntil) {
-        next();
-        return;
-      }
-
       if (!decoded.jti) {
-        socketRevalidateUntil.set(socket.id, Date.now() + REVALIDATE_CACHE_MS);
+        // No jti means we cannot consult the revocation list — accept the
+        // event since the signature already verified. Tokens minted by
+        // this service always carry a jti (see utils/jwt); a missing jti
+        // is only possible on legacy tokens during a deploy.
         next();
         return;
       }
@@ -331,7 +338,6 @@ export class SocketHandlers {
             socket.disconnect(true);
             return;
           }
-          socketRevalidateUntil.set(socket.id, Date.now() + REVALIDATE_CACHE_MS);
           next();
         })
         .catch(err => {
@@ -450,9 +456,12 @@ export class SocketHandlers {
         }
         const { chatId } = parsed.data;
 
-        // Verify user has access to chat before joining
+        // ADS-708: socket.join() MUST NOT run until requireChatAccess
+        // resolves successfully. If the promise rejects, the throw
+        // skips the join and the catch below emits an error to the
+        // client. Do not reorder — a join before the check would put
+        // a non-participant in the room and leak broadcasts.
         await this.requireChatAccess(socket, chatId);
-
         socket.join(`chat:${chatId}`);
         logger.info(`User ${socket.userId} joined chat ${chatId}`);
 
@@ -839,14 +848,13 @@ export class SocketHandlers {
       // Release per-socket rate-limit state
       socketEventTimestamps.delete(socket.id);
 
-      // ADS-597: stop the auth-refresh timer and drop the revalidation
-      // cache entry so they don't leak past the socket lifetime.
+      // ADS-597: stop the auth-refresh timer so it doesn't leak past the
+      // socket lifetime.
       const timer = socketAuthRefreshTimers.get(socket.id);
       if (timer) {
         clearInterval(timer);
         socketAuthRefreshTimers.delete(socket.id);
       }
-      socketRevalidateUntil.delete(socket.id);
     });
   }
 
