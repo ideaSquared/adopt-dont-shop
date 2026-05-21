@@ -509,6 +509,9 @@ describe('Application Submission Workflow Integration Tests', () => {
           rows: mockApplications,
           count: 2,
         } as never);
+        MockedStaffMember.findOne = vi
+          .fn()
+          .mockResolvedValue({ userId: rescueStaffId, rescueId: rescueId, isVerified: true });
 
         const result = await ApplicationService.searchApplications(
           { rescueId: rescueId, status: [ApplicationStatus.SUBMITTED] },

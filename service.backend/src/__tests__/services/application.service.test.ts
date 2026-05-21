@@ -1069,6 +1069,63 @@ describe('ApplicationService - Business Logic', () => {
     });
   });
 
+  describe('Business Rule: Search Tenancy (IDOR)', () => {
+    // Rescue staff must never be able to list another rescue's applications
+    // by supplying ?rescueId=B. The service always derives rescueId from
+    // the caller's verified StaffMember row and ignores filters.rescueId.
+    const mockApplicationRow = () => {
+      const app = createMockApplication();
+      return {
+        ...app,
+        toJSON: vi.fn().mockReturnValue(app),
+        Answers: [],
+      };
+    };
+
+    beforeEach(() => {
+      MockedApplication.findAndCountAll = vi.fn().mockResolvedValue({
+        rows: [mockApplicationRow()],
+        count: 1,
+      });
+    });
+
+    it('forces rescue staff queries to their own rescueId regardless of filter', async () => {
+      MockedStaffMember.findOne = vi.fn().mockResolvedValue({
+        userId: 'staff-A-user',
+        rescueId: 'rescue-A',
+        isVerified: true,
+      });
+
+      await ApplicationService.searchApplications(
+        { rescueId: 'rescue-B' },
+        { page: 1, limit: 10 },
+        'staff-A-user',
+        UserType.RESCUE_STAFF
+      );
+
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ rescueId: 'rescue-A' }),
+        })
+      );
+    });
+
+    it('allows admin to filter by any rescueId', async () => {
+      await ApplicationService.searchApplications(
+        { rescueId: 'rescue-B' },
+        { page: 1, limit: 10 },
+        'admin-user',
+        UserType.ADMIN
+      );
+
+      expect(MockedApplication.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ rescueId: 'rescue-B' }),
+        })
+      );
+    });
+  });
+
   describe('Error Handling', () => {
     it('throws error when application not found', async () => {
       // Given: Application does not exist

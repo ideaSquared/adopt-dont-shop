@@ -38,6 +38,7 @@ vi.mock('../../services/application.service', () => ({
     withdrawApplication: vi.fn(),
     deleteApplication: vi.fn(),
     getApplicationStatistics: vi.fn(),
+    getStaffRescueIdForUser: vi.fn(),
     bulkUpdateApplications: vi.fn(),
     getApplicationHistory: vi.fn(),
     getApplicationFormStructure: vi.fn(),
@@ -52,6 +53,7 @@ vi.mock('../../services/application.service', () => ({
     withdrawApplication: vi.fn(),
     deleteApplication: vi.fn(),
     getApplicationStatistics: vi.fn(),
+    getStaffRescueIdForUser: vi.fn(),
     bulkUpdateApplications: vi.fn(),
     getApplicationHistory: vi.fn(),
     getApplicationFormStructure: vi.fn(),
@@ -110,6 +112,7 @@ vi.mock('../../middleware/rbac', () => ({
 }));
 
 import applicationRouter from '../../routes/application.routes';
+import { ApplicationService } from '../../services/application.service';
 
 const mockAdopterUser = {
   userId: 'adopter-uuid-1',
@@ -125,7 +128,16 @@ const mockRescueStaffUser = {
   email: 'staff@example.com',
   firstName: 'Staff',
   lastName: 'Member',
-  userType: 'RESCUE_STAFF',
+  userType: 'rescue_staff',
+  Roles: [],
+};
+
+const mockAdminUser = {
+  userId: 'admin-uuid-1',
+  email: 'admin@example.com',
+  firstName: 'Admin',
+  lastName: 'User',
+  userType: 'admin',
   Roles: [],
 };
 
@@ -248,6 +260,123 @@ describe('Application routes', () => {
         .send({});
 
       expect(res.status).toBe(422);
+    });
+  });
+
+  describe('GET /api/v1/applications/statistics', () => {
+    const emptyStats = {
+      totalApplications: 0,
+      applicationsByStatus: {},
+      applicationsByPriority: {},
+      averageProcessingTime: 0,
+      approvalRate: 0,
+      rejectionRate: 0,
+      withdrawalRate: 0,
+      applicationsThisMonth: 0,
+      applicationsLastMonth: 0,
+      growthRate: 0,
+      averageScore: 0,
+      pendingApplications: 0,
+      overdueApplications: 0,
+      topRejectionReasons: [],
+      applicationsByRescue: [],
+      applicationsByMonth: [],
+    };
+
+    beforeEach(() => {
+      vi.mocked(ApplicationService.getApplicationStatistics).mockResolvedValue(emptyStats);
+    });
+
+    it('returns 401 when unauthenticated', async () => {
+      authenticateTokenMock.mockImplementation((_req: AuthenticatedRequest, res: Response) => {
+        res.status(401).json({ error: 'Access token required' });
+      });
+
+      const res = await request(buildApp()).get('/api/v1/applications/statistics');
+      expect(res.status).toBe(401);
+      expect(ApplicationService.getApplicationStatistics).not.toHaveBeenCalled();
+    });
+
+    it("scopes statistics to the rescue staff member's own rescue", async () => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockRescueStaffUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+      vi.mocked(ApplicationService.getStaffRescueIdForUser).mockResolvedValue('rescue-A');
+
+      const res = await request(buildApp()).get('/api/v1/applications/statistics');
+
+      expect(res.status).toBe(200);
+      expect(ApplicationService.getStaffRescueIdForUser).toHaveBeenCalledWith(
+        mockRescueStaffUser.userId
+      );
+      expect(ApplicationService.getApplicationStatistics).toHaveBeenCalledWith('rescue-A');
+    });
+
+    it('ignores ?rescueId query overrides from rescue staff', async () => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockRescueStaffUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+      vi.mocked(ApplicationService.getStaffRescueIdForUser).mockResolvedValue('rescue-A');
+
+      const res = await request(buildApp())
+        .get('/api/v1/applications/statistics')
+        .query({ rescueId: 'rescue-B' });
+
+      expect(res.status).toBe(200);
+      expect(ApplicationService.getApplicationStatistics).toHaveBeenCalledWith('rescue-A');
+      expect(ApplicationService.getApplicationStatistics).not.toHaveBeenCalledWith('rescue-B');
+    });
+
+    it('forbids rescue staff who are not linked to a verified rescue', async () => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockRescueStaffUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+      vi.mocked(ApplicationService.getStaffRescueIdForUser).mockResolvedValue(null);
+
+      const res = await request(buildApp()).get('/api/v1/applications/statistics');
+
+      expect(res.status).toBe(403);
+      expect(ApplicationService.getApplicationStatistics).not.toHaveBeenCalled();
+    });
+
+    it('returns global statistics for an admin with no rescueId query', async () => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockAdminUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+
+      const res = await request(buildApp()).get('/api/v1/applications/statistics');
+
+      expect(res.status).toBe(200);
+      expect(ApplicationService.getStaffRescueIdForUser).not.toHaveBeenCalled();
+      expect(ApplicationService.getApplicationStatistics).toHaveBeenCalledWith(undefined);
+    });
+
+    it('lets an admin scope statistics to a specific rescue via ?rescueId', async () => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockAdminUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+
+      const res = await request(buildApp())
+        .get('/api/v1/applications/statistics')
+        .query({ rescueId: 'rescue-B' });
+
+      expect(res.status).toBe(200);
+      expect(ApplicationService.getApplicationStatistics).toHaveBeenCalledWith('rescue-B');
     });
   });
 });

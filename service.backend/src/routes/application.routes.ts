@@ -216,6 +216,95 @@ router.post(
   applicationController.createApplication
 );
 
+// Get application statistics (rescue staff/admin only).
+// IMPORTANT: this route must be registered before GET /:applicationId,
+// otherwise Express resolves /statistics as an applicationId path param
+// and never reaches the statistics handler.
+
+/**
+ * @swagger
+ * /api/v1/applications/statistics:
+ *   get:
+ *     tags: [Application Management]
+ *     summary: Get application statistics
+ *     description: Get statistical data about applications for dashboard and reporting. Only rescue staff and admins can access this data.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: rescueId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter statistics by rescue organization (admin only — staff are always scoped to their own rescue)
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for statistics period
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for statistics period
+ *     responses:
+ *       200:
+ *         description: Application statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 statistics:
+ *                   type: object
+ *                   properties:
+ *                     totalApplications:
+ *                       type: integer
+ *                       description: Total number of applications
+ *                     applicationsByStatus:
+ *                       type: object
+ *                       properties:
+ *                         SUBMITTED:
+ *                           type: integer
+ *                         APPROVED:
+ *                           type: integer
+ *                         REJECTED:
+ *                           type: integer
+ *                         WITHDRAWN:
+ *                           type: integer
+ *                     averageProcessingTime:
+ *                       type: number
+ *                       description: Average time to process applications (in days)
+ *                     approvalRate:
+ *                       type: number
+ *                       description: Percentage of applications approved
+ *                     trendsOverTime:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           date:
+ *                             type: string
+ *                             format: date
+ *                           count:
+ *                             type: integer
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.get(
+  '/statistics',
+  requireRole(UserType.RESCUE_STAFF, UserType.ADMIN),
+  applicationController.getApplicationStatistics
+);
+
 /**
  * @swagger
  * /api/v1/applications/{applicationId}:
@@ -964,92 +1053,6 @@ router.post(
   applicationValidation.validateAnswers,
   handleValidationErrors,
   applicationController.validateApplicationAnswers
-);
-
-// Get application statistics (rescue staff/admin only)
-
-/**
- * @swagger
- * /api/v1/applications/statistics:
- *   get:
- *     tags: [Application Management]
- *     summary: Get application statistics
- *     description: Get statistical data about applications for dashboard and reporting. Only rescue staff and admins can access this data.
- *     security:
- *       - bearerAuth: []
- *       - cookieAuth: []
- *     parameters:
- *       - in: query
- *         name: rescueId
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Filter statistics by rescue organization
- *       - in: query
- *         name: startDate
- *         schema:
- *           type: string
- *           format: date
- *         description: Start date for statistics period
- *       - in: query
- *         name: endDate
- *         schema:
- *           type: string
- *           format: date
- *         description: End date for statistics period
- *     responses:
- *       200:
- *         description: Application statistics retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 statistics:
- *                   type: object
- *                   properties:
- *                     totalApplications:
- *                       type: integer
- *                       description: Total number of applications
- *                     applicationsByStatus:
- *                       type: object
- *                       properties:
- *                         SUBMITTED:
- *                           type: integer
- *                         APPROVED:
- *                           type: integer
- *                         REJECTED:
- *                           type: integer
- *                         WITHDRAWN:
- *                           type: integer
- *                     averageProcessingTime:
- *                       type: number
- *                       description: Average time to process applications (in days)
- *                     approvalRate:
- *                       type: number
- *                       description: Percentage of applications approved
- *                     trendsOverTime:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           date:
- *                             type: string
- *                             format: date
- *                           count:
- *                             type: integer
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- */
-router.get(
-  '/statistics',
-  requireRole(UserType.RESCUE_STAFF, UserType.ADMIN),
-  applicationController.getApplicationStatistics
 );
 
 // Bulk update applications (admin only)

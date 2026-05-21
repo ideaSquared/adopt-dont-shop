@@ -850,8 +850,18 @@ export class ApplicationController extends BaseController {
     const userType = req.user!.userType as UserType;
     const userId = req.user!.userId;
 
+    // Tenancy scoping: rescue staff must never see another rescue's stats.
+    // We always derive rescueId from the verified StaffMember row — any
+    // ?rescueId= query supplied by a staff caller is ignored. Only platform
+    // admins (ADMIN, SUPER_ADMIN, MODERATOR) are permitted to view global
+    // stats or scope to an arbitrary rescue via ?rescueId=.
+    const isPlatformAdmin =
+      userType === UserType.ADMIN ||
+      userType === UserType.SUPER_ADMIN ||
+      userType === UserType.MODERATOR;
+
     let rescueId: string | undefined;
-    if (userType === UserType.ADMIN || userType === UserType.MODERATOR) {
+    if (isPlatformAdmin) {
       rescueId = req.query.rescueId as string | undefined;
     } else {
       const staffRescueId = await ApplicationService.getStaffRescueIdForUser(userId);
