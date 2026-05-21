@@ -578,14 +578,29 @@ describe('AuthService', () => {
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+        MockedUser.update = vi.fn().mockResolvedValue([1]);
         MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
 
         const authService = new AuthService();
-        await authService.verifyEmail(token);
+        const result = await authService.verifyEmail(token);
 
-        expect(mockUser.emailVerified).toBe(true);
-        expect(mockUser.status).toBe(UserStatus.ACTIVE);
-        expect(mockUser.save).toHaveBeenCalled();
+        expect(result).toEqual({ message: 'Email verified successfully' });
+        // The verify flag and status flip via a conditional UPDATE scoped to
+        // emailVerified=false — the race-loser sees affectedCount=0 and
+        // silently no-ops, so we only assert the atomic update was called
+        // with the right WHERE clause.
+        expect(MockedUser.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            emailVerified: true,
+            status: UserStatus.ACTIVE,
+          }),
+          expect.objectContaining({
+            where: expect.objectContaining({
+              userId: mockUser.userId,
+              emailVerified: false,
+            }),
+          })
+        );
         // verificationToken intentionally NOT cleared so duplicate clicks of
         // the same emailed link (StrictMode, retry, back/forward) are
         // idempotent. The token expires naturally; once emailVerified=true,
@@ -644,6 +659,7 @@ describe('AuthService', () => {
         };
 
         MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+        MockedUser.update = vi.fn().mockResolvedValue([1]);
 
         const authService = new AuthService();
         await authService.verifyEmail(token);
@@ -655,6 +671,52 @@ describe('AuthService', () => {
           details: { email: mockUser.email },
           userId: mockUser.userId,
         });
+      });
+
+      it('writes exactly one audit-log entry when two parallel verifications use the same token', async () => {
+        const token = 'shared-verification-token';
+        const mockUser = {
+          userId: 'user-race',
+          email: 'race@example.com',
+          emailVerified: false,
+          status: UserStatus.PENDING_VERIFICATION,
+          verificationToken: token,
+          verificationTokenExpiresAt: new Date(Date.now() + 3600000),
+          save: vi.fn(),
+          increment: vi.fn(),
+          reload: vi.fn(),
+        };
+
+        // Both parallel reads see the same unverified user (the race window).
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+
+        // The conditional UPDATE is scoped to `emailVerified: false`, so only
+        // the first call affects a row; the second sees 0 because the first
+        // already flipped the flag.
+        let updateCount = 0;
+        MockedUser.update = vi.fn().mockImplementation(() => {
+          updateCount += 1;
+          return Promise.resolve([updateCount === 1 ? 1 : 0]);
+        });
+
+        const auditLogSpy = MockedAuditLogService.log as ReturnType<typeof vi.fn>;
+        auditLogSpy.mockClear();
+
+        const authService = new AuthService();
+        const results = await Promise.all([
+          authService.verifyEmail(token),
+          authService.verifyEmail(token),
+        ]);
+
+        // Both calls return success (the loser silently treats the race as
+        // idempotent), but the audit log fires exactly once.
+        expect(results).toHaveLength(2);
+        results.forEach(r => expect(r).toEqual({ message: 'Email verified successfully' }));
+
+        const verificationAudits = auditLogSpy.mock.calls.filter(
+          call => (call[0] as { action: string }).action === 'EMAIL_VERIFICATION'
+        );
+        expect(verificationAudits).toHaveLength(1);
       });
     });
 

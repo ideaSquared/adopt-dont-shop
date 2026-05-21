@@ -793,9 +793,11 @@ Need help? Contact us at support@adoptdontshop.com
    */
   async verifyEmail(token: string) {
     try {
+      const hashedToken = hashToken(token);
+
       const user = await User.findOne({
         where: {
-          verificationToken: hashToken(token),
+          verificationToken: hashedToken,
           verificationTokenExpiresAt: {
             [Op.gt]: new Date(),
           },
@@ -813,16 +815,37 @@ Need help? Contact us at support@adoptdontshop.com
         return { message: 'Email verified successfully' };
       }
 
-      user.emailVerified = true;
-      user.status = UserStatus.ACTIVE;
+      // Atomic single-flip claim. Two concurrent verifyEmail() calls with
+      // the same valid token can both pass the findOne above; without this
+      // conditional UPDATE both would proceed to flip emailVerified and
+      // both would write an EMAIL_VERIFICATION audit entry. By scoping the
+      // UPDATE to rows where emailVerified is still false, only one race
+      // winner sees affectedCount === 1 — the loser falls through to the
+      // idempotent no-op path below (same shape as a duplicate click).
       // Keep verificationToken/expires in place until natural expiry so
-      // duplicate clicks of the same emailed link succeed. The token only
-      // verifies email; once verified, replays are a no-op.
-      await user.save();
+      // legitimate duplicate clicks of the emailed link continue to work.
+      const [affectedCount] = await User.update(
+        {
+          emailVerified: true,
+          status: UserStatus.ACTIVE,
+        },
+        {
+          where: {
+            userId: user.userId,
+            emailVerified: false,
+          },
+        }
+      );
+
+      if (affectedCount === 0) {
+        // Lost the race to a parallel verify; treat as idempotent success.
+        return { message: 'Email verified successfully' };
+      }
 
       logger.info('Email verified', { userId: user.userId });
 
-      // Log email verification
+      // Log email verification — only the race winner reaches this line,
+      // so duplicate audit entries from concurrent requests are impossible.
       await AuditLogService.log({
         action: 'EMAIL_VERIFICATION',
         entity: 'User',
