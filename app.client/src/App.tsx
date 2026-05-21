@@ -46,6 +46,9 @@ const TopPicksPage = lazy(() =>
 const MatchOnboardingPage = lazy(() =>
   import('@/pages/MatchOnboardingPage').then(m => ({ default: m.MatchOnboardingPage }))
 );
+const OnboardingQuizPage = lazy(() =>
+  import('@/pages/OnboardingQuizPage').then(m => ({ default: m.OnboardingQuizPage }))
+);
 const NotificationsPage = lazy(() =>
   import('@/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage }))
 );
@@ -150,6 +153,7 @@ function App() {
                     <Route path='/favorites' element={<FavoritesPage />} />
                     <Route path='/match/top-picks' element={<TopPicksPage />} />
                     <Route path='/match/onboarding' element={<MatchOnboardingPage />} />
+                    <Route path='/onboarding/quiz' element={<OnboardingQuizPage />} />
                     <Route path='/notifications' element={<NotificationsPage />} />
                     <Route
                       path='/chat'
