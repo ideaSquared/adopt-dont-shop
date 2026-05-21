@@ -15,6 +15,8 @@ export { LoginForm } from './components/LoginForm';
 export type { LoginFormProps } from './components/LoginForm';
 export { RegisterForm } from './components/RegisterForm';
 export type { RegisterFormProps } from './components/RegisterForm';
+export { SocialSignInButtons } from './components/SocialSignInButtons';
+export type { SocialSignInButtonsProps, SocialProvider } from './components/SocialSignInButtons';
 export { TwoFactorSettings } from './components/TwoFactorSettings';
 export type { TwoFactorSettingsProps } from './components/TwoFactorSettings';
 

@@ -66,6 +66,15 @@ vi.mock('@adopt-dont-shop/lib.auth', async () => {
   return {
     ...actual,
     useAuth: () => useAuthMock(),
+    // ADS-627 also stub the auth forms so the cookie-banner test's
+    // `initialEntries: ['/login']` doesn't render the real LoginForm —
+    // its relative `../hooks/useAuth` import bypasses the mock above
+    // and demands an AuthProvider. Sibling test files (LoginPage.test,
+    // RegisterPage.test) preload the LoginPage module, so when run
+    // together the lazy <LoginPage /> resolves synchronously and the
+    // form would otherwise crash this suite.
+    LoginForm: () => null,
+    RegisterForm: () => null,
   };
 });
 

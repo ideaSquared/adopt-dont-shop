@@ -1,4 +1,4 @@
-import { AuthLayout, RegisterForm } from '@adopt-dont-shop/lib.auth';
+import { AuthLayout, RegisterForm, SocialSignInButtons } from '@adopt-dont-shop/lib.auth';
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as styles from './RegisterPage.css';
@@ -21,6 +21,7 @@ export const RegisterPage: React.FC = () => {
         </div>
       }
     >
+      <SocialSignInButtons actionLabel='Sign up' />
       <RegisterForm
         onSuccess={handleSuccess}
         requirePhoneNumber={false}
