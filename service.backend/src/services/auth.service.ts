@@ -1248,7 +1248,9 @@ Need help? Contact us at support@adoptdontshop.com
   }
 
   static generateBackupCodes(count = 10): string[] {
-    return Array.from({ length: count }, () => crypto.randomBytes(4).toString('hex'));
+    // 64 bits of entropy per code (16 hex chars). 32 bits is too weak against
+    // offline cracking if the bcrypt-hashed codes ever leak.
+    return Array.from({ length: count }, () => crypto.randomBytes(8).toString('hex'));
   }
 
   static async enableTwoFactor(userId: string, token: string): Promise<{ backupCodes: string[] }> {
