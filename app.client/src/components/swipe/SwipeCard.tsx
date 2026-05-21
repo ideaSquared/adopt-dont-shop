@@ -132,6 +132,19 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
     }
   }, [isTop, pet, logEvent]);
 
+  // ADS-632: log activity-label impressions when the card is on top so
+  // the planned A/B can compare like-rate on cards with vs. without
+  // a label.
+  React.useEffect(() => {
+    if (!isTop || !pet.activityLabel) {
+      return;
+    }
+    logEvent('card_activity_label_shown', 1, {
+      pet_id: pet.petId,
+      label_kind: pet.activityLabel.kind,
+    });
+  }, [isTop, pet.petId, pet.activityLabel, logEvent]);
+
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       if (!isTop) {
@@ -405,6 +418,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         {(pet.isSponsored ||
           !isAuthenticated ||
           matchTier !== null ||
+          pet.activityLabel ||
           (pet.matchReasons && pet.matchReasons.length > 0)) && (
           <div className={styles.topBadges}>
             {!isAuthenticated ? (
@@ -426,6 +440,15 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
             {pet.isSponsored && (
               <span className={styles.topBadge({ variant: 'sponsored' })}>
                 <MdStar /> Featured
+              </span>
+            )}
+            {pet.activityLabel && (
+              <span
+                className={styles.activityLabel}
+                data-testid='activity-label'
+                data-label-kind={pet.activityLabel.kind}
+              >
+                {pet.activityLabel.icon ?? ''} {pet.activityLabel.text}
               </span>
             )}
             {pet.matchReasons && pet.matchReasons.length > 0 && (

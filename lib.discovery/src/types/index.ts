@@ -101,6 +101,14 @@ export interface DiscoveryPet {
     kind: 'pref_match' | 'lifestyle' | 'distance' | 'similar_to_liked' | 'fresh';
     label: string;
   }>;
+  // ADS-632: server-driven activity label. Max one per card. Backend
+  // picks the most relevant one (views > waiting > social-proof,
+  // subject to sample-size threshold for `similar_adopted_fast`).
+  activityLabel?: {
+    kind: 'views_today' | 'days_waiting' | 'similar_adopted_fast';
+    text: string;
+    icon?: string;
+  };
 }
 
 export interface DiscoveryQueue {
