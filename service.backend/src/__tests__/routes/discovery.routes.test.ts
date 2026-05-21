@@ -1,11 +1,11 @@
-import { vi } from 'vitest';
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthenticatedRequest } from '../../types';
 
 vi.mock('../../utils/logger', () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
-  loggerHelpers: { logSecurity: vi.fn() },
+  loggerHelpers: { logSecurity: vi.fn(), logBusiness: vi.fn() },
 }));
 
 vi.mock('../../config/env', () => ({
@@ -17,8 +17,10 @@ vi.mock('../../config/env', () => ({
   },
 }));
 
-const { getDiscoveryQueueMock } = vi.hoisted(() => ({
+const { getDiscoveryQueueMock, recordSwipeActionMock, optionalAuthMock } = vi.hoisted(() => ({
   getDiscoveryQueueMock: vi.fn(),
+  recordSwipeActionMock: vi.fn(),
+  optionalAuthMock: vi.fn(),
 }));
 
 vi.mock('../../services/discovery.service', () => {
@@ -31,7 +33,7 @@ vi.mock('../../services/discovery.service', () => {
 
 vi.mock('../../services/swipe.service', () => {
   class SwipeService {
-    recordSwipeAction = vi.fn();
+    recordSwipeAction = recordSwipeActionMock;
     getUserSwipeStats = vi.fn();
     getSessionStats = vi.fn();
   }
@@ -42,7 +44,6 @@ vi.mock('../../sequelize', () => ({
   default: { query: vi.fn() },
 }));
 
-const optionalAuthMock = vi.fn();
 vi.mock('../../middleware/auth', () => ({
   authenticateToken: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   optionalAuth: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
@@ -51,6 +52,10 @@ vi.mock('../../middleware/auth', () => ({
 
 vi.mock('../../middleware/idempotency', () => ({
   idempotency: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+}));
+
+vi.mock('../../middleware/anon-swipe-limit', () => ({
+  anonSwipeLimit: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
 import discoveryRouter from '../../routes/discovery.routes';
@@ -161,5 +166,71 @@ describe('Discovery routes - user id binding (security)', () => {
       const [, , passedUserId] = getDiscoveryQueueMock.mock.calls[0];
       expect(passedUserId).toBeUndefined();
     });
+  });
+});
+
+const validSwipeBody = {
+  action: 'like' as const,
+  petId: 'pet-123',
+  sessionId: 'session-abc',
+  timestamp: '2026-05-21T12:00:00.000Z',
+};
+
+describe('POST /api/v1/discovery/swipe/action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    recordSwipeActionMock.mockResolvedValue(undefined);
+    optionalAuthMock.mockImplementation(
+      (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
+    );
+  });
+
+  it('records anonymous swipes with userId=null and still returns 200', async () => {
+    const res = await request(buildApp())
+      .post('/api/v1/discovery/swipe/action')
+      .send(validSwipeBody);
+
+    expect(res.status).toBe(200);
+    expect(recordSwipeActionMock).toHaveBeenCalledTimes(1);
+    const persisted = recordSwipeActionMock.mock.calls[0][0];
+    expect(persisted.userId).toBeNull();
+    expect(persisted.petId).toBe(validSwipeBody.petId);
+    expect(persisted.action).toBe(validSwipeBody.action);
+  });
+
+  it('persists the authenticated userId, ignoring any userId in the body (IDOR guard)', async () => {
+    const authedUserId = 'auth-user-real-id';
+    const victimUserId = 'victim-user-other-id';
+
+    optionalAuthMock.mockImplementationOnce(
+      (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+        req.user = { userId: authedUserId } as AuthenticatedRequest['user'];
+        next();
+      }
+    );
+
+    const res = await request(buildApp())
+      .post('/api/v1/discovery/swipe/action')
+      .send({ ...validSwipeBody, userId: victimUserId });
+
+    expect(res.status).toBe(200);
+    expect(recordSwipeActionMock).toHaveBeenCalledTimes(1);
+    const persisted = recordSwipeActionMock.mock.calls[0][0];
+    expect(persisted.userId).toBe(authedUserId);
+    expect(persisted.userId).not.toBe(victimUserId);
+  });
+
+  it('ignores body userId for anonymous callers (cannot forge userId without auth)', async () => {
+    const forgedUserId = 'forged-victim-id';
+
+    const res = await request(buildApp())
+      .post('/api/v1/discovery/swipe/action')
+      .send({ ...validSwipeBody, userId: forgedUserId });
+
+    expect(res.status).toBe(200);
+    expect(recordSwipeActionMock).toHaveBeenCalledTimes(1);
+    const persisted = recordSwipeActionMock.mock.calls[0][0];
+    expect(persisted.userId).toBeNull();
+    expect(persisted.userId).not.toBe(forgedUserId);
   });
 });

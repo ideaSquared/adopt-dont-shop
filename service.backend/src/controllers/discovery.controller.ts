@@ -148,12 +148,16 @@ export class DiscoveryController {
       });
     }
 
+    // SECURITY: derive userId exclusively from the authenticated session. A
+    // body-supplied userId would let an unauthenticated caller attribute
+    // swipes to any victim, polluting their like/pass history and
+    // recommendation signals. Anonymous swipes record userId=null.
     const swipeAction = {
       action: req.body.action,
       petId: req.body.petId,
       sessionId: req.body.sessionId,
       timestamp: req.body.timestamp,
-      userId: req.body.userId, // Optional
+      userId: req.user?.userId ?? null,
     };
 
     await this.swipeService.recordSwipeAction(swipeAction);
