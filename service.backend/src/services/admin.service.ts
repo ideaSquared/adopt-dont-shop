@@ -9,6 +9,7 @@ import sequelize from '../sequelize';
 import { RescueListResponse, SystemStatistics, UserListResponse } from '../types/admin';
 import { JsonObject } from '../types/common';
 import { logger, loggerHelpers } from '../utils/logger';
+import { safeCsvCell } from '../utils/safe-csv-cell';
 import { AuditLogService } from './auditLog.service';
 import { disconnectAllSockets } from '../socket/socket-registry';
 
@@ -37,12 +38,15 @@ const EXPORT_QUERY_OPTIONS: Record<
 
 const toPlainRow = (row: Model): ExportableRow => row.toJSON() as ExportableRow;
 
-/** CSV-escape a single cell. */
+/**
+ * CSV-escape a single cell.
+ *
+ * Neutralizes leading formula triggers (=, +, -, @, \t, \r) via `safeCsvCell`
+ * BEFORE applying RFC 4180 quoting, so that opening the export in Excel /
+ * Sheets cannot evaluate user-controlled strings as formulas.
+ */
 const csvEscape = (value: unknown): string => {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  const str = safeCsvCell(value);
   if (/[",\n\r]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }
