@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { QueryTypes } from 'sequelize';
 import { DiscoveryController } from '../controllers/discovery.controller';
+import { anonSwipeLimit } from '../middleware/anon-swipe-limit';
 import { authenticateToken, optionalAuth } from '../middleware/auth';
 import { idempotency } from '../middleware/idempotency';
 import sequelize from '../sequelize';
@@ -460,9 +461,15 @@ router.post(
 // present, while anonymous browse still works.
 router.post('/queue', optionalAuth, discoveryController.addToQueue);
 
-// Swipe action routes
+// Swipe action routes.
+// optionalAuth attaches `req.user` when a token is present so the anon
+// swipe paywall (ADS-625) can exempt authenticated callers. It is
+// idempotent with respect to the parallel auth fix in
+// `claude/sec-fix-swipe-action-unauth`.
 router.post(
   '/swipe/action',
+  optionalAuth,
+  anonSwipeLimit,
   idempotency,
   DiscoveryController.validateSwipeAction,
   discoveryController.recordSwipeAction
