@@ -394,7 +394,7 @@ router.post(
  *       409:
  *         description: Email already verified
  */
-router.post('/verify-email', AuthController.verifyEmail);
+router.post('/verify-email', authLimiter, AuthController.verifyEmail);
 
 /**
  * @swagger
