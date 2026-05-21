@@ -43,7 +43,7 @@ services:
       - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-devredispassword}
+    command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required (run `npm run secrets:generate` or copy .env.example)}"
 
   # ============================================================================
   # BACKEND SERVICE
@@ -91,10 +91,10 @@ services:
       # from the discrete vars so existing per-component overrides still work.
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-devredispassword}
-      REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD:-devredispassword}@${REDIS_HOST:-redis}:${REDIS_PORT:-6379}}
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}"
+      REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD}@${REDIS_HOST:-redis}:${REDIS_PORT:-6379}}
       # Security - JWT tokens (REQUIRED)
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET required}"
       JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
@@ -108,7 +108,7 @@ services:
       # URL the user clicks in verification / password-reset emails.
       # Default to app.client (3000); override per-env.
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5000}
+      CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required (set to comma-separated allowed origins, e.g. http://localhost:3000,http://localhost:3001,http://localhost:3002)}"
       # File watching for hot reload (critical for Windows/Docker)
       CHOKIDAR_USEPOLLING: true
       CHOKIDAR_INTERVAL: 1000
