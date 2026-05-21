@@ -1,8 +1,10 @@
 import { Router, type Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
+import { requireRole } from '../middleware/rbac';
 import fosterService from '../services/foster.service';
 import { FosterPlacementStatus } from '../models/FosterPlacement';
+import { UserType } from '../models/User';
 import type { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 
@@ -10,11 +12,18 @@ const router = Router();
 
 router.use(authenticateToken);
 
+const ADMIN_USER_TYPES = [UserType.ADMIN, UserType.SUPER_ADMIN];
+const FOSTER_ROUTE_USER_TYPES = [...ADMIN_USER_TYPES, UserType.RESCUE_STAFF];
+
 const isAdmin = (req: AuthenticatedRequest): boolean => {
-  const role = req.user?.userType;
-  return role === 'admin' || role === 'super_admin';
+  const role = req.user?.userType as UserType | undefined;
+  return role !== undefined && ADMIN_USER_TYPES.includes(role);
 };
 
+// Per-record scoping check. Distinct from the route-level `requireRole`
+// guard: that filters out roles entirely, this one decides whether an
+// already-authorised caller may operate on a *specific* placement based
+// on its rescueId.
 const rescueScopeOrAdmin = (req: AuthenticatedRequest, rescueId: string): boolean => {
   if (isAdmin(req)) {
     return true;
@@ -24,6 +33,7 @@ const rescueScopeOrAdmin = (req: AuthenticatedRequest, rescueId: string): boolea
 
 router.post(
   '/placements',
+  requireRole(...FOSTER_ROUTE_USER_TYPES),
   [
     body('petId').isUUID(),
     body('fosterUserId').isUUID(),
@@ -65,6 +75,7 @@ router.post(
 
 router.get(
   '/placements',
+  requireRole(...FOSTER_ROUTE_USER_TYPES),
   [
     query('rescueId').optional().isUUID(),
     query('fosterUserId').optional().isUUID(),
@@ -105,6 +116,7 @@ router.get(
 
 router.get(
   '/placements/:id',
+  requireRole(...FOSTER_ROUTE_USER_TYPES),
   [param('id').isUUID()],
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -124,6 +136,7 @@ router.get(
 
 router.post(
   '/placements/:id/end',
+  requireRole(...FOSTER_ROUTE_USER_TYPES),
   [
     param('id').isUUID(),
     body('outcome').isIn(['return_to_rescue', 'adopted_by_foster', 'cancelled']),
