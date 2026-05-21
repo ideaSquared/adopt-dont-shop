@@ -102,6 +102,10 @@ describe('Authentication Flow Integration Tests', () => {
     MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
     MockedRefreshToken.findByPk = vi.fn().mockResolvedValue(null);
 
+    // Default User.update — atomic password-reset claim returns
+    // affectedCount=1 by default.
+    MockedUser.update = vi.fn().mockResolvedValue([1]);
+
     const mockTransaction = {
       commit: vi.fn().mockResolvedValue(undefined),
       rollback: vi.fn().mockResolvedValue(undefined),
@@ -1091,11 +1095,18 @@ describe('Authentication Flow Integration Tests', () => {
 
         const result = await authService.confirmPasswordReset(confirmData);
 
-        expect(mockUser.password).toBe(newPassword);
-        expect(mockUser.resetToken).toBe(null);
-        expect(mockUser.resetTokenExpiration).toBe(null);
-        expect(mockUser.resetTokenForceFlag).toBe(false);
-        expect(mockUser.save).toHaveBeenCalled();
+        // The atomic claim writes the new password and clears reset state
+        // via User.update — the in-memory user instance is no longer
+        // mutated directly.
+        expect(MockedUser.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            password: newPassword,
+            resetToken: null,
+            resetTokenExpiration: null,
+            resetTokenForceFlag: false,
+          }),
+          expect.any(Object)
+        );
         expect(result.message).toBe('Password reset successfully');
       });
 
@@ -1161,7 +1172,10 @@ describe('Authentication Flow Integration Tests', () => {
 
         await authService.confirmPasswordReset(confirmData);
 
-        expect(mockUser.resetTokenForceFlag).toBe(false);
+        expect(MockedUser.update).toHaveBeenCalledWith(
+          expect.objectContaining({ resetTokenForceFlag: false }),
+          expect.any(Object)
+        );
       });
 
       it('should find user by token and expiration correctly', async () => {
@@ -1181,7 +1195,7 @@ describe('Authentication Flow Integration Tests', () => {
 
         expect(MockedUser.findOne).toHaveBeenCalledWith({
           where: {
-            resetToken,
+            resetToken: expect.any(String),
             resetTokenExpiration: {
               [Op.gt]: expect.any(Date),
             },
@@ -1332,8 +1346,12 @@ describe('Authentication Flow Integration Tests', () => {
 
         await authService.confirmPasswordReset({ token: resetToken, newPassword });
 
-        expect(mockUserWithResetToken.password).toBe(newPassword);
-        expect(mockUserWithResetToken.resetToken).toBe(null);
+        // The atomic claim writes through User.update rather than mutating
+        // the in-memory user; assert via the call args.
+        expect(MockedUser.update).toHaveBeenCalledWith(
+          expect.objectContaining({ password: newPassword, resetToken: null }),
+          expect.any(Object)
+        );
 
         // Step 3: Login with new password
         const mockUserForLogin = createMockUser({
