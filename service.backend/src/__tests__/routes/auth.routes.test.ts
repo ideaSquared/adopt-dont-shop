@@ -247,6 +247,64 @@ describe('Auth routes', () => {
 
       expect(res.status).toBe(401);
     });
+
+    // ADS-547: CSRF session-fixation hardening — the per-browser identifier
+    // cookie (csrf-session in dev / __Host-csrf-session in prod) MUST be
+    // rotated on the auth state transition, so an attacker who pre-planted
+    // a value the victim's browser already carries cannot replay a token
+    // bound to it. The same rotation also covers 2FA-gated logins because
+    // AuthService.login verifies the 2FA token before returning success.
+    it('rotates the CSRF session cookie on successful login', async () => {
+      mockLogin.mockResolvedValue({
+        message: 'Login successful',
+        token: 'access-token',
+        refreshToken: 'refresh-token',
+        user: mockUser,
+      });
+
+      const res = await request(buildApp())
+        .post('/api/v1/auth/login')
+        .set('Cookie', 'csrf-session=attacker-planted-id')
+        .send(validBody);
+
+      expect(res.status).toBe(200);
+      const setCookieHeader = res.headers['set-cookie'];
+      const cookies = Array.isArray(setCookieHeader)
+        ? setCookieHeader
+        : setCookieHeader
+          ? [setCookieHeader]
+          : [];
+
+      // Two csrf-session entries: the clear (empty value, past expiry) and
+      // the freshly minted one (non-empty value, non-zero maxAge).
+      const csrfSessionCookies = cookies.filter((c: string) => c.startsWith('csrf-session='));
+      expect(csrfSessionCookies.length).toBeGreaterThanOrEqual(2);
+
+      const newSessionCookie = csrfSessionCookies.find(
+        (c: string) => !c.startsWith('csrf-session=;')
+      );
+      expect(newSessionCookie).toBeDefined();
+      // The rotated value must NOT match what the attacker planted.
+      expect(newSessionCookie).not.toContain('attacker-planted-id');
+    });
+
+    it('does not rotate the CSRF session cookie on failed login', async () => {
+      mockLogin.mockRejectedValue(new Error('Invalid credentials'));
+
+      const res = await request(buildApp())
+        .post('/api/v1/auth/login')
+        .set('Cookie', 'csrf-session=attacker-planted-id')
+        .send(validBody);
+
+      expect(res.status).toBe(401);
+      const setCookieHeader = res.headers['set-cookie'];
+      const cookies = Array.isArray(setCookieHeader)
+        ? setCookieHeader
+        : setCookieHeader
+          ? [setCookieHeader]
+          : [];
+      expect(cookies.some((c: string) => c.startsWith('csrf-session='))).toBe(false);
+    });
   });
 
   describe('POST /api/v1/auth/logout', () => {
@@ -264,6 +322,26 @@ describe('Auth routes', () => {
       // real DB but auth is not the failure mode under test here.
       const res = await request(buildApp()).post('/api/v1/auth/logout');
       expect(res.status).not.toBe(401);
+    });
+
+    // ADS-547: logout must also clear the CSRF session identifier cookie so
+    // a subsequent anonymous request mints a fresh one rather than reusing
+    // the identifier bound to the now-terminated authenticated session.
+    it('clears the CSRF session cookie on logout', async () => {
+      const res = await request(buildApp())
+        .post('/api/v1/auth/logout')
+        .set('Cookie', 'csrf-session=prior-session-id')
+        .send({ refreshToken: 'placeholder' });
+
+      const setCookieHeader = res.headers['set-cookie'];
+      const cookies = Array.isArray(setCookieHeader)
+        ? setCookieHeader
+        : setCookieHeader
+          ? [setCookieHeader]
+          : [];
+      // A cleared cookie is expressed as `name=; Expires=...` — value empty.
+      const csrfSessionClear = cookies.find((c: string) => c.startsWith('csrf-session=;'));
+      expect(csrfSessionClear).toBeDefined();
     });
   });
 

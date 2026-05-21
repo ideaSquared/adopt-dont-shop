@@ -9,11 +9,13 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // ADS-546: per-browser session identifier cookie. Set the first time we see
 // a request without a userId or an existing session cookie; rotated by the
-// auth flow on login (handled in csrfErrorHandler / login controller —
-// future hardening). `__Host-` prefix in prod pins the cookie to the
-// current host with no Domain attribute, blocking subdomain CSRF.
-const CSRF_SESSION_COOKIE = isProduction ? '__Host-csrf-session' : 'csrf-session';
-const CSRF_SESSION_COOKIE_OPTIONS = {
+// auth flow on every authentication state transition (see
+// rotateCsrfSessionCookie / clearCsrfSessionCookie, called from the login
+// and logout controllers) to defeat CSRF-token session fixation. `__Host-`
+// prefix in prod pins the cookie to the current host with no Domain
+// attribute, blocking subdomain CSRF.
+export const CSRF_SESSION_COOKIE = isProduction ? '__Host-csrf-session' : 'csrf-session';
+export const CSRF_SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProduction,
   sameSite: 'strict' as const,
@@ -150,6 +152,26 @@ export const getCsrfToken = (req: Request, res: Response): void => {
     logger.error('Failed to generate CSRF token', { error });
     throw error;
   }
+};
+
+/**
+ * Rotate the CSRF session identifier cookie. Called on every authentication
+ * state transition (login success, 2FA verification success) to invalidate
+ * any attacker-planted pre-existing session id and prevent CSRF-token
+ * session fixation against the freshly-authenticated user.
+ */
+export const rotateCsrfSessionCookie = (res: Response): void => {
+  res.clearCookie(CSRF_SESSION_COOKIE, CSRF_SESSION_COOKIE_OPTIONS);
+  res.cookie(CSRF_SESSION_COOKIE, randomUUID(), CSRF_SESSION_COOKIE_OPTIONS);
+};
+
+/**
+ * Clear the CSRF session identifier cookie. Called on logout so the next
+ * anonymous request mints a fresh identifier rather than reusing one tied
+ * to the previous authenticated session.
+ */
+export const clearCsrfSessionCookie = (res: Response): void => {
+  res.clearCookie(CSRF_SESSION_COOKIE, CSRF_SESSION_COOKIE_OPTIONS);
 };
 
 /**
