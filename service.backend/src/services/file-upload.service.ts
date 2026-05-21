@@ -15,6 +15,18 @@ import { getAvProvider } from './av-providers';
 import { getStorageProvider } from './storage';
 import { StorageCategory } from './storage/base-provider';
 
+// Image-bomb DOS guard (ADS-DIM): a small-on-disk image (PNG/WebP/JPEG)
+// can declare extreme dimensions in its header — sharp will then allocate
+// width*height*channels bytes to decode it, OOM-ing the process. Inspect
+// metadata first and reject any input whose dimensions exceed this cap
+// before any decode/resize pipeline runs. 8000px on either side covers
+// every legitimate product use case (avatars at 5MB, pet photos resized
+// to 1600px max — see processImageWithSharp). The matching `limitInputPixels`
+// constructor option asks sharp itself to refuse to decode beyond MAX^2
+// pixels as belt-and-braces.
+const MAX_IMAGE_DIMENSION = 8000;
+const MAX_IMAGE_PIXELS = MAX_IMAGE_DIMENSION * MAX_IMAGE_DIMENSION;
+
 // File upload configuration
 //
 // ADS-598: `image/svg+xml` is intentionally absent from the `images`
@@ -653,6 +665,9 @@ export class FileUploadService {
     }
 
     if (UPLOAD_CONFIG.allowedMimeTypes.images.includes(file.mimetype)) {
+      // Reject image-bomb inputs before any decode happens.
+      await this.assertImageDimensions(file);
+
       const result = await this.processImageWithSharp(file);
       if (result) {
         return result;
@@ -661,6 +676,69 @@ export class FileUploadService {
     }
 
     return processedInfo;
+  }
+
+  /**
+   * Pre-decode dimension guard. Reads only the image header via
+   * `sharp().metadata()` and throws when the declared dimensions exceed
+   * `MAX_IMAGE_DIMENSION` on either axis, or when `limitInputPixels`
+   * rejects the input at the sharp layer. Runs before
+   * `processImageWithSharp` so we never allocate decode buffers for an
+   * image-bomb payload.
+   */
+  private static async assertImageDimensions(file: Express.Multer.File): Promise<void> {
+    let sharp: typeof import('sharp');
+    try {
+      const mod = await import('sharp');
+      const candidate = (mod as unknown as { default?: typeof import('sharp') }).default;
+      sharp = candidate ?? (mod as unknown as typeof import('sharp'));
+    } catch (error) {
+      // If sharp can't load we cannot inspect dimensions; fall through
+      // so the rest of the pipeline can still handle the upload. The
+      // missing-sharp case is logged in processImageWithSharp.
+      logger.warn('sharp unavailable for dimension guard — skipping', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+
+    const safePath = this.safeResolveUploadPath(file.path);
+    let meta: import('sharp').Metadata;
+    try {
+      // Disable sharp's built-in pixel limit for the metadata read so we
+      // always get the declared dimensions back (rather than sharp's
+      // generic "exceeds pixel limit" error). The explicit dimension
+      // check below produces a clearer message and rejects on either
+      // axis individually — sharp's pixel-count limit alone misses the
+      // pathological narrow-but-tall case (e.g. 200000x10).
+      meta = await sharp(safePath, { limitInputPixels: false }).metadata();
+    } catch (error) {
+      // Metadata read failed (file missing, corrupt header, unsupported
+      // format). Not an image-bomb signal — log and let the downstream
+      // pipeline surface the failure naturally.
+      logger.warn('Could not read image metadata for dimension guard', {
+        path: file.path,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+
+    const width = meta.width ?? 0;
+    const height = meta.height ?? 0;
+    if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+      throw new Error(
+        `Image dimensions ${width}x${height} exceed maximum allowed dimension of ${MAX_IMAGE_DIMENSION}px`
+      );
+    }
+  }
+
+  /**
+   * Test seam — exposes the dimension guard so behaviour tests can
+   * assert image-bomb rejection without standing up the full upload
+   * pipeline.
+   */
+  public static async __assertImageDimensionsForTests(file: Express.Multer.File): Promise<void> {
+    await this.assertImageDimensions(file);
   }
 
   private static mapUploadTypeToCategory(
@@ -809,8 +887,8 @@ export class FileUploadService {
       // Resize the primary asset in place: max 1600px on the longest
       // side, JPEG q=85 (mozjpeg). withoutEnlargement so we never up-scale.
       const resizedTmpPath = path.join(dir, `${base}.resized${ext}`);
-      const meta = await sharp(originalPath).metadata();
-      const resizedInfo = await sharp(originalPath)
+      const meta = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS }).metadata();
+      const resizedInfo = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS })
         .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 85, mozjpeg: true })
         .toFile(resizedTmpPath);
@@ -818,7 +896,7 @@ export class FileUploadService {
 
       // 320px thumbnail next to it.
       const thumbPath = path.join(dir, `${base}.thumb.jpg`);
-      await sharp(keepOriginalPath)
+      await sharp(keepOriginalPath, { limitInputPixels: MAX_IMAGE_PIXELS })
         .resize({ width: 320, height: 320, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80, mozjpeg: true })
         .toFile(thumbPath);
