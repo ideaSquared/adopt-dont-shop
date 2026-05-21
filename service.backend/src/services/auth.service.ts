@@ -25,6 +25,7 @@ import {
   RegisterData,
   RegisterResponse,
 } from '../types';
+import { JsonObject } from '../types/common';
 
 export class AuthService {
   private static readonly JWT_SECRET = env.JWT_SECRET;
@@ -179,7 +180,48 @@ export class AuthService {
     }
   }
 
-  static async login(credentials: LoginCredentials, ipAddress?: string): Promise<AuthResponse> {
+  /**
+   * Best-effort write to AuditLogService for an auth event. Failures must
+   * never block the auth flow (the throw / response path runs after) — a
+   * full DB outage during login should not turn into a 500 just because
+   * audit insertion failed. Mirrors the same pattern used elsewhere for
+   * non-critical observability writes.
+   */
+  private static async writeAuthAudit(data: {
+    action: string;
+    userId?: string;
+    entityId?: string;
+    status?: 'success' | 'failure';
+    level?: 'INFO' | 'WARNING' | 'ERROR';
+    ipAddress?: string;
+    userAgent?: string;
+    details?: JsonObject;
+  }): Promise<void> {
+    try {
+      await AuditLogService.log({
+        action: data.action,
+        entity: 'User',
+        entityId: data.entityId ?? data.userId ?? 'unknown',
+        userId: data.userId ?? '',
+        status: data.status,
+        level: data.level,
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
+        details: data.details,
+      });
+    } catch (auditError) {
+      logger.error('Failed to write auth audit log', {
+        action: data.action,
+        error: auditError instanceof Error ? auditError.message : String(auditError),
+      });
+    }
+  }
+
+  static async login(
+    credentials: LoginCredentials,
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<AuthResponse> {
     try {
       // Wrap lock-check + counter increment in a transaction with SELECT FOR UPDATE so
       // concurrent failed logins cannot both read the row before either writes, which
@@ -212,6 +254,17 @@ export class AuthService {
             email: redactEmail(credentials.email),
             ipAddress,
           });
+          await this.writeAuthAudit({
+            action: 'LOGIN_FAILED',
+            status: 'failure',
+            level: 'WARNING',
+            ipAddress,
+            userAgent,
+            details: {
+              email: redactEmail(credentials.email),
+              reason: 'unknown_email',
+            },
+          });
           throw new Error('Invalid credentials');
         }
 
@@ -220,6 +273,15 @@ export class AuthService {
           loggerHelpers.logSecurity('Login attempt on locked account', {
             userId: user.userId,
             ipAddress,
+          });
+          await this.writeAuthAudit({
+            action: 'LOGIN_FAILED',
+            userId: user.userId,
+            status: 'failure',
+            level: 'WARNING',
+            ipAddress,
+            userAgent,
+            details: { reason: 'account_locked' },
           });
           throw new Error('Account is temporarily locked. Please try again later.');
         }
@@ -240,12 +302,33 @@ export class AuthService {
           }
 
           await transaction.commit();
+          await this.writeAuthAudit({
+            action: 'LOGIN_FAILED',
+            userId: user.userId,
+            status: 'failure',
+            level: 'WARNING',
+            ipAddress,
+            userAgent,
+            details: {
+              reason: 'invalid_password',
+              loginAttempts: user.loginAttempts,
+            },
+          });
           throw new Error('Invalid credentials');
         }
 
         // Check if email is verified
         if (!user.emailVerified) {
           await transaction.rollback();
+          await this.writeAuthAudit({
+            action: 'LOGIN_FAILED',
+            userId: user.userId,
+            status: 'failure',
+            level: 'WARNING',
+            ipAddress,
+            userAgent,
+            details: { reason: 'email_not_verified' },
+          });
           throw new Error('Please verify your email before logging in');
         }
 
@@ -253,6 +336,15 @@ export class AuthService {
         if (user.twoFactorEnabled) {
           if (!credentials.twoFactorToken) {
             await transaction.rollback();
+            await this.writeAuthAudit({
+              action: 'LOGIN_FAILED',
+              userId: user.userId,
+              status: 'failure',
+              level: 'WARNING',
+              ipAddress,
+              userAgent,
+              details: { reason: 'two_factor_required' },
+            });
             throw new Error('Two-factor authentication code required');
           }
 
@@ -266,6 +358,15 @@ export class AuthService {
             loggerHelpers.logSecurity('Invalid 2FA token', {
               userId: user.userId,
               ipAddress,
+            });
+            await this.writeAuthAudit({
+              action: 'LOGIN_FAILED',
+              userId: user.userId,
+              status: 'failure',
+              level: 'WARNING',
+              ipAddress,
+              userAgent,
+              details: { reason: 'invalid_two_factor' },
             });
             throw new Error('Invalid two-factor authentication code');
           }
@@ -297,6 +398,9 @@ export class AuthService {
         entityId: loggedInUser.userId,
         details: { email: loggedInUser.email },
         userId: loggedInUser.userId,
+        status: 'success',
+        ipAddress,
+        userAgent,
       });
 
       loggerHelpers.logAuth('User logged in', {
@@ -737,7 +841,9 @@ Need help? Contact us at support@adoptdontshop.com
   static async logout(
     refreshToken?: string,
     accessToken?: string,
-    callerUserId?: string
+    callerUserId?: string,
+    ipAddress?: string,
+    userAgent?: string
   ): Promise<void> {
     if (accessToken) {
       try {
@@ -782,6 +888,15 @@ Need help? Contact us at support@adoptdontshop.com
       if (callerUserId) {
         invalidateAuthCache(callerUserId);
       }
+      if (callerUserId) {
+        await this.writeAuthAudit({
+          action: 'LOGOUT',
+          userId: callerUserId,
+          status: 'success',
+          ipAddress,
+          userAgent,
+        });
+      }
       return;
     }
 
@@ -804,6 +919,13 @@ Need help? Contact us at support@adoptdontshop.com
     if (callerUserId) {
       invalidateAuthCache(callerUserId);
       disconnectAllSockets(callerUserId);
+      await this.writeAuthAudit({
+        action: 'LOGOUT',
+        userId: callerUserId,
+        status: 'success',
+        ipAddress,
+        userAgent,
+      });
     }
   }
 

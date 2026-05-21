@@ -36,6 +36,26 @@ export enum ApplicationOutcome {
   WITHDRAWN = 'withdrawn',
 }
 
+// Single source of truth for the application status state machine.
+// Used by the canTransitionTo instance method (service-layer guard)
+// and the beforeUpdate hook (model-layer invariant).
+export const isValidTransition = (
+  fromStatus: ApplicationStatus,
+  toStatus: ApplicationStatus
+): boolean => {
+  const validTransitions: Record<ApplicationStatus, ApplicationStatus[]> = {
+    [ApplicationStatus.SUBMITTED]: [
+      ApplicationStatus.APPROVED,
+      ApplicationStatus.REJECTED,
+      ApplicationStatus.WITHDRAWN,
+    ],
+    [ApplicationStatus.APPROVED]: [],
+    [ApplicationStatus.REJECTED]: [],
+    [ApplicationStatus.WITHDRAWN]: [],
+  };
+  return validTransitions[fromStatus]?.includes(toStatus) || false;
+};
+
 interface ApplicationAttributes {
   applicationId: string;
   userId: string;
@@ -166,19 +186,7 @@ class Application
 
   // Workflow management methods for small charities
   public canTransitionTo(newStatus: ApplicationStatus): boolean {
-    // Simple workflow: applications start SUBMITTED and can go to any final state
-    const validTransitions: Record<ApplicationStatus, ApplicationStatus[]> = {
-      [ApplicationStatus.SUBMITTED]: [
-        ApplicationStatus.APPROVED,
-        ApplicationStatus.REJECTED,
-        ApplicationStatus.WITHDRAWN,
-      ],
-      [ApplicationStatus.APPROVED]: [],
-      [ApplicationStatus.REJECTED]: [],
-      [ApplicationStatus.WITHDRAWN]: [],
-    };
-
-    return validTransitions[this.status]?.includes(newStatus) || false;
+    return isValidTransition(this.status, newStatus);
   }
 
   public isInProgress(): boolean {
@@ -563,6 +571,41 @@ Application.init(
           const expiryDate = new Date();
           expiryDate.setDate(expiryDate.getDate() + 30);
           application.expiresAt = expiryDate;
+        }
+      },
+      // ADS-security: enforce the application status state machine at the
+      // model layer. The service layer's updateApplicationStatus already
+      // calls canTransitionTo(), but the model-layer invariant catches
+      // any future caller that bypasses that path (e.g. a new endpoint
+      // that calls instance.update({ status }) directly) and prevents
+      // illegal jumps like SUBMITTED -> APPROVED with no intermediate
+      // service-layer check.
+      //
+      // Limitation: beforeUpdate is per-instance and does NOT fire for
+      // Application.update({ status }, { where }) bulk-update calls
+      // unless `individualHooks: true` is passed. The two existing
+      // bulk-update callers in application.service.ts (home-visit
+      // scheduling and outcome propagation) are still constrained by
+      // surrounding service logic; the hook closes the door on
+      // *future* per-instance callers.
+      beforeUpdate: (application: Application) => {
+        if (!application.changed('status')) {
+          return;
+        }
+        const previousStatus = application.previous('status') as ApplicationStatus | undefined;
+        const newStatus = application.status;
+        // First-write or hydration with no prior status: not a transition.
+        if (!previousStatus) {
+          return;
+        }
+        // Idempotent no-op writes (status -> same status) are allowed.
+        if (previousStatus === newStatus) {
+          return;
+        }
+        if (!isValidTransition(previousStatus, newStatus)) {
+          throw new Error(
+            `Invalid application status transition: ${previousStatus} -> ${newStatus}`
+          );
         }
       },
     },

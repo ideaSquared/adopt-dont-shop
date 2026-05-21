@@ -79,7 +79,7 @@ export class AuthController {
    */
   async login(req: Request, res: Response): Promise<void> {
     try {
-      const result = await AuthService.login(req.body);
+      const result = await AuthService.login(req.body, req.ip, req.get('user-agent'));
 
       res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
       res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
@@ -117,7 +117,13 @@ export class AuthController {
     const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] ?? req.body.refreshToken;
     const accessToken = req.headers.authorization?.split(' ')[1];
 
-    await AuthService.logout(refreshToken, accessToken, req.user?.userId);
+    await AuthService.logout(
+      refreshToken,
+      accessToken,
+      req.user?.userId,
+      req.ip,
+      req.get('user-agent')
+    );
 
     res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
     res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);

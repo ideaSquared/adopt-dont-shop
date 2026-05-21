@@ -462,7 +462,7 @@ export class UserController {
       // Revoke tokens before destroying the user so any race with a parallel
       // request sees the revocation. AuthService.logout is best-effort and
       // does not throw on missing/invalid tokens.
-      await AuthService.logout(refreshToken, accessToken, userId);
+      await AuthService.logout(refreshToken, accessToken, userId, req.ip, req.get('user-agent'));
 
       await UserService.deleteAccount(userId, reason);
 

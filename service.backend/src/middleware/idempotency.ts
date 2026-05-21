@@ -46,7 +46,13 @@ export const idempotency = async (
   const userId = req.user?.userId ?? null;
 
   try {
-    const cached = await IdempotencyKey.findOne({ where: { key_hash: keyHash, endpoint } });
+    // ADS-security: scope lookup by user_id symmetrically with the write
+    // path below. Without this, user A's cached response could be
+    // replayed to user B if B happened to send the same client-supplied
+    // Idempotency-Key — a PII leak.
+    const cached = await IdempotencyKey.findOne({
+      where: { key_hash: keyHash, endpoint, user_id: userId },
+    });
     if (cached) {
       if (cached.expires_at.getTime() > Date.now()) {
         res.status(cached.response_status).json(cached.response_body);

@@ -86,6 +86,26 @@ interface ConversationSearchOptions {
   sortOrder?: 'ASC' | 'DESC';
 }
 
+/**
+ * Placeholder content shown in place of messages whose author has been
+ * soft-deleted (paranoid User row with deleted_at set). The Message and
+ * Chat tables are not paranoid, so the rows remain for audit purposes —
+ * but content must not survive the author's GDPR-driven deletion.
+ *
+ * The check is "Sender association resolved to null", which lines up
+ * naturally with Sequelize's paranoid default: a belongsTo include to a
+ * paranoid User model excludes soft-deleted rows from the join, leaving
+ * Sender === null on the loaded Message instance.
+ */
+const DELETED_SENDER_CONTENT_PLACEHOLDER = '[Message from deleted user]';
+
+const isSenderDeleted = (msg: { Sender?: unknown } | null | undefined): boolean => {
+  if (!msg) {
+    return false;
+  }
+  return msg.Sender === null || msg.Sender === undefined;
+};
+
 export class ChatService {
   /**
    * Helper function to convert attachments from frontend format to backend format
@@ -323,6 +343,19 @@ export class ChatService {
 
       if (chat) {
         await this.requireChatParticipant(chatId, userId, isAdmin, userRescueId);
+      }
+
+      // GDPR / privacy: messages whose Sender resolves to null are from
+      // soft-deleted users (User is paranoid; the join filters them out).
+      // Hide their content before returning the Chat to the client.
+      if (chat && Array.isArray((chat as Chat & { Messages?: Message[] }).Messages)) {
+        const messages = (chat as Chat & { Messages?: Message[] }).Messages ?? [];
+        for (const msg of messages) {
+          if (isSenderDeleted(msg)) {
+            msg.content = DELETED_SENDER_CONTENT_PLACEHOLDER;
+            msg.attachments = [];
+          }
+        }
       }
 
       loggerHelpers.logDatabase('READ', {
@@ -954,24 +987,34 @@ export class ChatService {
       // toFrontendMessage helper reads msg.Sender to produce the
       // frontend-facing senderName. Dropping it here was why every
       // message arrived on the client as "Unknown User".
-      const transformedMessages = messages.map(msg => ({
-        message_id: msg.message_id,
-        chat_id: msg.chat_id,
-        sender_id: msg.sender_id,
-        content: msg.content,
-        content_format: msg.content_format,
-        type: 'text' as MessageType, // Default to 'text' type
-        attachments: (msg.attachments || []).map(att => ({
-          id: att.attachment_id,
-          filename: att.filename,
-          url: att.url,
-          mimeType: att.mimeType,
-          size: att.size,
-        })),
-        created_at: msg.createdAt ? msg.createdAt.toISOString() : new Date(0).toISOString(),
-        updated_at: msg.updatedAt ? msg.updatedAt.toISOString() : new Date(0).toISOString(),
-        Sender: msg.Sender,
-      })) as unknown as ChatMessage[];
+      //
+      // Messages whose Sender resolves to null are from soft-deleted users
+      // (User is paranoid: true; the join filters deleted_at IS NOT NULL).
+      // GDPR / privacy: hide their content and attachments — the row
+      // stays for audit but the body is no longer disclosed.
+      const transformedMessages = messages.map(msg => {
+        const senderDeleted = isSenderDeleted(msg);
+        return {
+          message_id: msg.message_id,
+          chat_id: msg.chat_id,
+          sender_id: msg.sender_id,
+          content: senderDeleted ? DELETED_SENDER_CONTENT_PLACEHOLDER : msg.content,
+          content_format: msg.content_format,
+          type: 'text' as MessageType, // Default to 'text' type
+          attachments: senderDeleted
+            ? []
+            : (msg.attachments || []).map(att => ({
+                id: att.attachment_id,
+                filename: att.filename,
+                url: att.url,
+                mimeType: att.mimeType,
+                size: att.size,
+              })),
+          created_at: msg.createdAt ? msg.createdAt.toISOString() : new Date(0).toISOString(),
+          updated_at: msg.updatedAt ? msg.updatedAt.toISOString() : new Date(0).toISOString(),
+          Sender: msg.Sender,
+        };
+      }) as unknown as ChatMessage[];
 
       return {
         messages: transformedMessages,

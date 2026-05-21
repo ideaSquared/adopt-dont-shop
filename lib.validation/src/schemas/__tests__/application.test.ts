@@ -96,6 +96,58 @@ describe('Application schemas', () => {
         CreateApplicationRequestSchema.parse({ ...valid, priority: 'critical' })
       ).toThrow();
     });
+
+    describe('answers payload caps (DoS protection)', () => {
+      it('accepts an empty answers object', () => {
+        expect(() => CreateApplicationRequestSchema.parse({ ...valid, answers: {} })).not.toThrow();
+      });
+
+      it('accepts up to 100 keys', () => {
+        const answers = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`k${i}`, 'v']));
+        expect(() => CreateApplicationRequestSchema.parse({ ...valid, answers })).not.toThrow();
+      });
+
+      it('rejects more than 100 keys', () => {
+        const answers = Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`k${i}`, 'v']));
+        expect(() => CreateApplicationRequestSchema.parse({ ...valid, answers })).toThrow();
+      });
+
+      it('rejects a string value longer than 10,000 chars', () => {
+        expect(() =>
+          CreateApplicationRequestSchema.parse({
+            ...valid,
+            answers: { essay: 'x'.repeat(10_001) },
+          })
+        ).toThrow();
+      });
+
+      it('accepts a string value at the 10,000 char limit', () => {
+        expect(() =>
+          CreateApplicationRequestSchema.parse({
+            ...valid,
+            answers: { essay: 'x'.repeat(10_000) },
+          })
+        ).not.toThrow();
+      });
+
+      it('rejects nested string values longer than 10,000 chars', () => {
+        expect(() =>
+          CreateApplicationRequestSchema.parse({
+            ...valid,
+            answers: { nested: { deep: 'x'.repeat(10_001) } },
+          })
+        ).toThrow();
+      });
+
+      it('rejects a stringified payload over 100KB', () => {
+        // 60 keys * ~2,000 chars each = ~120KB stringified, but each
+        // individual value stays within the per-string cap.
+        const answers = Object.fromEntries(
+          Array.from({ length: 60 }, (_, i) => [`k${i}`, 'x'.repeat(2_000)])
+        );
+        expect(() => CreateApplicationRequestSchema.parse({ ...valid, answers })).toThrow();
+      });
+    });
   });
 
   describe('UpdateApplicationRequestSchema', () => {

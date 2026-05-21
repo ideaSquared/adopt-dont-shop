@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { PetId, RescueId } from '@adopt-dont-shop/lib.types';
+import { boundedRecord } from './bounded-record';
 
 /**
  * Canonical Zod schemas for the Pet domain.
@@ -298,7 +299,14 @@ export type BulkPetOperationType = z.infer<typeof BulkPetOperationTypeSchema>;
 export const BulkPetOperationRequestSchema = z.object({
   petIds: z.array(z.string().trim().min(1)).min(1, 'At least one pet ID is required'),
   operation: BulkPetOperationTypeSchema,
-  data: z.record(z.string(), z.unknown()).optional(),
+  // Free-form per-operation payload persisted to JSONB. Caps protect
+  // against DoS via unbounded payloads: max 200 top-level keys, 5,000
+  // chars per string value, 100KB total stringified size.
+  data: boundedRecord({
+    maxKeys: 200,
+    maxStringLength: 5_000,
+    maxPayloadBytes: 100_000,
+  }).optional(),
   reason: z.string().trim().max(500).optional(),
 });
 export type BulkPetOperationRequest = z.infer<typeof BulkPetOperationRequestSchema>;

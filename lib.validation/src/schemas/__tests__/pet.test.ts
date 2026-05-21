@@ -218,5 +218,39 @@ describe('Pet schemas', () => {
         BulkPetOperationRequestSchema.parse({ petIds: ['x'], operation: 'destroy' })
       ).toThrow();
     });
+
+    describe('data payload caps (DoS protection)', () => {
+      const base = { petIds: ['pet-1'], operation: 'update_status' as const };
+
+      it('accepts an empty data object', () => {
+        expect(() => BulkPetOperationRequestSchema.parse({ ...base, data: {} })).not.toThrow();
+      });
+
+      it('accepts up to 200 keys', () => {
+        const data = Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`k${i}`, 'v']));
+        expect(() => BulkPetOperationRequestSchema.parse({ ...base, data })).not.toThrow();
+      });
+
+      it('rejects more than 200 keys', () => {
+        const data = Object.fromEntries(Array.from({ length: 201 }, (_, i) => [`k${i}`, 'v']));
+        expect(() => BulkPetOperationRequestSchema.parse({ ...base, data })).toThrow();
+      });
+
+      it('rejects a string value longer than 5,000 chars', () => {
+        expect(() =>
+          BulkPetOperationRequestSchema.parse({
+            ...base,
+            data: { description: 'x'.repeat(5_001) },
+          })
+        ).toThrow();
+      });
+
+      it('rejects a stringified payload over 100KB', () => {
+        const data = Object.fromEntries(
+          Array.from({ length: 50 }, (_, i) => [`k${i}`, 'x'.repeat(2_500)])
+        );
+        expect(() => BulkPetOperationRequestSchema.parse({ ...base, data })).toThrow();
+      });
+    });
   });
 });
