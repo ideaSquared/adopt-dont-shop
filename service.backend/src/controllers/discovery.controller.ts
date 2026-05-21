@@ -90,10 +90,10 @@ export class DiscoveryController {
       default: DEFAULT_PAGE_SIZE,
       max: MAX_PAGE_SIZE,
     });
-    // Authenticated user takes precedence so personalised matching engages
-    // even when the client omits the query param. Explicit `?userId=` still
-    // wins (admin / debug surfaces).
-    const userId = (req.query.userId as string | undefined) ?? req.user?.userId;
+    // Always bind to the authenticated user — never trust a client-supplied
+    // userId. Allowing `?userId=` to override would let an attacker probe a
+    // victim's personalised re-ranking as a preference oracle.
+    const userId = req.user?.userId;
 
     const discoveryQueue = await this.discoveryService.getDiscoveryQueue(filters, limit, userId);
 
@@ -232,20 +232,15 @@ export class DiscoveryController {
       return;
     }
 
-    const {
-      filters = {},
-      userId: bodyUserId,
-      limit = 20,
-    } = req.body as {
+    const { filters = {}, limit = 20 } = req.body as {
       filters?: DiscoveryFilters;
-      userId?: string;
       limit?: number;
     };
 
-    // Prefer the authenticated user over a body-supplied id so personalised
-    // matching kicks in even when the client doesn't plumb the id through.
-    // Body still wins when present (admin tools / debug flows).
-    const userId = bodyUserId ?? req.user?.userId;
+    // Always bind to the authenticated user — never trust a client-supplied
+    // userId. Allowing the body to override would let an attacker probe a
+    // victim's personalised re-ranking as a preference oracle.
+    const userId = req.user?.userId;
 
     logger.info('Discovery queue request received', {
       service: 'discovery',
