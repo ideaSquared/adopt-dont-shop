@@ -61,8 +61,13 @@ vi.mock('../../services/user.service', () => ({
   },
 }));
 
+const authLimiterImpl = vi.hoisted(() => ({
+  current: (_req: unknown, _res: unknown, next: () => void): void => next(),
+}));
+
 vi.mock('../../middleware/rate-limiter', () => ({
-  authLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  authLimiter: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
+    authLimiterImpl.current(req, res, next),
   passwordResetLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   twoFactorLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   generalLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
@@ -315,6 +320,45 @@ describe('Auth routes', () => {
       const res = await request(buildApp()).post('/api/v1/auth/verify-email').send({});
 
       expect(res.status).toBe(400);
+    });
+
+    it('applies the auth IP rate limiter so the endpoint cannot be brute-forced', async () => {
+      // Swap the shared authLimiter mock for a counter that 429s after N
+      // calls. This verifies the /verify-email route is actually wired to
+      // authLimiter (otherwise the counter is never incremented and the
+      // limit never fires).
+      const MAX = 5;
+      let calls = 0;
+      authLimiterImpl.current = (
+        _req: AuthenticatedRequest,
+        res: Response,
+        next: NextFunction
+      ): void => {
+        calls += 1;
+        if (calls > MAX) {
+          res.status(429).json({ error: 'Too many requests' });
+          return;
+        }
+        next();
+      };
+
+      try {
+        // First MAX requests reach the controller and return the usual 400.
+        for (let i = 0; i < MAX; i += 1) {
+          const res = await request(buildApp()).post('/api/v1/auth/verify-email').send({});
+          expect(res.status).toBe(400);
+        }
+
+        // The (MAX + 1)-th request is rate-limited.
+        const blocked = await request(buildApp()).post('/api/v1/auth/verify-email').send({});
+        expect(blocked.status).toBe(429);
+      } finally {
+        authLimiterImpl.current = (
+          _req: AuthenticatedRequest,
+          _res: Response,
+          next: NextFunction
+        ): void => next();
+      }
     });
   });
 
