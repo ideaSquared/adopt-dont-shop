@@ -228,6 +228,20 @@ describe('DiscoveryService', () => {
       expect(typeof sessionId1).toBe('string');
       expect(sessionId1.length).toBeGreaterThan(0);
     });
+
+    it('should use 16 bytes of random material with no timestamp prefix', () => {
+      // 32 hex chars = 128 bits of entropy. The id must NOT embed Date.now(),
+      // which would shrink the search space an attacker has to brute-force.
+      const sessionId = (discoveryService as unknown).generateSessionId();
+      const now = Date.now();
+
+      expect(sessionId).toMatch(/^session_[0-9a-f]{32}$/);
+      // None of the recent timestamp values should appear in the id.
+      const recentTimestamps = Array.from({ length: 5 }, (_, i) => String(now - i * 1000));
+      for (const ts of recentTimestamps) {
+        expect(sessionId).not.toContain(ts);
+      }
+    });
   });
 
   describe('calculateCompatibilityScore', () => {

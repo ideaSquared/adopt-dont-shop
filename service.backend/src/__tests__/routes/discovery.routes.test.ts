@@ -17,9 +17,17 @@ vi.mock('../../config/env', () => ({
   },
 }));
 
-const { getDiscoveryQueueMock, recordSwipeActionMock, optionalAuthMock } = vi.hoisted(() => ({
+const {
+  getDiscoveryQueueMock,
+  recordSwipeActionMock,
+  getSessionStatsMock,
+  authenticateTokenMock,
+  optionalAuthMock,
+} = vi.hoisted(() => ({
   getDiscoveryQueueMock: vi.fn(),
   recordSwipeActionMock: vi.fn(),
+  getSessionStatsMock: vi.fn(),
+  authenticateTokenMock: vi.fn(),
   optionalAuthMock: vi.fn(),
 }));
 
@@ -35,7 +43,7 @@ vi.mock('../../services/swipe.service', () => {
   class SwipeService {
     recordSwipeAction = recordSwipeActionMock;
     getUserSwipeStats = vi.fn();
-    getSessionStats = vi.fn();
+    getSessionStats = getSessionStatsMock;
   }
   return { SwipeService };
 });
@@ -45,7 +53,8 @@ vi.mock('../../sequelize', () => ({
 }));
 
 vi.mock('../../middleware/auth', () => ({
-  authenticateToken: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  authenticateToken: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
+    authenticateTokenMock(req, res, next),
   optionalAuth: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
     optionalAuthMock(req, res, next),
 }));
@@ -76,6 +85,11 @@ const mockAuthedUser = {
   userType: 'adopter',
 };
 
+const passAuth = (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+  req.user = mockAuthedUser as AuthenticatedRequest['user'];
+  next();
+};
+
 describe('Discovery routes - user id binding (security)', () => {
   let app: express.Application;
 
@@ -86,17 +100,13 @@ describe('Discovery routes - user id binding (security)', () => {
       sessionId: 'session-1',
       hasMore: false,
     });
+    authenticateTokenMock.mockImplementation(passAuth);
     app = buildApp();
   });
 
   describe('GET /api/v1/discovery/pets', () => {
     it('uses authenticated user id and ignores ?userId override', async () => {
-      optionalAuthMock.mockImplementation(
-        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
-          req.user = mockAuthedUser as AuthenticatedRequest['user'];
-          next();
-        }
-      );
+      optionalAuthMock.mockImplementation(passAuth);
 
       const res = await request(app).get('/api/v1/discovery/pets').query({ userId: OTHER_USER_ID });
 
@@ -135,12 +145,7 @@ describe('Discovery routes - user id binding (security)', () => {
 
   describe('POST /api/v1/discovery/queue', () => {
     it('uses authenticated user id and ignores body userId override', async () => {
-      optionalAuthMock.mockImplementation(
-        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
-          req.user = mockAuthedUser as AuthenticatedRequest['user'];
-          next();
-        }
-      );
+      optionalAuthMock.mockImplementation(passAuth);
 
       const res = await request(app)
         .post('/api/v1/discovery/queue')
@@ -232,5 +237,44 @@ describe('POST /api/v1/discovery/swipe/action', () => {
     const persisted = recordSwipeActionMock.mock.calls[0][0];
     expect(persisted.userId).toBeNull();
     expect(persisted.userId).not.toBe(forgedUserId);
+  });
+});
+
+describe('Discovery routes — session stats', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    authenticateTokenMock.mockImplementation(passAuth);
+    optionalAuthMock.mockImplementation(
+      (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
+    );
+  });
+
+  describe('GET /api/v1/discovery/swipe/session/:sessionId', () => {
+    it('returns 401 when unauthenticated', async () => {
+      authenticateTokenMock.mockImplementation((_req: AuthenticatedRequest, res: Response) => {
+        res.status(401).json({ error: 'unauthenticated' });
+      });
+
+      const res = await request(buildApp()).get(
+        '/api/v1/discovery/swipe/session/session_abcdef1234567890abcdef1234567890'
+      );
+
+      expect(res.status).toBe(401);
+      expect(getSessionStatsMock).not.toHaveBeenCalled();
+    });
+
+    it('returns 200 with session stats when authenticated', async () => {
+      const stats = { sessionId: 'session_abc', totalSwipes: 3 };
+      getSessionStatsMock.mockResolvedValue(stats);
+
+      const res = await request(buildApp()).get(
+        '/api/v1/discovery/swipe/session/session_abcdef1234567890abcdef1234567890'
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toEqual(stats);
+      expect(getSessionStatsMock).toHaveBeenCalledWith('session_abcdef1234567890abcdef1234567890');
+    });
   });
 });
