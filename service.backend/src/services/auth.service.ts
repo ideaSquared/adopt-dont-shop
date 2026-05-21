@@ -1009,10 +1009,12 @@ Need help? Contact us at support@adoptdontshop.com
 
     const accessTokenJti = crypto.randomUUID();
     const token = jwt.sign({ ...payload, jti: accessTokenJti }, jwtSecret, {
+      algorithm: 'HS256',
       expiresIn: this.JWT_EXPIRES_IN,
     } as SignOptions);
 
     const refreshToken = jwt.sign({ ...payload, jti: tokenId }, jwtRefreshSecret, {
+      algorithm: 'HS256',
       expiresIn: this.JWT_REFRESH_EXPIRES_IN,
     } as SignOptions);
 
