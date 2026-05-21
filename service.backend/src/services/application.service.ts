@@ -603,8 +603,12 @@ export class ApplicationService {
         whereConditions.userId = userId;
       }
 
-      // Auto-filter by rescue for rescue staff (unless rescueId explicitly provided)
-      if (userId && userType === UserType.RESCUE_STAFF && !filters.rescueId) {
+      // Force-filter by rescue for rescue staff. We always derive the rescue
+      // from the verified StaffMember row and force the filter to that value
+      // — any ?rescueId= supplied by the caller is ignored so a staff
+      // member of Rescue A cannot list Rescue B's applications.
+      let staffRescueIdOverride: string | undefined;
+      if (userId && userType === UserType.RESCUE_STAFF) {
         const StaffMember = (await import('../models/StaffMember')).default;
         const staffMember = await StaffMember.findOne({
           where: {
@@ -619,6 +623,7 @@ export class ApplicationService {
           });
         }
 
+        staffRescueIdOverride = staffMember.rescueId;
         whereConditions.rescueId = staffMember.rescueId;
         logger.info('Auto-filtering applications by user rescue:', {
           userId: userId,
@@ -651,7 +656,7 @@ export class ApplicationService {
       if (filters.petId) {
         whereConditions.petId = filters.petId;
       }
-      if (filters.rescueId) {
+      if (filters.rescueId && !staffRescueIdOverride) {
         whereConditions.rescueId = filters.rescueId;
       }
       if (filters.actionedBy) {
