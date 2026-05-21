@@ -11,6 +11,7 @@ import { HealthCheckService } from '../services/health-check.service';
 import { getMessageBroker } from '../services/messageBroker.service';
 import { setAnalyticsIo } from './analytics-emitter';
 import { setLiveIo, getLiveIo } from './socket-registry';
+import { checkRateLimit, releaseSocket } from '../middleware/socket-rate-limit';
 import { JsonObject } from '../types/common';
 import { verifyAccessToken } from '../utils/jwt';
 import { logger } from '../utils/logger';
@@ -21,26 +22,6 @@ export { disconnectAllSockets } from './socket-registry';
 
 // Track active connections for health monitoring
 let activeConnections = 0;
-
-// Per-socket sliding-window rate limiter. Tracks event timestamps in memory;
-// cleaned up on disconnect so memory doesn't grow unbounded.
-const socketEventTimestamps = new Map<string, Map<string, number[]>>();
-
-function isRateLimited(socketId: string, event: string, limit: number, windowMs: number): boolean {
-  if (!socketEventTimestamps.has(socketId)) {
-    socketEventTimestamps.set(socketId, new Map());
-  }
-  const events = socketEventTimestamps.get(socketId)!;
-  const now = Date.now();
-  const cutoff = now - windowMs;
-  const timestamps = (events.get(event) ?? []).filter(t => t > cutoff);
-  if (timestamps.length >= limit) {
-    return true;
-  }
-  timestamps.push(now);
-  events.set(event, timestamps);
-  return false;
-}
 
 // Zod schemas for socket event payloads
 const JoinChatSchema = z.object({ chatId: z.string().uuid() });
@@ -445,8 +426,7 @@ export class SocketHandlers {
     // Join chat room
     socket.on('join_chat', async (data: unknown) => {
       try {
-        if (isRateLimited(socket.id, 'join_chat', 20, 60_000)) {
-          socket.emit('error', { event: 'join_chat', message: 'Rate limit exceeded' });
+        if (checkRateLimit(socket, 'join_chat')) {
           return;
         }
         const parsed = JoinChatSchema.safeParse(data);
@@ -484,6 +464,9 @@ export class SocketHandlers {
     // Leave chat room
     socket.on('leave_chat', async (data: unknown) => {
       try {
+        if (checkRateLimit(socket, 'leave_chat')) {
+          return;
+        }
         const parsed = LeaveChatSchema.safeParse(data);
         if (!parsed.success) {
           socket.emit('error', { event: 'leave_chat', message: 'Invalid payload' });
@@ -519,6 +502,9 @@ export class SocketHandlers {
       'message_sent_notification',
       async (data: { messageId: string; conversationId: string; tempId: string }) => {
         try {
+          if (checkRateLimit(socket, 'message_sent_notification')) {
+            return;
+          }
           const { messageId, conversationId, tempId } = data;
 
           // Verify user has access to chat before sending notification
@@ -550,8 +536,7 @@ export class SocketHandlers {
     // Send message (DEPRECATED - API should be used instead)
     socket.on('send_message', async (data: unknown) => {
       try {
-        if (isRateLimited(socket.id, 'send_message', 10, 10_000)) {
-          socket.emit('error', { event: 'send_message', message: 'Rate limit exceeded' });
+        if (checkRateLimit(socket, 'send_message')) {
           return;
         }
         const parsed = SendMessageSchema.safeParse(data);
@@ -617,6 +602,9 @@ export class SocketHandlers {
     // Mark messages as read
     socket.on('mark_as_read', async (data: unknown) => {
       try {
+        if (checkRateLimit(socket, 'mark_as_read')) {
+          return;
+        }
         const parsed = MarkAsReadSchema.safeParse(data);
         if (!parsed.success) {
           socket.emit('error', { event: 'mark_as_read', message: 'Invalid payload' });
@@ -648,8 +636,7 @@ export class SocketHandlers {
     // Add reaction to message
     socket.on('add_reaction', async (data: unknown) => {
       try {
-        if (isRateLimited(socket.id, 'add_reaction', 30, 60_000)) {
-          socket.emit('error', { event: 'add_reaction', message: 'Rate limit exceeded' });
+        if (checkRateLimit(socket, 'add_reaction')) {
           return;
         }
         const parsed = ReactionSchema.safeParse(data);
@@ -691,6 +678,9 @@ export class SocketHandlers {
     // Remove reaction from message
     socket.on('remove_reaction', async (data: unknown) => {
       try {
+        if (checkRateLimit(socket, 'remove_reaction')) {
+          return;
+        }
         const parsed = ReactionSchema.safeParse(data);
         if (!parsed.success) {
           socket.emit('error', { event: 'remove_reaction', message: 'Invalid payload' });
@@ -733,7 +723,7 @@ export class SocketHandlers {
     // User started typing
     socket.on('typing_start', async (data: unknown) => {
       try {
-        if (isRateLimited(socket.id, 'typing_start', 60, 60_000)) {
+        if (checkRateLimit(socket, 'typing_start')) {
           return;
         }
         const parsed = TypingStartSchema.safeParse(data);
@@ -766,6 +756,9 @@ export class SocketHandlers {
     // User stopped typing
     socket.on('typing_stop', async (data: unknown) => {
       try {
+        if (checkRateLimit(socket, 'typing_stop')) {
+          return;
+        }
         const parsed = TypingStopSchema.safeParse(data);
         if (!parsed.success) {
           return;
@@ -795,6 +788,9 @@ export class SocketHandlers {
   private setupPresenceHandlers(socket: AuthenticatedSocket) {
     // User requests presence status of other users
     socket.on('get_presence', (data: { userIds: string[] }) => {
+      if (checkRateLimit(socket, 'get_presence')) {
+        return;
+      }
       const { userIds } = data;
       const presenceData: { [userId: string]: { status: string; lastSeen: Date } } = {};
 
@@ -818,6 +814,9 @@ export class SocketHandlers {
 
     // User updates their presence status
     socket.on('update_presence', (data: { status: 'online' | 'away' }) => {
+      if (checkRateLimit(socket, 'update_presence')) {
+        return;
+      }
       const { status } = data;
       this.updateUserPresence(socket.userId!, status, socket.id);
 
@@ -845,8 +844,10 @@ export class SocketHandlers {
       // Clear all typing indicators for this user
       this.clearAllTypingIndicators(socket.userId!);
 
-      // Release per-socket rate-limit state
-      socketEventTimestamps.delete(socket.id);
+      // Release per-socket rate-limit state. For authenticated
+      // sockets the limiter keeps the bucket alive across reconnects
+      // (and GCs it on idle); for anonymous sockets it's dropped now.
+      releaseSocket(socket);
 
       // ADS-597: stop the auth-refresh timer so it doesn't leak past the
       // socket lifetime.
