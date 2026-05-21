@@ -37,6 +37,7 @@
     "@adopt-dont-shop/lib.pets": "*",
     "@adopt-dont-shop/lib.rescue": "*",
     "@adopt-dont-shop/lib.search": "*",
+    "@adopt-dont-shop/lib.utils": "*",
     "@adopt-dont-shop/lib.validation": "*",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dropdown-menu": "^2.0.6",

@@ -8,3 +8,6 @@ export * from './env';
 
 // UK Locale utilities (dates, currency, phone, address formatting)
 export * from './locale';
+
+// XSS-hardened href/src sanitizer
+export { safeHref } from './safe-href';

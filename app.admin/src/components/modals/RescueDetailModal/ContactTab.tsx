@@ -1,6 +1,7 @@
 import React from 'react';
 import * as styles from '../RescueDetailModal.css';
 import { FiMail, FiPhone, FiGlobe } from 'react-icons/fi';
+import { safeHref } from '@adopt-dont-shop/lib.utils';
 import type { AdminRescue } from '@/types/rescue';
 
 type ContactTabProps = {
@@ -29,7 +30,7 @@ export const ContactTab: React.FC<ContactTabProps> = ({ rescue }) => (
         </div>
         <div className={styles.infoValue}>
           {rescue.website ? (
-            <a href={rescue.website} target='_blank' rel='noopener noreferrer'>
+            <a href={safeHref(rescue.website)} target='_blank' rel='noopener noreferrer'>
               {rescue.website}
             </a>
           ) : (
