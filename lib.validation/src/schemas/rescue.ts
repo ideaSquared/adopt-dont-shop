@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { RescueId } from '@adopt-dont-shop/lib.types';
+import { boundedRecord } from './bounded-record';
 
 /**
  * Canonical Zod schemas for the Rescue domain.
@@ -113,6 +114,17 @@ const ContactTitleSchema = z.string().trim().max(100);
 const NotesSchema = z.string().trim().max(500);
 const ReasonSchema = z.string().trim().max(500);
 
+/**
+ * Free-form rescue settings persisted to JSONB. Caps protect against DoS
+ * via unbounded payloads: max 100 top-level keys, 5,000 chars per string
+ * value, 100KB total stringified size.
+ */
+const RescueSettingsSchema = boundedRecord({
+  maxKeys: 100,
+  maxStringLength: 5_000,
+  maxPayloadBytes: 100_000,
+});
+
 export const VerificationSourceSchema = z.enum(['companies_house', 'charity_commission', 'manual']);
 export type VerificationSourceValue = z.infer<typeof VerificationSourceSchema>;
 
@@ -202,7 +214,7 @@ export const RescueUpdateRequestSchema = z
     contactTitle: ContactTitleSchema.optional(),
     contactEmail: EmailSchema.optional(),
     contactPhone: UkPhoneNumberSchema.optional(),
-    settings: z.record(z.string(), z.unknown()).optional(),
+    settings: RescueSettingsSchema.optional(),
   })
   .strip();
 export type RescueUpdateRequest = z.infer<typeof RescueUpdateRequestSchema>;
@@ -297,9 +309,9 @@ export const RescueProfileSchema = z.object({
   contactPhone: UkPhoneNumberSchema.nullable().optional(),
   status: RescueStatusSchema,
   verificationSource: VerificationSourceSchema.nullable().optional(),
-  verificationFailureReason: z.string().nullable().optional(),
+  verificationFailureReason: z.string().max(2000).nullable().optional(),
   manualVerificationRequestedAt: z.coerce.date().nullable().optional(),
-  settings: z.record(z.string(), z.unknown()).optional(),
+  settings: RescueSettingsSchema.optional(),
   verifiedAt: z.coerce.date().nullable().optional(),
   createdAt: z.coerce.date().optional(),
   updatedAt: z.coerce.date().optional(),

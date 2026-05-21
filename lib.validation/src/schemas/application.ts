@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ApplicationId, PetId } from '@adopt-dont-shop/lib.types';
+import { boundedRecord } from './bounded-record';
 
 /**
  * Canonical Zod schemas for the Application domain.
@@ -90,6 +91,17 @@ const RejectionReasonSchema = z
 const ScoreSchema = z.coerce.number().min(0).max(100);
 const TagSchema = z.string().trim().min(1).max(50);
 
+/**
+ * Free-form per-rescue question answers persisted to JSONB. Caps protect
+ * against DoS via unbounded payloads (ADS-Q): max 100 top-level keys,
+ * 10,000 chars per string value, 100KB total stringified size.
+ */
+const ApplicationAnswersSchema = boundedRecord({
+  maxKeys: 100,
+  maxStringLength: 10_000,
+  maxPayloadBytes: 100_000,
+});
+
 // ----- Reference / Document shapes ---------------------------------------
 
 /**
@@ -140,7 +152,7 @@ export const CreateApplicationRequestSchema = z.object({
     .string()
     .min(1, 'Valid pet ID is required')
     .transform((v) => v as PetId),
-  answers: z.record(z.string(), z.unknown()),
+  answers: ApplicationAnswersSchema,
   references: z.array(ApplicationReferenceCreateSchema).max(5).optional(),
   priority: ApplicationPrioritySchema.optional(),
   notes: NotesSchema.optional(),
@@ -160,7 +172,7 @@ export type CreateApplicationRequest = z.infer<typeof CreateApplicationRequestSc
  * include status.
  */
 export const UpdateApplicationRequestSchema = z.object({
-  answers: z.record(z.string(), z.unknown()).optional(),
+  answers: ApplicationAnswersSchema.optional(),
   references: z.array(ApplicationReferenceCreateSchema).max(5).optional(),
   priority: ApplicationPrioritySchema.optional(),
   notes: NotesSchema.optional(),
@@ -295,7 +307,7 @@ export const ApplicationProfileSchema = z.object({
   priority: ApplicationPrioritySchema,
   stage: ApplicationStageSchema.optional(),
   finalOutcome: ApplicationOutcomeSchema.nullable().optional(),
-  answers: z.record(z.string(), z.unknown()),
+  answers: ApplicationAnswersSchema,
   references: z.array(ApplicationReferenceSchema).optional(),
   documents: z.array(ApplicationDocumentSchema).optional(),
   notes: NotesSchema.nullable().optional(),

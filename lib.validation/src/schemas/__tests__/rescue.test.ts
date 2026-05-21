@@ -5,6 +5,7 @@ import {
   RescueBulkUpdateRequestSchema,
   RescueCreateRequestSchema,
   RescueDeletionRequestSchema,
+  RescueProfileSchema,
   RescueRejectionRequestSchema,
   RescueSearchQuerySchema,
   RescueStatusSchema,
@@ -141,6 +142,69 @@ describe('Rescue schemas', () => {
 
     it('still rejects an invalid email when present', () => {
       expect(() => RescueUpdateRequestSchema.parse({ email: 'foo' })).toThrow();
+    });
+
+    describe('settings payload caps (DoS protection)', () => {
+      it('accepts an empty settings object', () => {
+        expect(() => RescueUpdateRequestSchema.parse({ settings: {} })).not.toThrow();
+      });
+
+      it('accepts up to 100 keys', () => {
+        const settings = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`k${i}`, 'v']));
+        expect(() => RescueUpdateRequestSchema.parse({ settings })).not.toThrow();
+      });
+
+      it('rejects more than 100 keys', () => {
+        const settings = Object.fromEntries(Array.from({ length: 101 }, (_, i) => [`k${i}`, 'v']));
+        expect(() => RescueUpdateRequestSchema.parse({ settings })).toThrow();
+      });
+
+      it('rejects a string value longer than 5,000 chars', () => {
+        expect(() =>
+          RescueUpdateRequestSchema.parse({
+            settings: { policy: 'x'.repeat(5_001) },
+          })
+        ).toThrow();
+      });
+
+      it('rejects a stringified payload over 100KB', () => {
+        const settings = Object.fromEntries(
+          Array.from({ length: 50 }, (_, i) => [`k${i}`, 'x'.repeat(2_500)])
+        );
+        expect(() => RescueUpdateRequestSchema.parse({ settings })).toThrow();
+      });
+    });
+  });
+
+  describe('RescueProfileSchema.verificationFailureReason', () => {
+    const baseProfile = {
+      rescueId: 'rescue-1',
+      name: 'Happy Tails Rescue',
+      email: 'hello@happytails.org',
+      address: '1 Lane',
+      city: 'London',
+      postcode: 'SW1A 1AA',
+      country: 'GB',
+      contactPerson: 'Jane Doe',
+      status: 'pending' as const,
+    };
+
+    it('accepts a reason at the 2,000 char cap', () => {
+      expect(() =>
+        RescueProfileSchema.parse({
+          ...baseProfile,
+          verificationFailureReason: 'x'.repeat(2_000),
+        })
+      ).not.toThrow();
+    });
+
+    it('rejects a reason longer than 2,000 chars', () => {
+      expect(() =>
+        RescueProfileSchema.parse({
+          ...baseProfile,
+          verificationFailureReason: 'x'.repeat(2_001),
+        })
+      ).toThrow();
     });
   });
 
