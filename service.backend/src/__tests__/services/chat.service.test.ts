@@ -448,6 +448,48 @@ describe('ChatService', () => {
         expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
       });
     });
+
+    describe('when a message author has been soft-deleted', () => {
+      it('redacts content of messages whose Sender include resolved to null', async () => {
+        // User is paranoid: true — a soft-deleted author shows up as
+        // Sender=null on the eager-loaded Message rows.
+        const chatWithOrphanedMessages = {
+          ...mockChat,
+          Messages: [
+            {
+              message_id: 'm-live',
+              content: 'still visible',
+              attachments: [
+                { attachment_id: 'a', filename: 'f', url: 'u', mimeType: 'm', size: 1 },
+              ],
+              Sender: { userId: 'live', firstName: 'L', lastName: 'L' },
+            },
+            {
+              message_id: 'm-orphan',
+              content: 'should be hidden',
+              attachments: [
+                { attachment_id: 'b', filename: 'f', url: 'u', mimeType: 'm', size: 1 },
+              ],
+              Sender: null,
+            },
+          ],
+        };
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(chatWithOrphanedMessages);
+
+        const result = await ChatService.getChatById(chatId, 'admin-user-id', true);
+
+        const messages = (
+          result as unknown as {
+            Messages: Array<{ content: string; attachments: unknown[] }>;
+          }
+        ).Messages;
+        expect(messages[0].content).toBe('still visible');
+        expect(messages[0].attachments).toHaveLength(1);
+        expect(messages[1].content).not.toContain('should be hidden');
+        expect(messages[1].content).toMatch(/deleted/i);
+        expect(messages[1].attachments).toHaveLength(0);
+      });
+    });
   });
 
   describe('Participant authorization on chat-scoped methods', () => {
@@ -503,6 +545,55 @@ describe('ChatService', () => {
         expect(result.messages).toHaveLength(1);
         expect(result.messages[0].created_at).toBeDefined();
         expect(result.messages[0].updated_at).toBeDefined();
+      });
+
+      // User model is paranoid: true. When an author soft-deletes their
+      // account, the Sender association resolves to null in the join.
+      // The message row stays in the DB for audit but its content must
+      // not be exposed (GDPR / privacy).
+      it('redacts content and attachments when the sender has been soft-deleted', async () => {
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({
+          rows: [
+            {
+              message_id: 'msg-live',
+              chat_id: chatId,
+              sender_id: 'user-live',
+              content: 'visible',
+              content_format: 'text',
+              attachments: [
+                { attachment_id: 'a1', filename: 'a', url: 'u', mimeType: 'm', size: 1 },
+              ],
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              Sender: { userId: 'user-live', firstName: 'L', lastName: 'L' },
+            },
+            {
+              message_id: 'msg-orphan',
+              chat_id: chatId,
+              sender_id: 'user-gone',
+              content: 'private secret',
+              content_format: 'text',
+              attachments: [
+                { attachment_id: 'a2', filename: 'b', url: 'u2', mimeType: 'm', size: 2 },
+              ],
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              Sender: null,
+            },
+          ],
+          count: 2,
+        });
+
+        const result = await ChatService.getMessages(chatId, { isAdmin: true });
+
+        expect(result.messages).toHaveLength(2);
+        // Live-sender message is untouched.
+        expect(result.messages[0].content).toBe('visible');
+        expect(result.messages[0].attachments).toHaveLength(1);
+        // Deleted-sender message's content and attachments are hidden.
+        expect(result.messages[1].content).not.toContain('private secret');
+        expect(result.messages[1].content).toMatch(/deleted/i);
+        expect(result.messages[1].attachments).toHaveLength(0);
       });
     });
 
