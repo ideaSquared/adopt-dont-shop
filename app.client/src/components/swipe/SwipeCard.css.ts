@@ -455,3 +455,19 @@ export const promptButton = style({
     boxShadow: '0 8px 24px rgba(78, 205, 196, 0.5)',
   },
 });
+
+// ADS-632: activity label (views/waiting/social-proof) sits in the
+// top-badges stack so it never competes with the match badge for
+// screen position — the existing flex column there lays them out.
+export const activityLabel = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.25rem',
+  padding: '0.25rem 0.5rem',
+  background: 'rgba(0, 0, 0, 0.55)',
+  color: 'white',
+  borderRadius: '999px',
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  backdropFilter: 'blur(8px)',
+});
