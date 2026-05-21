@@ -422,6 +422,11 @@ jobs:
             echo "SESSION_SECRET=$(openssl rand -base64 32)"
             echo "CSRF_SECRET=$(openssl rand -base64 32)"
             echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
+            # ADS-600 made REDIS_PASSWORD a required secret in
+            # docker-compose.yml; the CI stack-up step refuses to
+            # start without it. Generate it here so every E2E run
+            # gets a fresh, non-default value.
+            echo "REDIS_PASSWORD=$(openssl rand -base64 32)"
             echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
           } > .env
 
