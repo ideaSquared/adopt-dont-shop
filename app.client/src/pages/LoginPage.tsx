@@ -1,4 +1,4 @@
-import { AuthLayout, LoginForm, useAuth } from '@adopt-dont-shop/lib.auth';
+import { AuthLayout, LoginForm, SocialSignInButtons, useAuth } from '@adopt-dont-shop/lib.auth';
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import * as styles from './LoginPage.css';
@@ -35,6 +35,7 @@ export const LoginPage: React.FC = () => {
         </div>
       }
     >
+      <SocialSignInButtons actionLabel='Sign in' />
       <LoginForm
         onSuccess={handleSuccess}
         showForgotPassword={true}
