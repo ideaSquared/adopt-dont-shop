@@ -11,6 +11,60 @@ type PaginationOptions = {
   limit?: number;
 };
 
+/**
+ * Fields on SupportTicket that contain staff-only internal state and must
+ * NEVER be returned to the reporting user (the ticket's owner). These include
+ * internal triage notes, assigned-agent identity, escalation metadata and
+ * service-level operational timers. Reporters can see the public conversation
+ * and their own submitted data only.
+ */
+const REPORTER_FORBIDDEN_TICKET_FIELDS = [
+  'internalNotes',
+  'assignedTo',
+  'AssignedAgent',
+  'escalatedTo',
+  'escalationReason',
+  'escalatedAt',
+  'metadata',
+  'dueDate',
+  'estimatedResolutionTime',
+  'actualResolutionTime',
+] as const;
+
+type RawTicket = Record<string, unknown> & {
+  toJSON?: () => Record<string, unknown>;
+  Responses?: Array<Record<string, unknown> & { isInternal?: boolean }>;
+  responses?: Array<Record<string, unknown> & { isInternal?: boolean }>;
+};
+
+/**
+ * Strips internal-only fields from a ticket before returning to the reporter
+ * and drops any internal-only response messages. Operates on a plain object
+ * so callers may pass either a Sequelize instance or a plain object.
+ */
+const sanitizeTicketForReporter = (ticket: RawTicket): Record<string, unknown> => {
+  const plain: Record<string, unknown> =
+    typeof ticket.toJSON === 'function' ? ticket.toJSON() : { ...ticket };
+
+  for (const field of REPORTER_FORBIDDEN_TICKET_FIELDS) {
+    delete plain[field];
+  }
+
+  const responses =
+    (plain.Responses as RawTicket['Responses']) ?? (plain.responses as RawTicket['responses']);
+  if (Array.isArray(responses)) {
+    const publicResponses = responses.filter(r => !r.isInternal);
+    if ('Responses' in plain) {
+      plain.Responses = publicResponses;
+    }
+    if ('responses' in plain) {
+      plain.responses = publicResponses;
+    }
+  }
+
+  return plain;
+};
+
 export class UserSupportController {
   /**
    * POST /api/v1/support/tickets
@@ -56,7 +110,7 @@ export class UserSupportController {
 
     res.status(201).json({
       success: true,
-      data: ticket,
+      data: sanitizeTicketForReporter(ticket as unknown as RawTicket),
     });
   }
 
@@ -95,7 +149,7 @@ export class UserSupportController {
 
     res.json({
       success: true,
-      data: result.tickets,
+      data: result.tickets.map(t => sanitizeTicketForReporter(t as unknown as RawTicket)),
       pagination: result.pagination,
     });
   }
@@ -121,7 +175,7 @@ export class UserSupportController {
 
       res.json({
         success: true,
-        data: ticket,
+        data: sanitizeTicketForReporter(ticket as unknown as RawTicket),
       });
     } catch (error: unknown) {
       logger.error('Error in getMyTicket:', error);
@@ -183,7 +237,7 @@ export class UserSupportController {
 
       res.json({
         success: true,
-        data: updatedTicket,
+        data: sanitizeTicketForReporter(updatedTicket as unknown as RawTicket),
       });
     } catch (error: unknown) {
       logger.error('Error in replyToMyTicket:', error);
