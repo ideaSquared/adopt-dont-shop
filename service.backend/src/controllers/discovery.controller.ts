@@ -6,6 +6,7 @@ import { SwipeService } from '../services/swipe.service';
 import { logger } from '../utils/logger';
 import { parsePaginationLimit } from '../utils/pagination';
 import { AuthenticatedRequest } from '../types/auth';
+import { UserType } from '../models/User';
 
 export class DiscoveryController {
   private discoveryService: DiscoveryService;
@@ -185,6 +186,19 @@ export class DiscoveryController {
     }
 
     const { userId } = req.params;
+
+    // ADS: prevent IDOR — only the owner (or an admin) may read swipe stats,
+    // which expose identifiable preference data.
+    const callerId = req.user?.userId;
+    const callerType = req.user?.userType;
+    const isAdmin = callerType === UserType.ADMIN || callerType === UserType.SUPER_ADMIN;
+    if (callerId !== userId && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden',
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     const stats = await this.swipeService.getUserSwipeStats(userId);
 

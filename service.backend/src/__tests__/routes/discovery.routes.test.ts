@@ -1,6 +1,7 @@
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { UserType } from '../../models/User';
 import { AuthenticatedRequest } from '../../types';
 
 vi.mock('../../utils/logger', () => ({
@@ -21,12 +22,14 @@ const {
   getDiscoveryQueueMock,
   recordSwipeActionMock,
   getSessionStatsMock,
+  getUserSwipeStatsMock,
   authenticateTokenMock,
   optionalAuthMock,
 } = vi.hoisted(() => ({
   getDiscoveryQueueMock: vi.fn(),
   recordSwipeActionMock: vi.fn(),
   getSessionStatsMock: vi.fn(),
+  getUserSwipeStatsMock: vi.fn(),
   authenticateTokenMock: vi.fn(),
   optionalAuthMock: vi.fn(),
 }));
@@ -42,7 +45,7 @@ vi.mock('../../services/discovery.service', () => {
 vi.mock('../../services/swipe.service', () => {
   class SwipeService {
     recordSwipeAction = recordSwipeActionMock;
-    getUserSwipeStats = vi.fn();
+    getUserSwipeStats = getUserSwipeStatsMock;
     getSessionStats = getSessionStatsMock;
   }
   return { SwipeService };
@@ -276,5 +279,80 @@ describe('Discovery routes — session stats', () => {
       expect(res.body.data).toEqual(stats);
       expect(getSessionStatsMock).toHaveBeenCalledWith('session_abcdef1234567890abcdef1234567890');
     });
+  });
+});
+
+const OWNER_ID = '11111111-1111-4111-8111-111111111111';
+const OTHER_ID = '22222222-2222-4222-8222-222222222222';
+const ADMIN_ID = '33333333-3333-4333-8333-333333333333';
+
+const setAuthedUser = (user: { userId: string; userType?: UserType } | null) => {
+  authenticateTokenMock.mockImplementation(
+    (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      if (!user) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+      req.user = user as AuthenticatedRequest['user'];
+      next();
+    }
+  );
+};
+
+describe('GET /api/v1/discovery/swipe/stats/:userId', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    optionalAuthMock.mockImplementation(
+      (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
+    );
+    getUserSwipeStatsMock.mockResolvedValue({
+      totalSwipes: 10,
+      likes: 4,
+      passes: 5,
+      superLikes: 1,
+      topBreeds: ['Labrador'],
+      topPetTypes: ['dog'],
+      averageSessionLength: 120,
+    });
+  });
+
+  it('returns the caller their own stats with 200', async () => {
+    setAuthedUser({ userId: OWNER_ID, userType: UserType.ADOPTER });
+
+    const res = await request(buildApp()).get(`/api/v1/discovery/swipe/stats/${OWNER_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.totalSwipes).toBe(10);
+    expect(getUserSwipeStatsMock).toHaveBeenCalledWith(OWNER_ID);
+  });
+
+  it('rejects with 403 when reading another user’s stats and does not leak data', async () => {
+    setAuthedUser({ userId: OWNER_ID, userType: UserType.ADOPTER });
+
+    const res = await request(buildApp()).get(`/api/v1/discovery/swipe/stats/${OTHER_ID}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body).not.toHaveProperty('data');
+    expect(getUserSwipeStatsMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    setAuthedUser(null);
+
+    const res = await request(buildApp()).get(`/api/v1/discovery/swipe/stats/${OTHER_ID}`);
+
+    expect(res.status).toBe(401);
+    expect(getUserSwipeStatsMock).not.toHaveBeenCalled();
+  });
+
+  it('allows an admin to read another user’s stats', async () => {
+    setAuthedUser({ userId: ADMIN_ID, userType: UserType.ADMIN });
+
+    const res = await request(buildApp()).get(`/api/v1/discovery/swipe/stats/${OWNER_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(getUserSwipeStatsMock).toHaveBeenCalledWith(OWNER_ID);
   });
 });
