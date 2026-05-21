@@ -834,6 +834,10 @@ Need help? Contact us at support@adoptdontshop.com
             userId: user.userId,
             emailVerified: false,
           },
+          // individualHooks so the afterSave hook fires (it invalidates
+          // the auth cache so the next authed request re-reads the now-
+          // verified user instead of the stale unverified copy).
+          individualHooks: true,
         }
       );
 
