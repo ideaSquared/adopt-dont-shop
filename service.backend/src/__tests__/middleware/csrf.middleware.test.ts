@@ -29,6 +29,9 @@ import {
   getCsrfToken,
   csrfErrorHandler,
   resolveCsrfSessionIdentifier,
+  rotateCsrfSessionCookie,
+  clearCsrfSessionCookie,
+  CSRF_SESSION_COOKIE,
 } from '../../middleware/csrf';
 import { logger } from '../../utils/logger';
 import { doubleCsrf } from 'csrf-csrf';
@@ -271,6 +274,58 @@ describe('CSRF Middleware', () => {
       expect(idA).toMatch(/^anon:.+/);
       expect(idA).not.toBe('anon:anonymous');
       expect(idA).not.toBe('anonymous');
+    });
+  });
+
+  // ADS-547: rotation on auth state transitions defeats CSRF-token session
+  // fixation. Called from the login/logout controllers.
+  describe('rotateCsrfSessionCookie - rotation on login / 2FA success', () => {
+    it('clears the existing session cookie and mints a fresh one', () => {
+      const clearCookie = vi.fn();
+      const cookie = vi.fn();
+      const res = { clearCookie, cookie } as unknown as Response;
+
+      rotateCsrfSessionCookie(res);
+
+      expect(clearCookie).toHaveBeenCalledWith(
+        CSRF_SESSION_COOKIE,
+        expect.objectContaining({ httpOnly: true, sameSite: 'strict' })
+      );
+      expect(cookie).toHaveBeenCalledTimes(1);
+      const [name, value, options] = cookie.mock.calls[0];
+      expect(name).toBe(CSRF_SESSION_COOKIE);
+      expect(typeof value).toBe('string');
+      expect(value.length).toBeGreaterThan(0);
+      expect(options).toMatchObject({ httpOnly: true, sameSite: 'strict' });
+    });
+
+    it('mints the new value via randomUUID rather than echoing any caller-supplied input', () => {
+      // setup-tests.ts stubs randomUUID to `test-uuid-<ts>`; assert that
+      // shape so we know the rotated value comes from the crypto helper and
+      // not from anything an attacker could have planted.
+      const cookie = vi.fn();
+      const res = { clearCookie: vi.fn(), cookie } as unknown as Response;
+
+      rotateCsrfSessionCookie(res);
+
+      const [, value] = cookie.mock.calls[0];
+      expect(value).toMatch(/^test-uuid-\d+$/);
+    });
+  });
+
+  describe('clearCsrfSessionCookie - clear on logout', () => {
+    it('clears the session cookie without minting a new one', () => {
+      const clearCookie = vi.fn();
+      const cookie = vi.fn();
+      const res = { clearCookie, cookie } as unknown as Response;
+
+      clearCsrfSessionCookie(res);
+
+      expect(clearCookie).toHaveBeenCalledWith(
+        CSRF_SESSION_COOKIE,
+        expect.objectContaining({ httpOnly: true, sameSite: 'strict' })
+      );
+      expect(cookie).not.toHaveBeenCalled();
     });
   });
 

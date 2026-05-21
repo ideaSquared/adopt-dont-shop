@@ -13,6 +13,7 @@ import { UserService } from '../services/user.service';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 import { validateBody } from '../middleware/zod-validate';
+import { clearCsrfSessionCookie, rotateCsrfSessionCookie } from '../middleware/csrf';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
 
@@ -83,6 +84,13 @@ export class AuthController {
       res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
       res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
 
+      // ADS-547: rotate the CSRF session identifier on the auth state
+      // transition (covers both password-only and 2FA-gated logins —
+      // AuthService.login performs the 2FA check inline before returning a
+      // token) so an attacker who pre-planted a session cookie on the
+      // victim's browser cannot reuse the bound CSRF token post-login.
+      rotateCsrfSessionCookie(res);
+
       const { refreshToken: _, ...responseBody } = result;
       res.json(responseBody);
     } catch (error) {
@@ -113,6 +121,10 @@ export class AuthController {
 
     res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
     res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
+    // ADS-547: clear the CSRF session identifier alongside the auth tokens so
+    // the next anonymous request mints a fresh identifier instead of reusing
+    // the one tied to the now-terminated authenticated session.
+    clearCsrfSessionCookie(res);
 
     res.json({ message: 'Logged out successfully' });
   }
