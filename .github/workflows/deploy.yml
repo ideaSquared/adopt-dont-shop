@@ -100,11 +100,21 @@ jobs:
     environment: ${{ github.event.inputs.environment }}
     steps:
       - name: Deploy to server
+        # Pass secrets via `envs:` rather than `${{ secrets.* }}` interpolation
+        # inside `script:`. Interpolation embeds the secret in the wrapper
+        # script text that appleboy/ssh-action ships to the server, leaving
+        # it visible in process listings and retained deploy logs.
+        # TODO(security): GHCR_TOKEN should be scoped `read:packages` only
+        # (no repo/write scope). This is a deploy-side GitHub UI change and
+        # out of scope for the workflow PR.
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: GHCR_TOKEN
           script: |
             set -euo pipefail
             ENV="${{ github.event.inputs.environment }}"
@@ -114,7 +124,7 @@ jobs:
             cd /opt/ads/$ENV
 
             # Login to GHCR (uses a PAT stored on the server, not the job-scoped GITHUB_TOKEN)
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ideasquared --password-stdin
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u ideasquared --password-stdin
 
             # Pull new images
             docker pull $IMAGE_PREFIX/backend:$SHA
