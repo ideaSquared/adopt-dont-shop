@@ -10,6 +10,7 @@ export { HelpPage } from './HelpPage';
 export { HomePage } from './HomePage';
 export { LoginPage } from './LoginPage';
 export { NotificationsPage } from './NotificationsPage';
+export { OnboardingQuizPage } from './OnboardingQuizPage';
 export { PetDetailsPage } from './PetDetailsPage';
 export { ProfilePage } from './ProfilePage';
 export { RegisterPage } from './RegisterPage';
