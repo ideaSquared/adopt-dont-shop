@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { config } from './config';
+import { isProductionLike } from './config/env';
 import { HSTS_MAX_AGE_ONE_YEAR_SECONDS } from './constants/security';
 import { errorHandler } from './middleware/error-handler';
 import { csrfProtection, csrfErrorHandler, getCsrfToken } from './middleware/csrf';
@@ -116,7 +117,7 @@ const io = new SocketIOServer(server, {
     allowedHeaders: ALLOWED_CORS_HEADERS,
     credentials: true,
   },
-  transports: config.nodeEnv === 'production' ? ['websocket'] : ['websocket', 'polling'],
+  transports: isProductionLike(config.nodeEnv) ? ['websocket'] : ['websocket', 'polling'],
 });
 
 // Apply middleware
@@ -127,6 +128,17 @@ app.use(
     allowedHeaders: ALLOWED_CORS_HEADERS,
   })
 );
+
+// Defence in depth: explicitly append `Vary: Origin` on every response so a
+// CDN / shared cache can't serve an origin-A response to an origin-B
+// request. The `cors` middleware already sets Vary on the responses it
+// directly handles (preflights, reflected origins), but not consistently on
+// pass-through GETs. `res.vary` appends rather than overwrites, so it's safe
+// alongside any future Vary setters.
+app.use((_req, res, next) => {
+  res.vary('Origin');
+  next();
+});
 
 // Sentry instrumentation - automatically instruments Express
 // Note: In Sentry v8+, instrumentation is automatic with setupExpressErrorHandler

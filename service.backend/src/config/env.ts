@@ -61,6 +61,20 @@ type ValidatedEnv = {
   ANON_SWIPE_LIMIT?: string;
 };
 
+/**
+ * Case-insensitive check for "production-like" NODE_ENV values.
+ *
+ * The strict equality check `nodeEnv === 'production'` silently treats any
+ * casing other than the canonical lowercase string as non-production. That
+ * misconfiguration can downgrade prod-only hardening (e.g. enabling HTTP
+ * long-polling as a Socket.IO transport, which weakens cookie/CSRF posture)
+ * without surfacing as an error. Accept the common variants instead.
+ */
+export const isProductionLike = (nodeEnv: string | undefined): boolean => {
+  const normalised = nodeEnv?.trim().toLowerCase();
+  return normalised === 'production' || normalised === 'prod';
+};
+
 export type DbSslMode = 'disable' | 'require' | 'verify-ca' | 'verify-full';
 
 const DB_SSL_MODES: readonly DbSslMode[] = ['disable', 'require', 'verify-ca', 'verify-full'];
