@@ -8,6 +8,16 @@ import PetMedia, { PetMediaType } from '../models/PetMedia';
 import Rescue from '../models/Rescue';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
+import { parsePaginationLimit } from '../utils/pagination';
+
+/**
+ * Defense-in-depth caps for the top-picks endpoint. The route-level
+ * express-validator declares the same bounds; these constants ensure
+ * the service layer still receives a bounded `limit` if that validator
+ * is ever removed or misconfigured.
+ */
+const TOP_PICKS_DEFAULT_LIMIT = 10;
+const TOP_PICKS_MAX_LIMIT = 50;
 
 /**
  * Match controller — exposes the matching module to clients:
@@ -89,7 +99,10 @@ export class MatchController {
     }
 
     const userId = req.user!.userId;
-    const limit = req.query.limit ? Number(req.query.limit) : 10;
+    const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+      default: TOP_PICKS_DEFAULT_LIMIT,
+      max: TOP_PICKS_MAX_LIMIT,
+    });
 
     if (!matchService.isEnabled()) {
       res.status(200).json({ success: true, data: [], message: 'matching disabled' });
