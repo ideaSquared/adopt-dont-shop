@@ -576,6 +576,23 @@ const startServer = async () => {
         });
       }
 
+      // ADS-631: weekly digest — combined "new matches" + "still
+      // waiting" favourites re-engagement. Saturday morning UTC by
+      // default; both calls no-op without REDIS_URL.
+      try {
+        const { scheduleWeeklyDigestJob, startWeeklyDigestWorker } =
+          await import('./jobs/weekly-digest.job');
+        await scheduleWeeklyDigestJob();
+        const w = startWeeklyDigestWorker();
+        if (w) {
+          logger.info('Weekly digest worker started');
+        }
+      } catch (err) {
+        logger.warn('Weekly digest job failed to start (continuing without scheduling)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
       // ADS-544: daily purge of expired RevokedToken rows. Without this
       // the blacklist table grows unbounded since every logout writes a
       // row that's only useful until the token's `exp`.
