@@ -29,6 +29,9 @@ type RequiredEnvVars = {
   WORKER_ENABLED?: string;
   DB_SSL_MODE?: string;
   ALLOW_INSECURE_DB?: string;
+  // ADS-625 server-side anon swipe paywall. Optional — defaults to 7
+  // (matches the client's VITE_ANON_SWIPE_LIMIT default).
+  ANON_SWIPE_LIMIT?: string;
 };
 
 type ValidatedEnv = {
@@ -55,6 +58,7 @@ type ValidatedEnv = {
   WORKER_ENABLED?: string;
   DB_SSL_MODE?: string;
   ALLOW_INSECURE_DB?: string;
+  ANON_SWIPE_LIMIT?: string;
 };
 
 export type DbSslMode = 'disable' | 'require' | 'verify-ca' | 'verify-full';
@@ -310,6 +314,7 @@ const validateEnv = (): ValidatedEnv => {
     WORKER_ENABLED: process.env.WORKER_ENABLED,
     DB_SSL_MODE: process.env.DB_SSL_MODE,
     ALLOW_INSECURE_DB: process.env.ALLOW_INSECURE_DB,
+    ANON_SWIPE_LIMIT: process.env.ANON_SWIPE_LIMIT,
   };
 
   // ADS-540: refuse to boot in production with no TLS to the database
