@@ -6,14 +6,17 @@ import {
   discoveryService,
 } from '@/services';
 import { Container } from '@adopt-dont-shop/lib.components';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadDiscoveryState, recordViewedPet } from '@/utils/discoverySession';
+import { useStatsig } from '@/hooks/useStatsig';
 import { MdWarning } from 'react-icons/md';
 import { Link, useNavigate } from 'react-router-dom';
 import * as styles from './DiscoveryPage.css';
 import { SwipeControls } from '../swipe/SwipeControls';
 import { SwipeStack } from '../swipe/SwipeStack';
 import { EndOfQueueEmptyState } from './EndOfQueueEmptyState';
+import { ANON_FIRST_LIKE_FIRED_KEY, AnonymousFirstLikeModal } from './AnonymousFirstLikeModal';
 
 export const DiscoveryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +38,10 @@ export const DiscoveryPage: React.FC = () => {
   const [viewedPetIds, setViewedPetIds] = useState<string[]>(persistedState.viewedPetIds);
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
   const [undoStack, setUndoStack] = useState<SwipeAction[]>([]);
+  // ADS-626: first-like modal state for anonymous users.
+  const { isAuthenticated } = useAuth();
+  const { logEvent } = useStatsig();
+  const [anonLikeModalPet, setAnonLikeModalPet] = useState<DiscoveryPet | null>(null);
   // ADS-630: track whether `loadMorePets` has ever returned an empty page
   // — that's how we differentiate "queue truly exhausted" from "first
   // batch not arrived yet". Reset to true whenever the filter set
@@ -80,6 +87,25 @@ export const DiscoveryPage: React.FC = () => {
   }, []);
   const handleSwipe = useCallback(
     async (action: SwipeAction) => {
+      // ADS-626: surface the celebratory match modal on the *first*
+      // anonymous like in this browser session. The flag lives in
+      // sessionStorage so re-mounts within the same tab don't refire.
+      // Only fires for `like` / `super_like` — `pass` is not a peak
+      // emotional moment.
+      if (
+        !isAuthenticated &&
+        (action.action === 'like' || action.action === 'super_like') &&
+        typeof window !== 'undefined' &&
+        window.sessionStorage.getItem(ANON_FIRST_LIKE_FIRED_KEY) !== 'true'
+      ) {
+        const likedPet = pets.find(p => p.petId === action.petId) ?? pets[currentPetIndex];
+        if (likedPet) {
+          window.sessionStorage.setItem(ANON_FIRST_LIKE_FIRED_KEY, 'true');
+          setAnonLikeModalPet(likedPet);
+          logEvent('anon_first_like_modal_shown', 1, { pet_id: likedPet.petId });
+        }
+      }
+
       // Update session stats
       setSession(prev => ({
         ...prev,
@@ -109,7 +135,7 @@ export const DiscoveryPage: React.FC = () => {
         console.error('Failed to record swipe action:', error);
       }
     },
-    [session.sessionId]
+    [session.sessionId, isAuthenticated, pets, currentPetIndex, logEvent]
   );
 
   const handleEndReached = useCallback(async () => {
@@ -192,8 +218,31 @@ export const DiscoveryPage: React.FC = () => {
   // already enforced by the parent ternary.
   const isQueueExhausted = !loading && !error && hasNoPets && !hasMore;
 
+  const handleAnonModalDismiss = useCallback(() => {
+    if (anonLikeModalPet) {
+      logEvent('anon_first_like_modal_dismissed', 1, { pet_id: anonLikeModalPet.petId });
+    }
+    setAnonLikeModalPet(null);
+  }, [anonLikeModalPet, logEvent]);
+
+  const handleAnonModalCta = useCallback(() => {
+    if (anonLikeModalPet) {
+      logEvent('anon_first_like_modal_clicked', 1, { pet_id: anonLikeModalPet.petId });
+    }
+    setAnonLikeModalPet(null);
+  }, [anonLikeModalPet, logEvent]);
+
   return (
     <Container className={styles.pageContainer}>
+      {anonLikeModalPet && (
+        <AnonymousFirstLikeModal
+          petId={anonLikeModalPet.petId}
+          petName={anonLikeModalPet.name}
+          petImage={anonLikeModalPet.images?.[0]}
+          onDismiss={handleAnonModalDismiss}
+          onCtaClick={handleAnonModalCta}
+        />
+      )}
       <div className={styles.header}>
         <h1 className={styles.title}>Discover Pets</h1>
         <div className={styles.headerActions}>
