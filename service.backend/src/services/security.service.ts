@@ -174,9 +174,25 @@ class SecurityService {
 
   // ------- IP Rules -------
 
-  static async listIpRules(): Promise<IpRuleRow[]> {
-    const rows = await IpRule.findAll({ order: [['created_at', 'DESC']] });
-    return rows.map(SecurityService.toIpRuleRow);
+  static async listIpRules(
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<{ rules: IpRuleRow[]; total: number; limit: number; offset: number }> {
+    const DEFAULT_LIMIT = 100;
+    const MAX_LIMIT = 500;
+    const limit = Math.max(1, Math.min(MAX_LIMIT, Math.floor(options.limit ?? DEFAULT_LIMIT)));
+    const offset = Math.max(0, Math.floor(options.offset ?? 0));
+
+    const { rows, count } = await IpRule.findAndCountAll({
+      order: [['created_at', 'DESC']],
+      limit,
+      offset,
+    });
+    return {
+      rules: rows.map(SecurityService.toIpRuleRow),
+      total: count,
+      limit,
+      offset,
+    };
   }
 
   static async createIpRule(input: {
