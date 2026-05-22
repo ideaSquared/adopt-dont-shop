@@ -198,3 +198,20 @@ export const successBanner = style([
     color: vars.colors.successTextEmphasis,
   },
 ]);
+
+export const drillLink = style({
+  background: 'none',
+  border: 'none',
+  padding: 0,
+  margin: 0,
+  color: vars.colors.infoActive,
+  textDecoration: 'underline',
+  cursor: 'pointer',
+  fontSize: '0.8rem',
+  fontFamily: 'inherit',
+  selectors: {
+    '&:hover': { color: vars.colors.infoTextEmphasis },
+    '&:disabled': { color: vars.text.tertiary, cursor: 'not-allowed' },
+    '&:not(:last-child)': { marginRight: '0.5rem' },
+  },
+});
