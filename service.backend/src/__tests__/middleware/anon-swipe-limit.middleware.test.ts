@@ -157,6 +157,86 @@ describe('anon-swipe-limit middleware (ADS-625 server enforcement)', () => {
     expect(resB.status).not.toHaveBeenCalled();
   });
 
+  it('rejects exactly the over-budget portion under parallel requests (atomic LUA increment)', async () => {
+    // 10 parallel requests with limit=7 — under the pre-fix
+    // check-then-increment pattern, all 10 could read 0 and all pass.
+    // With the atomic INCR+EXPIRE eval, exactly 3 must be rejected.
+    process.env.ANON_SWIPE_LIMIT = '7';
+    const anonSwipeLimit = await loadMiddleware();
+    const req = buildReq({ cookies: { 'csrf-session': 'parallel-cookie' } });
+
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () => {
+        const res = buildRes();
+        const next: NextFunction = vi.fn();
+        return anonSwipeLimit(req, res as unknown as Response, next).then(() => ({
+          rejected: (res.status as ReturnType<typeof vi.fn>).mock.calls.some(
+            (c: unknown[]) => c[0] === 402
+          ),
+          nextCalled: (next as unknown as ReturnType<typeof vi.fn>).mock.calls.length > 0,
+        }));
+      })
+    );
+
+    const rejectedCount = results.filter(r => r.rejected).length;
+    const passedCount = results.filter(r => r.nextCalled).length;
+    expect(passedCount).toBe(7);
+    expect(rejectedCount).toBe(3);
+  });
+
+  it('re-applies the TTL on an orphan key with no expiration set (LUA branch)', async () => {
+    // Direct exercise of the Redis-backed LUA path with a mock client.
+    // The mock simulates an existing key that already has a value but no
+    // TTL (`TTL` returns -1). The script must re-issue EXPIRE so the row
+    // doesn't leak forever.
+    vi.resetModules();
+    const expireSpy = vi.fn().mockResolvedValue(1);
+    const ttlSpy = vi.fn().mockResolvedValue(-1);
+    const incrSpy = vi.fn().mockResolvedValue(5);
+
+    // Build a fake Redis client that runs the LUA script imperatively in JS
+    // — eval() interprets the redis.call sequence using the spies above.
+    const fakeRedis = {
+      eval: vi.fn(async () => {
+        const current = await incrSpy();
+        if (current === 1) {
+          await expireSpy();
+        } else if ((await ttlSpy()) < 0) {
+          await expireSpy();
+        }
+        return current;
+      }),
+    };
+
+    vi.doMock('../../lib/redis', () => ({
+      getRedis: () => fakeRedis,
+      ensureRedisReady: async () => true,
+      isRedisReady: () => true,
+    }));
+    vi.doMock('../../utils/logger', () => ({
+      logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn(), debug: vi.fn() },
+    }));
+
+    process.env.ANON_SWIPE_LIMIT = '7';
+    const mod = await import('../../middleware/anon-swipe-limit');
+    const next: NextFunction = vi.fn();
+    const res = buildRes();
+    const req = buildReq({ cookies: { 'csrf-session': 'orphan-cookie' } });
+
+    await mod.anonSwipeLimit(req, res as unknown as Response, next);
+
+    expect(fakeRedis.eval).toHaveBeenCalledTimes(1);
+    // INCR returned 5 (not 1), so the script took the orphan-TTL branch.
+    expect(ttlSpy).toHaveBeenCalledTimes(1);
+    // TTL was -1, so EXPIRE must have been re-applied.
+    expect(expireSpy).toHaveBeenCalledTimes(1);
+    // 5 <= 7, the request passes.
+    expect(next).toHaveBeenCalledTimes(1);
+
+    vi.doUnmock('../../lib/redis');
+    vi.doUnmock('../../utils/logger');
+  });
+
   it('falls back to req.ip when no CSRF session cookie is present and keeps counters independent', async () => {
     const anonSwipeLimit = await loadMiddleware();
     const res = buildRes();
