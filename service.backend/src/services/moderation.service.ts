@@ -915,10 +915,10 @@ class ModerationService {
             entityId: affectedReportId,
             details: {
               action,
-              resolutionNotes,
-              assignTo,
-              escalateTo,
-              escalationReason,
+              ...(resolutionNotes !== undefined && { resolutionNotes }),
+              ...(assignTo !== undefined && { assignTo }),
+              ...(escalateTo !== undefined && { escalateTo }),
+              ...(escalationReason !== undefined && { escalationReason }),
               bulkBatchSize: reportIds.length,
             },
           })
