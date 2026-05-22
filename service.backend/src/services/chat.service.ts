@@ -829,7 +829,10 @@ export class ChatService {
         }
       }
 
-      // Send real-time notifications to other participants
+      // Notify other participants in one bulkCreate (was N sequential
+      // INSERT round-trips). Participant cap protects the DB + push
+      // providers from a single send fanning out to thousands of users.
+      const MAX_NOTIFY_PARTICIPANTS = 200;
       try {
         const participants = await ChatParticipant.findAll({
           where: {
@@ -839,20 +842,28 @@ export class ChatService {
           include: [{ model: User, as: 'User' }],
         });
 
-        // Send push notifications to offline users
-        for (const participant of participants) {
-          await NotificationService.createNotification({
-            userId: participant.participant_id,
-            type: NotificationType.MESSAGE_RECEIVED,
-            title: 'New Message',
-            message: `New message from ${messageWithSender.Sender?.firstName || 'Someone'}`,
-            data: {
-              chatId: data.chatId,
-              messageId: messageWithSender.message_id,
-              senderId: data.senderId,
-            },
-            priority: NotificationPriority.NORMAL,
-          });
+        if (participants.length > MAX_NOTIFY_PARTICIPANTS) {
+          throw new Error(
+            `Chat has ${participants.length} participants which exceeds the ${MAX_NOTIFY_PARTICIPANTS} notification fan-out cap`
+          );
+        }
+
+        if (participants.length > 0) {
+          const senderName = messageWithSender.Sender?.firstName || 'Someone';
+          await NotificationService.createNotificationsBulk(
+            participants.map(p => ({
+              userId: p.participant_id,
+              type: NotificationType.MESSAGE_RECEIVED,
+              title: 'New Message',
+              message: `New message from ${senderName}`,
+              data: {
+                chatId: data.chatId,
+                messageId: messageWithSender.message_id,
+                senderId: data.senderId,
+              },
+              priority: NotificationPriority.NORMAL,
+            }))
+          );
         }
       } catch (notificationError) {
         logger.warn('Failed to send notifications:', notificationError);

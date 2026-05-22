@@ -111,6 +111,7 @@ vi.mock('../../services/auditLog.service', () => ({
 vi.mock('../../services/notification.service', () => ({
   NotificationService: {
     createNotification: vi.fn().mockResolvedValue(undefined),
+    createNotificationsBulk: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -164,6 +165,10 @@ const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof Audit
 const mockCreateNotification = NotificationService.createNotification as vi.MockedFunction<
   typeof NotificationService.createNotification
 >;
+const mockCreateNotificationsBulk =
+  NotificationService.createNotificationsBulk as vi.MockedFunction<
+    typeof NotificationService.createNotificationsBulk
+  >;
 
 describe('ChatService', () => {
   beforeEach(() => {
@@ -786,14 +791,86 @@ describe('ChatService', () => {
           expect.any(Object) // transaction
         );
 
-        expect(mockCreateNotification).toHaveBeenCalledWith(
+        // One bulkCreate call, one row inside it (single participant).
+        expect(mockCreateNotificationsBulk).toHaveBeenCalledTimes(1);
+        expect(mockCreateNotificationsBulk).toHaveBeenCalledWith([
           expect.objectContaining({
             userId: rescueId,
             type: 'MESSAGE_RECEIVED',
             title: 'New Message',
             message: expect.stringContaining('John'),
-          })
-        );
+          }),
+        ]);
+        // Per-row createNotification path is no longer used for chat fan-out.
+        expect(mockCreateNotification).not.toHaveBeenCalled();
+      });
+
+      it('fans out via a single bulkCreate call for 5 participants', async () => {
+        const chatId = 'chat-bulk';
+        const senderId = 'sender-X';
+        const chat = { chat_id: chatId, rescue_id: 'r', status: ChatStatus.ACTIVE };
+        const message = {
+          message_id: 'm-bulk',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'hi',
+          Sender: { userId: senderId, firstName: 'Alice' },
+        };
+        const participants = Array.from({ length: 5 }, (_, i) => ({
+          participant_id: `recipient-${i}`,
+          chat_id: chatId,
+          User: { userId: `recipient-${i}` },
+        }));
+
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          ...chat,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedMessage.create as vi.Mock).mockResolvedValue(message);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(message);
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue(participants);
+
+        await ChatService.sendMessage({ chatId, senderId, content: 'hi' });
+
+        expect(mockCreateNotificationsBulk).toHaveBeenCalledTimes(1);
+        const rows = mockCreateNotificationsBulk.mock.calls[0]?.[0] as unknown[];
+        expect(rows).toHaveLength(5);
+      });
+
+      it('refuses to fan out when the participant cap is exceeded', async () => {
+        const chatId = 'chat-huge';
+        const senderId = 'sender-X';
+        const chat = { chat_id: chatId, rescue_id: 'r', status: ChatStatus.ACTIVE };
+        const message = {
+          message_id: 'm-huge',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'hi',
+          Sender: { userId: senderId, firstName: 'A' },
+        };
+        const participants = Array.from({ length: 250 }, (_, i) => ({
+          participant_id: `p-${i}`,
+          chat_id: chatId,
+          User: { userId: `p-${i}` },
+        }));
+
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          ...chat,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedMessage.create as vi.Mock).mockResolvedValue(message);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(message);
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue(participants);
+
+        // Message send itself succeeds (notification failure is swallowed).
+        await ChatService.sendMessage({ chatId, senderId, content: 'hi' });
+
+        // No bulkCreate call when cap exceeded.
+        expect(mockCreateNotificationsBulk).not.toHaveBeenCalled();
       });
     });
 

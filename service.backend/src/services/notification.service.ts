@@ -248,6 +248,82 @@ export class NotificationService {
   }
 
   /**
+   * Bulk-create notifications for fan-out scenarios (e.g. chat messages
+   * to N recipients). One DB INSERT instead of N sequential round-trips.
+   * individualHooks preserves the model's beforeValidate/beforeSave hooks
+   * (expires_at defaulting + status timestamps).
+   *
+   * Audit logs are written per-row to keep the per-notification trail.
+   * Delivery side-effects (channel fan-out) run with bounded concurrency
+   * so we never have 1000 deliveries in flight at once.
+   */
+  static async createNotificationsBulk(rows: CreateNotificationRequest[]): Promise<Notification[]> {
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const startTime = Date.now();
+    const DELIVERY_CONCURRENCY = 50;
+
+    const created = await Notification.bulkCreate(
+      rows.map(r => ({
+        user_id: r.userId,
+        type: r.type,
+        title: r.title,
+        message: r.message,
+        data: r.data,
+        priority: r.priority ?? NotificationPriority.NORMAL,
+        channel: r.channel ?? NotificationChannel.IN_APP,
+        created_at: new Date(),
+      })),
+      { individualHooks: true }
+    );
+
+    // Audit-log each insert. Failures are logged but don't abort the
+    // batch — the rows are already committed.
+    await Promise.allSettled(
+      created.map(n =>
+        AuditLogService.log({
+          userId: n.user_id,
+          action: 'NOTIFICATION_CREATED',
+          entity: 'Notification',
+          entityId: n.notification_id,
+          details: { type: n.type, notificationId: n.notification_id },
+        })
+      )
+    );
+
+    loggerHelpers.logBusiness('Notifications Bulk Created', {
+      count: created.length,
+      duration: Date.now() - startTime,
+    });
+
+    // Fire delivery side-effects (push / socket / email) per row with
+    // bounded concurrency.
+    for (let i = 0; i < created.length; i += DELIVERY_CONCURRENCY) {
+      const batch = created.slice(i, i + DELIVERY_CONCURRENCY);
+      const sourceRows = rows.slice(i, i + DELIVERY_CONCURRENCY);
+      await Promise.allSettled(
+        batch.map(async (notification, idx) => {
+          const sourceRow = sourceRows[idx];
+          const channels = await NotificationChannelService.getDeliveryChannels(
+            notification.user_id,
+            notification.type,
+            sourceRow?.priority
+          );
+          if (channels.length > 0) {
+            await this.deliverThroughChannels(notification, channels);
+          } else if (sourceRow?.channel) {
+            await this.deliverNotification(notification, [sourceRow.channel]);
+          }
+        })
+      );
+    }
+
+    return created;
+  }
+
+  /**
    * Mark notification as read.
    *
    * Audit attribution convention: the top-level audit row's `user` column
