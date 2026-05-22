@@ -4,7 +4,7 @@ import { BroadcastController } from '../controllers/broadcast.controller';
 import { NotificationController } from '../controllers/notification.controller';
 import { authenticateToken } from '../middleware/auth';
 import { idempotency } from '../middleware/idempotency';
-import { broadcastLimiter } from '../middleware/rate-limiter';
+import { broadcastLimiter, sensitiveWriteLimiter } from '../middleware/rate-limiter';
 import { requirePermission } from '../middleware/rbac';
 import { BROADCAST_AUDIENCES } from '../services/broadcast.service';
 import { PERMISSIONS } from '../types/rbac';
@@ -28,10 +28,14 @@ const validateBroadcast = [
 ];
 
 // Validation middleware
+// ADS-741: notification IDs are UUIDs in the data model. Validate strictly
+// so the mark-as-read endpoint (and friends) reject malformed IDs at the
+// route layer before the service does a DB lookup — this both narrows
+// the brute-force surface and ensures the response timing is identical
+// for "invalid UUID" vs "valid UUID but not yours".
 const validateNotificationId = param('notificationId')
-  .isLength({ min: 1, max: 50 })
-  .matches(/^[a-zA-Z0-9_-]+$/)
-  .withMessage('Invalid notification ID format');
+  .isUUID()
+  .withMessage('notificationId must be a valid UUID');
 
 const validateCreateNotification = [
   body('userId')
@@ -723,8 +727,13 @@ router.post('/read-all', notificationController.markAllNotificationsAsRead);
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.get('/:notificationId', validateNotificationId, notificationController.getNotificationById);
+// ADS-741: mark-as-read is now rate-limited (sensitiveWriteLimiter:
+// 60 req / 15 min / IP). Without this, an attacker could brute-force
+// the UUID space and distinguish "notification exists but not yours"
+// from "no such notification" via timing or response differences.
 router.patch(
   '/:notificationId/read',
+  sensitiveWriteLimiter,
   validateNotificationId,
   notificationController.markNotificationAsRead
 );
