@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import type { BulkUserUpdateData } from '@adopt-dont-shop/lib.validation';
 import { userManagementService } from '../services/userManagementService';
 
 // Re-export UserFilters type for convenience
@@ -139,13 +140,13 @@ export const useBulkUpdateUsers = () => {
   return useMutation({
     mutationFn: ({
       userIds,
-      updates,
+      updateData,
       reason,
     }: {
       userIds: string[];
-      updates: { userType?: string; is_active?: boolean };
+      updateData: BulkUserUpdateData;
       reason?: string;
-    }) => userManagementService.bulkUpdateUsers(userIds, updates, reason),
+    }) => userManagementService.bulkUpdateUsers(userIds, updateData, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },

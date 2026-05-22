@@ -1,3 +1,4 @@
+import type { BulkUserUpdateData } from '@adopt-dont-shop/lib.validation';
 import { apiService } from './libraryServices';
 import { User, PaginatedResponse } from '@/types';
 
@@ -232,18 +233,24 @@ class UserManagementService {
 
   /**
    * Bulk update users
+   *
+   * Hits the backend bulk endpoint (`POST /api/v1/users/bulk-update`) with the
+   * shape defined by `BulkUserUpdateRequestSchema` in lib.validation:
+   * `{ userIds, updateData, reason }`. The backend's `updateData` schema is
+   * strict — only `status` is accepted — so callers translate UI-level intent
+   * (activate/deactivate) into a `status` value here.
    */
   async bulkUpdateUsers(
     userIds: string[],
-    updates: { userType?: string; is_active?: boolean },
+    updateData: BulkUserUpdateData,
     reason?: string
   ): Promise<{ success: number; failed: number }> {
     try {
       // ADS-651: forward the operator-supplied reason so the backend
       // bulk endpoint can persist it against each affected user's audit row.
-      return await apiService.patch('/api/v1/admin/users/bulk-update', {
-        user_ids: userIds,
-        updates,
+      return await apiService.post('/api/v1/users/bulk-update', {
+        userIds,
+        updateData,
         reason,
       });
     } catch (error) {

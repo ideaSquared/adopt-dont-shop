@@ -275,13 +275,13 @@ const Users: React.FC = () => {
     if (bulkAction === 'activate') {
       result = await bulkUpdateUsers.mutateAsync({
         userIds,
-        updates: { is_active: true },
+        updateData: { status: 'active' },
         reason,
       });
     } else if (bulkAction === 'deactivate') {
       result = await bulkUpdateUsers.mutateAsync({
         userIds,
-        updates: { is_active: false },
+        updateData: { status: 'inactive' },
         reason,
       });
     } else {
