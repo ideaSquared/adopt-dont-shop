@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
@@ -10,10 +10,12 @@ import {
   FiShield,
 } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
+import { BulkActionToolbar } from '../components/ui';
 import {
   useReports,
   useModerationMetrics,
   useReportMutations,
+  moderationService,
   getSeverityLabel,
   getStatusLabel,
   formatRelativeTime,
@@ -26,6 +28,11 @@ import {
   type ActionSelectionData,
 } from '../components/moderation/ActionSelectionModal';
 import { ReportDetailModal } from '../components/moderation/ReportDetailModal';
+import {
+  BulkModerationModal,
+  type BulkModerationActionKind,
+  type BulkModerationSubmitData,
+} from '../components/moderation/BulkModerationModal';
 import * as styles from './Moderation.css';
 
 const getStatusBadgeClass = (status: string): string => {
@@ -121,6 +128,12 @@ const Moderation: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
+  // Bulk selection state
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [bulkKind, setBulkKind] = useState<BulkModerationActionKind | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
+
   const {
     data: reportsData,
     isLoading,
@@ -140,7 +153,7 @@ const Moderation: React.FC = () => {
   const { data: metricsData } = useModerationMetrics();
   const { resolveReport, dismissReport, isLoading: isActionLoading } = useReportMutations();
 
-  const reports = reportsData?.data || [];
+  const reports = useMemo(() => reportsData?.data ?? [], [reportsData?.data]);
   const pagination = reportsData?.pagination;
   const metrics = metricsData || {
     pendingReports: 0,
@@ -194,6 +207,82 @@ const Moderation: React.FC = () => {
       await refetch();
     } catch (err) {
       console.error('Failed to take moderation action:', err);
+    }
+  };
+
+  const selectedReports = useMemo(
+    () => reports.filter(r => selectedRows.has(r.reportId)),
+    [reports, selectedRows]
+  );
+  const selectedSeverities = useMemo<ReportSeverity[]>(
+    () => selectedReports.map(r => r.severity),
+    [selectedReports]
+  );
+
+  const handleOpenBulk = (kind: BulkModerationActionKind) => {
+    setBulkKind(kind);
+    setBulkResult(null);
+  };
+
+  const handleCloseBulk = () => {
+    setBulkKind(null);
+    setBulkResult(null);
+  };
+
+  const handleBulkSubmit = async (data: BulkModerationSubmitData) => {
+    const reportIds = Array.from(selectedRows);
+    if (reportIds.length === 0) {
+      return;
+    }
+
+    setIsBulkLoading(true);
+    try {
+      if (data.kind === 'dismiss') {
+        // Backend writes one audit log row per dismissed report.
+        const result = await moderationService.bulkUpdateReports({
+          reportIds,
+          action: 'dismiss',
+          resolutionNotes: data.reason,
+        });
+        setBulkResult({
+          succeeded: result.updated,
+          failed: reportIds.length - result.updated,
+        });
+      } else if (data.kind === 'sanction' && data.sanction) {
+        // Bulk sanctions: iterate per report so each action creates its own
+        // moderation action + audit-log entry (MODERATION_ACTION_TAKEN).
+        const outcomes = await Promise.all(
+          selectedReports.map(async report => {
+            try {
+              await moderationService.takeAction(
+                report.reportId,
+                {
+                  reportId: report.reportId,
+                  targetEntityType: report.reportedEntityType,
+                  targetEntityId: report.reportedEntityId,
+                  targetUserId: report.reportedUserId ?? undefined,
+                  actionType: data.sanction!.actionType,
+                  severity: data.sanction!.severity,
+                  reason: data.reason,
+                },
+                data.reason
+              );
+              return true;
+            } catch (err) {
+              console.error('Bulk sanction failed for report', report.reportId, err);
+              return false;
+            }
+          })
+        );
+        setBulkResult({
+          succeeded: outcomes.filter(Boolean).length,
+          failed: outcomes.filter(o => !o).length,
+        });
+      }
+      setSelectedRows(new Set());
+      await refetch();
+    } finally {
+      setIsBulkLoading(false);
     }
   };
 
@@ -395,6 +484,25 @@ const Moderation: React.FC = () => {
         </div>
       </div>
 
+      <BulkActionToolbar
+        selectedCount={selectedRows.size}
+        totalCount={reports.length}
+        onSelectAll={() => setSelectedRows(new Set(reports.map(r => r.reportId)))}
+        onClearSelection={() => setSelectedRows(new Set())}
+        actions={[
+          {
+            label: 'Dismiss',
+            variant: 'neutral',
+            onClick: () => handleOpenBulk('dismiss'),
+          },
+          {
+            label: 'Sanction',
+            variant: 'danger',
+            onClick: () => handleOpenBulk('sanction'),
+          },
+        ]}
+      />
+
       <DataTable
         data={reports}
         columns={columns}
@@ -403,6 +511,10 @@ const Moderation: React.FC = () => {
         currentPage={pagination?.page || 1}
         totalPages={pagination?.totalPages || 1}
         onPageChange={page => setCurrentPage(page)}
+        selectable
+        selectedRows={selectedRows}
+        onSelectionChange={setSelectedRows}
+        getRowId={report => report.reportId}
       />
 
       <ReportDetailModal
@@ -417,6 +529,17 @@ const Moderation: React.FC = () => {
         onSubmit={handleActionSubmit}
         reportTitle={selectedReport?.title || ''}
         isLoading={isActionLoading}
+      />
+
+      <BulkModerationModal
+        isOpen={bulkKind !== null}
+        onClose={handleCloseBulk}
+        onSubmit={handleBulkSubmit}
+        kind={bulkKind ?? 'dismiss'}
+        selectedCount={selectedRows.size}
+        selectedSeverities={selectedSeverities}
+        isLoading={isBulkLoading}
+        resultSummary={bulkResult}
       />
     </div>
   );

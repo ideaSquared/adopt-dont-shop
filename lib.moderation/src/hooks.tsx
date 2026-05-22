@@ -127,9 +127,10 @@ export const useModerationMetrics = (): UseQueryState<ModerationMetrics> => {
 };
 
 /**
- * Hook for fetching active moderation actions
+ * Hook for fetching active moderation actions. Pass a targetUserId to scope
+ * the result to a single user; omit it to load all active actions.
  */
-export const useActiveActions = (): UseQueryState<ModeratorAction[]> => {
+export const useActiveActions = (targetUserId?: string): UseQueryState<ModeratorAction[]> => {
   const [data, setData] = useState<ModeratorAction[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -138,14 +139,14 @@ export const useActiveActions = (): UseQueryState<ModeratorAction[]> => {
     try {
       setIsLoading(true);
       setError(null);
-      const actions = await moderationService.getActiveActions();
+      const actions = await moderationService.getActiveActions(targetUserId);
       setData(actions);
     } catch (err) {
       setError(err as Error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [targetUserId]);
 
   useEffect(() => {
     fetchActions();

@@ -127,7 +127,8 @@ export const BulkUpdateReportsRequestSchema = z.object({
   action: z.enum(['resolve', 'dismiss', 'assign', 'escalate']),
   moderatorId: z.string().optional(),
   escalatedTo: z.string().optional(),
-  notes: z.string().optional(),
+  // Field name matches the backend controller payload contract.
+  resolutionNotes: z.string().optional(),
 });
 
 // Moderator action schema
@@ -177,6 +178,7 @@ export const ReportFiltersSchema = z.object({
   category: ReportCategorySchema.optional(),
   severity: ReportSeveritySchema.optional(),
   reportedEntityType: ReportedEntityTypeSchema.optional(),
+  reportedUserId: z.string().optional(),
   assignedModerator: z.string().optional(),
   search: z.string().optional(),
   page: z.number().int().positive().default(1),

@@ -781,6 +781,7 @@ class ModerationService {
 
     try {
       let updated = 0;
+      const updatedReportIds: string[] = [];
 
       for (const reportId of reportIds) {
         const report = await Report.findByPk(reportId, { transaction });
@@ -789,6 +790,7 @@ class ModerationService {
         }
 
         const previousStatus = report.status;
+        let didUpdate = false;
         switch (action) {
           case 'resolve':
             if ([ReportStatus.UNDER_REVIEW, ReportStatus.ESCALATED].includes(report.status)) {
@@ -810,7 +812,7 @@ class ModerationService {
                 },
                 { transaction }
               );
-              updated++;
+              didUpdate = true;
             }
             break;
 
@@ -834,7 +836,7 @@ class ModerationService {
                 },
                 { transaction }
               );
-              updated++;
+              didUpdate = true;
             }
             break;
 
@@ -861,7 +863,7 @@ class ModerationService {
                 },
                 { transaction }
               );
-              updated++;
+              didUpdate = true;
             }
             break;
 
@@ -889,25 +891,39 @@ class ModerationService {
                 },
                 { transaction }
               );
-              updated++;
+              didUpdate = true;
             }
             break;
+        }
+
+        if (didUpdate) {
+          updated++;
+          updatedReportIds.push(report.reportId);
         }
       }
 
       await transaction.commit();
 
-      await AuditLogService.log({
-        userId: moderatorId,
-        action: 'BULK_REPORTS_UPDATE',
-        entity: 'Report',
-        entityId: 'bulk',
-        details: {
-          action,
-          reportCount: reportIds.length,
-          updatedCount: updated,
-        },
-      });
+      // Write one audit log row per affected report so each handled report
+      // has a discrete entry, even when actioned via a bulk operation.
+      await Promise.all(
+        updatedReportIds.map(affectedReportId =>
+          AuditLogService.log({
+            userId: moderatorId,
+            action: 'REPORT_BULK_HANDLED',
+            entity: 'Report',
+            entityId: affectedReportId,
+            details: {
+              action,
+              resolutionNotes,
+              assignTo,
+              escalateTo,
+              escalationReason,
+              bulkBatchSize: reportIds.length,
+            },
+          })
+        )
+      );
 
       logger.info(
         `Bulk ${action} completed: ${updated} of ${reportIds.length} reports updated by ${moderatorId}`

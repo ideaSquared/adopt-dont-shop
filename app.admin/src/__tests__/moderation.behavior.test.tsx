@@ -26,14 +26,23 @@ import type { Report, ReportSeverity, ReportStatus } from '@adopt-dont-shop/lib.
 const mockUseReports = vi.fn();
 const mockUseModerationMetrics = vi.fn();
 const mockUseReportMutations = vi.fn();
+const mockBulkUpdateReports = vi.fn();
+const mockTakeAction = vi.fn();
 
 vi.mock('@adopt-dont-shop/lib.moderation', () => ({
   useReports: (...args: unknown[]) => mockUseReports(...args),
   useModerationMetrics: () => mockUseModerationMetrics(),
   useReportMutations: () => mockUseReportMutations(),
+  useActiveActions: () => ({ data: [], isLoading: false, error: null, refetch: vi.fn() }),
+  moderationService: {
+    bulkUpdateReports: (...args: unknown[]) => mockBulkUpdateReports(...args),
+    takeAction: (...args: unknown[]) => mockTakeAction(...args),
+  },
   getSeverityLabel: (severity: string) => severity.charAt(0).toUpperCase() + severity.slice(1),
   getStatusLabel: (status: string) =>
     status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+  getActionTypeLabel: (type: string) =>
+    type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
   formatRelativeTime: (_date: Date) => '2 hours ago',
 }));
 
@@ -393,6 +402,204 @@ describe('Content Moderation page', () => {
       renderWithProviders(<Moderation />);
 
       expect(screen.queryByTitle('Take Action')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('bulk moderation actions', () => {
+    beforeEach(() => {
+      mockBulkUpdateReports.mockReset();
+      mockTakeAction.mockReset();
+    });
+
+    const selectAllReports = async (user: ReturnType<typeof userEvent.setup>) => {
+      // The DataTable renders a "Select all rows" header checkbox plus a
+      // per-row checkbox for each report. Selecting the header selects all.
+      const checkboxes = screen.getAllByRole('checkbox');
+      // Skip first (header) and tick the row checkboxes.
+      for (const cb of checkboxes.slice(1)) {
+        await user.click(cb);
+      }
+    };
+
+    it('reveals the bulk action toolbar once reports are selected', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<Moderation />);
+
+      expect(screen.queryByRole('toolbar', { name: /bulk actions/i })).not.toBeInTheDocument();
+
+      await selectAllReports(user);
+
+      expect(screen.getByRole('toolbar', { name: /bulk actions/i })).toBeInTheDocument();
+    });
+
+    it('bulk dismisses the selected reports with a shared reason via the bulk endpoint', async () => {
+      const user = userEvent.setup();
+      mockBulkUpdateReports.mockResolvedValue({ success: true, updated: 3 });
+
+      mockUseReports.mockReturnValue({
+        data: {
+          data: [
+            makeReport({ reportId: 'r-1', severity: 'low', status: 'pending' }),
+            makeReport({ reportId: 'r-2', severity: 'medium', status: 'pending' }),
+            makeReport({ reportId: 'r-3', severity: 'low', status: 'pending' }),
+          ],
+          pagination: { page: 1, limit: 20, total: 3, totalPages: 1 },
+        },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      renderWithProviders(<Moderation />);
+
+      await selectAllReports(user);
+      await user.click(screen.getByRole('button', { name: /^dismiss$/i }));
+
+      const reasonField = await screen.findByLabelText(/shared reason/i);
+      await user.type(reasonField, 'Reports investigated, no violation');
+      await user.click(screen.getByRole('button', { name: /dismiss reports/i }));
+
+      await waitFor(() => {
+        expect(mockBulkUpdateReports).toHaveBeenCalledWith(
+          expect.objectContaining({
+            reportIds: ['r-1', 'r-2', 'r-3'],
+            action: 'dismiss',
+            resolutionNotes: 'Reports investigated, no violation',
+          })
+        );
+      });
+    });
+
+    it('requires a reason before submitting a bulk dismiss', async () => {
+      const user = userEvent.setup();
+
+      mockUseReports.mockReturnValue({
+        data: {
+          data: [makeReport({ reportId: 'r-1', severity: 'low', status: 'pending' })],
+          pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+        },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      renderWithProviders(<Moderation />);
+
+      await selectAllReports(user);
+      await user.click(screen.getByRole('button', { name: /^dismiss$/i }));
+
+      const confirmButton = screen.getByRole('button', { name: /dismiss reports/i });
+      expect(confirmButton).toBeDisabled();
+      expect(mockBulkUpdateReports).not.toHaveBeenCalled();
+    });
+
+    it('bulk sanctions selected reports by invoking takeAction per report', async () => {
+      const user = userEvent.setup();
+      mockTakeAction.mockResolvedValue({ report: {}, action: {} });
+
+      mockUseReports.mockReturnValue({
+        data: {
+          data: [
+            makeReport({
+              reportId: 'r-1',
+              severity: 'low',
+              status: 'pending',
+              reportedUserId: 'u-1',
+            }),
+            makeReport({
+              reportId: 'r-2',
+              severity: 'medium',
+              status: 'pending',
+              reportedUserId: 'u-2',
+            }),
+          ],
+          pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
+        },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      renderWithProviders(<Moderation />);
+
+      await selectAllReports(user);
+      await user.click(screen.getByRole('button', { name: /^sanction$/i }));
+
+      await user.type(screen.getByLabelText(/shared reason/i), 'Repeated harassment');
+      await user.click(screen.getByRole('button', { name: /apply sanction/i }));
+
+      await waitFor(() => {
+        expect(mockTakeAction).toHaveBeenCalledTimes(2);
+      });
+
+      // Each call targets one specific report so the backend audit log
+      // produces one MODERATION_ACTION_TAKEN row per affected report.
+      const reportIdsCalled = mockTakeAction.mock.calls.map(call => call[0]);
+      expect(reportIdsCalled.sort()).toEqual(['r-1', 'r-2']);
+    });
+
+    it('requires the CONFIRM phrase when any selected report is critical or high', async () => {
+      const user = userEvent.setup();
+
+      mockUseReports.mockReturnValue({
+        data: {
+          data: [
+            makeReport({ reportId: 'r-1', severity: 'critical', status: 'pending' }),
+            makeReport({ reportId: 'r-2', severity: 'low', status: 'pending' }),
+          ],
+          pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
+        },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      renderWithProviders(<Moderation />);
+
+      await selectAllReports(user);
+      await user.click(screen.getByRole('button', { name: /^dismiss$/i }));
+
+      await user.type(screen.getByLabelText(/shared reason/i), 'Reviewed');
+
+      // Critical severity should require typed confirmation.
+      const submit = screen.getByRole('button', { name: /dismiss reports/i });
+      expect(submit).toBeDisabled();
+      expect(screen.getByTestId('severity-warning')).toBeInTheDocument();
+
+      const confirmField = screen.getByLabelText(/type CONFIRM to proceed/i);
+      await user.type(confirmField, 'CONFIRM');
+
+      expect(submit).not.toBeDisabled();
+    });
+
+    it('does not require the CONFIRM phrase when all reports are low or medium severity', async () => {
+      const user = userEvent.setup();
+      mockBulkUpdateReports.mockResolvedValue({ success: true, updated: 1 });
+
+      mockUseReports.mockReturnValue({
+        data: {
+          data: [
+            makeReport({ reportId: 'r-1', severity: 'low', status: 'pending' }),
+            makeReport({ reportId: 'r-2', severity: 'medium', status: 'pending' }),
+          ],
+          pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
+        },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+
+      renderWithProviders(<Moderation />);
+
+      await selectAllReports(user);
+      await user.click(screen.getByRole('button', { name: /^dismiss$/i }));
+
+      expect(screen.queryByTestId('severity-warning')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/type CONFIRM to proceed/i)).not.toBeInTheDocument();
+
+      await user.type(screen.getByLabelText(/shared reason/i), 'Low risk');
+      const submit = screen.getByRole('button', { name: /dismiss reports/i });
+      expect(submit).not.toBeDisabled();
     });
   });
 });

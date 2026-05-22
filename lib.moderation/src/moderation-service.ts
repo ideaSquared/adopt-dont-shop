@@ -113,10 +113,13 @@ export class ModerationService {
   }
 
   /**
-   * Get active moderation actions
+   * Get active moderation actions, optionally scoped to a single target user
    */
-  async getActiveActions(): Promise<ModeratorAction[]> {
-    const response = await apiService.get<{ data: unknown[] }>(`${this.baseUrl}/actions/active`);
+  async getActiveActions(targetUserId?: string): Promise<ModeratorAction[]> {
+    const query = targetUserId ? `?userId=${encodeURIComponent(targetUserId)}` : '';
+    const response = await apiService.get<{ data: unknown[] }>(
+      `${this.baseUrl}/actions/active${query}`
+    );
     return response.data.map((action: unknown) => ModeratorActionSchema.parse(action));
   }
 

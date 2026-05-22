@@ -274,3 +274,77 @@ export const monospaceId = style({
 export const viewContentButtonSpacing = style({
   marginTop: '1rem',
 });
+
+export const historyList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+});
+
+export const historyItem = style({
+  background: '#f9fafb',
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  padding: '0.75rem 1rem',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.25rem',
+});
+
+export const historyItemHeader = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '0.5rem',
+});
+
+export const historyItemTitle = style({
+  fontSize: '0.875rem',
+  fontWeight: '600',
+  color: '#111827',
+});
+
+export const historyItemMeta = style({
+  fontSize: '0.75rem',
+  color: '#6b7280',
+});
+
+export const historyEmpty = style({
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  fontStyle: 'italic',
+});
+
+export const sanctionList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+});
+
+export const sanctionItem = style({
+  background: '#fef3c7',
+  border: '1px solid #fbbf24',
+  borderRadius: '8px',
+  padding: '0.75rem 1rem',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.25rem',
+});
+
+export const sanctionItemHeader = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '0.5rem',
+});
+
+export const sanctionItemType = style({
+  fontSize: '0.875rem',
+  fontWeight: '600',
+  color: '#92400e',
+});
+
+export const sanctionItemReason = style({
+  fontSize: '0.75rem',
+  color: '#374151',
+});

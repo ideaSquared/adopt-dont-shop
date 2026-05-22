@@ -140,9 +140,12 @@ export class ModerationController {
   }
 
   async getActiveActions(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { userId } = req.params;
+    // Accept the target user via query (`?userId=...`) since the route has
+    // no path param. When omitted the service returns no rows, which is the
+    // expected behaviour for the unfiltered case.
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
 
-    const actions = await ModerationService.getActiveActionsForUser(userId);
+    const actions = userId ? await ModerationService.getActiveActionsForUser(userId) : [];
 
     res.json({
       success: true,
