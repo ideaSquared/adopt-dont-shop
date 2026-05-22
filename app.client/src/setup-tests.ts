@@ -86,6 +86,7 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),
+  MatchReasonChips: () => React.createElement('div', { 'data-testid': 'match-reason-chips' }),
   Alert: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', { role: 'alert', ...props }, children),
   Badge: ({

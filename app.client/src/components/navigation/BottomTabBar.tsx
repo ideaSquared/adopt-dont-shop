@@ -1,9 +1,10 @@
 import React from 'react';
-import { MdChat, MdFavoriteBorder, MdOutlineSearch, MdSwipe } from 'react-icons/md';
+import { MdChat, MdFavoriteBorder, MdOutlineSearch, MdStarBorder, MdSwipe } from 'react-icons/md';
 import { Link, useLocation } from 'react-router-dom';
 import { Badge } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useChat } from '@/contexts/ChatContext';
+import { useMatchPreferences } from '@/hooks/useMatchPreferences';
 import { NavUserMenu } from './NavUserMenu';
 import * as styles from './BottomTabBar.css';
 
@@ -17,6 +18,7 @@ type TabDef = {
 export const BottomTabBar: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { unreadMessageCount } = useChat();
+  const { hasPreferences } = useMatchPreferences();
   const location = useLocation();
 
   if (!isAuthenticated) {
@@ -26,6 +28,11 @@ export const BottomTabBar: React.FC = () => {
   const tabs: TabDef[] = [
     { to: '/discover', label: 'Discover', icon: <MdSwipe aria-hidden='true' /> },
     { to: '/search', label: 'Search', icon: <MdOutlineSearch aria-hidden='true' /> },
+    {
+      to: hasPreferences ? '/match/top-picks' : '/match/onboarding',
+      label: 'Top Picks',
+      icon: <MdStarBorder aria-hidden='true' />,
+    },
     { to: '/favorites', label: 'Favorites', icon: <MdFavoriteBorder aria-hidden='true' /> },
     {
       to: '/chat',

@@ -8,6 +8,7 @@ const authState: { user: User | null; isAuthenticated: boolean } = {
   isAuthenticated: false,
 };
 const chatState = { unreadMessageCount: 0 };
+const matchPreferencesState = { hasPreferences: false, isLoading: false };
 
 const baseUser: User = {
   userId: 'u1',
@@ -42,11 +43,17 @@ vi.mock('@/contexts/ChatContext', () => ({
   useChat: () => chatState,
 }));
 
+vi.mock('@/hooks/useMatchPreferences', () => ({
+  useMatchPreferences: () => matchPreferencesState,
+}));
+
 describe('BottomTabBar', () => {
   beforeEach(() => {
     authState.user = null;
     authState.isAuthenticated = false;
     chatState.unreadMessageCount = 0;
+    matchPreferencesState.hasPreferences = false;
+    matchPreferencesState.isLoading = false;
   });
 
   it('does not render when the user is unauthenticated', () => {
@@ -54,7 +61,7 @@ describe('BottomTabBar', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders a navigation region with 5 primary tabs when authenticated', () => {
+  it('renders a navigation region with the primary tabs when authenticated', () => {
     authState.user = baseUser;
     authState.isAuthenticated = true;
     renderWithProviders(<BottomTabBar />);
@@ -64,12 +71,35 @@ describe('BottomTabBar', () => {
       '/discover'
     );
     expect(within(nav).getByRole('link', { name: /search/i })).toHaveAttribute('href', '/search');
+    expect(within(nav).getByRole('link', { name: /top picks/i })).toBeInTheDocument();
     expect(within(nav).getByRole('link', { name: /favorites/i })).toHaveAttribute(
       'href',
       '/favorites'
     );
     expect(within(nav).getByRole('link', { name: /messages/i })).toHaveAttribute('href', '/chat');
     expect(within(nav).getByRole('button', { name: /user menu/i })).toBeInTheDocument();
+  });
+
+  it('routes Top Picks to /match/top-picks when preferences are set', () => {
+    authState.user = baseUser;
+    authState.isAuthenticated = true;
+    matchPreferencesState.hasPreferences = true;
+    renderWithProviders(<BottomTabBar />);
+    expect(screen.getByRole('link', { name: /top picks/i })).toHaveAttribute(
+      'href',
+      '/match/top-picks'
+    );
+  });
+
+  it('routes Top Picks to /match/onboarding when no preferences are set', () => {
+    authState.user = baseUser;
+    authState.isAuthenticated = true;
+    matchPreferencesState.hasPreferences = false;
+    renderWithProviders(<BottomTabBar />);
+    expect(screen.getByRole('link', { name: /top picks/i })).toHaveAttribute(
+      'href',
+      '/match/onboarding'
+    );
   });
 
   it('shows the unread-messages badge when unreadMessageCount > 0', () => {
