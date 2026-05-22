@@ -26,9 +26,7 @@ export type ApplicationFilters = {
 };
 
 export type BulkApplicationResult = {
-  successCount: number;
-  failureCount: number;
-  failures: Array<{ applicationId: string; error: string }>;
+  updatedCount: number;
 };
 
 type BackendApplication = {
