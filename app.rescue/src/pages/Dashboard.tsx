@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Container, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useDashboardData } from '../hooks';
+import { UnreadMessagesPanel } from '../components/dashboard/UnreadMessagesPanel';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './Dashboard.css';
 
@@ -91,6 +92,10 @@ const Dashboard: React.FC = () => {
           your rescue overview for today.
         </p>
       </div>
+
+      {/* ADS-643: Unread adopter messages — surfaced above the non-urgent
+          metrics so rescue staff see new conversations first on every viewport. */}
+      <UnreadMessagesPanel />
 
       {/* Key Metrics Row */}
       <div className={styles.metricsGrid}>
