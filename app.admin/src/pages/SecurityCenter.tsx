@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import { ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
 import {
@@ -22,8 +23,36 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'recovery', label: 'Account Recovery' },
 ];
 
+const isTabKey = (value: string | undefined): value is TabKey =>
+  value === 'mfa' ||
+  value === 'sessions' ||
+  value === 'ip-rules' ||
+  value === 'login-history' ||
+  value === 'suspicious' ||
+  value === 'recovery';
+
 const SecurityCenter: React.FC = () => {
-  const [tab, setTab] = useState<TabKey>('mfa');
+  const { tab: tabParam } = useParams<{ tab?: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // The tab is driven by the URL when mounted via /security/:tab, but we also
+  // keep a local fallback so the component works in isolation (e.g. tests, or
+  // the unparameterised /security route) where useParams returns nothing.
+  const urlTab: TabKey | null = isTabKey(tabParam) ? tabParam : null;
+  const [localTab, setLocalTab] = useState<TabKey>(urlTab ?? 'mfa');
+  const tab: TabKey = urlTab ?? localTab;
+
+  const handleTabChange = (next: TabKey) => {
+    // Navigating clears drill-down search params, keeping per-tab filter state
+    // local. Browser back returns the user to the originating tab with its
+    // params intact.
+    setLocalTab(next);
+    navigate(`/security/${next}`);
+  };
+
+  const userIdParam = searchParams.get('userId') ?? '';
+  const ipParam = searchParams.get('ip') ?? '';
 
   return (
     <div className={styles.pageContainer}>
@@ -43,7 +72,7 @@ const SecurityCenter: React.FC = () => {
             role='tab'
             aria-selected={tab === t.key}
             className={styles.tabButton}
-            onClick={() => setTab(t.key)}
+            onClick={() => handleTabChange(t.key)}
           >
             {t.label}
           </button>
@@ -51,9 +80,9 @@ const SecurityCenter: React.FC = () => {
       </div>
 
       {tab === 'mfa' && <MfaTab />}
-      {tab === 'sessions' && <SessionsTab />}
-      {tab === 'ip-rules' && <IpRulesTab />}
-      {tab === 'login-history' && <LoginHistoryTab />}
+      {tab === 'sessions' && <SessionsTab initialUserId={userIdParam} />}
+      {tab === 'ip-rules' && <IpRulesTab initialIp={ipParam} />}
+      {tab === 'login-history' && <LoginHistoryTab initialUserId={userIdParam} />}
       {tab === 'suspicious' && <SuspiciousTab />}
       {tab === 'recovery' && <RecoveryTab />}
     </div>
@@ -75,8 +104,11 @@ const MfaTab: React.FC = () => (
 
 // ----- Sessions -----
 
-const SessionsTab: React.FC = () => {
-  const [userIdFilter, setUserIdFilter] = useState('');
+type SessionsTabProps = { initialUserId?: string };
+
+const SessionsTab: React.FC<SessionsTabProps> = ({ initialUserId = '' }) => {
+  const navigate = useNavigate();
+  const [userIdFilter, setUserIdFilter] = useState(initialUserId);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -197,6 +229,7 @@ const SessionsTab: React.FC = () => {
               <th>Created</th>
               <th>Expires</th>
               <th>Family</th>
+              <th>Drill-down</th>
               <th />
             </tr>
           </thead>
@@ -219,6 +252,24 @@ const SessionsTab: React.FC = () => {
                 <td>
                   <button
                     type='button'
+                    className={styles.drillLink}
+                    onClick={() => navigate('/security/ip-rules')}
+                  >
+                    IP rules
+                  </button>
+                  <button
+                    type='button'
+                    className={styles.drillLink}
+                    onClick={() =>
+                      navigate(`/security/login-history?userId=${encodeURIComponent(s.userId)}`)
+                    }
+                  >
+                    Login history
+                  </button>
+                </td>
+                <td>
+                  <button
+                    type='button'
                     className={styles.dangerButton}
                     onClick={() => handleRevoke(s.sessionId)}
                   >
@@ -238,17 +289,28 @@ const SessionsTab: React.FC = () => {
 
 // ----- IP Rules -----
 
-const IpRulesTab: React.FC = () => {
+type IpRulesTabProps = { initialIp?: string };
+
+const IpRulesTab: React.FC<IpRulesTabProps> = ({ initialIp = '' }) => {
   const [rules, setRules] = useState<IpRule[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [ipFilter, setIpFilter] = useState(initialIp);
 
   const [type, setType] = useState<IpRuleType>('block');
   const [cidr, setCidr] = useState('');
   const [label, setLabel] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { confirm, confirmProps } = useConfirm();
+
+  const visibleRules = useMemo(() => {
+    const needle = ipFilter.trim().toLowerCase();
+    if (!needle) {
+      return rules;
+    }
+    return rules.filter(r => r.cidr.toLowerCase().includes(needle));
+  }, [rules, ipFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -326,6 +388,21 @@ const IpRulesTab: React.FC = () => {
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
+      <div className={styles.inlineForm}>
+        <input
+          className={styles.input}
+          placeholder='Filter rules by address'
+          aria-label='Filter IP rules'
+          value={ipFilter}
+          onChange={e => setIpFilter(e.target.value)}
+        />
+        {ipFilter && (
+          <button type='button' className={styles.secondaryButton} onClick={() => setIpFilter('')}>
+            Clear filter
+          </button>
+        )}
+      </div>
+
       <form className={styles.inlineForm} onSubmit={handleAdd}>
         <select
           aria-label='Rule type'
@@ -356,8 +433,10 @@ const IpRulesTab: React.FC = () => {
 
       {loading ? (
         <div className={styles.emptyState}>Loading…</div>
-      ) : rules.length === 0 ? (
-        <div className={styles.emptyState}>No IP rules configured.</div>
+      ) : visibleRules.length === 0 ? (
+        <div className={styles.emptyState}>
+          {ipFilter ? `No IP rules match "${ipFilter}".` : 'No IP rules configured.'}
+        </div>
       ) : (
         <table className={styles.table}>
           <thead>
@@ -371,7 +450,7 @@ const IpRulesTab: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {rules.map(r => (
+            {visibleRules.map(r => (
               <tr key={r.ipRuleId}>
                 <td>
                   <span
@@ -408,8 +487,11 @@ const IpRulesTab: React.FC = () => {
 
 // ----- Login history -----
 
-const LoginHistoryTab: React.FC = () => {
-  const [userIdFilter, setUserIdFilter] = useState('');
+type LoginHistoryTabProps = { initialUserId?: string };
+
+const LoginHistoryTab: React.FC<LoginHistoryTabProps> = ({ initialUserId = '' }) => {
+  const navigate = useNavigate();
+  const [userIdFilter, setUserIdFilter] = useState(initialUserId);
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'failure'>('all');
   const [entries, setEntries] = useState<LoginHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -508,7 +590,26 @@ const LoginHistoryTab: React.FC = () => {
                   </span>
                 </td>
                 <td>{entry.userEmail || entry.userId || '—'}</td>
-                <td>{entry.ipAddress || '—'}</td>
+                <td>
+                  {entry.ipAddress ? (
+                    <>
+                      {entry.ipAddress}{' '}
+                      <button
+                        type='button'
+                        className={styles.drillLink}
+                        onClick={() =>
+                          navigate(
+                            `/security/ip-rules?ip=${encodeURIComponent(entry.ipAddress ?? '')}`
+                          )
+                        }
+                      >
+                        IP rules
+                      </button>
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -521,6 +622,7 @@ const LoginHistoryTab: React.FC = () => {
 // ----- Suspicious activity -----
 
 const SuspiciousTab: React.FC = () => {
+  const navigate = useNavigate();
   const [threshold, setThreshold] = useState(5);
   const [windowHours, setWindowHours] = useState(24);
   const [entries, setEntries] = useState<SuspiciousActivityEntry[]>([]);
@@ -599,6 +701,7 @@ const SuspiciousTab: React.FC = () => {
               <th>Failed attempts</th>
               <th>Last attempt</th>
               <th>Last IP</th>
+              <th>Drill-down</th>
             </tr>
           </thead>
           <tbody>
@@ -608,6 +711,34 @@ const SuspiciousTab: React.FC = () => {
                 <td>{entry.failureCount}</td>
                 <td>{new Date(entry.lastAttempt).toLocaleString()}</td>
                 <td>{entry.lastIp || '—'}</td>
+                <td>
+                  <button
+                    type='button'
+                    className={styles.drillLink}
+                    onClick={() =>
+                      navigate(
+                        `/security/sessions?userId=${encodeURIComponent(entry.userId ?? '')}`
+                      )
+                    }
+                    disabled={!entry.userId}
+                    title={entry.userId ? 'View this user’s active sessions' : 'No user ID'}
+                  >
+                    Sessions
+                  </button>
+                  <button
+                    type='button'
+                    className={styles.drillLink}
+                    onClick={() =>
+                      navigate(
+                        `/security/login-history?userId=${encodeURIComponent(entry.userId ?? '')}`
+                      )
+                    }
+                    disabled={!entry.userId}
+                    title={entry.userId ? 'View this user’s login history' : 'No user ID'}
+                  >
+                    Login history
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
