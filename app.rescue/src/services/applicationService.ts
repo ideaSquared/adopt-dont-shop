@@ -13,6 +13,39 @@ import type { ApplicationStage } from '../types/applicationStages';
 import type { ApplicationPriority } from '@adopt-dont-shop/lib.applications';
 
 /**
+ * ADS-642: translate a StageAction (e.g. START_REVIEW, REJECT) into the
+ * `updates` payload accepted by the bulk-update endpoint. Single-row
+ * stage transitions reuse the same backend route as bulk transitions —
+ * there is no dedicated stage-transition route.
+ */
+const buildSingleStageTransitionUpdates = (
+  stageAction: string,
+  nextStage: string | undefined,
+  notes: string | undefined
+): Record<string, unknown> => {
+  if (stageAction === 'REJECT') {
+    return {
+      status: 'rejected',
+      stage: 'resolved',
+      finalOutcome: 'rejected',
+      rejectionReason: notes,
+    };
+  }
+  if (stageAction === 'WITHDRAW') {
+    return {
+      status: 'withdrawn',
+      stage: 'withdrawn',
+      finalOutcome: 'withdrawn',
+      withdrawalReason: notes,
+    };
+  }
+  if (!nextStage) {
+    throw new Error(`Stage action ${stageAction} requires a nextStage`);
+  }
+  return { stage: nextStage.toLowerCase() };
+};
+
+/**
  * Application Service for Rescue App
  * Uses the configured API service with authentication
  */
@@ -248,21 +281,21 @@ export class RescueApplicationService {
   }
 
   /**
-   * Transition application to a new stage using the 5-stage workflow system
-   * @param id Application ID
-   * @param stageAction The stage action to perform (from STAGE_ACTIONS)
-   * @param notes Optional notes about the transition
+   * Transition application to a new stage using the 5-stage workflow system.
+   *
+   * ADS-642: single-row transitions go through the bulk-update endpoint
+   * (there is no dedicated stage-transition route on the backend). We
+   * translate the StageAction's nextStage / terminal outcome into the same
+   * `updates` shape `performBulkUpdates` builds, then dispatch a one-item
+   * batch.
    */
-  async transitionStage(id: string, stageAction: string, notes?: string) {
+  async transitionStage(id: string, stageAction: string, nextStage?: string, notes?: string) {
+    const updates = buildSingleStageTransitionUpdates(stageAction, nextStage, notes);
     try {
-      const response = await this.apiService.post<any>(
-        `/api/v1/applications/${id}/stage-transition`,
-        {
-          action: stageAction,
-          notes,
-          timestamp: new Date().toISOString(),
-        }
-      );
+      const response = await this.apiService.patch<any>('/api/v1/applications/bulk-update', {
+        applicationIds: [id],
+        updates,
+      });
       return response.data || response; // Extract data field from API response wrapper
     } catch (error) {
       console.error(`Failed to transition stage for application ${id}:`, error);
