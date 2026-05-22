@@ -1903,28 +1903,32 @@ export class ApplicationService {
 
       for (const applicationId of bulkUpdate.applicationIds) {
         try {
-          const application = await Application.findByPk(applicationId);
-          if (!application) {
-            results.failures.push({
-              applicationId: applicationId,
-              error: 'Application not found',
-            });
-            results.failureCount++;
-            continue;
-          }
+          // Per-item transaction: the application update and the
+          // accompanying audit-log row commit or roll back together,
+          // so the failure counts in the response match the real DB
+          // state — no more "audit logged success but DB unchanged"
+          // (or vice versa) on partial failure.
+          await sequelize.transaction(async tx => {
+            const application = await Application.findByPk(applicationId, { transaction: tx });
+            if (!application) {
+              // Throw to skip success-side bookkeeping; caught below
+              // and recorded as a failure with this exact message.
+              throw new Error('Application not found');
+            }
 
-          await application.update(bulkUpdate.updates);
+            await application.update(bulkUpdate.updates, { transaction: tx });
+
+            await AuditLogService.log({
+              action: 'BULK_UPDATE',
+              entity: 'Application',
+              entityId: applicationId,
+              details: { updates: bulkUpdate.updates, bulk_operation: true },
+              userId,
+              transaction: tx,
+            });
+          });
           results.successes.push(applicationId);
           results.successCount++;
-
-          // Log bulk update
-          await AuditLogService.log({
-            action: 'BULK_UPDATE',
-            entity: 'Application',
-            entityId: applicationId,
-            details: { updates: bulkUpdate.updates, bulk_operation: true },
-            userId,
-          });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           results.failures.push({ applicationId: applicationId, error: errorMessage });

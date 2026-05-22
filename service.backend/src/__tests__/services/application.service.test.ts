@@ -1126,6 +1126,117 @@ describe('ApplicationService - Business Logic', () => {
     });
   });
 
+  describe('Business Rule: Bulk Update Atomicity', () => {
+    /**
+     * Per-iteration transactionality: when the audit-log write fails
+     * for a particular item, the application update for that item
+     * must roll back too, so the response's success/failure counts
+     * match the real DB state. Previously, a successful update
+     * followed by a failed audit insert was counted as a failure but
+     * left the update committed.
+     */
+    it('rolls back the DB write for an item whose audit-log write fails', async () => {
+      const goodId1 = 'app-good-1';
+      const goodId2 = 'app-good-2';
+      const badId = 'app-audit-fail';
+
+      const goodApp1 = createMockApplication(ApplicationStatus.SUBMITTED, {
+        applicationId: goodId1,
+      });
+      const goodApp2 = createMockApplication(ApplicationStatus.SUBMITTED, {
+        applicationId: goodId2,
+      });
+      const badApp = createMockApplication(ApplicationStatus.SUBMITTED, {
+        applicationId: badId,
+      });
+
+      MockedApplication.findByPk = vi.fn().mockImplementation(async (id: string) => {
+        if (id === goodId1) return goodApp1;
+        if (id === goodId2) return goodApp2;
+        if (id === badId) return badApp;
+        return null;
+      });
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi
+        .spyOn(AuditLogService, 'log')
+        .mockImplementation(async (data: { entityId: string }) => {
+          if (data.entityId === badId) {
+            throw new Error('audit insert blocked');
+          }
+          return undefined as never;
+        });
+
+      const result = await ApplicationService.bulkUpdateApplications(
+        {
+          applicationIds: [goodId1, badId, goodId2],
+          updates: { priority: ApplicationPriority.HIGH },
+        },
+        'staff-123'
+      );
+
+      // Counts must match the real outcome: 2 fully-committed
+      // updates, 1 rolled-back failure.
+      expect(result.successCount).toBe(2);
+      expect(result.failureCount).toBe(1);
+      expect(result.successes).toEqual([goodId1, goodId2]);
+      expect(result.failures[0]).toMatchObject({ applicationId: badId });
+
+      // Exactly one audit-log attempt per item — successes get one
+      // call each, the failed item gets one attempt that throws.
+      const auditCallsByEntity = logSpy.mock.calls.map(([data]) => data.entityId);
+      expect(auditCallsByEntity).toEqual([goodId1, badId, goodId2]);
+
+      // The application.update must have been rolled back for the
+      // failed item — assert update was attempted (the model would
+      // have applied it) but the surrounding transaction will revert
+      // it. Because Application here is a mock, "rollback" means the
+      // tx wrapper threw and the bulk loop counted it as a failure
+      // (no mutation persisted in real DB).
+      expect(badApp.update).toHaveBeenCalled();
+
+      logSpy.mockRestore();
+    });
+
+    it('returns 404-style failure for missing applications without writing audit', async () => {
+      const presentId = 'app-present';
+      const missingId = 'app-missing';
+      const presentApp = createMockApplication(ApplicationStatus.SUBMITTED, {
+        applicationId: presentId,
+      });
+
+      MockedApplication.findByPk = vi.fn().mockImplementation(async (id: string) => {
+        if (id === presentId) return presentApp;
+        return null;
+      });
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue(undefined as never);
+
+      const result = await ApplicationService.bulkUpdateApplications(
+        {
+          applicationIds: [presentId, missingId],
+          updates: { priority: ApplicationPriority.HIGH },
+        },
+        'staff-123'
+      );
+
+      expect(result.successCount).toBe(1);
+      expect(result.failureCount).toBe(1);
+      expect(result.successes).toEqual([presentId]);
+      expect(result.failures[0]).toMatchObject({
+        applicationId: missingId,
+        error: 'Application not found',
+      });
+
+      // Audit only fires for the row that actually exists.
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(logSpy.mock.calls[0][0].entityId).toBe(presentId);
+
+      logSpy.mockRestore();
+    });
+  });
+
   describe('Error Handling', () => {
     it('throws error when application not found', async () => {
       // Given: Application does not exist

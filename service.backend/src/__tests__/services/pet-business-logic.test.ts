@@ -142,7 +142,8 @@ describe('PetService - Business Logic', () => {
         expect.objectContaining({
           petId: mockPetId,
           toStatus: PetStatus.PENDING,
-        })
+        }),
+        expect.anything()
       );
       expect(result).toBeDefined();
     });
@@ -166,13 +167,15 @@ describe('PetService - Business Logic', () => {
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
           adoptedDate: expect.any(Date),
-        })
+        }),
+        expect.anything()
       );
       expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
           petId: mockPetId,
           toStatus: PetStatus.ADOPTED,
-        })
+        }),
+        expect.anything()
       );
     });
 
@@ -194,13 +197,15 @@ describe('PetService - Business Logic', () => {
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
           fosterStartDate: expect.any(Date),
-        })
+        }),
+        expect.anything()
       );
       expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
           petId: mockPetId,
           toStatus: PetStatus.FOSTER,
-        })
+        }),
+        expect.anything()
       );
     });
 
@@ -223,7 +228,8 @@ describe('PetService - Business Logic', () => {
         expect.objectContaining({
           petId: mockPetId,
           toStatus: PetStatus.MEDICAL_HOLD,
-        })
+        }),
+        expect.anything()
       );
       expect(result).toBeDefined();
     });
@@ -247,13 +253,15 @@ describe('PetService - Business Logic', () => {
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
           availableSince: expect.any(Date),
-        })
+        }),
+        expect.anything()
       );
       expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
           petId: mockPetId,
           toStatus: PetStatus.AVAILABLE,
-        })
+        }),
+        expect.anything()
       );
     });
 
@@ -275,13 +283,15 @@ describe('PetService - Business Logic', () => {
       expect(mockPet.update).toHaveBeenCalledWith(
         expect.objectContaining({
           adoptedDate: expect.any(Date),
-        })
+        }),
+        expect.anything()
       );
       expect(MockedPetStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
           petId: mockPetId,
           toStatus: PetStatus.ADOPTED,
-        })
+        }),
+        expect.anything()
       );
     });
   });
