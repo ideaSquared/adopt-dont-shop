@@ -16,13 +16,14 @@ import Rescue from '../models/Rescue';
 import StaffMember from '../models/StaffMember';
 import SupportTicket from '../models/SupportTicket';
 import SupportTicketResponse from '../models/SupportTicketResponse';
-import User, { UserStatus } from '../models/User';
+import User, { UserStatus, UserType } from '../models/User';
 import UserApplicationPrefs from '../models/UserApplicationPrefs';
 import UserConsent, { ConsentPurpose } from '../models/UserConsent';
 import UserFavorite from '../models/UserFavorite';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import UserPrivacyPrefs from '../models/UserPrivacyPrefs';
 import { AuditLogService } from './auditLog.service';
+import { FileUploadService } from './file-upload.service';
 import { NotificationService } from './notification.service';
 import { logger } from '../utils/logger';
 
@@ -225,90 +226,140 @@ export const GdprService = {
    * in the tombstone form, leaving the row untouched.
    */
   async executeAnonymization(userId: string): Promise<AnonymizationResult> {
-    return sequelize.transaction(async (tx: Transaction) => {
-      const user = await User.scope('withSecrets').findByPk(userId, {
-        transaction: tx,
-        paranoid: false,
-      });
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      if (user.email.endsWith(`@${ANON_EMAIL_DOMAIN}`)) {
-        // Already anonymised on a previous pass. Clear the pending
-        // marker if it's somehow still set (defensive — should already
-        // be NULL) and exit without writing another audit row.
-        if (user.pendingAnonymizationAt) {
-          const clearPayload: Record<string, unknown> = { pendingAnonymizationAt: null };
-          await user.update(clearPayload, { transaction: tx });
+    const { anonymized, attachmentIdsToDelete } = await sequelize.transaction(
+      async (tx: Transaction) => {
+        const user = await User.scope('withSecrets').findByPk(userId, {
+          transaction: tx,
+          paranoid: false,
+        });
+        if (!user) {
+          throw new Error('User not found');
         }
-        return { anonymized: false };
+
+        if (user.email.endsWith(`@${ANON_EMAIL_DOMAIN}`)) {
+          // Already anonymised on a previous pass. Clear the pending
+          // marker if it's somehow still set (defensive — should already
+          // be NULL) and exit without writing another audit row.
+          if (user.pendingAnonymizationAt) {
+            const clearPayload: Record<string, unknown> = { pendingAnonymizationAt: null };
+            await user.update(clearPayload, { transaction: tx });
+          }
+          return { anonymized: false, attachmentIdsToDelete: [] as string[] };
+        }
+
+        // Tombstone the User row. We keep the row (and its userId) so FKs
+        // from applications, audit logs, ratings, reports etc. continue
+        // to resolve, but every direct identifier column is stripped.
+        // Cast the payload to satisfy Sequelize's attribute typing — the
+        // User attributes interface uses `string | undefined` for some
+        // optional fields (city, country, location) that we want to clear
+        // to null at the DB level. Passing null is correct for the DB but
+        // not for the TS model type, so we widen here.
+        const tombstonePayload: Record<string, unknown> = {
+          email: tombstoneEmail(user.userId),
+          firstName: ANON_FIRST_NAME,
+          lastName: ANON_LAST_NAME,
+          phoneNumber: null,
+          phoneVerified: false,
+          dateOfBirth: null,
+          profileImageUrl: null,
+          bio: null,
+          addressLine1: null,
+          addressLine2: null,
+          postalCode: null,
+          city: null,
+          country: null,
+          location: null,
+          twoFactorSecret: null,
+          twoFactorEnabled: false,
+          backupCodes: null,
+          verificationToken: null,
+          verificationTokenExpiresAt: null,
+          resetToken: null,
+          resetTokenExpiration: null,
+          // Random password so the account can never be logged into.
+          // hashPassword runs in beforeUpdate, so we can pass plain text.
+          password: crypto.randomBytes(32).toString('hex'),
+          pendingAnonymizationAt: null,
+        };
+        await user.update(tombstonePayload, { transaction: tx });
+
+        // Collect attachment IDs BEFORE clearing the JSON column so we
+        // can delete the underlying files after the DB tx commits.
+        // Doing the file deletes outside the tx avoids orphan-deleting
+        // files if the DB tx rolls back. The JSON column is cleared
+        // inside the tx so the row state is consistent with phase-2
+        // semantics even if file deletion fails on individual files.
+        const messagesWithAttachments = await Message.findAll({
+          where: { sender_id: userId },
+          attributes: ['message_id', 'attachments'],
+          transaction: tx,
+        });
+        const attachmentIds: string[] = [];
+        for (const msg of messagesWithAttachments) {
+          if (Array.isArray(msg.attachments)) {
+            for (const att of msg.attachments) {
+              if (att && typeof att.attachment_id === 'string') {
+                attachmentIds.push(att.attachment_id);
+              }
+            }
+          }
+        }
+
+        // Strip message bodies but keep the row so chat threads remain
+        // coherent for the rescue staff side of the conversation.
+        const messageScrub: Record<string, unknown> = {
+          content: ANON_MESSAGE_BODY,
+          attachments: [],
+        };
+        await Message.update(messageScrub, { where: { sender_id: userId }, transaction: tx });
+
+        // ChatParticipant rows are intentionally left intact so that
+        // historical message attribution still resolves on the rescue
+        // staff side. The user is no longer reachable via the User row,
+        // and Sender lookups now return the tombstoned name.
+
+        await AuditLogService.log({
+          action: 'USER_ANONYMIZED',
+          entity: 'User',
+          entityId: userId,
+          userId,
+          details: {
+            phase: 'phase-2-anonymise',
+            attachmentsScheduledForDeletion: attachmentIds.length,
+          },
+        });
+
+        logger.info('User anonymised (GDPR phase 2)', {
+          userId,
+          attachmentsScheduledForDeletion: attachmentIds.length,
+        });
+
+        return { anonymized: true, attachmentIdsToDelete: attachmentIds };
       }
+    );
 
-      // Tombstone the User row. We keep the row (and its userId) so FKs
-      // from applications, audit logs, ratings, reports etc. continue
-      // to resolve, but every direct identifier column is stripped.
-      // Cast the payload to satisfy Sequelize's attribute typing — the
-      // User attributes interface uses `string | undefined` for some
-      // optional fields (city, country, location) that we want to clear
-      // to null at the DB level. Passing null is correct for the DB but
-      // not for the TS model type, so we widen here.
-      const tombstonePayload: Record<string, unknown> = {
-        email: tombstoneEmail(user.userId),
-        firstName: ANON_FIRST_NAME,
-        lastName: ANON_LAST_NAME,
-        phoneNumber: null,
-        phoneVerified: false,
-        dateOfBirth: null,
-        profileImageUrl: null,
-        bio: null,
-        addressLine1: null,
-        addressLine2: null,
-        postalCode: null,
-        city: null,
-        country: null,
-        location: null,
-        twoFactorSecret: null,
-        twoFactorEnabled: false,
-        backupCodes: null,
-        verificationToken: null,
-        verificationTokenExpiresAt: null,
-        resetToken: null,
-        resetTokenExpiration: null,
-        // Random password so the account can never be logged into.
-        // hashPassword runs in beforeUpdate, so we can pass plain text.
-        password: crypto.randomBytes(32).toString('hex'),
-        pendingAnonymizationAt: null,
-      };
-      await user.update(tombstonePayload, { transaction: tx });
+    // Post-commit: physically delete attachment files via the upload
+    // service. UserType.ADMIN bypasses the ownership check so we can
+    // delete attachments whose original uploader row has already been
+    // tombstoned. Per-file try/catch so one missing/already-gone file
+    // doesn't strand the rest of the run.
+    for (const attachmentId of attachmentIdsToDelete) {
+      try {
+        await FileUploadService.deleteFile(attachmentId, {
+          id: userId,
+          type: UserType.ADMIN,
+        });
+      } catch (error) {
+        logger.error('Failed to delete message attachment during GDPR anonymization', {
+          userId,
+          attachmentId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
 
-      // Strip message bodies but keep the row so chat threads remain
-      // coherent for the rescue staff side of the conversation.
-      const messageScrub: Record<string, unknown> = {
-        content: ANON_MESSAGE_BODY,
-        attachments: [],
-      };
-      await Message.update(messageScrub, { where: { sender_id: userId }, transaction: tx });
-
-      // ChatParticipant rows are intentionally left intact so that
-      // historical message attribution still resolves on the rescue
-      // staff side. The user is no longer reachable via the User row,
-      // and Sender lookups now return the tombstoned name.
-
-      await AuditLogService.log({
-        action: 'USER_ANONYMIZED',
-        entity: 'User',
-        entityId: userId,
-        userId,
-        details: {
-          phase: 'phase-2-anonymise',
-        },
-      });
-
-      logger.info('User anonymised (GDPR phase 2)', { userId });
-
-      return { anonymized: true };
-    });
+    return { anonymized };
   },
 
   /**
