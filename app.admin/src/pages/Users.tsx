@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Heading,
   Text,
@@ -85,13 +85,21 @@ const getStatusBadgeLabel = (status: string, emailVerified: boolean): string => 
   return 'Active';
 };
 
+const VALID_USER_STATUS_FILTERS: ReadonlySet<string> = new Set(['active', 'suspended', 'pending']);
+
 const Users: React.FC = () => {
   const { userId } = useParams<{ userId?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialStatusParam = searchParams.get('status');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(
+    initialStatusParam && VALID_USER_STATUS_FILTERS.has(initialStatusParam)
+      ? initialStatusParam
+      : 'all'
+  );
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -584,8 +592,12 @@ const Users: React.FC = () => {
         title={(() => {
           const count = selectedRows.size;
           const noun = `${count} user${count !== 1 ? 's' : ''}`;
-          if (bulkAction === 'delete') return `Delete ${noun}?`;
-          if (bulkAction === 'activate') return `Activate ${noun}?`;
+          if (bulkAction === 'delete') {
+            return `Delete ${noun}?`;
+          }
+          if (bulkAction === 'activate') {
+            return `Activate ${noun}?`;
+          }
           return `Deactivate ${noun}?`;
         })()}
         description={

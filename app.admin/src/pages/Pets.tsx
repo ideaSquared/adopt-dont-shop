@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiPackage } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
@@ -33,9 +34,23 @@ const formatDate = (dateString: string) =>
     year: 'numeric',
   });
 
+const VALID_PET_STATUS_FILTERS: ReadonlySet<string> = new Set([
+  'available',
+  'adopted',
+  'foster',
+  'not_available',
+]);
+
 const Pets: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const initialStatusParam = searchParams.get('status');
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(
+    initialStatusParam && VALID_PET_STATUS_FILTERS.has(initialStatusParam)
+      ? initialStatusParam
+      : 'all'
+  );
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [rescueFilter, setRescueFilter] = useState<string>('all');
   const [includeArchived, setIncludeArchived] = useState(false);
@@ -290,8 +305,12 @@ const Pets: React.FC = () => {
         title={(() => {
           const count = selectedRows.size;
           const noun = `${count} pet${count !== 1 ? 's' : ''}`;
-          if (bulkAction === 'publish') return `Publish ${noun}?`;
-          if (bulkAction === 'unpublish') return `Unpublish ${noun}?`;
+          if (bulkAction === 'publish') {
+            return `Publish ${noun}?`;
+          }
+          if (bulkAction === 'unpublish') {
+            return `Unpublish ${noun}?`;
+          }
           return `Archive ${noun}?`;
         })()}
         description={

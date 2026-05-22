@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
 import { FiSearch } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
@@ -30,9 +31,20 @@ const formatDate = (dateString: string) =>
     year: 'numeric',
   });
 
+const VALID_STATUS_FILTERS: ReadonlySet<string> = new Set([
+  'submitted',
+  'approved',
+  'rejected',
+  'withdrawn',
+]);
+
 const Applications: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get('status');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(
+    initialStatus && VALID_STATUS_FILTERS.has(initialStatus) ? initialStatus : 'all'
+  );
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [rescueFilter, setRescueFilter] = useState<string>('all');
   const [page, setPage] = useState(1);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
@@ -87,10 +88,32 @@ const getContentTypeTagClass = (type: string): string => {
   }
 };
 
+const VALID_REPORT_STATUSES: ReadonlySet<string> = new Set([
+  'pending',
+  'under_review',
+  'resolved',
+  'dismissed',
+  'escalated',
+]);
+
+const VALID_REPORT_SEVERITIES: ReadonlySet<string> = new Set(['critical', 'high', 'medium', 'low']);
+
 const Moderation: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const initialStatusParam = searchParams.get('status');
+  const initialSeverityParam = searchParams.get('severity');
+  const initialStatus: ReportStatus | 'all' =
+    initialStatusParam && VALID_REPORT_STATUSES.has(initialStatusParam)
+      ? (initialStatusParam as ReportStatus)
+      : 'all';
+  const initialSeverity: ReportSeverity | 'all' =
+    initialSeverityParam && VALID_REPORT_SEVERITIES.has(initialSeverityParam)
+      ? (initialSeverityParam as ReportSeverity)
+      : 'all';
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
-  const [severityFilter, setSeverityFilter] = useState<ReportSeverity | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>(initialStatus);
+  const [severityFilter, setSeverityFilter] = useState<ReportSeverity | 'all'>(initialSeverity);
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);

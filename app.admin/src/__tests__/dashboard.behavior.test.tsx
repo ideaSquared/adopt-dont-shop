@@ -6,18 +6,34 @@
  * - Loading state shown while data is being fetched
  * - Error state shown when the API fails
  * - Admin sees all platform metrics with real data values
- * - Positive and negative trends shown correctly
+ * - Each KPI card is a link to a filtered list view
+ * - "Needs your attention" panel surfaces critical reports, oldest pending
+ *   application, and escalated support tickets
+ * - The "more widgets coming soon" placeholder has been removed
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { renderWithProviders, screen, waitFor } from '../test-utils';
+import { renderWithProviders, screen } from '../test-utils';
 import Dashboard from '../pages/Dashboard';
 import type { PlatformMetrics } from '../services/analyticsService';
 
 const mockUsePlatformMetrics = vi.fn();
+const mockUseApplications = vi.fn();
+const mockUseReports = vi.fn();
+const mockUseTickets = vi.fn();
 
 vi.mock('../hooks', () => ({
   usePlatformMetrics: () => mockUsePlatformMetrics(),
+  useApplications: (filters: unknown) => mockUseApplications(filters),
+}));
+
+vi.mock('@adopt-dont-shop/lib.moderation', () => ({
+  useReports: (filters: unknown) => mockUseReports(filters),
+}));
+
+vi.mock('@adopt-dont-shop/lib.support-tickets', () => ({
+  useTickets: (filters: unknown) => mockUseTickets(filters),
+  formatRelativeTime: () => '2 hours ago',
 }));
 
 const mockMetrics: PlatformMetrics = {
@@ -32,6 +48,29 @@ const mockMetrics: PlatformMetrics = {
   applications: { total: 210, pending: 38, approved: 55, newThisMonth: 70 },
 };
 
+const setEmptyAttentionData = () => {
+  mockUseReports.mockReturnValue({
+    data: { data: [], pagination: { page: 1, limit: 3, total: 0, totalPages: 0 } },
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  });
+  mockUseApplications.mockReturnValue({
+    data: { data: [], pagination: { page: 1, limit: 1, total: 0, pages: 0 } },
+    isLoading: false,
+    error: null,
+  });
+  mockUseTickets.mockReturnValue({
+    data: {
+      data: [],
+      pagination: { currentPage: 1, totalPages: 0, totalItems: 0, itemsPerPage: 3 },
+    },
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  });
+};
+
 describe('Dashboard page', () => {
   beforeEach(() => {
     mockUsePlatformMetrics.mockReturnValue({
@@ -40,6 +79,7 @@ describe('Dashboard page', () => {
       isError: false,
       error: null,
     });
+    setEmptyAttentionData();
   });
 
   describe('page structure', () => {
@@ -51,6 +91,11 @@ describe('Dashboard page', () => {
     it('shows a welcome message to the admin', () => {
       renderWithProviders(<Dashboard />);
       expect(screen.getByText(/welcome back.*here's what's happening/i)).toBeInTheDocument();
+    });
+
+    it('does not render the "more widgets coming soon" placeholder', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.queryByText(/more widgets coming soon/i)).not.toBeInTheDocument();
     });
   });
 
@@ -160,6 +205,218 @@ describe('Dashboard page', () => {
     it('shows active users count as context for new users metric', () => {
       renderWithProviders(<Dashboard />);
       expect(screen.getByText(/3,200 active users/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('KPI cards link to filtered list views', () => {
+    beforeEach(() => {
+      mockUsePlatformMetrics.mockReturnValue({
+        data: mockMetrics,
+        isLoading: false,
+        isError: false,
+        error: null,
+      });
+    });
+
+    it('links Total Users to /users', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByRole('link', { name: /view total users/i })).toHaveAttribute(
+        'href',
+        '/users'
+      );
+    });
+
+    it('links Active Rescues to /rescues filtered by verified status', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByRole('link', { name: /view active rescues/i })).toHaveAttribute(
+        'href',
+        '/rescues?status=verified'
+      );
+    });
+
+    it('links Pets Listed to /pets filtered by available status', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByRole('link', { name: /view pets listed/i })).toHaveAttribute(
+        'href',
+        '/pets?status=available'
+      );
+    });
+
+    it('links Adoptions (30d) to /pets filtered by adopted status', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByRole('link', { name: /view adoptions/i })).toHaveAttribute(
+        'href',
+        '/pets?status=adopted'
+      );
+    });
+
+    it('links Pending Applications to /applications filtered by submitted status', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByRole('link', { name: /view pending applications/i })).toHaveAttribute(
+        'href',
+        '/applications?status=submitted'
+      );
+    });
+
+    it('links New Users (30d) to /users', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByRole('link', { name: /view new users/i })).toHaveAttribute(
+        'href',
+        '/users'
+      );
+    });
+  });
+
+  describe('Needs your attention panel', () => {
+    beforeEach(() => {
+      mockUsePlatformMetrics.mockReturnValue({
+        data: mockMetrics,
+        isLoading: false,
+        isError: false,
+        error: null,
+      });
+    });
+
+    it('renders a section labelled "Needs your attention"', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByRole('region', { name: /needs your attention/i })).toBeInTheDocument();
+    });
+
+    it('renders the critical moderation reports subsection', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByText(/critical moderation reports/i)).toBeInTheDocument();
+    });
+
+    it('renders the oldest pending application subsection', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByText(/oldest pending application/i)).toBeInTheDocument();
+    });
+
+    it('renders the escalated support tickets subsection', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByText(/escalated support tickets/i)).toBeInTheDocument();
+    });
+
+    it('queries critical pending reports for the attention panel', () => {
+      renderWithProviders(<Dashboard />);
+      expect(mockUseReports).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'pending', severity: 'critical', limit: 3 })
+      );
+    });
+
+    it('queries the oldest submitted application for the attention panel', () => {
+      renderWithProviders(<Dashboard />);
+      expect(mockUseApplications).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'submitted', limit: 1 })
+      );
+    });
+
+    it('queries escalated tickets for the attention panel', () => {
+      renderWithProviders(<Dashboard />);
+      expect(mockUseTickets).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'escalated', limit: 3 })
+      );
+    });
+
+    it('shows the title of each critical report', () => {
+      mockUseReports.mockReturnValue({
+        data: {
+          data: [
+            {
+              reportId: 'r1',
+              title: 'User threats',
+              description: 'desc',
+              reportedEntityType: 'user',
+              reporterId: 'u1',
+              reportedEntityId: 'u2',
+              category: 'harassment',
+              severity: 'critical',
+              status: 'pending',
+              evidence: [],
+              metadata: {},
+              createdAt: new Date('2024-01-15T10:00:00Z'),
+              updatedAt: new Date('2024-01-15T10:00:00Z'),
+            },
+          ],
+          pagination: { page: 1, limit: 3, total: 1, totalPages: 1 },
+        },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByText('User threats')).toBeInTheDocument();
+    });
+
+    it('shows the oldest pending applicant and pet name', () => {
+      mockUseApplications.mockReturnValue({
+        data: {
+          data: [
+            {
+              applicationId: 'a1',
+              status: 'submitted',
+              petId: 'p1',
+              petName: 'Rex',
+              rescueId: 'rs1',
+              rescueName: 'Happy Tails',
+              applicantName: 'Jane Doe',
+              applicantEmail: 'jane@example.com',
+              createdAt: '2024-01-10T00:00:00Z',
+              updatedAt: '2024-01-10T00:00:00Z',
+            },
+          ],
+          pagination: { page: 1, limit: 1, total: 1, pages: 1 },
+        },
+        isLoading: false,
+        error: null,
+      });
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByText(/jane doe.*rex/i)).toBeInTheDocument();
+    });
+
+    it('shows the subject of each escalated ticket', () => {
+      mockUseTickets.mockReturnValue({
+        data: {
+          data: [
+            {
+              ticketId: 't1',
+              userEmail: 'user@example.com',
+              status: 'escalated',
+              priority: 'high',
+              category: 'technical_issue',
+              subject: 'Payment failed',
+              description: 'Cannot complete adoption',
+              tags: [],
+              responses: [],
+              attachments: [],
+              metadata: {},
+              createdAt: new Date('2024-01-10T00:00:00Z'),
+              updatedAt: new Date('2024-01-15T00:00:00Z'),
+            },
+          ],
+          pagination: { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 3 },
+        },
+        isLoading: false,
+        error: null,
+        refetch: vi.fn(),
+      });
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByText('Payment failed')).toBeInTheDocument();
+    });
+
+    it('shows an empty message in critical reports section when none are pending', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByText(/no critical reports awaiting review/i)).toBeInTheDocument();
+    });
+
+    it('shows an empty message in oldest application section when none are pending', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByText(/no pending applications/i)).toBeInTheDocument();
+    });
+
+    it('shows an empty message in escalated tickets section when none exist', () => {
+      renderWithProviders(<Dashboard />);
+      expect(screen.getByText(/no escalated tickets/i)).toBeInTheDocument();
     });
   });
 });
