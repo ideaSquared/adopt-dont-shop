@@ -879,10 +879,35 @@ export class FileUploadService {
       const dir = path.dirname(originalPath);
       const base = path.basename(originalPath, ext);
 
-      // Keep the original around under a .original suffix so we can
-      // re-derive at higher quality later if defaults change.
+      // Read metadata first so we can pick the right encoder for the
+      // EXIF-stripped `.original` copy below.
+      const meta = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS }).metadata();
+
+      // Keep an EXIF-stripped copy of the original under a `.original`
+      // suffix so we can re-derive at higher quality later if defaults
+      // change. Previous versions used `fs.copyFile`, which preserved
+      // every metadata block (EXIF, IPTC, XMP, ICC) — including GPS
+      // coordinates from camera uploads. Re-encoding through sharp with
+      // its default metadata policy (strip all) gives us the same
+      // "high-quality source for re-derive" semantics without the privacy
+      // leak. We re-encode into the original input format so a PNG stays
+      // a PNG and a JPEG stays a JPEG; the file remains usable by any
+      // future re-derive that walks `.original` files.
       const keepOriginalPath = path.join(dir, `${base}${ext}.original`);
-      await fs.promises.copyFile(originalPath, keepOriginalPath);
+      const originalFormat = meta.format;
+      if (originalFormat) {
+        await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS })
+          .toFormat(originalFormat)
+          .toFile(keepOriginalPath);
+      } else {
+        // Format unknown to sharp (rare — would imply metadata read above
+        // succeeded but reported no format). Fall back to a raw copy so
+        // we don't lose the source; flag in logs so it surfaces.
+        logger.warn('sharp metadata returned no format — falling back to raw copy', {
+          path: originalPath,
+        });
+        await fs.promises.copyFile(originalPath, keepOriginalPath);
+      }
 
       // Resize the primary asset in place: max 1600px on the longest
       // side, JPEG q=85 (mozjpeg). withoutEnlargement so we never up-scale.
@@ -898,7 +923,6 @@ export class FileUploadService {
       // served pet photo would let viewers extract the adopter's home
       // coordinates from the EXIF block.
       const resizedTmpPath = path.join(dir, `${base}.resized${ext}`);
-      const meta = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS }).metadata();
       const resizedInfo = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS })
         .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 85, mozjpeg: true })
