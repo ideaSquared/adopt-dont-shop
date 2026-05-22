@@ -351,6 +351,29 @@ export class FileUploadService {
         if (fs.existsSync(filePath)) {
           await fs.promises.unlink(filePath);
         }
+        // processImageWithSharp writes two companion files next to every
+        // processed image — `<filepath>.original` (the EXIF-stripped
+        // re-derive source) and `<basename>.thumb.jpg` (the 320px
+        // thumbnail). Both share the same `dir` + `basename(filePath, ext)`
+        // convention; clean them up alongside the primary so deletes
+        // don't leave orphans on disk indefinitely. Best-effort: any
+        // missing companion is ignored so the primary delete still
+        // succeeds.
+        const companionPaths = [
+          `${filePath}.original`,
+          path.join(
+            path.dirname(filePath),
+            `${path.basename(filePath, path.extname(filePath))}.thumb.jpg`
+          ),
+        ];
+        for (const companion of companionPaths) {
+          try {
+            await fs.promises.unlink(companion);
+          } catch {
+            // companion not present (non-image upload, sharp unavailable
+            // at processing time, or already cleaned up) — ignore.
+          }
+        }
       }
 
       // Delete database record

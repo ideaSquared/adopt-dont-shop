@@ -1,5 +1,22 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+// Mock FileUpload model + AuditLogService so the deleteFile companion-cleanup
+// suite below can drive the service against real disk without standing up
+// the database. The other suites in this file don't touch these mocks.
+vi.mock('../../models/FileUpload', () => ({
+  default: { findByPk: vi.fn() },
+}));
+vi.mock('../../services/auditLog.service', () => ({
+  AuditLogService: { log: vi.fn().mockResolvedValue(undefined) },
+}));
+vi.mock('../../services/storage', () => ({
+  getStorageProvider: vi.fn(() => ({ getName: () => 'local' })),
+  StorageCategory: {},
+}));
+
+import FileUpload from '../../models/FileUpload';
+import { UserType } from '../../models/User';
+
 // The shared test setup stubs `fs` for upstream service tests. This
 // suite needs the real disk to write JPEG fixtures, so undo the mock.
 vi.unmock('fs');
@@ -287,5 +304,84 @@ describe('FileUploadService EXIF stripping on processed images', () => {
       const thumbMeta = await sharp(result.thumbnailPath).metadata();
       expect(thumbMeta.exif).toBeUndefined();
     }
+  });
+});
+
+// deleteFile() removes the primary on-disk file via the local storage
+// branch — but processImageWithSharp writes two companion files alongside
+// every image upload (`<filepath>.original` and `<basename>.thumb.jpg`).
+// Without explicit cleanup those companions would pile up on disk
+// indefinitely after the FileUpload row is gone.
+describe('FileUploadService deleteFile() companion cleanup', () => {
+  const TMP_DIR = path.join(os.tmpdir(), `ads-delete-companions-${Date.now()}`);
+  const ORIGINAL_DIR = config.storage.local.directory;
+
+  beforeAll(async () => {
+    await fs.promises.mkdir(TMP_DIR, { recursive: true });
+    config.storage.local.directory = TMP_DIR;
+  });
+
+  afterAll(async () => {
+    config.storage.local.directory = ORIGINAL_DIR;
+    await fs.promises.rm(TMP_DIR, { recursive: true, force: true });
+  });
+
+  it('removes the primary file plus its .original and .thumb.jpg companions', async () => {
+    // file_path is stored relative to config.storage.local.directory so the
+    // deleteFile() path.join behaves correctly. We mirror that here.
+    const stem = `cat-${Date.now()}`;
+    const relPath = `${stem}.jpg`;
+    const primaryPath = path.join(TMP_DIR, relPath);
+    const originalCompanion = `${primaryPath}.original`;
+    const thumbCompanion = path.join(TMP_DIR, `${stem}.thumb.jpg`);
+
+    await fs.promises.writeFile(primaryPath, 'primary bytes');
+    await fs.promises.writeFile(originalCompanion, 'original bytes');
+    await fs.promises.writeFile(thumbCompanion, 'thumb bytes');
+
+    const destroy = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(FileUpload.findByPk).mockResolvedValue({
+      upload_id: 'upload-companion-test',
+      original_filename: 'cat.jpg',
+      file_path: relPath,
+      uploaded_by: 'user-1',
+      destroy,
+    } as unknown as Awaited<ReturnType<typeof FileUpload.findByPk>>);
+
+    const result = await FileUploadService.deleteFile('upload-companion-test', {
+      id: 'user-1',
+      type: UserType.ADOPTER,
+    });
+
+    expect(result.success).toBe(true);
+    await expect(fs.promises.access(primaryPath)).rejects.toThrow();
+    await expect(fs.promises.access(originalCompanion)).rejects.toThrow();
+    await expect(fs.promises.access(thumbCompanion)).rejects.toThrow();
+    expect(destroy).toHaveBeenCalled();
+  });
+
+  it('succeeds when companion files are missing (non-image upload, or already cleaned up)', async () => {
+    const stem = `doc-${Date.now()}`;
+    const relPath = `${stem}.pdf`;
+    const primaryPath = path.join(TMP_DIR, relPath);
+    await fs.promises.writeFile(primaryPath, 'pdf bytes');
+
+    const destroy = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(FileUpload.findByPk).mockResolvedValue({
+      upload_id: 'upload-no-companions',
+      original_filename: 'doc.pdf',
+      file_path: relPath,
+      uploaded_by: 'user-1',
+      destroy,
+    } as unknown as Awaited<ReturnType<typeof FileUpload.findByPk>>);
+
+    const result = await FileUploadService.deleteFile('upload-no-companions', {
+      id: 'user-1',
+      type: UserType.ADOPTER,
+    });
+
+    expect(result.success).toBe(true);
+    await expect(fs.promises.access(primaryPath)).rejects.toThrow();
+    expect(destroy).toHaveBeenCalled();
   });
 });
