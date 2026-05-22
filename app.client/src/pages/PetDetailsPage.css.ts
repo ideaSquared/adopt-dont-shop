@@ -371,3 +371,19 @@ export const contactButton = style({
   width: '100%',
   marginTop: '0.5rem',
 });
+
+// ADS-639: "View Rescue Profile" is a tertiary inline link below the
+// primary (Apply) and secondary (Ask a question) actions, so it reads as
+// a low-emphasis affordance rather than competing for attention.
+export const tertiaryLink = style({
+  display: 'inline-block',
+  marginTop: '0.5rem',
+  fontSize: '0.9rem',
+  color: vars.text.secondary,
+  textDecoration: 'underline',
+  background: 'transparent',
+  border: 'none',
+  ':hover': {
+    color: vars.text.primary,
+  },
+});
