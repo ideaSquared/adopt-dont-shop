@@ -2,6 +2,7 @@ import { Op, Order, WhereOptions } from 'sequelize';
 import EmailService from './email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
+import type { RescueAttributes, RescueCreationAttributes } from '../models/Rescue';
 import { logger, loggerHelpers } from '../utils/logger';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
@@ -337,6 +338,9 @@ export class RescueService {
   /**
    * Create new rescue organization
    */
+  /** Per-user cap on rescues an individual account may create. */
+  static readonly RESCUE_CREATION_CAP_PER_USER = 3;
+
   static async createRescue(rescueData: CreateRescueRequest, createdBy: string): Promise<Rescue> {
     const startTime = Date.now();
 
@@ -348,6 +352,29 @@ export class RescueService {
 
     let rescue: Rescue;
     try {
+      // Per-user cap (A14): block a single account from spinning up an
+      // unbounded number of rescue organisations. Counts live rescues
+      // (paranoid scope) authored by this user via the standard
+      // `created_by` audit column (auto-stamped by the model hook from
+      // the request context). Rescues seeded outside a request context
+      // have NULL created_by and are excluded.
+      //
+      // Skip the cap when createdBy is not supplied — system-initiated
+      // creates (seeders, jobs) are out of scope for an anti-abuse
+      // limit aimed at individual user accounts.
+      //
+      // `created_by` is added via `auditColumns` and isn't part of the
+      // Rescue model's attribute type, so the where clause is cast.
+      if (createdBy) {
+        const existingCount = await Rescue.count({
+          where: { created_by: createdBy } as unknown as WhereOptions<RescueAttributes>,
+          transaction,
+        });
+        if (existingCount >= RescueService.RESCUE_CREATION_CAP_PER_USER) {
+          throw new Error('Maximum number of rescues per user reached');
+        }
+      }
+
       // Check for duplicate email
       const existingByEmail = await Rescue.findOne({
         where: { email: rescueData.email },
@@ -378,11 +405,18 @@ export class RescueService {
       }
 
       // Create the rescue in pending state — verification runs after commit.
+      // created_by is also stamped by the audit hook from the request
+      // context; pass it explicitly so the per-user cap (A14) attributes
+      // correctly even in code paths that bypass the request middleware
+      // (e.g. background jobs). The cast is required because created_by
+      // is added via the audit-columns mixin and isn't typed on
+      // RescueCreationAttributes.
       rescue = await Rescue.create(
         {
           ...rescueData,
           status: 'pending',
-        },
+          created_by: createdBy,
+        } as unknown as RescueCreationAttributes,
         { transaction }
       );
 
