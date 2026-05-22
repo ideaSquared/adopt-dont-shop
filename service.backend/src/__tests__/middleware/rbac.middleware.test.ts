@@ -468,6 +468,17 @@ describe('RBAC Middleware', () => {
 
       expect(mockNext).toHaveBeenCalled();
     });
+
+    it('should allow super_admin access', () => {
+      mockRequest.user = {
+        userId: 'sa-123',
+        userType: UserType.SUPER_ADMIN,
+      } as AuthenticatedRequest['user'];
+
+      requireAdmin(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalled();
+    });
   });
 
   describe('requireRescue - Rescue staff shortcut', () => {
@@ -562,6 +573,19 @@ describe('RBAC Middleware', () => {
         mockRequest.user = {
           userId: 'admin-123',
           userType: UserType.ADMIN,
+        } as AuthenticatedRequest['user'];
+        mockRequest.params = { ownerId: 'user-456' };
+
+        const middleware = requireOwnershipOrAdmin(getResourceUserId);
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+      });
+
+      it('should allow super_admin access regardless of ownership', () => {
+        mockRequest.user = {
+          userId: 'sa-123',
+          userType: UserType.SUPER_ADMIN,
         } as AuthenticatedRequest['user'];
         mockRequest.params = { ownerId: 'user-456' };
 

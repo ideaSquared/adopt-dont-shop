@@ -5,6 +5,7 @@ import GdprService from '../services/gdpr.service';
 import { ConsentPurpose } from '../models/UserConsent';
 import { AuthenticatedRequest } from '../types';
 import { UserType } from '../models/User';
+import { isAdminRole } from '../utils/is-admin-role';
 import { logger } from '../utils/logger';
 import { validateBody } from '../middleware/zod-validate';
 import {
@@ -26,7 +27,7 @@ export const gdprValidation = {
   anonymize: [body('reason').optional().isString().isLength({ max: 500 })],
 };
 
-const isAdmin = (req: AuthenticatedRequest): boolean => req.user?.userType === UserType.ADMIN;
+const isAdmin = (req: AuthenticatedRequest): boolean => isAdminRole(req.user?.userType);
 
 export class GdprController {
   /**

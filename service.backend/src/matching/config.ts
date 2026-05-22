@@ -55,6 +55,17 @@ const parseFloat0 = (raw: string | undefined, fallback: number): number => {
 };
 
 /**
+ * Cache TTL bounds. Operators cannot disable caching via env — the
+ * cache is part of the match pipeline's load profile. Clamp out
+ * accidental misconfiguration (TTL=0 starves the cache, TTL=999999999
+ * holds stale matches for years).
+ */
+export const MATCH_CACHE_TTL_MIN_SECONDS = 30;
+export const MATCH_CACHE_TTL_MAX_SECONDS = 86_400;
+
+const clamp = (n: number, min: number, max: number): number => Math.min(Math.max(n, min), max);
+
+/**
  * Resolve effective config. Env vars are an optional override layer
  * for ops; the typed `DEFAULTS` constant above is the canonical
  * source for product changes.
@@ -69,7 +80,11 @@ export const loadMatchConfig = (): MatchConfig => ({
     embedding: parseFloat0(process.env.MATCH_BLEND_EMBEDDING, DEFAULTS.blend.embedding),
     llm: parseFloat0(process.env.MATCH_BLEND_LLM, DEFAULTS.blend.llm),
   },
-  cacheTtlSeconds: parseFloat0(process.env.MATCH_CACHE_TTL_SECONDS, DEFAULTS.cacheTtlSeconds),
+  cacheTtlSeconds: clamp(
+    parseFloat0(process.env.MATCH_CACHE_TTL_SECONDS, DEFAULTS.cacheTtlSeconds),
+    MATCH_CACHE_TTL_MIN_SECONDS,
+    MATCH_CACHE_TTL_MAX_SECONDS
+  ),
 });
 
 export const getActiveScorerNames = (cfg: MatchConfig): ScorerName[] =>

@@ -299,19 +299,36 @@ export class ChatService {
   }
 
   /**
-   * Get chat by ID with messages.
+   * Get chat by ID with a paginated slice of messages.
    *
    * When isAdmin is false the caller must be a participant of the chat;
    * otherwise an error is thrown. Set isAdmin to true only after verifying
    * the caller holds the admin role via route-level or controller-level checks.
+   *
+   * Messages are loaded via a separate query with limit/offset to prevent
+   * unbounded memory load on chats with thousands of messages (DoS hardening).
+   * The returned Chat instance has its Messages association populated with
+   * the paginated slice, plus a messagesPagination field describing the
+   * total count and applied window.
    */
   static async getChatById(
     chatId: string,
     userId: string,
     isAdmin: boolean,
-    userRescueId?: string
-  ): Promise<Chat | null> {
+    userRescueId?: string,
+    messagesOptions: { limit?: number; offset?: number } = {}
+  ): Promise<
+    | (Chat & {
+        messagesPagination?: { limit: number; offset: number; total: number };
+      })
+    | null
+  > {
     const startTime = Date.now();
+    const DEFAULT_LIMIT = 50;
+    const MAX_LIMIT = 200;
+    const requestedLimit = messagesOptions.limit ?? DEFAULT_LIMIT;
+    const limit = Math.max(1, Math.min(MAX_LIMIT, Math.floor(requestedLimit)));
+    const offset = Math.max(0, Math.floor(messagesOptions.offset ?? 0));
 
     try {
       const chat = await Chat.findByPk(chatId, {
@@ -326,46 +343,64 @@ export class ChatService {
             ],
           },
           {
-            association: 'Messages',
-            include: [
-              {
-                association: 'Sender',
-                attributes: ['userId', 'firstName', 'lastName', 'email'],
-              },
-            ],
-            order: [['created_at', 'ASC']],
-          },
-          {
             association: 'rescue',
             attributes: ['rescue_id', 'name'],
           },
         ],
       });
 
-      if (chat) {
-        await this.requireChatParticipant(chatId, userId, isAdmin, userRescueId);
+      if (!chat) {
+        loggerHelpers.logDatabase('READ', {
+          chatId,
+          duration: Date.now() - startTime,
+          found: false,
+        });
+        return null;
       }
+
+      await this.requireChatParticipant(chatId, userId, isAdmin, userRescueId);
+
+      const { rows: messages, count: total } = await Message.findAndCountAll({
+        where: { chat_id: chatId },
+        include: [
+          {
+            association: 'Sender',
+            attributes: ['userId', 'firstName', 'lastName', 'email'],
+          },
+        ],
+        order: [['created_at', 'ASC']],
+        limit,
+        offset,
+      });
 
       // GDPR / privacy: messages whose Sender resolves to null are from
       // soft-deleted users (User is paranoid; the join filters them out).
       // Hide their content before returning the Chat to the client.
-      if (chat && Array.isArray((chat as Chat & { Messages?: Message[] }).Messages)) {
-        const messages = (chat as Chat & { Messages?: Message[] }).Messages ?? [];
-        for (const msg of messages) {
-          if (isSenderDeleted(msg)) {
-            msg.content = DELETED_SENDER_CONTENT_PLACEHOLDER;
-            msg.attachments = [];
-          }
+      for (const msg of messages) {
+        if (isSenderDeleted(msg)) {
+          msg.content = DELETED_SENDER_CONTENT_PLACEHOLDER;
+          msg.attachments = [];
         }
       }
+
+      // Attach paginated messages + pagination metadata to the Chat
+      // instance. setDataValue keeps Sequelize's toJSON happy.
+      const chatWithMessages = chat as Chat & {
+        Messages?: Message[];
+        messagesPagination?: { limit: number; offset: number; total: number };
+      };
+      chatWithMessages.setDataValue('Messages', messages);
+      chatWithMessages.messagesPagination = { limit, offset, total };
 
       loggerHelpers.logDatabase('READ', {
         chatId,
         duration: Date.now() - startTime,
-        found: !!chat,
+        found: true,
+        messagesReturned: messages.length,
+        messagesTotal: total,
       });
 
-      return chat;
+      return chatWithMessages;
     } catch (error) {
       logger.error('Failed to get chat by ID:', {
         error: error instanceof Error ? error.message : String(error),
@@ -794,7 +829,10 @@ export class ChatService {
         }
       }
 
-      // Send real-time notifications to other participants
+      // Notify other participants in one bulkCreate (was N sequential
+      // INSERT round-trips). Participant cap protects the DB + push
+      // providers from a single send fanning out to thousands of users.
+      const MAX_NOTIFY_PARTICIPANTS = 200;
       try {
         const participants = await ChatParticipant.findAll({
           where: {
@@ -804,20 +842,28 @@ export class ChatService {
           include: [{ model: User, as: 'User' }],
         });
 
-        // Send push notifications to offline users
-        for (const participant of participants) {
-          await NotificationService.createNotification({
-            userId: participant.participant_id,
-            type: NotificationType.MESSAGE_RECEIVED,
-            title: 'New Message',
-            message: `New message from ${messageWithSender.Sender?.firstName || 'Someone'}`,
-            data: {
-              chatId: data.chatId,
-              messageId: messageWithSender.message_id,
-              senderId: data.senderId,
-            },
-            priority: NotificationPriority.NORMAL,
-          });
+        if (participants.length > MAX_NOTIFY_PARTICIPANTS) {
+          throw new Error(
+            `Chat has ${participants.length} participants which exceeds the ${MAX_NOTIFY_PARTICIPANTS} notification fan-out cap`
+          );
+        }
+
+        if (participants.length > 0) {
+          const senderName = messageWithSender.Sender?.firstName || 'Someone';
+          await NotificationService.createNotificationsBulk(
+            participants.map(p => ({
+              userId: p.participant_id,
+              type: NotificationType.MESSAGE_RECEIVED,
+              title: 'New Message',
+              message: `New message from ${senderName}`,
+              data: {
+                chatId: data.chatId,
+                messageId: messageWithSender.message_id,
+                senderId: data.senderId,
+              },
+              priority: NotificationPriority.NORMAL,
+            }))
+          );
         }
       } catch (notificationError) {
         logger.warn('Failed to send notifications:', notificationError);

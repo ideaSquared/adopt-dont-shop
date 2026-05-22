@@ -10,10 +10,12 @@ import { AuditLogService } from './auditLog.service';
 import FileUpload from '../models/FileUpload';
 import { UserType } from '../models/User';
 import { fileTypeFromFile } from '../utils/file-type-wrapper';
+import { isAdminRole } from '../utils/is-admin-role';
 import DOMPurify from 'isomorphic-dompurify';
 import { getAvProvider } from './av-providers';
 import { getStorageProvider } from './storage';
 import { StorageCategory } from './storage/base-provider';
+import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from '../constants/image-limits';
 
 // Image-bomb DOS guard (ADS-DIM): a small-on-disk image (PNG/WebP/JPEG)
 // can declare extreme dimensions in its header — sharp will then allocate
@@ -23,9 +25,10 @@ import { StorageCategory } from './storage/base-provider';
 // every legitimate product use case (avatars at 5MB, pet photos resized
 // to 1600px max — see processImageWithSharp). The matching `limitInputPixels`
 // constructor option asks sharp itself to refuse to decode beyond MAX^2
-// pixels as belt-and-braces.
-const MAX_IMAGE_DIMENSION = 8000;
-const MAX_IMAGE_PIXELS = MAX_IMAGE_DIMENSION * MAX_IMAGE_DIMENSION;
+// pixels as belt-and-braces. The constants live in
+// `service.backend/src/constants/image-limits.ts` so storage providers
+// can import them without dragging the upload service (and its model
+// imports) into their dependency graph.
 
 // File upload configuration
 //
@@ -355,7 +358,7 @@ export class FileUploadService {
       }
 
       const isOwner = uploadRecord.uploaded_by === deletedBy.id;
-      const isAdmin = deletedBy.type === UserType.ADMIN;
+      const isAdmin = isAdminRole(deletedBy.type);
       if (!isOwner && !isAdmin) {
         throw Object.assign(new Error('Not allowed to delete this file'), { statusCode: 403 });
       }

@@ -111,6 +111,7 @@ vi.mock('../../services/auditLog.service', () => ({
 vi.mock('../../services/notification.service', () => ({
   NotificationService: {
     createNotification: vi.fn().mockResolvedValue(undefined),
+    createNotificationsBulk: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -164,6 +165,10 @@ const mockAuditLogAction = AuditLogService.log as vi.MockedFunction<typeof Audit
 const mockCreateNotification = NotificationService.createNotification as vi.MockedFunction<
   typeof NotificationService.createNotification
 >;
+const mockCreateNotificationsBulk =
+  NotificationService.createNotificationsBulk as vi.MockedFunction<
+    typeof NotificationService.createNotificationsBulk
+  >;
 
 describe('ChatService', () => {
   beforeEach(() => {
@@ -363,14 +368,31 @@ describe('ChatService', () => {
     const chatId = 'chat-abc';
     const participantId = 'user-participant';
     const strangerId = 'user-stranger';
-    const mockChat = {
-      chat_id: chatId,
-      rescue_id: 'rescue-xyz',
-      status: ChatStatus.ACTIVE,
+
+    // Build a fresh mock chat per test. setDataValue is exercised by the
+    // service to attach the paginated Messages slice; we mirror the value
+    // onto the mock object directly so assertions can read result.Messages.
+    const buildMockChat = (overrides: Record<string, unknown> = {}) => {
+      const obj: Record<string, unknown> = {
+        chat_id: chatId,
+        rescue_id: 'rescue-xyz',
+        status: ChatStatus.ACTIVE,
+        ...overrides,
+      };
+      obj.setDataValue = (key: string, value: unknown) => {
+        obj[key] = value;
+      };
+      return obj;
     };
 
+    beforeEach(() => {
+      // Default: zero messages returned. Individual tests override.
+      (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({ rows: [], count: 0 });
+    });
+
     describe('when the caller is a participant', () => {
-      it('returns the chat', async () => {
+      it('returns the chat with paginated messages metadata', async () => {
+        const mockChat = buildMockChat();
         (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
         (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue({
           chat_id: chatId,
@@ -379,7 +401,16 @@ describe('ChatService', () => {
 
         const result = await ChatService.getChatById(chatId, participantId, false);
 
-        expect(result).toEqual(mockChat);
+        expect(result).toMatchObject({
+          chat_id: chatId,
+          rescue_id: 'rescue-xyz',
+          status: ChatStatus.ACTIVE,
+        });
+        expect((result as unknown as { messagesPagination: unknown }).messagesPagination).toEqual({
+          limit: 50,
+          offset: 0,
+          total: 0,
+        });
         expect(MockedChatParticipant.findOne).toHaveBeenCalledWith({
           where: { chat_id: chatId, participant_id: participantId },
         });
@@ -388,7 +419,7 @@ describe('ChatService', () => {
 
     describe('when the caller is not a participant', () => {
       it('throws a forbidden-style error', async () => {
-        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(buildMockChat());
         (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
 
         await expect(ChatService.getChatById(chatId, strangerId, false)).rejects.toThrow(
@@ -399,11 +430,11 @@ describe('ChatService', () => {
 
     describe('when isAdmin is true (explicit admin bypass)', () => {
       it('returns the chat without checking participation', async () => {
-        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(buildMockChat());
 
         const result = await ChatService.getChatById(chatId, 'admin-user-id', true);
 
-        expect(result).toEqual(mockChat);
+        expect(result).toMatchObject({ chat_id: chatId });
         expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
       });
     });
@@ -412,7 +443,7 @@ describe('ChatService', () => {
       it('returns the chat without requiring a direct participant row', async () => {
         // Every staff member of a rescue should see every chat for that
         // rescue — not just chats they were individually added to.
-        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(buildMockChat());
 
         const result = await ChatService.getChatById(
           chatId,
@@ -421,14 +452,14 @@ describe('ChatService', () => {
           'rescue-xyz'
         );
 
-        expect(result).toEqual(mockChat);
+        expect(result).toMatchObject({ chat_id: chatId });
         expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
       });
     });
 
     describe('when caller belongs to a different rescue', () => {
       it('falls back to the participant check and rejects', async () => {
-        (MockedChat.findByPk as vi.Mock).mockResolvedValue(mockChat);
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(buildMockChat());
         (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue(null);
 
         await expect(
@@ -446,35 +477,34 @@ describe('ChatService', () => {
         expect(result).toBeNull();
         // Participant lookup should be skipped when chat is absent.
         expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
+        // Messages query should also be skipped — no chat to attach to.
+        expect(MockedMessage.findAndCountAll).not.toHaveBeenCalled();
       });
     });
 
     describe('when a message author has been soft-deleted', () => {
       it('redacts content of messages whose Sender include resolved to null', async () => {
         // User is paranoid: true — a soft-deleted author shows up as
-        // Sender=null on the eager-loaded Message rows.
-        const chatWithOrphanedMessages = {
-          ...mockChat,
-          Messages: [
-            {
-              message_id: 'm-live',
-              content: 'still visible',
-              attachments: [
-                { attachment_id: 'a', filename: 'f', url: 'u', mimeType: 'm', size: 1 },
-              ],
-              Sender: { userId: 'live', firstName: 'L', lastName: 'L' },
-            },
-            {
-              message_id: 'm-orphan',
-              content: 'should be hidden',
-              attachments: [
-                { attachment_id: 'b', filename: 'f', url: 'u', mimeType: 'm', size: 1 },
-              ],
-              Sender: null,
-            },
-          ],
-        };
-        (MockedChat.findByPk as vi.Mock).mockResolvedValue(chatWithOrphanedMessages);
+        // Sender=null on the paginated Message rows.
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(buildMockChat());
+        const messageRows = [
+          {
+            message_id: 'm-live',
+            content: 'still visible',
+            attachments: [{ attachment_id: 'a', filename: 'f', url: 'u', mimeType: 'm', size: 1 }],
+            Sender: { userId: 'live', firstName: 'L', lastName: 'L' },
+          },
+          {
+            message_id: 'm-orphan',
+            content: 'should be hidden',
+            attachments: [{ attachment_id: 'b', filename: 'f', url: 'u', mimeType: 'm', size: 1 }],
+            Sender: null,
+          },
+        ];
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({
+          rows: messageRows,
+          count: 2,
+        });
 
         const result = await ChatService.getChatById(chatId, 'admin-user-id', true);
 
@@ -488,6 +518,60 @@ describe('ChatService', () => {
         expect(messages[1].content).not.toContain('should be hidden');
         expect(messages[1].content).toMatch(/deleted/i);
         expect(messages[1].attachments).toHaveLength(0);
+      });
+    });
+
+    describe('messages pagination', () => {
+      it('defaults to limit 50 / offset 0 and returns the slice plus total', async () => {
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(buildMockChat());
+        const rows = Array.from({ length: 50 }, (_, i) => ({
+          message_id: `m-${i}`,
+          content: `msg ${i}`,
+          attachments: [],
+          Sender: { userId: 'u', firstName: 'A', lastName: 'B' },
+        }));
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({ rows, count: 200 });
+
+        const result = await ChatService.getChatById(chatId, 'admin', true);
+
+        expect(MockedMessage.findAndCountAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { chat_id: chatId },
+            limit: 50,
+            offset: 0,
+          })
+        );
+        const typed = result as unknown as {
+          Messages: unknown[];
+          messagesPagination: { limit: number; offset: number; total: number };
+        };
+        expect(typed.Messages).toHaveLength(50);
+        expect(typed.messagesPagination).toEqual({ limit: 50, offset: 0, total: 200 });
+      });
+
+      it('honours an explicit limit and offset', async () => {
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(buildMockChat());
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({ rows: [], count: 0 });
+
+        await ChatService.getChatById(chatId, 'admin', true, undefined, {
+          limit: 100,
+          offset: 50,
+        });
+
+        expect(MockedMessage.findAndCountAll).toHaveBeenCalledWith(
+          expect.objectContaining({ limit: 100, offset: 50 })
+        );
+      });
+
+      it('clamps requested limit above 200 down to 200', async () => {
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(buildMockChat());
+        (MockedMessage.findAndCountAll as vi.Mock).mockResolvedValue({ rows: [], count: 0 });
+
+        await ChatService.getChatById(chatId, 'admin', true, undefined, { limit: 500 });
+
+        expect(MockedMessage.findAndCountAll).toHaveBeenCalledWith(
+          expect.objectContaining({ limit: 200, offset: 0 })
+        );
       });
     });
   });
@@ -707,14 +791,86 @@ describe('ChatService', () => {
           expect.any(Object) // transaction
         );
 
-        expect(mockCreateNotification).toHaveBeenCalledWith(
+        // One bulkCreate call, one row inside it (single participant).
+        expect(mockCreateNotificationsBulk).toHaveBeenCalledTimes(1);
+        expect(mockCreateNotificationsBulk).toHaveBeenCalledWith([
           expect.objectContaining({
             userId: rescueId,
             type: 'MESSAGE_RECEIVED',
             title: 'New Message',
             message: expect.stringContaining('John'),
-          })
-        );
+          }),
+        ]);
+        // Per-row createNotification path is no longer used for chat fan-out.
+        expect(mockCreateNotification).not.toHaveBeenCalled();
+      });
+
+      it('fans out via a single bulkCreate call for 5 participants', async () => {
+        const chatId = 'chat-bulk';
+        const senderId = 'sender-X';
+        const chat = { chat_id: chatId, rescue_id: 'r', status: ChatStatus.ACTIVE };
+        const message = {
+          message_id: 'm-bulk',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'hi',
+          Sender: { userId: senderId, firstName: 'Alice' },
+        };
+        const participants = Array.from({ length: 5 }, (_, i) => ({
+          participant_id: `recipient-${i}`,
+          chat_id: chatId,
+          User: { userId: `recipient-${i}` },
+        }));
+
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          ...chat,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedMessage.create as vi.Mock).mockResolvedValue(message);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(message);
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue(participants);
+
+        await ChatService.sendMessage({ chatId, senderId, content: 'hi' });
+
+        expect(mockCreateNotificationsBulk).toHaveBeenCalledTimes(1);
+        const rows = mockCreateNotificationsBulk.mock.calls[0]?.[0] as unknown[];
+        expect(rows).toHaveLength(5);
+      });
+
+      it('refuses to fan out when the participant cap is exceeded', async () => {
+        const chatId = 'chat-huge';
+        const senderId = 'sender-X';
+        const chat = { chat_id: chatId, rescue_id: 'r', status: ChatStatus.ACTIVE };
+        const message = {
+          message_id: 'm-huge',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'hi',
+          Sender: { userId: senderId, firstName: 'A' },
+        };
+        const participants = Array.from({ length: 250 }, (_, i) => ({
+          participant_id: `p-${i}`,
+          chat_id: chatId,
+          User: { userId: `p-${i}` },
+        }));
+
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          ...chat,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedMessage.create as vi.Mock).mockResolvedValue(message);
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue(message);
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue(participants);
+
+        // Message send itself succeeds (notification failure is swallowed).
+        await ChatService.sendMessage({ chatId, senderId, content: 'hi' });
+
+        // No bulkCreate call when cap exceeded.
+        expect(mockCreateNotificationsBulk).not.toHaveBeenCalled();
       });
     });
 

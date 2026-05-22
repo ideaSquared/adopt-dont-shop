@@ -47,9 +47,28 @@ export class SecurityController {
     return res.json({ success: true, data: { revokedCount: count } });
   }
 
-  static async listIpRules(_req: AuthenticatedRequest, res: Response) {
-    const rules = await SecurityService.listIpRules();
-    return res.json({ success: true, data: rules });
+  static async listIpRules(req: AuthenticatedRequest, res: Response) {
+    const { limit, offset } = req.query;
+    const parsePositiveInt = (raw: unknown): number | undefined => {
+      if (typeof raw !== 'string' || raw.length === 0) {
+        return undefined;
+      }
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    };
+    const result = await SecurityService.listIpRules({
+      limit: parsePositiveInt(limit),
+      offset: parsePositiveInt(offset),
+    });
+    return res.json({
+      success: true,
+      data: result.rules,
+      pagination: {
+        limit: result.limit,
+        offset: result.offset,
+        total: result.total,
+      },
+    });
   }
 
   static async createIpRule(req: AuthenticatedRequest, res: Response) {

@@ -33,9 +33,17 @@ describe('shouldExposeApiDocs (ADS-412)', () => {
     expect(shouldExposeApiDocs()).toBe(false);
   });
 
-  it('opt-in: EXPOSE_API_DOCS=true overrides production gate', () => {
+  it('hard-blocks docs in production even when EXPOSE_API_DOCS=true is set', () => {
     process.env.NODE_ENV = 'production';
     process.env.EXPOSE_API_DOCS = 'true';
-    expect(shouldExposeApiDocs()).toBe(true);
+    expect(shouldExposeApiDocs()).toBe(false);
+  });
+
+  it('hard-blocks docs in production-like envs (prod, mixed case) regardless of EXPOSE_API_DOCS', () => {
+    process.env.EXPOSE_API_DOCS = 'true';
+    for (const env of ['prod', 'Production', 'PROD']) {
+      process.env.NODE_ENV = env;
+      expect(shouldExposeApiDocs()).toBe(false);
+    }
   });
 });

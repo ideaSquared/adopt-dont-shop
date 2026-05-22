@@ -52,7 +52,14 @@ describe('idempotency middleware', () => {
   });
 
   it('caches a successful response keyed by sha256(client-key) + endpoint', async () => {
-    const req = buildReq('client-key-1');
+    const user = await User.create({
+      email: 'cacher@example.com',
+      password: 'hashed-password',
+      firstName: 'C',
+      lastName: 'User',
+      userType: UserType.ADOPTER,
+    });
+    const req = buildReq('client-key-1', user.userId);
     const res = buildRes();
     const next: NextFunction = vi.fn();
 
@@ -74,16 +81,23 @@ describe('idempotency middleware', () => {
   });
 
   it('replays a cached response on retry without invoking next()', async () => {
+    const user = await User.create({
+      email: 'replayer@example.com',
+      password: 'hashed-password',
+      firstName: 'R',
+      lastName: 'User',
+      userType: UserType.ADOPTER,
+    });
     await IdempotencyKey.create({
       key_hash: hashToken('replay-key'),
       endpoint: 'POST /api/v1/applications/',
-      user_id: null,
+      user_id: user.userId,
       response_status: 201,
       response_body: { applicationId: 'cached-app' },
       expires_at: new Date(Date.now() + IDEMPOTENCY_RETENTION_MS),
     });
 
-    const req = buildReq('replay-key');
+    const req = buildReq('replay-key', user.userId);
     const res = buildRes();
     const next: NextFunction = vi.fn();
 
@@ -95,7 +109,14 @@ describe('idempotency middleware', () => {
   });
 
   it('does not cache 4xx/5xx responses', async () => {
-    const req = buildReq('error-key');
+    const user = await User.create({
+      email: 'error@example.com',
+      password: 'hashed-password',
+      firstName: 'E',
+      lastName: 'User',
+      userType: UserType.ADOPTER,
+    });
+    const req = buildReq('error-key', user.userId);
     const res = buildRes();
     const next: NextFunction = vi.fn();
 
@@ -109,16 +130,23 @@ describe('idempotency middleware', () => {
   });
 
   it('treats expired entries as cache misses', async () => {
+    const user = await User.create({
+      email: 'expired@example.com',
+      password: 'hashed-password',
+      firstName: 'X',
+      lastName: 'User',
+      userType: UserType.ADOPTER,
+    });
     await IdempotencyKey.create({
       key_hash: hashToken('expired-key'),
       endpoint: 'POST /api/v1/applications/',
-      user_id: null,
+      user_id: user.userId,
       response_status: 201,
       response_body: { applicationId: 'old' },
       expires_at: new Date(Date.now() - 1_000),
     });
 
-    const req = buildReq('expired-key');
+    const req = buildReq('expired-key', user.userId);
     const res = buildRes();
     const next: NextFunction = vi.fn();
 
@@ -127,6 +155,42 @@ describe('idempotency middleware', () => {
     expect(next).toHaveBeenCalledTimes(1);
     expect(res.status).not.toHaveBeenCalled();
     expect(await IdempotencyKey.count()).toBe(0);
+  });
+
+  it('skips the cache entirely for unauthenticated requests so two anon clients sharing a key cannot replay each other', async () => {
+    // Pre-seed the cache with a row that *could* be matched if the
+    // middleware fell back to a null-userId lookup — exactly the
+    // pre-fix vulnerability where attacker A's cached /register
+    // response gets replayed to attacker B.
+    await IdempotencyKey.create({
+      key_hash: hashToken('anon-shared'),
+      endpoint: 'POST /api/v1/applications/',
+      user_id: null,
+      response_status: 201,
+      response_body: { applicationId: 'anon-leak' },
+      expires_at: new Date(Date.now() + IDEMPOTENCY_RETENTION_MS),
+    });
+
+    // Anonymous client B (no req.user) hits the same endpoint with the
+    // same Idempotency-Key.
+    const req = buildReq('anon-shared');
+    const res = buildRes();
+    const next: NextFunction = vi.fn();
+
+    await idempotency(req, res as unknown as Response, next);
+
+    // Must NOT replay — the handler must run instead.
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json).not.toHaveBeenCalled();
+
+    // And a successful response on the anonymous path must NOT write a
+    // new cache row either; otherwise the next anon client could pick
+    // it up.
+    res.status(201);
+    res.json({ applicationId: 'anon-fresh' });
+    await new Promise(resolve => setImmediate(resolve));
+    expect(await IdempotencyKey.count()).toBe(1); // only the pre-seeded one
   });
 
   it('does not replay a cached response across users — same key from a different user is a cache miss', async () => {

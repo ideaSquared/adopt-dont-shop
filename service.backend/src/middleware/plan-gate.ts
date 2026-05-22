@@ -1,8 +1,8 @@
 import type { NextFunction, RequestHandler, Response } from 'express';
 import { meetsMinPlan, planHasFeature, type RescuePlan, type PlanFeature } from '../config/plans';
 import Rescue from '../models/Rescue';
-import { UserType } from '../models/User';
 import type { AuthenticatedRequest } from '../types/auth';
+import { isAdminRole } from '../utils/is-admin-role';
 import { logger } from '../utils/logger';
 
 const loadRescuePlan = async (req: AuthenticatedRequest): Promise<RescuePlan | null> => {
@@ -26,7 +26,7 @@ export const requirePlan =
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
-      if (req.user.userType === UserType.ADMIN) {
+      if (isAdminRole(req.user.userType)) {
         next();
         return;
       }
@@ -70,7 +70,7 @@ export const requirePlanFeature =
         res.status(401).json({ error: 'Authentication required' });
         return;
       }
-      if (req.user.userType === UserType.ADMIN) {
+      if (isAdminRole(req.user.userType)) {
         next();
         return;
       }

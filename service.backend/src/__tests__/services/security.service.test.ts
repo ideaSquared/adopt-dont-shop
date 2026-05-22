@@ -183,6 +183,50 @@ describe('SecurityService', () => {
       await SecurityService.deleteIpRule(rule.ipRuleId, admin.userId);
       expect(await IpRule.findByPk(rule.ipRuleId)).toBeNull();
     });
+
+    describe('listIpRules pagination', () => {
+      it('returns paginated rules with default limit 100, total count, and ordered by created_at DESC', async () => {
+        const admin = await makeUser();
+        // Create 3 rules; only the most recent two should appear when
+        // limit=2. created_at DESC ordering means the latest rule is first.
+        await SecurityService.createIpRule({
+          type: IpRuleType.BLOCK,
+          cidr: '10.0.0.0/8',
+          actorId: admin.userId,
+        });
+        await SecurityService.createIpRule({
+          type: IpRuleType.BLOCK,
+          cidr: '11.0.0.0/8',
+          actorId: admin.userId,
+        });
+        await SecurityService.createIpRule({
+          type: IpRuleType.BLOCK,
+          cidr: '12.0.0.0/8',
+          actorId: admin.userId,
+        });
+
+        const defaultResult = await SecurityService.listIpRules();
+        expect(defaultResult.total).toBe(3);
+        expect(defaultResult.rules).toHaveLength(3);
+        expect(defaultResult.limit).toBe(100);
+        expect(defaultResult.offset).toBe(0);
+
+        const paged = await SecurityService.listIpRules({ limit: 2, offset: 0 });
+        expect(paged.rules).toHaveLength(2);
+        expect(paged.total).toBe(3);
+        expect(paged.limit).toBe(2);
+
+        const pagedOffset = await SecurityService.listIpRules({ limit: 2, offset: 2 });
+        expect(pagedOffset.rules).toHaveLength(1);
+        expect(pagedOffset.total).toBe(3);
+        expect(pagedOffset.offset).toBe(2);
+      });
+
+      it('clamps an excessive limit down to 500', async () => {
+        const result = await SecurityService.listIpRules({ limit: 9999 });
+        expect(result.limit).toBe(500);
+      });
+    });
   });
 
   describe('account recovery', () => {

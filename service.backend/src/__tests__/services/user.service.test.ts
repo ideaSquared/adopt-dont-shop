@@ -335,6 +335,71 @@ describe('UserService', () => {
       expect(vi.mocked(emitAuthRoleChanged)).toHaveBeenCalledWith(user.userId);
     });
 
+    it('refuses self-grant: admin cannot change their own role via this endpoint', async () => {
+      const admin = await User.create({
+        email: 'self-grant-admin@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      await expect(
+        UserService.updateUserRole(admin.userId, UserType.ADMIN, admin.userId)
+      ).rejects.toThrow('Cannot change your own role via this endpoint');
+    });
+
+    it('refuses SUPER_ADMIN assignment when the actor is not a super_admin', async () => {
+      const target = await User.create({
+        email: 'sa-target@example.com',
+        password: 'hashedpassword',
+        firstName: 'Target',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'sa-grant-admin@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      await expect(
+        UserService.updateUserRole(target.userId, UserType.SUPER_ADMIN, admin.userId)
+      ).rejects.toThrow('Only super_admin can assign super_admin role');
+    });
+
+    it('allows a super_admin to assign the SUPER_ADMIN role to another user', async () => {
+      const target = await User.create({
+        email: 'sa-elevatee@example.com',
+        password: 'hashedpassword',
+        firstName: 'Target',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const superAdmin = await User.create({
+        email: 'super-admin-grantor@example.com',
+        password: 'hashedpassword',
+        firstName: 'Super',
+        lastName: 'Admin',
+        userType: UserType.SUPER_ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      const result = await UserService.updateUserRole(
+        target.userId,
+        UserType.SUPER_ADMIN,
+        superAdmin.userId
+      );
+
+      expect(result.userType).toBe(UserType.SUPER_ADMIN);
+    });
+
     it('stamps tokens_invalid_before on the user row so access tokens issued before the role change are rejected by the auth middleware', async () => {
       const user = await User.create({
         email: 'rolechange-invalidates@example.com',
@@ -526,6 +591,55 @@ describe('UserService', () => {
       expect(reloaded?.password).toBeDefined();
       expect(reloaded?.password).not.toBe(plaintext);
       expect(reloaded?.password).toBe('hashed-password');
+    });
+
+    it('refuses bulk userType change that includes the actor as a target', async () => {
+      const admin = await User.create({
+        email: 'bulk-self-grant-admin@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      // userType is not part of UserUpdateData but the runtime payload is
+      // passed straight through to User.update, so use the same JSON-parse
+      // trick as the password-hash test above to bypass static typing.
+      const updates: BulkUserUpdateData[] = JSON.parse(
+        JSON.stringify([{ userIds: [admin.userId], updates: { userType: UserType.SUPER_ADMIN } }])
+      );
+
+      await expect(UserService.bulkUpdateUsers(updates, admin.userId)).rejects.toThrow(
+        'Cannot change your own role via this endpoint'
+      );
+    });
+
+    it('refuses bulk SUPER_ADMIN assignment when the actor is not a super_admin', async () => {
+      const target = await User.create({
+        email: 'bulk-sa-target@example.com',
+        password: 'hashedpassword',
+        firstName: 'Target',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'bulk-sa-admin@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      const updates: BulkUserUpdateData[] = JSON.parse(
+        JSON.stringify([{ userIds: [target.userId], updates: { userType: UserType.SUPER_ADMIN } }])
+      );
+
+      await expect(UserService.bulkUpdateUsers(updates, admin.userId)).rejects.toThrow(
+        'Only super_admin can assign super_admin role'
+      );
     });
   });
 

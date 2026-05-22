@@ -41,9 +41,22 @@ export const idempotency = async (
     return;
   }
 
+  // ADS-security: refuse to cache for unauthenticated requests. Pass-5
+  // scoped the cache by `user_id`, but anonymous requests all share a
+  // `null` bucket — two anon clients sending the same Idempotency-Key
+  // against e.g. POST /register would replay one client's response
+  // (token, user record, …) to the other. Idempotency on pre-auth
+  // endpoints isn't meaningful anyway: signup/login aren't replay-safe
+  // operations the way a duplicate application submit is. Skip both the
+  // lookup and the write so the handler runs normally.
+  if (!req.user?.userId) {
+    next();
+    return;
+  }
+
   const keyHash = hashToken(rawKey);
   const endpoint = `${req.method} ${req.baseUrl}${req.path}`;
-  const userId = req.user?.userId ?? null;
+  const userId = req.user.userId;
 
   try {
     // ADS-security: scope lookup by user_id symmetrically with the write

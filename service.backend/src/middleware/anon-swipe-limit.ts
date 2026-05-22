@@ -61,55 +61,53 @@ const resolveIdentifier = (req: AuthenticatedRequest): string => {
 type MemoryEntry = { count: number; expiresAt: number };
 const memoryStore = new Map<string, MemoryEntry>();
 
-const readMemory = (key: string): number => {
-  const entry = memoryStore.get(key);
-  if (!entry || entry.expiresAt <= Date.now()) {
-    return 0;
+/**
+ * Atomic increment-and-fetch in a single Redis round-trip. Previously
+ * we did GET → compare-to-limit → INCR, which leaks counts under
+ * concurrent requests (N parallel callers can all read 0 and all pass
+ * before any of them increments). The LUA script makes the
+ * increment/check sequence atomic — every call gets a strictly
+ * increasing return value.
+ *
+ * Also patches an orphan-TTL hole: the previous code only set EXPIRE
+ * when the INCR returned 1. If a row ever ended up without a TTL
+ * (e.g. EXPIRE failed, or a pre-existing key was created without one),
+ * the counter would stick forever. The script re-applies the TTL any
+ * time it finds the key has no expiration set.
+ */
+const INCR_AND_EXPIRE_SCRIPT = `local current = redis.call('INCR', KEYS[1])
+if current == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+elseif redis.call('TTL', KEYS[1]) < 0 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return current`;
+
+const incrementRedisAtomic = async (key: string): Promise<number | null> => {
+  const redis = getRedis();
+  if (!redis || !isRedisReady()) {
+    return null;
   }
-  return entry.count;
+  try {
+    const result = await redis.eval(INCR_AND_EXPIRE_SCRIPT, 1, key, TTL_SECONDS.toString());
+    return typeof result === 'number' ? result : Number(result);
+  } catch (error) {
+    logger.debug('anon-swipe-limit: Redis eval failed, falling through to memory', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 };
 
-const writeMemoryIncrement = (key: string): void => {
+const incrementMemory = (key: string): number => {
   const now = Date.now();
   const existing = memoryStore.get(key);
   if (!existing || existing.expiresAt <= now) {
     memoryStore.set(key, { count: 1, expiresAt: now + TTL_SECONDS * 1000 });
-    return;
+    return 1;
   }
   existing.count += 1;
-};
-
-const readRedis = async (key: string): Promise<number | null> => {
-  const redis = getRedis();
-  if (!redis || !isRedisReady()) {
-    return null;
-  }
-  try {
-    const raw = await redis.get(key);
-    return raw === null ? 0 : Number(raw);
-  } catch (error) {
-    logger.debug('anon-swipe-limit: Redis get failed, falling through to memory', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
-  }
-};
-
-const writeRedisIncrement = async (key: string): Promise<void> => {
-  const redis = getRedis();
-  if (!redis || !isRedisReady()) {
-    return;
-  }
-  try {
-    const count = await redis.incr(key);
-    if (count === 1) {
-      await redis.expire(key, TTL_SECONDS);
-    }
-  } catch (error) {
-    logger.debug('anon-swipe-limit: Redis incr failed', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
+  return existing.count;
 };
 
 export const anonSwipeLimit = async (
@@ -125,10 +123,15 @@ export const anonSwipeLimit = async (
   const limit = resolveLimit();
   const key = `${KEY_PREFIX}${resolveIdentifier(req)}`;
 
-  const redisCount = await readRedis(key);
-  const current = redisCount ?? readMemory(key);
+  // Atomic increment-then-check. The post-increment value IS the count
+  // of consumed budget; the (limit+1)-th call returns limit+1 and is
+  // rejected. The over-shoot on the rejecting call is harmless — the
+  // TTL still expires the row in 24h, and subsequent calls still
+  // reject because the count stays above limit.
+  const redisCount = await incrementRedisAtomic(key);
+  const current = redisCount ?? incrementMemory(key);
 
-  if (current >= limit) {
+  if (current > limit) {
     res.status(402).json({
       success: false,
       code: 'ANON_SWIPE_LIMIT_REACHED',
@@ -136,12 +139,6 @@ export const anonSwipeLimit = async (
       timestamp: new Date().toISOString(),
     });
     return;
-  }
-
-  if (redisCount === null) {
-    writeMemoryIncrement(key);
-  } else {
-    await writeRedisIncrement(key);
   }
 
   next();

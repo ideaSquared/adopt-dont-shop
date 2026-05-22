@@ -2,11 +2,12 @@ import { Response } from 'express';
 import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import { ChatParticipant } from '../models/ChatParticipant';
 import Rescue from '../models/Rescue';
-import User, { UserType } from '../models/User';
+import User from '../models/User';
 import { ChatService } from '../services/chat.service';
 import { FileUploadService, sanitizeDisplayFilename } from '../services/file-upload.service';
 import { broadcastNewMessage, isUserOnline } from '../socket/socket-handlers';
 import { ChatMessage } from '../types/chat';
+import { isAdminRole } from '../utils/is-admin-role';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuthenticatedRequest } from '../types/auth';
 
@@ -282,10 +283,25 @@ export class ChatController {
     try {
       const { chatId } = req.params;
       const userId = req.user!.userId;
-      const isAdmin = req.user!.userType === UserType.ADMIN;
+      const isAdmin = isAdminRole(req.user!.userType);
       const userRescueId = req.user!.rescueId || undefined;
 
-      const chat = await ChatService.getChatById(chatId, userId, isAdmin, userRescueId);
+      // Messages are paginated to bound memory usage on long chats.
+      // Defaults: limit 50, offset 0; service clamps to max 200.
+      const parsePositiveInt = (raw: unknown): number | undefined => {
+        if (typeof raw !== 'string' || raw.length === 0) {
+          return undefined;
+        }
+        const n = parseInt(raw, 10);
+        return Number.isFinite(n) && n >= 0 ? n : undefined;
+      };
+      const messagesLimit = parsePositiveInt(req.query.messagesLimit);
+      const messagesOffset = parsePositiveInt(req.query.messagesOffset);
+
+      const chat = await ChatService.getChatById(chatId, userId, isAdmin, userRescueId, {
+        limit: messagesLimit,
+        offset: messagesOffset,
+      });
 
       if (!chat) {
         return res.status(404).json({
@@ -294,6 +310,7 @@ export class ChatController {
       }
 
       const chatObj = chat.toJSON();
+      const messagesPagination = chat.messagesPagination;
 
       // Log participants data for debugging
       logger.info('Chat participants data', {
@@ -356,6 +373,8 @@ export class ChatController {
         rescueName: chatObj.rescue?.name || null,
         status: chatObj.status,
         metadata: {},
+        messages: chatObj.Messages ?? [],
+        messagesPagination: messagesPagination ?? { limit: 50, offset: 0, total: 0 },
       };
 
       res.json({
@@ -393,7 +412,7 @@ export class ChatController {
     } = req.query;
 
     // Admin users can see all chats, regular users only see chats they're participants in
-    const isAdmin = userType === UserType.ADMIN;
+    const isAdmin = isAdminRole(userType);
     const searchOptions = {
       userId,
       rescueId: rescueId || undefined,
@@ -639,7 +658,7 @@ export class ChatController {
 
       const userId = req.user!.userId;
       const userType = req.user!.userType;
-      const isAdmin = userType === UserType.ADMIN;
+      const isAdmin = isAdminRole(userType);
       const userRescueId = req.user!.rescueId || undefined;
 
       // Admins bypass the participant check; everyone else must be a
@@ -982,7 +1001,7 @@ export class ChatController {
     const { startDate, endDate } = req.query;
 
     // Admin users get analytics for all chats, regular users get rescue-specific analytics
-    const isAdmin = userType === UserType.ADMIN;
+    const isAdmin = isAdminRole(userType);
     const analytics = await ChatService.getChatAnalytics(
       startDate && endDate
         ? {

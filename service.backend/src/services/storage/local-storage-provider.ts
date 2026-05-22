@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import { config } from '../../config';
 import { logger } from '../../utils/logger';
+import { MAX_IMAGE_PIXELS } from '../../constants/image-limits';
 import { FileInfo, StorageCategory, StorageProvider, UploadResult } from './base-provider';
 
 export class LocalStorageProvider implements StorageProvider {
@@ -74,7 +75,13 @@ export class LocalStorageProvider implements StorageProvider {
 
   private async processImage(buffer: Buffer, contentType: string): Promise<Buffer> {
     try {
-      const image = sharp(buffer);
+      // ADS-DIM (pass-3 sibling): cap decoded pixels here too. Without
+      // `limitInputPixels`, a small-on-disk PNG/WebP that declares
+      // extreme header dimensions (e.g. 100000x100000) will cause sharp
+      // to allocate width*height*channels bytes to decode, OOM-ing the
+      // process. file-upload.service.ts already applies this on every
+      // call site; this sibling provider had regressed.
+      const image = sharp(buffer, { limitInputPixels: MAX_IMAGE_PIXELS });
       const metadata = await image.metadata();
 
       // Resize if too large (max 1920x1080)
