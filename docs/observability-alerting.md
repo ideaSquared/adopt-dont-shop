@@ -45,7 +45,7 @@ groups:
           severity: critical
         annotations:
           summary: "Backend 5xx rate >1% (5m)"
-          runbook: "https://wiki.example.com/runbooks/5xx-spike"
+          runbook: "docs/runbooks/5xx-spike.md"
 
       # Latency regression
       - alert: P95LatencyHigh
@@ -59,6 +59,7 @@ groups:
           severity: warning
         annotations:
           summary: "Backend p95 latency >500ms (10m)"
+          runbook: "docs/runbooks/db-pool-exhaustion.md"
 
       # Event-loop lag
       - alert: EventLoopLag
@@ -68,6 +69,7 @@ groups:
           severity: warning
         annotations:
           summary: "Node.js event-loop lag p99 >200ms"
+          runbook: "docs/runbooks/5xx-spike.md"
 
       # Memory headroom
       - alert: HeapUsageHigh
@@ -80,6 +82,7 @@ groups:
           severity: warning
         annotations:
           summary: "Backend RSS >80% of node memory"
+          runbook: "docs/runbooks/5xx-spike.md"
 
       # Readiness flapping
       - alert: ReadinessProbeFailing
@@ -89,6 +92,7 @@ groups:
           severity: critical
         annotations:
           summary: "Backend /health/ready failing (DB/Redis/BullMQ)"
+          runbook: "docs/runbooks/redis-outage.md"
 ```
 
 ## Dashboards
@@ -106,6 +110,7 @@ Recommended Grafana panels:
 
 1. **Page received** → ack within 5 min (PagerDuty)
 2. **Triage** — open the runbook linked from the alert annotation
+   (index at [`docs/runbooks/README.md`](./runbooks/README.md))
 3. **Mitigate** — restart, scale, or roll back. Record the action in
    `#oncall-page` thread.
 4. **Post-incident** — file a follow-up ticket in Linear and link the
