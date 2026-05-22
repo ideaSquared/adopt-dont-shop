@@ -886,6 +886,17 @@ export class FileUploadService {
 
       // Resize the primary asset in place: max 1600px on the longest
       // side, JPEG q=85 (mozjpeg). withoutEnlargement so we never up-scale.
+      //
+      // EXIF strip: sharp's documented default is to strip every metadata
+      // block (EXIF, IPTC, XMP, ICC) from the output unless `keepMetadata`
+      // or `withMetadata` is called. We rely on that default — but to make
+      // the privacy intent explicit at the call sites (and to catch any
+      // upstream change in sharp's defaults during a future bump), every
+      // re-encode pipeline below avoids `withMetadata`/`keepMetadata`
+      // entirely. Camera-uploaded JPEGs commonly embed GPS coordinates,
+      // device serials and timestamps; allowing those to round-trip into a
+      // served pet photo would let viewers extract the adopter's home
+      // coordinates from the EXIF block.
       const resizedTmpPath = path.join(dir, `${base}.resized${ext}`);
       const meta = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS }).metadata();
       const resizedInfo = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS })
@@ -894,7 +905,7 @@ export class FileUploadService {
         .toFile(resizedTmpPath);
       await fs.promises.rename(resizedTmpPath, originalPath);
 
-      // 320px thumbnail next to it.
+      // 320px thumbnail next to it. Same EXIF-strip default applies.
       const thumbPath = path.join(dir, `${base}.thumb.jpg`);
       await sharp(keepOriginalPath, { limitInputPixels: MAX_IMAGE_PIXELS })
         .resize({ width: 320, height: 320, fit: 'inside', withoutEnlargement: true })

@@ -214,3 +214,78 @@ describe('FileUploadService image dimension guard (image-bomb DOS)', () => {
     await expect(FileUploadService.__assertImageDimensionsForTests(file)).resolves.toBeUndefined();
   });
 });
+
+// Privacy: re-encoded images served to other users must not carry EXIF
+// from the upload. Camera-uploaded JPEGs commonly embed GPS coordinates;
+// allowing those to round-trip into a served pet photo would let viewers
+// extract the adopter's home coordinates.
+describe('FileUploadService EXIF stripping on processed images', () => {
+  const TMP_DIR = path.join(os.tmpdir(), `ads-exif-strip-${Date.now()}`);
+  const ORIGINAL_DIR = config.storage.local.directory;
+
+  beforeAll(async () => {
+    await fs.promises.mkdir(TMP_DIR, { recursive: true });
+    config.storage.local.directory = TMP_DIR;
+  });
+
+  afterAll(async () => {
+    config.storage.local.directory = ORIGINAL_DIR;
+    await fs.promises.rm(TMP_DIR, { recursive: true, force: true });
+  });
+
+  // Build a JPEG whose EXIF block carries GPS coordinates and a camera make.
+  // sharp's withExif lets us inject EXIF on the *input* image so the
+  // subsequent re-encode pipeline has something to strip (or accidentally
+  // preserve).
+  const buildJpegWithExif = async (name: string): Promise<Express.Multer.File> => {
+    const filePath = path.join(TMP_DIR, name);
+    await sharp({
+      create: { width: 200, height: 200, channels: 3, background: { r: 10, g: 20, b: 30 } },
+    })
+      .withExif({
+        IFD0: { Make: 'TestCam', Model: 'PrivacyLeak' },
+        GPSIFD: {
+          GPSLatitudeRef: 'N',
+          GPSLatitude: '51/1, 30/1, 0/1',
+          GPSLongitudeRef: 'W',
+          GPSLongitude: '0/1, 7/1, 0/1',
+        },
+      })
+      .jpeg({ quality: 90 })
+      .toFile(filePath);
+
+    return {
+      fieldname: 'file',
+      originalname: name,
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      size: (await fs.promises.stat(filePath)).size,
+      destination: TMP_DIR,
+      filename: name,
+      path: filePath,
+      buffer: Buffer.alloc(0),
+      stream: null as never,
+    };
+  };
+
+  it('strips EXIF from the resized primary image and the thumbnail', async () => {
+    const file = await buildJpegWithExif(`exif-input-${Date.now()}.jpg`);
+
+    // Sanity: the synthetic input must actually carry the EXIF we just
+    // injected, otherwise the assertion below would be trivially true.
+    const inputMeta = await sharp(file.path).metadata();
+    expect(inputMeta.exif).toBeDefined();
+
+    const result = await FileUploadService.__processImageForTests(file);
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    const resizedMeta = await sharp(result.processedPath).metadata();
+    expect(resizedMeta.exif).toBeUndefined();
+
+    if (result.thumbnailPath) {
+      const thumbMeta = await sharp(result.thumbnailPath).metadata();
+      expect(thumbMeta.exif).toBeUndefined();
+    }
+  });
+});
