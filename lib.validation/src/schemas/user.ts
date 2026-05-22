@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { UserId } from '@adopt-dont-shop/lib.types';
+import { isSingleScriptLocalPart, normalizeEmail } from '../normalize-email';
 
 /**
  * Canonical Zod schemas for the User domain.
@@ -36,16 +37,33 @@ export const UserIdSchema = z
   .transform((v) => v as UserId);
 
 /**
- * Canonical email rule. Trim + lowercase happens server-side in the User
- * beforeValidate hook; the schema only enforces format and length.
+ * Canonical email rule. Applies NFKC + trim + lowercase via
+ * normalizeEmail so visually-identical compatibility variants collapse
+ * to a single canonical form before uniqueness checks. Rejects local
+ * parts that mix more than one Unicode script — the Cyrillic-vs-Latin
+ * homograph that NFKC alone does not fold. Length / format checks run
+ * after normalization so they see the canonical string.
+ *
+ * Mirrored by the User model's beforeValidate hook (defense in depth).
  */
 export const EmailSchema = z
   .string()
-  .trim()
-  .toLowerCase()
-  .min(5, 'Email must be at least 5 characters')
-  .max(255, 'Email must be at most 255 characters')
-  .email('Please enter a valid email address');
+  .transform(normalizeEmail)
+  .pipe(
+    z
+      .string()
+      .min(5, 'Email must be at least 5 characters')
+      .max(255, 'Email must be at most 255 characters')
+      .email('Please enter a valid email address')
+      .refine(
+        (email) => {
+          const atIndex = email.lastIndexOf('@');
+          if (atIndex < 0) return true;
+          return isSingleScriptLocalPart(email.slice(0, atIndex));
+        },
+        { message: 'Email local part must not mix characters from multiple scripts' }
+      )
+  );
 
 /**
  * Strong password — 8+ chars, must contain lowercase, uppercase, digit,
