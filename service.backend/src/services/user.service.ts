@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import { JsonObject } from '../types/common';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import { validateSortField } from '../utils/sort-validation';
@@ -175,10 +176,11 @@ export class UserService {
 
   static async getUserByEmail(email: string): Promise<User | null> {
     const startTime = Date.now();
+    const normalized = normalizeEmail(email);
 
     try {
       const user = await User.findOne({
-        where: { email: email.toLowerCase() },
+        where: { email: normalized },
         include: [
           {
             association: 'Roles',
@@ -193,7 +195,7 @@ export class UserService {
 
       if (loggerHelpers && loggerHelpers.logDatabase) {
         loggerHelpers.logDatabase('READ', {
-          email: email.toLowerCase(),
+          email: normalized,
           duration: Date.now() - startTime,
           found: !!user,
         });
@@ -203,7 +205,7 @@ export class UserService {
     } catch (error) {
       logger.error('Failed to fetch user by email:', {
         error: error instanceof Error ? error.message : String(error),
-        email: email.toLowerCase(),
+        email: normalized,
         duration: Date.now() - startTime,
       });
       throw error;

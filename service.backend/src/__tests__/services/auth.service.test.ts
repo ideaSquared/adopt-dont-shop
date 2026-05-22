@@ -244,6 +244,29 @@ describe('AuthService', () => {
         'Password must be at least 8 characters long'
       );
     });
+
+    it('looks up and stores a Unicode-normalized email so visually-identical inputs collide', async () => {
+      // Full-width letters + uppercase fold to the canonical ASCII form
+      // via NFKC + lowercase. Without normalization, the duplicate-account
+      // check would miss an existing 'test@example.com' row when an
+      // attacker submitted the full-width variant.
+      const variantUserData: RegisterData = {
+        ...userData,
+        email: 'ＴＥＳＴ@example.com',
+      };
+      MockedUser.findOne = vi.fn().mockResolvedValue(null);
+      MockedUser.create = vi.fn().mockResolvedValue(buildMockUser() as unknown);
+      MockedAuditLog.create = vi.fn().mockResolvedValue({} as unknown);
+
+      await AuthService.register(variantUserData);
+
+      expect(MockedUser.findOne).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
+      });
+      expect(MockedUser.create).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'test@example.com' })
+      );
+    });
   });
 
   describe('login', () => {
