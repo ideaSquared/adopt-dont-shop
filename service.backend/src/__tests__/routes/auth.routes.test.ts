@@ -81,6 +81,10 @@ vi.mock('../../middleware/auth-rate-limit', () => ({
   loginIpLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
+vi.mock('../../middleware/turnstile', () => ({
+  verifyTurnstileToken: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+}));
+
 vi.mock('../../middleware/ip-rules', () => ({
   enforceIpRules: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));

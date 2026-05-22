@@ -309,6 +309,15 @@ export class ApplicationService {
           throw new Error('Pet not found');
         }
 
+        // A13: applications may only be submitted to a verified rescue.
+        // Frontends still SHOW the rescue (with a pending-verification
+        // badge) but the "Apply" affordance is disabled. Verifying here
+        // closes the loop for any caller that hits the API directly.
+        const rescue = await Rescue.findByPk(pet.rescueId, { transaction: t });
+        if (!rescue || rescue.status !== 'verified') {
+          throw new Error('Cannot interact with unverified rescue');
+        }
+
         if (pet.status !== 'available') {
           throw new Error('Pet is not available for adoption');
         }

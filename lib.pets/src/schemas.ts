@@ -107,6 +107,10 @@ export const PetRescueSchema = z.object({
   location: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
+  // A13: verification state surfaced to the client so adopter UIs can
+  // show a "Pending verification" badge and disable apply/message
+  // affordances on unverified rescues.
+  status: z.enum(['pending', 'verified', 'suspended', 'inactive', 'rejected']).optional(),
 });
 
 // ── Pet schema ─────────────────────────────────────────────────────────────────

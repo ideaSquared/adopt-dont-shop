@@ -343,6 +343,13 @@ export class ApplicationController extends BaseController {
         });
       }
 
+      if (errorMessage.includes('unverified rescue')) {
+        return res.status(403).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
       if (
         errorMessage.includes('not available') ||
         errorMessage.includes('already have an active')

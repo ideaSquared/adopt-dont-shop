@@ -30,6 +30,7 @@ import ApplicationAnswer from '../../models/ApplicationAnswer';
 import ApplicationReferenceModel from '../../models/ApplicationReference';
 import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus } from '../../models/Pet';
+import Rescue from '../../models/Rescue';
 import StaffMember from '../../models/StaffMember';
 import User, { UserType } from '../../models/User';
 import emailService from '../../services/email.service';
@@ -43,6 +44,7 @@ const MockedApplicationReference = ApplicationReferenceModel as vi.MockedObject<
   typeof ApplicationReferenceModel
 >;
 const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedRescue = Rescue as vi.MockedObject<typeof Rescue>;
 const MockedStaffMember = StaffMember as vi.MockedObject<typeof StaffMember>;
 const MockedUser = User as vi.MockedObject<User>;
 const MockedApplicationStatusTransition = ApplicationStatusTransition as vi.MockedObject<
@@ -139,6 +141,13 @@ describe('ApplicationService - Business Logic', () => {
     MockedApplicationAnswer.bulkCreate = vi.fn().mockResolvedValue([] as never);
     MockedApplicationAnswer.findAll = vi.fn().mockResolvedValue([] as never);
     MockedApplicationAnswer.destroy = vi.fn().mockResolvedValue(0 as never);
+    // A13: createApplication looks up the rescue and refuses unverified
+    // ones. Default mock returns a verified rescue so existing tests
+    // are unaffected; tests that exercise the gate override this.
+    MockedRescue.findByPk = vi.fn().mockResolvedValue({
+      rescueId: mockRescueId,
+      status: 'verified',
+    } as never);
   });
 
   describe('Business Rule: Application Creation', () => {
@@ -253,6 +262,26 @@ describe('ApplicationService - Business Logic', () => {
       // When & Then: Application is rejected
       await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
         'Pet not found'
+      );
+    });
+
+    it('rejects applications to an unverified rescue', async () => {
+      // A13: even when the pet itself is available, an application
+      // targeting a rescue that is still pending verification must be
+      // refused so unverified rescues can't accept adopter data.
+      const mockUser = createMockUser();
+      const mockPet = createMockPet();
+      const request = createValidApplicationRequest();
+
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedRescue.findByPk = vi.fn().mockResolvedValue({
+        rescueId: mockRescueId,
+        status: 'pending',
+      } as never);
+
+      await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
+        'Cannot interact with unverified rescue'
       );
     });
   });

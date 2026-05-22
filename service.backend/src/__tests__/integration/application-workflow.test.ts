@@ -17,6 +17,7 @@ import ApplicationReferenceModel, {
 } from '../../models/ApplicationReference';
 import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus, PetType, AgeGroup, Gender } from '../../models/Pet';
+import Rescue from '../../models/Rescue';
 import StaffMember from '../../models/StaffMember';
 import User, { UserStatus, UserType } from '../../models/User';
 import { ApplicationService } from '../../services/application.service';
@@ -36,6 +37,7 @@ vi.mock('../../models/ApplicationAnswer');
 vi.mock('../../models/ApplicationReference');
 vi.mock('../../models/ApplicationStatusTransition');
 vi.mock('../../models/Pet');
+vi.mock('../../models/Rescue');
 vi.mock('../../models/StaffMember');
 vi.mock('../../models/User');
 vi.mock('../../services/auditLog.service');
@@ -58,6 +60,7 @@ const MockedApplicationStatusTransition = ApplicationStatusTransition as vi.Mock
   typeof ApplicationStatusTransition
 >;
 const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedRescue = Rescue as vi.MockedObject<typeof Rescue>;
 const MockedStaffMember = StaffMember as vi.MockedObject<typeof StaffMember>;
 const MockedUser = User as vi.MockedObject<User>;
 const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService>;
@@ -77,6 +80,13 @@ describe('Application Submission Workflow Integration Tests', () => {
 
     // Setup default audit log mocks
     MockedAuditLogService.log = vi.fn().mockResolvedValue(undefined as never);
+
+    // A13: default to a verified rescue so existing happy-path tests
+    // are unaffected by the application-creation gate.
+    MockedRescue.findByPk = vi.fn().mockResolvedValue({
+      rescueId,
+      status: 'verified',
+    } as never);
 
     // Setup default timeline mocks
     MockedApplicationTimelineService.createEvent = vi.fn().mockResolvedValue(undefined as never);
