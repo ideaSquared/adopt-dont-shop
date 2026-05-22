@@ -34,6 +34,11 @@ export { Text } from './components/ui/Text';
 // Layout Components
 export { Container } from './components/layout/Container';
 export { Stack } from './components/layout/Stack';
+export { SplitPaneDetail } from './components/layout/SplitPaneDetail';
+export type {
+  SplitPaneDetailProps,
+  SplitPaneListItemRenderContext,
+} from './components/layout/SplitPaneDetail';
 export { Card, CardContent, CardFooter, CardHeader } from './components/ui/Card';
 
 // Form Components - commenting out problematic ones for now
