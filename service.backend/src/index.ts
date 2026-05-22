@@ -62,6 +62,7 @@ import reportsRoutes from './routes/reports.routes';
 import legalRoutes from './routes/legal.routes';
 import privacyRoutes from './routes/privacy.routes';
 import deviceTokenRoutes from './routes/device-token.routes';
+import sessionRoutes from './routes/session.routes';
 import fosterRoutes from './routes/foster.routes';
 import uploadRoutes from './routes/upload.routes';
 import uploadServeRoutes from './routes/upload-serve.routes';
@@ -336,6 +337,7 @@ app.use('/api/v1/reports', reportsRoutes); // ADS-105: custom analytics reports
 app.use('/api/v1/legal', legalRoutes); // ADS-495: public terms / privacy
 app.use('/api/v1/privacy', privacyRoutes); // ADS-427/496/497: GDPR delete + export + consent
 app.use('/api/v1/devices', deviceTokenRoutes); // device token registration for push notifications
+app.use('/api/v1/sessions', sessionRoutes); // user-facing session list + revoke
 app.use('/api/v1/foster', fosterRoutes); // foster placement coordination
 app.use('/api/v1/uploads', uploadRoutes); // ADS-588: staged image upload (POST /images)
 

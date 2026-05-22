@@ -1,4 +1,4 @@
-import { col, fn, literal, Op, WhereOptions } from 'sequelize';
+import { col, fn, literal, Op, Transaction, WhereOptions } from 'sequelize';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
 import Breed from '../models/Breed';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
@@ -895,7 +895,8 @@ export class PetService {
   static async updatePetStatus(
     petId: string,
     statusUpdate: PetStatusUpdate,
-    updatedBy: string
+    updatedBy: string,
+    transaction?: Transaction
   ): Promise<Pet> {
     const startTime = Date.now();
 
@@ -917,18 +918,21 @@ export class PetService {
         sideEffects.fosterStartDate = new Date();
       }
       if (Object.keys(sideEffects).length > 0) {
-        await pet.update(sideEffects);
+        await pet.update(sideEffects, { transaction });
       }
 
       // Append the transition; the AFTER INSERT trigger (Postgres) /
       // afterCreate hook (SQLite) propagates to_status onto pets.status.
-      await PetStatusTransition.create({
-        petId,
-        fromStatus: originalStatus,
-        toStatus: statusUpdate.status,
-        transitionedBy: updatedBy,
-        reason: statusUpdate.reason || null,
-      });
+      await PetStatusTransition.create(
+        {
+          petId,
+          fromStatus: originalStatus,
+          toStatus: statusUpdate.status,
+          transitionedBy: updatedBy,
+          reason: statusUpdate.reason || null,
+        },
+        { transaction }
+      );
 
       // Log status update
       await AuditLogService.log({
@@ -942,6 +946,7 @@ export class PetService {
           updatedBy,
         },
         userId: updatedBy,
+        transaction,
       });
 
       if (loggerHelpers && loggerHelpers.logBusiness) {
@@ -979,7 +984,8 @@ export class PetService {
   static async deletePet(
     petId: string,
     deletedBy: string,
-    reason?: string
+    reason?: string,
+    transaction?: Transaction
   ): Promise<{ message: string }> {
     const startTime = Date.now();
 
@@ -987,7 +993,7 @@ export class PetService {
       const pet = await PetService.assertCallerOwnsPet(petId, deletedBy);
 
       // Soft delete the pet
-      await pet.destroy();
+      await pet.destroy({ transaction });
 
       // Log deletion
       await AuditLogService.log({
@@ -1000,6 +1006,7 @@ export class PetService {
           petData: JSON.parse(JSON.stringify(pet.toJSON())),
         },
         userId: deletedBy,
+        transaction,
       });
 
       if (loggerHelpers && loggerHelpers.logBusiness) {
@@ -1397,34 +1404,52 @@ export class PetService {
 
       for (const petId of petIds) {
         try {
-          switch (operationType) {
-            case 'update_status':
-              if (data) {
-                await this.updatePetStatus(petId, data as unknown as PetStatusUpdate, updatedBy);
-              }
-              break;
-            case 'archive': {
-              // ADS-372: per-iteration ownership check defends against TOCTOU
-              // (a pet moved to a different rescue between pre-flight and the
-              // update) and prevents future bulk operation types from
-              // accidentally bypassing the pre-flight by forgetting it.
-              await PetService.assertCallerOwnsPet(petId, updatedBy);
-              await Pet.update({ archived: true }, { where: { petId } });
-              break;
-            }
-            case 'feature': {
-              if (data && typeof data.featured === 'boolean') {
+          // Per-item transaction pairs the pet write with whatever
+          // audit log the helper emits — if the audit insert fails,
+          // the pet write rolls back too, so the success/failure
+          // counts returned to the caller always match the real DB
+          // state. Without this, a successful pet.update followed by
+          // a failed AuditLogService.log throws into the catch below
+          // and is counted as a failure while the pet write is
+          // already committed.
+          await sequelize.transaction(async tx => {
+            switch (operationType) {
+              case 'update_status':
+                if (data) {
+                  await this.updatePetStatus(
+                    petId,
+                    data as unknown as PetStatusUpdate,
+                    updatedBy,
+                    tx
+                  );
+                }
+                break;
+              case 'archive': {
+                // ADS-372: per-iteration ownership check defends against TOCTOU
+                // (a pet moved to a different rescue between pre-flight and the
+                // update) and prevents future bulk operation types from
+                // accidentally bypassing the pre-flight by forgetting it.
                 await PetService.assertCallerOwnsPet(petId, updatedBy);
-                await Pet.update({ featured: data.featured }, { where: { petId } });
+                await Pet.update({ archived: true }, { where: { petId }, transaction: tx });
+                break;
               }
-              break;
+              case 'feature': {
+                if (data && typeof data.featured === 'boolean') {
+                  await PetService.assertCallerOwnsPet(petId, updatedBy);
+                  await Pet.update(
+                    { featured: data.featured },
+                    { where: { petId }, transaction: tx }
+                  );
+                }
+                break;
+              }
+              case 'delete':
+                await this.deletePet(petId, updatedBy, reason, tx);
+                break;
+              default:
+                throw new Error(`Unknown operation: ${operationType}`);
             }
-            case 'delete':
-              await this.deletePet(petId, updatedBy, reason);
-              break;
-            default:
-              throw new Error(`Unknown operation: ${operationType}`);
-          }
+          });
           results.successCount++;
         } catch (error) {
           results.failedCount++;

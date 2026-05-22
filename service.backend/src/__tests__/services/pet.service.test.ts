@@ -1000,6 +1000,70 @@ describe('PetService', () => {
       expect(result.failedCount).toBe(1);
       expect(result.errors[0].error).toContain('Unknown operation: invalid_operation');
     });
+
+    it('rolls back the per-item DB write when the audit-log write fails (delete)', async () => {
+      // Per-iteration transaction means a failed audit insert rolls
+      // back the pet.destroy() for that same item, so result counts
+      // and the actual DB state stay in sync. Sandwich the failing
+      // audit call between two successes — only the middle pet must
+      // remain non-deleted.
+      const pet3Id = uniqueId('bulk-pet3');
+      await Pet.create({
+        petId: pet3Id,
+        name: 'Pet 3',
+        type: PetType.DOG,
+        status: PetStatus.AVAILABLE,
+        breed: 'Mixed',
+        size: Size.MEDIUM,
+        ageGroup: AgeGroup.ADULT,
+        gender: Gender.MALE,
+        energyLevel: EnergyLevel.MEDIUM,
+        vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+        spayNeuterStatus: SpayNeuterStatus.NEUTERED,
+        rescueId: testRescue.rescueId,
+        archived: false,
+      });
+
+      // Fail the DELETE audit emission for the middle pet only.
+      mockAuditLog.mockImplementation(async (data: { entityId: string; action: string }) => {
+        if (data.action === 'DELETE' && data.entityId === pet2Id) {
+          throw new Error('audit insert blocked');
+        }
+        return {} as AuditLog;
+      });
+
+      const operation: BulkPetOperation = {
+        petIds: [pet1Id, pet2Id, pet3Id],
+        operation: 'delete',
+        reason: 'bulk cleanup',
+      };
+      const result = await PetService.bulkUpdatePets(operation, testCallerId);
+
+      expect(result.successCount).toBe(2);
+      expect(result.failedCount).toBe(1);
+      expect(result.errors[0]).toMatchObject({ petId: pet2Id });
+
+      // The two flanking writes committed (soft-deleted).
+      const after1 = await Pet.findByPk(pet1Id, { paranoid: false });
+      const after2 = await Pet.findByPk(pet2Id, { paranoid: false });
+      const after3 = await Pet.findByPk(pet3Id, { paranoid: false });
+      expect(after1?.deletedAt).not.toBeNull();
+      expect(after3?.deletedAt).not.toBeNull();
+      // The middle delete rolled back — record is still present.
+      expect(after2).not.toBeNull();
+      expect(after2?.deletedAt).toBeNull();
+
+      // Exactly two DELETE audit emissions succeeded (the third was
+      // the one we made throw). The middle audit call still fires
+      // (and throws) so it's present in the spy history.
+      const deleteCalls = mockAuditLog.mock.calls.filter(
+        ([data]) => data.action === 'DELETE' && data.entity === 'Pet'
+      );
+      const successfulDeleteIds = deleteCalls
+        .map(([data]) => data.entityId)
+        .filter(id => id !== pet2Id);
+      expect(successfulDeleteIds.sort()).toEqual([pet1Id, pet3Id].sort());
+    });
   });
 
   describe('getPetActivity', () => {

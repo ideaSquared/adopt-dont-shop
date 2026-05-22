@@ -27,8 +27,18 @@ vi.mock('../../models/User');
 vi.mock('../../models/AuditLog');
 vi.mock('../../models/RefreshToken');
 vi.mock('../../models/RevokedToken');
+vi.mock('../../models/TwoFactorRecovery');
 vi.mock('../../services/auditLog.service');
 vi.mock('../../utils/logger');
+vi.mock('../../lib/auth-cache', () => ({
+  invalidateAuthCache: vi.fn(),
+}));
+vi.mock('../../socket/socket-registry', () => ({
+  disconnectAllSockets: vi.fn(),
+}));
+vi.mock('../../utils/url-allowlist', () => ({
+  getValidatedFrontendOrigin: vi.fn().mockReturnValue('https://app.example.com'),
+}));
 vi.mock('jsonwebtoken');
 vi.mock('bcryptjs');
 vi.mock('crypto');
@@ -582,6 +592,217 @@ describe('AuthService', () => {
       await expect(
         authService.confirmPasswordReset({ token: 'bogus', newPassword: 'NewPassword123!' })
       ).rejects.toThrow(/invalid or expired/i);
+    });
+  });
+
+  describe('Two-Factor Recovery (Batch KK)', () => {
+    // Mock the sequelize.transaction wrapper used by confirmTwoFactorRecovery.
+    // Pass-through so the callback runs with a stub transaction object.
+    let sequelizeMock: ReturnType<typeof vi.fn>;
+    let TwoFactorRecoveryMock: {
+      create: ReturnType<typeof vi.fn>;
+      findOne: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+
+    beforeEach(async () => {
+      const sequelizeModule = await import('../../sequelize');
+      sequelizeMock = vi.fn(async (cb: (t: unknown) => Promise<unknown>) => cb({}));
+      vi.spyOn(sequelizeModule.default, 'transaction').mockImplementation(
+        sequelizeMock as unknown as typeof sequelizeModule.default.transaction
+      );
+
+      const recoveryModule = await import('../../models/TwoFactorRecovery');
+      TwoFactorRecoveryMock = recoveryModule.default as unknown as typeof TwoFactorRecoveryMock;
+      TwoFactorRecoveryMock.create = vi.fn().mockResolvedValue({} as unknown);
+      TwoFactorRecoveryMock.findOne = vi.fn();
+      TwoFactorRecoveryMock.update = vi.fn().mockResolvedValue([1]);
+    });
+
+    describe('requestTwoFactorRecovery', () => {
+      it('issues a recovery row + audit log when the email matches a 2FA-enabled user', async () => {
+        const mockUser = {
+          userId: 'user-2fa-1',
+          email: 'twofa@example.com',
+          firstName: 'Two',
+          lastName: 'Fa',
+          twoFactorEnabled: true,
+        };
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+
+        const authService = new AuthService();
+        const result = await authService.requestTwoFactorRecovery(
+          { email: 'twofa@example.com' },
+          '203.0.113.5',
+          'jest-ua'
+        );
+
+        expect(TwoFactorRecoveryMock.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            user_id: 'user-2fa-1',
+            token: expect.any(String),
+            expires_at: expect.any(Date),
+          })
+        );
+        expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: 'TWO_FACTOR_RECOVERY_REQUESTED',
+            entity: 'User',
+            entityId: 'user-2fa-1',
+            userId: 'user-2fa-1',
+            ipAddress: '203.0.113.5',
+            userAgent: 'jest-ua',
+          })
+        );
+        expect(result.message).toMatch(/if the email matches/i);
+      });
+
+      it('returns the generic message + does not issue a row when email is unknown', async () => {
+        MockedUser.findOne = vi.fn().mockResolvedValue(null);
+
+        const authService = new AuthService();
+        const result = await authService.requestTwoFactorRecovery({
+          email: 'ghost@example.com',
+        });
+
+        expect(TwoFactorRecoveryMock.create).not.toHaveBeenCalled();
+        expect(result.message).toMatch(/if the email matches/i);
+        // We still audit the attempt (subjectless) so brute force is visible.
+        expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: 'TWO_FACTOR_RECOVERY_REQUESTED',
+            entityId: 'unknown',
+            details: expect.objectContaining({ reason: 'unknown_email' }),
+          })
+        );
+      });
+
+      it('returns the generic message + does not issue a row when 2FA is not enabled', async () => {
+        const mockUser = {
+          userId: 'user-no-2fa',
+          email: 'no2fa@example.com',
+          twoFactorEnabled: false,
+        };
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+
+        const authService = new AuthService();
+        const result = await authService.requestTwoFactorRecovery({
+          email: 'no2fa@example.com',
+        });
+
+        expect(TwoFactorRecoveryMock.create).not.toHaveBeenCalled();
+        expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: 'TWO_FACTOR_RECOVERY_REQUESTED',
+            details: expect.objectContaining({ reason: 'two_factor_not_enabled' }),
+          })
+        );
+        expect(result.message).toMatch(/if the email matches/i);
+      });
+
+      it('normalises the email before lookup so case differences match the stored value', async () => {
+        const mockUser = {
+          userId: 'user-norm',
+          email: 'norm@example.com',
+          firstName: 'N',
+          lastName: 'M',
+          twoFactorEnabled: true,
+        };
+        MockedUser.findOne = vi.fn().mockResolvedValue(mockUser as unknown);
+
+        const authService = new AuthService();
+        await authService.requestTwoFactorRecovery({ email: 'NORM@EXAMPLE.COM' });
+
+        expect(MockedUser.findOne).toHaveBeenCalledWith({
+          where: { email: 'norm@example.com' },
+        });
+      });
+    });
+
+    describe('confirmTwoFactorRecovery', () => {
+      const buildRecoveryRow = (overrides: Record<string, unknown> = {}) => ({
+        recovery_id: 'rec-123',
+        user_id: 'user-2fa-1',
+        token: 'hashed-token',
+        expires_at: new Date(Date.now() + 60 * 60 * 1000),
+        used: false,
+        used_at: null,
+        ...overrides,
+      });
+
+      const build2FaUser = (overrides: Record<string, unknown> = {}) => ({
+        userId: 'user-2fa-1',
+        email: 'twofa@example.com',
+        firstName: 'Two',
+        lastName: 'Fa',
+        twoFactorEnabled: true,
+        twoFactorSecret: 'encrypted',
+        twoFactorPendingSecret: null,
+        twoFactorPendingExpiresAt: null,
+        backupCodes: ['$2$hashed'],
+        save: vi.fn().mockResolvedValue(undefined),
+        ...overrides,
+      });
+
+      it('disables 2FA, revokes refresh tokens, emits audit logs on valid token', async () => {
+        TwoFactorRecoveryMock.findOne = vi.fn().mockResolvedValue(buildRecoveryRow());
+        TwoFactorRecoveryMock.update = vi.fn().mockResolvedValue([1]);
+        const user = build2FaUser();
+        MockedUser.findByPk = vi.fn().mockResolvedValue(user as unknown);
+        MockedRefreshToken.update = vi.fn().mockResolvedValue([3]);
+
+        const authService = new AuthService();
+        const result = await authService.confirmTwoFactorRecovery({ token: 'plaintext' });
+
+        expect(user.twoFactorEnabled).toBe(false);
+        expect(user.twoFactorSecret).toBeNull();
+        expect(user.backupCodes).toBeNull();
+        expect(user.save).toHaveBeenCalled();
+
+        expect(MockedRefreshToken.update).toHaveBeenCalledWith(
+          { is_revoked: true },
+          { where: { user_id: 'user-2fa-1', is_revoked: false } }
+        );
+
+        expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+          expect.objectContaining({ action: 'TWO_FACTOR_RECOVERED', userId: 'user-2fa-1' })
+        );
+        expect(MockedAuditLogService.log).toHaveBeenCalledWith(
+          expect.objectContaining({
+            action: 'REFRESH_TOKENS_REVOKED',
+            details: expect.objectContaining({ reason: 'two_factor_recovered', count: 3 }),
+          })
+        );
+
+        expect(result.message).toMatch(/two-factor authentication has been disabled/i);
+      });
+
+      it('rejects when no matching recovery row exists (bogus or expired)', async () => {
+        TwoFactorRecoveryMock.findOne = vi.fn().mockResolvedValue(null);
+
+        const authService = new AuthService();
+        await expect(authService.confirmTwoFactorRecovery({ token: 'bogus' })).rejects.toThrow(
+          /invalid or expired/i
+        );
+
+        // No state change: no user load, no audit entry, no refresh-token revoke.
+        expect(MockedRefreshToken.update).not.toHaveBeenCalled();
+        expect(MockedAuditLogService.log).not.toHaveBeenCalled();
+      });
+
+      it('rejects when the conditional UPDATE loses the race (already-used token)', async () => {
+        TwoFactorRecoveryMock.findOne = vi.fn().mockResolvedValue(buildRecoveryRow());
+        // Another concurrent confirm already flipped used=true; our UPDATE
+        // affects 0 rows and we must fail closed.
+        TwoFactorRecoveryMock.update = vi.fn().mockResolvedValue([0]);
+
+        const authService = new AuthService();
+        await expect(authService.confirmTwoFactorRecovery({ token: 'plaintext' })).rejects.toThrow(
+          /invalid or expired/i
+        );
+
+        expect(MockedRefreshToken.update).not.toHaveBeenCalled();
+      });
     });
   });
 

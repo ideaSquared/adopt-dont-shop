@@ -4,6 +4,7 @@ import { authenticateToken, authenticateOptionalToken } from '../middleware/auth
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { idempotency } from '../middleware/idempotency';
 import { sensitiveWriteLimiter } from '../middleware/rate-limiter';
+import { reportCreateDailyLimiter } from '../middleware/user-abuse-rate-limit';
 import { requirePermission } from '../middleware/rbac';
 import { requirePlanFeature } from '../middleware/plan-gate';
 import { handleValidationErrors } from '../middleware/validation';
@@ -1425,6 +1426,7 @@ router.get(
 router.post(
   '/:petId/report',
   authenticateToken,
+  reportCreateDailyLimiter,
   idempotency,
   PetController.validateReportPet,
   petController.reportPet

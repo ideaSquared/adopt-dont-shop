@@ -153,6 +153,13 @@ export class RescueController {
         });
       }
 
+      if (errorMessage.includes('Maximum number of rescues')) {
+        return res.status(403).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+
       res.status(500).json({
         success: false,
         message: 'Failed to create rescue organization',

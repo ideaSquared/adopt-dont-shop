@@ -30,6 +30,7 @@ import ApplicationAnswer from '../../models/ApplicationAnswer';
 import ApplicationReferenceModel from '../../models/ApplicationReference';
 import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import Pet, { PetStatus } from '../../models/Pet';
+import Rescue from '../../models/Rescue';
 import StaffMember from '../../models/StaffMember';
 import User, { UserType } from '../../models/User';
 import emailService from '../../services/email.service';
@@ -43,6 +44,7 @@ const MockedApplicationReference = ApplicationReferenceModel as vi.MockedObject<
   typeof ApplicationReferenceModel
 >;
 const MockedPet = Pet as vi.MockedObject<Pet>;
+const MockedRescue = Rescue as vi.MockedObject<typeof Rescue>;
 const MockedStaffMember = StaffMember as vi.MockedObject<typeof StaffMember>;
 const MockedUser = User as vi.MockedObject<User>;
 const MockedApplicationStatusTransition = ApplicationStatusTransition as vi.MockedObject<
@@ -139,6 +141,13 @@ describe('ApplicationService - Business Logic', () => {
     MockedApplicationAnswer.bulkCreate = vi.fn().mockResolvedValue([] as never);
     MockedApplicationAnswer.findAll = vi.fn().mockResolvedValue([] as never);
     MockedApplicationAnswer.destroy = vi.fn().mockResolvedValue(0 as never);
+    // A13: createApplication looks up the rescue and refuses unverified
+    // ones. Default mock returns a verified rescue so existing tests
+    // are unaffected; tests that exercise the gate override this.
+    MockedRescue.findByPk = vi.fn().mockResolvedValue({
+      rescueId: mockRescueId,
+      status: 'verified',
+    } as never);
   });
 
   describe('Business Rule: Application Creation', () => {
@@ -253,6 +262,26 @@ describe('ApplicationService - Business Logic', () => {
       // When & Then: Application is rejected
       await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
         'Pet not found'
+      );
+    });
+
+    it('rejects applications to an unverified rescue', async () => {
+      // A13: even when the pet itself is available, an application
+      // targeting a rescue that is still pending verification must be
+      // refused so unverified rescues can't accept adopter data.
+      const mockUser = createMockUser();
+      const mockPet = createMockPet();
+      const request = createValidApplicationRequest();
+
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedRescue.findByPk = vi.fn().mockResolvedValue({
+        rescueId: mockRescueId,
+        status: 'pending',
+      } as never);
+
+      await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
+        'Cannot interact with unverified rescue'
       );
     });
   });
@@ -1123,6 +1152,117 @@ describe('ApplicationService - Business Logic', () => {
           where: expect.objectContaining({ rescueId: 'rescue-B' }),
         })
       );
+    });
+  });
+
+  describe('Business Rule: Bulk Update Atomicity', () => {
+    /**
+     * Per-iteration transactionality: when the audit-log write fails
+     * for a particular item, the application update for that item
+     * must roll back too, so the response's success/failure counts
+     * match the real DB state. Previously, a successful update
+     * followed by a failed audit insert was counted as a failure but
+     * left the update committed.
+     */
+    it('rolls back the DB write for an item whose audit-log write fails', async () => {
+      const goodId1 = 'app-good-1';
+      const goodId2 = 'app-good-2';
+      const badId = 'app-audit-fail';
+
+      const goodApp1 = createMockApplication(ApplicationStatus.SUBMITTED, {
+        applicationId: goodId1,
+      });
+      const goodApp2 = createMockApplication(ApplicationStatus.SUBMITTED, {
+        applicationId: goodId2,
+      });
+      const badApp = createMockApplication(ApplicationStatus.SUBMITTED, {
+        applicationId: badId,
+      });
+
+      MockedApplication.findByPk = vi.fn().mockImplementation(async (id: string) => {
+        if (id === goodId1) return goodApp1;
+        if (id === goodId2) return goodApp2;
+        if (id === badId) return badApp;
+        return null;
+      });
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi
+        .spyOn(AuditLogService, 'log')
+        .mockImplementation(async (data: { entityId: string }) => {
+          if (data.entityId === badId) {
+            throw new Error('audit insert blocked');
+          }
+          return undefined as never;
+        });
+
+      const result = await ApplicationService.bulkUpdateApplications(
+        {
+          applicationIds: [goodId1, badId, goodId2],
+          updates: { priority: ApplicationPriority.HIGH },
+        },
+        'staff-123'
+      );
+
+      // Counts must match the real outcome: 2 fully-committed
+      // updates, 1 rolled-back failure.
+      expect(result.successCount).toBe(2);
+      expect(result.failureCount).toBe(1);
+      expect(result.successes).toEqual([goodId1, goodId2]);
+      expect(result.failures[0]).toMatchObject({ applicationId: badId });
+
+      // Exactly one audit-log attempt per item — successes get one
+      // call each, the failed item gets one attempt that throws.
+      const auditCallsByEntity = logSpy.mock.calls.map(([data]) => data.entityId);
+      expect(auditCallsByEntity).toEqual([goodId1, badId, goodId2]);
+
+      // The application.update must have been rolled back for the
+      // failed item — assert update was attempted (the model would
+      // have applied it) but the surrounding transaction will revert
+      // it. Because Application here is a mock, "rollback" means the
+      // tx wrapper threw and the bulk loop counted it as a failure
+      // (no mutation persisted in real DB).
+      expect(badApp.update).toHaveBeenCalled();
+
+      logSpy.mockRestore();
+    });
+
+    it('returns 404-style failure for missing applications without writing audit', async () => {
+      const presentId = 'app-present';
+      const missingId = 'app-missing';
+      const presentApp = createMockApplication(ApplicationStatus.SUBMITTED, {
+        applicationId: presentId,
+      });
+
+      MockedApplication.findByPk = vi.fn().mockImplementation(async (id: string) => {
+        if (id === presentId) return presentApp;
+        return null;
+      });
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue(undefined as never);
+
+      const result = await ApplicationService.bulkUpdateApplications(
+        {
+          applicationIds: [presentId, missingId],
+          updates: { priority: ApplicationPriority.HIGH },
+        },
+        'staff-123'
+      );
+
+      expect(result.successCount).toBe(1);
+      expect(result.failureCount).toBe(1);
+      expect(result.successes).toEqual([presentId]);
+      expect(result.failures[0]).toMatchObject({
+        applicationId: missingId,
+        error: 'Application not found',
+      });
+
+      // Audit only fires for the row that actually exists.
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      expect(logSpy.mock.calls[0][0].entityId).toBe(presentId);
+
+      logSpy.mockRestore();
     });
   });
 

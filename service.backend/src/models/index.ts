@@ -48,6 +48,7 @@ import IdempotencyKey from './IdempotencyKey';
 import Invitation from './Invitation';
 import Rating from './Rating';
 import StaffMember from './StaffMember';
+import TwoFactorRecovery from './TwoFactorRecovery';
 
 // Content Moderation Models
 import ModeratorAction from './ModeratorAction';
@@ -130,6 +131,7 @@ const models = {
   Rating,
   StaffMember,
   Invitation,
+  TwoFactorRecovery,
   ModeratorAction,
   ModerationEvidence,
   Report,
@@ -451,6 +453,12 @@ try {
   User.hasMany(Invitation, { foreignKey: 'user_id', as: 'acceptedInvitations' });
   Invitation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+  // TwoFactorRecovery — email-bootstrapped 2FA recovery tokens. CASCADE
+  // on user delete: the row has no purpose once the owning account is
+  // gone.
+  User.hasMany(TwoFactorRecovery, { foreignKey: 'user_id', as: 'TwoFactorRecoveries' });
+  TwoFactorRecovery.belongsTo(User, { foreignKey: 'user_id', as: 'User' });
+
   // Content Moderation associations
   User.hasMany(Report, { foreignKey: 'reporterId', as: 'SubmittedReports' });
   Report.belongsTo(User, { foreignKey: 'reporterId', as: 'Reporter' });
@@ -751,6 +759,7 @@ export {
   StaffMember,
   SupportTicket,
   SupportTicketResponse,
+  TwoFactorRecovery,
   SwipeAction,
   SwipeSession,
   User,

@@ -518,47 +518,75 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
 
           <Card className={styles.actionCard}>
             <h3>Interested in {pet.name}?</h3>
-            {pet.rescue_id && pet.rescue?.name && (
-              <div className='rescue-info'>
-                <div className='rescue-name'>
-                  From{' '}
-                  <Link to={`/rescues/${pet.rescue_id}`} onClick={handleRescueProfileClick}>
-                    {pet.rescue.name}
-                  </Link>
-                  {pet.rescue.location ? ` · ${pet.rescue.location}` : ''}
-                </div>
-              </div>
-            )}
-            <div className='actions'>
-              {pet.status === 'available' && (
-                <Link
-                  className={`${styles.actionLink} ${styles.actionLinkPrimary} ${styles.actionLinkLarge}`}
-                  to={`/apply/${pet.pet_id}`}
-                  onClick={handleApplyClick}
-                >
-                  Apply to Adopt
-                </Link>
-              )}
-              {pet.rescue_id && (
-                <Link
-                  className={`${styles.actionLink} ${styles.actionLinkOutline}`}
-                  to={`/rescues/${pet.rescue_id}`}
-                  onClick={handleRescueProfileClick}
-                >
-                  View Rescue Profile
-                </Link>
-              )}
-              {pet.rescue_id && (
-                <Button
-                  className={styles.contactButton}
-                  variant='primary'
-                  size='lg'
-                  onClick={handleContactRescue}
-                >
-                  Contact Rescue
-                </Button>
-              )}
-            </div>
+            {(() => {
+              // A13: surface rescue verification state. `status` is missing
+              // on legacy API responses and isn't part of the lib.pets
+              // PetRescueSchema type yet — read it through a narrowed
+              // index access so the call site stays type-safe.
+              const rescueStatus = (pet.rescue as { status?: string } | undefined)?.status;
+              const isUnverified = !!rescueStatus && rescueStatus !== 'verified';
+              const verificationTooltip =
+                'This rescue is awaiting verification — please check back soon';
+              return (
+                <>
+                  {pet.rescue_id && pet.rescue?.name && (
+                    <div className='rescue-info'>
+                      <div className='rescue-name'>
+                        From{' '}
+                        <Link to={`/rescues/${pet.rescue_id}`} onClick={handleRescueProfileClick}>
+                          {pet.rescue.name}
+                        </Link>
+                        {pet.rescue.location ? ` · ${pet.rescue.location}` : ''}
+                      </div>
+                      {isUnverified && <Badge variant='warning'>Pending verification</Badge>}
+                    </div>
+                  )}
+                  <div className='actions'>
+                    {pet.status === 'available' &&
+                      (isUnverified ? (
+                        <Button
+                          className={`${styles.actionLink} ${styles.actionLinkPrimary} ${styles.actionLinkLarge}`}
+                          variant='primary'
+                          size='lg'
+                          disabled
+                          title={verificationTooltip}
+                        >
+                          Apply to Adopt
+                        </Button>
+                      ) : (
+                        <Link
+                          className={`${styles.actionLink} ${styles.actionLinkPrimary} ${styles.actionLinkLarge}`}
+                          to={`/apply/${pet.pet_id}`}
+                          onClick={handleApplyClick}
+                        >
+                          Apply to Adopt
+                        </Link>
+                      ))}
+                    {pet.rescue_id && (
+                      <Link
+                        className={`${styles.actionLink} ${styles.actionLinkOutline}`}
+                        to={`/rescues/${pet.rescue_id}`}
+                        onClick={handleRescueProfileClick}
+                      >
+                        View Rescue Profile
+                      </Link>
+                    )}
+                    {pet.rescue_id && (
+                      <Button
+                        className={styles.contactButton}
+                        variant='primary'
+                        size='lg'
+                        onClick={handleContactRescue}
+                        disabled={isUnverified}
+                        title={isUnverified ? verificationTooltip : undefined}
+                      >
+                        Contact Rescue
+                      </Button>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </Card>
         </div>
 

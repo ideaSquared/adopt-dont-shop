@@ -84,11 +84,13 @@ const emailKey = (req: Request): string => {
  * IP-keyed registration limiter — stricter than the IP-keyed auth limiter
  * since registration is the primary fake-account-flooding vector.
  *
- * 20 registrations per hour per IP.
+ * 5 registrations per hour per IP. Tightened from 20/h (A9) now that the
+ * Turnstile middleware sits in front and absorbs scripted spam before it
+ * reaches this bucket.
  */
 export const registrationIpLimiter = buildLimiter('register-ip', {
   windowMs: ONE_HOUR_MS,
-  max: 20,
+  max: 5,
 });
 
 /**

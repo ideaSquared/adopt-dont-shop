@@ -642,6 +642,141 @@ describe('Authentication Middleware', () => {
       });
     });
 
+    describe('when tokens_invalid_before is set on the user', () => {
+      it('rejects an access token whose iat predates the rotation timestamp', async () => {
+        const rotatedAt = new Date('2026-05-22T10:00:00Z');
+        const payload: JWTPayload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          // iat one minute before the rotation
+          iat: Math.floor(rotatedAt.getTime() / 1000) - 60,
+        };
+        const mockUser = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          status: 'active',
+          emailVerified: true,
+          tokensInvalidBefore: rotatedAt,
+          Roles: [],
+        };
+
+        mockRequest.headers = { authorization: 'Bearer stale-token' };
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+        await authenticateToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockResponse.status).toHaveBeenCalledWith(401);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          error: 'Token revoked due to credential change',
+        });
+        expect(mockNext).not.toHaveBeenCalled();
+      });
+
+      it('accepts an access token whose iat is at or after the rotation timestamp', async () => {
+        const rotatedAt = new Date('2026-05-22T10:00:00Z');
+        const payload: JWTPayload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          iat: Math.floor(rotatedAt.getTime() / 1000) + 60,
+        };
+        const mockUser = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          status: 'active',
+          emailVerified: true,
+          tokensInvalidBefore: rotatedAt,
+          Roles: [],
+        };
+
+        mockRequest.headers = { authorization: 'Bearer fresh-token' };
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+        await authenticateToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockResponse.status).not.toHaveBeenCalled();
+      });
+
+      it('accepts an access token when tokens_invalid_before is null', async () => {
+        const payload: JWTPayload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          iat: 1000,
+        };
+        const mockUser = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          status: 'active',
+          emailVerified: true,
+          tokensInvalidBefore: null,
+          Roles: [],
+        };
+
+        mockRequest.headers = { authorization: 'Bearer valid-token' };
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+        await authenticateToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockNext).toHaveBeenCalled();
+      });
+    });
+
+    describe('when the JWT userType claim disagrees with the DB', () => {
+      it('logs the drift and uses the DB value as the source of truth on req.user', async () => {
+        const payload: JWTPayload = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          userType: 'admin',
+        };
+        const mockUser = {
+          userId: 'user-123',
+          email: 'test@example.com',
+          // DB says adopter — the JWT's admin claim must NOT win.
+          userType: 'adopter',
+          status: 'active',
+          emailVerified: true,
+          Roles: [],
+        };
+
+        mockRequest.headers = { authorization: 'Bearer drifted-token' };
+        (jwt.verify as vi.Mock).mockReturnValue(payload);
+        (User.findByPk as vi.Mock).mockResolvedValue(mockUser);
+
+        await authenticateToken(
+          mockRequest as AuthenticatedRequest,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockRequest.user).toBe(mockUser);
+        expect(mockRequest.user?.userType).toBe('adopter');
+        expect(loggerHelpers.logSecurity).toHaveBeenCalledWith(
+          'JWT userType drift; using DB value',
+          expect.objectContaining({
+            userId: 'user-123',
+            jwtUserType: 'admin',
+            dbUserType: 'adopter',
+          })
+        );
+        expect(mockNext).toHaveBeenCalled();
+      });
+    });
+
     describe('when unexpected errors occur', () => {
       it('should return 500 for unexpected errors', async () => {
         mockRequest.headers = { authorization: 'Bearer valid-token' };

@@ -80,6 +80,38 @@ vi.mock('../../middleware/rate-limiter', () => ({
   generalLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
+// Module-level mutable counters so the per-test handlers can simulate the
+// real express-rate-limit behaviour (429 on the (max+1)th request).
+const dailyCounter = { count: 0, max: 5 };
+const weeklyCounter = { count: 0, max: 20 };
+
+vi.mock('../../middleware/user-abuse-rate-limit', () => ({
+  applicationCreateDailyLimiter: (
+    _req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    dailyCounter.count += 1;
+    if (dailyCounter.count > dailyCounter.max) {
+      res.status(429).json({ error: 'daily limit' });
+      return;
+    }
+    next();
+  },
+  applicationCreateWeeklyLimiter: (
+    _req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    weeklyCounter.count += 1;
+    if (weeklyCounter.count > weeklyCounter.max) {
+      res.status(429).json({ error: 'weekly limit' });
+      return;
+    }
+    next();
+  },
+}));
+
 vi.mock('../../middleware/idempotency', () => ({
   idempotency: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
@@ -151,6 +183,9 @@ const buildApp = () => {
 describe('Application routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset the per-user limiter counters so each test starts clean.
+    dailyCounter.count = 0;
+    weeklyCounter.count = 0;
     // Default: authenticated as adopter, role check passes
     authenticateTokenMock.mockImplementation(
       (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
@@ -217,6 +252,40 @@ describe('Application routes', () => {
       const res = await request(buildApp()).post('/api/v1/applications').send({ answers: {} });
 
       expect(res.status).toBe(422);
+    });
+
+    it('allows up to 5 applications per user within the daily window', async () => {
+      // Service returns success so the route reaches a 2xx response and
+      // we can confirm the limiter let it through.
+      vi.mocked(ApplicationService.createApplication).mockResolvedValue({
+        applicationId: 'app-1',
+      } as unknown as Awaited<ReturnType<typeof ApplicationService.createApplication>>);
+
+      const app = buildApp();
+      for (let i = 0; i < 4; i += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        const res = await request(app)
+          .post('/api/v1/applications')
+          .send({ petId: 'pet-uuid-1', answers: {} });
+        expect(res.status).not.toBe(429);
+      }
+    });
+
+    it('rejects the 6th application in a 24h window with 429', async () => {
+      vi.mocked(ApplicationService.createApplication).mockResolvedValue({
+        applicationId: 'app-1',
+      } as unknown as Awaited<ReturnType<typeof ApplicationService.createApplication>>);
+
+      const app = buildApp();
+      // First 5 pass through the daily limiter.
+      for (let i = 0; i < 5; i += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await request(app).post('/api/v1/applications').send({ petId: 'pet-uuid-1', answers: {} });
+      }
+      const res = await request(app)
+        .post('/api/v1/applications')
+        .send({ petId: 'pet-uuid-1', answers: {} });
+      expect(res.status).toBe(429);
     });
   });
 

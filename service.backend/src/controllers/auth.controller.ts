@@ -2,9 +2,11 @@ import { Request, Response } from 'express';
 import { body } from 'express-validator';
 import { z } from 'zod';
 import {
+  ConfirmTwoFactorRecoverySchema,
   LoginRequestSchema,
   RegisterRequestSchema,
   RequestPasswordResetSchema,
+  RequestTwoFactorRecoverySchema,
   ResetPasswordSchema,
   UpdateProfileRequestSchema,
 } from '@adopt-dont-shop/lib.validation';
@@ -38,6 +40,8 @@ export const authValidation = {
   login: validateBody(LoginRequestSchema),
   forgotPassword: validateBody(RequestPasswordResetSchema),
   resetPassword: validateBody(ResetPasswordSchema),
+  requestTwoFactorRecovery: validateBody(RequestTwoFactorRecoverySchema),
+  confirmTwoFactorRecovery: validateBody(ConfirmTwoFactorRecoverySchema),
   resendVerification: validateBody(RequestPasswordResetSchema.pick({ email: true })),
   updateProfile: validateBody(UpdateProfileRequestSchema),
 
@@ -368,6 +372,53 @@ export class AuthController {
     loggerHelpers.logSecurity('2FA backup codes regenerated', { userId: user.userId });
 
     res.json({ success: true, backupCodes });
+  }
+
+  /**
+   * Batch KK: request an email-bootstrapped 2FA recovery link.
+   *
+   * Pre-auth. Always returns the same generic 200 message regardless of
+   * whether the email matches a user or whether that user has 2FA on —
+   * enumeration-resistant, same shape as forgot-password.
+   *
+   * TODO(frontend): wire up the "Lost your 2FA device?" link on the 2FA
+   * challenge page (app.client, app.admin, app.rescue) to call this
+   * endpoint, and add a /auth/2fa/recover page that consumes the token
+   * query param and posts to /2fa/recover/confirm below. Deferred from
+   * the backend batch — see Batch KK report.
+   */
+  async requestTwoFactorRecovery(req: Request, res: Response): Promise<void> {
+    const authService = new AuthService();
+    const result = await authService.requestTwoFactorRecovery(
+      req.body,
+      req.ip,
+      req.get('user-agent')
+    );
+    res.json(result);
+  }
+
+  /**
+   * Batch KK: confirm a 2FA recovery token from the emailed link.
+   *
+   * Pre-auth. Disables 2FA + revokes all sessions atomically and emails
+   * the user a heads-up so they can react if the recovery wasn't theirs.
+   */
+  async confirmTwoFactorRecovery(req: Request, res: Response): Promise<void> {
+    try {
+      const authService = new AuthService();
+      const result = await authService.confirmTwoFactorRecovery(req.body);
+      res.json(result);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('2FA recovery confirmation failed:', error);
+
+      if (errorMessage.includes('Invalid or expired')) {
+        res.status(400).json({ error: errorMessage });
+        return;
+      }
+
+      res.status(500).json({ error: 'Failed to confirm two-factor recovery' });
+    }
   }
 
   /**

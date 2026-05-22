@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import { ChatParticipant } from '../models/ChatParticipant';
+import Rescue from '../models/Rescue';
 import User, { UserType } from '../models/User';
 import { ChatService } from '../services/chat.service';
 import { FileUploadService, sanitizeDisplayFilename } from '../services/file-upload.service';
@@ -195,6 +196,21 @@ export class ChatController {
 
     const { rescueId, petId, applicationId, type, initialMessage } = req.body;
     const createdBy = req.user!.userId;
+
+    // A13: a user cannot open a conversation with an unverified rescue.
+    // The rescue still appears in the UI with a pending-verification
+    // badge, but the "Message" affordance is disabled. Verifying here
+    // closes the loop for any caller that hits the API directly.
+    if (rescueId && rescueId !== createdBy) {
+      const rescue = await Rescue.findByPk(rescueId);
+      if (!rescue || rescue.status !== 'verified') {
+        res.status(403).json({
+          success: false,
+          message: 'Cannot interact with unverified rescue',
+        });
+        return;
+      }
+    }
 
     // Create participant IDs array: start with the user who created the chat
     const participantIds = [createdBy];
