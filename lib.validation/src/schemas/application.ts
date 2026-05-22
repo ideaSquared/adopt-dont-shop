@@ -277,6 +277,12 @@ export type ApplicationSearchQuery = z.infer<typeof ApplicationSearchQuerySchema
  * POST /api/v1/applications/bulk — staff-side bulk update. The
  * controller accepts an `applicationIds` array plus an `updates`
  * record; we mirror that here.
+ *
+ * ADS-642: `stage`, `finalOutcome`, `rejectionReason`, `withdrawalReason`
+ * are accepted so the rescue queue's stage-aware bulk actions
+ * ("Move to next stage", bulk reject with shared reason, etc.) can
+ * persist their changes through the same endpoint instead of needing
+ * a parallel route.
  */
 export const ApplicationBulkUpdateRequestSchema = z.object({
   applicationIds: z
@@ -286,6 +292,10 @@ export const ApplicationBulkUpdateRequestSchema = z.object({
     .object({
       status: ApplicationStatusSchema.optional(),
       priority: ApplicationPrioritySchema.optional(),
+      stage: ApplicationStageSchema.optional(),
+      finalOutcome: ApplicationOutcomeSchema.optional(),
+      rejectionReason: NotesSchema.optional(),
+      withdrawalReason: NotesSchema.optional(),
       tags: z.array(TagSchema).max(20).optional(),
       notes: NotesSchema.optional(),
     })

@@ -324,5 +324,27 @@ describe('Application schemas', () => {
         ApplicationBulkUpdateRequestSchema.parse({ applicationIds: [someUuid], updates: {} })
       ).toThrow();
     });
+
+    it('accepts a stage update (ADS-642 stage-aware bulk actions)', () => {
+      const parsed = ApplicationBulkUpdateRequestSchema.parse({
+        applicationIds: [someUuid],
+        updates: { stage: 'reviewing' },
+      });
+      expect(parsed.updates.stage).toBe('reviewing');
+    });
+
+    it('accepts a bulk reject with a shared rejection reason (ADS-642)', () => {
+      const parsed = ApplicationBulkUpdateRequestSchema.parse({
+        applicationIds: [someUuid],
+        updates: {
+          status: 'rejected',
+          stage: 'resolved',
+          finalOutcome: 'rejected',
+          rejectionReason: 'duplicate application',
+        },
+      });
+      expect(parsed.updates.rejectionReason).toBe('duplicate application');
+      expect(parsed.updates.finalOutcome).toBe('rejected');
+    });
   });
 });

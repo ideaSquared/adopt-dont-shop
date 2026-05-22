@@ -670,6 +670,59 @@ export class RescueApplicationService {
   }
 
   /**
+   * ADS-642: dispatch a set of per-application bulk updates. Each group
+   * shares one `updates` payload (e.g. all rows advancing to REVIEWING
+   * vs. all rows advancing to VISITING), so the bulk-update endpoint
+   * still does the heavy lifting and we only fan out by distinct
+   * payload shape. Returns an aggregate {successCount, failureCount}
+   * matching the existing single-action response shape.
+   */
+  async performBulkUpdates(
+    groups: ReadonlyArray<{ applicationIds: string[]; updates: Record<string, unknown> }>
+  ): Promise<{
+    successCount: number;
+    failureCount: number;
+    failures: Array<{ applicationId: string; error: string }>;
+  }> {
+    let successCount = 0;
+    let failureCount = 0;
+    const failures: Array<{ applicationId: string; error: string }> = [];
+    for (const group of groups) {
+      if (group.applicationIds.length === 0) {
+        continue;
+      }
+      try {
+        const response = await this.apiService.patch<{
+          data?: {
+            successCount?: number;
+            failureCount?: number;
+            failures?: Array<{ applicationId: string; error: string }>;
+          };
+          successCount?: number;
+          failureCount?: number;
+          failures?: Array<{ applicationId: string; error: string }>;
+        }>('/api/v1/applications/bulk-update', {
+          applicationIds: group.applicationIds,
+          updates: group.updates,
+        });
+        const payload = response.data || response;
+        successCount += payload.successCount ?? group.applicationIds.length;
+        failureCount += payload.failureCount ?? 0;
+        if (payload.failures) {
+          failures.push(...payload.failures);
+        }
+      } catch (error) {
+        failureCount += group.applicationIds.length;
+        const message = error instanceof Error ? error.message : 'Bulk update failed';
+        for (const id of group.applicationIds) {
+          failures.push({ applicationId: id, error: message });
+        }
+      }
+    }
+    return { successCount, failureCount, failures };
+  }
+
+  /**
    * Transform application data for list display
    */
   private transformApplicationForList = (app: any): ApplicationListItem => {
