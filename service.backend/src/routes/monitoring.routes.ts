@@ -32,7 +32,18 @@ router.use(apiLimiter);
 // Dev-login user list is consumed pre-auth by the DevLoginPanel so the
 // user has *something* to log in as. `monitoringGuard` already 404s
 // this in production; admin auth on top would defeat the purpose.
+//
+// ADS-security: the perimeter `monitoringGuard` only blocks
+// `isProductionLike(nodeEnv)`. In a staging env (`nodeEnv='staging'`)
+// the perimeter passes — without this inner gate the full user table
+// would be served unauthenticated. Restrict the route body to actual
+// development so the staging case 404s in lockstep with the inner
+// dev-only block below.
 router.get('/api/dev/seeded-users', async (req, res) => {
+  if (config.nodeEnv !== 'development') {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
   const User = (await import('../models/User')).default;
 
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
@@ -157,7 +168,14 @@ const getDevUserDescription = (userType: string, email: string): string => {
 };
 
 // Only enable in development
-if (process.env.NODE_ENV === 'development') {
+//
+// ADS-security: use `config.nodeEnv` here so the dev-block gate matches
+// the perimeter `monitoringGuard` (which checks `isProductionLike(config.nodeEnv)`).
+// The previous `process.env.NODE_ENV === 'development'` form would leave
+// staging in a half-mounted state — perimeter passes (not production-like),
+// inner block skips (not development) — silently exposing routes that
+// live outside this block while suppressing the ones inside it.
+if (config.nodeEnv === 'development') {
   /**
    * @swagger
    * /api/v1/dashboard:
