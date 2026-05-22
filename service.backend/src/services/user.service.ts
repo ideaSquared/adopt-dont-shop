@@ -24,6 +24,7 @@ import {
 import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { isAdminRole } from '../utils/is-admin-role';
 import { redactSensitiveFields } from '../utils/redact';
 import RefreshToken from '../models/RefreshToken';
 import { invalidateAuthCache } from '../lib/auth-cache';
@@ -1243,8 +1244,8 @@ export class UserService {
       return true;
     }
 
-    // Admins can see all user data
-    if (requestingUserType === UserType.ADMIN) {
+    // Admins (and super_admins) can see all user data
+    if (isAdminRole(requestingUserType)) {
       return true;
     }
 

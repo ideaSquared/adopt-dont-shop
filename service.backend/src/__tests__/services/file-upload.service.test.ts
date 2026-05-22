@@ -548,6 +548,17 @@ describe('FileUploadService', () => {
       expect(result.success).toBe(true);
     });
 
+    it('allows a super_admin to delete a file they do not own', async () => {
+      const superAdmin = { id: 'sa-789', type: UserType.SUPER_ADMIN };
+      const mockRecord = makeMockRecord();
+      vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+
+      const result = await FileUploadService.deleteFile('upload-abc-123', superAdmin);
+
+      expect(result.success).toBe(true);
+    });
+
     it('throws 403 when a non-owner non-admin attempts deletion', async () => {
       const mockRecord = makeMockRecord();
       vi.mocked(FileUpload.findByPk).mockResolvedValue(mockRecord);

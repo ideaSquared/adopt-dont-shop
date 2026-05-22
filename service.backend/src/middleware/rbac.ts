@@ -1,6 +1,7 @@
 import { NextFunction, Response } from 'express';
 import { UserType } from '../models/User';
 import { AuthenticatedRequest, PERMISSIONS } from '../types';
+import { isAdminRole } from '../utils/is-admin-role';
 import { logger } from '../utils/logger';
 // Import the actual model types instead of defining local interfaces
 
@@ -166,13 +167,21 @@ export const requireRescueTenant = (rescueIdParam: string = 'rescueId') => {
   };
 };
 
-// Admin only access
-export const requireAdmin = requireRole(UserType.ADMIN);
+// Admin only access (SUPER_ADMIN always covers ADMIN).
+export const requireAdmin = requireRole(UserType.ADMIN, UserType.SUPER_ADMIN);
 
 // Rescue staff or admin access
-export const requireRescue = requireRole(UserType.RESCUE_STAFF, UserType.ADMIN);
+export const requireRescue = requireRole(
+  UserType.RESCUE_STAFF,
+  UserType.ADMIN,
+  UserType.SUPER_ADMIN
+);
 
-export const requireAdminOrRescue = requireRole(UserType.ADMIN, UserType.RESCUE_STAFF);
+export const requireAdminOrRescue = requireRole(
+  UserType.ADMIN,
+  UserType.SUPER_ADMIN,
+  UserType.RESCUE_STAFF
+);
 
 export const requireOwnershipOrAdmin = (
   getResourceUserId: (req: AuthenticatedRequest) => string | undefined
@@ -188,8 +197,8 @@ export const requireOwnershipOrAdmin = (
       const currentUserId = req.user.userId;
       const userType = req.user.userType;
 
-      // Admin can access anything
-      if (userType === UserType.ADMIN) {
+      // Admin (and super_admin) can access anything
+      if (isAdminRole(userType)) {
         next();
         return;
       }

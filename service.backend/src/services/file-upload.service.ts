@@ -10,6 +10,7 @@ import { AuditLogService } from './auditLog.service';
 import FileUpload from '../models/FileUpload';
 import { UserType } from '../models/User';
 import { fileTypeFromFile } from '../utils/file-type-wrapper';
+import { isAdminRole } from '../utils/is-admin-role';
 import DOMPurify from 'isomorphic-dompurify';
 import { getAvProvider } from './av-providers';
 import { getStorageProvider } from './storage';
@@ -355,7 +356,7 @@ export class FileUploadService {
       }
 
       const isOwner = uploadRecord.uploaded_by === deletedBy.id;
-      const isAdmin = deletedBy.type === UserType.ADMIN;
+      const isAdmin = isAdminRole(deletedBy.type);
       if (!isOwner && !isAdmin) {
         throw Object.assign(new Error('Not allowed to delete this file'), { statusCode: 403 });
       }
