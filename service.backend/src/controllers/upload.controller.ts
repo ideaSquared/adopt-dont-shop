@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { FileUploadService } from '../services/file-upload.service';
+import { FileUploadService, sanitizeDisplayFilename } from '../services/file-upload.service';
 import { AuthenticatedRequest } from '../types/api';
 import { logger } from '../utils/logger';
 
@@ -36,10 +36,17 @@ export class UploadController {
       }
 
       const { upload } = result;
+      // Return a sanitised display filename rather than the raw
+      // original_filename. The staged image flow's response payload is
+      // echoed by the client into downstream contexts (chat messages, pet
+      // listings) visible to other users, so an adopter uploading
+      // `Jane_Doe_Passport_123456789.pdf` would otherwise leak PII to
+      // every viewer. The DB retains the original_filename for the
+      // uploader's own UI and support tooling.
       return res.status(200).json({
         url: upload.url,
         thumbnail_url: upload.thumbnail_url ?? upload.url,
-        original_filename: upload.original_filename,
+        original_filename: sanitizeDisplayFilename(upload.original_filename),
         size_bytes: upload.file_size,
         content_type: upload.mime_type,
       });

@@ -190,6 +190,29 @@ export const profileImageUpload = createUploadMiddleware('profiles', {
   maxFileSize: 5 * 1024 * 1024, // 5MB for profile images
 });
 
+/**
+ * Reduce a user-supplied filename to a privacy-safe display name suitable
+ * for showing to other viewers (chat participants, public pet listings).
+ *
+ * The DB still stores the original filename (operationally useful for
+ * support and the uploader's own UI), but anywhere that filename would
+ * be propagated to non-uploader viewers we substitute this sanitised
+ * form. Without it an adopter who uploads
+ * `Jane_Doe_Passport_123456789.pdf` to a chat would leak full PII to
+ * every other participant.
+ *
+ * Keep only the file extension (lowercase, alphanumeric + dot only) and
+ * prefix with a generic `file` stem. Anything we can't validate becomes
+ * `.bin` so downstream renderers still get a hint about binary content.
+ */
+export const sanitizeDisplayFilename = (filename: string): string => {
+  const ext = path
+    .extname(filename)
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, '');
+  return `file${ext || '.bin'}`;
+};
+
 // Enhanced File Upload Service
 export class FileUploadService {
   /**

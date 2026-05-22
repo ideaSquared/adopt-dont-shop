@@ -3,7 +3,7 @@ import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import { ChatParticipant } from '../models/ChatParticipant';
 import User, { UserType } from '../models/User';
 import { ChatService } from '../services/chat.service';
-import { FileUploadService } from '../services/file-upload.service';
+import { FileUploadService, sanitizeDisplayFilename } from '../services/file-upload.service';
 import { broadcastNewMessage, isUserOnline } from '../socket/socket-handlers';
 import { ChatMessage } from '../types/chat';
 import { logger, loggerHelpers } from '../utils/logger';
@@ -1040,11 +1040,17 @@ export class ChatController {
       duration: Date.now() - startTime,
     });
 
+    // Sanitise the filename returned to the client: the client embeds
+    // this value as the attachment's `filename` on a follow-up
+    // sendMessage payload, which then ships to every chat participant.
+    // An adopter uploading `Jane_Doe_Passport_123456789.pdf` would
+    // otherwise leak PII to the rescue staff (or other participants in a
+    // group chat) the instant they opened the conversation.
     res.status(200).json({
       success: true,
       data: {
         id: fileUploadResult.upload.upload_id,
-        filename: fileUploadResult.upload.original_filename,
+        filename: sanitizeDisplayFilename(fileUploadResult.upload.original_filename),
         url: fileUploadResult.upload.url,
         mimeType: fileUploadResult.upload.mime_type,
         size: fileUploadResult.upload.file_size,
