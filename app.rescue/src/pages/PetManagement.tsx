@@ -9,6 +9,7 @@ import PetFilters from '../components/pets/PetFilters.tsx';
 import PetFormModal from '../components/pets/PetFormModal.tsx';
 import PetStatusFilter from '../components/pets/PetStatusFilter.tsx';
 import PetCsvImportModal from '../components/pets/PetCsvImportModal.tsx';
+import PetBulkActionBar, { type PetBulkAction } from '../components/pets/PetBulkActionBar.tsx';
 import * as styles from './PetManagement.css';
 
 interface PetStats {
@@ -93,6 +94,17 @@ const PetManagement: React.FC = () => {
   const [hasPrev, setHasPrev] = useState(false);
 
   const [showRescueSetup, setShowRescueSetup] = useState(false);
+
+  // ADS-646: bulk selection state. We hold the set of selected pet IDs at
+  // the page level so the toolbar and grid share one source of truth. The
+  // result summary is shown inline after a bulk write finishes (success +
+  // failure counts) and cleared once the user clears the selection.
+  const [selectedPetIds, setSelectedPetIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{
+    successCount: number;
+    failedCount: number;
+  } | null>(null);
 
   const fetchPets = async () => {
     try {
@@ -239,6 +251,54 @@ const PetManagement: React.FC = () => {
   const handleSearch = (searchTerm: string) => {
     setSearchFilter(searchTerm);
     setCurrentPage(1); // Reset to first page
+  };
+
+  const handleToggleSelectPet = (petId: string) => {
+    setSelectedPetIds(prev => {
+      const next = new Set(prev);
+      if (next.has(petId)) {
+        next.delete(petId);
+      } else {
+        next.add(petId);
+      }
+      return next;
+    });
+    // A fresh selection invalidates any previous bulk-result banner.
+    setBulkResult(null);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedPetIds(new Set());
+    setBulkResult(null);
+  };
+
+  const handleBulkAction = async (action: PetBulkAction) => {
+    const ids = Array.from(selectedPetIds);
+    if (ids.length === 0) {
+      return;
+    }
+    setBulkBusy(true);
+    try {
+      const result =
+        action.type === 'status'
+          ? await petManagementService.bulkUpdatePetStatus(ids, action.status)
+          : await petManagementService.bulkArchivePets(ids);
+      setBulkResult({ successCount: result.successCount, failedCount: result.failedCount });
+      setSelectedPetIds(new Set());
+      await fetchPets();
+      await fetchStats();
+      if (result.failedCount === 0) {
+        toast.success(`Bulk action applied to ${result.successCount} pets`);
+      } else {
+        toast.info(`Bulk action: ${result.successCount} succeeded, ${result.failedCount} failed`);
+      }
+    } catch (err) {
+      console.error('Bulk action failed:', err);
+      const message = err instanceof Error ? err.message : 'Bulk action failed';
+      toast.error(message);
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -455,6 +515,15 @@ const PetManagement: React.FC = () => {
           </div>
         )}
 
+        {/* Bulk action bar (ADS-646) — only renders while a selection is active. */}
+        <PetBulkActionBar
+          selectedCount={selectedPetIds.size}
+          onClearSelection={handleClearSelection}
+          onBulkAction={handleBulkAction}
+          busy={bulkBusy}
+          resultSummary={bulkResult}
+        />
+
         {/* Pet Grid */}
         <div className={styles.mainContent}>
           <PetGrid
@@ -463,6 +532,10 @@ const PetManagement: React.FC = () => {
             onStatusChange={handleStatusChange}
             onEditPet={handleEditPet}
             onDeletePet={handleDeletePet}
+            selectedPetIds={selectedPetIds}
+            onToggleSelectPet={handleToggleSelectPet}
+            onOpenCsvImport={user?.rescueId ? () => setShowCsvImport(true) : undefined}
+            onAddPet={() => setShowAddModal(true)}
             pagination={{
               currentPage,
               totalPages,

@@ -19,12 +19,65 @@ import PetFormModal from './PetFormModal';
 
 type SubmitArg = PetCreateData | PetUpdateData;
 
+// Pre-ADS-646 the form gated submission on name + breed + colour + short
+// description. After ADS-646 only the name is required, but we still type
+// into the same four fields here so existing assertions about the
+// submission payload keep working.
 const fillRequiredFields = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.type(screen.getByLabelText(/pet name/i), 'Rex');
   await user.type(screen.getByLabelText(/primary breed/i), 'Labrador');
   await user.type(screen.getByLabelText(/^color/i), 'Brown');
   await user.type(screen.getByLabelText(/short description/i), 'A friendly dog.');
 };
+
+describe('PetFormModal — minimum required fields (ADS-646)', () => {
+  it('publishes a pet with only the name filled in (other fields default)', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn((_data: SubmitArg) => Promise.resolve());
+    renderWithProviders(<PetFormModal isOpen={true} onClose={() => {}} onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/pet name/i), 'Rex');
+    // No breed / colour / description / age — just submit.
+    await user.click(screen.getByRole('button', { name: /add pet/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    const submitted = onSubmit.mock.calls[0][0];
+    expect(submitted.name).toBe('Rex');
+    // Backend requires type / gender / size / ageGroup — the form supplies
+    // safe defaults so staff don't have to choose to publish.
+    expect(submitted.type).toBe('dog');
+    expect(submitted.gender).toBe('male');
+    expect(submitted.size).toBe('medium');
+    expect(submitted.ageGroup).toBe('adult');
+  });
+
+  it('shows a hint banner explaining that only the name is required', () => {
+    renderWithProviders(
+      <PetFormModal isOpen={true} onClose={() => {}} onSubmit={() => Promise.resolve()} />
+    );
+
+    expect(screen.getByText(/only the pet's name is required to publish/i)).toBeInTheDocument();
+  });
+
+  it('does not block submission when breed, colour or short description are empty', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn((_data: SubmitArg) => Promise.resolve());
+    renderWithProviders(<PetFormModal isOpen={true} onClose={() => {}} onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/pet name/i), 'Rex');
+    await user.click(screen.getByRole('button', { name: /add pet/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText(/breed is required/i)).toBeNull();
+    expect(screen.queryByText(/color is required/i)).toBeNull();
+    expect(screen.queryByText(/short description is required/i)).toBeNull();
+  });
+});
 
 describe('PetFormModal — adoption fee field (ADS-578)', () => {
   it('renders the adoption fee as a numeric input with a £ currency adornment', () => {
@@ -338,6 +391,77 @@ describe('PetFormModal — image upload field (ADS-574)', () => {
       expect(onSubmit).toHaveBeenCalledTimes(1);
     });
     const submitted = onSubmit.mock.calls[0][0];
+    expect(submitted.images).toEqual(['/uploads/pets/pets_b.png', '/uploads/pets/pets_a.png']);
+  });
+
+  it('moves the cover image via drag-and-drop reordering (ADS-646)', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn((_data: SubmitArg) => Promise.resolve());
+    const uploadImage = vi
+      .fn<(file: File) => Promise<ImageUploadResponse>>()
+      .mockResolvedValueOnce(makeUploadResponse('a'))
+      .mockResolvedValueOnce(makeUploadResponse('b'));
+
+    renderWithProviders(
+      <PetFormModal
+        isOpen={true}
+        onClose={() => {}}
+        onSubmit={onSubmit}
+        uploadImage={uploadImage}
+      />
+    );
+
+    await fillRequiredFields(user);
+
+    const fileInput = screen.getByLabelText(/add pet photos/i);
+    await act(async () => {
+      fireEvent.change(fileInput, {
+        target: { files: [makeImageFile('a.png'), makeImageFile('b.png')] },
+      });
+    });
+
+    await waitFor(() => {
+      expect(uploadImage).toHaveBeenCalledTimes(2);
+    });
+
+    // Wait for both uploads to resolve and the rows to enter the
+    // "uploaded" state (draggable=true).
+    await waitFor(() => {
+      const items = screen
+        .getAllByRole('listitem')
+        .filter(li => li.getAttribute('draggable') === 'true');
+      expect(items).toHaveLength(2);
+    });
+
+    const items = screen
+      .getAllByRole('listitem')
+      .filter(li => li.getAttribute('draggable') === 'true');
+
+    // Drag the second photo onto the first slot — the dropped item should
+    // become the new cover. Each event is wrapped in its own act() so the
+    // React state update for `dragIndex` is committed before the next
+    // event reads it.
+    await act(async () => {
+      fireEvent.dragStart(items[1]);
+    });
+    await act(async () => {
+      fireEvent.dragOver(items[0]);
+    });
+    await act(async () => {
+      fireEvent.drop(items[0]);
+    });
+    await act(async () => {
+      fireEvent.dragEnd(items[1]);
+    });
+
+    await user.click(screen.getByRole('button', { name: /add pet/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = onSubmit.mock.calls[0][0];
+    // After the drop, image "b" is at index 0 (the cover slot) and "a"
+    // follows. The submit payload preserves the order.
     expect(submitted.images).toEqual(['/uploads/pets/pets_b.png', '/uploads/pets/pets_a.png']);
   });
 

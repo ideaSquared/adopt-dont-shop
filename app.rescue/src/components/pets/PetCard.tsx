@@ -64,21 +64,41 @@ interface PetCardProps {
   onStatusChange: (petId: string, status: PetStatus, notes?: string) => void;
   onEdit: (pet: Pet) => void;
   onDelete: (petId: string, reason?: string) => Promise<void>;
+  // ADS-646: bulk selection. Optional so the card stays usable in any
+  // context that doesn't need multi-select.
+  selected?: boolean;
+  onToggleSelect?: (petId: string) => void;
 }
 
-const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete }) => {
+// ADS-646: inline status edit. The four primary lifecycle statuses are
+// surfaced as a quick-edit dropdown directly on the card so staff can
+// switch a pet's status without opening a modal. The rarer transitional
+// statuses (foster, medical_care, etc.) still live on the full Edit modal.
+const INLINE_STATUS_OPTIONS: { value: PetStatus; label: string }[] = [
+  { value: 'available' as PetStatus, label: 'Available' },
+  { value: 'pending' as PetStatus, label: 'Pending' },
+  { value: 'adopted' as PetStatus, label: 'Adopted' },
+  { value: 'on_hold' as PetStatus, label: 'Hold' },
+];
+
+const PetCard: React.FC<PetCardProps> = ({
+  pet,
+  onStatusChange,
+  onEdit,
+  onDelete,
+  selected = false,
+  onToggleSelect,
+}) => {
   'use memo';
-  const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [newStatus, setNewStatus] = useState<PetStatus>(pet.status as PetStatus);
-  const [statusNotes, setStatusNotes] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleStatusUpdate = () => {
-    onStatusChange(pet.pet_id, newStatus, statusNotes || undefined);
-    setShowStatusModal(false);
-    setStatusNotes('');
+  const handleInlineStatusChange = (next: PetStatus) => {
+    if (next === pet.status) {
+      return;
+    }
+    onStatusChange(pet.pet_id, next);
   };
 
   const handleEdit = () => {
@@ -112,6 +132,18 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
   return (
     <>
       <Card className={styles.styledCard}>
+        {onToggleSelect && (
+          // ADS-646: bulk-select checkbox overlay. Only renders when the
+          // grid is in selection mode (parent passes onToggleSelect).
+          <label className={styles.selectCheckboxLabel}>
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect(pet.pet_id)}
+              aria-label={`Select ${pet.name} for bulk action`}
+            />
+          </label>
+        )}
         <div className={styles.petImageContainer}>
           {primaryImage ? (
             <ProgressiveImage
@@ -182,9 +214,31 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
             <Button variant="outline" size="sm" onClick={handleEdit}>
               Edit
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowStatusModal(true)}>
-              Status
-            </Button>
+            <label className={styles.inlineStatusLabel} htmlFor={`inline-status-${pet.pet_id}`}>
+              <span className={styles.inlineStatusSrOnly}>Status for {pet.name}</span>
+              <select
+                id={`inline-status-${pet.pet_id}`}
+                className={styles.inlineStatusSelect}
+                value={
+                  INLINE_STATUS_OPTIONS.some(o => o.value === pet.status)
+                    ? (pet.status as string)
+                    : ''
+                }
+                onChange={e => handleInlineStatusChange(e.target.value as PetStatus)}
+                aria-label={`Change status for ${pet.name}`}
+              >
+                {!INLINE_STATUS_OPTIONS.some(o => o.value === pet.status) && (
+                  <option value="" disabled>
+                    {getStatusLabel(pet.status)}
+                  </option>
+                )}
+                {INLINE_STATUS_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <Button
               variant="outline"
               size="sm"
@@ -197,59 +251,6 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
           </div>
         </div>
       </Card>
-
-      {/* Status Update Modal */}
-      {showStatusModal && (
-        <div
-          className={styles.statusUpdateModal}
-          onClick={() => setShowStatusModal(false)}
-          onKeyDown={e => e.key === 'Escape' && setShowStatusModal(false)}
-          role="presentation"
-        >
-          <Card
-            className={styles.modalContent}
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          >
-            <h3>Update Pet Status</h3>
-
-            <div className="form-group">
-              <label htmlFor="status-select">New Status:</label>
-              <select
-                id="status-select"
-                value={newStatus}
-                onChange={e => setNewStatus(e.target.value as PetStatus)}
-              >
-                <option value="available">Available</option>
-                <option value="pending">Pending</option>
-                <option value="adopted">Adopted</option>
-                <option value="on_hold">On Hold</option>
-                <option value="medical_care">Medical Care</option>
-                <option value="foster">Foster</option>
-                <option value="not_available">Not Available</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="status-notes">Notes (optional):</label>
-              <textarea
-                id="status-notes"
-                value={statusNotes}
-                onChange={e => setStatusNotes(e.target.value)}
-                placeholder="Add any notes about this status change..."
-              />
-            </div>
-
-            <div className="modal-actions">
-              <Button variant="outline" onClick={() => setShowStatusModal(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={handleStatusUpdate}>
-                Update
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

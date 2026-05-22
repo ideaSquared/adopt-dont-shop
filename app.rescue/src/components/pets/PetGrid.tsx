@@ -11,6 +11,15 @@ interface PetGridProps {
   onStatusChange: (petId: string, status: PetStatus, notes?: string) => void;
   onEditPet: (pet: Pet) => void;
   onDeletePet: (petId: string, reason?: string) => Promise<void>;
+  // ADS-646: bulk-select wiring. Optional so the grid keeps its current
+  // behaviour when the parent isn't tracking selection.
+  selectedPetIds?: ReadonlySet<string>;
+  onToggleSelectPet?: (petId: string) => void;
+  // ADS-646: CSV import link shown in the empty state so first-time users
+  // can discover the bulk import flow without hunting for it in the
+  // header. The parent owns the modal — the grid just signals intent.
+  onOpenCsvImport?: () => void;
+  onAddPet?: () => void;
   pagination?: {
     currentPage: number;
     totalPages: number;
@@ -26,6 +35,10 @@ const PetGrid: React.FC<PetGridProps> = ({
   onStatusChange,
   onEditPet,
   onDeletePet,
+  selectedPetIds,
+  onToggleSelectPet,
+  onOpenCsvImport,
+  onAddPet,
   pagination,
 }) => {
   'use memo';
@@ -48,7 +61,37 @@ const PetGrid: React.FC<PetGridProps> = ({
           <div className="empty-icon">🐕</div>
           <h3>No pets found</h3>
           <p>Start by adding your first pet to the rescue inventory.</p>
-          <Button variant="primary">Add Your First Pet</Button>
+          <div className={styles.emptyStateActions}>
+            <Button variant="primary" onClick={onAddPet}>
+              Add Your First Pet
+            </Button>
+            {onOpenCsvImport && (
+              // ADS-646: surface CSV bulk import from the empty state. Many
+              // rescues start with a spreadsheet of existing animals — making
+              // the importer discoverable here removes the "where do I bulk
+              // load?" friction.
+              <Button variant="outline" onClick={onOpenCsvImport}>
+                Import from CSV
+              </Button>
+            )}
+          </div>
+          {onOpenCsvImport && (
+            <p className={styles.emptyStateCsvHint}>
+              Got a spreadsheet of pets?{' '}
+              <a
+                // ADS-646: link to the repo-hosted import guide. The app
+                // doesn't serve markdown directly so we point at the
+                // canonical source on GitHub.
+                href="https://github.com/ideaSquared/adopt-dont-shop/blob/main/docs/operations/pet-csv-import.md"
+                target="_blank"
+                rel="noreferrer noopener"
+                className={styles.emptyStateCsvLink}
+              >
+                See the CSV import guide
+              </a>{' '}
+              for the column format we accept.
+            </p>
+          )}
         </Card>
       </div>
     );
@@ -139,6 +182,8 @@ const PetGrid: React.FC<PetGridProps> = ({
             onStatusChange={onStatusChange}
             onEdit={onEditPet}
             onDelete={onDeletePet}
+            selected={selectedPetIds?.has(pet.pet_id) ?? false}
+            onToggleSelect={onToggleSelectPet}
           />
         ))}
       </div>

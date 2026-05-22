@@ -2,6 +2,15 @@ import { ApiService, ApiResponse } from '@adopt-dont-shop/lib.api';
 import { Pet, PetCreateData, PetUpdateData, PetStatus, PetsServiceConfig } from '../types';
 import { PETS_ENDPOINTS } from '../constants/endpoints';
 
+// Mirrors the backend's PetService.bulkUpdatePets return shape (see
+// service.backend/src/services/pet.service.ts). `errors` is a list of
+// per-pet failures so the UI can show partial-success summaries.
+export type BulkPetOperationResult = {
+  successCount: number;
+  failedCount: number;
+  errors: { petId: string; error: string }[];
+};
+
 /**
  * Pet Management Service
  *
@@ -311,20 +320,27 @@ export class PetManagementService {
 
   /**
    * Bulk update pet statuses
+   *
+   * Posts to the backend's canonical `/pets/bulk-update` endpoint with
+   * operation `update_status`. The endpoint is plan-gated
+   * (`bulk_operations`); a 403 here means the rescue's plan doesn't allow
+   * bulk ops — surface that to the user verbatim.
    */
   async bulkUpdatePetStatus(
     petIds: string[],
     status: PetStatus,
-    notes?: string
-  ): Promise<{ success: boolean; updated: number; errors: unknown[] }> {
+    reason?: string
+  ): Promise<BulkPetOperationResult> {
     try {
-      const response = await this.apiService.patch<
-        ApiResponse<{
-          success: boolean;
-          updated: number;
-          errors: unknown[];
-        }>
-      >(`${PETS_ENDPOINTS.PETS}/bulk/status`, { petIds, status, notes });
+      const response = await this.apiService.post<ApiResponse<BulkPetOperationResult>>(
+        `${PETS_ENDPOINTS.PETS}/bulk-update`,
+        {
+          petIds,
+          operation: 'update_status',
+          data: { status },
+          reason,
+        }
+      );
 
       if (response.success && response.data) {
         return response.data;
@@ -334,6 +350,37 @@ export class PetManagementService {
     } catch (error) {
       if (this.config.debug) {
         console.error('Failed to bulk update pet status:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk archive pets.
+   *
+   * Same endpoint as bulkUpdatePetStatus with operation `archive`. Pets
+   * stay in the database (soft state); they're hidden from public search
+   * and the default rescue listing.
+   */
+  async bulkArchivePets(petIds: string[], reason?: string): Promise<BulkPetOperationResult> {
+    try {
+      const response = await this.apiService.post<ApiResponse<BulkPetOperationResult>>(
+        `${PETS_ENDPOINTS.PETS}/bulk-update`,
+        {
+          petIds,
+          operation: 'archive',
+          reason,
+        }
+      );
+
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to bulk archive pets');
+      }
+    } catch (error) {
+      if (this.config.debug) {
+        console.error('Failed to bulk archive pets:', error);
       }
       throw error;
     }
