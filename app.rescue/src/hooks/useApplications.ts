@@ -216,7 +216,12 @@ export const useApplicationDetails = (applicationId: string | null) => {
       }
 
       try {
-        await applicationService.transitionStage(applicationId, action.type, notes);
+        await applicationService.transitionStage(
+          applicationId,
+          action.type,
+          action.nextStage,
+          notes
+        );
         await fetchApplicationDetails(); // Refresh data
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to transition application stage');

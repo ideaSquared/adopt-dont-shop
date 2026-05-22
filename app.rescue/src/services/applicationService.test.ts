@@ -3,6 +3,7 @@ import type { ApplicationFilter } from '../types/applications';
 
 const apiServiceMock = vi.hoisted(() => ({
   get: vi.fn<(url: string) => Promise<unknown>>(),
+  patch: vi.fn<(url: string, body: unknown) => Promise<unknown>>(),
 }));
 
 vi.mock('./libraryServices', () => ({
@@ -89,5 +90,72 @@ describe('RescueApplicationService.getApplications query parameters (ADS-575)', 
     expect(params.get('petBreed')).toBeNull();
     expect(params.get('submittedFrom')).toBeNull();
     expect(params.get('submittedTo')).toBeNull();
+  });
+});
+
+/**
+ * ADS-642: stage transitions go through the bulk-update endpoint —
+ * there is no dedicated stage-transition route on the backend. These
+ * tests pin down that single-row transitions dispatch a one-item batch
+ * with the correct updates payload for each StageAction type.
+ */
+describe('RescueApplicationService.transitionStage (ADS-642)', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    apiServiceMock.patch.mockResolvedValue({ updatedCount: 1 });
+  });
+
+  const getBulkRequest = (): {
+    url: string;
+    body: { applicationIds: string[]; updates: Record<string, unknown> };
+  } => {
+    expect(apiServiceMock.patch).toHaveBeenCalledTimes(1);
+    const [url, body] = apiServiceMock.patch.mock.calls[0];
+    return { url, body: body as { applicationIds: string[]; updates: Record<string, unknown> } };
+  };
+
+  it('targets the bulk-update endpoint with a single-element applicationIds batch', async () => {
+    await service.transitionStage('app-1', 'START_REVIEW', 'REVIEWING');
+
+    const { url, body } = getBulkRequest();
+    expect(url).toBe('/api/v1/applications/bulk-update');
+    expect(body.applicationIds).toEqual(['app-1']);
+  });
+
+  it('writes the lowercased next stage for non-terminal transitions', async () => {
+    await service.transitionStage('app-1', 'SCHEDULE_VISIT', 'VISITING');
+
+    expect(getBulkRequest().body.updates).toEqual({ stage: 'visiting' });
+  });
+
+  it('resolves the application with rejected status when the action is REJECT', async () => {
+    await service.transitionStage('app-1', 'REJECT', 'RESOLVED', 'incomplete references');
+
+    expect(getBulkRequest().body.updates).toEqual({
+      status: 'rejected',
+      stage: 'resolved',
+      finalOutcome: 'rejected',
+      rejectionReason: 'incomplete references',
+    });
+  });
+
+  it('marks the application as withdrawn when the action is WITHDRAW', async () => {
+    await service.transitionStage('app-1', 'WITHDRAW', 'RESOLVED', 'applicant changed mind');
+
+    expect(getBulkRequest().body.updates).toEqual({
+      status: 'withdrawn',
+      stage: 'withdrawn',
+      finalOutcome: 'withdrawn',
+      withdrawalReason: 'applicant changed mind',
+    });
+  });
+
+  it('throws when a non-terminal action is missing its nextStage', async () => {
+    await expect(service.transitionStage('app-1', 'START_REVIEW', undefined)).rejects.toThrow(
+      /nextStage/
+    );
+    expect(apiServiceMock.patch).not.toHaveBeenCalled();
   });
 });
