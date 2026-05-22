@@ -9,6 +9,7 @@ import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import User, { UserStatus, UserType } from '../models/User';
 import RefreshToken from '../models/RefreshToken';
 import RevokedToken from '../models/RevokedToken';
+import TwoFactorRecovery from '../models/TwoFactorRecovery';
 import EmailQueue, { EmailStatus, EmailType, EmailPriority } from '../models/EmailQueue';
 import { logger, loggerHelpers } from '../utils/logger';
 import { decryptSecret, encryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
@@ -788,6 +789,388 @@ Need help? Contact us at support@adoptdontshop.com
       return { message: 'Password reset successfully' };
     } catch (error) {
       logger.error('Password reset confirmation failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch KK: request an email-bootstrapped 2FA recovery link.
+   *
+   * Pre-auth endpoint for users who have lost both their TOTP device and
+   * all backup codes. Mirrors requestPasswordReset's enumeration-resistant
+   * shape — always returns the same generic 200 message; only emails a
+   * link when the email matches a user who actually has 2FA enabled.
+   *
+   * Token: 32 random bytes hex. Plaintext only travels in the email link;
+   * the SHA-256 hash is persisted on a new TwoFactorRecovery row with a
+   * 1-hour expiry (model hook hashes on save, same as Invitation).
+   */
+  async requestTwoFactorRecovery(data: { email: string }, ipAddress?: string, userAgent?: string) {
+    const genericMessage =
+      'If the email matches an account with two-factor authentication, a recovery link has been sent.';
+
+    try {
+      const user = await User.findOne({
+        where: { email: normalizeEmail(data.email) },
+      });
+
+      if (!user) {
+        // Don't reveal if email exists — same shape as password-reset.
+        // No audit-log subject (the email isn't tied to a real user);
+        // the IP/UA are still captured via subjectless event below.
+        logger.info('2FA recovery requested for non-existent email', {
+          email: redactEmail(data.email),
+          ipAddress,
+        });
+        await AuditLogService.log({
+          action: 'TWO_FACTOR_RECOVERY_REQUESTED',
+          entity: 'User',
+          entityId: 'unknown',
+          userId: '',
+          ipAddress,
+          userAgent,
+          details: { email: redactEmail(data.email), reason: 'unknown_email' },
+        }).catch(err => {
+          logger.warn('Failed to write 2FA recovery audit (unknown email)', { err });
+        });
+        return { message: genericMessage };
+      }
+
+      if (!user.twoFactorEnabled) {
+        // User exists but 2FA isn't on — silently no-op to avoid leaking
+        // 2FA-enrollment state via timing or response shape. Still audit.
+        logger.info('2FA recovery requested for user without 2FA enabled', {
+          userId: user.userId,
+        });
+        await AuditLogService.log({
+          action: 'TWO_FACTOR_RECOVERY_REQUESTED',
+          entity: 'User',
+          entityId: user.userId,
+          userId: user.userId,
+          ipAddress,
+          userAgent,
+          details: { email: user.email, reason: 'two_factor_not_enabled' },
+        }).catch(err => {
+          logger.warn('Failed to write 2FA recovery audit (2FA off)', { err });
+        });
+        return { message: genericMessage };
+      }
+
+      const plaintextToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await TwoFactorRecovery.create({
+        user_id: user.userId,
+        token: plaintextToken, // beforeSave hook hashes
+        expires_at: expiresAt,
+      });
+
+      await AuditLogService.log({
+        action: 'TWO_FACTOR_RECOVERY_REQUESTED',
+        entity: 'User',
+        entityId: user.userId,
+        userId: user.userId,
+        ipAddress,
+        userAgent,
+        details: { email: user.email },
+      });
+
+      loggerHelpers.logSecurity('2FA recovery requested', {
+        userId: user.userId,
+        email: redactEmail(user.email),
+      });
+
+      try {
+        const emailService = (await import('./email.service')).default;
+        // ADS-438: validate FRONTEND_URL origin before building the link.
+        const recoveryUrl = `${getValidatedFrontendOrigin()}/auth/2fa/recover?token=${plaintextToken}`;
+
+        await emailService.sendEmail({
+          toEmail: user.email,
+          toName: `${user.firstName} ${user.lastName}`,
+          subject: "Two-Factor Recovery Request - Adopt Don't Shop",
+          htmlContent: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Two-Factor Recovery Request</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+                <tr>
+                  <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
+                          <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Two-Factor Recovery</h1>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 40px 30px;">
+                          <p style="font-size: 16px; color: #333333; margin: 0 0 20px 0;">Hi ${user.firstName},</p>
+                          <p style="font-size: 16px; color: #333333; margin: 0 0 20px 0; line-height: 1.6;">
+                            We received a request to recover access to your Adopt Don't Shop account by
+                            disabling two-factor authentication. Click the button below to continue.
+                          </p>
+                          <p style="font-size: 16px; color: #333333; margin: 0 0 20px 0; line-height: 1.6;">
+                            <strong>Confirming this link will turn off two-factor authentication and sign
+                            you out of all active sessions.</strong> You will be able to sign in with just
+                            your password until you re-enable two-factor authentication.
+                          </p>
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                            <tr>
+                              <td align="center">
+                                <a href="${recoveryUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Recover My Account</a>
+                              </td>
+                            </tr>
+                          </table>
+                          <p style="font-size: 14px; color: #666666; margin: 20px 0 10px 0; line-height: 1.6;">
+                            Or copy and paste this link into your browser:
+                          </p>
+                          <p style="font-size: 14px; color: #667eea; word-break: break-all; margin: 0 0 20px 0;">
+                            ${recoveryUrl}
+                          </p>
+                          <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin: 30px 0;">
+                            <p style="font-size: 14px; color: #856404; margin: 0; line-height: 1.6;">
+                              <strong>This link will expire in 1 hour</strong> for your security.
+                            </p>
+                          </div>
+                          <p style="font-size: 14px; color: #666666; margin: 20px 0 0 0; line-height: 1.6;">
+                            If you didn't request this, you can safely ignore this email — your
+                            two-factor authentication will remain active.
+                          </p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                          <p style="font-size: 14px; color: #6c757d; margin: 0 0 10px 0;">
+                            Need help? Contact us at <a href="mailto:support@adoptdontshop.com" style="color: #667eea; text-decoration: none;">support@adoptdontshop.com</a>
+                          </p>
+                          <p style="font-size: 12px; color: #adb5bd; margin: 0;">
+                            © ${new Date().getFullYear()} Adopt Don't Shop. All rights reserved.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          `,
+          textContent: `Hi ${user.firstName},
+
+We received a request to recover access to your Adopt Don't Shop account by disabling two-factor authentication.
+
+Confirming this link will turn off two-factor authentication and sign you out of all active sessions. You will be able to sign in with just your password until you re-enable two-factor authentication.
+
+To continue, click the link below or copy and paste it into your browser:
+
+${recoveryUrl}
+
+This link will expire in 1 hour for your security.
+
+If you didn't request this, you can safely ignore this email — your two-factor authentication will remain active.
+
+Need help? Contact us at support@adoptdontshop.com
+
+© ${new Date().getFullYear()} Adopt Don't Shop. All rights reserved.
+`,
+          templateData: {
+            firstName: user.firstName,
+            // Bare token intentionally omitted — the signed recoveryUrl
+            // already embeds it (mirrors the password-reset template).
+            recoveryUrl,
+            expiresAt: expiresAt.toISOString(),
+          },
+          type: 'transactional',
+          priority: 'high',
+        });
+
+        logger.info('2FA recovery email sent', {
+          userId: user.userId,
+          email: redactEmail(user.email),
+        });
+      } catch (emailError) {
+        logger.error('Failed to send 2FA recovery email:', emailError);
+        // Don't throw — still return success to user for security.
+      }
+
+      return { message: genericMessage };
+    } catch (error) {
+      logger.error('2FA recovery request failed:', {
+        error: error instanceof Error ? error.message : String(error),
+        email: redactEmail(data.email),
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Batch KK: confirm a 2FA recovery token from the emailed link.
+   *
+   * Atomic single-use claim: inside one transaction we flip the recovery
+   * row to used=true (gated by used=false in the WHERE so concurrent
+   * confirms can't both win) and tear down 2FA on the user. Then revoke
+   * every active refresh token and disconnect live sockets so any session
+   * predating the recovery cannot continue, and email the user a heads-up
+   * so they can react if the recovery wasn't theirs.
+   */
+  async confirmTwoFactorRecovery(data: { token: string }) {
+    const hashedToken = hashToken(data.token);
+    let userId: string | null = null;
+
+    try {
+      await sequelize.transaction(async transaction => {
+        const recovery = await TwoFactorRecovery.findOne({
+          where: {
+            token: hashedToken,
+            used: false,
+            expires_at: { [Op.gt]: new Date() },
+          },
+          transaction,
+        });
+
+        if (!recovery) {
+          throw new Error('Invalid or expired recovery token');
+        }
+
+        // Conditional UPDATE provides the atomic single-use claim:
+        // two concurrent confirms with the same token both pass the
+        // findOne, but only one wins the WHERE used=false write. The
+        // loser sees affectedCount=0 and throws the same generic error.
+        const [affectedCount] = await TwoFactorRecovery.update(
+          { used: true, used_at: new Date() },
+          {
+            where: {
+              recovery_id: recovery.recovery_id,
+              used: false,
+              expires_at: { [Op.gt]: new Date() },
+            },
+            transaction,
+          }
+        );
+
+        if (affectedCount === 0) {
+          throw new Error('Invalid or expired recovery token');
+        }
+
+        const user = await User.findByPk(recovery.user_id, { transaction });
+        if (!user) {
+          // Should not happen — FK CASCADE keeps these in sync — but be
+          // defensive: a missing user means the row is orphaned and the
+          // token must not be honoured.
+          throw new Error('Invalid or expired recovery token');
+        }
+
+        user.twoFactorEnabled = false;
+        user.twoFactorSecret = null;
+        user.twoFactorPendingSecret = null;
+        user.twoFactorPendingExpiresAt = null;
+        user.backupCodes = null;
+        await user.save({ transaction });
+
+        userId = user.userId;
+      });
+
+      if (!userId) {
+        // Defensive: the transaction body always assigns userId on success.
+        throw new Error('Invalid or expired recovery token');
+      }
+
+      // Out-of-transaction cleanup (mirrors disableTwoFactor): a 2FA
+      // recovery is a security downgrade — revoke every active refresh
+      // token and disconnect live sockets so no session predating the
+      // recovery can continue.
+      const revokedCount = await RefreshToken.update(
+        { is_revoked: true },
+        { where: { user_id: userId, is_revoked: false } }
+      );
+      invalidateAuthCache(userId);
+      disconnectAllSockets(userId);
+
+      await AuditLogService.log({
+        action: 'TWO_FACTOR_RECOVERED',
+        entity: 'User',
+        entityId: userId,
+        userId,
+        details: { reason: 'email_recovery' },
+      });
+
+      await AuditLogService.log({
+        action: 'REFRESH_TOKENS_REVOKED',
+        entity: 'User',
+        entityId: userId,
+        userId,
+        details: { reason: 'two_factor_recovered', count: revokedCount[0] },
+      });
+
+      loggerHelpers.logSecurity('2FA recovered via email link', { userId });
+
+      // Send a confirmation email so the legitimate owner is notified
+      // even if the recovery wasn't theirs (mitigates the risk that email
+      // is now the single auth factor during the recovery window).
+      try {
+        const user = await User.findByPk(userId);
+        if (user) {
+          const emailService = (await import('./email.service')).default;
+          const loginUrl = `${getValidatedFrontendOrigin()}/login`;
+
+          await emailService.sendEmail({
+            toEmail: user.email,
+            toName: `${user.firstName} ${user.lastName}`,
+            subject: "Two-Factor Authentication Disabled - Adopt Don't Shop",
+            htmlContent: `
+              <!DOCTYPE html>
+              <html>
+              <body style="font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px;">
+                <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px;">
+                  <h2 style="color: #333;">Two-Factor Authentication Disabled</h2>
+                  <p>Hi ${user.firstName},</p>
+                  <p>Two-factor authentication has just been disabled on your account using the
+                  email recovery link. All active sessions have been signed out for your security.</p>
+                  <p>You can now sign in with just your password. We recommend re-enabling
+                  two-factor authentication as soon as you can.</p>
+                  <p><a href="${loginUrl}" style="display:inline-block;padding:12px 24px;background:#667eea;color:#fff;border-radius:6px;text-decoration:none;">Sign in</a></p>
+                  <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:12px;margin:20px 0;">
+                    <p style="margin:0;color:#856404;"><strong>If this wasn't you</strong>, your account
+                    may be compromised. Reset your password immediately and contact support at
+                    support@adoptdontshop.com.</p>
+                  </div>
+                  <p style="font-size:12px;color:#999;">© ${new Date().getFullYear()} Adopt Don't Shop.</p>
+                </div>
+              </body>
+              </html>
+            `,
+            textContent: `Hi ${user.firstName},
+
+Two-factor authentication has just been disabled on your account using the email recovery link. All active sessions have been signed out for your security.
+
+You can now sign in with just your password: ${loginUrl}
+
+We recommend re-enabling two-factor authentication as soon as you can.
+
+If this wasn't you, your account may be compromised. Reset your password immediately and contact support at support@adoptdontshop.com.
+
+© ${new Date().getFullYear()} Adopt Don't Shop.
+`,
+            type: 'transactional',
+            priority: 'high',
+          });
+        }
+      } catch (emailError) {
+        // Notification is best-effort — the recovery itself already
+        // succeeded. Log but don't fail the request.
+        logger.error('Failed to send 2FA recovery confirmation email:', emailError);
+      }
+
+      return {
+        message: 'Two-factor authentication has been disabled. Please sign in with your password.',
+      };
+    } catch (error) {
+      logger.error('2FA recovery confirmation failed:', error);
       throw error;
     }
   }

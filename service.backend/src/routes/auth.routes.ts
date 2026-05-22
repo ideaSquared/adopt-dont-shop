@@ -565,6 +565,23 @@ router.get('/me', authenticateToken, AuthController.getCurrentUser);
  */
 router.put('/me', authenticateToken, authValidation.updateProfile, AuthController.updateProfile);
 
+// Batch KK: email-bootstrapped 2FA recovery (pre-auth). Pre-existing
+// passwordResetLimiter is reused: same shape (3/hr by IP) and the same
+// risk model — a low-volume, email-bound, slow flow whose security
+// envelope is dominated by the cryptographic token in the email link.
+router.post(
+  '/2fa/recover',
+  passwordResetLimiter,
+  authValidation.requestTwoFactorRecovery,
+  AuthController.requestTwoFactorRecovery
+);
+router.post(
+  '/2fa/recover/confirm',
+  passwordResetLimiter,
+  authValidation.confirmTwoFactorRecovery,
+  AuthController.confirmTwoFactorRecovery
+);
+
 // Two-Factor Authentication routes
 router.post('/2fa/setup', authenticateToken, twoFactorLimiter, AuthController.twoFactorSetup);
 router.post(

@@ -164,6 +164,19 @@ export const ResetPasswordSchema = z.object({
 });
 export type ResetPassword = z.infer<typeof ResetPasswordSchema>;
 
+// ADS Batch KK: email-bootstrapped 2FA recovery. Request mirrors the
+// password-reset shape (email only); confirm takes only the token from
+// the email link — the capability IS the token.
+export const RequestTwoFactorRecoverySchema = z.object({
+  email: EmailSchema,
+});
+export type RequestTwoFactorRecovery = z.infer<typeof RequestTwoFactorRecoverySchema>;
+
+export const ConfirmTwoFactorRecoverySchema = z.object({
+  token: z.string().min(1, 'Recovery token is required'),
+});
+export type ConfirmTwoFactorRecovery = z.infer<typeof ConfirmTwoFactorRecoverySchema>;
+
 /**
  * Inline location block on profile update. Mirrors the express-validator
  * chain in auth.controller.validateUpdateProfile so behaviour is unchanged.

@@ -45,6 +45,8 @@ vi.mock('../../services/auth.service', () => ({
   AuthService: class {
     requestPasswordReset = vi.fn();
     confirmPasswordReset = vi.fn();
+    requestTwoFactorRecovery = vi.fn();
+    confirmTwoFactorRecovery = vi.fn();
     verifyEmail = vi.fn();
     resendVerificationEmail = vi.fn();
   },
@@ -392,6 +394,30 @@ describe('Auth routes', () => {
       const res = await request(buildApp())
         .post('/api/v1/auth/forgot-password')
         .send({ email: 'not-valid' });
+
+      expect(res.status).toBe(422);
+    });
+  });
+
+  describe('POST /api/v1/auth/2fa/recover', () => {
+    it('returns 422 when email is missing', async () => {
+      const res = await request(buildApp()).post('/api/v1/auth/2fa/recover').send({});
+
+      expect(res.status).toBe(422);
+    });
+
+    it('returns 422 when email is not a valid address', async () => {
+      const res = await request(buildApp())
+        .post('/api/v1/auth/2fa/recover')
+        .send({ email: 'not-valid' });
+
+      expect(res.status).toBe(422);
+    });
+  });
+
+  describe('POST /api/v1/auth/2fa/recover/confirm', () => {
+    it('returns 422 when token is missing', async () => {
+      const res = await request(buildApp()).post('/api/v1/auth/2fa/recover/confirm').send({});
 
       expect(res.status).toBe(422);
     });
