@@ -117,7 +117,7 @@ export const HomePage: React.FC = () => {
     });
   };
 
-  const handleCTAClick = (action: 'browse_pets' | 'get_started') => {
+  const handleCTAClick = (action: 'browse_pets' | 'get_started' | 'learn_more') => {
     // Track with new analytics service
     trackEvent({
       category: 'homepage',
@@ -161,14 +161,11 @@ export const HomePage: React.FC = () => {
                   Start Browsing Pets
                 </Button>
               </Link>
-              <Button
-                variant='outline'
-                size='lg'
-                onClick={() => handleCTAClick('get_started')}
-                className={styles.heroSecondaryButton}
-              >
-                Learn More
-              </Button>
+              <Link to='/help' onClick={() => handleCTAClick('learn_more')}>
+                <Button variant='outline' size='lg' className={styles.heroSecondaryButton}>
+                  Learn More
+                </Button>
+              </Link>
             </div>
           </div>
         </section>
