@@ -109,11 +109,7 @@ describe('useUnreadConversations', () => {
     let latest: UseUnreadConversationsResult | null = null;
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Probe onState={(s) => (latest = s)} />
       </ChatProvider>
     );
@@ -153,11 +149,7 @@ describe('useUnreadConversations', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Wrapper />
       </ChatProvider>
     );
@@ -175,11 +167,7 @@ describe('useUnreadConversations', () => {
     let latest: UseUnreadConversationsResult | null = null;
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Probe onState={(s) => (latest = s)} />
       </ChatProvider>
     );
@@ -231,11 +219,7 @@ describe('useUnreadConversations', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Wrapper />
       </ChatProvider>
     );

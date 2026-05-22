@@ -79,11 +79,7 @@ describe('ChatProvider', () => {
     const onRender = vi.fn();
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={null}
-        isAuthenticated={false}
-      >
+      <ChatProvider chatService={chatService} user={null} isAuthenticated={false}>
         <TestConsumer onRender={onRender} />
       </ChatProvider>
     );
@@ -177,11 +173,7 @@ describe('ChatProvider', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <TestConsumer onRender={onRender} />
       </ChatProvider>
     );
@@ -201,11 +193,7 @@ describe('ChatProvider', () => {
 
     let latest: Harness | null = null;
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <TestConsumer onRender={(h) => (latest = h)} />
       </ChatProvider>
     );
@@ -240,11 +228,7 @@ describe('ChatProvider', () => {
   it('renders the consumer tree', () => {
     const { chatService } = buildHarness();
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={null}
-        isAuthenticated={false}
-      >
+      <ChatProvider chatService={chatService} user={null} isAuthenticated={false}>
         <TestConsumer onRender={vi.fn()} />
       </ChatProvider>
     );
@@ -273,11 +257,7 @@ describe('ChatProvider', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Caller />
         <TestConsumer onRender={(h) => (latest = h)} />
       </ChatProvider>
@@ -375,11 +355,7 @@ describe('ChatProvider', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Caller />
         <TestConsumer onRender={(h) => (latest = h)} />
       </ChatProvider>
@@ -405,11 +381,7 @@ describe('ChatProvider', () => {
 
       let latest: Harness | null = null;
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <TestConsumer onRender={(h) => (latest = h)} />
         </ChatProvider>
       );
@@ -713,11 +685,7 @@ describe('ChatProvider', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Caller />
         <TestConsumer onRender={(h) => (latest = h)} />
       </ChatProvider>
@@ -748,11 +716,7 @@ describe('ChatProvider', () => {
       };
 
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <Capture />
         </ChatProvider>
       );
@@ -779,11 +743,7 @@ describe('ChatProvider', () => {
       };
 
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <Capture />
         </ChatProvider>
       );
@@ -810,11 +770,7 @@ describe('ChatProvider', () => {
       };
 
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <Capture />
         </ChatProvider>
       );
@@ -845,11 +801,7 @@ describe('ChatProvider', () => {
       };
 
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <Capture />
         </ChatProvider>
       );

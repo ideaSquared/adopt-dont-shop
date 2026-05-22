@@ -35,15 +35,21 @@ export { disconnectAllSockets } from './socket-registry';
  */
 const extractSocketToken = (socket: Socket): string | null => {
   const authToken = socket.handshake.auth?.token as string | undefined;
-  if (authToken) return authToken;
+  if (authToken) {
+    return authToken;
+  }
 
   const bearer = socket.handshake.headers.authorization?.split(' ')[1];
-  if (bearer) return bearer;
+  if (bearer) {
+    return bearer;
+  }
 
   const cookieStr = socket.handshake.headers.cookie;
   if (cookieStr) {
-    const match = cookieStr.split(';').find((p) => p.trim().startsWith('accessToken='));
-    if (match) return match.trim().slice('accessToken='.length);
+    const match = cookieStr.split(';').find(p => p.trim().startsWith('accessToken='));
+    if (match) {
+      return match.trim().slice('accessToken='.length);
+    }
   }
 
   return null;
