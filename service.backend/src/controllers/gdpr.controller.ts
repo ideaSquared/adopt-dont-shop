@@ -52,25 +52,26 @@ export class GdprController {
   }
 
   /**
-   * GDPR Art. 17 — self-erasure. Anonymises the caller's account.
+   * GDPR Art. 17 — self-erasure (phase 1). Soft-deletes the caller's
+   * account and schedules anonymization after the grace window.
    */
   async eraseSelf(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.userId;
       const { reason } = req.body as { reason?: string };
-      await GdprService.anonymizeUser(userId, { reason, actorUserId: userId });
+      await GdprService.requestErasure(userId, { reason, actorUserId: userId });
       // Clear auth cookies with the same options used to set them so the
       // browser actually removes them (path/secure/sameSite must match).
       res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
       res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
-      res.json({ success: true, message: 'Account anonymised' });
+      res.json({ success: true, message: 'Account scheduled for deletion' });
     } catch (error) {
       logger.error('GDPR self-erase failed', { error });
       if (error instanceof Error && error.message === 'User not found') {
         res.status(404).json({ error: 'User not found' });
         return;
       }
-      res.status(500).json({ error: 'Failed to anonymise account' });
+      res.status(500).json({ error: 'Failed to schedule account deletion' });
     }
   }
 
@@ -82,15 +83,46 @@ export class GdprController {
       }
       const { userId } = req.params;
       const { reason } = req.body as { reason?: string };
-      await GdprService.anonymizeUser(userId, { reason, actorUserId: req.user!.userId });
-      res.json({ success: true, message: 'User anonymised' });
+      await GdprService.requestErasure(userId, { reason, actorUserId: req.user!.userId });
+      res.json({ success: true, message: 'User scheduled for deletion' });
     } catch (error) {
       logger.error('GDPR admin erase failed', { error });
       if (error instanceof Error && error.message === 'User not found') {
         res.status(404).json({ error: 'User not found' });
         return;
       }
-      res.status(500).json({ error: 'Failed to anonymise user' });
+      res.status(500).json({ error: 'Failed to schedule user deletion' });
+    }
+  }
+
+  /**
+   * Admin off-ramp for an in-grace phase-1 erasure. Clears the pending
+   * anonymization marker and undeletes the user row. Fails once phase
+   * 2 (PII scrub) has run — there's nothing meaningful to restore at
+   * that point.
+   */
+  async cancelErasure(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!isAdmin(req)) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+      const { userId } = req.params;
+      await GdprService.cancelErasure(userId, { userId: req.user!.userId });
+      res.json({ success: true, message: 'User erasure cancelled' });
+    } catch (error) {
+      logger.error('GDPR cancel-erasure failed', { error });
+      if (error instanceof Error) {
+        if (error.message === 'User not found') {
+          res.status(404).json({ error: 'User not found' });
+          return;
+        }
+        if (error.message === 'User already anonymized — cannot cancel erasure') {
+          res.status(409).json({ error: error.message });
+          return;
+        }
+      }
+      res.status(500).json({ error: 'Failed to cancel user erasure' });
     }
   }
 

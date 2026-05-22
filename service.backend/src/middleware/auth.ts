@@ -102,6 +102,36 @@ const authenticateRequest = async (token: string): Promise<User> => {
     throw new AuthError(401, 'ACCOUNT_INACTIVE', 'Account is not active');
   }
 
+  // ADS: forced-rotation gate. Any credential-change event (role
+  // change, password reset, 2FA enable/disable) bumps
+  // tokensInvalidBefore on the user row. Access tokens whose `iat` is
+  // older than that timestamp are rejected here — that closes the
+  // 15-min window where a downgraded user's old JWT would otherwise
+  // still authorise requests until natural expiry. Refresh tokens go
+  // through a different code path (services/auth.service.refreshToken)
+  // and mint a new access token with a fresh `iat`, so a legitimate
+  // refresh after a credential change continues to work.
+  if (user.tokensInvalidBefore && typeof decoded.iat === 'number') {
+    const invalidBeforeSec = Math.floor(user.tokensInvalidBefore.getTime() / 1000);
+    if (decoded.iat < invalidBeforeSec) {
+      throw new AuthError(401, 'TOKEN_ROTATED', 'Token revoked due to credential change');
+    }
+  }
+
+  // ADS: cross-check the JWT's embedded userType against the current DB
+  // value. The DB is the source of truth (the JWT is only a hint that
+  // lets downstream code skip a lookup); a mismatch means the token
+  // was minted before a role change that didn't get caught by the iat
+  // gate above (legacy tokens without `iat`, clock skew, …). Log it
+  // and continue with req.user from the DB lookup.
+  if (decoded.userType && decoded.userType !== user.userType) {
+    loggerHelpers.logSecurity('JWT userType drift; using DB value', {
+      userId: user.userId,
+      jwtUserType: decoded.userType,
+      dbUserType: user.userType,
+    });
+  }
+
   // ADS-538: defence in depth. Even if a future code path activates a
   // user pre-verification, an unverified-email account must not be able
   // to ride an auth token through this middleware. The status check

@@ -77,7 +77,8 @@ import emailService from '../../services/email.service';
 import { ReportsService } from '../../services/reports.service';
 import { __testables } from '../../workers/reports.worker';
 
-const { handleRenderAndEmail, handleScheduledRun } = __testables;
+const { handleRenderAndEmail, handleScheduledRun, ScheduledRunJobSchema, RenderAndEmailJobSchema } =
+  __testables;
 
 const baseExecuted = { widgets: [], filters: {}, computedAt: '2026-01-01T00:00:00Z' };
 
@@ -302,5 +303,63 @@ describe('reports.worker: handleScheduledRun ownership re-verification', () => {
     await handleScheduledRun({ scheduleId: 'sched-1' });
 
     expect(enqueueSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('reports.worker: job payload schemas reject malformed input at execution time', () => {
+  it('accepts a valid scheduled-run payload', () => {
+    expect(ScheduledRunJobSchema.safeParse({ scheduleId: 'sched-1' }).success).toBe(true);
+  });
+
+  it('rejects scheduled-run payload missing scheduleId', () => {
+    expect(ScheduledRunJobSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('rejects scheduled-run payload with empty scheduleId', () => {
+    expect(ScheduledRunJobSchema.safeParse({ scheduleId: '' }).success).toBe(false);
+  });
+
+  it('accepts a valid render-and-email payload', () => {
+    expect(
+      RenderAndEmailJobSchema.safeParse({
+        savedReportId: 'r-1',
+        recipients: [{ email: 'recipient@example.com' }],
+        format: 'pdf',
+        triggeredBy: 'schedule',
+      }).success
+    ).toBe(true);
+  });
+
+  it('rejects render-and-email payload with invalid recipient email', () => {
+    expect(
+      RenderAndEmailJobSchema.safeParse({
+        savedReportId: 'r-1',
+        recipients: [{ email: 'not-an-email' }],
+        format: 'pdf',
+        triggeredBy: 'schedule',
+      }).success
+    ).toBe(false);
+  });
+
+  it('rejects render-and-email payload with unknown format', () => {
+    expect(
+      RenderAndEmailJobSchema.safeParse({
+        savedReportId: 'r-1',
+        recipients: [{ email: 'recipient@example.com' }],
+        format: 'docx',
+        triggeredBy: 'schedule',
+      }).success
+    ).toBe(false);
+  });
+
+  it('rejects render-and-email payload with unknown trigger source', () => {
+    expect(
+      RenderAndEmailJobSchema.safeParse({
+        savedReportId: 'r-1',
+        recipients: [{ email: 'recipient@example.com' }],
+        format: 'pdf',
+        triggeredBy: 'attacker',
+      }).success
+    ).toBe(false);
   });
 });

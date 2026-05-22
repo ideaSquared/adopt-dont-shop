@@ -1,4 +1,5 @@
 import type { Worker } from 'bullmq';
+import { z } from 'zod';
 import { buildWorker, getReportsQueue, isQueueAvailable } from '../lib/queue';
 import { ReportsService } from '../services/reports.service';
 import { ReportRenderer } from '../services/report-renderer.service';
@@ -34,16 +35,29 @@ import type { ReportConfig } from '../schemas/reports.schema';
  * runs jobs.
  */
 
-export type ScheduledRunJob = {
-  scheduleId: string;
-};
+/**
+ * Defense-in-depth: re-validate job payloads at execution time. BullMQ
+ * persists job.data as JSON in Redis, so a queue compromise or a
+ * mis-deployment that drops a hand-crafted payload onto the queue
+ * would otherwise hit the handlers with whatever shape it likes. Parse
+ * the payload first; on failure, log and let the job fail cleanly via
+ * the worker's failed-handler rather than crashing the process.
+ */
+const ScheduledRunJobSchema = z.object({
+  scheduleId: z.string().min(1),
+});
 
-export type RenderAndEmailJob = {
-  savedReportId: string;
-  scheduleId?: string;
-  recipients: ScheduledReportRecipient[];
-  format: ScheduledReportFormat;
-  triggeredBy: 'schedule' | 'manual';
+const ScheduledReportRecipientSchema = z.object({
+  email: z.string().email(),
+  userId: z.string().optional(),
+}) satisfies z.ZodType<ScheduledReportRecipient>;
+
+const RenderAndEmailJobSchema = z.object({
+  savedReportId: z.string().min(1),
+  scheduleId: z.string().min(1).optional(),
+  recipients: z.array(ScheduledReportRecipientSchema),
+  format: z.nativeEnum(ScheduledReportFormat),
+  triggeredBy: z.enum(['schedule', 'manual']),
   /**
    * Defense-in-depth ownership re-check. The worker re-verifies that
    * this user still exists and still has edit access to the report
@@ -51,8 +65,11 @@ export type RenderAndEmailJob = {
    * in-flight legacy jobs; new enqueues from `handleScheduledRun`
    * always populate it.
    */
-  requestedBy?: string;
-};
+  requestedBy: z.string().optional(),
+});
+
+export type ScheduledRunJob = z.infer<typeof ScheduledRunJobSchema>;
+export type RenderAndEmailJob = z.infer<typeof RenderAndEmailJobSchema>;
 
 const SCHEDULED_RUN = 'report:scheduled-run';
 const RENDER_AND_EMAIL = 'report:render-and-email';
@@ -264,18 +281,41 @@ export const startReportsWorker = (): Worker<ScheduledRunJob | RenderAndEmailJob
   }
   workerInstance = buildWorker<ScheduledRunJob | RenderAndEmailJob, void>(async job => {
     if (job.name === SCHEDULED_RUN) {
-      await handleScheduledRun(job.data as ScheduledRunJob);
+      const parsed = ScheduledRunJobSchema.safeParse(job.data);
+      if (!parsed.success) {
+        // Throwing surfaces this as a job failure (with retries exhausted
+        // per the queue's retry policy) rather than crashing the worker.
+        // Don't log job.data verbatim — it may contain attacker-controlled
+        // payloads.
+        logger.warn('reports.worker: rejecting malformed scheduled-run payload', {
+          jobName: job.name,
+          issues: parsed.error.issues.map(i => ({ path: i.path.join('.'), code: i.code })),
+        });
+        throw new Error('Invalid scheduled-run job payload');
+      }
+      await handleScheduledRun(parsed.data);
     } else if (job.name === RENDER_AND_EMAIL) {
-      await handleRenderAndEmail(job.data as RenderAndEmailJob);
+      const parsed = RenderAndEmailJobSchema.safeParse(job.data);
+      if (!parsed.success) {
+        logger.warn('reports.worker: rejecting malformed render-and-email payload', {
+          jobName: job.name,
+          issues: parsed.error.issues.map(i => ({ path: i.path.join('.'), code: i.code })),
+        });
+        throw new Error('Invalid render-and-email job payload');
+      }
+      await handleRenderAndEmail(parsed.data);
     } else {
       logger.warn('Unknown reports-worker job name', { jobName: job.name });
     }
   });
   workerInstance.on('failed', async (job, err) => {
     if (job?.name === RENDER_AND_EMAIL) {
-      const data = job.data as RenderAndEmailJob;
-      if (data.scheduleId) {
-        const schedule = await ScheduledReport.findByPk(data.scheduleId).catch(() => null);
+      // Re-parse here too — this handler runs even when the dispatcher
+      // rejected the payload as malformed. A scheduleId we can trust is
+      // a prerequisite for writing back the failure status.
+      const parsed = RenderAndEmailJobSchema.safeParse(job.data);
+      if (parsed.success && parsed.data.scheduleId) {
+        const schedule = await ScheduledReport.findByPk(parsed.data.scheduleId).catch(() => null);
         if (schedule) {
           schedule.last_status = ScheduledReportStatus.FAILED;
           schedule.last_error = err.message.slice(0, 1000);
@@ -301,4 +341,6 @@ export const stopReportsWorker = async (): Promise<void> => {
 export const __testables = {
   handleScheduledRun,
   handleRenderAndEmail,
+  ScheduledRunJobSchema,
+  RenderAndEmailJobSchema,
 };

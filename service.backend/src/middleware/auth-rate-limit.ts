@@ -14,6 +14,7 @@
 import type { Request, Response } from 'express';
 import rateLimit, { type Options as RateLimitOptions, type Store } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
+import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import { getRedis } from '../lib/redis';
 import { logger } from '../utils/logger';
 
@@ -73,18 +74,23 @@ const buildLimiter = (
 const emailKey = (req: Request): string => {
   const body = req.body as Record<string, unknown> | undefined;
   const raw = typeof body?.email === 'string' ? body.email : '';
-  return `email:${raw.toLowerCase()}`;
+  // Normalize so callers can't bypass the per-email cap by submitting
+  // different Unicode forms (full-width, Cyrillic homograph, etc.) of
+  // the same target address.
+  return `email:${normalizeEmail(raw)}`;
 };
 
 /**
  * IP-keyed registration limiter — stricter than the IP-keyed auth limiter
  * since registration is the primary fake-account-flooding vector.
  *
- * 20 registrations per hour per IP.
+ * 5 registrations per hour per IP. Tightened from 20/h (A9) now that the
+ * Turnstile middleware sits in front and absorbs scripted spam before it
+ * reaches this bucket.
  */
 export const registrationIpLimiter = buildLimiter('register-ip', {
   windowMs: ONE_HOUR_MS,
-  max: 20,
+  max: 5,
 });
 
 /**

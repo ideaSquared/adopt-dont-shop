@@ -360,6 +360,54 @@ describe('RescueService - Behavioral Testing', () => {
         } as unknown)
       ).rejects.toThrow();
     });
+
+    it('rejects a 4th rescue created by the same user with the per-user cap message', async () => {
+      // Founder user already exists (seeded by sequelize.sync default scope) —
+      // create a real user row so the FK on rescues.created_by holds.
+      const founder = await User.create({
+        firstName: 'Founder',
+        lastName: 'User',
+        email: 'founder@example.com',
+        password: 'hashed-password',
+        userType: UserType.RESCUE_STAFF,
+        status: UserStatus.ACTIVE,
+        emailVerified: true,
+      });
+
+      const baseData = {
+        phone: '555-0123',
+        address: '123 Main St',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+        contactPerson: 'Jane Smith',
+      };
+
+      // Seed 3 rescues authored by this user at the cap. created_by is
+      // not part of RescueAttributes (it comes from the audit-columns
+      // mixin), so the literal is cast.
+      for (let i = 0; i < 3; i += 1) {
+        // eslint-disable-next-line no-await-in-loop
+        await Rescue.create({
+          ...baseData,
+          name: `Cap Rescue ${i}`,
+          email: `cap-${i}@rescue.org`,
+          status: 'verified',
+          created_by: founder.userId,
+        } as unknown as Parameters<typeof Rescue.create>[0]);
+      }
+
+      await expect(
+        RescueService.createRescue(
+          {
+            ...baseData,
+            name: 'Fourth Rescue',
+            email: 'fourth@rescue.org',
+          },
+          founder.userId
+        )
+      ).rejects.toThrow('Maximum number of rescues per user reached');
+    });
   });
 
   describe('updateRescue', () => {

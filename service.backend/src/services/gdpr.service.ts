@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Transaction } from 'sequelize';
 import sequelize from '../sequelize';
 import Application, { ApplicationStatus } from '../models/Application';
@@ -15,29 +16,86 @@ import Rescue from '../models/Rescue';
 import StaffMember from '../models/StaffMember';
 import SupportTicket from '../models/SupportTicket';
 import SupportTicketResponse from '../models/SupportTicketResponse';
-import User, { UserStatus } from '../models/User';
+import User, { UserStatus, UserType } from '../models/User';
 import UserApplicationPrefs from '../models/UserApplicationPrefs';
 import UserConsent, { ConsentPurpose } from '../models/UserConsent';
 import UserFavorite from '../models/UserFavorite';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import UserPrivacyPrefs from '../models/UserPrivacyPrefs';
 import { AuditLogService } from './auditLog.service';
+import { FileUploadService } from './file-upload.service';
 import { NotificationService } from './notification.service';
 import { logger } from '../utils/logger';
 
 /**
- * GDPR data subject rights — anonymise (Art. 17) and export (Art. 15/20).
+ * GDPR data subject rights — erasure (Art. 17) and export (Art. 15/20).
  *
- * Anonymise tombstones the User row in-place rather than hard-deleting,
- * because adoption applications, support tickets, audit logs and other
- * records have legitimate-interest / legal retention requirements that
- * outlive the user. We strip every direct identifier from the User row
- * and from chat / support content, then soft-delete the user.
+ * User erasure runs in two phases:
+ *
+ *   Phase 1 — requestErasure (immediate, transactional):
+ *     Soft-deletes the user, revokes refresh tokens, clears device
+ *     tokens / favourites / pending notifications, and stamps
+ *     pending_anonymization_at = now(). The user's PII (email, name,
+ *     address) is intentionally LEFT IN PLACE so support staff can
+ *     identify and restore the account during the grace window if the
+ *     erasure was accidental or fraudulent.
+ *
+ *   Phase 2 — executeAnonymization (deferred, retention worker):
+ *     Scrubs every direct identifier from the User row, rewrites
+ *     sender_id-scoped Message bodies to a tombstone, clears 2FA
+ *     secrets / backup codes / verification + reset tokens, and
+ *     randomises the password. Clears pending_anonymization_at.
+ *     Idempotent — once the row has been anonymised the call is a no-op.
+ *
+ * cancelErasure provides the in-grace off-ramp: it un-soft-deletes the
+ * user and clears pending_anonymization_at so the retention worker
+ * stops considering it.
+ *
+ * Orphan-FK retention: when a user is anonymised, foreign-key rows in
+ * the following tables intentionally keep their userId references with
+ * the user-side identifiers wiped, rather than being deleted:
+ *
+ *   - StaffMember          rescue staffing history (which rescues had
+ *                          which staff members — needed for audit and
+ *                          rescue-side records even after the staff
+ *                          user is gone).
+ *   - Rating               review counts and averages on rescues /
+ *                          adopters stay accurate; the reviewer
+ *                          becomes anonymous but the rating itself is
+ *                          legitimate-interest content for the reviewee.
+ *   - Report               moderation audit trail: reports filed by or
+ *                          against a deleted user remain so the
+ *                          moderation team can trace decisions.
+ *   - SupportTicket        support history for the assigned agent /
+ *                          rescue — closing tickets retroactively
+ *                          when the reporter is anonymised would lose
+ *                          context.
+ *
+ * The User row itself uses paranoid soft-delete (deleted_at) so the
+ * primary key continues to resolve foreign-key joins. The retention
+ * worker never hard-deletes the User row.
  */
+
+const GDPR_ANONYMIZATION_GRACE_DAYS = 30;
 
 type AnonymizeOptions = {
   reason?: string;
   actorUserId?: string;
+};
+
+type RequestErasureResult = {
+  userId: string;
+  pendingAnonymizationAt: Date;
+  refreshTokensRevoked: number;
+  deviceTokensCleared: number;
+};
+
+type AnonymizationResult = {
+  anonymized: boolean;
+};
+
+type CancelErasureResult = {
+  userId: string;
 };
 
 type EraseRescueResult = {
@@ -60,105 +118,295 @@ const tombstoneEmail = (userId: string): string => `deleted-${userId}@${ANON_EMA
 const tombstoneRescueEmail = (rescueId: string): string =>
   `deleted-rescue-${rescueId}@${ANON_EMAIL_DOMAIN}`;
 
+export { GDPR_ANONYMIZATION_GRACE_DAYS };
+
 export const GdprService = {
   /**
-   * Anonymise a user. Idempotent: if the user is already anonymised the
-   * call is a no-op (apart from a fresh audit log entry). All work is
-   * done in a single transaction so a partial run can't leave a half-
-   * scrubbed user in the DB.
+   * Phase 1 of GDPR Art. 17 erasure.
+   *
+   * Soft-deletes the user, revokes all active sessions, clears device
+   * tokens, drops favourites and pending notifications, and stamps
+   * pending_anonymization_at = now(). The user's PII is intentionally
+   * NOT scrubbed at this step — that happens in phase 2, after the
+   * grace window, via executeAnonymization. Keeping PII for the grace
+   * window lets support reverse an accidental or fraudulent deletion
+   * via cancelErasure.
+   *
+   * Idempotent: a second call on an already-soft-deleted user refreshes
+   * pending_anonymization_at (resetting the grace window from "now")
+   * and writes a new audit row, but does not re-revoke tokens that are
+   * already gone.
    */
-  async anonymizeUser(userId: string, options: AnonymizeOptions = {}): Promise<void> {
+  async requestErasure(
+    userId: string,
+    options: AnonymizeOptions = {}
+  ): Promise<RequestErasureResult> {
     const { reason, actorUserId } = options;
 
-    await sequelize.transaction(async (tx: Transaction) => {
-      const user = await User.scope('withSecrets').findByPk(userId, { transaction: tx });
+    return sequelize.transaction(async (tx: Transaction) => {
+      const user = await User.findByPk(userId, { transaction: tx, paranoid: false });
       if (!user) {
         throw new Error('User not found');
       }
 
-      const alreadyAnonymized = user.email.endsWith(`@${ANON_EMAIL_DOMAIN}`);
-
-      // Tombstone the User row. We keep the row (and its userId) so FKs
-      // from applications, audit logs etc. continue to resolve, but the
-      // PII columns are stripped.
-      // Cast the payload to satisfy Sequelize's attribute typing — the
-      // User attributes interface uses `string | undefined` for some
-      // optional fields (city, country, location) that we want to clear
-      // to null at the DB level. Passing null is correct for the DB but
-      // not for the TS model type, so we widen here.
-      const tombstonePayload: Record<string, unknown> = {
-        email: tombstoneEmail(user.userId),
-        firstName: ANON_FIRST_NAME,
-        lastName: ANON_LAST_NAME,
-        phoneNumber: null,
-        phoneVerified: false,
-        dateOfBirth: null,
-        profileImageUrl: null,
-        bio: null,
-        addressLine1: null,
-        addressLine2: null,
-        postalCode: null,
-        city: null,
-        country: null,
-        location: null,
-        twoFactorSecret: null,
-        twoFactorEnabled: false,
-        backupCodes: null,
-        verificationToken: null,
-        verificationTokenExpiresAt: null,
-        resetToken: null,
-        resetTokenExpiration: null,
-        status: UserStatus.DEACTIVATED,
-        // Random password so the account can never be logged into.
-        // hashPassword runs in beforeUpdate, so we can pass plain text.
-        password: `anonymized-${user.userId}-${Date.now()}`,
-      };
-      await user.update(tombstonePayload, { transaction: tx });
+      const pendingAt = new Date();
 
       // Drop session / push tokens — no further auth allowed.
-      await RefreshToken.destroy({ where: { user_id: userId }, transaction: tx, force: true });
-      await DeviceToken.destroy({ where: { user_id: userId }, transaction: tx, force: true });
+      const refreshTokensRevoked = await RefreshToken.destroy({
+        where: { user_id: userId },
+        transaction: tx,
+        force: true,
+      });
+      const deviceTokensCleared = await DeviceToken.destroy({
+        where: { user_id: userId },
+        transaction: tx,
+        force: true,
+      });
 
       // Discretionary user-owned content: favourites and pending
       // notifications are pure preferences / queues, no retention need.
       await UserFavorite.destroy({ where: { userId }, transaction: tx, force: true });
       await Notification.destroy({ where: { user_id: userId }, transaction: tx, force: true });
 
-      // Strip message bodies but keep the row so chat threads remain
-      // coherent for the rescue staff side of the conversation.
-      const messageScrub: Record<string, unknown> = {
-        content: ANON_MESSAGE_BODY,
-        attachments: [],
+      // Mark deactivated and stamp the phase-1 grace marker. PII fields
+      // (email, name, phone, address, 2FA secrets) are left untouched
+      // so support tooling can identify the account during the grace
+      // window. The retention worker scrubs them via executeAnonymization.
+      const phase1Payload: Record<string, unknown> = {
+        status: UserStatus.DEACTIVATED,
+        pendingAnonymizationAt: pendingAt,
       };
-      await Message.update(messageScrub, { where: { sender_id: userId }, transaction: tx });
+      await user.update(phase1Payload, { transaction: tx });
 
-      // ChatParticipant rows are intentionally left intact so that
-      // historical message attribution still resolves on the rescue
-      // staff side. The user is no longer reachable via the User row,
-      // and Sender lookups now return the tombstoned name.
-
-      // Soft-delete the User row last (paranoid: true). Anything that
-      // expects the user to exist (audit logs etc.) still resolves via
-      // the unscoped find used in those queries.
-      await user.destroy({ transaction: tx });
+      // Soft-delete the User row last (paranoid: true) — destroy() may
+      // be a no-op if the row was already soft-deleted on an earlier
+      // attempt, which is fine.
+      if (!user.deletedAt) {
+        await user.destroy({ transaction: tx });
+      }
 
       await AuditLogService.log({
-        action: 'GDPR_ANONYMIZE',
+        action: 'USER_ERASURE_REQUESTED',
         entity: 'User',
         entityId: userId,
         userId: actorUserId ?? userId,
         details: {
           reason: reason ?? 'GDPR Art. 17 erasure request',
-          alreadyAnonymized,
           actorUserId: actorUserId ?? null,
+          graceDays: GDPR_ANONYMIZATION_GRACE_DAYS,
         },
       });
 
-      logger.info('User anonymised for GDPR erasure', {
+      logger.info('User erasure requested (GDPR phase 1)', {
         userId,
         actorUserId: actorUserId ?? null,
-        alreadyAnonymized,
+        refreshTokensRevoked,
+        deviceTokensCleared,
       });
+
+      return {
+        userId,
+        pendingAnonymizationAt: pendingAt,
+        refreshTokensRevoked,
+        deviceTokensCleared,
+      };
+    });
+  },
+
+  /**
+   * Phase 2 of GDPR Art. 17 erasure. Called by the retention worker
+   * for users whose grace window has elapsed.
+   *
+   * Scrubs every direct identifier from the User row, rewrites
+   * sender-scoped Message bodies to a tombstone, clears 2FA secrets /
+   * backup codes / verification + reset tokens, and randomises the
+   * password. Clears pending_anonymization_at on completion.
+   *
+   * Idempotent: returns `{ anonymized: false }` if the email is already
+   * in the tombstone form, leaving the row untouched.
+   */
+  async executeAnonymization(userId: string): Promise<AnonymizationResult> {
+    const { anonymized, attachmentIdsToDelete } = await sequelize.transaction(
+      async (tx: Transaction) => {
+        const user = await User.scope('withSecrets').findByPk(userId, {
+          transaction: tx,
+          paranoid: false,
+        });
+        if (!user) {
+          throw new Error('User not found');
+        }
+
+        if (user.email.endsWith(`@${ANON_EMAIL_DOMAIN}`)) {
+          // Already anonymised on a previous pass. Clear the pending
+          // marker if it's somehow still set (defensive — should already
+          // be NULL) and exit without writing another audit row.
+          if (user.pendingAnonymizationAt) {
+            const clearPayload: Record<string, unknown> = { pendingAnonymizationAt: null };
+            await user.update(clearPayload, { transaction: tx });
+          }
+          return { anonymized: false, attachmentIdsToDelete: [] as string[] };
+        }
+
+        // Tombstone the User row. We keep the row (and its userId) so FKs
+        // from applications, audit logs, ratings, reports etc. continue
+        // to resolve, but every direct identifier column is stripped.
+        // Cast the payload to satisfy Sequelize's attribute typing — the
+        // User attributes interface uses `string | undefined` for some
+        // optional fields (city, country, location) that we want to clear
+        // to null at the DB level. Passing null is correct for the DB but
+        // not for the TS model type, so we widen here.
+        const tombstonePayload: Record<string, unknown> = {
+          email: tombstoneEmail(user.userId),
+          firstName: ANON_FIRST_NAME,
+          lastName: ANON_LAST_NAME,
+          phoneNumber: null,
+          phoneVerified: false,
+          dateOfBirth: null,
+          profileImageUrl: null,
+          bio: null,
+          addressLine1: null,
+          addressLine2: null,
+          postalCode: null,
+          city: null,
+          country: null,
+          location: null,
+          twoFactorSecret: null,
+          twoFactorEnabled: false,
+          backupCodes: null,
+          verificationToken: null,
+          verificationTokenExpiresAt: null,
+          resetToken: null,
+          resetTokenExpiration: null,
+          // Random password so the account can never be logged into.
+          // hashPassword runs in beforeUpdate, so we can pass plain text.
+          password: crypto.randomBytes(32).toString('hex'),
+          pendingAnonymizationAt: null,
+        };
+        await user.update(tombstonePayload, { transaction: tx });
+
+        // Collect attachment IDs BEFORE clearing the JSON column so we
+        // can delete the underlying files after the DB tx commits.
+        // Doing the file deletes outside the tx avoids orphan-deleting
+        // files if the DB tx rolls back. The JSON column is cleared
+        // inside the tx so the row state is consistent with phase-2
+        // semantics even if file deletion fails on individual files.
+        const messagesWithAttachments = await Message.findAll({
+          where: { sender_id: userId },
+          attributes: ['message_id', 'attachments'],
+          transaction: tx,
+        });
+        const attachmentIds: string[] = [];
+        for (const msg of messagesWithAttachments) {
+          if (Array.isArray(msg.attachments)) {
+            for (const att of msg.attachments) {
+              if (att && typeof att.attachment_id === 'string') {
+                attachmentIds.push(att.attachment_id);
+              }
+            }
+          }
+        }
+
+        // Strip message bodies but keep the row so chat threads remain
+        // coherent for the rescue staff side of the conversation.
+        const messageScrub: Record<string, unknown> = {
+          content: ANON_MESSAGE_BODY,
+          attachments: [],
+        };
+        await Message.update(messageScrub, { where: { sender_id: userId }, transaction: tx });
+
+        // ChatParticipant rows are intentionally left intact so that
+        // historical message attribution still resolves on the rescue
+        // staff side. The user is no longer reachable via the User row,
+        // and Sender lookups now return the tombstoned name.
+
+        await AuditLogService.log({
+          action: 'USER_ANONYMIZED',
+          entity: 'User',
+          entityId: userId,
+          userId,
+          details: {
+            phase: 'phase-2-anonymise',
+            attachmentsScheduledForDeletion: attachmentIds.length,
+          },
+        });
+
+        logger.info('User anonymised (GDPR phase 2)', {
+          userId,
+          attachmentsScheduledForDeletion: attachmentIds.length,
+        });
+
+        return { anonymized: true, attachmentIdsToDelete: attachmentIds };
+      }
+    );
+
+    // Post-commit: physically delete attachment files via the upload
+    // service. UserType.ADMIN bypasses the ownership check so we can
+    // delete attachments whose original uploader row has already been
+    // tombstoned. Per-file try/catch so one missing/already-gone file
+    // doesn't strand the rest of the run.
+    for (const attachmentId of attachmentIdsToDelete) {
+      try {
+        await FileUploadService.deleteFile(attachmentId, {
+          id: userId,
+          type: UserType.ADMIN,
+        });
+      } catch (error) {
+        logger.error('Failed to delete message attachment during GDPR anonymization', {
+          userId,
+          attachmentId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    return { anonymized };
+  },
+
+  /**
+   * In-grace off-ramp for phase-1 erasure. Admin-only — clears the
+   * pending_anonymization_at marker AND undeletes the User row, so the
+   * account is restored to its pre-erasure state. The retention worker
+   * will no longer consider the user.
+   *
+   * Throws if the user is already anonymised (email in tombstone form)
+   * — there's nothing meaningful to restore once PII has been scrubbed.
+   */
+  async cancelErasure(userId: string, actor: { userId: string }): Promise<CancelErasureResult> {
+    return sequelize.transaction(async (tx: Transaction) => {
+      const user = await User.findByPk(userId, { transaction: tx, paranoid: false });
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (user.email.endsWith(`@${ANON_EMAIL_DOMAIN}`)) {
+        throw new Error('User already anonymized — cannot cancel erasure');
+      }
+
+      const restorePayload: Record<string, unknown> = {
+        pendingAnonymizationAt: null,
+        status: UserStatus.ACTIVE,
+      };
+      await user.update(restorePayload, { transaction: tx });
+      if (user.deletedAt) {
+        await user.restore({ transaction: tx });
+      }
+
+      await AuditLogService.log({
+        action: 'USER_ERASURE_CANCELLED',
+        entity: 'User',
+        entityId: userId,
+        userId: actor.userId,
+        details: {
+          actorUserId: actor.userId,
+        },
+      });
+
+      logger.info('User erasure cancelled within grace window', {
+        userId,
+        actorUserId: actor.userId,
+      });
+
+      return { userId };
     });
   },
 

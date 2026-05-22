@@ -5,11 +5,21 @@ import User, { UserStatus, UserType } from '../../models/User';
 import UserFavorite from '../../models/UserFavorite';
 import { AuditLogService } from '../../services/auditLog.service';
 import { UserService } from '../../services/user.service';
-import { UserUpdateData } from '../../types/user';
+import { emitAuthRoleChanged } from '../../socket/socket-registry';
+import { BulkUserUpdateData, UserUpdateData } from '../../types/user';
 
 // Mock only non-database dependencies
 // Logger is already mocked in setup-tests.ts
 vi.mock('../../services/auditLog.service');
+
+// Spy on socket-registry so we can observe the auth:role-changed push
+// without standing up a real Socket.IO server in unit tests.
+vi.mock('../../socket/socket-registry', () => ({
+  emitAuthRoleChanged: vi.fn(),
+  disconnectAllSockets: vi.fn(),
+  setLiveIo: vi.fn(),
+  getLiveIo: vi.fn(),
+}));
 
 describe('UserService', () => {
   beforeEach(() => {
@@ -301,6 +311,57 @@ describe('UserService', () => {
       const updatedUser = await User.findByPk(user.userId);
       expect(updatedUser?.userType).toBe(newUserType);
     });
+
+    it('pushes an auth:role-changed socket event to the target user so live frontend sessions invalidate cached role state', async () => {
+      const user = await User.create({
+        email: 'rolechange-socket@example.com',
+        password: 'hashedpassword',
+        firstName: 'Test',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-rolechange@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      await UserService.updateUserRole(user.userId, UserType.MODERATOR, admin.userId);
+
+      expect(vi.mocked(emitAuthRoleChanged)).toHaveBeenCalledWith(user.userId);
+    });
+
+    it('stamps tokens_invalid_before on the user row so access tokens issued before the role change are rejected by the auth middleware', async () => {
+      const user = await User.create({
+        email: 'rolechange-invalidates@example.com',
+        password: 'hashedpassword',
+        firstName: 'Test',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-invalidates@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      expect(user.tokensInvalidBefore).toBeFalsy();
+      const before = Date.now();
+
+      await UserService.updateUserRole(user.userId, UserType.RESCUE_STAFF, admin.userId);
+
+      const reloaded = await User.findByPk(user.userId);
+      expect(reloaded?.tokensInvalidBefore).toBeTruthy();
+      expect(reloaded?.tokensInvalidBefore?.getTime() ?? 0).toBeGreaterThanOrEqual(before);
+    });
   });
 
   describe('deactivateUser', () => {
@@ -423,6 +484,48 @@ describe('UserService', () => {
       const updatedUser2 = await User.findByPk(user2.userId);
       expect(updatedUser1?.firstName).toBe('Updated');
       expect(updatedUser2?.firstName).toBe('Updated');
+    });
+
+    it('should hash passwords via beforeUpdate hook when bulk updating', async () => {
+      // The bulk update path must pass individualHooks:true so the User
+      // model's beforeUpdate hook fires per row and bcrypt-hashes the
+      // password. Otherwise a plaintext password sits in the DB.
+      const user = await User.create({
+        email: 'bulkpw@example.com',
+        password: 'hashedpassword',
+        firstName: 'PW',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+
+      const admin = await User.create({
+        email: 'admin-pw@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      const plaintext = 'plaintext-pw-1234567890';
+      // Password isn't part of the BulkUserUpdateData surface, but the
+      // service passes its `updates` payload straight through to User.update,
+      // so this test confirms the model hook still hashes anything that
+      // reaches it. Parse from JSON to construct without a type assertion.
+      const updates: BulkUserUpdateData[] = JSON.parse(
+        JSON.stringify([{ userIds: [user.userId], updates: { password: plaintext } }])
+      );
+      await UserService.bulkUpdateUsers(updates, admin.userId);
+
+      // bcryptjs is globally mocked in setup-tests.ts to return
+      // 'hashed-password'. That stub value landing in the DB proves the
+      // beforeUpdate hook ran per row (it's the hook that calls bcrypt).
+      // Without individualHooks:true the plaintext would persist unchanged.
+      const reloaded = await User.findByPk(user.userId);
+      expect(reloaded?.password).toBeDefined();
+      expect(reloaded?.password).not.toBe(plaintext);
+      expect(reloaded?.password).toBe('hashed-password');
     });
   });
 

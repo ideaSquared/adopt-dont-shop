@@ -54,6 +54,7 @@ vi.mock('../../middleware/idempotency', () => ({
 // without the in-memory store leaking counts across tests.
 vi.mock('../../middleware/rate-limiter', () => ({
   broadcastLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  sensitiveWriteLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
 const authenticateTokenMock = vi.fn();

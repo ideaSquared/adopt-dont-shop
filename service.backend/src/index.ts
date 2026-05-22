@@ -62,6 +62,7 @@ import reportsRoutes from './routes/reports.routes';
 import legalRoutes from './routes/legal.routes';
 import privacyRoutes from './routes/privacy.routes';
 import deviceTokenRoutes from './routes/device-token.routes';
+import sessionRoutes from './routes/session.routes';
 import fosterRoutes from './routes/foster.routes';
 import uploadRoutes from './routes/upload.routes';
 import uploadServeRoutes from './routes/upload-serve.routes';
@@ -228,6 +229,12 @@ app.post(
   handleDeliveryWebhook
 );
 
+// Rate-limit BEFORE body parsing so oversized payloads are throttled
+// before express.json spends CPU parsing them. The webhook POST above
+// already wires apiLimiter into its own chain so it isn't affected by
+// this global gate.
+app.use('/api', apiLimiter);
+
 // ADS-457: 10 MB body limits were a DoS amplifier on auth/search/chat
 // endpoints that only need a few KB of JSON. Multipart file uploads go
 // through multer (not body-parser), so this lower limit doesn't affect
@@ -253,9 +260,6 @@ app.use(metricsMiddleware);
 
 // Cookie parser for CSRF tokens
 app.use(cookieParser());
-
-// Apply rate limiting
-app.use('/api', apiLimiter);
 
 // CSRF Protection for state-changing requests
 // Provide CSRF token endpoint (must be before csrfProtection middleware)
@@ -333,6 +337,7 @@ app.use('/api/v1/reports', reportsRoutes); // ADS-105: custom analytics reports
 app.use('/api/v1/legal', legalRoutes); // ADS-495: public terms / privacy
 app.use('/api/v1/privacy', privacyRoutes); // ADS-427/496/497: GDPR delete + export + consent
 app.use('/api/v1/devices', deviceTokenRoutes); // device token registration for push notifications
+app.use('/api/v1/sessions', sessionRoutes); // user-facing session list + revoke
 app.use('/api/v1/foster', fosterRoutes); // foster placement coordination
 app.use('/api/v1/uploads', uploadRoutes); // ADS-588: staged image upload (POST /images)
 

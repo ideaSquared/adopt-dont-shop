@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useEffect, useState } from 'react';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import { authService } from '../services/auth-service';
-import { LoginRequest, RegisterRequest, User } from '../types';
+import { LoginRequest, RegisterRequest, User, STORAGE_KEYS } from '../types';
 
 export interface AuthContextType {
   user: User | null;
@@ -35,6 +35,15 @@ export interface AuthProviderProps {
    * Optional analytics/logging callback
    */
   onAuthEvent?: (event: string, data?: Record<string, unknown>) => void;
+  /**
+   * Called as part of logout cleanup. Apps wire this up to clear their
+   * React Query cache (`queryClient.clear()`) so a User A → User B login
+   * on the same browser cannot serve stale cached data from User A's
+   * session. The handler runs after tokens are cleared and before
+   * isLoading flips back to false; fired regardless of whether the
+   * backend logout call succeeded.
+   */
+  onLogout?: () => void;
 }
 
 /**
@@ -46,6 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   allowedUserTypes,
   appType,
   onAuthEvent,
+  onLogout,
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -123,6 +133,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   // Register a 401 handler so any API call that gets Unauthorized automatically
   // clears local auth state without making an additional logout API call
   // (which would itself get a 401 and recurse).
+  //
+  // Also register a token-refresh handler so the api layer can recover
+  // from short-lived access-token expiry mid-session without dropping
+  // the user. Refresh tokens live in an httpOnly cookie so the call
+  // works even when the in-memory token is gone. If the refresh itself
+  // fails, the api layer falls through to onUnauthorized.
   useEffect(() => {
     apiService.updateConfig({
       onUnauthorized: () => {
@@ -130,9 +146,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         setUser(null);
       },
     });
+    apiService.setRefreshHandler(() => authService.refreshToken());
     return () => {
       apiService.updateConfig({ onUnauthorized: undefined });
+      apiService.setRefreshHandler(null);
     };
+  }, []);
+
+  // Cross-tab logout sync: when another tab removes the persisted user
+  // record (logout, account deletion), drop local auth state here too
+  // so this tab doesn't keep rendering the authenticated UI until its
+  // next API call fails with 401. Only react to the user/token keys —
+  // unrelated storage writes (theme, feature flags, etc.) must not
+  // trigger a logout. We don't navigate from here; route-level guards
+  // pick up the user === null transition.
+  useEffect(() => {
+    const onStorageEvent = (e: StorageEvent) => {
+      const isUserKey = e.key === STORAGE_KEYS.USER;
+      const isTokenKey = e.key === STORAGE_KEYS.AUTH_TOKEN || e.key === STORAGE_KEYS.ACCESS_TOKEN;
+      if (!isUserKey && !isTokenKey) {
+        return;
+      }
+      if (e.newValue !== null) {
+        return;
+      }
+      authService.clearTokens();
+      apiService.clearCsrfToken();
+      setUser(null);
+    };
+    window.addEventListener('storage', onStorageEvent);
+    return () => window.removeEventListener('storage', onStorageEvent);
   }, []);
 
   const login = async (credentials: LoginRequest) => {
@@ -290,6 +333,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       }
     } finally {
+      // Clear the per-session CSRF token cache so the next signed-in
+      // user fetches a fresh one bound to their session cookie rather
+      // than reusing the previous user's token.
+      apiService.clearCsrfToken();
+
+      // Fire onLogout regardless of API success so the host app's
+      // React Query cache (which lives outside this provider) is
+      // always wiped before the next user can sign in on this tab.
+      try {
+        onLogout?.();
+      } catch (cleanupError) {
+        console.error('onLogout handler threw:', cleanupError);
+      }
       setIsLoading(false);
     }
   };

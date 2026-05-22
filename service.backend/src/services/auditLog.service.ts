@@ -1,4 +1,4 @@
-import { Op, WhereOptions } from 'sequelize';
+import { Op, Transaction, WhereOptions } from 'sequelize';
 import { AuditLog, withAuditMutationAllowed } from '../models/AuditLog';
 import User from '../models/User';
 import sequelize from '../sequelize';
@@ -31,6 +31,16 @@ export interface AuditLogData {
   service?: string;
   level?: 'INFO' | 'WARNING' | 'ERROR';
   status?: 'success' | 'failure';
+  /**
+   * Optional Sequelize transaction to pair the audit write with the
+   * caller's DB writes. When supplied the audit row is created inside
+   * the same transaction so partial-failure scenarios (DB write
+   * commits, audit write fails, or vice versa) can no longer drift the
+   * two out of sync. The user-email snapshot lookup intentionally runs
+   * OUTSIDE the transaction — it's a best-effort read that mustn't
+   * pollute the caller's tx with read locks.
+   */
+  transaction?: Transaction;
 }
 
 export class AuditLogService {
@@ -53,25 +63,28 @@ export class AuditLogService {
         }
       }
 
-      const auditLog = await AuditLog.create({
-        service: data.service || 'adopt-dont-shop-backend',
-        user: data.userId,
-        user_email_snapshot: userEmailSnapshot,
-        action: data.action,
-        level: data.level || 'INFO',
-        status: data.status,
-        timestamp: new Date(),
-        metadata: {
-          entity: data.entity,
-          entityId: data.entityId,
-          details: data.details || {},
-          ipAddress: data.ipAddress,
-          userAgent: data.userAgent,
+      const auditLog = await AuditLog.create(
+        {
+          service: data.service || 'adopt-dont-shop-backend',
+          user: data.userId,
+          user_email_snapshot: userEmailSnapshot,
+          action: data.action,
+          level: data.level || 'INFO',
+          status: data.status,
+          timestamp: new Date(),
+          metadata: {
+            entity: data.entity,
+            entityId: data.entityId,
+            details: data.details || {},
+            ipAddress: data.ipAddress,
+            userAgent: data.userAgent,
+          },
+          category: data.entity || 'GENERAL',
+          ip_address: data.ipAddress,
+          user_agent: data.userAgent,
         },
-        category: data.entity || 'GENERAL',
-        ip_address: data.ipAddress,
-        user_agent: data.userAgent,
-      });
+        data.transaction ? { transaction: data.transaction } : undefined
+      );
 
       logger.info(`Audit log created: ${data.action} on ${data.entity} by ${data.userId}`);
       return auditLog;

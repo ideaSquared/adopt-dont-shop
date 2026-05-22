@@ -1,4 +1,5 @@
 import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'sequelize';
+import { isSingleScriptLocalPart, normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import sequelize, {
   getJsonType,
   getUuidType,
@@ -81,6 +82,15 @@ interface UserAttributes {
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
+  // GDPR phase-1 marker. Set when the user requests erasure (or an
+  // admin triggers it on their behalf). Cleared by the retention
+  // worker when phase-2 anonymization runs. See GdprService.
+  pendingAnonymizationAt?: Date | null;
+  // ADS: forced-rotation marker for access tokens. The auth middleware
+  // rejects any JWT whose `iat` is older than this timestamp, so a role
+  // change / password reset / 2FA toggle invalidates every access token
+  // issued before that mutation. NULL means no rotation enforced.
+  tokensInvalidBefore?: Date | null;
   country?: string;
   city?: string;
   addressLine1?: string | null;
@@ -155,6 +165,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public createdAt!: Date;
   public updatedAt!: Date;
   public deletedAt!: Date | null;
+  public pendingAnonymizationAt!: Date | null;
+  public tokensInvalidBefore!: Date | null;
   public country!: string;
   public city!: string;
   public addressLine1!: string | null;
@@ -450,6 +462,16 @@ User.init(
       type: getGeometryType('POINT'),
       allowNull: true,
     },
+    pendingAnonymizationAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'pending_anonymization_at',
+    },
+    tokensInvalidBefore: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'tokens_invalid_before',
+    },
     // rescueId is intentionally not a DB column — see UserAttributes
     // comment. Sequelize won't persist it, but the model class exposes it
     // for the auth middleware to populate.
@@ -554,11 +576,21 @@ User.init(
     ],
     hooks: {
       // Normalize identifier fields before validation so uniqueness /
-      // isEmail checks see the canonical form (trimmed). Case is now
-      // handled at the column level via CITEXT (plan 5.5.7).
+      // isEmail checks see the canonical form. Email goes through
+      // NFKC + lowercase + trim and a mixed-script-local-part check
+      // (defense in depth — the Zod EmailSchema does the same, but a
+      // caller that bypasses the schema must still hit this gate).
+      // Case-insensitive collation is also enforced at the column
+      // level via CITEXT (plan 5.5.7), but storing the canonical form
+      // keeps lookups deterministic across both Postgres and SQLite
+      // (the test dialect, which has no CITEXT).
       beforeValidate: (user: User) => {
         if (user.email && typeof user.email === 'string') {
-          user.email = user.email.trim();
+          user.email = normalizeEmail(user.email);
+          const atIndex = user.email.lastIndexOf('@');
+          if (atIndex > 0 && !isSingleScriptLocalPart(user.email.slice(0, atIndex))) {
+            throw new Error('Email local part must not mix characters from multiple scripts');
+          }
         }
         if (user.phoneNumber && typeof user.phoneNumber === 'string') {
           // Light normalization only — strip surrounding whitespace and the
@@ -576,6 +608,15 @@ User.init(
       beforeUpdate: async (user: User) => {
         if (user.changed('password') && user.password) {
           user.password = await hashPassword(user.password);
+        }
+        // ADS: any userType change must invalidate every access token
+        // issued before this write. Setting the column here covers both
+        // single-instance updates (UserService.updateUserRole) and bulk
+        // updates that opt into individualHooks (bulkUpdateUsers, plan
+        // 10-HH). For paths that DON'T fire per-instance hooks the
+        // caller must bump the column itself.
+        if (user.changed('userType') && !user.changed('tokensInvalidBefore')) {
+          user.tokensInvalidBefore = new Date();
         }
         await protectSecretsIfChanged(user);
       },

@@ -159,6 +159,10 @@ export interface Pet {
     location?: string;
     phone?: string;
     email?: string;
+    // A13: surfaces verification state to the client so the apply/message
+    // affordances can be disabled and a "Pending verification" badge can
+    // be shown next to the rescue name.
+    status?: 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
   };
 }
 

@@ -1,16 +1,29 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Response } from 'express';
 import sequelize from '../../sequelize';
 import Application, { ApplicationStatus } from '../../models/Application';
 import ApplicationStatusTransition from '../../models/ApplicationStatusTransition';
 import AuditLog from '../../models/AuditLog';
+import DeviceToken from '../../models/DeviceToken';
+import Message from '../../models/Message';
 import Notification from '../../models/Notification';
 import Pet from '../../models/Pet';
+import RefreshToken from '../../models/RefreshToken';
 import Rescue from '../../models/Rescue';
 import StaffMember from '../../models/StaffMember';
 import User, { UserStatus, UserType } from '../../models/User';
 import UserConsent, { ConsentPurpose } from '../../models/UserConsent';
+import { FileUploadService } from '../../services/file-upload.service';
 import GdprService from '../../services/gdpr.service';
+
+// Mock FileUploadService.deleteFile so the anonymization tests don't try
+// to touch the real storage layer. The behavioural assertion is that
+// deleteFile is invoked once per attachment after the DB tx commits.
+vi.mock('../../services/file-upload.service', () => ({
+  FileUploadService: {
+    deleteFile: vi.fn().mockResolvedValue({ success: true, message: 'deleted' }),
+  },
+}));
 
 const seedUser = async (overrides: Record<string, unknown> = {}) =>
   User.create({
@@ -120,11 +133,133 @@ const seedApplication = async (
 };
 
 describe('GdprService', () => {
-  describe('anonymizeUser', () => {
-    it('strips identifiers from the user row', async () => {
-      const user = await seedUser();
+  beforeEach(() => {
+    vi.mocked(FileUploadService.deleteFile).mockClear();
+    vi.mocked(FileUploadService.deleteFile).mockResolvedValue({
+      success: true,
+      message: 'deleted',
+    });
+  });
 
-      await GdprService.anonymizeUser(user.userId);
+  describe('requestErasure (phase 1)', () => {
+    it('soft-deletes the user, stamps pending_anonymization_at, revokes sessions, and clears device tokens — without scrubbing PII', async () => {
+      const user = await seedUser();
+      await RefreshToken.create({
+        user_id: user.userId,
+        family_id: `family-${user.userId}`,
+        token_hash: `hash-${user.userId}`,
+        expires_at: new Date(Date.now() + 86400000),
+        is_revoked: false,
+      } as never);
+      await DeviceToken.create({
+        user_id: user.userId,
+        device_token: `device-${user.userId}`,
+        platform: 'web',
+        status: 'active',
+      } as never);
+
+      const before = Date.now();
+      const result = await GdprService.requestErasure(user.userId, { actorUserId: user.userId });
+      const after = Date.now();
+
+      expect(result.userId).toBe(user.userId);
+      expect(result.refreshTokensRevoked).toBe(1);
+      expect(result.deviceTokensCleared).toBe(1);
+      expect(result.pendingAnonymizationAt.getTime()).toBeGreaterThanOrEqual(before);
+      expect(result.pendingAnonymizationAt.getTime()).toBeLessThanOrEqual(after);
+
+      const reloaded = await User.scope('withSecrets').findByPk(user.userId, { paranoid: false });
+      expect(reloaded).not.toBeNull();
+      // Soft-deleted with the grace marker stamped.
+      expect(reloaded!.deletedAt).not.toBeNull();
+      expect(reloaded!.pendingAnonymizationAt).not.toBeNull();
+      expect(reloaded!.status).toBe(UserStatus.DEACTIVATED);
+      // PII INTENTIONALLY PRESERVED for the grace window — support
+      // tooling must be able to identify the account to cancel the
+      // erasure if it was triggered accidentally.
+      expect(reloaded!.email).toBe(user.email);
+      expect(reloaded!.firstName).toBe('Jane');
+      expect(reloaded!.lastName).toBe('Doe');
+      expect(reloaded!.phoneNumber).toBe('07123456789');
+      expect(reloaded!.addressLine1).toBe('1 Example St');
+
+      // Sessions and device tokens gone.
+      const remainingTokens = await RefreshToken.findAll({ where: { user_id: user.userId } });
+      expect(remainingTokens).toHaveLength(0);
+      const remainingDevices = await DeviceToken.findAll({ where: { user_id: user.userId } });
+      expect(remainingDevices).toHaveLength(0);
+    });
+
+    it('writes an audit row attributed to the actor', async () => {
+      const user = await seedUser();
+      const admin = await seedUser({ userType: UserType.ADMIN });
+
+      await GdprService.requestErasure(user.userId, {
+        actorUserId: admin.userId,
+        reason: 'support request',
+      });
+
+      const auditRows = await AuditLog.findAll({ where: { action: 'USER_ERASURE_REQUESTED' } });
+      expect(auditRows).toHaveLength(1);
+      const metadata = auditRows[0].metadata as Record<string, unknown>;
+      expect(metadata.entityId).toBe(user.userId);
+      const details = metadata.details as Record<string, unknown>;
+      expect(details.actorUserId).toBe(admin.userId);
+      expect(details.reason).toBe('support request');
+      expect(details.graceDays).toBe(30);
+    });
+
+    it('throws when the user does not exist', async () => {
+      await expect(
+        GdprService.requestErasure('00000000-0000-0000-0000-000000000000')
+      ).rejects.toThrow('User not found');
+    });
+  });
+
+  describe('executeAnonymization (phase 2)', () => {
+    it('scrubs PII, rewrites sender messages, clears 2FA + tokens, and randomises the password', async () => {
+      const user = await seedUser({
+        twoFactorEnabled: true,
+        twoFactorSecret: 'totpsecret123',
+      });
+
+      // Seed a chat + message authored by the user so the scrub can be observed.
+      const rescue = await seedRescue();
+      const chatId = `${Date.now().toString(16)}-1111-4111-a111-${Math.random()
+        .toString(16)
+        .slice(2, 14)
+        .padEnd(12, '0')}`;
+      await sequelize.getQueryInterface().bulkInsert('chats', [
+        {
+          chat_id: chatId,
+          rescue_id: rescue.rescueId,
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ]);
+      const messageId = `${Date.now().toString(16)}-7777-4777-a777-${Math.random()
+        .toString(16)
+        .slice(2, 14)
+        .padEnd(12, '0')}`;
+      await sequelize.getQueryInterface().bulkInsert('messages', [
+        {
+          message_id: messageId,
+          chat_id: chatId,
+          sender_id: user.userId,
+          content: 'This is my real message content',
+          content_format: 'plain',
+          attachments: '[]',
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ]);
+
+      // Phase 1 first so phase 2 has something to operate on.
+      await GdprService.requestErasure(user.userId, { actorUserId: user.userId });
+
+      const result = await GdprService.executeAnonymization(user.userId);
+      expect(result.anonymized).toBe(true);
 
       const reloaded = await User.scope('withSecrets').findByPk(user.userId, { paranoid: false });
       expect(reloaded).not.toBeNull();
@@ -135,24 +270,231 @@ describe('GdprService', () => {
       expect(reloaded!.bio).toBeNull();
       expect(reloaded!.addressLine1).toBeNull();
       expect(reloaded!.postalCode).toBeNull();
-      expect(reloaded!.status).toBe(UserStatus.DEACTIVATED);
+      expect(reloaded!.twoFactorSecret).toBeNull();
+      expect(reloaded!.twoFactorEnabled).toBe(false);
+      expect(reloaded!.backupCodes).toBeNull();
+      // Password is overwritten with random bytes before the beforeUpdate
+      // hook re-hashes it; the row therefore never carries the user's
+      // original plaintext or hash. (We can't assert "differs from before"
+      // because the test bcrypt mock returns a constant.)
+      expect(typeof reloaded!.password).toBe('string');
+      expect(reloaded!.password.length).toBeGreaterThan(0);
+      // Phase 1 marker cleared; row remains soft-deleted.
+      expect(reloaded!.pendingAnonymizationAt).toBeNull();
       expect(reloaded!.deletedAt).not.toBeNull();
+
+      // Sender-scoped message bodies replaced with the tombstone.
+      const reloadedMessage = await Message.findByPk(messageId);
+      expect(reloadedMessage).not.toBeNull();
+      expect(reloadedMessage!.content).toBe('[message removed at user request]');
+    });
+
+    it('is idempotent — second run returns anonymized:false and does not write another audit row', async () => {
+      const user = await seedUser();
+      await GdprService.requestErasure(user.userId);
+      await GdprService.executeAnonymization(user.userId);
+      const auditCountBefore = await AuditLog.count({ where: { action: 'USER_ANONYMIZED' } });
+
+      const second = await GdprService.executeAnonymization(user.userId);
+      expect(second.anonymized).toBe(false);
+
+      const auditCountAfter = await AuditLog.count({ where: { action: 'USER_ANONYMIZED' } });
+      expect(auditCountAfter).toBe(auditCountBefore);
     });
 
     it('throws when the user does not exist', async () => {
       await expect(
-        GdprService.anonymizeUser('00000000-0000-0000-0000-000000000000')
+        GdprService.executeAnonymization('00000000-0000-0000-0000-000000000000')
       ).rejects.toThrow('User not found');
     });
 
-    it('is idempotent — second run does not error', async () => {
+    it('deletes physical attachment files for every message authored by the user', async () => {
       const user = await seedUser();
-      await GdprService.anonymizeUser(user.userId);
-      // The user is now soft-deleted; the second run finds it via paranoid: false
-      // path inside the service should still succeed for an idempotent retry.
-      // We assert no throw rather than re-anonymising semantics.
-      const reloaded = await User.scope('withSecrets').findByPk(user.userId, { paranoid: false });
-      expect(reloaded!.email).toMatch(/@redacted\.local$/);
+      const rescue = await seedRescue();
+      const chatId = `${Date.now().toString(16)}-1111-4111-a111-${Math.random()
+        .toString(16)
+        .slice(2, 14)
+        .padEnd(12, '0')}`;
+      await sequelize.getQueryInterface().bulkInsert('chats', [
+        {
+          chat_id: chatId,
+          rescue_id: rescue.rescueId,
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ]);
+
+      const attachmentA = {
+        attachment_id: 'upload-aaa-111',
+        filename: 'photo1.jpg',
+        originalName: 'photo1.jpg',
+        mimeType: 'image/jpeg',
+        size: 1024,
+        url: '/uploads/chat/photo1.jpg',
+      };
+      const attachmentB = {
+        attachment_id: 'upload-bbb-222',
+        filename: 'photo2.jpg',
+        originalName: 'photo2.jpg',
+        mimeType: 'image/jpeg',
+        size: 2048,
+        url: '/uploads/chat/photo2.jpg',
+      };
+      const attachmentC = {
+        attachment_id: 'upload-ccc-333',
+        filename: 'doc.pdf',
+        originalName: 'doc.pdf',
+        mimeType: 'application/pdf',
+        size: 4096,
+        url: '/uploads/chat/doc.pdf',
+      };
+
+      const buildMessage = (suffix: string, attachments: (typeof attachmentA)[]) => ({
+        message_id: `${Date.now().toString(16)}-${suffix}-4${suffix}-a${suffix}-${Math.random()
+          .toString(16)
+          .slice(2, 14)
+          .padEnd(12, '0')}`,
+        chat_id: chatId,
+        sender_id: user.userId,
+        content: `msg ${suffix}`,
+        content_format: 'plain',
+        attachments: JSON.stringify(attachments),
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      await sequelize
+        .getQueryInterface()
+        .bulkInsert('messages', [
+          buildMessage('7777', [attachmentA, attachmentB]),
+          buildMessage('8888', [attachmentC]),
+        ]);
+
+      await GdprService.requestErasure(user.userId, { actorUserId: user.userId });
+      const result = await GdprService.executeAnonymization(user.userId);
+      expect(result.anonymized).toBe(true);
+
+      // Attachments JSON column scrubbed.
+      const reloadedMessages = await Message.findAll({ where: { sender_id: user.userId } });
+      expect(reloadedMessages).toHaveLength(2);
+      for (const msg of reloadedMessages) {
+        expect(msg.attachments).toEqual([]);
+        expect(msg.content).toBe('[message removed at user request]');
+      }
+
+      // Physical file deletion invoked once per attachment, with the
+      // admin-typed system actor so the ownership check is bypassed.
+      const deleteCalls = vi.mocked(FileUploadService.deleteFile).mock.calls;
+      const deletedAttachmentIds = deleteCalls.map(call => call[0]);
+      expect(deletedAttachmentIds.sort()).toEqual(
+        ['upload-aaa-111', 'upload-bbb-222', 'upload-ccc-333'].sort()
+      );
+      for (const call of deleteCalls) {
+        expect(call[1]).toEqual({ id: user.userId, type: UserType.ADMIN });
+      }
+    });
+
+    it('continues anonymization even if individual attachment deletions fail', async () => {
+      const user = await seedUser();
+      const rescue = await seedRescue();
+      const chatId = `${Date.now().toString(16)}-2222-4222-a222-${Math.random()
+        .toString(16)
+        .slice(2, 14)
+        .padEnd(12, '0')}`;
+      await sequelize.getQueryInterface().bulkInsert('chats', [
+        {
+          chat_id: chatId,
+          rescue_id: rescue.rescueId,
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ]);
+      const messageId = `${Date.now().toString(16)}-9999-4999-a999-${Math.random()
+        .toString(16)
+        .slice(2, 14)
+        .padEnd(12, '0')}`;
+      await sequelize.getQueryInterface().bulkInsert('messages', [
+        {
+          message_id: messageId,
+          chat_id: chatId,
+          sender_id: user.userId,
+          content: 'msg',
+          content_format: 'plain',
+          attachments: JSON.stringify([
+            {
+              attachment_id: 'missing-file-1',
+              filename: 'a.jpg',
+              originalName: 'a.jpg',
+              mimeType: 'image/jpeg',
+              size: 1,
+              url: '/x',
+            },
+            {
+              attachment_id: 'ok-file-2',
+              filename: 'b.jpg',
+              originalName: 'b.jpg',
+              mimeType: 'image/jpeg',
+              size: 1,
+              url: '/y',
+            },
+          ]),
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ]);
+
+      vi.mocked(FileUploadService.deleteFile).mockImplementation(async (uploadId: string) => {
+        if (uploadId === 'missing-file-1') {
+          throw new Error('Upload record not found');
+        }
+        return { success: true, message: 'deleted' };
+      });
+
+      await GdprService.requestErasure(user.userId, { actorUserId: user.userId });
+      const result = await GdprService.executeAnonymization(user.userId);
+      expect(result.anonymized).toBe(true);
+
+      // Both deletions attempted despite the first throwing.
+      expect(vi.mocked(FileUploadService.deleteFile)).toHaveBeenCalledTimes(2);
+
+      // DB state still scrubbed.
+      const reloaded = await Message.findByPk(messageId);
+      expect(reloaded!.attachments).toEqual([]);
+    });
+  });
+
+  describe('cancelErasure', () => {
+    it('restores a user inside the grace window — clearing the marker and un-soft-deleting', async () => {
+      const user = await seedUser();
+      const admin = await seedUser({ userType: UserType.ADMIN });
+      await GdprService.requestErasure(user.userId, { actorUserId: user.userId });
+
+      const result = await GdprService.cancelErasure(user.userId, { userId: admin.userId });
+      expect(result.userId).toBe(user.userId);
+
+      const reloaded = await User.findByPk(user.userId, { paranoid: false });
+      expect(reloaded).not.toBeNull();
+      expect(reloaded!.pendingAnonymizationAt).toBeNull();
+      expect(reloaded!.deletedAt).toBeNull();
+      expect(reloaded!.status).toBe(UserStatus.ACTIVE);
+
+      const auditRows = await AuditLog.findAll({ where: { action: 'USER_ERASURE_CANCELLED' } });
+      expect(auditRows).toHaveLength(1);
+      const metadata = auditRows[0].metadata as Record<string, unknown>;
+      expect(metadata.entityId).toBe(user.userId);
+    });
+
+    it('refuses to cancel once phase-2 anonymization has completed', async () => {
+      const user = await seedUser();
+      const admin = await seedUser({ userType: UserType.ADMIN });
+      await GdprService.requestErasure(user.userId);
+      await GdprService.executeAnonymization(user.userId);
+
+      await expect(
+        GdprService.cancelErasure(user.userId, { userId: admin.userId })
+      ).rejects.toThrow('User already anonymized — cannot cancel erasure');
     });
   });
 

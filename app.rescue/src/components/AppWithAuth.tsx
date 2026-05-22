@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { AuthProvider } from '@adopt-dont-shop/lib.auth';
 import { attachStoredCookieConsent } from '@adopt-dont-shop/lib.legal';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AppWithAuthProps {
   children: ReactNode;
@@ -23,11 +24,14 @@ const handleAuthEvent = (event: string, data?: Record<string, unknown>) => {
  * Wrapper component that provides AuthProvider for rescue app
  */
 export const AppWithAuth = ({ children }: AppWithAuthProps) => {
+  // QueryClient is provided one level up in main.tsx so the hook resolves here.
+  const queryClient = useQueryClient();
   return (
     <AuthProvider
       allowedUserTypes={['rescue_staff']}
       appType="rescue"
       onAuthEvent={handleAuthEvent}
+      onLogout={() => queryClient.clear()}
     >
       {children}
     </AuthProvider>

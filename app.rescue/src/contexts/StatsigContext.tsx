@@ -19,8 +19,9 @@ export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
 
   const statsigUser = useMemo(
     () => ({
+      // Email is intentionally omitted — Statsig is a third-party SaaS
+      // and the opaque userID is sufficient for flag bucketing.
       userID: user?.userId || 'anonymous',
-      email: user?.email,
       custom: {
         app: 'rescue',
         userType: user?.userType,

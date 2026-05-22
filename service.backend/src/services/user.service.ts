@@ -1,7 +1,9 @@
 import { z } from 'zod';
+import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import { JsonObject } from '../types/common';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import { validateSortField } from '../utils/sort-validation';
+import { escapeLikePattern } from '../utils/escape-like';
 import Application from '../models/Application';
 import { AuditLog } from '../models/AuditLog';
 import Chat from '../models/Chat';
@@ -25,6 +27,7 @@ import { AuditLogService } from './auditLog.service';
 import { redactSensitiveFields } from '../utils/redact';
 import RefreshToken from '../models/RefreshToken';
 import { invalidateAuthCache } from '../lib/auth-cache';
+import { emitAuthRoleChanged } from '../socket/socket-registry';
 
 const USER_SORT_FIELDS = [
   'createdAt',
@@ -174,10 +177,11 @@ export class UserService {
 
   static async getUserByEmail(email: string): Promise<User | null> {
     const startTime = Date.now();
+    const normalized = normalizeEmail(email);
 
     try {
       const user = await User.findOne({
-        where: { email: email.toLowerCase() },
+        where: { email: normalized },
         include: [
           {
             association: 'Roles',
@@ -192,7 +196,7 @@ export class UserService {
 
       if (loggerHelpers && loggerHelpers.logDatabase) {
         loggerHelpers.logDatabase('READ', {
-          email: email.toLowerCase(),
+          email: normalized,
           duration: Date.now() - startTime,
           found: !!user,
         });
@@ -202,7 +206,7 @@ export class UserService {
     } catch (error) {
       logger.error('Failed to fetch user by email:', {
         error: error instanceof Error ? error.message : String(error),
-        email: email.toLowerCase(),
+        email: normalized,
         duration: Date.now() - startTime,
       });
       throw error;
@@ -367,8 +371,7 @@ export class UserService {
       // Use Op.like for SQLite compatibility (iLike is PostgreSQL-specific)
       // Escape LIKE wildcards to prevent enumeration attacks (%  = any chars, _ = one char)
       if (search) {
-        // Escape wildcard characters by replacing them with literal values
-        const safeTerm = `%${search.replace(/[%_\\]/g, c => `\\${c}`)}%`;
+        const safeTerm = `%${escapeLikePattern(search)}%`;
 
         whereConditions = {
           ...whereConditions,
@@ -1074,6 +1077,11 @@ export class UserService {
       const oldUserType = user.userType;
       await user.update({ userType: newUserType });
 
+      // Push a socket event so any live frontend session re-fetches the
+      // user profile and re-evaluates role-gated UI (ProtectedRoute,
+      // admin nav, etc.) without waiting for the next page refresh.
+      emitAuthRoleChanged(userId);
+
       // Audit log
       await AuditLog.create({
         service: 'user',
@@ -1303,19 +1311,28 @@ export class UserService {
     const startTime = Date.now();
 
     try {
-      const [affectedRows] = await User.update(updates[0].updates, {
+      // individualHooks:true (below) so the per-row beforeValidate (email NFKC +
+      // mixed-script reject), beforeUpdate (password hashing + tokens_invalid_before
+      // bump on userType change), and afterSave (auth-cache invalidation) hooks
+      // fire for each user.
+      //
+      // The inline tokens_invalid_before bump below is belt-and-braces — the
+      // beforeUpdate hook already covers it, but the explicit payload guarantees
+      // the column is bumped even if individualHooks were ever removed.
+      const payload = updates[0].updates;
+      const userTypeChange = Object.prototype.hasOwnProperty.call(payload, 'userType');
+      const effectiveUpdates = userTypeChange
+        ? { ...payload, tokensInvalidBefore: new Date() }
+        : payload;
+
+      const [affectedRows] = await User.update(effectiveUpdates, {
         where: {
           userId: {
             [Op.in]: updates[0].userIds,
           },
         },
+        individualHooks: true,
       });
-
-      // ADS-596: Model.update bypasses the per-instance afterSave hook that
-      // normally busts the auth cache, so we have to do it explicitly here.
-      for (const userId of updates[0].userIds) {
-        invalidateAuthCache(userId);
-      }
 
       // Log bulk update
       await AuditLogService.log({

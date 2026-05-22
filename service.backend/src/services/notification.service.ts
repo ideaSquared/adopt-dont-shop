@@ -248,7 +248,13 @@ export class NotificationService {
   }
 
   /**
-   * Mark notification as read
+   * Mark notification as read.
+   *
+   * Audit attribution convention: the top-level audit row's `user` column
+   * holds the actor (the caller). The details payload uses `subjectId`
+   * for the notification owner so admin-on-behalf flows can be told
+   * apart from self-service actions (actor != subject ⇒ on-behalf-of).
+   * In the self-service path actor and subject collapse to the same id.
    */
   static async markAsRead(notificationId: string, userId: string): Promise<void> {
     const startTime = Date.now();
@@ -274,7 +280,7 @@ export class NotificationService {
         action: 'NOTIFICATION_READ',
         entity: 'Notification',
         entityId: notificationId,
-        details: { notificationId },
+        details: { notificationId, subjectId: userId },
       });
 
       loggerHelpers.logBusiness('Notification Marked as Read', {
@@ -294,7 +300,10 @@ export class NotificationService {
   }
 
   /**
-   * Mark all notifications as read for a user
+   * Mark all notifications as read for a user.
+   *
+   * Audit attribution convention: see markAsRead. `subjectId` carries
+   * the notification owner; the actor is on the top-level audit row.
    */
   static async markAllAsRead(userId: string) {
     const startTime = Date.now();
@@ -315,7 +324,7 @@ export class NotificationService {
         entity: 'Notification',
         entityId: 'multiple',
         details: {
-          userId,
+          subjectId: userId,
           updatedCount: affectedRows,
         },
         userId,
@@ -339,7 +348,10 @@ export class NotificationService {
   }
 
   /**
-   * Delete notification
+   * Delete notification.
+   *
+   * Audit attribution convention: see markAsRead. `subjectId` carries
+   * the notification owner; the actor is on the top-level audit row.
    */
   static async deleteNotification(notificationId: string, userId: string): Promise<void> {
     const startTime = Date.now();
@@ -365,7 +377,7 @@ export class NotificationService {
         action: 'NOTIFICATION_DELETED',
         entity: 'Notification',
         entityId: notificationId,
-        details: { notificationId },
+        details: { notificationId, subjectId: userId },
       });
 
       loggerHelpers.logBusiness('Notification Deleted', {

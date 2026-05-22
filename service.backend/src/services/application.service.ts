@@ -10,6 +10,7 @@ import HomeVisitStatusTransition from '../models/HomeVisitStatusTransition';
 import StaffMember from '../models/StaffMember';
 import Rescue from '../models/Rescue';
 import { validateSortField } from '../utils/sort-validation';
+import { escapeLikePattern } from '../utils/escape-like';
 
 const APPLICATION_SORT_FIELDS = [
   'createdAt',
@@ -172,7 +173,10 @@ export class ApplicationService {
       reason: 'Visit scheduled',
     });
 
-    await Application.update({ status: ApplicationStatus.SUBMITTED }, { where: { applicationId } });
+    await Application.update(
+      { status: ApplicationStatus.SUBMITTED },
+      { where: { applicationId }, individualHooks: true }
+    );
 
     return formatHomeVisit(visit);
   }
@@ -270,7 +274,10 @@ export class ApplicationService {
         applicationStatus = ApplicationStatus.REJECTED;
       }
 
-      await Application.update({ status: applicationStatus }, { where: { applicationId } });
+      await Application.update(
+        { status: applicationStatus },
+        { where: { applicationId }, individualHooks: true }
+      );
     }
 
     return formatHomeVisit(visit);
@@ -300,6 +307,15 @@ export class ApplicationService {
         });
         if (!pet) {
           throw new Error('Pet not found');
+        }
+
+        // A13: applications may only be submitted to a verified rescue.
+        // Frontends still SHOW the rescue (with a pending-verification
+        // badge) but the "Apply" affordance is disabled. Verifying here
+        // closes the loop for any caller that hits the API directly.
+        const rescue = await Rescue.findByPk(pet.rescueId, { transaction: t });
+        if (!rescue || rescue.status !== 'verified') {
+          throw new Error('Cannot interact with unverified rescue');
         }
 
         if (pet.status !== 'available') {
@@ -726,32 +742,33 @@ export class ApplicationService {
       // enum value stored on Pet.type.
       if (filters.petType) {
         (whereConditions as Record<string, unknown>)['$Pet.type$'] = {
-          [Op.iLike]: filters.petType,
+          [Op.iLike]: escapeLikePattern(filters.petType),
         };
       }
       if (filters.petBreed) {
         (whereConditions as Record<string, unknown>)['$Pet->Breed.name$'] = {
-          [Op.iLike]: `%${filters.petBreed}%`,
+          [Op.iLike]: `%${escapeLikePattern(filters.petBreed)}%`,
         };
       }
 
       // Text search
       if (filters.search) {
+        const safeSearch = escapeLikePattern(filters.search);
         const searchConditions = [
-          { notes: { [Op.iLike]: `%${filters.search}%` } },
-          { rejectionReason: { [Op.iLike]: `%${filters.search}%` } },
-          { interviewNotes: { [Op.iLike]: `%${filters.search}%` } },
-          { homeVisitNotes: { [Op.iLike]: `%${filters.search}%` } },
+          { notes: { [Op.iLike]: `%${safeSearch}%` } },
+          { rejectionReason: { [Op.iLike]: `%${safeSearch}%` } },
+          { interviewNotes: { [Op.iLike]: `%${safeSearch}%` } },
+          { homeVisitNotes: { [Op.iLike]: `%${safeSearch}%` } },
           // Search in user fields
-          { '$User.first_name$': { [Op.iLike]: `%${filters.search}%` } },
-          { '$User.last_name$': { [Op.iLike]: `%${filters.search}%` } },
-          { '$User.email$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$User.first_name$': { [Op.iLike]: `%${safeSearch}%` } },
+          { '$User.last_name$': { [Op.iLike]: `%${safeSearch}%` } },
+          { '$User.email$': { [Op.iLike]: `%${safeSearch}%` } },
           // Search in pet fields. Plan 2.4 — breed lives in the
           // breeds lookup table; the `$Pet->Breed.name$` path follows
           // the eager-loaded Breed association added to the include
           // chain below.
-          { '$Pet.name$': { [Op.iLike]: `%${filters.search}%` } },
-          { '$Pet->Breed.name$': { [Op.iLike]: `%${filters.search}%` } },
+          { '$Pet.name$': { [Op.iLike]: `%${safeSearch}%` } },
+          { '$Pet->Breed.name$': { [Op.iLike]: `%${safeSearch}%` } },
         ];
         (whereConditions as Record<string | symbol, unknown>)[Op.or] = searchConditions;
       }
@@ -1895,28 +1912,32 @@ export class ApplicationService {
 
       for (const applicationId of bulkUpdate.applicationIds) {
         try {
-          const application = await Application.findByPk(applicationId);
-          if (!application) {
-            results.failures.push({
-              applicationId: applicationId,
-              error: 'Application not found',
-            });
-            results.failureCount++;
-            continue;
-          }
+          // Per-item transaction: the application update and the
+          // accompanying audit-log row commit or roll back together,
+          // so the failure counts in the response match the real DB
+          // state — no more "audit logged success but DB unchanged"
+          // (or vice versa) on partial failure.
+          await sequelize.transaction(async tx => {
+            const application = await Application.findByPk(applicationId, { transaction: tx });
+            if (!application) {
+              // Throw to skip success-side bookkeeping; caught below
+              // and recorded as a failure with this exact message.
+              throw new Error('Application not found');
+            }
 
-          await application.update(bulkUpdate.updates);
+            await application.update(bulkUpdate.updates, { transaction: tx });
+
+            await AuditLogService.log({
+              action: 'BULK_UPDATE',
+              entity: 'Application',
+              entityId: applicationId,
+              details: { updates: bulkUpdate.updates, bulk_operation: true },
+              userId,
+              transaction: tx,
+            });
+          });
           results.successes.push(applicationId);
           results.successCount++;
-
-          // Log bulk update
-          await AuditLogService.log({
-            action: 'BULK_UPDATE',
-            entity: 'Application',
-            entityId: applicationId,
-            details: { updates: bulkUpdate.updates, bulk_operation: true },
-            userId,
-          });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           results.failures.push({ applicationId: applicationId, error: errorMessage });

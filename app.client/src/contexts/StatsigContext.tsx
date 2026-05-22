@@ -34,18 +34,18 @@ export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
 
   const statsigUser = useMemo(
     () => ({
-      // Until consent is granted we deliberately omit the email so PII does
-      // not leave the device. Statsig still gets an opaque userID so feature
-      // flags work, but session replay / autocapture stay off.
+      // Email is intentionally omitted regardless of consent — Statsig is
+      // a third-party SaaS and the opaque userID is sufficient for flag
+      // bucketing. Session replay / autocapture plugins remain gated on
+      // analytics consent below.
       userID: user?.userId || 'anonymous',
-      email: analyticsConsent ? user?.email : undefined,
       custom: {
         app: 'client',
         userType: user?.userType,
         isAuthenticated: !!user,
       },
     }),
-    [user, analyticsConsent]
+    [user]
   );
 
   const plugins = useMemo(

@@ -27,6 +27,16 @@ describe('User schemas', () => {
       const tooLong = 'a'.repeat(251) + '@b.co';
       expect(() => EmailSchema.parse(tooLong)).toThrow();
     });
+
+    it('NFKC-folds full-width ASCII so visually-identical addresses collapse', () => {
+      // 'ＡＤＭＩＮ@example.com' — full-width letters fold to ASCII + lowercase
+      expect(EmailSchema.parse('ＡＤＭＩＮ@example.com')).toBe('admin@example.com');
+    });
+
+    it('rejects a local part that mixes Latin and Cyrillic (homograph squatting)', () => {
+      // 'аdmin@example.com' — Cyrillic а (U+0430) + Latin dmin
+      expect(() => EmailSchema.parse('аdmin@example.com')).toThrow(/multiple scripts/);
+    });
   });
 
   describe('StrongPasswordSchema', () => {

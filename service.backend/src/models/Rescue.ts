@@ -10,7 +10,7 @@ import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 import type { RescuePlan } from '@adopt-dont-shop/lib.types';
 
-interface RescueAttributes {
+export interface RescueAttributes {
   rescueId: string;
   name: string;
   email: string;

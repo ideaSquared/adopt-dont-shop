@@ -190,6 +190,29 @@ export const profileImageUpload = createUploadMiddleware('profiles', {
   maxFileSize: 5 * 1024 * 1024, // 5MB for profile images
 });
 
+/**
+ * Reduce a user-supplied filename to a privacy-safe display name suitable
+ * for showing to other viewers (chat participants, public pet listings).
+ *
+ * The DB still stores the original filename (operationally useful for
+ * support and the uploader's own UI), but anywhere that filename would
+ * be propagated to non-uploader viewers we substitute this sanitised
+ * form. Without it an adopter who uploads
+ * `Jane_Doe_Passport_123456789.pdf` to a chat would leak full PII to
+ * every other participant.
+ *
+ * Keep only the file extension (lowercase, alphanumeric + dot only) and
+ * prefix with a generic `file` stem. Anything we can't validate becomes
+ * `.bin` so downstream renderers still get a hint about binary content.
+ */
+export const sanitizeDisplayFilename = (filename: string): string => {
+  const ext = path
+    .extname(filename)
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, '');
+  return `file${ext || '.bin'}`;
+};
+
 // Enhanced File Upload Service
 export class FileUploadService {
   /**
@@ -350,6 +373,29 @@ export class FileUploadService {
         const filePath = path.join(config.storage.local.directory, uploadRecord.file_path);
         if (fs.existsSync(filePath)) {
           await fs.promises.unlink(filePath);
+        }
+        // processImageWithSharp writes two companion files next to every
+        // processed image — `<filepath>.original` (the EXIF-stripped
+        // re-derive source) and `<basename>.thumb.jpg` (the 320px
+        // thumbnail). Both share the same `dir` + `basename(filePath, ext)`
+        // convention; clean them up alongside the primary so deletes
+        // don't leave orphans on disk indefinitely. Best-effort: any
+        // missing companion is ignored so the primary delete still
+        // succeeds.
+        const companionPaths = [
+          `${filePath}.original`,
+          path.join(
+            path.dirname(filePath),
+            `${path.basename(filePath, path.extname(filePath))}.thumb.jpg`
+          ),
+        ];
+        for (const companion of companionPaths) {
+          try {
+            await fs.promises.unlink(companion);
+          } catch {
+            // companion not present (non-image upload, sharp unavailable
+            // at processing time, or already cleaned up) — ignore.
+          }
         }
       }
 
@@ -879,22 +925,57 @@ export class FileUploadService {
       const dir = path.dirname(originalPath);
       const base = path.basename(originalPath, ext);
 
-      // Keep the original around under a .original suffix so we can
-      // re-derive at higher quality later if defaults change.
+      // Read metadata first so we can pick the right encoder for the
+      // EXIF-stripped `.original` copy below.
+      const meta = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS }).metadata();
+
+      // Keep an EXIF-stripped copy of the original under a `.original`
+      // suffix so we can re-derive at higher quality later if defaults
+      // change. Previous versions used `fs.copyFile`, which preserved
+      // every metadata block (EXIF, IPTC, XMP, ICC) — including GPS
+      // coordinates from camera uploads. Re-encoding through sharp with
+      // its default metadata policy (strip all) gives us the same
+      // "high-quality source for re-derive" semantics without the privacy
+      // leak. We re-encode into the original input format so a PNG stays
+      // a PNG and a JPEG stays a JPEG; the file remains usable by any
+      // future re-derive that walks `.original` files.
       const keepOriginalPath = path.join(dir, `${base}${ext}.original`);
-      await fs.promises.copyFile(originalPath, keepOriginalPath);
+      const originalFormat = meta.format;
+      if (originalFormat) {
+        await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS })
+          .toFormat(originalFormat)
+          .toFile(keepOriginalPath);
+      } else {
+        // Format unknown to sharp (rare — would imply metadata read above
+        // succeeded but reported no format). Fall back to a raw copy so
+        // we don't lose the source; flag in logs so it surfaces.
+        logger.warn('sharp metadata returned no format — falling back to raw copy', {
+          path: originalPath,
+        });
+        await fs.promises.copyFile(originalPath, keepOriginalPath);
+      }
 
       // Resize the primary asset in place: max 1600px on the longest
       // side, JPEG q=85 (mozjpeg). withoutEnlargement so we never up-scale.
+      //
+      // EXIF strip: sharp's documented default is to strip every metadata
+      // block (EXIF, IPTC, XMP, ICC) from the output unless `keepMetadata`
+      // or `withMetadata` is called. We rely on that default — but to make
+      // the privacy intent explicit at the call sites (and to catch any
+      // upstream change in sharp's defaults during a future bump), every
+      // re-encode pipeline below avoids `withMetadata`/`keepMetadata`
+      // entirely. Camera-uploaded JPEGs commonly embed GPS coordinates,
+      // device serials and timestamps; allowing those to round-trip into a
+      // served pet photo would let viewers extract the adopter's home
+      // coordinates from the EXIF block.
       const resizedTmpPath = path.join(dir, `${base}.resized${ext}`);
-      const meta = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS }).metadata();
       const resizedInfo = await sharp(originalPath, { limitInputPixels: MAX_IMAGE_PIXELS })
         .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 85, mozjpeg: true })
         .toFile(resizedTmpPath);
       await fs.promises.rename(resizedTmpPath, originalPath);
 
-      // 320px thumbnail next to it.
+      // 320px thumbnail next to it. Same EXIF-strip default applies.
       const thumbPath = path.join(dir, `${base}.thumb.jpg`);
       await sharp(keepOriginalPath, { limitInputPixels: MAX_IMAGE_PIXELS })
         .resize({ width: 320, height: 320, fit: 'inside', withoutEnlargement: true })

@@ -1,4 +1,5 @@
 import DeviceToken from '../models/DeviceToken';
+import { NotificationType } from '../models/Notification';
 import User from '../models/User';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import logger from '../utils/logger';
@@ -6,6 +7,32 @@ import emailService from './email.service';
 import { getPushProvider } from './push-providers';
 import { getSmsProvider } from './sms-providers';
 import { NotificationPreferences } from './notification.service';
+
+/**
+ * ADS-740: explicit allowlist of notification types that bypass user
+ * opt-out for delivery to enabled channels. The previous implementation
+ * did `type.includes('system') || type.includes('security')`, so a
+ * crafted or mis-named type such as `security_alert_MARKETING` would
+ * defeat the marketing opt-out via substring match.
+ *
+ * Mapped to enum values that currently exist in the NotificationType
+ * model:
+ *   - ACCOUNT_SECURITY    — security flows (password reset, 2FA, account
+ *                           lock, login-from-new-device, email verify)
+ *   - SYSTEM_ANNOUNCEMENT — system-critical (ToS / privacy updates,
+ *                           GDPR export ready, account deletion /
+ *                           restoration confirmations)
+ *
+ * The product spec calls out finer-grained types (PASSWORD_RESET_REQUEST,
+ * TOS_UPDATE, GDPR_DATA_EXPORT_READY, etc.) which do not yet exist as
+ * discrete enum members. Until those land in NotificationType, the
+ * two coarse categories above are the authoritative critical-type
+ * allowlist.
+ */
+export const CRITICAL_NOTIFICATION_TYPES: ReadonlySet<string> = new Set<string>([
+  NotificationType.ACCOUNT_SECURITY,
+  NotificationType.SYSTEM_ANNOUNCEMENT,
+]);
 
 interface NotificationData {
   [key: string]: string | number | boolean | null;
@@ -126,8 +153,11 @@ export class NotificationChannelService {
     notificationType: string,
     preferences: NotificationPreferences
   ): boolean {
-    // System and security notifications always go through enabled channels
-    if (notificationType.includes('system') || notificationType.includes('security')) {
+    // ADS-740: critical notification types (security + system-critical)
+    // always go through enabled channels. Matched against an explicit
+    // allowlist; the old substring check let `security_alert_MARKETING`
+    // bypass the marketing opt-out.
+    if (CRITICAL_NOTIFICATION_TYPES.has(notificationType)) {
       return true;
     }
 

@@ -1,5 +1,25 @@
 import * as Sentry from '@sentry/react';
 
+/**
+ * Strip identifiable fields from `event.user` before Sentry sends an
+ * event upstream. Exported for testing — callers should not need to
+ * invoke this directly.
+ *
+ * We deliberately keep `event.user.id` if present (UUIDs are opaque)
+ * and drop email / username / ip_address so a future stray
+ * Sentry.setUser({ email }) call cannot leak PII to the SaaS.
+ */
+export const redactSentryUser = <T extends { user?: Record<string, unknown> | null }>(
+  event: T
+): T => {
+  if (event.user) {
+    delete event.user.email;
+    delete event.user.username;
+    delete event.user.ip_address;
+  }
+  return event;
+};
+
 export type SentryInitOptions = {
   /** Sentry DSN — typically read from VITE_SENTRY_DSN by the caller. */
   dsn: string | undefined;
@@ -60,6 +80,10 @@ export const initSentry = (options: SentryInitOptions): void => {
     initialScope: {
       tags: { app: appName },
     },
+    // Defensive PII scrub: no Sentry.setUser({ email }) call exists in
+    // the codebase today, but lock the invariant so a future change
+    // can't accidentally ship identifiable user fields to the SaaS.
+    beforeSend: event => redactSentryUser(event),
   });
 };
 
