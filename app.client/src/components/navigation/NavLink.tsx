@@ -7,6 +7,11 @@ export type NavLinkProps = Omit<LinkProps, 'to'> & {
   icon?: React.ReactNode;
   primary?: boolean;
   iconOnly?: boolean;
+  /**
+   * Short description shown as a native tooltip and as accessible hint text,
+   * helping first-time users distinguish similar nav items (e.g. Discover vs Search).
+   */
+  description?: string;
   children?: React.ReactNode;
 };
 
@@ -15,6 +20,7 @@ export const NavLink: React.FC<NavLinkProps> = ({
   icon,
   primary = false,
   iconOnly = false,
+  description,
   children,
   ...rest
 }) => {
@@ -22,9 +28,15 @@ export const NavLink: React.FC<NavLinkProps> = ({
   const active = location.pathname === to || location.pathname.startsWith(`${to}/`);
 
   return (
-    <Link className={styles.styledLink({ active, primary, iconOnly })} to={to} {...rest}>
+    <Link
+      className={styles.styledLink({ active, primary, iconOnly })}
+      to={to}
+      title={description}
+      {...rest}
+    >
       {icon && <span className={styles.navIcon}>{icon}</span>}
       {!iconOnly && children}
+      {!iconOnly && description && <span className={styles.srOnly}>. {description}</span>}
     </Link>
   );
 };

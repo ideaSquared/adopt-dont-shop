@@ -46,12 +46,22 @@ vi.mock('@/contexts/ChatContext', () => ({
   useChat: () => chatState,
 }));
 
+const trackEventMock = vi.fn();
+vi.mock('@/contexts/AnalyticsContext', () => ({
+  useAnalytics: () => ({
+    trackEvent: trackEventMock,
+    trackPageView: vi.fn(),
+    analyticsService: {},
+  }),
+}));
+
 describe('AppNavbar', () => {
   beforeEach(() => {
     authState.user = null;
     authState.isAuthenticated = false;
     notificationsState.unreadCount = 0;
     chatState.unreadMessageCount = 0;
+    trackEventMock.mockClear();
   });
 
   describe('logged out', () => {
@@ -73,6 +83,18 @@ describe('AppNavbar', () => {
       renderWithProviders(<AppNavbar />);
       expect(screen.getByRole('link', { name: /discover/i })).toHaveAttribute('href', '/discover');
       expect(screen.getByRole('link', { name: /search/i })).toHaveAttribute('href', '/search');
+    });
+
+    it('describes Discover and Search so first-time users can tell them apart', () => {
+      renderWithProviders(<AppNavbar />);
+      expect(screen.getByRole('link', { name: /discover/i })).toHaveAttribute(
+        'title',
+        'Swipe through matches'
+      );
+      expect(screen.getByRole('link', { name: /search/i })).toHaveAttribute(
+        'title',
+        'Filter and browse all pets'
+      );
     });
   });
 
@@ -128,6 +150,31 @@ describe('AppNavbar', () => {
     it('does not render the legacy swipe callout', () => {
       renderWithProviders(<AppNavbar />);
       expect(screen.queryByText(/try our new swipe feature/i)).not.toBeInTheDocument();
+    });
+
+    it('tracks distinct analytics entry paths for Discover vs Search', async () => {
+      const { default: userEvent } = await import('@testing-library/user-event');
+      const user = userEvent.setup();
+      renderWithProviders(<AppNavbar />);
+
+      await user.click(screen.getByRole('link', { name: /discover/i }));
+      await user.click(screen.getByRole('link', { name: /search/i }));
+
+      const discoverCall = trackEventMock.mock.calls.find(([event]) => event.label === 'discover');
+      const searchCall = trackEventMock.mock.calls.find(([event]) => event.label === 'search');
+
+      expect(discoverCall?.[0]).toMatchObject({
+        category: 'navigation',
+        action: 'primary_nav_clicked',
+        label: 'discover',
+        properties: { entry_path: 'discover', source: 'app_navbar' },
+      });
+      expect(searchCall?.[0]).toMatchObject({
+        category: 'navigation',
+        action: 'primary_nav_clicked',
+        label: 'search',
+        properties: { entry_path: 'search', source: 'app_navbar' },
+      });
     });
   });
 

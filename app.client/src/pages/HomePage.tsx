@@ -127,6 +127,8 @@ export const HomePage: React.FC = () => {
       timestamp: new Date(),
       properties: {
         cta_action: action,
+        entry_path: action === 'browse_pets' ? 'search' : action,
+        source: 'homepage_cta',
         user_authenticated: isAuthenticated,
         featured_pets_visible: featuredPets.length,
         hero_variant: showNewHero ? 'new_hero' : 'original_hero',
@@ -242,7 +244,7 @@ export const HomePage: React.FC = () => {
           </p>
           {isAuthenticated ? (
             <Link to='/search' onClick={() => handleCTAClick('browse_pets')}>
-              <Button size='lg' variant='secondary'>
+              <Button variant='outline' className={styles.ctaSecondaryButton}>
                 Browse Pets
               </Button>
             </Link>

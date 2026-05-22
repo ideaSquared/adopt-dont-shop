@@ -202,6 +202,12 @@ export const heroSecondaryButton = style({
   background: 'rgba(255,255,255,0.08)',
 });
 
+export const ctaSecondaryButton = style({
+  color: 'white',
+  borderColor: 'rgba(255,255,255,0.6)',
+  background: 'transparent',
+});
+
 export const centerAlign = style({
   textAlign: 'center',
 });
