@@ -43,7 +43,60 @@ export const applicationCard = style({
 export const petInfo = style({
   display: 'flex',
   alignItems: 'center',
+  gap: '1rem',
   marginBottom: '1rem',
+});
+
+export const petThumbnail = style({
+  width: '64px',
+  height: '64px',
+  borderRadius: vars.border.radius.base,
+  objectFit: 'cover',
+  flexShrink: 0,
+  background: vars.background.muted,
+});
+
+export const petThumbnailPlaceholder = style([
+  petThumbnail,
+  {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: vars.text.muted,
+    fontSize: '0.75rem',
+  },
+]);
+
+export const rescueName = style({
+  margin: '0',
+  color: vars.text.secondary,
+  fontSize: '0.875rem',
+  fontWeight: vars.typography.weight.medium,
+});
+
+export const cardTopRow = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  gap: '0.5rem',
+});
+
+export const messagesButton = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.375rem',
+  background: 'transparent',
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.base,
+  padding: '0.25rem 0.625rem',
+  cursor: 'pointer',
+  fontSize: '0.75rem',
+  fontWeight: vars.typography.weight.medium,
+  color: vars.text.secondary,
+  ':hover': {
+    color: vars.text.primary,
+    borderColor: vars.border.color.strong,
+  },
 });
 
 export const petDetailsH3 = style({

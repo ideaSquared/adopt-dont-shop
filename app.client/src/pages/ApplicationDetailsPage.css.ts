@@ -18,6 +18,13 @@ export const header = style({
   marginBottom: '2rem',
 });
 
+export const messageRescueRow = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.75rem',
+  marginBottom: '2rem',
+});
+
 globalStyle(`${header} h1`, {
   fontSize: '2rem',
   color: vars.text.primary,

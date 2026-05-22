@@ -1,5 +1,6 @@
 import { applicationService, Application } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
+import { useChat } from '@/contexts/ChatContext';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { WithdrawApplicationModal } from '../components/application';
@@ -14,6 +15,9 @@ export const ApplicationDetailsPage: React.FC = () => {
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isOpeningMessages, setIsOpeningMessages] = useState(false);
+  const [messageError, setMessageError] = useState<string | null>(null);
+  const { conversations, startConversation } = useChat();
 
   useEffect(() => {
     const loadApplication = async () => {
@@ -63,6 +67,38 @@ export const ApplicationDetailsPage: React.FC = () => {
     }
   };
 
+  const handleMessageRescue = async () => {
+    if (!application) {
+      return;
+    }
+    setMessageError(null);
+
+    // Reuse an existing conversation when one already covers this
+    // pet + rescue pair; otherwise create a fresh one so the adopter
+    // can message the rescue from the application context.
+    const existing = conversations.find(
+      c => c.petId === application.petId && c.rescueId === application.rescueId
+    );
+
+    const returnPath = `/applications/${application.id}`;
+
+    if (existing) {
+      navigate(`/chat/${existing.id}`, { state: { from: returnPath } });
+      return;
+    }
+
+    try {
+      setIsOpeningMessages(true);
+      const conversation = await startConversation(application.rescueId, application.petId);
+      navigate(`/chat/${conversation.id}`, { state: { from: returnPath } });
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      setMessageError('Failed to start a conversation. Please try again.');
+    } finally {
+      setIsOpeningMessages(false);
+    }
+  };
+
   const formatDate = (dateString?: string | null) => {
     if (!dateString) {
       return 'Not available';
@@ -102,6 +138,18 @@ export const ApplicationDetailsPage: React.FC = () => {
       <div className={styles.header}>
         <h1>Application Details</h1>
         <p>Application #{application.id.slice(-6)}</p>
+      </div>
+
+      <div className={styles.messageRescueRow}>
+        <Button
+          variant='primary'
+          onClick={handleMessageRescue}
+          isLoading={isOpeningMessages}
+          disabled={isOpeningMessages}
+        >
+          Message rescue
+        </Button>
+        {messageError && <Alert variant='error'>{messageError}</Alert>}
       </div>
 
       {successMessage && (

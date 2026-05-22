@@ -1,17 +1,27 @@
-import { Button, Card } from '@adopt-dont-shop/lib.components';
-import React, { useEffect, useState } from 'react';
+import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { useChat } from '@/contexts/ChatContext';
+import { useUnreadConversations } from '@adopt-dont-shop/lib.chat';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { applicationService, petService, Application, Pet } from '@/services';
+import { resolveFileUrl } from '../utils/fileUtils';
 import * as styles from './ApplicationDashboard.css';
 
 interface ApplicationWithPet extends Application {
   pet?: Pet;
 }
 
+const getPrimaryThumbnailUrl = (pet: Pet | undefined): string | undefined => {
+  const primary = pet?.images?.find(img => img.is_primary) ?? pet?.images?.[0];
+  return resolveFileUrl(primary?.thumbnail_url ?? primary?.url);
+};
+
 export const ApplicationDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { conversations } = useChat();
+  const { unreadByConversationId } = useUnreadConversations();
   const [applications, setApplications] = useState<ApplicationWithPet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,9 +57,34 @@ export const ApplicationDashboard: React.FC = () => {
     }
   };
 
+  // Map an application to the corresponding conversation (if any).
+  // Conversations are tagged with petId + rescueId server-side; we use both
+  // because a rescue can have many pets and an adopter could have multiple
+  // open threads with the same rescue.
+  const conversationByApplicationId = useMemo(() => {
+    const lookup: Record<string, string> = {};
+    for (const application of applications) {
+      const match = conversations.find(
+        c => c.petId === application.petId && c.rescueId === application.rescueId
+      );
+      if (match) {
+        lookup[application.id] = match.id;
+      }
+    }
+    return lookup;
+  }, [applications, conversations]);
+
   const handleApplicationClick = (application: ApplicationWithPet) => {
     // Navigate to application details view
     navigate(`/applications/${application.id}`);
+  };
+
+  const handleOpenMessages = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    conversationId: string
+  ) => {
+    event.stopPropagation();
+    navigate(`/chat/${conversationId}`);
   };
 
   if (!user) {
@@ -111,67 +146,106 @@ export const ApplicationDashboard: React.FC = () => {
       </div>
 
       <div className={styles.applicationGrid}>
-        {applications.map(application => (
-          <Card
-            key={application.id}
-            className={styles.applicationCard}
-            onClick={() => handleApplicationClick(application)}
-          >
-            <div className={styles.petInfo}>
-              <div>
-                <h3 className={styles.petDetailsH3}>
-                  {application.pet?.name || 'Pet Name Unavailable'}
-                </h3>
-                <p className={styles.petDetailsP}>
-                  {application.pet?.breed} • {application.pet?.age_years} years old
+        {applications.map(application => {
+          const thumbnailUrl = getPrimaryThumbnailUrl(application.pet);
+          const rescueName = application.pet?.rescue?.name;
+          const conversationId = conversationByApplicationId[application.id];
+          const unread = conversationId ? (unreadByConversationId[conversationId] ?? 0) : 0;
+
+          return (
+            <Card
+              key={application.id}
+              className={styles.applicationCard}
+              onClick={() => handleApplicationClick(application)}
+            >
+              <div className={styles.cardTopRow}>
+                <div className={styles.petInfo}>
+                  {thumbnailUrl ? (
+                    <img
+                      className={styles.petThumbnail}
+                      src={thumbnailUrl}
+                      alt={application.pet?.name ?? 'Pet'}
+                    />
+                  ) : (
+                    <div className={styles.petThumbnailPlaceholder} aria-hidden='true'>
+                      No photo
+                    </div>
+                  )}
+                  <div>
+                    <h3 className={styles.petDetailsH3}>
+                      {application.pet?.name || 'Pet Name Unavailable'}
+                    </h3>
+                    <p className={styles.petDetailsP}>
+                      {application.pet?.breed} • {application.pet?.age_years} years old
+                    </p>
+                    {rescueName && <p className={styles.rescueName}>{rescueName}</p>}
+                  </div>
+                </div>
+
+                {conversationId && (
+                  <button
+                    type='button'
+                    className={styles.messagesButton}
+                    onClick={event => handleOpenMessages(event, conversationId)}
+                    aria-label={
+                      unread > 0 ? `Messages from rescue: ${unread} unread` : 'Messages from rescue'
+                    }
+                  >
+                    Messages
+                    {unread > 0 && (
+                      <Badge variant='count' size='xs' max={99} data-testid='unread-badge'>
+                        {unread}
+                      </Badge>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <span
+                className={styles.statusBadge({
+                  status: (['submitted', 'under_review', 'approved', 'rejected'].includes(
+                    application.status
+                  )
+                    ? application.status
+                    : 'default') as
+                    | 'submitted'
+                    | 'under_review'
+                    | 'approved'
+                    | 'rejected'
+                    | 'default',
+                })}
+              >
+                {application.status.replace('_', ' ')}
+              </span>
+
+              <div className={styles.applicationDetails}>
+                {application.submittedAt && (
+                  <p>
+                    <strong>Submitted:</strong>{' '}
+                    {new Date(application.submittedAt).toLocaleDateString()}
+                  </p>
+                )}
+                <p>
+                  <strong>Last Updated:</strong>{' '}
+                  {new Date(application.updatedAt).toLocaleDateString()}
                 </p>
               </div>
-            </div>
 
-            <span
-              className={styles.statusBadge({
-                status: (['submitted', 'under_review', 'approved', 'rejected'].includes(
-                  application.status
-                )
-                  ? application.status
-                  : 'default') as
-                  | 'submitted'
-                  | 'under_review'
-                  | 'approved'
-                  | 'rejected'
-                  | 'default',
-              })}
-            >
-              {application.status.replace('_', ' ')}
-            </span>
-
-            <div className={styles.applicationDetails}>
-              {application.submittedAt && (
-                <p>
-                  <strong>Submitted:</strong>{' '}
-                  {new Date(application.submittedAt).toLocaleDateString()}
-                </p>
-              )}
-              <p>
-                <strong>Last Updated:</strong>{' '}
-                {new Date(application.updatedAt).toLocaleDateString()}
-              </p>
-            </div>
-
-            <div className={styles.actionButtons}>
-              <Button
-                size='sm'
-                variant='outline'
-                onClick={e => {
-                  e.stopPropagation();
-                  handleApplicationClick(application);
-                }}
-              >
-                View Details
-              </Button>
-            </div>
-          </Card>
-        ))}
+              <div className={styles.actionButtons}>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleApplicationClick(application);
+                  }}
+                >
+                  View Details
+                </Button>
+              </div>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
