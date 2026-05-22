@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth';
 import { idempotency } from '../middleware/idempotency';
 import { requirePermission } from '../middleware/rbac';
 import { generalLimiter } from '../middleware/rate-limiter';
+import { reportCreateDailyLimiter } from '../middleware/user-abuse-rate-limit';
 import { handleValidationErrors } from '../middleware/validation';
 import { PERMISSIONS } from '../types/rbac';
 import { moderationValidation } from '../validation/moderation.validation';
@@ -146,6 +147,10 @@ router.post(
   '/reports',
   requirePermission(PERMISSIONS.MODERATION_REPORTS_CREATE),
   generalLimiter,
+  // Per-user 5/day cap shared with pet reports — see A15. Idempotency
+  // still caps duplicates on the same entity; this is the additive
+  // per-day cap across all reportable entity types.
+  reportCreateDailyLimiter,
   idempotency,
   moderationValidation.submitReport,
   handleValidationErrors,
