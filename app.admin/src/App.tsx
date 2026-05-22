@@ -16,6 +16,7 @@ const RegisterPage = lazy(() =>
 );
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Users = lazy(() => import('./pages/Users'));
+const UsersSplitPaneDemo = lazy(() => import('./pages/UsersSplitPaneDemo'));
 const Rescues = lazy(() => import('./pages/Rescues'));
 const Pets = lazy(() => import('./pages/Pets'));
 const Applications = lazy(() => import('./pages/Applications'));
@@ -92,6 +93,9 @@ const AdminApp: React.FC = () => {
 
               {/* User Management */}
               <Route path='/users' element={<Users />} />
+              {/* ADS-654: split-pane entity-detail reference implementation */}
+              <Route path='/users/split-pane' element={<UsersSplitPaneDemo />} />
+              <Route path='/users/split-pane/:userId' element={<UsersSplitPaneDemo />} />
               <Route path='/users/:userId' element={<Users />} />
 
               {/* Rescue Management */}
