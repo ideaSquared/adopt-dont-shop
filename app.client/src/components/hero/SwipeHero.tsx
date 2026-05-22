@@ -1,9 +1,26 @@
 import React from 'react';
 import { MdAutoFixHigh, MdFlashOn, MdSearch, MdSwipe, MdTrendingUp } from 'react-icons/md';
 import { Link } from 'react-router-dom';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 import * as styles from './SwipeHero.css';
 
 export const SwipeHero: React.FC = () => {
+  const { trackEvent } = useAnalytics();
+
+  const trackHeroCtaClick = (entryPath: 'discover' | 'search') => {
+    trackEvent({
+      category: 'homepage',
+      action: 'hero_cta_clicked',
+      label: entryPath,
+      sessionId: 'homepage-session',
+      timestamp: new Date(),
+      properties: {
+        entry_path: entryPath,
+        source: 'swipe_hero',
+      },
+    });
+  };
+
   return (
     <section className={styles.heroContainer}>
       <div className={styles.heroContent}>
@@ -25,11 +42,21 @@ export const SwipeHero: React.FC = () => {
         </p>
 
         <div className={styles.ctaContainer}>
-          <Link className={styles.primaryButton} to='/discover'>
+          <Link
+            className={styles.primaryButton}
+            to='/discover'
+            title='Swipe through matches'
+            onClick={() => trackHeroCtaClick('discover')}
+          >
             <MdSwipe className={styles.primaryButtonIcon} />
             Start Swiping Now
           </Link>
-          <Link className={styles.secondaryButton} to='/search'>
+          <Link
+            className={styles.secondaryButton}
+            to='/search'
+            title='Filter and browse all pets'
+            onClick={() => trackHeroCtaClick('search')}
+          >
             <MdSearch />
             Browse All Pets
           </Link>

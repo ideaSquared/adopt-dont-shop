@@ -32,6 +32,14 @@ vi.mock('@/contexts/ChatContext', () => ({
   useChat: () => ({ unreadMessageCount: 0 }),
 }));
 
+vi.mock('@/contexts/AnalyticsContext', () => ({
+  useAnalytics: () => ({
+    trackEvent: vi.fn(),
+    trackPageView: vi.fn(),
+    analyticsService: {},
+  }),
+}));
+
 vi.mock('@/components/ui/SwipeFloatingButton', () => ({
   SwipeFloatingButton: () => null,
 }));

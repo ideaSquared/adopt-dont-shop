@@ -5,6 +5,7 @@ import { Badge, Logo } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useChat } from '@/contexts/ChatContext';
 import { useNotifications } from '@/contexts/NotificationsContext';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { AuthCtas } from './AuthCtas';
 import { NavLink } from './NavLink';
 import { NavUserMenu } from './NavUserMenu';
@@ -58,6 +59,22 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
   const { isAuthenticated } = useAuth();
   const { unreadCount: notificationsUnread } = useNotifications();
   const { unreadMessageCount } = useChat();
+  const { trackEvent } = useAnalytics();
+
+  const trackNavClick = (entryPath: 'discover' | 'search' | 'favorites') => {
+    trackEvent({
+      category: 'navigation',
+      action: 'primary_nav_clicked',
+      label: entryPath,
+      sessionId: 'app-navbar-session',
+      timestamp: new Date(),
+      properties: {
+        entry_path: entryPath,
+        source: 'app_navbar',
+        user_authenticated: isAuthenticated,
+      },
+    });
+  };
 
   return (
     <nav className={`${styles.navbarContainer}${className ? ` ${className}` : ''}`}>
@@ -67,14 +84,29 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
         </Link>
 
         <div className={styles.primaryLinks}>
-          <NavLink to='/discover' icon={<MdSwipe aria-hidden='true' />} primary>
+          <NavLink
+            to='/discover'
+            icon={<MdSwipe aria-hidden='true' />}
+            primary
+            description='Swipe through matches'
+            onClick={() => trackNavClick('discover')}
+          >
             Discover
           </NavLink>
-          <NavLink to='/search' icon={<MdSearch aria-hidden='true' />}>
+          <NavLink
+            to='/search'
+            icon={<MdSearch aria-hidden='true' />}
+            description='Filter and browse all pets'
+            onClick={() => trackNavClick('search')}
+          >
             Search
           </NavLink>
           {isAuthenticated && (
-            <NavLink to='/favorites' icon={<MdFavorite aria-hidden='true' />}>
+            <NavLink
+              to='/favorites'
+              icon={<MdFavorite aria-hidden='true' />}
+              onClick={() => trackNavClick('favorites')}
+            >
               Favorites
             </NavLink>
           )}
