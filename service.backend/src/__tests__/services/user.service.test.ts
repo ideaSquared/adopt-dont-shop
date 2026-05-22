@@ -641,6 +641,90 @@ describe('UserService', () => {
         'Only super_admin can assign super_admin role'
       );
     });
+
+    // ADS-651: bulk state-change reasons must be captured per affected user
+    // so the audit trail explains *why* every row changed.
+    it('records the operator-supplied reason on each affected user audit row', async () => {
+      const userA = await User.create({
+        email: 'bulk-reason-a@example.com',
+        password: 'hashedpassword',
+        firstName: 'A',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const userB = await User.create({
+        email: 'bulk-reason-b@example.com',
+        password: 'hashedpassword',
+        firstName: 'B',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-reason@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'Reason',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      const reason = 'Policy violation cleanup — Q1 2026';
+      const updates: BulkUserUpdateData[] = [
+        {
+          userIds: [userA.userId, userB.userId],
+          updates: { status: UserStatus.INACTIVE },
+          reason,
+        },
+      ];
+
+      await UserService.bulkUpdateUsers(updates, admin.userId);
+
+      const auditCalls = (AuditLogService.log as ReturnType<typeof vi.fn>).mock.calls.map(
+        c => c[0]
+      );
+      const bulkCalls = auditCalls.filter(c => c.action === 'BULK_UPDATE' && c.entity === 'User');
+
+      expect(bulkCalls).toHaveLength(2);
+      expect(bulkCalls.map(c => c.entityId).sort()).toEqual([userA.userId, userB.userId].sort());
+      bulkCalls.forEach(call => {
+        expect(call.details).toMatchObject({ reason, bulk_operation: true });
+      });
+    });
+
+    it('records reason as null when none is supplied', async () => {
+      const user = await User.create({
+        email: 'bulk-noreason@example.com',
+        password: 'hashedpassword',
+        firstName: 'No',
+        lastName: 'Reason',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-noreason@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'NoReason',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      await UserService.bulkUpdateUsers(
+        [{ userIds: [user.userId], updates: { firstName: 'Renamed' } }],
+        admin.userId
+      );
+
+      const auditCalls = (AuditLogService.log as ReturnType<typeof vi.fn>).mock.calls.map(
+        c => c[0]
+      );
+      const bulkCall = auditCalls.find(
+        c => c.action === 'BULK_UPDATE' && c.entityId === user.userId
+      );
+      expect(bulkCall).toBeDefined();
+      expect(bulkCall?.details).toMatchObject({ reason: null });
+    });
   });
 
   describe('canUserSeePrivateData', () => {

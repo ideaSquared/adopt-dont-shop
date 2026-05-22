@@ -183,12 +183,16 @@ const Rescues: React.FC = () => {
     exportData(rescues, rescueExportColumns, 'rescues-export', 'Rescue Management Export', format);
   };
 
-  const handleBulkRescueConfirm = async (): Promise<void> => {
+  const handleBulkRescueConfirm = async (reason?: string): Promise<void> => {
     if (!bulkRescueAction) {
       return;
     }
     const rescueIds = Array.from(selectedRows);
-    const result = await bulkUpdateRescues.mutateAsync({ rescueIds, action: bulkRescueAction });
+    const result = await bulkUpdateRescues.mutateAsync({
+      rescueIds,
+      action: bulkRescueAction,
+      reason,
+    });
     setBulkResult({ succeeded: result.successCount, failed: result.failedCount });
     setSelectedRows(new Set());
     fetchRescues();
@@ -401,15 +405,32 @@ const Rescues: React.FC = () => {
         isOpen={bulkRescueAction !== null}
         onClose={handleBulkModalClose}
         onConfirm={handleBulkRescueConfirm}
-        title={bulkRescueAction === 'approve' ? 'Approve Rescues' : 'Suspend Rescues'}
-        description={
-          bulkRescueAction === 'approve'
-            ? 'Verify and approve the selected rescue organizations on the platform.'
-            : 'Suspend the selected rescue organizations. They will be unable to operate on the platform.'
-        }
+        title={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} rescue${count !== 1 ? 's' : ''}`;
+          return bulkRescueAction === 'approve' ? `Approve ${noun}?` : `Suspend ${noun}?`;
+        })()}
+        description={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} rescue organization${count !== 1 ? 's' : ''}`;
+          if (bulkRescueAction === 'approve') {
+            return `This will verify and approve ${noun}. They will be able to list pets and accept applications.`;
+          }
+          return `This will suspend ${noun}. They will be unable to operate on the platform until reinstated.`;
+        })()}
         selectedCount={selectedRows.size}
         confirmLabel={bulkRescueAction === 'approve' ? 'Approve Rescues' : 'Suspend Rescues'}
         variant={bulkRescueAction === 'suspend' ? 'danger' : 'info'}
+        // ADS-651: every bulk state-change records a reason in the audit log.
+        requireReason
+        reasonLabel={
+          bulkRescueAction === 'approve' ? 'Reason for approval' : 'Reason for suspension'
+        }
+        reasonPlaceholder={
+          bulkRescueAction === 'approve'
+            ? 'Explain why these rescues are being approved...'
+            : 'Explain why these rescues are being suspended...'
+        }
         isLoading={bulkUpdateRescues.isPending}
         resultSummary={bulkResult}
       />

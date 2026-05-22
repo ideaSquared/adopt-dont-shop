@@ -140,10 +140,12 @@ export const useBulkUpdateUsers = () => {
     mutationFn: ({
       userIds,
       updates,
+      reason,
     }: {
       userIds: string[];
       updates: { userType?: string; is_active?: boolean };
-    }) => userManagementService.bulkUpdateUsers(userIds, updates),
+      reason?: string;
+    }) => userManagementService.bulkUpdateUsers(userIds, updates, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },

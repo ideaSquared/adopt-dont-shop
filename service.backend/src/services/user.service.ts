@@ -1372,21 +1372,25 @@ export class UserService {
         individualHooks: true,
       });
 
-      // Log bulk update
-      await AuditLogService.log({
-        action: 'BULK_UPDATE',
-        entity: 'User',
-        entityId: 'multiple',
-        details: {
-          updateCount: updates.length,
-          updatedBy,
-          updates: updates[0].userIds.map(userId => ({
-            userId,
-            fields: Object.keys(updates[0].updates),
-          })),
-        },
-        userId: updatedBy,
-      });
+      // Log bulk update — ADS-651: per-user entries each carry the
+      // operator reason so the audit log captures *why* every affected
+      // user changed state, not just that they were part of a bulk job.
+      const reason = updates[0].reason ?? null;
+      await Promise.all(
+        updates[0].userIds.map(userId =>
+          AuditLogService.log({
+            action: 'BULK_UPDATE',
+            entity: 'User',
+            entityId: userId,
+            details: {
+              fields: Object.keys(updates[0].updates),
+              reason,
+              bulk_operation: true,
+            },
+            userId: updatedBy,
+          })
+        )
+      );
 
       if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(

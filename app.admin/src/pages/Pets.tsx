@@ -82,7 +82,7 @@ const Pets: React.FC = () => {
 
   const pets: AdminPet[] = data?.data ?? [];
 
-  const handleBulkConfirm = async (): Promise<void> => {
+  const handleBulkConfirm = async (reason?: string): Promise<void> => {
     if (!bulkAction) {
       return;
     }
@@ -91,12 +91,13 @@ const Pets: React.FC = () => {
     let result: { successCount: number; failedCount: number };
 
     if (bulkAction === 'archive') {
-      result = await bulkUpdatePets.mutateAsync({ petIds, operation: 'archive' });
+      result = await bulkUpdatePets.mutateAsync({ petIds, operation: 'archive', reason });
     } else {
       result = await bulkUpdatePets.mutateAsync({
         petIds,
         operation: 'update_status',
         data: { status: bulkAction === 'publish' ? 'available' : 'not_available' },
+        reason,
       });
     }
 
@@ -313,13 +314,17 @@ const Pets: React.FC = () => {
           }
           return `Archive ${noun}?`;
         })()}
-        description={
-          bulkAction === 'publish'
-            ? 'Set the selected pets as available for adoption.'
-            : bulkAction === 'unpublish'
-              ? 'Set the selected pets as unavailable. They will no longer appear in listings.'
-              : 'Archive the selected pets. This marks them as inactive.'
-        }
+        description={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} pet${count !== 1 ? 's' : ''}`;
+          if (bulkAction === 'publish') {
+            return `This will set ${noun} to available for adoption and they will appear in public listings.`;
+          }
+          if (bulkAction === 'unpublish') {
+            return `This will set ${noun} to unavailable and they will be removed from public listings.`;
+          }
+          return `This will archive ${noun} and mark them as inactive.`;
+        })()}
         selectedCount={selectedRows.size}
         confirmLabel={
           bulkAction === 'publish'
@@ -330,6 +335,22 @@ const Pets: React.FC = () => {
         }
         variant={
           bulkAction === 'archive' ? 'danger' : bulkAction === 'unpublish' ? 'warning' : 'info'
+        }
+        // ADS-651: every bulk state-change records a reason in the audit log.
+        requireReason
+        reasonLabel={
+          bulkAction === 'publish'
+            ? 'Reason for publishing'
+            : bulkAction === 'unpublish'
+              ? 'Reason for unpublishing'
+              : 'Reason for archiving'
+        }
+        reasonPlaceholder={
+          bulkAction === 'publish'
+            ? 'Explain why these pets are being published...'
+            : bulkAction === 'unpublish'
+              ? 'Explain why these pets are being unpublished...'
+              : 'Explain why these pets are being archived...'
         }
         isLoading={bulkUpdatePets.isPending}
         resultSummary={bulkResult}

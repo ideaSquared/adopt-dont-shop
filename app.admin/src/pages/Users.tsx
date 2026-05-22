@@ -276,11 +276,13 @@ const Users: React.FC = () => {
       result = await bulkUpdateUsers.mutateAsync({
         userIds,
         updates: { is_active: true },
+        reason,
       });
     } else if (bulkAction === 'deactivate') {
       result = await bulkUpdateUsers.mutateAsync({
         userIds,
         updates: { is_active: false },
+        reason,
       });
     } else {
       result = await Promise.all(
@@ -600,13 +602,17 @@ const Users: React.FC = () => {
           }
           return `Deactivate ${noun}?`;
         })()}
-        description={
-          bulkAction === 'delete'
-            ? 'This will permanently delete the selected users. This action cannot be undone.'
-            : bulkAction === 'activate'
-              ? 'Activate the selected user accounts.'
-              : 'Deactivate the selected user accounts. They will be unable to log in.'
-        }
+        description={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} user account${count !== 1 ? 's' : ''}`;
+          if (bulkAction === 'delete') {
+            return `This will permanently delete ${noun}. This action cannot be undone.`;
+          }
+          if (bulkAction === 'activate') {
+            return `This will activate ${noun}. The affected users will regain access to the platform.`;
+          }
+          return `This will deactivate ${noun}. The affected users will be unable to log in until reactivated.`;
+        })()}
         selectedCount={selectedRows.size}
         confirmLabel={
           bulkAction === 'delete'
@@ -618,9 +624,22 @@ const Users: React.FC = () => {
         variant={
           bulkAction === 'delete' ? 'danger' : bulkAction === 'deactivate' ? 'warning' : 'info'
         }
-        requireReason={bulkAction === 'delete'}
-        reasonLabel='Reason for deletion'
-        reasonPlaceholder='Explain why these users are being deleted...'
+        // ADS-651: every bulk state-change records a reason in the audit log.
+        requireReason
+        reasonLabel={
+          bulkAction === 'delete'
+            ? 'Reason for deletion'
+            : bulkAction === 'activate'
+              ? 'Reason for activation'
+              : 'Reason for deactivation'
+        }
+        reasonPlaceholder={
+          bulkAction === 'delete'
+            ? 'Explain why these users are being deleted...'
+            : bulkAction === 'activate'
+              ? 'Explain why these users are being activated...'
+              : 'Explain why these users are being deactivated...'
+        }
         isLoading={bulkUpdateUsers.isPending || deleteUser.isPending}
         resultSummary={bulkResult}
       />

@@ -235,12 +235,16 @@ class UserManagementService {
    */
   async bulkUpdateUsers(
     userIds: string[],
-    updates: { userType?: string; is_active?: boolean }
+    updates: { userType?: string; is_active?: boolean },
+    reason?: string
   ): Promise<{ success: number; failed: number }> {
     try {
+      // ADS-651: forward the operator-supplied reason so the backend
+      // bulk endpoint can persist it against each affected user's audit row.
       return await apiService.patch('/api/v1/admin/users/bulk-update', {
         user_ids: userIds,
         updates,
+        reason,
       });
     } catch (error) {
       console.error('❌ UserManagementService: Failed to bulk update users:', error);

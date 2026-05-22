@@ -235,5 +235,8 @@ export const BulkUserUpdateRequestSchema = z.object({
     .min(1, 'At least one user ID is required')
     .max(100, 'Cannot update more than 100 users at a time'),
   updateData: BulkUserUpdateDataSchema,
+  // ADS-651: capture the operator's reason for the bulk state change so it
+  // can be surfaced in the audit log alongside the per-user update list.
+  reason: z.string().trim().min(1, 'Reason is required').max(500).optional(),
 });
 export type BulkUserUpdateRequest = z.infer<typeof BulkUserUpdateRequestSchema>;

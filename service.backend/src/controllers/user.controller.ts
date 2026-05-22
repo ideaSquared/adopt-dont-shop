@@ -242,14 +242,14 @@ export class UserController {
    */
   async bulkUpdateUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { userIds, updateData } = req.body;
+      const { userIds, updateData, reason } = req.body;
       const requestingUserId = req.user!.userId;
 
       // Prevent including own account in bulk operations
       UserService.validateBulkOperation(requestingUserId, userIds, 'update');
 
       const result = await UserService.bulkUpdateUsers(
-        [{ userIds, updates: updateData }],
+        [{ userIds, updates: updateData, reason }],
         requestingUserId
       );
       res.json(result);
