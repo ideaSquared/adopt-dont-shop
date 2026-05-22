@@ -27,6 +27,34 @@ import { logger } from '../utils/logger';
 // from this module keep working.
 export { disconnectAllSockets } from './socket-registry';
 
+/**
+ * Extracts the access token from a Socket.IO handshake. Checks, in order:
+ *   1. socket.handshake.auth.token  (legacy explicit pass)
+ *   2. Authorization: Bearer <token> header
+ *   3. accessToken httpOnly cookie (browsers send cookies with the WS upgrade)
+ */
+const extractSocketToken = (socket: Socket): string | null => {
+  const authToken = socket.handshake.auth?.token as string | undefined;
+  if (authToken) {
+    return authToken;
+  }
+
+  const bearer = socket.handshake.headers.authorization?.split(' ')[1];
+  if (bearer) {
+    return bearer;
+  }
+
+  const cookieStr = socket.handshake.headers.cookie;
+  if (cookieStr) {
+    const match = cookieStr.split(';').find(p => p.trim().startsWith('accessToken='));
+    if (match) {
+      return match.trim().slice('accessToken='.length);
+    }
+  }
+
+  return null;
+};
+
 // Track active connections for health monitoring
 let activeConnections = 0;
 
@@ -249,8 +277,7 @@ export class SocketHandlers {
   private setupMiddleware() {
     this.io.use(async (socket: AuthenticatedSocket, next) => {
       try {
-        const token =
-          socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+        const token = extractSocketToken(socket);
 
         if (!token) {
           return next(new Error('Authentication token required'));
@@ -315,8 +342,7 @@ export class SocketHandlers {
    */
   private installPerEventRevalidation(socket: AuthenticatedSocket) {
     socket.use((_event, next) => {
-      const token =
-        socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+      const token = extractSocketToken(socket);
 
       if (!token) {
         socket.disconnect(true);

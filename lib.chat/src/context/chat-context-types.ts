@@ -99,8 +99,12 @@ export type ChatProviderProps = {
   user: ChatUser | null;
   /** Gate: chat only connects when true. */
   isAuthenticated: boolean;
-  /** Returns the current auth token (or null) for Socket.IO handshake. */
-  tokenProvider: () => string | null;
+  /**
+   * Returns the current auth token (or null) for Socket.IO handshake.
+   * @deprecated The browser sends the httpOnly accessToken cookie with the
+   * WebSocket upgrade request automatically. Pass undefined or omit this prop.
+   */
+  tokenProvider?: () => string | null;
   /** Optional richer offline behavior. Without it, `navigator.onLine` is used. */
   offlineAdapter?: OfflineAdapter;
   /** Optional feature-flag + analytics adapter (e.g. Statsig). */

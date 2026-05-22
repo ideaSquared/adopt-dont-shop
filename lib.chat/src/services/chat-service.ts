@@ -103,26 +103,26 @@ export class ChatService {
   }
 
   /**
-   * Connect to real-time chat using Socket.IO
+   * Connect to real-time chat using Socket.IO.
+   *
+   * `token` is optional: when omitted the browser sends the httpOnly
+   * `accessToken` cookie with the WebSocket upgrade request, and the
+   * backend socket middleware reads it from `handshake.headers.cookie`.
    */
-  connect(userId: string, token: string): void {
+  connect(userId: string, token?: string | null): void {
     if (!userId) {
       throw new Error('User ID is required for connection');
     }
 
-    if (!token) {
-      throw new Error('Authentication token is required for connection');
-    }
-
     try {
       this.currentUserId = userId;
-      this.currentToken = token;
+      this.currentToken = token ?? null;
 
       this.updateConnectionStatus('connecting');
 
       // Create socket connection
       this.socket = io(this.config.socketUrl, {
-        auth: { token },
+        ...(token ? { auth: { token } } : {}),
         autoConnect: true,
         reconnection: false, // We handle reconnection manually
         transports: ['websocket', 'polling'],
@@ -281,8 +281,7 @@ export class ChatService {
     if (
       this.config.reconnection?.enabled &&
       reason !== 'io client disconnect' &&
-      this.currentUserId &&
-      this.currentToken
+      this.currentUserId
     ) {
       this.attemptReconnection();
     }
@@ -301,7 +300,7 @@ export class ChatService {
     this.connectionErrorListeners.forEach((listener) => listener(error));
 
     // Attempt reconnection if enabled
-    if (this.config.reconnection?.enabled && this.currentUserId && this.currentToken) {
+    if (this.config.reconnection?.enabled && this.currentUserId) {
       this.attemptReconnection();
     }
   }
@@ -330,15 +329,16 @@ export class ChatService {
     );
 
     this.reconnectionTimer = setTimeout(() => {
-      if (this.currentUserId && this.currentToken) {
+      if (this.currentUserId) {
         // Disconnect existing socket
         if (this.socket) {
           this.socket.disconnect();
           this.socket = null;
         }
 
-        // Attempt new connection
-        this.connect(this.currentUserId, this.currentToken);
+        // Attempt new connection — token is optional; the browser sends the
+        // httpOnly accessToken cookie with the WebSocket upgrade request.
+        this.connect(this.currentUserId, this.currentToken ?? undefined);
       }
     }, delay);
   }

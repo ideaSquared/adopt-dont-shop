@@ -34,9 +34,10 @@ const AUTH_ENDPOINTS = {
 /**
  * AuthService - Authentication and user management service
  *
- * Access tokens are stored in sessionStorage (cleared on tab close).
- * Refresh tokens are stored in httpOnly cookies (managed by the backend,
- * not accessible to JavaScript — XSS-safe).
+ * Access tokens are stored in httpOnly cookies (managed by the backend,
+ * not accessible to JavaScript — XSS-safe). Refresh tokens use a separate
+ * httpOnly cookie. All authenticated requests rely on the browser sending
+ * these cookies automatically via `credentials: 'include'`.
  */
 export class AuthService {
   constructor() {
@@ -52,8 +53,7 @@ export class AuthService {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
 
-    // Store access token in sessionStorage; refresh token is in httpOnly cookie
-    this.setToken(response.token);
+    // Access token is set as httpOnly cookie by the backend; refresh token likewise.
     this.setUser(response.user);
 
     return {
@@ -108,21 +108,20 @@ export class AuthService {
   }
 
   /**
-   * Check if user is authenticated
+   * Check if user is authenticated (user data present in localStorage).
+   * The access token lives in an httpOnly cookie so cannot be read from JS;
+   * user presence is the local indicator of an active session.
    */
   isAuthenticated(): boolean {
-    return !!this.getToken() && !!this.getCurrentUser();
+    return !!this.getCurrentUser();
   }
 
   /**
-   * Refresh access token — refresh token is sent automatically via httpOnly cookie
+   * Refresh access token — refresh token and new access token are both set
+   * as httpOnly cookies by the backend; no JS-side storage needed.
    */
   async refreshToken(): Promise<string> {
     const response = await apiService.post<RefreshTokenResponse>(AUTH_ENDPOINTS.REFRESH, {});
-
-    // Update stored access token only; new refresh token cookie is set by backend
-    this.setToken(response.token);
-
     return response.token;
   }
 
@@ -257,32 +256,29 @@ export class AuthService {
   }
 
   /**
-   * Get stored access token (from sessionStorage)
+   * Returns null — the access token lives in an httpOnly cookie managed by
+   * the backend and is not readable from JavaScript. HTTP requests send it
+   * automatically via `credentials: 'include'`; Socket.IO connections use the
+   * same cookie on the WebSocket upgrade request.
    */
-  getToken(): string | null {
-    return (
-      sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
-      sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
-    );
+  getToken(): null {
+    return null;
   }
 
   /**
-   * Set access token in storage
+   * No-op — the access token is set as an httpOnly cookie by the backend
+   * login/refresh response and is never written to JS-accessible storage.
    */
-  setToken(token: string | null | undefined): void {
-    if (!token) {
-      return;
-    }
-    sessionStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-    sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token); // For backward compatibility
+  setToken(_token: string | null | undefined): void {
+    // intentional no-op
   }
 
   /**
-   * Clear all stored authentication data
+   * Clears local user state. The access/refresh token cookies are cleared
+   * by the backend logout endpoint.
    */
   clearTokens(): void {
-    sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    // Token cookies are cleared server-side on logout; nothing to do here.
   }
 
   // Private helper methods
@@ -291,8 +287,6 @@ export class AuthService {
   }
 
   private clearStorage(): void {
-    sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER);
   }
 }

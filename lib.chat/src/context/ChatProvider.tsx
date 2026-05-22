@@ -57,7 +57,6 @@ export function ChatProvider({
   chatService,
   user,
   isAuthenticated,
-  tokenProvider,
   offlineAdapter,
   featureFlags,
   resolveFileUrl,
@@ -152,20 +151,12 @@ export function ChatProvider({
       return;
     }
 
-    const token = tokenProvider();
-    if (!token) {
-      // Auth flipped to authenticated before the token landed in storage
-      // (or the token provider is misconfigured). Don't mark the user as
-      // initialized so the effect retries on the next auth/tokenProvider
-      // dependency change.
-      setError('Waiting for authentication token before connecting chat…');
-      return;
-    }
-
     initializedUserIdRef.current = user.userId;
 
     try {
-      chatService.connect(user.userId, token);
+      // No explicit token needed — the browser sends the httpOnly accessToken
+      // cookie with the WebSocket upgrade request automatically.
+      chatService.connect(user.userId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start chat connection');
       initializedUserIdRef.current = null;
@@ -273,7 +264,7 @@ export function ChatProvider({
       chatService.disconnect();
       initializedUserIdRef.current = null;
     };
-  }, [isAuthenticated, user?.userId, chatService, tokenProvider, loadConversations]);
+  }, [isAuthenticated, user?.userId, chatService, loadConversations]);
 
   const loadMessages = useCallback(
     async (conversationId: string) => {
