@@ -173,7 +173,10 @@ export class ApplicationService {
       reason: 'Visit scheduled',
     });
 
-    await Application.update({ status: ApplicationStatus.SUBMITTED }, { where: { applicationId } });
+    await Application.update(
+      { status: ApplicationStatus.SUBMITTED },
+      { where: { applicationId }, individualHooks: true }
+    );
 
     return formatHomeVisit(visit);
   }
@@ -271,7 +274,10 @@ export class ApplicationService {
         applicationStatus = ApplicationStatus.REJECTED;
       }
 
-      await Application.update({ status: applicationStatus }, { where: { applicationId } });
+      await Application.update(
+        { status: applicationStatus },
+        { where: { applicationId }, individualHooks: true }
+      );
     }
 
     return formatHomeVisit(visit);

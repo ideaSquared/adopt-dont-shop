@@ -147,4 +147,18 @@ describe('Application status transition (model-layer invariant)', () => {
     expect(app.status).toBe(ApplicationStatus.APPROVED);
     expect(app.notes).toBe('some notes');
   });
+
+  it('rejects forbidden transitions via bulk Application.update with individualHooks', async () => {
+    // The two bulk-update callsites in application.service.ts (home-visit
+    // scheduling and outcome propagation) must run with individualHooks:true
+    // so the beforeUpdate state-machine guard fires per row. Without that
+    // flag, a forbidden REJECTED -> APPROVED transition silently commits.
+    const app = await newApplication(ApplicationStatus.REJECTED);
+    await expect(
+      Application.update(
+        { status: ApplicationStatus.APPROVED },
+        { where: { applicationId: app.applicationId }, individualHooks: true }
+      )
+    ).rejects.toThrow(/Invalid application status transition/);
+  });
 });
