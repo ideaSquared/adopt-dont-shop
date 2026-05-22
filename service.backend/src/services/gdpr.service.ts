@@ -25,6 +25,7 @@ import UserPrivacyPrefs from '../models/UserPrivacyPrefs';
 import { AuditLogService } from './auditLog.service';
 import { FileUploadService } from './file-upload.service';
 import { NotificationService } from './notification.service';
+import { AuditLog, withAuditMutationAllowed } from '../models/AuditLog';
 import { logger } from '../utils/logger';
 
 /**
@@ -318,6 +319,22 @@ export const GdprService = {
         // historical message attribution still resolves on the rescue
         // staff side. The user is no longer reachable via the User row,
         // and Sender lookups now return the tombstoned name.
+
+        // GDPR Art. 17: scrub the denormalised email snapshot from this
+        // user's audit-log rows. The user-FK link is preserved so
+        // forensics still resolve via userId, but the PII string is
+        // wiped. AuditLog has DB-level immutability (Postgres trigger +
+        // SQLite hook); the explicit `withAuditMutationAllowed` opt-in
+        // is required for retention-class writes.
+        const auditScrub: Record<string, unknown> = {
+          user_email_snapshot: null,
+        };
+        await withAuditMutationAllowed(() =>
+          AuditLog.update(auditScrub, {
+            where: { user: userId },
+            transaction: tx,
+          })
+        );
 
         await AuditLogService.log({
           action: 'USER_ANONYMIZED',

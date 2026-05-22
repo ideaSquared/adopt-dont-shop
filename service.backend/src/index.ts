@@ -15,6 +15,7 @@ import { errorHandler } from './middleware/error-handler';
 import { csrfProtection, csrfErrorHandler, getCsrfToken } from './middleware/csrf';
 import { metricsMiddleware } from './middleware/metrics';
 import { httpAccessLog } from './middleware/morgan';
+import { noStoreCacheControl } from './middleware/no-cache';
 import { apiLimiter } from './middleware/rate-limiter';
 import { requestContextMiddleware } from './middleware/request-context';
 import { verifyEmailDeliveryWebhook } from './middleware/webhook-signature';
@@ -234,6 +235,27 @@ app.post(
 // already wires apiLimiter into its own chain so it isn't affected by
 // this global gate.
 app.use('/api', apiLimiter);
+
+// Apply `Cache-Control: private, no-store, max-age=0` to every /api/*
+// response so a default-configured CDN / shared proxy cannot cache a
+// personalised GET and serve it to a different user. Mounted after the
+// global rate-limiter and before any route handlers so it covers every
+// authenticated and public API endpoint uniformly. Pass-9 audit
+// confirmed public listings under /api don't expose PII directly; the
+// trade-off is loss of HTTP-level caching on those listings, which the
+// frontend already caches via React Query. Static asset routes mounted
+// outside /api/* (e.g. /uploads/* signed URLs) intentionally keep
+// their own cache headers and are unaffected.
+app.use('/api', noStoreCacheControl);
+
+// Tighter body limit on auth endpoints. Login / register / 2FA /
+// password-recovery bodies are typically a few hundred bytes — there
+// is no legitimate reason to accept anything close to the 1 MB global
+// ceiling on these paths. Mounting this parser BEFORE the global
+// express.json() means it consumes the body first (express.json is a
+// no-op once req._body is set), so an oversized auth body gets a 413
+// without ever burning a 1 MB JSON parse.
+app.use('/api/v1/auth', express.json({ limit: '32kb' }));
 
 // ADS-457: 10 MB body limits were a DoS amplifier on auth/search/chat
 // endpoints that only need a few KB of JSON. Multipart file uploads go

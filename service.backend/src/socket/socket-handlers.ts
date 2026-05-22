@@ -11,7 +11,13 @@ import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
 import { getMessageBroker } from '../services/messageBroker.service';
 import { setAnalyticsIo } from './analytics-emitter';
-import { setLiveIo, getLiveIo } from './socket-registry';
+import {
+  isUserAtConnectionCap,
+  registerUserSocket,
+  setLiveIo,
+  getLiveIo,
+  unregisterUserSocket,
+} from './socket-registry';
 import { checkRateLimit, releaseSocket } from '../middleware/socket-rate-limit';
 import { JsonObject } from '../types/common';
 import { verifyAccessToken } from '../utils/jwt';
@@ -272,6 +278,20 @@ export class SocketHandlers {
           return next(new Error('Account is not eligible'));
         }
 
+        // Cap concurrent connections per user to prevent file-
+        // descriptor exhaustion (DoS) from a single account. Five
+        // covers laptop + phone + spare device with reconnect
+        // headroom; legitimate clients should never exceed this.
+        // Registered on the way IN (not in the `connection` handler)
+        // so a flood of handshakes can't slip past the gate before
+        // the per-socket connect logic runs.
+        if (isUserAtConnectionCap(decoded.userId)) {
+          logger.warn(
+            `Socket connection cap reached for user ${decoded.userId}; rejecting handshake`
+          );
+          return next(new Error('Too many concurrent connections'));
+        }
+
         socket.userId = decoded.userId;
         socket.authJti = decoded.jti;
         socket.userType = authState.userType;
@@ -374,6 +394,12 @@ export class SocketHandlers {
       // Track connection for health monitoring
       activeConnections++;
       HealthCheckService.updateActiveConnections(activeConnections);
+
+      // Per-user connection cap bookkeeping (paired with the gate in
+      // setupMiddleware). Unregister happens in the disconnect handler.
+      if (socket.userId) {
+        registerUserSocket(socket.userId, socket.id);
+      }
 
       logger.info(
         `User ${socket.userId} connected with socket ${socket.id} (Total: ${activeConnections})`
@@ -873,6 +899,11 @@ export class SocketHandlers {
       logger.info(
         `User ${socket.userId} disconnected (socket ${socket.id}) (Total: ${activeConnections})`
       );
+
+      // Release the per-user connection-cap slot.
+      if (socket.userId) {
+        unregisterUserSocket(socket.userId, socket.id);
+      }
 
       // Update user presence
       this.handleUserDisconnect(socket.userId!, socket.id);

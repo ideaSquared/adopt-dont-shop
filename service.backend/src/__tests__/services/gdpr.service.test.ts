@@ -289,6 +289,39 @@ describe('GdprService', () => {
       expect(reloadedMessage!.content).toBe('[message removed at user request]');
     });
 
+    it('scrubs user_email_snapshot from prior audit-log rows to honour GDPR Art. 17', async () => {
+      const user = await seedUser();
+      // Seed an audit row that captures the original email snapshot, as
+      // any historical action would have done.
+      await AuditLog.create({
+        service: 'test',
+        action: 'USER_VIEWED',
+        entity: 'User',
+        entityId: user.userId,
+        level: 'INFO',
+        user: user.userId,
+        user_email_snapshot: user.email,
+      } as never);
+
+      const before = await AuditLog.findOne({
+        where: { user: user.userId, action: 'USER_VIEWED' },
+      });
+      expect(before).not.toBeNull();
+      expect(before!.user_email_snapshot).toBe(user.email);
+
+      await GdprService.requestErasure(user.userId);
+      await GdprService.executeAnonymization(user.userId);
+
+      // Snapshot column wiped on every audit row referencing this user.
+      const after = await AuditLog.findOne({
+        where: { user: user.userId, action: 'USER_VIEWED' },
+      });
+      expect(after).not.toBeNull();
+      expect(after!.user_email_snapshot).toBeNull();
+      // The FK link itself is preserved so forensics still resolve.
+      expect(after!.user).toBe(user.userId);
+    });
+
     it('is idempotent — second run returns anonymized:false and does not write another audit row', async () => {
       const user = await seedUser();
       await GdprService.requestErasure(user.userId);
