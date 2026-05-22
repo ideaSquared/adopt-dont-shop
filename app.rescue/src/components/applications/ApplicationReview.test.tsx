@@ -13,6 +13,14 @@
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+
+// ADS-644: ApplicationReview now renders cross-link <Link>s and calls
+// fosterService.list to find the pet's active foster placement. Stub the
+// service so tests don't need network access.
+vi.mock('../../services/fosterService', () => ({
+  fosterService: { list: vi.fn().mockResolvedValue([]) },
+}));
 
 // vanilla-extract CSS objects evaluated at import time are noisy in JSDOM and
 // not what these tests care about. Replace with simple class strings.
@@ -226,21 +234,23 @@ const renderReview = (props: RenderProps = {}) => {
     stage: 'PENDING' as const,
   };
   render(
-    <ApplicationReview
-      application={baseApplication}
-      references={[]}
-      homeVisits={[]}
-      timeline={[]}
-      loading={false}
-      error={null}
-      onClose={vi.fn()}
-      onStatusUpdate={onStatusUpdate}
-      onStageTransition={vi.fn().mockResolvedValue(undefined)}
-      onReferenceUpdate={vi.fn()}
-      onScheduleVisit={vi.fn()}
-      onUpdateVisit={vi.fn()}
-      onAddTimelineEvent={vi.fn()}
-    />
+    <MemoryRouter>
+      <ApplicationReview
+        application={baseApplication}
+        references={[]}
+        homeVisits={[]}
+        timeline={[]}
+        loading={false}
+        error={null}
+        onClose={vi.fn()}
+        onStatusUpdate={onStatusUpdate}
+        onStageTransition={vi.fn().mockResolvedValue(undefined)}
+        onReferenceUpdate={vi.fn()}
+        onScheduleVisit={vi.fn()}
+        onUpdateVisit={vi.fn()}
+        onAddTimelineEvent={vi.fn()}
+      />
+    </MemoryRouter>
   );
   return { onStatusUpdate };
 };
@@ -313,5 +323,107 @@ describe('ApplicationReview - ADS-579 rejection confirmation', () => {
     });
     // No confirm dialog opened.
     expect(screen.queryByTestId('reject-confirm-dialog')).not.toBeInTheDocument();
+  });
+});
+
+// ADS-644: cross-links from an application back to the pet card and the
+// pet's current active foster placement.
+import { fosterService as fosterServiceForLinks } from '../../services/fosterService';
+
+describe('ApplicationReview cross-links (ADS-644)', () => {
+  const mockedFoster = fosterServiceForLinks as unknown as {
+    list: ReturnType<typeof vi.fn>;
+  };
+
+  beforeEach(() => {
+    mockedFoster.list.mockReset();
+    mockedFoster.list.mockResolvedValue([]);
+  });
+
+  const renderWithPet = (petId: string | undefined) => {
+    const baseApplication = {
+      id: 'app-1',
+      status: 'submitted',
+      petName: 'Buddy',
+      petId,
+      applicantName: 'John Doe',
+      submittedDaysAgo: 2,
+      stage: 'PENDING' as const,
+    };
+    render(
+      <MemoryRouter>
+        <ApplicationReview
+          application={baseApplication}
+          references={[]}
+          homeVisits={[]}
+          timeline={[]}
+          loading={false}
+          error={null}
+          onClose={vi.fn()}
+          onStatusUpdate={vi.fn().mockResolvedValue(undefined)}
+          onStageTransition={vi.fn().mockResolvedValue(undefined)}
+          onReferenceUpdate={vi.fn()}
+          onScheduleVisit={vi.fn()}
+          onUpdateVisit={vi.fn()}
+          onAddTimelineEvent={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+  };
+
+  it('shows a link to the pet card when the application has a petId', async () => {
+    renderWithPet('pet-1');
+    const link = await screen.findByRole('link', { name: 'View pet card' });
+    expect(link).toHaveAttribute('href', '/pets?petId=pet-1');
+  });
+
+  it('does not show pet links when the application has no petId', async () => {
+    renderWithPet(undefined);
+    expect(screen.queryByRole('link', { name: /view pet/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /foster placement/i })).toBeNull();
+  });
+
+  it('adds a foster placement link only when the pet has an active placement', async () => {
+    mockedFoster.list.mockResolvedValueOnce([
+      {
+        placementId: 'pl-1',
+        petId: 'pet-1',
+        fosterUserId: 'staff-1',
+        rescueId: 'rescue-1',
+        startDate: '2026-01-01',
+        endDate: null,
+        status: 'active',
+        notes: null,
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+      },
+    ]);
+    renderWithPet('pet-1');
+    const link = await screen.findByRole('link', { name: 'View foster placement' });
+    expect(link).toHaveAttribute('href', '/foster?petId=pet-1');
+  });
+
+  it('omits the foster placement link when the pet has no active placement', async () => {
+    mockedFoster.list.mockResolvedValueOnce([
+      {
+        placementId: 'pl-1',
+        petId: 'other-pet',
+        fosterUserId: 'staff-1',
+        rescueId: 'rescue-1',
+        startDate: '2026-01-01',
+        endDate: null,
+        status: 'active',
+        notes: null,
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+      },
+    ]);
+    renderWithPet('pet-1');
+    // Wait for the placement lookup to settle, then assert the link is absent.
+    await screen.findByRole('link', { name: 'View pet card' });
+    await waitFor(() => {
+      expect(mockedFoster.list).toHaveBeenCalled();
+    });
+    expect(screen.queryByRole('link', { name: 'View foster placement' })).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { fosterService, type FosterPlacement } from '../services/fosterService';
 import { petService } from '../services/libraryServices';
 import { staffService, type StaffMember } from '../services/staffService';
@@ -11,6 +12,10 @@ const FosterCoordination: React.FC = () => {
   const { user } = useAuth();
   const rescueId = user?.rescueId ?? null;
   const { confirm, confirmProps } = useConfirm();
+  // ADS-644: cross-linking. When deep-linked from a pet card we scope the
+  // placement list to that pet so the user lands on the relevant placement.
+  const [searchParams] = useSearchParams();
+  const petIdFilter = searchParams.get('petId');
 
   const [placements, setPlacements] = useState<FosterPlacement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +127,13 @@ const FosterCoordination: React.FC = () => {
     return match ? `${match.name} (${match.breed ?? 'unknown breed'})` : id;
   };
 
+  // ADS-644: scope the visible placements to a single pet when the page is
+  // opened via /foster?petId=... from a pet card or application detail.
+  const visiblePlacements = useMemo(
+    () => (petIdFilter ? placements.filter(p => p.petId === petIdFilter) : placements),
+    [placements, petIdFilter]
+  );
+
   const staffLabel = (id: string): string => {
     const match = staff.find(s => s.userId === id);
     return match ? `${match.firstName} ${match.lastName} <${match.email}>` : id;
@@ -157,7 +169,7 @@ const FosterCoordination: React.FC = () => {
 
       {loading ? (
         <p>Loading placements…</p>
-      ) : placements.length === 0 ? (
+      ) : visiblePlacements.length === 0 ? (
         <p>No foster placements found.</p>
       ) : (
         <table className={styles.table}>
@@ -168,11 +180,12 @@ const FosterCoordination: React.FC = () => {
               <th className={styles.tableCell}>Start</th>
               <th className={styles.tableCell}>End</th>
               <th className={styles.tableCell}>Status</th>
+              <th className={styles.tableCell}>Links</th>
               <th className={styles.tableCell}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {placements.map(p => (
+            {visiblePlacements.map(p => (
               <tr key={p.placementId} className={styles.tableBodyRow}>
                 <td className={styles.tableCell}>{petLabel(p.petId)}</td>
                 <td className={styles.tableCell}>{staffLabel(p.fosterUserId)}</td>
@@ -183,6 +196,13 @@ const FosterCoordination: React.FC = () => {
                   {p.endDate ? new Date(p.endDate).toLocaleDateString('en-GB') : '—'}
                 </td>
                 <td className={styles.tableCell}>{p.status}</td>
+                {/* ADS-644: cross-links so a placement row points at the
+                    pet card and the active applications for that pet. */}
+                <td className={styles.tableCell}>
+                  <Link to={`/pets?petId=${p.petId}`}>View pet</Link>
+                  {' · '}
+                  <Link to={`/applications?petId=${p.petId}`}>Applications</Link>
+                </td>
                 <td className={styles.tableCell}>
                   {p.status === 'active' && (
                     <button type="button" onClick={() => setEndingId(p.placementId)}>

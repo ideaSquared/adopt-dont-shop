@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApplications, useApplicationDetails } from '../hooks/useApplications';
 import ApplicationList from '../components/applications/ApplicationList';
 import ApplicationReview from '../components/applications/ApplicationReview';
@@ -7,6 +8,10 @@ import { applicationService } from '../services/applicationService';
 import type { ApplicationListItem } from '../types/applications';
 
 const Applications: React.FC = () => {
+  // ADS-644: when deep-linked from a pet card or foster row, scope the
+  // application list to that pet via the existing petId filter.
+  const [searchParams] = useSearchParams();
+  const initialPetId = searchParams.get('petId');
   const [selectedApplication, setSelectedApplication] = useState<ApplicationListItem | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -28,6 +33,16 @@ const Applications: React.FC = () => {
     updateApplicationStatus,
     refetch,
   } = useApplications();
+
+  // ADS-644: apply the petId from the URL once on mount so the listing
+  // hook fetches the scoped slice. We deliberately don't re-apply on every
+  // searchParams change so the user can clear the filter in the UI.
+  useEffect(() => {
+    if (initialPetId) {
+      updateFilter({ petId: initialPetId });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only
+  }, []);
 
   // Selected application details
   const {

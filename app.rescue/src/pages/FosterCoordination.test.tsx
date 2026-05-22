@@ -1,10 +1,18 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import FosterCoordination from './FosterCoordination';
 import { fosterService } from '../services/fosterService';
 import { petService } from '../services/libraryServices';
 import { staffService } from '../services/staffService';
+
+const renderAt = (initialEntry: string) =>
+  render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <FosterCoordination />
+    </MemoryRouter>
+  );
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({
@@ -106,7 +114,7 @@ describe('FosterCoordination', () => {
   });
 
   it('renders pet and staff pickers populated from the rescue services', async () => {
-    render(<FosterCoordination />);
+    renderAt('/foster');
     fireEvent.click(screen.getByRole('button', { name: 'New Placement' }));
 
     await waitFor(() => {
@@ -117,7 +125,7 @@ describe('FosterCoordination', () => {
   });
 
   it('creates a placement using the picker-selected pet and foster user', async () => {
-    render(<FosterCoordination />);
+    renderAt('/foster');
     fireEvent.click(screen.getByRole('button', { name: 'New Placement' }));
 
     await waitFor(() => {
@@ -161,7 +169,7 @@ describe('FosterCoordination', () => {
       },
     ]);
 
-    render(<FosterCoordination />);
+    renderAt('/foster');
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'End placement' })).toBeInTheDocument();
@@ -183,6 +191,48 @@ describe('FosterCoordination', () => {
     });
   });
 
+  // ADS-644: cross-links + deep linking to a single pet's placement.
+  describe('cross-links (ADS-644)', () => {
+    const placement = {
+      placementId: 'pl-1',
+      petId: 'pet-1',
+      fosterUserId: 'staff-1',
+      rescueId: 'rescue-1',
+      startDate: '2026-01-01',
+      endDate: null,
+      status: 'active' as const,
+      notes: null,
+      createdAt: '2026-01-01',
+      updatedAt: '2026-01-01',
+    };
+
+    it('renders View pet and Applications links pointing at the placement pet', async () => {
+      mockedFoster.list.mockResolvedValueOnce([placement]);
+
+      renderAt('/foster');
+
+      const petLink = await screen.findByRole('link', { name: 'View pet' });
+      const appsLink = screen.getByRole('link', { name: 'Applications' });
+      expect(petLink).toHaveAttribute('href', '/pets?petId=pet-1');
+      expect(appsLink).toHaveAttribute('href', '/applications?petId=pet-1');
+    });
+
+    it('scopes the visible placements to the petId from the URL', async () => {
+      mockedFoster.list.mockResolvedValueOnce([
+        placement,
+        { ...placement, placementId: 'pl-2', petId: 'pet-other' },
+      ]);
+
+      renderAt('/foster?petId=pet-1');
+
+      await waitFor(() => {
+        expect(screen.getAllByRole('link', { name: 'View pet' })).toHaveLength(1);
+      });
+      const links = screen.getAllByRole('link', { name: 'View pet' });
+      expect(links[0]).toHaveAttribute('href', '/pets?petId=pet-1');
+    });
+  });
+
   it('does not call fosterService.end when confirmation is dismissed', async () => {
     confirmSpy.mockResolvedValueOnce(false);
     mockedFoster.list.mockResolvedValueOnce([
@@ -200,7 +250,7 @@ describe('FosterCoordination', () => {
       },
     ]);
 
-    render(<FosterCoordination />);
+    renderAt('/foster');
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'End placement' })).toBeInTheDocument();

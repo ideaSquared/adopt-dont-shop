@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
 import { formatStatusName } from '../../utils/statusUtils';
 import {
@@ -8,6 +9,7 @@ import {
   type ApplicationTimeline,
 } from '../../types/applications';
 import { useStaff } from '../../hooks/useStaff';
+import { fosterService, type FosterPlacement } from '../../services/fosterService';
 import StageTransitionModal from './StageTransitionModal';
 import { ApplicationStage, STAGE_CONFIG, StageAction } from '../../types/applicationStages';
 import * as styles from './ApplicationReview.css';
@@ -16,6 +18,7 @@ type ApplicationData = {
   id: string;
   status: string;
   petName?: string;
+  petId?: string;
   applicantName?: string;
   userName?: string;
   submittedDaysAgo?: number;
@@ -96,6 +99,38 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   // Stage transition state
   const [showStageTransition, setShowStageTransition] = useState(false);
+
+  // ADS-644: look up the pet's current active foster placement so we can
+  // surface a deep link to it from the application header. We hit the
+  // existing list endpoint and filter client-side rather than adding a new
+  // backend route — applications typically reference one pet, and rescues
+  // have a small number of active placements at any time.
+  const [activePlacementForPet, setActivePlacementForPet] = useState<FosterPlacement | null>(null);
+  const petIdForLinks = application?.petId;
+  useEffect(() => {
+    if (!petIdForLinks) {
+      setActivePlacementForPet(null);
+      return;
+    }
+    let cancelled = false;
+    fosterService
+      .list({ status: 'active' })
+      .then(placements => {
+        if (cancelled) {
+          return;
+        }
+        const match = placements.find(p => p.petId === petIdForLinks);
+        setActivePlacementForPet(match ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setActivePlacementForPet(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [petIdForLinks]);
 
   // ADS-579: confirmation modal for destructive status transitions (rejection)
   const { confirm, confirmProps } = useConfirm();
@@ -707,6 +742,19 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                     ? `${Math.floor((new Date().getTime() - new Date(application.submittedAt).getTime()) / (1000 * 60 * 60 * 24))} days ago`
                     : 'Recently'}
               </p>
+              {/* ADS-644: cross-links from an application back to the pet
+                  card and (when present) the pet's active foster placement. */}
+              {petIdForLinks && (
+                <p className={styles.headerSubtitle}>
+                  <Link to={`/pets?petId=${petIdForLinks}`}>View pet card</Link>
+                  {activePlacementForPet && (
+                    <>
+                      {' · '}
+                      <Link to={`/foster?petId=${petIdForLinks}`}>View foster placement</Link>
+                    </>
+                  )}
+                </p>
+              )}
             </div>
             <div className={styles.headerRight}>
               {/* Stage Badge - Prominent display */}
