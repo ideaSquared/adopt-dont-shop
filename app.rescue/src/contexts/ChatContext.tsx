@@ -10,19 +10,18 @@
  * provider as app.client.
  */
 
-import { useMemo, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import {
   ChatProvider as LibChatProvider,
   useChat as useLibChat,
   type ChatContextValue,
 } from '@adopt-dont-shop/lib.chat';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { authService, chatService } from '../services/libraryServices';
+import { chatService } from '../services/libraryServices';
 import { resolveFileUrl } from '../utils/fileUtils';
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
-  const tokenProvider = useMemo(() => () => authService.getToken(), []);
 
   const chatUser = user
     ? {
@@ -41,7 +40,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       chatService={chatService}
       user={chatUser}
       isAuthenticated={isAuthenticated}
-      tokenProvider={tokenProvider}
       resolveFileUrl={resolveFileUrl}
     >
       {children}
