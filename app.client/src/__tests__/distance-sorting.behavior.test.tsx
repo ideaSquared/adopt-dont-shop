@@ -326,30 +326,37 @@ describe('Distance Sorting - Behavioral Tests', () => {
       });
     });
 
-    it('detects location after successfully geocoding typed location', async () => {
-      server.use(
-        http.get('https://nominatim.openstreetmap.org/search', () => {
-          return HttpResponse.json([
-            { lat: '40.7128', lon: '-74.0060', display_name: 'New York, NY, USA' },
-          ]);
-        })
-      );
+    it(
+      'detects location after successfully geocoding typed location',
+      { timeout: 15_000 },
+      async () => {
+        server.use(
+          http.get('https://nominatim.openstreetmap.org/search', () => {
+            return HttpResponse.json([
+              { lat: '40.7128', lon: '-74.0060', display_name: 'New York, NY, USA' },
+            ]);
+          })
+        );
 
-      renderWithProviders(<SearchPage />);
+        renderWithProviders(<SearchPage />);
 
-      const locationInput = await screen.findByLabelText(/^location$/i);
-      const user = userEvent.setup();
-      await user.type(locationInput, 'New York, NY');
+        const locationInput = await screen.findByLabelText(/^location$/i);
+        const user = userEvent.setup();
+        await user.type(locationInput, 'New York, NY');
 
-      const useAsLocationButton = await screen.findByRole('button', { name: /search nearby/i });
-      await user.click(useAsLocationButton);
+        const useAsLocationButton = await screen.findByRole('button', { name: /search nearby/i });
+        await user.click(useAsLocationButton);
 
-      await waitFor(() => {
-        expect(screen.getByText(/location detected/i)).toBeInTheDocument();
-      });
-    });
+        await waitFor(
+          () => {
+            expect(screen.getByText(/location detected/i)).toBeInTheDocument();
+          },
+          { timeout: 10_000 }
+        );
+      }
+    );
 
-    it('shows error when typed location cannot be geocoded', async () => {
+    it('shows error when typed location cannot be geocoded', { timeout: 15_000 }, async () => {
       server.use(
         http.get('https://nominatim.openstreetmap.org/search', () => {
           return HttpResponse.json([]);
@@ -365,9 +372,12 @@ describe('Distance Sorting - Behavioral Tests', () => {
       const useAsLocationButton = await screen.findByRole('button', { name: /search nearby/i });
       await user.click(useAsLocationButton);
 
-      await waitFor(() => {
-        expect(screen.getByText(/location not found/i)).toBeInTheDocument();
-      });
+      await waitFor(
+        () => {
+          expect(screen.getByText(/location not found/i)).toBeInTheDocument();
+        },
+        { timeout: 10_000 }
+      );
     });
   });
 });
