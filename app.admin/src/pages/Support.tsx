@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
@@ -52,9 +53,25 @@ const getPriorityBadgeClass = (level: string): string => {
   }
 };
 
+const VALID_TICKET_STATUSES: ReadonlySet<string> = new Set([
+  'open',
+  'in_progress',
+  'waiting_for_user',
+  'resolved',
+  'closed',
+  'escalated',
+]);
+
 const Support: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const initialStatusParam = searchParams.get('status');
+  const initialStatus: TicketStatus | 'all' =
+    initialStatusParam && VALID_TICKET_STATUSES.has(initialStatusParam)
+      ? (initialStatusParam as TicketStatus)
+      : 'all';
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>(initialStatus);
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<TicketCategory | 'all'>('all');
   const [page, setPage] = useState(1);

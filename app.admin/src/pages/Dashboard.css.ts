@@ -22,6 +22,9 @@ export const metricCard = style({
   borderRadius: vars.border.radius.xl,
   padding: '1.5rem',
   transition: 'all 0.2s ease',
+  display: 'block',
+  color: 'inherit',
+  textDecoration: 'none',
   ':hover': {
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
     transform: 'translateY(-2px)',
@@ -111,16 +114,64 @@ export const skeletonChange = style({
   height: '0.875rem',
 });
 
-export const widgetPlaceholder = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '12px',
-  padding: '2rem',
-  textAlign: 'center',
-  color: '#6b7280',
+export const attentionPanel = style({
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.xl,
+  padding: '1.5rem',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '1.25rem',
 });
 
-export const widgetPlaceholderText = style({
+export const attentionSection = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+});
+
+export const attentionSectionHeader = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+});
+
+export const attentionSectionTitle = style({
+  margin: 0,
+  fontSize: '1rem',
+  fontWeight: 600,
+  color: vars.text.primary,
+});
+
+export const attentionLink = style({
+  fontSize: '0.875rem',
+  color: vars.colors.primary,
+  textDecoration: 'none',
+});
+
+export const attentionEmpty = style({
   margin: 0,
   fontSize: '0.875rem',
+  color: vars.text.tertiary,
+});
+
+export const attentionList = style({
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+});
+
+export const attentionItem = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.125rem',
+  fontSize: '0.875rem',
+});
+
+export const attentionMeta = style({
+  fontSize: '0.75rem',
+  color: vars.text.tertiary,
 });

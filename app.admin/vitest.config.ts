@@ -88,6 +88,10 @@ export default defineConfig({
       '@/types': path.resolve(__dirname, './src/types'),
       '@/services': path.resolve(__dirname, './src/services'),
       '@adopt-dont-shop/lib.moderation': path.resolve(__dirname, '../lib.moderation/src/index.ts'),
+      '@adopt-dont-shop/lib.support-tickets': path.resolve(
+        __dirname,
+        '../lib.support-tickets/src/index.ts'
+      ),
       '@adopt-dont-shop/lib.components/theme': path.resolve(
         __dirname,
         '../lib.components/src/theme.ts'

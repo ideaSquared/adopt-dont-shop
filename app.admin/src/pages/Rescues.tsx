@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
@@ -47,16 +47,29 @@ const formatDate = (dateString: string) => {
   });
 };
 
+const VALID_RESCUE_STATUS_FILTERS: ReadonlySet<string> = new Set([
+  'pending',
+  'verified',
+  'suspended',
+  'inactive',
+]);
+
 const Rescues: React.FC = () => {
   const { rescueId } = useParams<{ rescueId?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialStatusParam = searchParams.get('status');
 
   const [rescues, setRescues] = useState<AdminRescue[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(
+    initialStatusParam && VALID_RESCUE_STATUS_FILTERS.has(initialStatusParam)
+      ? initialStatusParam
+      : 'all'
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
