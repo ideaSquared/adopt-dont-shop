@@ -20,7 +20,9 @@ The Rescue App is the operational hub for rescue organizations to manage pets, r
 - Status tracking via `PetStatusTransition` (`AVAILABLE / PENDING / ADOPTED / FOSTER / MEDICAL_HOLD / BEHAVIORAL_HOLD / NOT_AVAILABLE / DECEASED`)
 - Photo management (up to 10, reorder, primary)
 - Behavioural / temperament data captured as Pet columns
-- CSV import via `PetCsvImportModal`
+- CSV import via `PetCsvImportModal` — discoverable from both the
+  Pet Management header and the empty state (ADS-646). Column format
+  and operational notes live in [docs/operations/pet-csv-import.md](../operations/pet-csv-import.md).
 
 *Out of scope / roadmap:* Dedicated medical-records timeline UI, dedicated vaccination tracking UI, dedicated behavioural-assessment workflow. Schema supports these as inline fields; rich UI is a future enhancement.
 
