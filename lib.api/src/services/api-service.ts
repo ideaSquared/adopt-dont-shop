@@ -16,6 +16,12 @@ export class ApiService {
   public interceptors: InterceptorManager;
   private csrfToken: string | null = null;
   private csrfTokenPromise: Promise<string> | null = null;
+  // Single-flight refresh: parallel 401s all await the same in-flight
+  // refresh and then retry. lib.auth registers the handler at startup
+  // via setRefreshHandler() — this class can't import authService
+  // directly without creating a circular dependency.
+  private refreshHandler: (() => Promise<unknown>) | null = null;
+  private refreshPromise: Promise<void> | null = null;
 
   constructor(config: ApiServiceConfig = {}) {
     // Set up the base URL from environment variables or fallback
@@ -247,6 +253,34 @@ export class ApiService {
     this.csrfTokenPromise = null;
   }
 
+  /**
+   * Register a token-refresh callback used when a request gets a 401.
+   * Must not call back into this service for endpoints that themselves
+   * require auth (caller's refresh implementation should hit
+   * /auth/refresh-token, which we treat as non-retryable below).
+   *
+   * Lives behind a setter rather than a constructor option to break the
+   * import cycle with lib.auth's authService — authService imports this
+   * module, so this module can't import authService.
+   */
+  public setRefreshHandler(handler: (() => Promise<unknown>) | null): void {
+    this.refreshHandler = handler;
+  }
+
+  // Endpoints whose own 401 must NOT trigger a refresh+retry — otherwise
+  // a failed refresh recurses, and the login flow itself would retry on
+  // bad credentials.
+  private shouldAttemptRefresh(url: string, isRetry: boolean): boolean {
+    if (isRetry || !this.refreshHandler) {
+      return false;
+    }
+    return (
+      !url.includes('/auth/refresh-token') &&
+      !url.includes('/auth/login') &&
+      !url.includes('/auth/logout')
+    );
+  }
+
   // Core request method.
   //
   // ADS-261: this used to return `response as unknown as T` for any non-JSON
@@ -284,7 +318,11 @@ export class ApiService {
 
   // Issue the HTTP request and return the raw `Response`. Internally shared
   // by `makeRequest` (which then parses JSON) and `fetchRaw` (which doesn't).
-  private async executeFetch(url: string, options: FetchOptions = {}): Promise<Response> {
+  private async executeFetch(
+    url: string,
+    options: FetchOptions = {},
+    isRetry = false
+  ): Promise<Response> {
     const { method = 'GET', headers = {}, body, timeout = this.config.timeout } = options;
 
     // Build full URL
@@ -335,6 +373,19 @@ export class ApiService {
 
       clearTimeout(timeoutId);
 
+      // 401 single-flight refresh + retry. Parallel 401s share one
+      // refresh promise; once it resolves each original request is
+      // re-issued with isRetry=true so a still-401 reply falls through
+      // to the normal onUnauthorized path. The retry happens before
+      // response interceptors run so they don't see (and act on) the
+      // first 401's body/headers.
+      if (response.status === 401 && this.shouldAttemptRefresh(url, isRetry)) {
+        const refreshed = await this.attemptRefresh();
+        if (refreshed) {
+          return this.executeFetch(url, options, true);
+        }
+      }
+
       // Apply response interceptors
       response = await this.interceptors.applyResponseInterceptors(response);
 
@@ -349,6 +400,37 @@ export class ApiService {
         console.error('API request failed:', processedError);
       }
       throw processedError;
+    }
+  }
+
+  // Returns true if the refresh succeeded and the caller should retry.
+  // Failures are swallowed (logged in debug) so the original 401 still
+  // surfaces normally — invoking onUnauthorized via the response
+  // interceptor path.
+  private async attemptRefresh(): Promise<boolean> {
+    if (!this.refreshHandler) {
+      return false;
+    }
+    try {
+      if (!this.refreshPromise) {
+        this.refreshPromise = this.refreshHandler().then(
+          () => undefined,
+          (err) => {
+            // Reset before rethrowing so a later request can try again
+            // (e.g. the user logs in fresh after a stale-refresh fail).
+            this.refreshPromise = null;
+            throw err;
+          }
+        );
+      }
+      await this.refreshPromise;
+      this.refreshPromise = null;
+      return true;
+    } catch (err) {
+      if (this.config.debug) {
+        console.warn('Token refresh failed:', err);
+      }
+      return false;
     }
   }
 

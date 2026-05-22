@@ -133,6 +133,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   // Register a 401 handler so any API call that gets Unauthorized automatically
   // clears local auth state without making an additional logout API call
   // (which would itself get a 401 and recurse).
+  //
+  // Also register a token-refresh handler so the api layer can recover
+  // from short-lived access-token expiry mid-session without dropping
+  // the user. Refresh tokens live in an httpOnly cookie so the call
+  // works even when the in-memory token is gone. If the refresh itself
+  // fails, the api layer falls through to onUnauthorized.
   useEffect(() => {
     apiService.updateConfig({
       onUnauthorized: () => {
@@ -140,8 +146,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         setUser(null);
       },
     });
+    apiService.setRefreshHandler(() => authService.refreshToken());
     return () => {
       apiService.updateConfig({ onUnauthorized: undefined });
+      apiService.setRefreshHandler(null);
     };
   }, []);
 

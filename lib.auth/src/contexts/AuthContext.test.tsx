@@ -33,6 +33,7 @@ vi.mock('@adopt-dont-shop/lib.api', () => ({
     put: vi.fn(),
     fetchWithAuth: vi.fn(),
     clearCsrfToken: vi.fn(),
+    setRefreshHandler: vi.fn(),
   },
 }));
 
