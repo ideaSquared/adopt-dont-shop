@@ -278,10 +278,7 @@ export interface BulkApplicationUpdate {
 }
 
 export interface BulkApplicationResult {
-  successCount: number;
-  failureCount: number;
-  successes: string[];
-  failures: Array<{ applicationId: string; error: string }>;
+  updatedCount: number;
 }
 
 // Workflow and Business Logic Types

@@ -36,6 +36,7 @@ import User, { UserType } from '../models/User';
 import sequelize from '../sequelize';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { NotFoundError } from './reports.service';
 import ApplicationTimelineService from './applicationTimeline.service';
 import emailService from './email.service';
 import { NotificationService } from './notification.service';
@@ -1902,61 +1903,46 @@ export class ApplicationService {
     bulkUpdate: BulkApplicationUpdate,
     userId: string
   ): Promise<BulkApplicationResult> {
-    try {
-      const results: BulkApplicationResult = {
-        successCount: 0,
-        failureCount: 0,
-        successes: [],
-        failures: [],
-      };
+    const { applicationIds, updates } = bulkUpdate;
 
-      for (const applicationId of bulkUpdate.applicationIds) {
-        try {
-          // Per-item transaction: the application update and the
-          // accompanying audit-log row commit or roll back together,
-          // so the failure counts in the response match the real DB
-          // state — no more "audit logged success but DB unchanged"
-          // (or vice versa) on partial failure.
-          await sequelize.transaction(async tx => {
-            const application = await Application.findByPk(applicationId, { transaction: tx });
-            if (!application) {
-              // Throw to skip success-side bookkeeping; caught below
-              // and recorded as a failure with this exact message.
-              throw new Error('Application not found');
-            }
+    // Atomic semantics: the whole batch commits or rolls back together.
+    // If any requested ID is missing, or any audit-log write fails, the
+    // outer transaction rolls back and no application is updated.
+    return sequelize.transaction(async tx => {
+      const applications = await Application.findAll({
+        where: { applicationId: { [Op.in]: applicationIds } },
+        transaction: tx,
+      });
 
-            await application.update(bulkUpdate.updates, { transaction: tx });
+      if (applications.length !== applicationIds.length) {
+        const foundIds = new Set(applications.map(a => a.applicationId));
+        const missing = applicationIds.find(id => !foundIds.has(id));
+        throw new NotFoundError(`Application not found: ${missing}`);
+      }
 
-            await AuditLogService.log({
-              action: 'BULK_UPDATE',
-              entity: 'Application',
-              entityId: applicationId,
-              details: { updates: bulkUpdate.updates, bulk_operation: true },
-              userId,
-              transaction: tx,
-            });
-          });
-          results.successes.push(applicationId);
-          results.successCount++;
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          results.failures.push({ applicationId: applicationId, error: errorMessage });
-          results.failureCount++;
-        }
+      await Application.update(updates, {
+        where: { applicationId: { [Op.in]: applicationIds } },
+        transaction: tx,
+      });
+
+      for (const application of applications) {
+        await AuditLogService.log({
+          action: 'BULK_UPDATE',
+          entity: 'Application',
+          entityId: application.applicationId,
+          details: { updates, bulk_operation: true },
+          userId,
+          transaction: tx,
+        });
       }
 
       logger.info('Bulk application update completed', {
-        totalRequested: bulkUpdate.applicationIds.length,
-        successCount: results.successCount,
-        failureCount: results.failureCount,
+        updatedCount: applications.length,
         userId,
       });
 
-      return results;
-    } catch (error) {
-      logger.error('Bulk update applications failed:', error);
-      throw new Error('Failed to perform bulk update');
-    }
+      return { updatedCount: applications.length };
+    });
   }
 
   /**

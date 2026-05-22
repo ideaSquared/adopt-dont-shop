@@ -74,7 +74,10 @@ const Applications: React.FC = () => {
       reason,
     });
 
-    setBulkResult({ succeeded: result.successCount, failed: result.failureCount });
+    // Atomic semantics (ADS-666): the service either updates every
+    // selected application or throws, so any returned result means
+    // the full batch committed. No partial-success branch.
+    setBulkResult({ succeeded: result.updatedCount, failed: 0 });
     setSelectedRows(new Set());
   };
 

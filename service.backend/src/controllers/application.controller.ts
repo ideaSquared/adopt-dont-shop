@@ -14,6 +14,7 @@ import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
+import { NotFoundError } from '../services/reports.service';
 import { FileUploadService } from '../services/file-upload.service';
 import { AuthenticatedRequest } from '../types';
 import { parsePage, parsePaginationLimit } from '../utils/pagination';
@@ -897,13 +898,23 @@ export class ApplicationController extends BaseController {
       });
     }
 
-    const result = await ApplicationService.bulkUpdateApplications(req.body, req.user!.userId);
+    try {
+      const result = await ApplicationService.bulkUpdateApplications(req.body, req.user!.userId);
 
-    res.status(200).json({
-      success: true,
-      message: 'Bulk update completed',
-      data: result,
-    });
+      res.status(200).json({
+        success: true,
+        message: 'Bulk update completed',
+        data: result,
+      });
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      throw error;
+    }
   };
 
   // Delete application
