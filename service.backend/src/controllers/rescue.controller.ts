@@ -695,7 +695,7 @@ export class RescueController {
     const { rescueId, invitationId } = req.params;
     const cancelledBy = req.user!.userId;
 
-    const result = await InvitationService.cancelInvitation(invitationId, cancelledBy);
+    const result = await InvitationService.cancelInvitation(invitationId, rescueId, cancelledBy);
 
     res.json(result);
   };

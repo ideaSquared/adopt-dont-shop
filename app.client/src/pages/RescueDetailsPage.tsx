@@ -1,6 +1,7 @@
 import { PetCard } from '@/components/PetCard';
 import { rescueService, petService, Rescue, Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { safeHref } from '@adopt-dont-shop/lib.utils';
 import React, { useEffect, useState } from 'react';
 import {
   MdEmail,
@@ -159,7 +160,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
             </Button>
           </a>
           {rescue.website && (
-            <a href={rescue.website} target='_blank' rel='noopener noreferrer'>
+            <a href={safeHref(rescue.website)} target='_blank' rel='noopener noreferrer'>
               <Button variant='outline' size='md'>
                 Visit Website
               </Button>
@@ -266,7 +267,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
                 <div className='label'>Website</div>
                 <div className='value'>
                   <a
-                    href={rescue.website}
+                    href={safeHref(rescue.website)}
                     target='_blank'
                     rel='noopener noreferrer'
                     className='website-link'

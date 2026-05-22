@@ -164,3 +164,45 @@ describe('Admin privacy endpoints — RBAC (ADS-610)', () => {
     });
   });
 });
+
+describe('POST /me/delete — auth cookie clearing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedDelete.mockResolvedValue({
+      userId: 'data-subject',
+      anonymisationScheduledFor: new Date().toISOString(),
+    } as never);
+  });
+
+  // The original bug: `res.clearCookie('accessToken')` was called with no
+  // options, so the resulting Set-Cookie header omitted SameSite/HttpOnly
+  // and the browser refused to honour the deletion. The clear header must
+  // mirror the options used when the cookie was originally set.
+  it('clears both accessToken and refreshToken with matching cookie options', async () => {
+    authenticateAs({ userId: 'adopter-1', userType: UserType.ADOPTER });
+    const res = await request(buildApp())
+      .post('/api/v1/privacy/me/delete')
+      .send({ reason: 'no longer needed' });
+
+    expect(res.status).toBe(202);
+
+    const setCookieHeader = res.headers['set-cookie'];
+    expect(setCookieHeader).toBeDefined();
+    const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
+
+    const accessCookie = cookies.find(c => c.startsWith('accessToken='));
+    const refreshCookie = cookies.find(c => c.startsWith('refreshToken='));
+
+    expect(accessCookie).toBeDefined();
+    expect(refreshCookie).toBeDefined();
+
+    // Each cleared cookie must carry HttpOnly, SameSite=Strict, Path=/,
+    // and an expired/zero-age marker so the browser actually drops it.
+    for (const cookie of [accessCookie!, refreshCookie!]) {
+      expect(cookie).toMatch(/HttpOnly/i);
+      expect(cookie).toMatch(/SameSite=Strict/i);
+      expect(cookie).toMatch(/Path=\//i);
+      expect(cookie).toMatch(/Expires=Thu, 01 Jan 1970/i);
+    }
+  });
+});

@@ -17,9 +17,24 @@ export const resolveFileUrl = (url: string | undefined): string | undefined => {
     return undefined;
   }
 
-  // If it's already an absolute URL, use it as is
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
+  // Reject any URL whose scheme isn't http/https. This blocks
+  // javascript:, data:, vbscript:, file: etc. from reaching an
+  // <img src> or similar attribute. Scheme detection is
+  // case-insensitive and tolerates leading whitespace.
+  const trimmed = url.trim();
+  const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+  if (schemeMatch) {
+    const scheme = schemeMatch[1].toLowerCase();
+    if (scheme !== 'http' && scheme !== 'https') {
+      return undefined;
+    }
+    return trimmed;
+  }
+
+  // Reject protocol-relative URLs (//evil.com/path) — they would
+  // resolve to a cross-origin host under the page's scheme.
+  if (trimmed.startsWith('//')) {
+    return undefined;
   }
 
   // Get the backend base URL from environment variables

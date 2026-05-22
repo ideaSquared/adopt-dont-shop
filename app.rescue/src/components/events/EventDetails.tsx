@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Event, EventAttendee } from '../../types/events';
-import { formatDate, formatTime } from '@adopt-dont-shop/lib.utils';
+import { formatDate, formatTime, safeHref } from '@adopt-dont-shop/lib.utils';
 import StatusBadge from '../common/StatusBadge';
 import AttendeeList from './AttendeeList';
 import * as styles from './EventDetails.css';
@@ -177,7 +177,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({
             <div className={styles.infoCard}>
               <div className={styles.infoValue}>
                 <a
-                  href={event.location.virtualLink}
+                  href={safeHref(event.location.virtualLink)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.virtualLink}

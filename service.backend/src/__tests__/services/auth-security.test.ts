@@ -608,24 +608,42 @@ describe('AuthService - Security Business Logic', () => {
     it('should generate 10 backup codes by default', () => {
       const mockCrypto = crypto as vi.MockedObject<typeof crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
-        toString: vi.fn().mockReturnValue('abcd1234'),
+        toString: vi.fn().mockReturnValue('abcd1234abcd1234'),
       });
 
       const codes = AuthService.generateBackupCodes();
 
       expect(codes).toHaveLength(10);
       expect(mockCrypto.randomBytes).toHaveBeenCalledTimes(10);
+      // Each code must request 8 bytes (64 bits of entropy).
+      expect(mockCrypto.randomBytes).toHaveBeenCalledWith(8);
     });
 
     it('should generate custom number of backup codes', () => {
       const mockCrypto = crypto as vi.MockedObject<typeof crypto>;
       (mockCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({
-        toString: vi.fn().mockReturnValue('abcd1234'),
+        toString: vi.fn().mockReturnValue('abcd1234abcd1234'),
       });
 
       const codes = AuthService.generateBackupCodes(5);
 
       expect(codes).toHaveLength(5);
+    });
+
+    it('should generate backup codes with 64 bits of entropy (16 hex chars)', async () => {
+      // Use the real crypto module so we exercise actual entropy, not a stub.
+      const actualCrypto = await vi.importActual<typeof import('crypto')>('crypto');
+      const mockCrypto = crypto as vi.MockedObject<typeof crypto>;
+      (mockCrypto.randomBytes as unknown as vi.Mock) = vi
+        .fn()
+        .mockImplementation((size: number) => actualCrypto.randomBytes(size));
+
+      const codes = AuthService.generateBackupCodes(3);
+
+      expect(codes).toHaveLength(3);
+      for (const code of codes) {
+        expect(code).toMatch(/^[a-f0-9]{16}$/);
+      }
     });
 
     it('should enable 2FA after verifying setup token', async () => {

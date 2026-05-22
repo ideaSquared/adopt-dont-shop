@@ -1009,10 +1009,12 @@ Need help? Contact us at support@adoptdontshop.com
 
     const accessTokenJti = crypto.randomUUID();
     const token = jwt.sign({ ...payload, jti: accessTokenJti }, jwtSecret, {
+      algorithm: 'HS256',
       expiresIn: this.JWT_EXPIRES_IN,
     } as SignOptions);
 
     const refreshToken = jwt.sign({ ...payload, jti: tokenId }, jwtRefreshSecret, {
+      algorithm: 'HS256',
       expiresIn: this.JWT_REFRESH_EXPIRES_IN,
     } as SignOptions);
 
@@ -1246,7 +1248,9 @@ Need help? Contact us at support@adoptdontshop.com
   }
 
   static generateBackupCodes(count = 10): string[] {
-    return Array.from({ length: count }, () => crypto.randomBytes(4).toString('hex'));
+    // 64 bits of entropy per code (16 hex chars). 32 bits is too weak against
+    // offline cracking if the bcrypt-hashed codes ever leak.
+    return Array.from({ length: count }, () => crypto.randomBytes(8).toString('hex'));
   }
 
   static async enableTwoFactor(userId: string, token: string): Promise<{ backupCodes: string[] }> {
