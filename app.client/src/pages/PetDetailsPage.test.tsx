@@ -95,6 +95,59 @@ const isActionObject = (
   return typeof record.onClick === 'function';
 };
 
+describe('PetDetailsPage CTA hierarchy (ADS-639)', () => {
+  beforeEach(() => {
+    authStateMock.isAuthenticated = true;
+    startConversationMock.mockReset();
+    getPetByIdMock.mockReset();
+    isFavoriteMock.mockReset();
+
+    getPetByIdMock.mockResolvedValue({
+      pet_id: 'pet-1',
+      name: 'Luna',
+      type: 'dog',
+      status: 'available',
+      rescue_id: 'rescue-1',
+      rescue: { name: 'Happy Tails', location: 'Bristol' },
+      images: [],
+    });
+    isFavoriteMock.mockResolvedValue(false);
+  });
+
+  it('renders exactly one primary "Apply to Adopt" CTA, presents "Contact Rescue" as a secondary affordance framed as asking a question before applying, and keeps "View Rescue Profile" as a tertiary link (not a button)', async () => {
+    render(<PetDetailsPage />);
+
+    // Primary CTA: a single "Apply to Adopt" action linking to the
+    // application form. No other CTA on the page should share the
+    // "Apply to Adopt" label.
+    const applyLinks = await screen.findAllByRole('link', { name: /apply to adopt/i });
+    expect(applyLinks).toHaveLength(1);
+    expect(applyLinks[0]).toHaveAttribute('href', '/apply/pet-1');
+
+    // No competing primary CTA: nothing else uses the "Apply" / "Adopt"
+    // call-to-action phrasing as a button.
+    expect(screen.queryByRole('button', { name: /apply to adopt/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^adopt/i })).not.toBeInTheDocument();
+
+    // Secondary affordance: the rescue-contact action is a button whose
+    // accessible name frames it as asking a question *before* applying
+    // — not as a competing primary CTA labelled "Contact Rescue".
+    expect(
+      screen.getByRole('button', { name: /ask a question before applying/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^contact rescue$/i })).not.toBeInTheDocument();
+
+    // Tertiary: "View Rescue Profile" remains an inline link to the
+    // rescue page, not a button-styled action.
+    const rescueProfileLinks = screen.getAllByRole('link', { name: /view rescue profile/i });
+    expect(rescueProfileLinks.length).toBeGreaterThan(0);
+    rescueProfileLinks.forEach(link => {
+      expect(link).toHaveAttribute('href', '/rescues/rescue-1');
+    });
+    expect(screen.queryByRole('button', { name: /view rescue profile/i })).not.toBeInTheDocument();
+  });
+});
+
 describe('PetDetailsPage chat init failure', () => {
   beforeEach(() => {
     authStateMock.isAuthenticated = true;
@@ -121,10 +174,12 @@ describe('PetDetailsPage chat init failure', () => {
     render(<PetDetailsPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /contact rescue/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /ask a question before applying/i })
+      ).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /contact rescue/i }));
+    await user.click(screen.getByRole('button', { name: /ask a question before applying/i }));
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledTimes(1);
@@ -233,11 +288,13 @@ describe('PetDetailsPage signed-in CTAs (ADS-638 regression)', () => {
     expect(applyLink).toHaveAttribute('href', '/apply/pet-1');
   });
 
-  it('renders the "Contact Rescue" button for signed-in users', async () => {
+  it('renders the rescue-contact button (now framed as asking a question before applying) for signed-in users', async () => {
     render(<PetDetailsPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /^contact rescue$/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /ask a question before applying/i })
+      ).toBeInTheDocument();
     });
   });
 });
