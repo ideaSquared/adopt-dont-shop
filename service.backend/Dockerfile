@@ -206,6 +206,13 @@ COPY --from=build --chown=backend:nodejs /app/service.backend/package*.json ./se
 # service.backend/src/services). Without this, GET /api/v1/legal/* 500s.
 COPY --chown=backend:nodejs docs/legal/ ./docs/legal/
 
+# Strip setuid/setgid bits from every binary on the image. The non-root
+# `backend` user has no need for privilege-escalating helpers (su, ping,
+# mount, etc.) at runtime; leaving them in place gives any RCE a ready
+# foothold. -xdev keeps the find within this layer's filesystem.
+RUN find / -xdev -perm -4000 -exec chmod -s {} + 2>/dev/null || true && \
+    find / -xdev -perm -2000 -exec chmod -s {} + 2>/dev/null || true
+
 # Switch to non-root user (security best practice)
 USER backend
 

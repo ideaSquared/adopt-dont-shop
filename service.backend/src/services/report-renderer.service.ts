@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import Papa from 'papaparse';
 import type { ExecutedReport } from './reports.service';
 import type SavedReport from '../models/SavedReport';
+import { safeCsvCell } from '../utils/safe-csv-cell';
 
 /**
  * ADS-105: Renderers for scheduled-report delivery.
@@ -41,27 +42,39 @@ const titlesFromReport = (report: SavedReport): WidgetTitle[] => {
 const isRecordArray = (v: unknown): v is Array<Record<string, unknown>> =>
   Array.isArray(v) && v.length > 0 && typeof v[0] === 'object' && v[0] !== null;
 
+/**
+ * Neutralize formula-injection in every cell of a record array before
+ * handing it to Papa.unparse. Keys (column headers) and values are both
+ * user-controllable via widget data sourced from rescue entities.
+ */
+const sanitizeRows = (rows: Array<Record<string, unknown>>): Array<Record<string, string>> =>
+  rows.map(row =>
+    Object.fromEntries(
+      Object.entries(row).map(([key, value]) => [safeCsvCell(key), safeCsvCell(value)])
+    )
+  );
+
 export const ReportRenderer = {
   renderCsv(report: SavedReport, executed: ExecutedReport): Buffer {
     const titles = titlesFromReport(report);
     const sections: string[] = [];
-    sections.push(`Report: ${report.name}`);
-    sections.push(`Computed at: ${executed.computedAt}`);
+    sections.push(`Report: ${safeCsvCell(report.name)}`);
+    sections.push(`Computed at: ${safeCsvCell(executed.computedAt)}`);
     sections.push('');
     for (const widget of executed.widgets) {
       const title = titles.find(t => t.id === widget.id)?.title ?? widget.id;
-      sections.push(`# ${title}`);
+      sections.push(`# ${safeCsvCell(title)}`);
       const data = widget.data;
       if (isRecordArray(data)) {
-        sections.push(Papa.unparse(data as Record<string, unknown>[]));
+        sections.push(Papa.unparse(sanitizeRows(data as Record<string, unknown>[])));
       } else if (data && typeof data === 'object') {
         const rows = Object.entries(data as Record<string, unknown>).map(([key, value]) => ({
-          key,
-          value: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
+          key: safeCsvCell(key),
+          value: safeCsvCell(value),
         }));
         sections.push(Papa.unparse(rows));
       } else {
-        sections.push(`value,${String(data ?? '')}`);
+        sections.push(`value,${safeCsvCell(data)}`);
       }
       sections.push('');
     }

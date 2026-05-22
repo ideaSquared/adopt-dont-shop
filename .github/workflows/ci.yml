@@ -188,19 +188,24 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci
 
+      - name: Generate per-run test secrets
+        # Avoid hard-coded placeholder secrets in the workflow file.
+        # `validate:env` (ADS-408) demands distinct, sufficiently long
+        # values for each secret; generate fresh randomness per run and
+        # export to $GITHUB_ENV so the next step sees them. These NEVER
+        # touch the test suite below; vitest seeds its own fixtures.
+        run: |
+          {
+            echo "JWT_SECRET=$(openssl rand -hex 32)"
+            echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)"
+            echo "SESSION_SECRET=$(openssl rand -hex 32)"
+            echo "CSRF_SECRET=$(openssl rand -hex 32)"
+            echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
+          } >> "$GITHUB_ENV"
+
       - name: Validate environment configuration
-        # `validate:env` (ADS-408) refuses placeholder secrets and demands
-        # real lengths/distinctness — that's what we want pre-deploy. In CI
-        # we don't have production secrets, so pass deterministic
-        # test-grade values just for the validator step. These NEVER touch
-        # the test suite below; vitest seeds its own fixtures.
         env:
           NODE_ENV: test
-          JWT_SECRET: ci_jwt_secret_chars_at_least_thirty_two_a
-          JWT_REFRESH_SECRET: ci_jwt_refresh_secret_at_least_32_b
-          SESSION_SECRET: ci_session_secret_at_least_thirty_two_c
-          CSRF_SECRET: ci_csrf_secret_chars_at_least_thirty_two
-          ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           TEST_DB_NAME: adopt_dont_shop_test
           DEV_DB_NAME: adopt_dont_shop_dev
           PROD_DB_NAME: adopt_dont_shop_prod

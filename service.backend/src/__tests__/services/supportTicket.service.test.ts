@@ -557,6 +557,36 @@ describe('SupportTicketService', () => {
         /Invalid sort field/
       );
     });
+
+    it('escapes LIKE wildcard characters in the search term so % is matched literally', async () => {
+      MockedSupportTicket.findAndCountAll.mockResolvedValue({ rows: [], count: 0 });
+
+      // A user searching for "50%" should match the literal substring "50%",
+      // not "50 followed by anything". Backslash-escaping the wildcard in the
+      // pattern is what enforces literal matching at the SQL layer.
+      await supportTicketService.getTickets({ search: '50%_off\\sale' });
+
+      const callArgs = MockedSupportTicket.findAndCountAll.mock.calls[0][0] as {
+        where: Record<string | symbol, unknown>;
+      };
+      const orSymbol = Object.getOwnPropertySymbols(callArgs.where).find(
+        s => s.toString() === 'Symbol(or)'
+      );
+      expect(orSymbol).toBeDefined();
+      const orConditions = callArgs.where[orSymbol as symbol] as Array<
+        Record<string, Record<symbol, string>>
+      >;
+      const iLikeSymbol = Object.getOwnPropertySymbols(orConditions[0].subject).find(
+        s => s.toString() === 'Symbol(iLike)'
+      );
+      expect(iLikeSymbol).toBeDefined();
+      const subjectPattern = orConditions[0].subject[iLikeSymbol as symbol];
+
+      // The raw "%", "_" and "\" should each be backslash-escaped inside the
+      // wrapping wildcards. Without escaping, a single "%" would match
+      // every row.
+      expect(subjectPattern).toBe('%50\\%\\_off\\\\sale%');
+    });
   });
 
   describe('getTicketStats()', () => {

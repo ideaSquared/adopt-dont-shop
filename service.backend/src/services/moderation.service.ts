@@ -12,6 +12,7 @@ import logger from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
+import { escapeLikePattern } from '../utils/escape-like';
 
 const REPORT_SORT_FIELDS = ['createdAt', 'updatedAt', 'status', 'severity', 'category'] as const;
 
@@ -243,10 +244,11 @@ class ModerationService {
     if (filters.search) {
       // Type assertion needed: Sequelize's types don't support Op.or as index signature
       // This is a valid runtime pattern - Op.or is a symbol used for OR queries
+      const safeSearch = escapeLikePattern(filters.search);
       const orConditions = [
-        { title: { [Op.iLike]: `%${filters.search}%` } },
-        { description: { [Op.iLike]: `%${filters.search}%` } },
-        { reportId: { [Op.iLike]: `%${filters.search}%` } },
+        { title: { [Op.iLike]: `%${safeSearch}%` } },
+        { description: { [Op.iLike]: `%${safeSearch}%` } },
+        { reportId: { [Op.iLike]: `%${safeSearch}%` } },
       ];
       Object.assign(whereClause, { [Op.or]: orConditions });
     }

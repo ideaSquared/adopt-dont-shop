@@ -10,6 +10,7 @@ import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
+import { escapeLikePattern } from '../utils/escape-like';
 
 const SUPPORT_TICKET_SORT_FIELDS = [
   'createdAt',
@@ -78,11 +79,12 @@ class SupportTicketService {
       if (filters.search) {
         // Type assertion needed: Sequelize's types don't support Op.or as index signature
         // This is a valid runtime pattern - Op.or is a symbol used for OR queries
+        const safeSearch = escapeLikePattern(filters.search);
         const orConditions = [
-          { subject: { [Op.iLike]: `%${filters.search}%` } },
-          { description: { [Op.iLike]: `%${filters.search}%` } },
-          { userEmail: { [Op.iLike]: `%${filters.search}%` } },
-          { userName: { [Op.iLike]: `%${filters.search}%` } },
+          { subject: { [Op.iLike]: `%${safeSearch}%` } },
+          { description: { [Op.iLike]: `%${safeSearch}%` } },
+          { userEmail: { [Op.iLike]: `%${safeSearch}%` } },
+          { userName: { [Op.iLike]: `%${safeSearch}%` } },
         ];
         Object.assign(where, { [Op.or]: orConditions });
       }

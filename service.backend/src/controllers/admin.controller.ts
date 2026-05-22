@@ -459,8 +459,10 @@ export class AdminController {
     }
 
     // This would implement actual configuration updates
-    // For now, just log the attempt
-    logger.info(`Admin ${req.user!.userId} attempted to update config: ${key} = ${value}`);
+    // For now, just log the attempt. The value is always redacted because
+    // platform-config keys can legitimately hold API keys, webhook secrets,
+    // SMTP passwords, DB URLs, etc. — log only the key name.
+    logger.info(`Admin ${req.user!.userId} attempted to update config: ${key} = [REDACTED]`);
 
     res.json({
       success: true,

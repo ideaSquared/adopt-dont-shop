@@ -5,6 +5,7 @@ import MessageRead from '../models/MessageRead';
 import StaffMember from '../models/StaffMember';
 import Rescue from '../models/Rescue';
 import { validateSortField, validateSortOrder } from '../utils/sort-validation';
+import { escapeLikePattern } from '../utils/escape-like';
 
 const CHAT_SORT_FIELDS = ['created_at', 'updated_at'] as const;
 import { NotificationPriority, NotificationType } from '../models/Notification';
@@ -592,7 +593,7 @@ export class ChatService {
 
       // Search in messages for the query
       const messageSearchConditions: WhereOptions = {
-        [Op.or]: [{ content: { [Op.iLike]: `%${query}%` } }],
+        [Op.or]: [{ content: { [Op.iLike]: `%${escapeLikePattern(query)}%` } }],
       };
 
       // If userId provided, filter by participation
@@ -1650,7 +1651,7 @@ export class ChatService {
 
       if (search) {
         (whereConditions as WhereOptions & { [Op.or]: WhereOptions[] })[Op.or] = [
-          { chat_id: { [Op.iLike]: `%${search}%` } },
+          { chat_id: { [Op.iLike]: `%${escapeLikePattern(search)}%` } },
         ];
       }
 
@@ -1933,7 +1934,7 @@ export class ChatService {
         };
       }
       if (query) {
-        whereConditions.content = { [Op.iLike]: `%${query}%` };
+        whereConditions.content = { [Op.iLike]: `%${escapeLikePattern(query)}%` };
       }
 
       const { rows: messages, count: total } = await Message.findAndCountAll({

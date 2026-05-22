@@ -226,6 +226,14 @@ RUN apk update && apk upgrade && rm -rf /var/cache/apk/*
 # Copy built app from build stage
 COPY --from=build /app/${APP_NAME}/dist /usr/share/nginx/html
 
+# Strip setuid/setgid bits from every binary on the image. Nginx workers
+# drop privileges after startup; none of the static-serving runtime
+# legitimately needs a suid/sgid helper, so removing the bits closes off
+# a privilege-escalation path for any RCE. -xdev keeps the find within
+# this layer's filesystem.
+RUN find / -xdev -perm -4000 -exec chmod -s {} + 2>/dev/null || true && \
+    find / -xdev -perm -2000 -exec chmod -s {} + 2>/dev/null || true
+
 # Create optimized nginx config for SPA with security headers
 RUN echo 'events { \
     worker_connections 1024; \

@@ -33,7 +33,10 @@ export const isDevelopmentMode = () => {
       window.location.hostname.includes('dev')
     );
   }
-  return process.env.NODE_ENV === 'development';
+  // Case-insensitive match — matches isProductionLike() in
+  // service.backend/src/config/env.ts so a "Development" or "DEVELOPMENT"
+  // NODE_ENV doesn't silently disable dev tooling on the server side.
+  return process.env.NODE_ENV?.trim().toLowerCase() === 'development';
 };
 
 // Development-only wrapper component

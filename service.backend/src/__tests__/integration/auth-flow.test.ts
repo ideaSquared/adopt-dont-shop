@@ -370,9 +370,21 @@ describe('Authentication Flow Integration Tests', () => {
             },
           },
         });
-        expect(mockUser.emailVerified).toBe(true);
-        expect(mockUser.status).toBe(UserStatus.ACTIVE);
-        expect(mockUser.save).toHaveBeenCalled();
+        // The verify flips emailVerified and status via an atomic UPDATE
+        // scoped to emailVerified=false; only the race winner sees
+        // affectedCount=1 (the default mock returns [1]).
+        expect(MockedUser.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            emailVerified: true,
+            status: UserStatus.ACTIVE,
+          }),
+          expect.objectContaining({
+            where: expect.objectContaining({
+              userId: mockUser.userId,
+              emailVerified: false,
+            }),
+          })
+        );
         // Token is left in place so duplicate clicks (StrictMode, etc.) are
         // idempotent. Naturally expires.
         expect(mockUser.verificationToken).toBe(verificationToken);
@@ -440,7 +452,13 @@ describe('Authentication Flow Integration Tests', () => {
         const authService = new AuthService();
         await authService.verifyEmail(verificationToken);
 
-        expect(mockUser.status).toBe(UserStatus.ACTIVE);
+        // Status flips via the atomic UPDATE; assert against the call payload
+        // rather than the in-memory mock since verifyEmail no longer mutates
+        // the user instance directly.
+        expect(MockedUser.update).toHaveBeenCalledWith(
+          expect.objectContaining({ status: UserStatus.ACTIVE }),
+          expect.any(Object)
+        );
       });
     });
 

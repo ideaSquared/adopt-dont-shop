@@ -3,6 +3,7 @@ import Content, { ContentStatus, ContentType } from '../models/Content';
 import NavigationMenu, { MenuLocation } from '../models/NavigationMenu';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
+import { escapeLikePattern } from '../utils/escape-like';
 import { RichTextProcessingService } from './rich-text-processing.service';
 
 type ListContentOptions = {
@@ -92,11 +93,12 @@ class CmsService {
     }
     if (search) {
       const likeOp = sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
+      const safeSearch = escapeLikePattern(search);
       Object.assign(where, {
         [Op.or]: [
-          { title: { [likeOp]: `%${search}%` } },
-          { excerpt: { [likeOp]: `%${search}%` } },
-          { slug: { [likeOp]: `%${search}%` } },
+          { title: { [likeOp]: `%${safeSearch}%` } },
+          { excerpt: { [likeOp]: `%${safeSearch}%` } },
+          { slug: { [likeOp]: `%${safeSearch}%` } },
         ],
       });
     }
