@@ -3,6 +3,7 @@ import path from 'path';
 import swaggerJsdoc, { Options, OAS3Definition } from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
+import { isProductionLike } from './env';
 import { logger } from '../utils/logger';
 
 // Type for the generated Swagger specification
@@ -13,10 +14,16 @@ type SwaggerSpec = OAS3Definition & { paths?: Record<string, unknown> };
  * `/api/docs/swagger.yaml`) should be exposed.
  *
  * ADS-412: in production, the full schema is a roadmap for attackers.
- * Default to off in production unless `EXPOSE_API_DOCS=true` is set
- * explicitly (e.g. for an internal staging-prod for partners).
+ * Default to off in production-like environments.
+ *
+ * Hard-block API docs in production-like environments even if EXPOSE_API_DOCS is set.
+ * API docs leak the full attack surface map; an accidental env-var setting should
+ * not expose this.
  */
 export function shouldExposeApiDocs(): boolean {
+  if (isProductionLike(process.env.NODE_ENV)) {
+    return false;
+  }
   if (process.env.EXPOSE_API_DOCS === 'true') {
     return true;
   }
@@ -28,7 +35,11 @@ export function shouldExposeApiDocs(): boolean {
  */
 export function setupSwagger(app: Express) {
   if (!shouldExposeApiDocs()) {
-    logger.info('Swagger UI disabled (production gate). Set EXPOSE_API_DOCS=true to override.');
+    if (isProductionLike(process.env.NODE_ENV) && process.env.EXPOSE_API_DOCS === 'true') {
+      logger.warn('EXPOSE_API_DOCS=true ignored in production-like environment');
+    } else {
+      logger.info('Swagger UI disabled (production gate).');
+    }
     return;
   }
 
