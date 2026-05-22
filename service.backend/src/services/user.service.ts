@@ -1311,19 +1311,18 @@ export class UserService {
     const startTime = Date.now();
 
     try {
+      // individualHooks:true so the per-row beforeValidate (email NFKC +
+      // mixed-script reject) and beforeUpdate (password hashing) hooks fire
+      // for each user. Also makes afterSave fire per row, which busts the
+      // auth cache — so no explicit invalidation loop is needed here.
       const [affectedRows] = await User.update(updates[0].updates, {
         where: {
           userId: {
             [Op.in]: updates[0].userIds,
           },
         },
+        individualHooks: true,
       });
-
-      // ADS-596: Model.update bypasses the per-instance afterSave hook that
-      // normally busts the auth cache, so we have to do it explicitly here.
-      for (const userId of updates[0].userIds) {
-        invalidateAuthCache(userId);
-      }
 
       // Log bulk update
       await AuditLogService.log({
