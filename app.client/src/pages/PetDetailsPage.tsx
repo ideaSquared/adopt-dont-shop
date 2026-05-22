@@ -4,13 +4,111 @@ import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { petService, Pet } from '@/services';
 import { Badge, Button, Card, toast } from '@adopt-dont-shop/lib.components';
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { LoginPromptModal } from '../components/modals/LoginPromptModal';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { resolveFileUrl } from '../utils/fileUtils';
 import * as styles from './PetDetailsPage.css';
 
 interface PetDetailsPageProps {}
+
+// ADS-638: signed-out visitors must see auth-aware CTAs that route to
+// `/login?redirect=<returnPath>` so the original action resumes after
+// sign-in. The Apply flow redirects straight to `/apply/:petId`;
+// Contact returns to the pet details page with `?action=contact`,
+// which we auto-trigger once auth completes.
+const buildApplyLoginPath = (petId: string): string =>
+  `/login?redirect=${encodeURIComponent(`/apply/${petId}`)}`;
+
+const buildContactLoginPath = (petId: string): string =>
+  `/login?redirect=${encodeURIComponent(`/pets/${petId}?action=contact`)}`;
+
+type ApplyCtaProps = {
+  isAuthenticated: boolean;
+  isUnverified: boolean;
+  verificationTooltip: string;
+  petId: string;
+  onApplyClick: () => void;
+};
+
+const renderApplyCta = ({
+  isAuthenticated,
+  isUnverified,
+  verificationTooltip,
+  petId,
+  onApplyClick,
+}: ApplyCtaProps): React.ReactNode => {
+  if (isUnverified) {
+    return (
+      <Button
+        className={`${styles.actionLink} ${styles.actionLinkPrimary} ${styles.actionLinkLarge}`}
+        variant='primary'
+        size='lg'
+        disabled
+        title={verificationTooltip}
+      >
+        Apply to Adopt
+      </Button>
+    );
+  }
+  if (!isAuthenticated) {
+    return (
+      <Link
+        className={`${styles.actionLink} ${styles.actionLinkPrimary} ${styles.actionLinkLarge}`}
+        to={buildApplyLoginPath(petId)}
+      >
+        Sign in to apply
+      </Link>
+    );
+  }
+  return (
+    <Link
+      className={`${styles.actionLink} ${styles.actionLinkPrimary} ${styles.actionLinkLarge}`}
+      to={`/apply/${petId}`}
+      onClick={onApplyClick}
+    >
+      Apply to Adopt
+    </Link>
+  );
+};
+
+type ContactCtaProps = {
+  isAuthenticated: boolean;
+  isUnverified: boolean;
+  verificationTooltip: string;
+  petId: string;
+  onContactClick: () => void;
+};
+
+const renderContactCta = ({
+  isAuthenticated,
+  isUnverified,
+  verificationTooltip,
+  petId,
+  onContactClick,
+}: ContactCtaProps): React.ReactNode => {
+  if (!isAuthenticated) {
+    return (
+      <Link
+        className={`${styles.actionLink} ${styles.actionLinkPrimary} ${styles.actionLinkLarge}`}
+        to={buildContactLoginPath(petId)}
+      >
+        Sign in to message rescue
+      </Link>
+    );
+  }
+  return (
+    <Button
+      className={styles.contactButton}
+      variant='primary'
+      size='lg'
+      onClick={onContactClick}
+      disabled={isUnverified}
+      title={isUnverified ? verificationTooltip : undefined}
+    >
+      Contact Rescue
+    </Button>
+  );
+};
 
 export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,9 +122,13 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  const [loginPromptAction, setLoginPromptAction] = useState('apply for adoption');
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // ADS-638: after a signed-out user clicks "Sign in to message rescue"
+  // and completes auth, they land back here with `?action=contact`. We
+  // auto-trigger the contact flow once (per page load) so they don't
+  // have to click again.
+  const pendingContactRef = useRef(false);
 
   // Use real browser history so the back button returns to wherever the
   // user actually came from (favourites, home, search). Falls back to the
@@ -173,8 +275,6 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
       return;
     }
     if (!isAuthenticated) {
-      setLoginPromptAction('contact this rescue');
-      setShowLoginPrompt(true);
       return;
     }
 
@@ -227,6 +327,30 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     }
   };
 
+  // ADS-638: resume the original action when a signed-out user returns
+  // from `/login?redirect=…&action=contact`. We strip the param off the
+  // URL after firing so refreshing the page doesn't re-trigger the
+  // chat creation flow.
+  useEffect(() => {
+    if (!isAuthenticated || !pet?.rescue_id) {
+      return;
+    }
+    if (searchParams.get('action') !== 'contact') {
+      return;
+    }
+    if (pendingContactRef.current) {
+      return;
+    }
+    pendingContactRef.current = true;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete('action');
+    setSearchParams(nextParams, { replace: true });
+    void handleContactRescue();
+    // handleContactRescue is recreated on every render but is stable
+    // enough for this one-shot resume — guarded by pendingContactRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, pet?.rescue_id, searchParams]);
+
   const handleImageSelect = (index: number) => {
     setSelectedImageIndex(index);
 
@@ -243,15 +367,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
     }
   };
 
-  const handleApplyClick = (e: React.MouseEvent) => {
-    // Check if user is authenticated
-    if (!isAuthenticated) {
-      e.preventDefault();
-      setLoginPromptAction('apply for adoption');
-      setShowLoginPrompt(true);
-      return;
-    }
-
+  const handleApplyClick = () => {
     if (pet) {
       // Track with new analytics service
       trackEvent({
@@ -284,10 +400,6 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
         user_authenticated: isAuthenticated.toString(),
       });
     }
-  };
-
-  const handleCloseLoginPrompt = () => {
-    setShowLoginPrompt(false);
   };
 
   const handleRescueProfileClick = () => {
@@ -543,25 +655,13 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                   )}
                   <div className='actions'>
                     {pet.status === 'available' &&
-                      (isUnverified ? (
-                        <Button
-                          className={`${styles.actionLink} ${styles.actionLinkPrimary} ${styles.actionLinkLarge}`}
-                          variant='primary'
-                          size='lg'
-                          disabled
-                          title={verificationTooltip}
-                        >
-                          Apply to Adopt
-                        </Button>
-                      ) : (
-                        <Link
-                          className={`${styles.actionLink} ${styles.actionLinkPrimary} ${styles.actionLinkLarge}`}
-                          to={`/apply/${pet.pet_id}`}
-                          onClick={handleApplyClick}
-                        >
-                          Apply to Adopt
-                        </Link>
-                      ))}
+                      renderApplyCta({
+                        isAuthenticated,
+                        isUnverified,
+                        verificationTooltip,
+                        petId: pet.pet_id,
+                        onApplyClick: handleApplyClick,
+                      })}
                     {pet.rescue_id && (
                       <Link
                         className={`${styles.actionLink} ${styles.actionLinkOutline}`}
@@ -571,18 +671,14 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                         View Rescue Profile
                       </Link>
                     )}
-                    {pet.rescue_id && (
-                      <Button
-                        className={styles.contactButton}
-                        variant='primary'
-                        size='lg'
-                        onClick={handleContactRescue}
-                        disabled={isUnverified}
-                        title={isUnverified ? verificationTooltip : undefined}
-                      >
-                        Contact Rescue
-                      </Button>
-                    )}
+                    {pet.rescue_id &&
+                      renderContactCta({
+                        isAuthenticated,
+                        isUnverified,
+                        verificationTooltip,
+                        petId: pet.pet_id,
+                        onContactClick: handleContactRescue,
+                      })}
                   </div>
                 </>
               );
@@ -597,12 +693,6 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
           </Card>
         )}
       </div>
-
-      <LoginPromptModal
-        isOpen={showLoginPrompt}
-        onClose={handleCloseLoginPrompt}
-        action={loginPromptAction}
-      />
     </div>
   );
 };
