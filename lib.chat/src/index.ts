@@ -16,7 +16,8 @@ export type {
 } from './types';
 
 // Hooks
-export { useConnectionStatus } from './hooks';
+export { useConnectionStatus, useUnreadConversations, UNREAD_BROADCAST_CHANNEL } from './hooks';
+export type { UseUnreadConversationsResult } from './hooks';
 
 // Admin hooks
 export {

@@ -18,6 +18,7 @@ See `src/index.ts` for the authoritative list. Primary entry points:
 
 - **`ChatService`** — class-based client for REST + WebSocket messaging. Construct with a `ChatServiceConfig` or leave defaults.
 - **`useConnectionStatus(chatService)`** — React hook that tracks connect / reconnect / disconnect / error state.
+- **`useUnreadConversations()`** — React hook that returns `{ totalUnread, unreadByConversationId, markRead }`. Single source of truth for unread-message indicators across `app.client`, `app.rescue`, and `app.admin`. See [Unread indicators](#unread-indicators) below.
 - **Admin React Query hooks** — `useAdminChats`, `useAdminChatById`, `useAdminChatMessages`, `useAdminChatStats`, `useAdminSearchChats`, `useAdminChatMutations`.
 - **Types** — `Conversation`, `Message`, `Participant`, `MessageAttachment`, `TypingIndicator`, `MessageReaction`, `MessageReadReceipt`, `MessageDeliveryStatus`, `ReconnectionConfig`, `QueuedMessage`, plus response shapes (`BaseResponse`, `ErrorResponse`, `PaginatedResponse`).
 
@@ -48,6 +49,41 @@ Inside a React component:
 ```tsx
 const { isConnected, isReconnecting, reconnectionAttempts } = useConnectionStatus(chat);
 ```
+
+## Unread indicators
+
+`useUnreadConversations` is the single source of truth for unread-message badges across the apps. Wire `ChatProvider` once at the app root, then call the hook anywhere underneath.
+
+```tsx
+import { useUnreadConversations } from '@adopt-dont-shop/lib.chat';
+
+const { totalUnread, unreadByConversationId, markRead } = useUnreadConversations();
+
+// Aggregate header badge:
+<Badge count={totalUnread} />;
+
+// Per-conversation badge:
+const count = unreadByConversationId[conversationId] ?? 0;
+
+// Clear after the user opens a thread:
+await markRead(conversationId);
+```
+
+**Signature**
+
+```ts
+type UseUnreadConversationsResult = {
+  totalUnread: number;
+  unreadByConversationId: Readonly<Record<string, number>>;
+  markRead: (conversationId: string) => Promise<void>;
+};
+```
+
+**Real-time updates** — the hook reads `conversations` from `ChatProvider`, which is already kept in sync with the chat socket. New messages bump `unreadCount` on the affected conversation; the backend's `messages_read` event clears it. No polling, no manual refresh.
+
+**Cross-tab sync** — `markRead` posts a `{ type: 'mark-read', conversationId }` message to a `BroadcastChannel` named `adopt-dont-shop:chat:unread` (also exported as `UNREAD_BROADCAST_CHANNEL`). Other tabs of the same origin listen on the channel and mirror the local clear, so a badge cleared in one tab clears in every other open tab. In environments without `BroadcastChannel` the hook silently skips the broadcast — the in-tab state still updates normally.
+
+**Provider requirement** — must be called inside a `ChatProvider`. Without one it throws the same `useChat must be used within a ChatProvider` error as the rest of the library.
 
 ## Scripts (from `lib.chat/`)
 
