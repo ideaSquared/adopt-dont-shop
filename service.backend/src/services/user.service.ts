@@ -27,6 +27,7 @@ import { AuditLogService } from './auditLog.service';
 import { redactSensitiveFields } from '../utils/redact';
 import RefreshToken from '../models/RefreshToken';
 import { invalidateAuthCache } from '../lib/auth-cache';
+import { emitAuthRoleChanged } from '../socket/socket-registry';
 
 const USER_SORT_FIELDS = [
   'createdAt',
@@ -1075,6 +1076,11 @@ export class UserService {
 
       const oldUserType = user.userType;
       await user.update({ userType: newUserType });
+
+      // Push a socket event so any live frontend session re-fetches the
+      // user profile and re-evaluates role-gated UI (ProtectedRoute,
+      // admin nav, etc.) without waiting for the next page refresh.
+      emitAuthRoleChanged(userId);
 
       // Audit log
       await AuditLog.create({
