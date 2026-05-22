@@ -122,7 +122,7 @@ export class ChatService {
 
       // Create socket connection
       this.socket = io(this.config.socketUrl, {
-        ...(token && { auth: { token } }),
+        ...(token ? { auth: { token } } : {}),
         autoConnect: true,
         reconnection: false, // We handle reconnection manually
         transports: ['websocket', 'polling'],
