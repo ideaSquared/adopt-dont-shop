@@ -28,8 +28,27 @@ globalStyle(`${navHeader} h2`, {
 
 export const navList = style({
   flex: 1,
-  listStyle: 'none',
   padding: '1rem 0',
+  margin: 0,
+});
+
+export const navGroup = style({
+  margin: '0.75rem 0',
+});
+
+export const navGroupLabel = style({
+  margin: 0,
+  padding: '0 1.5rem 0.25rem',
+  fontSize: '0.7rem',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: 'rgba(255, 255, 255, 0.55)',
+});
+
+export const navGroupList = style({
+  listStyle: 'none',
+  padding: 0,
   margin: 0,
 });
 

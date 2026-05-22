@@ -1,33 +1,90 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { RescueRole, useAuth } from '@adopt-dont-shop/lib.auth';
 import { Logo } from '@adopt-dont-shop/lib.components';
 import { useChat } from '@/contexts/ChatContext';
 import clsx from 'clsx';
 import * as styles from './Navigation.css';
+
+type NavItem = {
+  path: string;
+  label: string;
+  icon: string;
+  badge?: number;
+  /**
+   * Roles that should NOT see this item. Other roles (incl. undefined, e.g.
+   * platform admins) continue to see it. Keep rules conservative — broader
+   * role-based filtering is follow-up work.
+   */
+  hideForRoles?: ReadonlyArray<RescueRole>;
+};
+
+type NavGroup = {
+  id: string;
+  label: string;
+  items: ReadonlyArray<NavItem>;
+};
 
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { user, logout, isLoading } = useAuth();
   const { unreadMessageCount } = useChat();
 
-  const navItems: Array<{ path: string; label: string; icon: string; badge?: number }> = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/pets', label: 'Pets', icon: '🐕' },
-    { path: '/applications', label: 'Applications', icon: '📋' },
-    { path: '/staff', label: 'Staff', icon: '👥' },
+  // Group order is intentional: day-to-day Operations first, then
+  // Communication (high-frequency but distinct context), then Admin
+  // (lower-frequency configuration & insights).
+  const navGroups: ReadonlyArray<NavGroup> = [
     {
-      path: '/communication',
-      label: 'Messages',
-      icon: '💬',
-      badge: unreadMessageCount,
+      id: 'operations',
+      label: 'Operations',
+      items: [
+        { path: '/', label: 'Dashboard', icon: '📊' },
+        { path: '/pets', label: 'Pets', icon: '🐕' },
+        { path: '/applications', label: 'Applications', icon: '📋' },
+        { path: '/foster', label: 'Foster', icon: '🏠' },
+        { path: '/events', label: 'Events', icon: '🗓️' },
+      ],
     },
-    { path: '/events', label: 'Events', icon: '🗓️' },
-    { path: '/foster', label: 'Foster', icon: '🏠' },
-    { path: '/analytics', label: 'Analytics', icon: '📈' },
-    { path: '/reports', label: 'Reports', icon: '📑' },
-    { path: '/settings', label: 'Settings', icon: '⚙️' },
+    {
+      id: 'communication',
+      label: 'Communication',
+      items: [
+        {
+          path: '/communication',
+          label: 'Messages',
+          icon: '💬',
+          badge: unreadMessageCount,
+        },
+      ],
+    },
+    {
+      id: 'admin',
+      label: 'Admin',
+      items: [
+        { path: '/staff', label: 'Staff', icon: '👥' },
+        {
+          path: '/analytics',
+          label: 'Analytics',
+          icon: '📈',
+          // Volunteers don't need Analytics by default — they focus on
+          // pet/application work. Admins and staff still see it.
+          hideForRoles: [RescueRole.RESCUE_VOLUNTEER],
+        },
+        { path: '/reports', label: 'Reports', icon: '📑' },
+        { path: '/settings', label: 'Settings', icon: '⚙️' },
+      ],
+    },
   ];
+
+  const isVisible = (item: NavItem): boolean => {
+    if (!item.hideForRoles || item.hideForRoles.length === 0) return true;
+    if (!user?.role) return true;
+    return !item.hideForRoles.includes(user.role);
+  };
+
+  const visibleGroups = navGroups
+    .map(group => ({ ...group, items: group.items.filter(isVisible) }))
+    .filter(group => group.items.length > 0);
 
   const handleLogout = async () => {
     try {
@@ -65,33 +122,53 @@ const Navigation: React.FC = () => {
         <Logo size={32} showWordmark darkBg />
       </div>
 
-      <ul className={styles.navList}>
-        {navItems.map(item => {
-          const isActive = location.pathname === item.path;
-          const hasUnread = typeof item.badge === 'number' && item.badge > 0;
+      <div className={styles.navList}>
+        {visibleGroups.map(group => {
+          const headingId = `nav-group-${group.id}`;
           return (
-            <li key={item.path} className={styles.navItem}>
-              <Link
-                to={item.path}
-                className={clsx(
-                  styles.navLink({ active: isActive, hasUnread: hasUnread && !isActive })
-                )}
-              >
-                <span className={styles.navIcon}>{item.icon}</span>
-                <span className={styles.navLabel}>{item.label}</span>
-                {hasUnread && (
-                  <span
-                    className={styles.navBadge}
-                    aria-label={`${item.badge} unread message${item.badge === 1 ? '' : 's'}`}
-                  >
-                    {item.badge! > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-              </Link>
-            </li>
+            <section
+              key={group.id}
+              role="group"
+              aria-labelledby={headingId}
+              className={styles.navGroup}
+            >
+              <h2 id={headingId} className={styles.navGroupLabel}>
+                {group.label}
+              </h2>
+              <ul className={styles.navGroupList}>
+                {group.items.map(item => {
+                  const isActive = location.pathname === item.path;
+                  const hasUnread = typeof item.badge === 'number' && item.badge > 0;
+                  return (
+                    <li key={item.path} className={styles.navItem}>
+                      <Link
+                        to={item.path}
+                        className={clsx(
+                          styles.navLink({
+                            active: isActive,
+                            hasUnread: hasUnread && !isActive,
+                          })
+                        )}
+                      >
+                        <span className={styles.navIcon}>{item.icon}</span>
+                        <span className={styles.navLabel}>{item.label}</span>
+                        {hasUnread && (
+                          <span
+                            className={styles.navBadge}
+                            aria-label={`${item.badge} unread message${item.badge === 1 ? '' : 's'}`}
+                          >
+                            {item.badge! > 99 ? '99+' : item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           );
         })}
-      </ul>
+      </div>
 
       <div className={styles.navFooter}>
         <div className={styles.userInfo}>
