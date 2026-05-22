@@ -28,7 +28,12 @@ vi.mock('../../models/User', () => ({
 
 vi.mock('../../models/StaffMember', () => ({
   __esModule: true,
-  default: { findOne: vi.fn() },
+  default: { findOne: vi.fn(), findAll: vi.fn().mockResolvedValue([]) },
+}));
+
+vi.mock('../../models/ChatParticipant', () => ({
+  __esModule: true,
+  default: { findAll: vi.fn().mockResolvedValue([]) },
 }));
 
 vi.mock('../../models/Role', () => ({
@@ -78,6 +83,8 @@ vi.mock('../socket-registry', () => ({
 }));
 
 import RevokedToken from '../../models/RevokedToken';
+import ChatParticipant from '../../models/ChatParticipant';
+import StaffMember from '../../models/StaffMember';
 import { ChatService } from '../../services/chat.service';
 import { verifyAccessToken } from '../../utils/jwt';
 import { SocketHandlers, SendMessageSchema } from '../../socket/socket-handlers';
@@ -349,5 +356,121 @@ describe('socket-handlers join_chat race (ADS-708)', () => {
 
     expect(socket.rooms.has('chat:00000000-0000-4000-8000-000000000002')).toBe(false);
     expect(socket.emitted.some(e => e.event === 'error')).toBe(true);
+  });
+});
+
+/**
+ * ADS-739: get_presence cross-tenant enumeration. Prior to this fix the
+ * handler accepted an arbitrary list of userIds and returned online
+ * status for every one of them, so any authenticated user could
+ * enumerate which users at other rescues were online. The hardened
+ * handler filters the response down to userIds the requester shares
+ * context with (chat participants, same-rescue staff, or any id when
+ * the requester is an admin/moderator).
+ */
+describe('socket-handlers get_presence scoping (ADS-739)', () => {
+  const requesterId = '00000000-0000-4000-8000-000000000001';
+  const sharedChatPeer = '00000000-0000-4000-8000-0000000000a1';
+  const sameRescuePeer = '00000000-0000-4000-8000-0000000000a2';
+  const strangerId = '00000000-0000-4000-8000-0000000000a3';
+
+  beforeEach(() => {
+    vi.mocked(verifyAccessToken).mockReturnValue({
+      userId: requesterId,
+      email: 'u@example.com',
+      jti: 'jti-1',
+    });
+    vi.mocked(RevokedToken.findByPk).mockResolvedValue(null);
+    vi.mocked(ChatParticipant.findAll).mockResolvedValue([]);
+    vi.mocked(StaffMember.findAll).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const callGetPresence = async (
+    socket: FakeSocket,
+    userIds: string[]
+  ): Promise<Record<string, { status: string; lastSeen: Date }> | undefined> => {
+    const handler = socket.handlers.get('get_presence');
+    expect(handler).toBeDefined();
+    await handler!({ userIds });
+    const evt = socket.emitted.find(e => e.event === 'presence_update');
+    return evt?.payload as Record<string, { status: string; lastSeen: Date }> | undefined;
+  };
+
+  it('rejects a payload with non-uuid userIds and emits an error', async () => {
+    const { socket } = buildHandlersWithSocket({ id: 'socket-1', userId: requesterId });
+    const handler = socket.handlers.get('get_presence');
+    await handler!({ userIds: ['not-a-uuid'] });
+
+    expect(socket.emitted.some(e => e.event === 'error')).toBe(true);
+    expect(socket.emitted.some(e => e.event === 'presence_update')).toBe(false);
+  });
+
+  it('rejects a payload with more than 50 userIds', async () => {
+    const { socket } = buildHandlersWithSocket({ id: 'socket-1', userId: requesterId });
+    const tooMany = Array.from(
+      { length: 51 },
+      (_, i) => `00000000-0000-4000-8000-${i.toString().padStart(12, '0')}`
+    );
+    const handler = socket.handlers.get('get_presence');
+    await handler!({ userIds: tooMany });
+
+    expect(socket.emitted.some(e => e.event === 'error')).toBe(true);
+  });
+
+  it('returns presence only for userIds the requester shares a chat with', async () => {
+    vi.mocked(ChatParticipant.findAll)
+      // 1st call: requester's chat memberships
+      .mockResolvedValueOnce([{ chat_id: 'chat-a' }] as never)
+      // 2nd call: co-participants in those chats matching requested ids
+      .mockResolvedValueOnce([{ participant_id: sharedChatPeer }] as never);
+
+    const { socket } = buildHandlersWithSocket({ id: 'socket-1', userId: requesterId });
+    const payload = await callGetPresence(socket, [sharedChatPeer, strangerId]);
+
+    expect(payload).toBeDefined();
+    expect(Object.keys(payload!)).toEqual([sharedChatPeer]);
+    expect(payload![strangerId]).toBeUndefined();
+  });
+
+  it('includes same-rescue staff for rescue-staff requesters', async () => {
+    // No shared chats.
+    vi.mocked(ChatParticipant.findAll).mockResolvedValue([]);
+    vi.mocked(StaffMember.findAll).mockResolvedValue([{ userId: sameRescuePeer }] as never);
+
+    const { socket } = buildHandlersWithSocket({ id: 'socket-1', userId: requesterId });
+    // Inject rescueId after construction — the connection handler sets
+    // it from loadSocketAuthState which is stubbed away here.
+    (socket as unknown as { rescueId: string }).rescueId = 'rescue-1';
+
+    const payload = await callGetPresence(socket, [sameRescuePeer, strangerId]);
+
+    expect(payload).toBeDefined();
+    expect(Object.keys(payload!)).toContain(sameRescuePeer);
+    expect(payload![strangerId]).toBeUndefined();
+  });
+
+  it('returns presence for all requested ids when requester is an admin', async () => {
+    const { socket } = buildHandlersWithSocket({ id: 'socket-1', userId: requesterId });
+    (socket as unknown as { role: string }).role = 'admin';
+
+    const payload = await callGetPresence(socket, [strangerId, sameRescuePeer]);
+
+    expect(payload).toBeDefined();
+    expect(Object.keys(payload!).sort()).toEqual([strangerId, sameRescuePeer].sort());
+    // Admin short-circuit skips DB lookups for participant/staff scoping.
+    expect(vi.mocked(ChatParticipant.findAll)).not.toHaveBeenCalled();
+    expect(vi.mocked(StaffMember.findAll)).not.toHaveBeenCalled();
+  });
+
+  it('always includes the requester in the response when they ask about themselves', async () => {
+    const { socket } = buildHandlersWithSocket({ id: 'socket-1', userId: requesterId });
+    const payload = await callGetPresence(socket, [requesterId]);
+
+    expect(payload).toBeDefined();
+    expect(payload![requesterId]).toBeDefined();
   });
 });
