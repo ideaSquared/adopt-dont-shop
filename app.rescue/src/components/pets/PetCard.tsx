@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
@@ -122,9 +123,21 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onStatusChange, onEdit, onDelete
             <div className={styles.placeholderImage}>🐾</div>
           )}
           <div className={styles.statusBadgeContainer}>
-            <span className={styles.statusBadge({ status: getStatusVariant(pet.status) })}>
-              {getStatusLabel(pet.status)}
-            </span>
+            {pet.status === 'foster' ? (
+              // ADS-644: link the foster badge to the foster page filtered to
+              // this pet so staff can jump to the placement from the pet card.
+              <Link
+                to={`/foster?petId=${pet.pet_id}`}
+                aria-label={`View foster placement for ${pet.name}`}
+                className={styles.statusBadge({ status: 'foster' })}
+              >
+                {getStatusLabel(pet.status)}
+              </Link>
+            ) : (
+              <span className={styles.statusBadge({ status: getStatusVariant(pet.status) })}>
+                {getStatusLabel(pet.status)}
+              </span>
+            )}
           </div>
         </div>
 

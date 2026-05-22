@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus, petManagementService } from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
@@ -64,6 +65,10 @@ const PetManagement: React.FC = () => {
   };
 
   const { user, refreshUser } = useAuth();
+  // ADS-644: cross-linking. When deep-linked via /pets?petId=... we use the
+  // petId as the search filter so the matching pet card surfaces immediately.
+  const [searchParams] = useSearchParams();
+  const initialPetId = searchParams.get('petId');
   const [pets, setPets] = useState<Pet[]>([]);
   const [stats, setStats] = useState<PetStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,7 +79,7 @@ const PetManagement: React.FC = () => {
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<PetStatus | 'all'>('all');
-  const [searchFilter, setSearchFilter] = useState('');
+  const [searchFilter, setSearchFilter] = useState(initialPetId ?? '');
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [sizeFilter, setSizeFilter] = useState<string>('');
   const [breedFilter, setBreedFilter] = useState<string>('');
