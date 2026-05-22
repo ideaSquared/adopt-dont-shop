@@ -187,38 +187,11 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
 
         <div className={styles.navDivider({ collapsed })} />
 
-        {/* System Section */}
+        {/* System Section — ordered by frequency-of-use (ADS-652) */}
         <div
           className={`${styles.navSection({ collapsed })} ${styles.navSectionPadding({ collapsed })}`}
         >
           <div className={styles.navSectionTitle({ collapsed })}>System</div>
-          <NavLink
-            to='/configuration'
-            className={({ isActive }) =>
-              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
-            }
-          >
-            <FiSettings />
-            <span className={styles.navLinkSpan({ collapsed })}>Configuration</span>
-          </NavLink>
-          <NavLink
-            to='/field-permissions'
-            className={({ isActive }) =>
-              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
-            }
-          >
-            <FiSliders />
-            <span className={styles.navLinkSpan({ collapsed })}>Field Permissions</span>
-          </NavLink>
-          <NavLink
-            to='/privacy-tools'
-            className={({ isActive }) =>
-              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
-            }
-          >
-            <FiShield />
-            <span className={styles.navLinkSpan({ collapsed })}>Privacy Tools</span>
-          </NavLink>
           <NavLink
             to='/audit'
             className={({ isActive }) =>
@@ -236,6 +209,33 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           >
             <FiShield />
             <span className={styles.navLinkSpan({ collapsed })}>Security Center</span>
+          </NavLink>
+          <NavLink
+            to='/privacy-tools'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiShield />
+            <span className={styles.navLinkSpan({ collapsed })}>Privacy Tools</span>
+          </NavLink>
+          <NavLink
+            to='/configuration'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiSettings />
+            <span className={styles.navLinkSpan({ collapsed })}>Configuration</span>
+          </NavLink>
+          <NavLink
+            to='/field-permissions'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiSliders />
+            <span className={styles.navLinkSpan({ collapsed })}>Field Permissions</span>
           </NavLink>
           <NavLink
             to='/reports'
