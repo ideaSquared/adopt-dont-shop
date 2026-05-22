@@ -16,7 +16,7 @@ import * as path from 'path';
 import * as zlib from 'zlib';
 import sharp from 'sharp';
 
-import { MAX_IMAGE_PIXELS } from '../../../services/file-upload.service';
+import { MAX_IMAGE_PIXELS } from '../../../constants/image-limits';
 
 describe('LocalStorageProvider image-bomb dimension guard', () => {
   const TMP_DIR = path.join(os.tmpdir(), `ads-lsp-bomb-${Date.now()}`);

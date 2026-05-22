@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import { generateCryptoUuid as uuidv4 } from '../../utils/uuid-helpers';
 import { config } from '../../config';
 import { logger } from '../../utils/logger';
-import { MAX_IMAGE_PIXELS } from '../file-upload.service';
+import { MAX_IMAGE_PIXELS } from '../../constants/image-limits';
 import { FileInfo, StorageCategory, StorageProvider, UploadResult } from './base-provider';
 
 export class LocalStorageProvider implements StorageProvider {
