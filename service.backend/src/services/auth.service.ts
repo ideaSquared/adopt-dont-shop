@@ -5,6 +5,7 @@ import { Op, Transaction } from 'sequelize';
 import sequelize from '../sequelize';
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
+import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import User, { UserStatus, UserType } from '../models/User';
 import RefreshToken from '../models/RefreshToken';
 import RevokedToken from '../models/RevokedToken';
@@ -37,7 +38,9 @@ export class AuthService {
   static async register(userData: RegisterData): Promise<RegisterResponse> {
     const genericMessage = 'Registration request received. Check your email to continue.';
     try {
-      const existingUser = await User.findOne({ where: { email: userData.email.toLowerCase() } });
+      const existingUser = await User.findOne({
+        where: { email: normalizeEmail(userData.email) },
+      });
       if (existingUser) {
         // Send an out-of-band "you already have an account" email so the
         // legitimate owner can recover, then return the same generic shape as
@@ -57,7 +60,7 @@ export class AuthService {
       const user = await User.create({
         firstName: userData.firstName,
         lastName: userData.lastName,
-        email: userData.email.toLowerCase(),
+        email: normalizeEmail(userData.email),
         password: userData.password,
         phoneNumber: userData.phoneNumber || undefined,
         userType: UserType.ADOPTER,
@@ -234,7 +237,7 @@ export class AuthService {
       let user: InstanceType<typeof User> | null = null;
       try {
         user = await User.scope('withSecrets').findOne({
-          where: { email: credentials.email.toLowerCase() },
+          where: { email: normalizeEmail(credentials.email) },
           // Scope the row lock to the Users table only — Postgres rejects
           // SELECT ... FOR UPDATE that would lock rows on the nullable side
           // of the LEFT JOIN to Roles/Permissions ("FOR UPDATE cannot be
@@ -531,7 +534,7 @@ export class AuthService {
   async requestPasswordReset(data: PasswordResetRequest) {
     try {
       const user = await User.findOne({
-        where: { email: data.email.toLowerCase() },
+        where: { email: normalizeEmail(data.email) },
       });
 
       if (!user) {
@@ -963,7 +966,7 @@ Need help? Contact us at support@adoptdontshop.com
   async resendVerificationEmail(email: string) {
     try {
       const user = await User.findOne({
-        where: { email: email.toLowerCase() },
+        where: { email: normalizeEmail(email) },
       });
 
       if (!user || user.emailVerified) {

@@ -504,6 +504,126 @@ describe('ApiService', () => {
     });
   });
 
+  describe('401 token refresh single-flight', () => {
+    const jsonHeaders = () => new Headers([['content-type', 'application/json']]);
+
+    const respond = (status: number, body: unknown) =>
+      ({
+        ok: status >= 200 && status < 300,
+        status,
+        statusText: status === 401 ? 'Unauthorized' : 'OK',
+        headers: jsonHeaders(),
+        json: () => Promise.resolve(body),
+      }) as Response;
+
+    beforeEach(() => {
+      apiService = new ApiService({ apiUrl: 'https://api.example.com' });
+    });
+
+    it('refreshes once and retries the request when a 401 comes back', async () => {
+      const refreshHandler = vi.fn().mockResolvedValue(undefined);
+      apiService.setRefreshHandler(refreshHandler);
+
+      // First call: 401. Then refresh-retry: 200.
+      mockFetch
+        .mockResolvedValueOnce(respond(401, { message: 'Token expired' }))
+        .mockResolvedValueOnce(respond(200, { ok: true }));
+
+      const result = await apiService.get<{ ok: boolean }>('/protected');
+
+      expect(refreshHandler).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('shares a single refresh across parallel 401 requests', async () => {
+      let resolveRefresh: (() => void) | undefined;
+      const refreshHandler = vi.fn().mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveRefresh = resolve;
+          })
+      );
+      apiService.setRefreshHandler(refreshHandler);
+
+      // Two parallel 401s, then two successful retries.
+      mockFetch
+        .mockResolvedValueOnce(respond(401, { message: 'expired' }))
+        .mockResolvedValueOnce(respond(401, { message: 'expired' }))
+        .mockResolvedValueOnce(respond(200, { ok: true, n: 1 }))
+        .mockResolvedValueOnce(respond(200, { ok: true, n: 2 }));
+
+      const p1 = apiService.get<{ n: number }>('/a');
+      const p2 = apiService.get<{ n: number }>('/b');
+
+      // Yield repeatedly so both initial fetches resolve, each sees 401,
+      // and both queue on the same refresh promise before we release it.
+      for (let i = 0; i < 10 && refreshHandler.mock.calls.length === 0; i++) {
+        await Promise.resolve();
+      }
+      expect(refreshHandler).toHaveBeenCalledTimes(1);
+
+      resolveRefresh?.();
+      const [r1, r2] = await Promise.all([p1, p2]);
+
+      expect(refreshHandler).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(4);
+      expect(r1.n).toBe(1);
+      expect(r2.n).toBe(2);
+    });
+
+    it('falls through to onUnauthorized when the refresh itself fails', async () => {
+      const onUnauthorized = vi.fn();
+      apiService = new ApiService({ apiUrl: 'https://api.example.com', onUnauthorized });
+
+      const refreshHandler = vi.fn().mockRejectedValue(new Error('refresh denied'));
+      apiService.setRefreshHandler(refreshHandler);
+
+      mockFetch.mockResolvedValueOnce(respond(401, { message: 'expired' }));
+
+      await expect(apiService.get('/protected')).rejects.toThrow('expired');
+      expect(refreshHandler).toHaveBeenCalledTimes(1);
+      // No retry was attempted.
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not attempt refresh when the failing request is the refresh endpoint itself', async () => {
+      const refreshHandler = vi.fn().mockResolvedValue(undefined);
+      const onUnauthorized = vi.fn();
+      apiService = new ApiService({ apiUrl: 'https://api.example.com', onUnauthorized });
+      apiService.setRefreshHandler(refreshHandler);
+
+      mockFetch.mockResolvedValueOnce(respond(401, { message: 'no refresh cookie' }));
+
+      await expect(
+        apiService.fetch('/api/v1/auth/refresh-token', { method: 'GET' })
+      ).rejects.toThrow('no refresh cookie');
+
+      expect(refreshHandler).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls through to onUnauthorized when the retried request also returns 401', async () => {
+      const onUnauthorized = vi.fn();
+      apiService = new ApiService({ apiUrl: 'https://api.example.com', onUnauthorized });
+
+      const refreshHandler = vi.fn().mockResolvedValue(undefined);
+      apiService.setRefreshHandler(refreshHandler);
+
+      // 401, refresh OK, retry still 401 — no infinite loop.
+      mockFetch
+        .mockResolvedValueOnce(respond(401, { message: 'first' }))
+        .mockResolvedValueOnce(respond(401, { message: 'still expired' }));
+
+      await expect(apiService.get('/protected')).rejects.toThrow('still expired');
+      expect(refreshHandler).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('JSON contract [ADS-261]', () => {
     beforeEach(() => {
       apiService = new ApiService();

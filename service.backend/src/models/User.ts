@@ -1,4 +1,5 @@
 import { BelongsToManyAddAssociationMixin, DataTypes, Model, Optional } from 'sequelize';
+import { isSingleScriptLocalPart, normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import sequelize, {
   getJsonType,
   getUuidType,
@@ -564,11 +565,21 @@ User.init(
     ],
     hooks: {
       // Normalize identifier fields before validation so uniqueness /
-      // isEmail checks see the canonical form (trimmed). Case is now
-      // handled at the column level via CITEXT (plan 5.5.7).
+      // isEmail checks see the canonical form. Email goes through
+      // NFKC + lowercase + trim and a mixed-script-local-part check
+      // (defense in depth — the Zod EmailSchema does the same, but a
+      // caller that bypasses the schema must still hit this gate).
+      // Case-insensitive collation is also enforced at the column
+      // level via CITEXT (plan 5.5.7), but storing the canonical form
+      // keeps lookups deterministic across both Postgres and SQLite
+      // (the test dialect, which has no CITEXT).
       beforeValidate: (user: User) => {
         if (user.email && typeof user.email === 'string') {
-          user.email = user.email.trim();
+          user.email = normalizeEmail(user.email);
+          const atIndex = user.email.lastIndexOf('@');
+          if (atIndex > 0 && !isSingleScriptLocalPart(user.email.slice(0, atIndex))) {
+            throw new Error('Email local part must not mix characters from multiple scripts');
+          }
         }
         if (user.phoneNumber && typeof user.phoneNumber === 'string') {
           // Light normalization only — strip surrounding whitespace and the

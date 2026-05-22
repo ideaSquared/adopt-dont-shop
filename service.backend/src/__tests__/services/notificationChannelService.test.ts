@@ -8,6 +8,12 @@
  * ADS-604: behaviour tests for shouldSendToChannel — marketing
  * notifications must be opt-in only; a prior bug let opted-out marketing
  * notifications through via a catch-all `return true`.
+ *
+ * ADS-740: behaviour tests for the critical-type allowlist —
+ * shouldSendToChannel must only bypass opt-out for an explicit set of
+ * security / system-critical notification types. Substring matches on
+ * "security" or "system" (e.g. `security_alert_MARKETING`) MUST NOT
+ * bypass the opt-out.
  */
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 
@@ -181,10 +187,29 @@ describe('NotificationChannelService.shouldSendToChannel', () => {
       });
     }
 
-    it('sends system notifications regardless of marketing preference', () => {
-      const prefs: NotificationPreferences = { ...basePrefs, marketing: false };
+    it('sends system_announcement (critical-type allowlist) regardless of opt-out state', () => {
+      const prefs: NotificationPreferences = {
+        ...basePrefs,
+        marketing: false,
+        applications: false,
+        messages: false,
+        reminders: false,
+      };
       expect(
-        NotificationChannelService.shouldSendToChannel('email', 'system.maintenance', prefs)
+        NotificationChannelService.shouldSendToChannel('email', 'system_announcement', prefs)
+      ).toBe(true);
+    });
+
+    it('sends account_security (critical-type allowlist) regardless of opt-out state', () => {
+      const prefs: NotificationPreferences = {
+        ...basePrefs,
+        marketing: false,
+        applications: false,
+        messages: false,
+        reminders: false,
+      };
+      expect(
+        NotificationChannelService.shouldSendToChannel('email', 'account_security', prefs)
       ).toBe(true);
     });
 
@@ -200,6 +225,39 @@ describe('NotificationChannelService.shouldSendToChannel', () => {
       expect(NotificationChannelService.shouldSendToChannel('email', 'generic.event', prefs)).toBe(
         true
       );
+    });
+  });
+
+  // ADS-740: substring-bypass regression — types that merely contain
+  // "security" or "system" as a substring must NOT be treated as
+  // critical (they must go through the normal opt-out logic for their
+  // actual category).
+  describe('critical-type allowlist (no substring bypass)', () => {
+    it('does NOT treat "security_alert_marketing" as critical (lowercase, marketing branch wins)', () => {
+      // Lower-case marketing substring puts this in the marketing branch
+      // (opt-in only). Previously the "security" substring bypassed the
+      // opt-out via the catch-all `return true` for security types.
+      const prefs: NotificationPreferences = { ...basePrefs, marketing: false };
+      expect(
+        NotificationChannelService.shouldSendToChannel('email', 'security_alert_marketing', prefs)
+      ).toBe(false);
+    });
+
+    it('does NOT treat "system_promo_marketing" as critical (lowercase, marketing branch wins)', () => {
+      const prefs: NotificationPreferences = { ...basePrefs, marketing: false };
+      expect(
+        NotificationChannelService.shouldSendToChannel('email', 'system_promo_marketing', prefs)
+      ).toBe(false);
+    });
+
+    it('does NOT treat the literal string "security" as critical (only the enum value does)', () => {
+      // Substring matching is gone; the bare word "security" is not on
+      // the explicit allowlist (only `account_security` is). It falls
+      // through to default-send rather than being short-circuited as
+      // critical, but the difference matters when category-specific
+      // opt-outs would otherwise apply (see test below).
+      const prefs: NotificationPreferences = { ...basePrefs };
+      expect(NotificationChannelService.shouldSendToChannel('email', 'security', prefs)).toBe(true);
     });
   });
 });

@@ -48,10 +48,19 @@ const petImageUploadMock = {
 const fileUploadServiceMock = {
   uploadFile: vi.fn(),
 };
-vi.mock('../../services/file-upload.service', () => ({
-  petImageUpload: petImageUploadMock,
-  FileUploadService: fileUploadServiceMock,
-}));
+vi.mock('../../services/file-upload.service', async () => {
+  // Preserve the real `sanitizeDisplayFilename` helper so the controller's
+  // PII-scrub assertion below is exercised end-to-end. Only the side-effectful
+  // multer/service singletons need stubbing.
+  const actual = await vi.importActual<typeof import('../../services/file-upload.service')>(
+    '../../services/file-upload.service'
+  );
+  return {
+    ...actual,
+    petImageUpload: petImageUploadMock,
+    FileUploadService: fileUploadServiceMock,
+  };
+});
 
 const enforceUploadMimeMock = vi.fn();
 vi.mock('../../middleware/upload-mime-guard', () => ({
@@ -151,10 +160,15 @@ describe('POST /api/v1/uploads/images — staged image upload', () => {
       });
 
     expect(response.status).toBe(200);
+    // original_filename in the response is the *sanitised* display name —
+    // never the raw uploaded filename — because downstream the client
+    // echoes this into chat/pet contexts visible to other users. The DB
+    // still stores the raw `original_filename` (`photo.jpg` here) on the
+    // FileUpload row for support tooling and the uploader's own UI.
     expect(response.body).toEqual({
       url: '/uploads/pets/pets_1700000000_abc.jpg',
       thumbnail_url: '/uploads/pets/pets_1700000000_abc.thumb.jpg',
-      original_filename: 'photo.jpg',
+      original_filename: 'file.jpg',
       size_bytes: 1234,
       content_type: 'image/jpeg',
     });
@@ -163,6 +177,48 @@ describe('POST /api/v1/uploads/images — staged image upload', () => {
       'pets',
       expect.objectContaining({ uploadedBy: 'user-abc' })
     );
+  });
+
+  it('replaces a PII-laden upload filename with a sanitised display name in the response', async () => {
+    // Even though the staged upload response goes back only to the
+    // uploader, the client echoes `original_filename` into downstream
+    // contexts (chat messages, pet listings) visible to other users.
+    // Verify the value the client sees is the safe stem `file.<ext>`,
+    // never the raw filename the user picked from disk.
+    fileUploadServiceMock.uploadFile.mockResolvedValue({
+      success: true,
+      upload: {
+        upload_id: 'upload-456',
+        original_filename: 'Jane_Doe_Passport_123456789.jpg',
+        stored_filename: 'pets_1700000000_xyz.jpg',
+        file_path: 'pets/pets_1700000000_xyz.jpg',
+        mime_type: 'image/jpeg',
+        file_size: 4321,
+        url: '/uploads/pets/pets_1700000000_xyz.jpg',
+        thumbnail_url: '/uploads/pets/pets_1700000000_xyz.thumb.jpg',
+        uploaded_by: 'user-abc',
+        metadata: {
+          uploadedAt: '2026-05-16T00:00:00.000Z',
+          lastModified: '2026-05-16T00:00:00.000Z',
+          checksum: 'def',
+        },
+        created_at: new Date('2026-05-16'),
+        updated_at: new Date('2026-05-16'),
+      },
+    });
+
+    const app = await buildApp();
+    const response = await request(app)
+      .post('/api/v1/uploads/images')
+      .attach('image', Buffer.from('fake jpg bytes'), {
+        filename: 'Jane_Doe_Passport_123456789.jpg',
+        contentType: 'image/jpeg',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.original_filename).toBe('file.jpg');
+    expect(response.body.original_filename).not.toContain('Jane');
+    expect(response.body.original_filename).not.toContain('Passport');
   });
 
   it('returns 401 when the requester is not authenticated', async () => {

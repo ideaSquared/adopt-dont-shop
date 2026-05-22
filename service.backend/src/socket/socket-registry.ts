@@ -35,3 +35,20 @@ export function disconnectAllSockets(userId: string): void {
   }
   liveIo.to(`user:${userId}`).disconnectSockets(true);
 }
+
+/**
+ * Notify every live socket belonging to `userId` that the user's role
+ * (or other auth-cache-affecting state) changed on the server. Clients
+ * should respond by re-fetching their session profile so cached role
+ * checks (admin gates, ProtectedRoute, etc.) don't go stale until the
+ * next page refresh.
+ *
+ * No-op when no IO server is registered — safe to call during cold
+ * boot or in service tests that don't spin up the WebSocket transport.
+ */
+export function emitAuthRoleChanged(userId: string): void {
+  if (!liveIo) {
+    return;
+  }
+  liveIo.to(`user:${userId}`).emit('auth:role-changed', { at: new Date().toISOString() });
+}

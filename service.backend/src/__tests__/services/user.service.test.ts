@@ -5,11 +5,21 @@ import User, { UserStatus, UserType } from '../../models/User';
 import UserFavorite from '../../models/UserFavorite';
 import { AuditLogService } from '../../services/auditLog.service';
 import { UserService } from '../../services/user.service';
+import { emitAuthRoleChanged } from '../../socket/socket-registry';
 import { UserUpdateData } from '../../types/user';
 
 // Mock only non-database dependencies
 // Logger is already mocked in setup-tests.ts
 vi.mock('../../services/auditLog.service');
+
+// Spy on socket-registry so we can observe the auth:role-changed push
+// without standing up a real Socket.IO server in unit tests.
+vi.mock('../../socket/socket-registry', () => ({
+  emitAuthRoleChanged: vi.fn(),
+  disconnectAllSockets: vi.fn(),
+  setLiveIo: vi.fn(),
+  getLiveIo: vi.fn(),
+}));
 
 describe('UserService', () => {
   beforeEach(() => {
@@ -300,6 +310,29 @@ describe('UserService', () => {
       // Verify in database
       const updatedUser = await User.findByPk(user.userId);
       expect(updatedUser?.userType).toBe(newUserType);
+    });
+
+    it('pushes an auth:role-changed socket event to the target user so live frontend sessions invalidate cached role state', async () => {
+      const user = await User.create({
+        email: 'rolechange-socket@example.com',
+        password: 'hashedpassword',
+        firstName: 'Test',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-rolechange@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      await UserService.updateUserRole(user.userId, UserType.MODERATOR, admin.userId);
+
+      expect(vi.mocked(emitAuthRoleChanged)).toHaveBeenCalledWith(user.userId);
     });
   });
 

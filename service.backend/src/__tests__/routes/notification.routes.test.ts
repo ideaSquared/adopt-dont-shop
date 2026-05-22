@@ -23,7 +23,31 @@ vi.mock('../../services/notification.service', () => ({
     getUnreadCount: vi.fn(),
     getNotificationPreferences: vi.fn(),
     markAllNotificationsAsRead: vi.fn(),
+    markAsRead: vi.fn(),
   },
+}));
+
+// ADS-741: simulate sensitiveWriteLimiter so the route-level rate-limit
+// can be asserted. The limiter mock counts hits and returns 429 after a
+// fixed threshold, matching the production express-rate-limit shape.
+const RATE_LIMIT_MAX = 3;
+let rateLimitHits = 0;
+const resetRateLimit = () => {
+  rateLimitHits = 0;
+};
+vi.mock('../../middleware/rate-limiter', () => ({
+  broadcastLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  sensitiveWriteLimiter: (_req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    rateLimitHits += 1;
+    if (rateLimitHits > RATE_LIMIT_MAX) {
+      return res.status(429).json({ error: 'rate_limited' });
+    }
+    next();
+  },
+}));
+
+vi.mock('../../middleware/idempotency', () => ({
+  idempotency: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
 vi.mock('../../services/rich-text-processing.service', () => ({
@@ -50,6 +74,7 @@ import notificationRouter from '../../routes/notification.routes';
 const mockGetUserNotifications = vi.mocked(NotificationService.getUserNotifications);
 const mockGetUnreadCount = vi.mocked(NotificationService.getUnreadCount);
 const mockGetPreferences = vi.mocked(NotificationService.getNotificationPreferences);
+const mockMarkAsRead = vi.mocked(NotificationService.markAsRead);
 
 const buildApp = () => {
   const app = express();
@@ -66,6 +91,7 @@ const mockUser = {
 describe('Notification routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetRateLimit();
     authenticateTokenMock.mockImplementation(
       (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
         req.user = mockUser as AuthenticatedRequest['user'];
@@ -132,6 +158,55 @@ describe('Notification routes', () => {
       mockGetPreferences.mockRejectedValue(new Error('User not found'));
       const res = await request(buildApp()).get('/api/v1/notifications/preferences');
       expect(res.status).toBe(404);
+    });
+  });
+
+  // ADS-741: mark-as-read must reject non-UUID notification IDs at the
+  // route layer (before any DB lookup) and must be rate-limited so the
+  // UUID space can't be brute-forced via timing/response differences.
+  describe('PATCH /api/v1/notifications/:notificationId/read', () => {
+    const validId = '11111111-2222-4333-8444-555555555555';
+
+    it('rejects a non-UUID notificationId with 400 and never reaches the service', async () => {
+      mockMarkAsRead.mockResolvedValue(undefined);
+      const res = await request(buildApp()).patch('/api/v1/notifications/not-a-uuid/read');
+      expect(res.status).toBe(400);
+      expect(mockMarkAsRead).not.toHaveBeenCalled();
+    });
+
+    it('rejects an oddly-shaped string that looks like a legacy id', async () => {
+      mockMarkAsRead.mockResolvedValue(undefined);
+      const res = await request(buildApp()).patch('/api/v1/notifications/abc_123/read');
+      expect(res.status).toBe(400);
+      expect(mockMarkAsRead).not.toHaveBeenCalled();
+    });
+
+    it('marks a valid UUID as read', async () => {
+      mockMarkAsRead.mockResolvedValue(undefined);
+      const res = await request(buildApp()).patch(`/api/v1/notifications/${validId}/read`);
+      expect(res.status).toBe(200);
+      expect(mockMarkAsRead).toHaveBeenCalledWith(validId, mockUser.userId);
+    });
+
+    it('rate-limits repeated hits with random UUIDs (429 after the window cap)', async () => {
+      mockMarkAsRead.mockResolvedValue(undefined);
+      const app = buildApp();
+      const randomUuid = () =>
+        '00000000-0000-4000-8000-' +
+        Math.floor(Math.random() * 1e12)
+          .toString(16)
+          .padStart(12, '0');
+
+      // First RATE_LIMIT_MAX (=3) hits pass.
+      for (let i = 0; i < RATE_LIMIT_MAX; i += 1) {
+        const r = await request(app).patch(`/api/v1/notifications/${randomUuid()}/read`);
+        expect(r.status).toBe(200);
+      }
+
+      // The next hit must be rejected by the limiter, BEFORE the service
+      // is invoked, even with a valid UUID.
+      const blocked = await request(app).patch(`/api/v1/notifications/${randomUuid()}/read`);
+      expect(blocked.status).toBe(429);
     });
   });
 });

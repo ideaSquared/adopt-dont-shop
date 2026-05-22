@@ -565,7 +565,9 @@ describe('FileUploadService', () => {
       const result = await FileUploadService.deleteFile('upload-abc-123', owner);
 
       expect(result.success).toBe(true);
-      expect(vi.mocked(fs.promises.unlink)).not.toHaveBeenCalled();
+      // Primary is skipped via existsSync; companion cleanup still attempts
+      // (`.original` + `.thumb.jpg`) and swallows ENOENT so the delete
+      // succeeds regardless.
       expect(mockRecord.destroy).toHaveBeenCalled();
     });
 

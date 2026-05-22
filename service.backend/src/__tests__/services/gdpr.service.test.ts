@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Response } from 'express';
 import sequelize from '../../sequelize';
 import Application, { ApplicationStatus } from '../../models/Application';
@@ -13,7 +13,17 @@ import Rescue from '../../models/Rescue';
 import StaffMember from '../../models/StaffMember';
 import User, { UserStatus, UserType } from '../../models/User';
 import UserConsent, { ConsentPurpose } from '../../models/UserConsent';
+import { FileUploadService } from '../../services/file-upload.service';
 import GdprService from '../../services/gdpr.service';
+
+// Mock FileUploadService.deleteFile so the anonymization tests don't try
+// to touch the real storage layer. The behavioural assertion is that
+// deleteFile is invoked once per attachment after the DB tx commits.
+vi.mock('../../services/file-upload.service', () => ({
+  FileUploadService: {
+    deleteFile: vi.fn().mockResolvedValue({ success: true, message: 'deleted' }),
+  },
+}));
 
 const seedUser = async (overrides: Record<string, unknown> = {}) =>
   User.create({
@@ -123,6 +133,14 @@ const seedApplication = async (
 };
 
 describe('GdprService', () => {
+  beforeEach(() => {
+    vi.mocked(FileUploadService.deleteFile).mockClear();
+    vi.mocked(FileUploadService.deleteFile).mockResolvedValue({
+      success: true,
+      message: 'deleted',
+    });
+  });
+
   describe('requestErasure (phase 1)', () => {
     it('soft-deletes the user, stamps pending_anonymization_at, revokes sessions, and clears device tokens — without scrubbing PII', async () => {
       const user = await seedUser();
@@ -288,6 +306,162 @@ describe('GdprService', () => {
       await expect(
         GdprService.executeAnonymization('00000000-0000-0000-0000-000000000000')
       ).rejects.toThrow('User not found');
+    });
+
+    it('deletes physical attachment files for every message authored by the user', async () => {
+      const user = await seedUser();
+      const rescue = await seedRescue();
+      const chatId = `${Date.now().toString(16)}-1111-4111-a111-${Math.random()
+        .toString(16)
+        .slice(2, 14)
+        .padEnd(12, '0')}`;
+      await sequelize.getQueryInterface().bulkInsert('chats', [
+        {
+          chat_id: chatId,
+          rescue_id: rescue.rescueId,
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ]);
+
+      const attachmentA = {
+        attachment_id: 'upload-aaa-111',
+        filename: 'photo1.jpg',
+        originalName: 'photo1.jpg',
+        mimeType: 'image/jpeg',
+        size: 1024,
+        url: '/uploads/chat/photo1.jpg',
+      };
+      const attachmentB = {
+        attachment_id: 'upload-bbb-222',
+        filename: 'photo2.jpg',
+        originalName: 'photo2.jpg',
+        mimeType: 'image/jpeg',
+        size: 2048,
+        url: '/uploads/chat/photo2.jpg',
+      };
+      const attachmentC = {
+        attachment_id: 'upload-ccc-333',
+        filename: 'doc.pdf',
+        originalName: 'doc.pdf',
+        mimeType: 'application/pdf',
+        size: 4096,
+        url: '/uploads/chat/doc.pdf',
+      };
+
+      const buildMessage = (suffix: string, attachments: (typeof attachmentA)[]) => ({
+        message_id: `${Date.now().toString(16)}-${suffix}-4${suffix}-a${suffix}-${Math.random()
+          .toString(16)
+          .slice(2, 14)
+          .padEnd(12, '0')}`,
+        chat_id: chatId,
+        sender_id: user.userId,
+        content: `msg ${suffix}`,
+        content_format: 'plain',
+        attachments: JSON.stringify(attachments),
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      await sequelize
+        .getQueryInterface()
+        .bulkInsert('messages', [
+          buildMessage('7777', [attachmentA, attachmentB]),
+          buildMessage('8888', [attachmentC]),
+        ]);
+
+      await GdprService.requestErasure(user.userId, { actorUserId: user.userId });
+      const result = await GdprService.executeAnonymization(user.userId);
+      expect(result.anonymized).toBe(true);
+
+      // Attachments JSON column scrubbed.
+      const reloadedMessages = await Message.findAll({ where: { sender_id: user.userId } });
+      expect(reloadedMessages).toHaveLength(2);
+      for (const msg of reloadedMessages) {
+        expect(msg.attachments).toEqual([]);
+        expect(msg.content).toBe('[message removed at user request]');
+      }
+
+      // Physical file deletion invoked once per attachment, with the
+      // admin-typed system actor so the ownership check is bypassed.
+      const deleteCalls = vi.mocked(FileUploadService.deleteFile).mock.calls;
+      const deletedAttachmentIds = deleteCalls.map(call => call[0]);
+      expect(deletedAttachmentIds.sort()).toEqual(
+        ['upload-aaa-111', 'upload-bbb-222', 'upload-ccc-333'].sort()
+      );
+      for (const call of deleteCalls) {
+        expect(call[1]).toEqual({ id: user.userId, type: UserType.ADMIN });
+      }
+    });
+
+    it('continues anonymization even if individual attachment deletions fail', async () => {
+      const user = await seedUser();
+      const rescue = await seedRescue();
+      const chatId = `${Date.now().toString(16)}-2222-4222-a222-${Math.random()
+        .toString(16)
+        .slice(2, 14)
+        .padEnd(12, '0')}`;
+      await sequelize.getQueryInterface().bulkInsert('chats', [
+        {
+          chat_id: chatId,
+          rescue_id: rescue.rescueId,
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ]);
+      const messageId = `${Date.now().toString(16)}-9999-4999-a999-${Math.random()
+        .toString(16)
+        .slice(2, 14)
+        .padEnd(12, '0')}`;
+      await sequelize.getQueryInterface().bulkInsert('messages', [
+        {
+          message_id: messageId,
+          chat_id: chatId,
+          sender_id: user.userId,
+          content: 'msg',
+          content_format: 'plain',
+          attachments: JSON.stringify([
+            {
+              attachment_id: 'missing-file-1',
+              filename: 'a.jpg',
+              originalName: 'a.jpg',
+              mimeType: 'image/jpeg',
+              size: 1,
+              url: '/x',
+            },
+            {
+              attachment_id: 'ok-file-2',
+              filename: 'b.jpg',
+              originalName: 'b.jpg',
+              mimeType: 'image/jpeg',
+              size: 1,
+              url: '/y',
+            },
+          ]),
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      ]);
+
+      vi.mocked(FileUploadService.deleteFile).mockImplementation(async (uploadId: string) => {
+        if (uploadId === 'missing-file-1') {
+          throw new Error('Upload record not found');
+        }
+        return { success: true, message: 'deleted' };
+      });
+
+      await GdprService.requestErasure(user.userId, { actorUserId: user.userId });
+      const result = await GdprService.executeAnonymization(user.userId);
+      expect(result.anonymized).toBe(true);
+
+      // Both deletions attempted despite the first throwing.
+      expect(vi.mocked(FileUploadService.deleteFile)).toHaveBeenCalledTimes(2);
+
+      // DB state still scrubbed.
+      const reloaded = await Message.findByPk(messageId);
+      expect(reloaded!.attachments).toEqual([]);
     });
   });
 

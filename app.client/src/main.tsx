@@ -60,7 +60,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider allowedUserTypes={['adopter']} appType='client'>
+        <AuthProvider
+          allowedUserTypes={['adopter']}
+          appType='client'
+          onLogout={() => queryClient.clear()}
+        >
           <StatsigWrapper>
             <ThemeProvider>
               <BrowserRouter>

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Socket, Server as SocketIOServer } from 'socket.io';
 import { toFrontendMessage } from '../controllers/chat.controller';
+import ChatParticipant from '../models/ChatParticipant';
 import MessageReaction from '../models/MessageReaction';
 import RevokedToken from '../models/RevokedToken';
 import Role from '../models/Role';
@@ -70,6 +71,12 @@ const TypingStartSchema = z.object({
   lastName: z.string().max(50),
 });
 const TypingStopSchema = z.object({ chatId: z.string().uuid() });
+// ADS-739: get_presence must validate its payload + scope the response
+// to userIds the requester is allowed to see. Without these checks a
+// client at Rescue A could enumerate online staff at Rescue B.
+const GetPresenceSchema = z.object({
+  userIds: z.array(z.string().uuid()).max(50),
+});
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -787,29 +794,58 @@ export class SocketHandlers {
    */
   private setupPresenceHandlers(socket: AuthenticatedSocket) {
     // User requests presence status of other users
-    socket.on('get_presence', (data: { userIds: string[] }) => {
-      if (checkRateLimit(socket, 'get_presence')) {
-        return;
-      }
-      const { userIds } = data;
-      const presenceData: { [userId: string]: { status: string; lastSeen: Date } } = {};
-
-      userIds.forEach(userId => {
-        const presence = userPresence.get(userId);
-        if (presence) {
-          presenceData[userId] = {
-            status: presence.status,
-            lastSeen: presence.lastSeen,
-          };
-        } else {
-          presenceData[userId] = {
-            status: 'offline',
-            lastSeen: new Date(),
-          };
+    //
+    // ADS-739: presence is sensitive — adopters at Rescue A must not be
+    // able to enumerate online staff at Rescue B by guessing user IDs.
+    // We validate the payload with Zod, then filter the requested set
+    // down to userIds the requester actually shares context with:
+    //   - admin/moderator/super_admin → see everyone
+    //   - everyone else → users they share a chat with, OR users in
+    //     the same rescue tenant
+    // Users they cannot see are silently dropped from the response so
+    // we don't leak existence by returning "denied" vs "offline".
+    socket.on('get_presence', async (data: unknown) => {
+      try {
+        if (checkRateLimit(socket, 'get_presence')) {
+          return;
         }
-      });
+        const parsed = GetPresenceSchema.safeParse(data);
+        if (!parsed.success) {
+          socket.emit('error', { event: 'get_presence', message: 'Invalid payload' });
+          return;
+        }
+        const { userIds } = parsed.data;
+        const requesterId = socket.userId;
+        if (!requesterId) {
+          return;
+        }
 
-      socket.emit('presence_update', presenceData);
+        const visibleIds = await this.filterVisibleUserIds(socket, userIds);
+        const presenceData: { [userId: string]: { status: string; lastSeen: Date } } = {};
+
+        visibleIds.forEach(userId => {
+          const presence = userPresence.get(userId);
+          if (presence) {
+            presenceData[userId] = {
+              status: presence.status,
+              lastSeen: presence.lastSeen,
+            };
+          } else {
+            presenceData[userId] = {
+              status: 'offline',
+              lastSeen: new Date(),
+            };
+          }
+        });
+
+        socket.emit('presence_update', presenceData);
+      } catch (error) {
+        logger.error('Error handling get_presence:', error);
+        socket.emit('error', {
+          event: 'get_presence',
+          message: 'Failed to fetch presence',
+        });
+      }
     });
 
     // User updates their presence status
@@ -857,6 +893,69 @@ export class SocketHandlers {
         socketAuthRefreshTimers.delete(socket.id);
       }
     });
+  }
+
+  /**
+   * ADS-739: scope `get_presence` to userIds the requester is allowed
+   * to see. Returns the subset of `requestedIds` (excluding self, which
+   * is implicitly visible) the requester shares context with:
+   *   - admin / moderator / super_admin → all ids
+   *   - any user → ids they share a chat with (ChatParticipant join)
+   *   - rescue staff → also ids belonging to the same rescue
+   * The requester's own id is always included if requested.
+   */
+  private async filterVisibleUserIds(
+    socket: AuthenticatedSocket,
+    requestedIds: ReadonlyArray<string>
+  ): Promise<string[]> {
+    const requesterId = socket.userId!;
+    const dedupedRequested = Array.from(new Set(requestedIds));
+    if (dedupedRequested.length === 0) {
+      return [];
+    }
+
+    // Admins/moderators can see everyone — short-circuit.
+    if (socket.role === 'super_admin' || socket.role === 'admin' || socket.role === 'moderator') {
+      return dedupedRequested;
+    }
+
+    // Users always see themselves.
+    const visible = new Set<string>();
+    if (dedupedRequested.includes(requesterId)) {
+      visible.add(requesterId);
+    }
+
+    const others = dedupedRequested.filter(id => id !== requesterId);
+    if (others.length === 0) {
+      return Array.from(visible);
+    }
+
+    // (1) Users who share a chat with the requester. Find the chats the
+    // requester participates in, then the other participants of those
+    // chats — intersect with `others`.
+    const myChats = await ChatParticipant.findAll({
+      where: { participant_id: requesterId },
+      attributes: ['chat_id'],
+    });
+    const chatIds = myChats.map(c => c.chat_id);
+    if (chatIds.length > 0) {
+      const coParticipants = await ChatParticipant.findAll({
+        where: { chat_id: chatIds, participant_id: others },
+        attributes: ['participant_id'],
+      });
+      coParticipants.forEach(p => visible.add(p.participant_id));
+    }
+
+    // (2) Rescue staff: anyone in the same rescue (staff or chat-attached).
+    if (socket.rescueId) {
+      const sameRescueStaff = await StaffMember.findAll({
+        where: { rescueId: socket.rescueId, userId: others, isVerified: true },
+        attributes: ['userId'],
+      });
+      sameRescueStaff.forEach(s => visible.add(s.userId));
+    }
+
+    return Array.from(visible);
   }
 
   /**

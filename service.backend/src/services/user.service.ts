@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import { JsonObject } from '../types/common';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import { validateSortField } from '../utils/sort-validation';
@@ -26,6 +27,7 @@ import { AuditLogService } from './auditLog.service';
 import { redactSensitiveFields } from '../utils/redact';
 import RefreshToken from '../models/RefreshToken';
 import { invalidateAuthCache } from '../lib/auth-cache';
+import { emitAuthRoleChanged } from '../socket/socket-registry';
 
 const USER_SORT_FIELDS = [
   'createdAt',
@@ -175,10 +177,11 @@ export class UserService {
 
   static async getUserByEmail(email: string): Promise<User | null> {
     const startTime = Date.now();
+    const normalized = normalizeEmail(email);
 
     try {
       const user = await User.findOne({
-        where: { email: email.toLowerCase() },
+        where: { email: normalized },
         include: [
           {
             association: 'Roles',
@@ -193,7 +196,7 @@ export class UserService {
 
       if (loggerHelpers && loggerHelpers.logDatabase) {
         loggerHelpers.logDatabase('READ', {
-          email: email.toLowerCase(),
+          email: normalized,
           duration: Date.now() - startTime,
           found: !!user,
         });
@@ -203,7 +206,7 @@ export class UserService {
     } catch (error) {
       logger.error('Failed to fetch user by email:', {
         error: error instanceof Error ? error.message : String(error),
-        email: email.toLowerCase(),
+        email: normalized,
         duration: Date.now() - startTime,
       });
       throw error;
@@ -1073,6 +1076,11 @@ export class UserService {
 
       const oldUserType = user.userType;
       await user.update({ userType: newUserType });
+
+      // Push a socket event so any live frontend session re-fetches the
+      // user profile and re-evaluates role-gated UI (ProtectedRoute,
+      // admin nav, etc.) without waiting for the next page refresh.
+      emitAuthRoleChanged(userId);
 
       // Audit log
       await AuditLog.create({
