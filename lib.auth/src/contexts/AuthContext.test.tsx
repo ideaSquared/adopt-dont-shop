@@ -32,6 +32,7 @@ vi.mock('@adopt-dont-shop/lib.api', () => ({
     get: vi.fn(),
     put: vi.fn(),
     fetchWithAuth: vi.fn(),
+    clearCsrfToken: vi.fn(),
   },
 }));
 
@@ -311,5 +312,119 @@ describe('AuthProvider onLogout callback', () => {
     });
 
     expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Probe child that surfaces the current authenticated user state so tests
+// can assert what the provider exposes after a cross-tab event.
+const AuthProbe = ({ onState }: { onState: (user: User | null) => void }) => {
+  const { user } = useAuth();
+  React.useEffect(() => {
+    onState(user);
+  }, [user, onState]);
+  return null;
+};
+
+describe('AuthProvider cross-tab logout synchronization', () => {
+  beforeEach(() => {
+    mockAuthService.getCurrentUser.mockReturnValue(adopterUser);
+    mockAuthService.isAuthenticated.mockReturnValue(true);
+    mockAuthService.getProfile.mockResolvedValue(adopterUser);
+    mockAuthService.logout.mockResolvedValue(undefined);
+    mockAuthService.clearTokens.mockReset();
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('clears local user state when another tab removes the persisted user key', async () => {
+    const states: Array<User | null> = [];
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    // Wait until the rehydrate effect has populated the user.
+    await waitFor(() => {
+      expect(states[states.length - 1]?.userId).toBe(adopterUser.userId);
+    });
+
+    await act(async () => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'user',
+          newValue: null,
+          oldValue: JSON.stringify(adopterUser),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(states[states.length - 1]).toBeNull();
+    });
+    expect(mockAuthService.clearTokens).toHaveBeenCalled();
+  });
+
+  it('ignores storage events for unrelated keys', async () => {
+    const states: Array<User | null> = [];
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(states[states.length - 1]?.userId).toBe(adopterUser.userId);
+    });
+
+    mockAuthService.clearTokens.mockClear();
+
+    await act(async () => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'theme-preference',
+          newValue: null,
+          oldValue: 'dark',
+        })
+      );
+    });
+
+    expect(states[states.length - 1]?.userId).toBe(adopterUser.userId);
+    expect(mockAuthService.clearTokens).not.toHaveBeenCalled();
+  });
+
+  it('ignores storage events that set a non-null value', async () => {
+    const states: Array<User | null> = [];
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(states[states.length - 1]?.userId).toBe(adopterUser.userId);
+    });
+
+    mockAuthService.clearTokens.mockClear();
+
+    await act(async () => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'user',
+          newValue: JSON.stringify(adopterUser),
+          oldValue: JSON.stringify(adopterUser),
+        })
+      );
+    });
+
+    expect(states[states.length - 1]?.userId).toBe(adopterUser.userId);
+    expect(mockAuthService.clearTokens).not.toHaveBeenCalled();
   });
 });

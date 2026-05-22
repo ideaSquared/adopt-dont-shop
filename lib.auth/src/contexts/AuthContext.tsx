@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useEffect, useState } from 'react';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import { authService } from '../services/auth-service';
-import { LoginRequest, RegisterRequest, User } from '../types';
+import { LoginRequest, RegisterRequest, User, STORAGE_KEYS } from '../types';
 
 export interface AuthContextType {
   user: User | null;
@@ -143,6 +143,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     return () => {
       apiService.updateConfig({ onUnauthorized: undefined });
     };
+  }, []);
+
+  // Cross-tab logout sync: when another tab removes the persisted user
+  // record (logout, account deletion), drop local auth state here too
+  // so this tab doesn't keep rendering the authenticated UI until its
+  // next API call fails with 401. Only react to the user/token keys —
+  // unrelated storage writes (theme, feature flags, etc.) must not
+  // trigger a logout. We don't navigate from here; route-level guards
+  // pick up the user === null transition.
+  useEffect(() => {
+    const onStorageEvent = (e: StorageEvent) => {
+      const isUserKey = e.key === STORAGE_KEYS.USER;
+      const isTokenKey = e.key === STORAGE_KEYS.AUTH_TOKEN || e.key === STORAGE_KEYS.ACCESS_TOKEN;
+      if (!isUserKey && !isTokenKey) {
+        return;
+      }
+      if (e.newValue !== null) {
+        return;
+      }
+      authService.clearTokens();
+      apiService.clearCsrfToken();
+      setUser(null);
+    };
+    window.addEventListener('storage', onStorageEvent);
+    return () => window.removeEventListener('storage', onStorageEvent);
   }, []);
 
   const login = async (credentials: LoginRequest) => {
