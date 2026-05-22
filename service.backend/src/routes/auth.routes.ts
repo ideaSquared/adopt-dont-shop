@@ -13,6 +13,7 @@ import {
   passwordResetLimiter,
   twoFactorLimiter,
 } from '../middleware/rate-limiter';
+import { verifyTurnstileToken } from '../middleware/turnstile';
 
 const router = Router();
 
@@ -87,6 +88,9 @@ const router = Router();
  */
 router.post(
   '/register',
+  // CAPTCHA runs FIRST so scripted spam is rejected before it touches
+  // the rate-limit buckets. A9.
+  verifyTurnstileToken,
   registrationIpLimiter,
   registrationEmailLimiter,
   authValidation.register,
