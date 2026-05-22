@@ -25,7 +25,7 @@ import { StorageCategory } from './storage/base-provider';
 // constructor option asks sharp itself to refuse to decode beyond MAX^2
 // pixels as belt-and-braces.
 const MAX_IMAGE_DIMENSION = 8000;
-const MAX_IMAGE_PIXELS = MAX_IMAGE_DIMENSION * MAX_IMAGE_DIMENSION;
+export const MAX_IMAGE_PIXELS = MAX_IMAGE_DIMENSION * MAX_IMAGE_DIMENSION;
 
 // File upload configuration
 //
