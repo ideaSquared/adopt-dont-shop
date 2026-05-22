@@ -10,6 +10,7 @@ import { Button, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.c
 import { CHAT_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import * as styles from './Communication.css';
 
 // ADS-583: "resolved" maps to the backend's `archived` status. The backend's
@@ -51,12 +52,14 @@ const persistFilter = (filter: 'active' | 'resolved'): void => {
 };
 
 function Communication() {
-  const { activeConversation, updateConversationStatus } = useChat();
+  const { activeConversation, conversations, setActiveConversation, updateConversationStatus } =
+    useChat();
   const { hasPermission } = usePermissions();
   const { confirm, confirmProps } = useConfirm();
   const [isMobile, setIsMobile] = useState(false);
   const [filter, setFilter] = useState<'active' | 'resolved'>(loadInitialFilter);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -70,6 +73,24 @@ function Communication() {
       window.removeEventListener('resize', checkMobile);
     };
   }, []);
+
+  // ADS-643: support deep links from the dashboard (?conversation=<id>). When
+  // the target conversation arrives in the list, select it and consume the
+  // param so refreshing the page after a manual switch doesn't fight the user.
+  useEffect(() => {
+    const requestedId = searchParams.get('conversation');
+    if (!requestedId) {
+      return;
+    }
+    const target = conversations.find(c => c.id === requestedId);
+    if (!target) {
+      return;
+    }
+    setActiveConversation(target);
+    const next = new URLSearchParams(searchParams);
+    next.delete('conversation');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, conversations, setActiveConversation, setSearchParams]);
 
   const showChat = isMobile && activeConversation !== null;
   const canManageChat = hasPermission(CHAT_UPDATE);
