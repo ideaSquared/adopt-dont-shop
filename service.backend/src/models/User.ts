@@ -86,6 +86,11 @@ interface UserAttributes {
   // admin triggers it on their behalf). Cleared by the retention
   // worker when phase-2 anonymization runs. See GdprService.
   pendingAnonymizationAt?: Date | null;
+  // ADS: forced-rotation marker for access tokens. The auth middleware
+  // rejects any JWT whose `iat` is older than this timestamp, so a role
+  // change / password reset / 2FA toggle invalidates every access token
+  // issued before that mutation. NULL means no rotation enforced.
+  tokensInvalidBefore?: Date | null;
   country?: string;
   city?: string;
   addressLine1?: string | null;
@@ -161,6 +166,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public updatedAt!: Date;
   public deletedAt!: Date | null;
   public pendingAnonymizationAt!: Date | null;
+  public tokensInvalidBefore!: Date | null;
   public country!: string;
   public city!: string;
   public addressLine1!: string | null;
@@ -461,6 +467,11 @@ User.init(
       allowNull: true,
       field: 'pending_anonymization_at',
     },
+    tokensInvalidBefore: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'tokens_invalid_before',
+    },
     // rescueId is intentionally not a DB column — see UserAttributes
     // comment. Sequelize won't persist it, but the model class exposes it
     // for the auth middleware to populate.
@@ -597,6 +608,15 @@ User.init(
       beforeUpdate: async (user: User) => {
         if (user.changed('password') && user.password) {
           user.password = await hashPassword(user.password);
+        }
+        // ADS: any userType change must invalidate every access token
+        // issued before this write. Setting the column here covers both
+        // single-instance updates (UserService.updateUserRole) and bulk
+        // updates that opt into individualHooks (bulkUpdateUsers, plan
+        // 10-HH). For paths that DON'T fire per-instance hooks the
+        // caller must bump the column itself.
+        if (user.changed('userType') && !user.changed('tokensInvalidBefore')) {
+          user.tokensInvalidBefore = new Date();
         }
         await protectSecretsIfChanged(user);
       },
