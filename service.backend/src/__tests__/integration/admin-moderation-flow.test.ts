@@ -685,6 +685,39 @@ describe('Admin Moderation Workflow Integration Tests', () => {
         expect(result.success).toBe(true);
       });
 
+      it('should record one audit log entry per dismissed report (not a single bulk row)', async () => {
+        const reportIds = ['report-audit-1', 'report-audit-2', 'report-audit-3'];
+        const reports = reportIds.map(id =>
+          createMockReport({
+            reportId: id,
+            status: ReportStatus.UNDER_REVIEW,
+          })
+        );
+
+        MockedReport.findByPk = vi.fn(id =>
+          Promise.resolve(reports.find(r => r.reportId === id) as never)
+        );
+
+        reports.forEach(report => {
+          report.update = vi.fn().mockResolvedValue(report as never);
+        });
+
+        await ModerationService.bulkUpdateReports({
+          reportIds,
+          action: 'dismiss',
+          moderatorId,
+          resolutionNotes: 'Bulk dismissed',
+        });
+
+        const auditCalls = MockedAuditLogService.log.mock.calls.map(call => call[0]);
+        const perRowAudits = auditCalls.filter(c => c.entity === 'Report' && c.entityId !== 'bulk');
+        expect(perRowAudits).toHaveLength(reportIds.length);
+        const audittedIds = perRowAudits.map(c => c.entityId).sort();
+        expect(audittedIds).toEqual([...reportIds].sort());
+        // No single roll-up "bulk" entity entry — each report gets its own row.
+        expect(auditCalls.find(c => c.entityId === 'bulk')).toBeUndefined();
+      });
+
       it('should bulk escalate reports', async () => {
         const reportIds = ['report-escalate-1', 'report-escalate-2'];
         const reports = reportIds.map(id =>

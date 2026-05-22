@@ -6,6 +6,8 @@ import {
   FiCalendar,
   FiFileText,
   FiExternalLink,
+  FiShield,
+  FiClock,
 } from 'react-icons/fi';
 import { openExternal } from '../../utils/openExternal';
 import clsx from 'clsx';
@@ -13,7 +15,10 @@ import {
   Report,
   getSeverityLabel,
   getStatusLabel,
+  getActionTypeLabel,
   formatRelativeTime,
+  useReports,
+  useActiveActions,
 } from '@adopt-dont-shop/lib.moderation';
 import * as styles from './ReportDetailModal.css';
 
@@ -96,6 +101,102 @@ const getEntityTypeLabel = (entityType: string): string => {
     default:
       return 'Content';
   }
+};
+
+type PriorHistorySectionProps = {
+  reportedUserId: string;
+  currentReportId: string;
+};
+
+const PriorHistorySection: React.FC<PriorHistorySectionProps> = ({
+  reportedUserId,
+  currentReportId,
+}) => {
+  const { data, isLoading } = useReports({
+    reportedUserId,
+    page: 1,
+    limit: 10,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  });
+
+  const priorReports = (data?.data ?? []).filter(r => r.reportId !== currentReportId);
+
+  return (
+    <div className={styles.section}>
+      <h3 className={styles.sectionTitle}>
+        <FiClock size={16} />
+        Prior Report History
+      </h3>
+      {isLoading ? (
+        <div className={styles.historyEmpty}>Loading prior reports...</div>
+      ) : priorReports.length === 0 ? (
+        <div className={styles.historyEmpty} data-testid='no-prior-history'>
+          No prior reports for this user
+        </div>
+      ) : (
+        <div className={styles.historyList} data-testid='prior-history-list'>
+          {priorReports.map(priorReport => (
+            <div key={priorReport.reportId} className={styles.historyItem}>
+              <div className={styles.historyItemHeader}>
+                <span className={styles.historyItemTitle}>{priorReport.title}</span>
+                <span className={styles.historyItemMeta}>
+                  {getStatusLabel(priorReport.status)} • {getSeverityLabel(priorReport.severity)}
+                </span>
+              </div>
+              <span className={styles.historyItemMeta}>
+                {formatRelativeTime(priorReport.createdAt)} • {priorReport.category}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+type ActiveSanctionsSectionProps = {
+  reportedUserId: string;
+};
+
+const ActiveSanctionsSection: React.FC<ActiveSanctionsSectionProps> = ({ reportedUserId }) => {
+  const { data, isLoading } = useActiveActions(reportedUserId);
+  const sanctions = data ?? [];
+
+  return (
+    <div className={styles.section}>
+      <h3 className={styles.sectionTitle}>
+        <FiShield size={16} />
+        Active Sanctions
+      </h3>
+      {isLoading ? (
+        <div className={styles.historyEmpty}>Loading active sanctions...</div>
+      ) : sanctions.length === 0 ? (
+        <div className={styles.historyEmpty} data-testid='no-active-sanctions'>
+          No active sanctions on this user
+        </div>
+      ) : (
+        <div className={styles.sanctionList} data-testid='active-sanctions-list'>
+          {sanctions.map(action => (
+            <div key={action.actionId} className={styles.sanctionItem}>
+              <div className={styles.sanctionItemHeader}>
+                <span className={styles.sanctionItemType}>
+                  {getActionTypeLabel(action.actionType)}
+                </span>
+                <span className={styles.historyItemMeta}>
+                  {getSeverityLabel(action.severity)} •{' '}
+                  {action.expiresAt
+                    ? `expires ${formatRelativeTime(action.expiresAt)}`
+                    : 'no expiry'}
+                </span>
+              </div>
+              <span className={styles.sanctionItemReason}>{action.reason}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
@@ -300,6 +401,19 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
               View Reporter Profile
             </button>
           </div>
+
+          {report.reportedUserId && (
+            <>
+              <div className={styles.divider} />
+              <PriorHistorySection
+                reportedUserId={report.reportedUserId}
+                currentReportId={report.reportId}
+              />
+
+              <div className={styles.divider} />
+              <ActiveSanctionsSection reportedUserId={report.reportedUserId} />
+            </>
+          )}
 
           <div className={styles.divider} />
 
