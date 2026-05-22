@@ -40,6 +40,7 @@ vi.mock('@adopt-dont-shop/lib.api', () => ({
 // Imported AFTER vi.mock so the mocks are wired in.
 import { AuthProvider } from './AuthContext';
 import { useAuth } from '../hooks/useAuth';
+import { apiService as mockedApiService } from '@adopt-dont-shop/lib.api';
 
 const adopterUser: User = {
   userId: 'user-123',
@@ -286,6 +287,32 @@ describe('AuthProvider onLogout callback', () => {
     });
 
     expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the cached CSRF token during logout', async () => {
+    let triggerLogout: (() => Promise<void>) | undefined;
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <LogoutTrigger
+          onReady={(fn) => {
+            triggerLogout = fn;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(triggerLogout).toBeDefined();
+    });
+
+    vi.mocked(mockedApiService.clearCsrfToken).mockClear();
+
+    await act(async () => {
+      await triggerLogout?.();
+    });
+
+    expect(mockedApiService.clearCsrfToken).toHaveBeenCalled();
   });
 
   it('invokes onLogout even when the backend logout call fails', async () => {

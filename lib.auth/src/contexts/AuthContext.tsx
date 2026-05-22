@@ -333,6 +333,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       }
     } finally {
+      // Clear the per-session CSRF token cache so the next signed-in
+      // user fetches a fresh one bound to their session cookie rather
+      // than reusing the previous user's token.
+      apiService.clearCsrfToken();
+
       // Fire onLogout regardless of API success so the host app's
       // React Query cache (which lives outside this provider) is
       // always wiped before the next user can sign in on this tab.
