@@ -80,6 +80,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           allowedUserTypes={['admin', 'moderator']}
           appType='admin'
           onAuthEvent={handleAuthEvent}
+          onLogout={() => queryClient.clear()}
         >
           <StatsigWrapper>
             <ThemeProvider>

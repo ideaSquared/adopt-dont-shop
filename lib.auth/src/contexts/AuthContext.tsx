@@ -35,6 +35,15 @@ export interface AuthProviderProps {
    * Optional analytics/logging callback
    */
   onAuthEvent?: (event: string, data?: Record<string, unknown>) => void;
+  /**
+   * Called as part of logout cleanup. Apps wire this up to clear their
+   * React Query cache (`queryClient.clear()`) so a User A → User B login
+   * on the same browser cannot serve stale cached data from User A's
+   * session. The handler runs after tokens are cleared and before
+   * isLoading flips back to false; fired regardless of whether the
+   * backend logout call succeeded.
+   */
+  onLogout?: () => void;
 }
 
 /**
@@ -46,6 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   allowedUserTypes,
   appType,
   onAuthEvent,
+  onLogout,
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -290,6 +300,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       }
     } finally {
+      // Fire onLogout regardless of API success so the host app's
+      // React Query cache (which lives outside this provider) is
+      // always wiped before the next user can sign in on this tab.
+      try {
+        onLogout?.();
+      } catch (cleanupError) {
+        console.error('onLogout handler threw:', cleanupError);
+      }
       setIsLoading(false);
     }
   };

@@ -233,3 +233,83 @@ describe('AuthProvider auth_session_authenticated event', () => {
     expect(sessionEventCalls).toHaveLength(1);
   });
 });
+
+// Helper child that exposes logout() so a test can call it imperatively.
+type LogoutTriggerProps = {
+  onReady: (logout: () => Promise<void>) => void;
+};
+
+const LogoutTrigger = ({ onReady }: LogoutTriggerProps) => {
+  const { logout } = useAuth();
+  React.useEffect(() => {
+    onReady(logout);
+  }, [logout, onReady]);
+  return null;
+};
+
+describe('AuthProvider onLogout callback', () => {
+  beforeEach(() => {
+    mockAuthService.getCurrentUser.mockReturnValue(null);
+    mockAuthService.isAuthenticated.mockReturnValue(false);
+    mockAuthService.getProfile.mockResolvedValue(null);
+    mockAuthService.logout.mockResolvedValue(undefined);
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('invokes onLogout after a successful logout so apps can wipe their query cache', async () => {
+    const onLogout = vi.fn();
+    let triggerLogout: (() => Promise<void>) | undefined;
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client" onLogout={onLogout}>
+        <LogoutTrigger
+          onReady={(fn) => {
+            triggerLogout = fn;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(triggerLogout).toBeDefined();
+    });
+
+    await act(async () => {
+      await triggerLogout?.();
+    });
+
+    expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it('invokes onLogout even when the backend logout call fails', async () => {
+    mockAuthService.logout.mockRejectedValueOnce(new Error('network down'));
+
+    const onLogout = vi.fn();
+    let triggerLogout: (() => Promise<void>) | undefined;
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client" onLogout={onLogout}>
+        <LogoutTrigger
+          onReady={(fn) => {
+            triggerLogout = fn;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(triggerLogout).toBeDefined();
+    });
+
+    await act(async () => {
+      await triggerLogout?.();
+    });
+
+    expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+});
