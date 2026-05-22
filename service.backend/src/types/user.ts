@@ -282,6 +282,8 @@ export interface UserCreateData {
 export interface BulkUserUpdateData {
   userIds: string[];
   updates: Partial<UserUpdateData>;
+  // ADS-651: operator reason recorded in the audit log for the bulk change.
+  reason?: string;
 }
 
 export interface UserActivitySummary {

@@ -1930,7 +1930,13 @@ export class ApplicationService {
           action: 'BULK_UPDATE',
           entity: 'Application',
           entityId: application.applicationId,
-          details: { updates, bulk_operation: true },
+          // ADS-651: persist the operator's reason on each affected
+          // application's audit row so the trail tells you *why*.
+          details: {
+            updates,
+            bulk_operation: true,
+            reason: bulkUpdate.reason ?? null,
+          },
           userId,
           transaction: tx,
         });

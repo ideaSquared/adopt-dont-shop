@@ -1259,6 +1259,67 @@ describe('ApplicationService - Business Logic', () => {
       // result.
       logSpy.mockRestore();
     });
+
+    // ADS-651: operator reason must be persisted on each application's
+    // audit row so the trail explains *why* every bulk-updated
+    // application changed state.
+    it('persists the operator-supplied reason on every per-application audit row', async () => {
+      const idA = 'app-reason-a';
+      const idB = 'app-reason-b';
+      const apps = [idA, idB].map(applicationId =>
+        createMockApplication(ApplicationStatus.SUBMITTED, { applicationId })
+      );
+
+      MockedApplication.findAll = vi.fn().mockResolvedValue(apps as never);
+      MockedApplication.update = vi.fn().mockResolvedValue([apps.length] as never);
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue(undefined as never);
+
+      const reason = 'Reviewed in weekly committee meeting';
+      await ApplicationService.bulkUpdateApplications(
+        {
+          applicationIds: [idA, idB],
+          updates: { status: ApplicationStatus.REJECTED },
+          reason,
+        },
+        'staff-123'
+      );
+
+      const detailsPerEntity = new Map<string, Record<string, unknown>>();
+      logSpy.mock.calls.forEach(([data]) => {
+        detailsPerEntity.set(data.entityId as string, data.details as Record<string, unknown>);
+      });
+
+      expect(detailsPerEntity.get(idA)).toMatchObject({ reason, bulk_operation: true });
+      expect(detailsPerEntity.get(idB)).toMatchObject({ reason, bulk_operation: true });
+
+      logSpy.mockRestore();
+    });
+
+    it('records reason as null when none is supplied', async () => {
+      const id = 'app-noreason';
+      const app = createMockApplication(ApplicationStatus.SUBMITTED, { applicationId: id });
+      MockedApplication.findAll = vi.fn().mockResolvedValue([app] as never);
+      MockedApplication.update = vi.fn().mockResolvedValue([1] as never);
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue(undefined as never);
+
+      await ApplicationService.bulkUpdateApplications(
+        {
+          applicationIds: [id],
+          updates: { priority: ApplicationPriority.HIGH },
+        },
+        'staff-123'
+      );
+
+      expect(logSpy).toHaveBeenCalledTimes(1);
+      const [call] = logSpy.mock.calls;
+      expect(call[0].details).toMatchObject({ reason: null, bulk_operation: true });
+
+      logSpy.mockRestore();
+    });
   });
 
   describe('Error Handling', () => {

@@ -266,18 +266,30 @@ const Applications: React.FC = () => {
         isOpen={bulkAction !== null}
         onClose={handleBulkModalClose}
         onConfirm={handleBulkConfirm}
-        title={bulkAction === 'approve' ? 'Approve Applications' : 'Reject Applications'}
-        description={
-          bulkAction === 'approve'
-            ? 'Approve the selected adoption applications.'
-            : 'Reject the selected adoption applications. Applicants will be notified.'
-        }
+        title={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} application${count !== 1 ? 's' : ''}`;
+          return bulkAction === 'approve' ? `Approve ${noun}?` : `Reject ${noun}?`;
+        })()}
+        description={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} adoption application${count !== 1 ? 's' : ''}`;
+          if (bulkAction === 'approve') {
+            return `This will approve ${noun}. Applicants will be notified of the decision.`;
+          }
+          return `This will reject ${noun}. Applicants will be notified of the decision.`;
+        })()}
         selectedCount={selectedRows.size}
         confirmLabel={bulkAction === 'approve' ? 'Approve Applications' : 'Reject Applications'}
         variant={bulkAction === 'reject' ? 'danger' : 'info'}
-        requireReason={bulkAction === 'reject'}
-        reasonLabel='Rejection reason'
-        reasonPlaceholder='Explain why these applications are being rejected...'
+        // ADS-651: every bulk state-change records a reason in the audit log.
+        requireReason
+        reasonLabel={bulkAction === 'approve' ? 'Reason for approval' : 'Reason for rejection'}
+        reasonPlaceholder={
+          bulkAction === 'approve'
+            ? 'Explain why these applications are being approved...'
+            : 'Explain why these applications are being rejected...'
+        }
         isLoading={bulkUpdateApplications.isPending}
         resultSummary={bulkResult}
       />

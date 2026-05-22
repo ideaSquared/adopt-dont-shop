@@ -346,5 +346,25 @@ describe('Application schemas', () => {
       expect(parsed.updates.rejectionReason).toBe('duplicate application');
       expect(parsed.updates.finalOutcome).toBe('rejected');
     });
+
+    // ADS-651: operator-supplied reason flows through bulk endpoints.
+    it('accepts an optional reason string for the audit log', () => {
+      const parsed = ApplicationBulkUpdateRequestSchema.parse({
+        applicationIds: [someUuid],
+        updates: { status: 'approved' },
+        reason: 'Reviewed in weekly committee meeting',
+      });
+      expect(parsed.reason).toBe('Reviewed in weekly committee meeting');
+    });
+
+    it('rejects a reason longer than 500 characters', () => {
+      expect(() =>
+        ApplicationBulkUpdateRequestSchema.parse({
+          applicationIds: [someUuid],
+          updates: { status: 'approved' },
+          reason: 'x'.repeat(501),
+        })
+      ).toThrow();
+    });
   });
 });

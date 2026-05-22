@@ -275,6 +275,8 @@ export interface BulkApplicationUpdate {
     notes?: string;
     actionedBy?: string;
   };
+  // ADS-651: operator reason recorded in the per-application audit log.
+  reason?: string;
 }
 
 export interface BulkApplicationResult {

@@ -300,6 +300,9 @@ export const ApplicationBulkUpdateRequestSchema = z.object({
       notes: NotesSchema.optional(),
     })
     .refine((v) => Object.keys(v).length > 0, 'updates must contain at least one field to apply'),
+  // ADS-651: operator-supplied reason captured in the audit log for every
+  // application touched by the bulk update.
+  reason: z.string().trim().min(1, 'Reason is required').max(500).optional(),
 });
 export type ApplicationBulkUpdateRequest = z.infer<typeof ApplicationBulkUpdateRequestSchema>;
 

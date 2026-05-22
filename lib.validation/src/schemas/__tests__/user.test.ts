@@ -266,5 +266,36 @@ describe('User schemas', () => {
         })
       ).toThrow();
     });
+
+    // ADS-651: bulk-action reasons are accepted by the schema and capped
+    // so the audit log doesn't take unbounded text.
+    it('accepts an optional reason string for the audit log', () => {
+      const parsed = BulkUserUpdateRequestSchema.parse({
+        userIds: validUserIds,
+        updateData: { status: 'active' },
+        reason: 'Routine reactivation after policy review',
+      });
+      expect(parsed.reason).toBe('Routine reactivation after policy review');
+    });
+
+    it('rejects a reason longer than 500 characters', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({
+          userIds: validUserIds,
+          updateData: { status: 'active' },
+          reason: 'x'.repeat(501),
+        })
+      ).toThrow();
+    });
+
+    it('rejects an empty-string reason', () => {
+      expect(() =>
+        BulkUserUpdateRequestSchema.parse({
+          userIds: validUserIds,
+          updateData: { status: 'active' },
+          reason: '   ',
+        })
+      ).toThrow();
+    });
   });
 });
