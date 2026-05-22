@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
 import { ModelStatic, Model, Op, QueryTypes, WhereOptions } from 'sequelize';
+import { isSingleScriptLocalPart } from '@adopt-dont-shop/lib.validation';
 import Application from '../models/Application';
 import AuditLog from '../models/AuditLog';
 import Pet from '../models/Pet';
@@ -948,6 +949,21 @@ class AdminService {
       const user = await User.findByPk(userId);
       if (!user) {
         throw new Error('User not found');
+      }
+
+      // Pass-9 added a mixed-script gate to the User model's
+      // beforeValidate hook so an attacker can't register a
+      // homograph email (e.g. Cyrillic "а" in admin@…). But
+      // user.update({ emailVerified: true }) doesn't touch the
+      // email column and so doesn't re-run the hook, which means
+      // an admin could otherwise stamp a previously-bypassed
+      // mixed-script email as verified. Re-run the gate here so
+      // the admin path can't sidestep the registration policy.
+      const localPart = user.email.split('@')[0] ?? '';
+      if (!isSingleScriptLocalPart(localPart)) {
+        throw new Error(
+          'Cannot verify user with mixed-script email — user must update their email first'
+        );
       }
 
       // Update user verification status using the correct field name
