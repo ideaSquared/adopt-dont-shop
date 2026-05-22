@@ -1,5 +1,6 @@
 import { PetCard } from '@/components/PetCard';
 import { SwipeHero } from '@/components/hero/SwipeHero';
+import { TopPicksHomeModule } from '@/components/home/TopPicksHomeModule';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useStatsig } from '@/hooks/useStatsig';
@@ -174,6 +175,9 @@ export const HomePage: React.FC = () => {
       ) : (
         <SwipeHero />
       )}
+
+      {/* ADS-636: surface personalised picks when the user has prefs */}
+      <TopPicksHomeModule />
 
       {/* Featured Pets Section */}
       <section className={styles.section}>

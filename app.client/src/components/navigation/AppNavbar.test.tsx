@@ -8,6 +8,7 @@ type AuthState = { user: User | null; isAuthenticated: boolean };
 const authState: AuthState = { user: null, isAuthenticated: false };
 const notificationsState = { unreadCount: 0 };
 const chatState = { unreadMessageCount: 0 };
+const matchPreferencesState = { hasPreferences: false, isLoading: false };
 
 const baseUser: User = {
   userId: 'u1',
@@ -55,6 +56,10 @@ vi.mock('@/contexts/AnalyticsContext', () => ({
   }),
 }));
 
+vi.mock('@/hooks/useMatchPreferences', () => ({
+  useMatchPreferences: () => matchPreferencesState,
+}));
+
 describe('AppNavbar', () => {
   beforeEach(() => {
     authState.user = null;
@@ -62,6 +67,8 @@ describe('AppNavbar', () => {
     notificationsState.unreadCount = 0;
     chatState.unreadMessageCount = 0;
     trackEventMock.mockClear();
+    matchPreferencesState.hasPreferences = false;
+    matchPreferencesState.isLoading = false;
   });
 
   describe('logged out', () => {
@@ -77,6 +84,11 @@ describe('AppNavbar', () => {
       expect(screen.queryByRole('link', { name: /messages/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('link', { name: /notifications/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /user menu/i })).not.toBeInTheDocument();
+    });
+
+    it('does not show the Top Picks entry for signed-out users', () => {
+      renderWithProviders(<AppNavbar />);
+      expect(screen.queryByRole('link', { name: /top picks/i })).not.toBeInTheDocument();
     });
 
     it('still shows Discover and Search so visitors can browse', () => {
@@ -174,6 +186,41 @@ describe('AppNavbar', () => {
         action: 'primary_nav_clicked',
         label: 'search',
         properties: { entry_path: 'search', source: 'app_navbar' },
+      });
+    });
+
+    it('routes Top Picks to /match/top-picks when the user has preferences', () => {
+      matchPreferencesState.hasPreferences = true;
+      renderWithProviders(<AppNavbar />);
+      expect(screen.getByRole('link', { name: /top picks/i })).toHaveAttribute(
+        'href',
+        '/match/top-picks'
+      );
+    });
+
+    it('routes Top Picks to onboarding when the user has no preferences set', () => {
+      matchPreferencesState.hasPreferences = false;
+      renderWithProviders(<AppNavbar />);
+      expect(screen.getByRole('link', { name: /top picks/i })).toHaveAttribute(
+        'href',
+        '/match/onboarding'
+      );
+    });
+
+    it('tracks the top_picks analytics entry path when Top Picks is clicked', async () => {
+      const { default: userEvent } = await import('@testing-library/user-event');
+      const user = userEvent.setup();
+      matchPreferencesState.hasPreferences = true;
+      renderWithProviders(<AppNavbar />);
+
+      await user.click(screen.getByRole('link', { name: /top picks/i }));
+
+      const topPicksCall = trackEventMock.mock.calls.find(([event]) => event.label === 'top_picks');
+      expect(topPicksCall?.[0]).toMatchObject({
+        category: 'navigation',
+        action: 'primary_nav_clicked',
+        label: 'top_picks',
+        properties: { entry_path: 'top_picks', source: 'app_navbar' },
       });
     });
   });

@@ -1,11 +1,12 @@
 import React from 'react';
-import { MdChat, MdFavorite, MdNotifications, MdSearch, MdSwipe } from 'react-icons/md';
+import { MdChat, MdFavorite, MdNotifications, MdSearch, MdStar, MdSwipe } from 'react-icons/md';
 import { Link, useLocation } from 'react-router-dom';
 import { Badge, Logo } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useChat } from '@/contexts/ChatContext';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { useMatchPreferences } from '@/hooks/useMatchPreferences';
 import { AuthCtas } from './AuthCtas';
 import { NavLink } from './NavLink';
 import { NavUserMenu } from './NavUserMenu';
@@ -60,8 +61,9 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
   const { unreadCount: notificationsUnread } = useNotifications();
   const { unreadMessageCount } = useChat();
   const { trackEvent } = useAnalytics();
+  const { hasPreferences } = useMatchPreferences();
 
-  const trackNavClick = (entryPath: 'discover' | 'search' | 'favorites') => {
+  const trackNavClick = (entryPath: 'discover' | 'search' | 'favorites' | 'top_picks') => {
     trackEvent({
       category: 'navigation',
       action: 'primary_nav_clicked',
@@ -108,6 +110,16 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
               onClick={() => trackNavClick('favorites')}
             >
               Favorites
+            </NavLink>
+          )}
+          {isAuthenticated && (
+            <NavLink
+              to={hasPreferences ? '/match/top-picks' : '/match/onboarding'}
+              icon={<MdStar aria-hidden='true' />}
+              description='Pets matched to your preferences'
+              onClick={() => trackNavClick('top_picks')}
+            >
+              Top Picks
             </NavLink>
           )}
         </div>
