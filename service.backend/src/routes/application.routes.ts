@@ -5,6 +5,10 @@ import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { idempotency } from '../middleware/idempotency';
 import { requireRole } from '../middleware/rbac';
 import { uploadLimiter } from '../middleware/rate-limiter';
+import {
+  applicationCreateDailyLimiter,
+  applicationCreateWeeklyLimiter,
+} from '../middleware/user-abuse-rate-limit';
 import { enforceUploadMime } from '../middleware/upload-mime-guard';
 import { handleValidationErrors } from '../middleware/validation';
 import { UserType } from '../models/User';
@@ -207,6 +211,12 @@ router.get(
 router.post(
   '/',
   requireRole(UserType.ADOPTER),
+  // Per-user anti-abuse caps: 5/day AND 20/week. Keyed by req.user.userId,
+  // applied after requireRole so the userId is reliably populated. Each
+  // limiter has its own Redis bucket, so a request that trips either
+  // window returns 429 without consuming budget on the other.
+  applicationCreateDailyLimiter,
+  applicationCreateWeeklyLimiter,
   // Idempotency-Key header is optional; when provided, a retry of the
   // same submission replays the cached response instead of creating a
   // duplicate application. Plan 5.5.13.
