@@ -26,5 +26,6 @@ router.post(
   gdprValidation.anonymize,
   GdprController.eraseByAdmin.bind(GdprController)
 );
+router.post('/users/:userId/cancel-erasure', GdprController.cancelErasure.bind(GdprController));
 
 export default router;

@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { Op, type WhereOptions } from 'sequelize';
 import { config } from '../config';
+import { isProductionLike } from '../config/env';
 import { authenticateToken } from '../middleware/auth';
 import { apiLimiter, authLimiter, uploadLimiter } from '../middleware/rate-limiter';
 import { requireAdmin } from '../middleware/rbac';
@@ -15,7 +16,7 @@ const router = Router();
 // future re-mounts. Every monitoring response is treated as containing PII
 // and admin credentials and MUST require admin auth.
 const monitoringGuard = (req: Request, res: Response, next: NextFunction): void => {
-  if (config.nodeEnv === 'production') {
+  if (isProductionLike(config.nodeEnv)) {
     res.status(404).json({ error: 'Not found' });
     return;
   }

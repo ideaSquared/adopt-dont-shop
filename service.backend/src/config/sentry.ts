@@ -40,6 +40,24 @@ const redactSecretFields = (value: unknown): unknown => {
 };
 
 /**
+ * UUID v1-v5 pattern. Used to collapse identifier path segments to `:id`
+ * so URLs like `/api/v1/users/{uuid}/documents/{uuid}` don't ship the
+ * raw identifiers to the external Sentry SaaS.
+ */
+const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+
+/**
+ * Numeric path segment pattern. Matches `/123` when followed by another
+ * path separator, query string, fragment, or end-of-string — anchored on
+ * the leading slash so we don't accidentally rewrite version markers
+ * (e.g. `/v1/`) or numbers inside hostnames.
+ */
+const NUMERIC_ID_PATTERN = /\/\d+(?=\/|\?|#|$)/g;
+
+const redactUrlIds = (url: string): string =>
+  url.replace(UUID_PATTERN, ':id').replace(NUMERIC_ID_PATTERN, '/:id');
+
+/**
  * Strip `authorization` and `cookie` headers from a headers map regardless
  * of casing. Returns a new object — does not mutate input.
  */
@@ -86,6 +104,13 @@ export const redactSentryEvent = <T extends Sentry.ErrorEvent>(event: T): T => {
     if (request.data !== undefined && request.data !== null) {
       request.data = redactSecretFields(request.data);
     }
+    if (typeof request.url === 'string') {
+      request.url = redactUrlIds(request.url);
+    }
+  }
+
+  if (typeof event.transaction === 'string') {
+    event.transaction = redactUrlIds(event.transaction);
   }
 
   if (Array.isArray(event.breadcrumbs)) {
