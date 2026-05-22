@@ -248,6 +248,15 @@ app.use('/api', apiLimiter);
 // their own cache headers and are unaffected.
 app.use('/api', noStoreCacheControl);
 
+// Tighter body limit on auth endpoints. Login / register / 2FA /
+// password-recovery bodies are typically a few hundred bytes — there
+// is no legitimate reason to accept anything close to the 1 MB global
+// ceiling on these paths. Mounting this parser BEFORE the global
+// express.json() means it consumes the body first (express.json is a
+// no-op once req._body is set), so an oversized auth body gets a 413
+// without ever burning a 1 MB JSON parse.
+app.use('/api/v1/auth', express.json({ limit: '32kb' }));
+
 // ADS-457: 10 MB body limits were a DoS amplifier on auth/search/chat
 // endpoints that only need a few KB of JSON. Multipart file uploads go
 // through multer (not body-parser), so this lower limit doesn't affect
