@@ -24,6 +24,7 @@ import {
 import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { ForbiddenError } from './reports.service';
 import { isAdminRole } from '../utils/is-admin-role';
 import { redactSensitiveFields } from '../utils/redact';
 import RefreshToken from '../models/RefreshToken';
@@ -1070,6 +1071,23 @@ export class UserService {
     const startTime = Date.now();
 
     try {
+      // Belt-and-braces: the Zod controller validator already rejects
+      // SUPER_ADMIN as a settable role and route middleware blocks adopters,
+      // but the service layer must independently refuse self-grants and
+      // refuse SUPER_ADMIN grants from non-SUPER_ADMIN callers so any future
+      // relaxation of the controller schema does not yield an instant
+      // self-escalation.
+      if (adminUserId === userId) {
+        throw new ForbiddenError('Cannot change your own role via this endpoint');
+      }
+
+      if (newUserType === UserType.SUPER_ADMIN) {
+        const actor = await User.findByPk(adminUserId);
+        if (actor?.userType !== UserType.SUPER_ADMIN) {
+          throw new ForbiddenError('Only super_admin can assign super_admin role');
+        }
+      }
+
       const user = await User.findByPk(userId);
       if (!user) {
         throw new Error('User not found');
@@ -1322,6 +1340,25 @@ export class UserService {
       // the column is bumped even if individualHooks were ever removed.
       const payload = updates[0].updates;
       const userTypeChange = Object.prototype.hasOwnProperty.call(payload, 'userType');
+      const targetUserIds = updates[0].userIds;
+
+      // Same belt-and-braces hardening as updateUserRole: refuse self-grants
+      // through a bulk path and refuse SUPER_ADMIN assignment from a non-
+      // SUPER_ADMIN actor, regardless of what the controller schema permits.
+      if (userTypeChange) {
+        if (targetUserIds.includes(updatedBy)) {
+          throw new ForbiddenError('Cannot change your own role via this endpoint');
+        }
+
+        const newUserType = (payload as { userType?: UserType }).userType;
+        if (newUserType === UserType.SUPER_ADMIN) {
+          const actor = await User.findByPk(updatedBy);
+          if (actor?.userType !== UserType.SUPER_ADMIN) {
+            throw new ForbiddenError('Only super_admin can assign super_admin role');
+          }
+        }
+      }
+
       const effectiveUpdates = userTypeChange
         ? { ...payload, tokensInvalidBefore: new Date() }
         : payload;
@@ -1329,7 +1366,7 @@ export class UserService {
       const [affectedRows] = await User.update(effectiveUpdates, {
         where: {
           userId: {
-            [Op.in]: updates[0].userIds,
+            [Op.in]: targetUserIds,
           },
         },
         individualHooks: true,
