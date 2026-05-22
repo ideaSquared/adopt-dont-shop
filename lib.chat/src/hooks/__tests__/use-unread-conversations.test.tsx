@@ -34,7 +34,6 @@ const buildMessage = (overrides: Partial<Message> = {}): Message => ({
 
 type ProviderHarness = {
   chatService: ChatService;
-  tokenProvider: ReturnType<typeof vi.fn>;
 };
 
 const buildProviderHarness = (initialConversations: Conversation[]): ProviderHarness => {
@@ -44,7 +43,7 @@ const buildProviderHarness = (initialConversations: Conversation[]): ProviderHar
   });
   vi.spyOn(chatService, 'disconnect').mockImplementation(() => {});
   vi.spyOn(chatService, 'getConversations').mockResolvedValue(initialConversations);
-  return { chatService, tokenProvider: vi.fn(() => 'test-token') };
+  return { chatService };
 };
 
 const Probe = ({
@@ -105,7 +104,7 @@ describe('useUnreadConversations', () => {
   it('updates counts in real time when the socket delivers a new message to a non-active conversation', async () => {
     const active = buildConversation({ id: 'chat-1', unreadCount: 0 });
     const other = buildConversation({ id: 'chat-2', unreadCount: 0 });
-    const { chatService, tokenProvider } = buildProviderHarness([active, other]);
+    const { chatService } = buildProviderHarness([active, other]);
 
     let latest: UseUnreadConversationsResult | null = null;
 
@@ -114,7 +113,6 @@ describe('useUnreadConversations', () => {
         chatService={chatService}
         user={{ userId: 'user-1' }}
         isAuthenticated
-        tokenProvider={tokenProvider}
       >
         <Probe onState={(s) => (latest = s)} />
       </ChatProvider>
@@ -137,7 +135,7 @@ describe('useUnreadConversations', () => {
 
   it('clears the counter when markRead is called and forwards to the chat service', async () => {
     const conv = buildConversation({ id: 'chat-1', unreadCount: 4 });
-    const { chatService, tokenProvider } = buildProviderHarness([conv]);
+    const { chatService } = buildProviderHarness([conv]);
     const markSpy = vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
     let latest: UseUnreadConversationsResult | null = null;
@@ -159,7 +157,6 @@ describe('useUnreadConversations', () => {
         chatService={chatService}
         user={{ userId: 'user-1' }}
         isAuthenticated
-        tokenProvider={tokenProvider}
       >
         <Wrapper />
       </ChatProvider>
@@ -172,7 +169,7 @@ describe('useUnreadConversations', () => {
 
   it('clears the counter when another tab broadcasts a mark-read event', async () => {
     const conv = buildConversation({ id: 'chat-1', unreadCount: 3 });
-    const { chatService, tokenProvider } = buildProviderHarness([conv]);
+    const { chatService } = buildProviderHarness([conv]);
     vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
     let latest: UseUnreadConversationsResult | null = null;
@@ -182,7 +179,6 @@ describe('useUnreadConversations', () => {
         chatService={chatService}
         user={{ userId: 'user-1' }}
         isAuthenticated
-        tokenProvider={tokenProvider}
       >
         <Probe onState={(s) => (latest = s)} />
       </ChatProvider>
@@ -207,7 +203,7 @@ describe('useUnreadConversations', () => {
 
   it('broadcasts mark-read events to other tabs', async () => {
     const conv = buildConversation({ id: 'chat-1', unreadCount: 2 });
-    const { chatService, tokenProvider } = buildProviderHarness([conv]);
+    const { chatService } = buildProviderHarness([conv]);
     vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
 
     const otherTab = new BroadcastChannel(UNREAD_BROADCAST_CHANNEL);
@@ -239,7 +235,6 @@ describe('useUnreadConversations', () => {
         chatService={chatService}
         user={{ userId: 'user-1' }}
         isAuthenticated
-        tokenProvider={tokenProvider}
       >
         <Wrapper />
       </ChatProvider>
