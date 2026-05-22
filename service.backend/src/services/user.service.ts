@@ -1311,11 +1311,21 @@ export class UserService {
     const startTime = Date.now();
 
     try {
-      // individualHooks:true so the per-row beforeValidate (email NFKC +
-      // mixed-script reject) and beforeUpdate (password hashing) hooks fire
-      // for each user. Also makes afterSave fire per row, which busts the
-      // auth cache — so no explicit invalidation loop is needed here.
-      const [affectedRows] = await User.update(updates[0].updates, {
+      // individualHooks:true (below) so the per-row beforeValidate (email NFKC +
+      // mixed-script reject), beforeUpdate (password hashing + tokens_invalid_before
+      // bump on userType change), and afterSave (auth-cache invalidation) hooks
+      // fire for each user.
+      //
+      // The inline tokens_invalid_before bump below is belt-and-braces — the
+      // beforeUpdate hook already covers it, but the explicit payload guarantees
+      // the column is bumped even if individualHooks were ever removed.
+      const payload = updates[0].updates;
+      const userTypeChange = Object.prototype.hasOwnProperty.call(payload, 'userType');
+      const effectiveUpdates = userTypeChange
+        ? { ...payload, tokensInvalidBefore: new Date() }
+        : payload;
+
+      const [affectedRows] = await User.update(effectiveUpdates, {
         where: {
           userId: {
             [Op.in]: updates[0].userIds,

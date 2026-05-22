@@ -18,6 +18,7 @@ import { AuditLogService } from './auditLog.service';
 import { redactEmail } from './redact';
 import { env } from '../config/env';
 import { invalidateAuthCache } from '../lib/auth-cache';
+import { invalidateUserTokens } from '../lib/invalidate-user-tokens';
 import { disconnectAllSockets } from '../socket/socket-registry';
 
 import {
@@ -755,19 +756,16 @@ Need help? Contact us at support@adoptdontshop.com
         throw new Error('Invalid or expired reset token');
       }
 
-      const revokedCount = await RefreshToken.update(
-        { is_revoked: true },
-        { where: { user_id: user.userId, is_revoked: false } }
-      );
-      invalidateAuthCache(user.userId);
+      // ADS: full session kick — bumps tokens_invalid_before (so any
+      // surviving access token's iat is now in the past and the auth
+      // middleware rejects it), revokes refresh tokens, busts the auth
+      // cache, and disconnects live Socket.IO connections. Belt and
+      // braces: the refresh-revoke alone forces re-login at next
+      // refresh; the iat bump catches the up-to-15-min access-token
+      // window in between.
+      const { refreshTokensRevoked: revokedCount } = await invalidateUserTokens(user.userId);
 
       logger.info('Password reset completed', { userId: user.userId });
-
-      // ADS-597: a password reset invalidates the user's sessions on
-      // the HTTP path (refresh-token family rotation / forced relogin);
-      // tear down any live Socket.IO connections too so an attacker
-      // who'd hijacked a WebSocket can't continue past the reset.
-      disconnectAllSockets(user.userId);
 
       // Log password reset
       await AuditLogService.log({
@@ -782,7 +780,7 @@ Need help? Contact us at support@adoptdontshop.com
         action: 'REFRESH_TOKENS_REVOKED',
         entity: 'User',
         entityId: user.userId,
-        details: { reason: 'password_reset', count: revokedCount[0] },
+        details: { reason: 'password_reset', count: revokedCount },
         userId: user.userId,
       });
 
@@ -1738,6 +1736,12 @@ If this wasn't you, your account may be compromised. Reset your password immedia
     user.backupCodes = backupCodes;
     await user.save();
 
+    // ADS: enabling 2FA is a security-state change. Force-rotate any
+    // access token issued before this point so the user can't keep
+    // riding a pre-2FA session that bypassed the second factor at login
+    // time. Complements pass-10 batch HH's refresh-token revocation.
+    await invalidateUserTokens(user.userId);
+
     await AuditLogService.log({
       userId: user.userId,
       action: 'TWO_FACTOR_ENABLED',
@@ -1762,18 +1766,12 @@ If this wasn't you, your account may be compromised. Reset your password immedia
     user.backupCodes = null;
     await user.save();
 
-    // ADS-589: a 2FA disable downgrades the account's security posture
-    // — revoke every active refresh token so any session that
-    // pre-dates the disable can't continue to refresh.
-    const revokedCount = await RefreshToken.update(
-      { is_revoked: true },
-      { where: { user_id: userId, is_revoked: false } }
-    );
-    invalidateAuthCache(userId);
-
-    // ADS-597: a 2FA disable is a security-state change; force live
-    // sockets to reconnect so they pick up the new state.
-    disconnectAllSockets(user.userId);
+    // ADS-589 / ADS-597: a 2FA disable downgrades the account's
+    // security posture — kick every session (refresh tokens, live
+    // sockets, auth cache) and bump tokens_invalid_before so any
+    // unexpired access token in flight is rejected by the auth
+    // middleware on its next request.
+    const { refreshTokensRevoked: revokedCount } = await invalidateUserTokens(userId);
 
     await AuditLogService.log({
       userId: user.userId,
@@ -1788,7 +1786,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
       action: 'REFRESH_TOKENS_REVOKED',
       entity: 'User',
       entityId: userId,
-      details: { reason: '2fa_disabled', count: revokedCount[0] },
+      details: { reason: '2fa_disabled', count: revokedCount },
     });
 
     loggerHelpers.logSecurity('2FA disabled', { userId: user.userId });

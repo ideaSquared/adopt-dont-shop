@@ -334,6 +334,34 @@ describe('UserService', () => {
 
       expect(vi.mocked(emitAuthRoleChanged)).toHaveBeenCalledWith(user.userId);
     });
+
+    it('stamps tokens_invalid_before on the user row so access tokens issued before the role change are rejected by the auth middleware', async () => {
+      const user = await User.create({
+        email: 'rolechange-invalidates@example.com',
+        password: 'hashedpassword',
+        firstName: 'Test',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-invalidates@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      expect(user.tokensInvalidBefore).toBeFalsy();
+      const before = Date.now();
+
+      await UserService.updateUserRole(user.userId, UserType.RESCUE_STAFF, admin.userId);
+
+      const reloaded = await User.findByPk(user.userId);
+      expect(reloaded?.tokensInvalidBefore).toBeTruthy();
+      expect(reloaded?.tokensInvalidBefore?.getTime() ?? 0).toBeGreaterThanOrEqual(before);
+    });
   });
 
   describe('deactivateUser', () => {
