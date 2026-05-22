@@ -286,7 +286,22 @@ export class ChatController {
       const isAdmin = isAdminRole(req.user!.userType);
       const userRescueId = req.user!.rescueId || undefined;
 
-      const chat = await ChatService.getChatById(chatId, userId, isAdmin, userRescueId);
+      // Messages are paginated to bound memory usage on long chats.
+      // Defaults: limit 50, offset 0; service clamps to max 200.
+      const parsePositiveInt = (raw: unknown): number | undefined => {
+        if (typeof raw !== 'string' || raw.length === 0) {
+          return undefined;
+        }
+        const n = parseInt(raw, 10);
+        return Number.isFinite(n) && n >= 0 ? n : undefined;
+      };
+      const messagesLimit = parsePositiveInt(req.query.messagesLimit);
+      const messagesOffset = parsePositiveInt(req.query.messagesOffset);
+
+      const chat = await ChatService.getChatById(chatId, userId, isAdmin, userRescueId, {
+        limit: messagesLimit,
+        offset: messagesOffset,
+      });
 
       if (!chat) {
         return res.status(404).json({
@@ -295,6 +310,7 @@ export class ChatController {
       }
 
       const chatObj = chat.toJSON();
+      const messagesPagination = chat.messagesPagination;
 
       // Log participants data for debugging
       logger.info('Chat participants data', {
@@ -357,6 +373,8 @@ export class ChatController {
         rescueName: chatObj.rescue?.name || null,
         status: chatObj.status,
         metadata: {},
+        messages: chatObj.Messages ?? [],
+        messagesPagination: messagesPagination ?? { limit: 50, offset: 0, total: 0 },
       };
 
       res.json({
