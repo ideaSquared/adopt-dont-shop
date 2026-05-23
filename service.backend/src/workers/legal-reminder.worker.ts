@@ -54,6 +54,14 @@ export const RunSummarySchema = z.object({
 });
 export type RunSummary = z.infer<typeof RunSummarySchema>;
 
+/**
+ * Defense-in-depth: re-validate job payloads at execution time. The
+ * cron carries no data — `.strict()` keeps it that way so any extra
+ * producer-added fields fail validation rather than being silently
+ * ignored. Mirrors reports.worker.ts.
+ */
+export const LegalReminderCronJobSchema = z.object({}).strict();
+
 export type RunOptions = {
   dryRun: boolean;
   batchSize?: number;
@@ -230,6 +238,14 @@ export const startLegalReminderWorker = (): Worker | null => {
   workerInstance = buildWorker(async job => {
     if (job.name !== LEGAL_REMINDER_CRON_JOB_NAME) {
       return;
+    }
+    const parsed = LegalReminderCronJobSchema.safeParse(job.data);
+    if (!parsed.success) {
+      logger.warn('legal-reminder.worker: rejecting malformed payload', {
+        jobName: job.name,
+        issues: parsed.error.issues.map(i => ({ path: i.path.join('.'), code: i.code })),
+      });
+      throw new Error('Invalid legal reminder cron job payload');
     }
     await runLegalReminderCron({ dryRun: isDryRun() });
   });
