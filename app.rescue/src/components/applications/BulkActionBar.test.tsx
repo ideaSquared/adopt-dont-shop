@@ -181,6 +181,34 @@ describe('BulkActionBar (ADS-642)', () => {
     expect(screen.getByRole('button', { name: 'Withdraw' })).toBeDisabled();
   });
 
+  it('marks the rejection reason input as required and rejects whitespace-only values (UX P0/P1 #9)', () => {
+    render(
+      <BulkActionBar
+        selectedApplications={[buildApp({ id: 'a', stage: 'PENDING' })]}
+        onClearSelection={onClearSelection}
+        onBulkAction={onBulkAction}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }));
+
+    const reasonInput = screen.getByPlaceholderText(/Reason \(required for rejection\)/);
+    const confirmButton = screen.getByRole('button', { name: 'Confirm' });
+
+    // The HTML required attribute is set so the browser enforces it too.
+    expect(reasonInput).toBeRequired();
+    expect(reasonInput).toHaveAttribute('aria-required', 'true');
+
+    // Whitespace-only reasons are still blocked by the trim() guard.
+    fireEvent.change(reasonInput, { target: { value: '   ' } });
+    expect(confirmButton).toBeDisabled();
+
+    fireEvent.change(reasonInput, { target: { value: 'real reason' } });
+    expect(confirmButton).not.toBeDisabled();
+
+    fireEvent.click(confirmButton);
+    expect(onBulkAction).toHaveBeenCalledWith('reject', ['a'], 'real reason');
+  });
+
   it('renders the result summary when provided', () => {
     render(
       <BulkActionBar
