@@ -103,6 +103,7 @@ const EventForm: React.FC<EventFormProps> = ({
               value={formData.name}
               onChange={handleChange}
               required
+              aria-required={true}
               placeholder="e.g., Spring Adoption Fair"
             />
           </div>
@@ -118,6 +119,7 @@ const EventForm: React.FC<EventFormProps> = ({
               value={formData.description}
               onChange={handleChange}
               required
+              aria-required={true}
               placeholder="Provide details about the event..."
             />
           </div>
@@ -134,6 +136,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 value={formData.type}
                 onChange={handleChange}
                 required
+                aria-required={true}
               >
                 <option value="adoption">Adoption Event</option>
                 <option value="fundraising">Fundraising</option>
@@ -172,6 +175,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 value={formData.startDate}
                 onChange={handleChange}
                 required
+                aria-required={true}
               />
             </div>
 
@@ -187,6 +191,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 value={formData.endDate}
                 onChange={handleChange}
                 required
+                aria-required={true}
               />
             </div>
           </div>

@@ -19,3 +19,6 @@ export {
   isSensitiveField,
   enforceSensitiveDenylist,
 } from './config/field-permission-defaults';
+
+// Shared display labels for status enums
+export * from './status-labels';

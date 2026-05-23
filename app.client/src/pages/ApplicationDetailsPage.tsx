@@ -1,5 +1,6 @@
 import { applicationService, Application } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
+import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { useChat } from '@/contexts/ChatContext';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -181,7 +182,7 @@ export const ApplicationDetailsPage: React.FC = () => {
                     : 'default') as 'submitted' | 'approved' | 'rejected' | 'withdrawn' | 'default',
                 })}
               >
-                {application.status.replace('_', ' ')}
+                {applicationStatusLabel(application.status)}
               </span>
             </span>
           </div>
