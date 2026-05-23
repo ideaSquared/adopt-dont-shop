@@ -19,9 +19,10 @@ vi.mock('../../models/AuditLog', () => ({
   withAuditMutationAllowed: vi.fn(),
 }));
 
-vi.mock('../../models/User', () => ({
-  default: { findByPk: vi.fn() },
-}));
+vi.mock('../../models/User', async () => {
+  const actual = await vi.importActual<Record<string, unknown>>('../../models/User');
+  return { ...actual, default: { findByPk: vi.fn() } };
+});
 
 vi.mock('../../services/email.service', () => ({
   default: { sendEmail: vi.fn().mockResolvedValue('email-id-123') },
