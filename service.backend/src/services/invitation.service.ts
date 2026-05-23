@@ -23,6 +23,14 @@ export class InvitationService {
           used: false,
           expiration: { [Op.gt]: new Date() },
         },
+        include: [
+          {
+            model: Rescue,
+            as: 'rescue',
+            attributes: ['rescueId', 'name'],
+            required: false,
+          },
+        ],
       });
 
       return invitation;

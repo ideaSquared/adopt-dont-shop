@@ -22,6 +22,9 @@ const AcceptInvitation: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [invitationEmail, setInvitationEmail] = useState<string>('');
+  const [rescueName, setRescueName] = useState<string | null>(null);
+  const [invitedByName, setInvitedByName] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<AcceptInvitationFormData>({
     firstName: '',
@@ -45,6 +48,9 @@ const AcceptInvitation: React.FC = () => {
         const details = await invitationService.getInvitationDetails(token);
         if (details) {
           setInvitationEmail(details.email);
+          setRescueName(details.rescueName ?? null);
+          setInvitedByName(details.invitedByName ?? null);
+          setRole(details.role ?? null);
         } else {
           setError('Invitation not found or has expired.');
         }
@@ -218,7 +224,21 @@ const AcceptInvitation: React.FC = () => {
         <div className={styles.cardBody}>
           <div className={styles.invitationInfo}>
             <p>
-              <strong>You've been invited to join a rescue organization</strong>
+              <strong>
+                {invitedByName && rescueName ? (
+                  <>
+                    You've been invited by {invitedByName} to join {rescueName}
+                    {role ? <> as {role}</> : null}
+                  </>
+                ) : rescueName ? (
+                  <>
+                    You've been invited to join {rescueName}
+                    {role ? <> as {role}</> : null}
+                  </>
+                ) : (
+                  <>You've been invited to join a rescue organization</>
+                )}
+              </strong>
               You're registering with: {invitationEmail}
             </p>
           </div>

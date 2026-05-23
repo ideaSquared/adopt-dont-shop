@@ -55,3 +55,41 @@ describe('AcceptInvitation autocomplete attributes', () => {
     );
   });
 });
+
+describe('AcceptInvitation invitation context [C2-4]', () => {
+  beforeEach(() => {
+    getInvitationDetailsMock.mockReset();
+    searchParamsValue = new URLSearchParams('?token=token-123');
+  });
+
+  it('shows the inviter, rescue, and role when the backend returns them', async () => {
+    getInvitationDetailsMock.mockResolvedValue({
+      email: 'invitee@example.com',
+      rescueName: 'Happy Tails Rescue',
+      invitedByName: 'Jane Doe',
+      role: 'Volunteer Coordinator',
+    });
+
+    renderWithProviders(<AcceptInvitation />);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/enter your first name/i)).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText(/invited by Jane Doe to join Happy Tails Rescue as Volunteer Coordinator/i)
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the generic copy when the backend omits the new fields', async () => {
+    getInvitationDetailsMock.mockResolvedValue({ email: 'invitee@example.com' });
+
+    renderWithProviders(<AcceptInvitation />);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/enter your first name/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/invited to join a rescue organization/i)).toBeInTheDocument();
+  });
+});

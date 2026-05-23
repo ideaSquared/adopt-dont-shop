@@ -38,10 +38,18 @@ export interface InvitationPayload {
 
 /**
  * Invitation details (public - no auth)
+ *
+ * C2-4: `rescueName`, `invitedByName`, and `role` are surfaced so the
+ * AcceptInvitation page can give the invitee context about who invited
+ * them and where to. All three are optional to remain backward-
+ * compatible with older backend deployments that don't return them.
  */
 export interface InvitationDetails {
   email: string;
   expiresAt: string;
+  rescueName?: string | null;
+  invitedByName?: string | null;
+  role?: string | null;
 }
 
 /**

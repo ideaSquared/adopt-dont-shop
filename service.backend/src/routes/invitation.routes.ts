@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { sensitiveWriteLimiter } from '../middleware/rate-limiter';
 import { InvitationService } from '../services/invitation.service';
+import User from '../models/User';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -109,11 +110,36 @@ router.get(
         });
       }
 
+      // C2-4: surface rescue / inviter / role so the AcceptInvitation
+      // page can show the invitee who invited them and where to. The
+      // `rescue` is an eager-loaded include on the service side; the
+      // `invited_by` column stores a userId with no association on
+      // that FK, so we resolve the name with a separate lookup.
+      const invitationWithRescue = invitation as typeof invitation & {
+        rescue?: { name?: string | null } | null;
+      };
+      const rescueName = invitationWithRescue.rescue?.name ?? null;
+
+      let invitedByName: string | null = null;
+      if (invitation.invited_by) {
+        const inviter = await User.findOne({
+          where: { userId: invitation.invited_by },
+          attributes: ['firstName', 'lastName'],
+        });
+        if (inviter) {
+          const fullName = `${inviter.firstName} ${inviter.lastName}`.trim();
+          invitedByName = fullName.length > 0 ? fullName : null;
+        }
+      }
+
       res.json({
         success: true,
         invitation: {
           email: invitation.email,
           expiresAt: invitation.expiration,
+          rescueName,
+          invitedByName,
+          role: invitation.title ?? null,
         },
       });
     } catch (error) {
