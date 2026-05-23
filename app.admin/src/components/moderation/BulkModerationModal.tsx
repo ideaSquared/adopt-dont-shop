@@ -239,6 +239,7 @@ export const BulkModerationModal: React.FC<BulkModerationModalProps> = ({
                     placeholder='Explain why this bulk action is being taken. The same reason will be recorded on every affected report.'
                     disabled={isLoading}
                     required
+                    aria-required={true}
                   />
                   <span className={styles.helpText}>
                     Recorded on every audit log entry produced by this bulk action.

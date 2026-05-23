@@ -248,6 +248,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
                 onChange={e => setSubject(e.target.value)}
                 placeholder='Email subject...'
                 required
+                aria-required={true}
                 disabled={loading || success}
               />
             </div>
@@ -264,6 +265,7 @@ export const SendEmailModal: React.FC<SendEmailModalProps> = ({
                 onChange={e => setBody(e.target.value)}
                 placeholder='Type your message here...'
                 required
+                aria-required={true}
                 disabled={loading || success}
               />
               <div className={styles.helpText}>Plain text message for custom emails</div>
