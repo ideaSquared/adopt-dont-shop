@@ -48,6 +48,17 @@ describe('Chat-family model defaults', () => {
       expect(attrs.attachments.allowNull).toBe(false);
       expect(Array.isArray(attrs.attachments.defaultValue)).toBe(true);
     });
+
+    it('sequence is a required NOT NULL integer with no model-level default', () => {
+      // Migration 08 owns the (chat_id, sequence) unique index. The
+      // model must NOT supply a default — every write path computes
+      // MAX(sequence) + 1 under a per-chat lock (chat.service). A
+      // silent default of 0 would let a forgotten field insert a row
+      // that collides with the first message in every chat.
+      expect(attrs.sequence).toBeDefined();
+      expect(attrs.sequence.allowNull).toBe(false);
+      expect(attrs.sequence.defaultValue).toBeUndefined();
+    });
   });
 
   describe('Chat', () => {

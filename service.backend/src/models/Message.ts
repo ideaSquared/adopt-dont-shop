@@ -30,6 +30,10 @@ interface MessageAttributes {
   content: string;
   content_format: MessageContentFormat;
   attachments?: MessageAttachment[];
+  // Per-chat monotonic counter assigned at INSERT time under a chat-row
+  // lock (see chat.service.sendMessage). Lets the frontend sort messages
+  // deterministically when Socket.IO arrivals race the REST response.
+  sequence: number;
   // reactions / read_status moved to typed tables (plan 2.1).
   search_vector?: TsVector;
   // Content moderation fields
@@ -68,6 +72,7 @@ export class Message
   public content!: string;
   public content_format!: MessageContentFormat;
   public attachments?: MessageAttachment[];
+  public sequence!: number;
   // reactions / read_status moved to typed tables (plan 2.1) — see
   // MessageReaction and MessageRead. Read-status helpers live in
   // ChatService now.
@@ -158,6 +163,14 @@ Message.init(
         isIn: [Object.values(MessageContentFormat)],
       },
     },
+    sequence: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      // No defaultValue: every write must compute the next sequence
+      // explicitly under the per-chat lock in chat.service.sendMessage.
+      // A model-level default would let a forgotten field silently
+      // insert duplicate-0 rows until the unique index rejected them.
+    },
     attachments: {
       type: getJsonType(),
       allowNull: false,
@@ -242,6 +255,14 @@ Message.init(
       {
         fields: ['chat_id', { name: 'created_at', order: 'DESC' }],
         name: 'messages_chat_created_idx',
+      },
+      // Per-chat monotonic sequence (see migration 08). Unique so a
+      // forgotten lock in any future write path surfaces loudly via a
+      // unique-violation rather than silently corrupting ordering.
+      {
+        fields: ['chat_id', 'sequence'],
+        name: 'messages_chat_sequence_uidx',
+        unique: true,
       },
       ...auditIndexes('messages'),
     ],

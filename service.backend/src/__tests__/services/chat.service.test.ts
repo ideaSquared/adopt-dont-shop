@@ -59,6 +59,7 @@ vi.mock('../../models', () => ({
     findAll: vi.fn(),
     findAndCountAll: vi.fn(),
     count: vi.fn(),
+    max: vi.fn(),
     update: vi.fn(),
   },
   User: {
@@ -134,6 +135,9 @@ vi.mock('../../sequelize', () => {
   const mockTransaction = {
     commit: vi.fn(),
     rollback: vi.fn(),
+    // chat.service.sendMessage uses transaction.LOCK.UPDATE to acquire
+    // a row lock on the chat before computing the next message sequence.
+    LOCK: { UPDATE: 'UPDATE', SHARE: 'SHARE' },
   };
 
   return {
@@ -191,6 +195,9 @@ describe('ChatService', () => {
     (ContentModerationService.isMessageBlocked as vi.Mock).mockReturnValue(false);
     (ContentModerationService.shouldAutoReport as vi.Mock).mockReturnValue(false);
     (moderationService.submitReport as vi.Mock).mockResolvedValue({});
+    // Default: chat has no prior messages so the next sequence is 0.
+    // Tests that exercise sequence-specific behaviour override this.
+    (MockedMessage.max as vi.Mock).mockResolvedValue(null);
   });
 
   describe('Creating chats', () => {
@@ -918,6 +925,172 @@ describe('ChatService', () => {
         ).rejects.toThrow('User is not a participant in this chat');
 
         expect(MockedMessage.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('per-chat monotonic sequence assignment', () => {
+      // Per cross-app audit (third UX pass): chat messages need a
+      // deterministic total order so the frontend can reconcile REST and
+      // Socket.IO arrivals. The write path computes MAX(sequence) + 1
+      // under a SELECT ... FOR UPDATE lock on the chat row.
+      it('assigns sequence 0 for the first message in a chat', async () => {
+        const chatId = 'chat-empty';
+        const senderId = 'user-1';
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          rescue_id: 'r',
+          status: ChatStatus.ACTIVE,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedMessage.max as vi.Mock).mockResolvedValue(null);
+        (MockedMessage.create as vi.Mock).mockResolvedValue({
+          message_id: 'm-1',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'hello',
+        });
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue({
+          message_id: 'm-1',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'hello',
+          Sender: { firstName: 'A' },
+        });
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue([]);
+
+        await ChatService.sendMessage({ chatId, senderId, content: 'hello' });
+
+        expect(MockedMessage.create).toHaveBeenCalledWith(
+          expect.objectContaining({ sequence: 0 }),
+          expect.any(Object)
+        );
+      });
+
+      it('assigns MAX(sequence) + 1 for subsequent messages', async () => {
+        const chatId = 'chat-existing';
+        const senderId = 'user-1';
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          rescue_id: 'r',
+          status: ChatStatus.ACTIVE,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        // Chat already has messages numbered up to 7.
+        (MockedMessage.max as vi.Mock).mockResolvedValue(7);
+        (MockedMessage.create as vi.Mock).mockResolvedValue({
+          message_id: 'm-8',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'eighth',
+        });
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue({
+          message_id: 'm-8',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'eighth',
+          Sender: { firstName: 'A' },
+        });
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue([]);
+
+        await ChatService.sendMessage({ chatId, senderId, content: 'eighth' });
+
+        expect(MockedMessage.create).toHaveBeenCalledWith(
+          expect.objectContaining({ sequence: 8 }),
+          expect.any(Object)
+        );
+      });
+
+      it('locks the chat row before computing the next sequence', async () => {
+        // The SELECT ... FOR UPDATE lock on the chat row is what stops
+        // two concurrent sends from reading the same MAX value and
+        // producing duplicate sequences. Assert the lock is requested.
+        const chatId = 'chat-lock';
+        const senderId = 'user-1';
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          rescue_id: 'r',
+          status: ChatStatus.ACTIVE,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedMessage.max as vi.Mock).mockResolvedValue(null);
+        (MockedMessage.create as vi.Mock).mockResolvedValue({
+          message_id: 'm-1',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'x',
+        });
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue({
+          message_id: 'm-1',
+          Sender: { firstName: 'A' },
+        });
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue([]);
+
+        await ChatService.sendMessage({ chatId, senderId, content: 'x' });
+
+        expect(MockedChat.findByPk).toHaveBeenCalledWith(
+          chatId,
+          expect.objectContaining({ lock: 'UPDATE' })
+        );
+      });
+
+      it('hands out distinct, monotonic sequences across a tight Promise.all of sends in the same chat', async () => {
+        // Backend simulation: each Message.max call returns the count of
+        // previously-resolved Message.create calls. This mirrors how
+        // Postgres + SELECT FOR UPDATE serialize concurrent sends — the
+        // second send's MAX query waits for the first to commit, so it
+        // reads the latest value. Asserts the service produces a
+        // strictly-increasing, gapless 0..N-1 run.
+        const chatId = 'chat-concurrent';
+        const senderId = 'user-1';
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          rescue_id: 'r',
+          status: ChatStatus.ACTIVE,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue([]);
+
+        const committedSequences: number[] = [];
+        // max returns the current count of committed sends − 1 (or null
+        // when none). Each create commits a new sequence before the next
+        // max runs because Promise.all on a single mocked thread does
+        // not actually parallelise — but in production the FOR UPDATE
+        // lock provides the same serialization guarantee.
+        (MockedMessage.max as vi.Mock).mockImplementation(async () => {
+          return committedSequences.length === 0 ? null : Math.max(...committedSequences);
+        });
+        (MockedMessage.create as vi.Mock).mockImplementation(
+          async (attrs: { sequence: number }) => {
+            committedSequences.push(attrs.sequence);
+            return {
+              message_id: `m-${attrs.sequence}`,
+              Sender: { firstName: 'A' },
+            };
+          }
+        );
+        (MockedMessage.findByPk as vi.Mock).mockImplementation(async (id: string) => ({
+          message_id: id,
+          Sender: { firstName: 'A' },
+        }));
+
+        await Promise.all(
+          Array.from({ length: 5 }, (_, i) =>
+            ChatService.sendMessage({ chatId, senderId, content: `msg-${i}` })
+          )
+        );
+
+        const sorted = [...committedSequences].sort((a, b) => a - b);
+        expect(sorted).toEqual([0, 1, 2, 3, 4]);
+        // No duplicates.
+        expect(new Set(committedSequences).size).toBe(5);
       });
     });
   });
