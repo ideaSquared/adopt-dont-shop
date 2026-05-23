@@ -165,6 +165,8 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   }: React.ComponentPropsWithoutRef<'footer'> & { extraLinks?: React.ReactNode }) =>
     React.createElement('footer', props, children, extraLinks),
   InstallPwaBanner: () => null,
+  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  SanctionBanner: () => null,
   SkipLink: ({
     href = '#main-content',
     children = 'Skip to main content',

@@ -195,6 +195,8 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         )
       : null,
   InstallPwaBanner: () => null,
+  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  SanctionBanner: () => null,
   SkipLink: ({
     href = '#main-content',
     children = 'Skip to main content',
