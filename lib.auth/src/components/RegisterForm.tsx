@@ -147,6 +147,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               value={formData.firstName}
               onChange={handleChange}
               error={fieldErrors.firstName}
+              autoComplete="given-name"
               required
             />
           </div>
@@ -158,6 +159,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               value={formData.lastName}
               onChange={handleChange}
               error={fieldErrors.lastName}
+              autoComplete="family-name"
               required
             />
           </div>
@@ -172,6 +174,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             value={formData.email}
             onChange={handleChange}
             error={fieldErrors.email}
+            autoComplete="email"
             required
           />
         </div>
@@ -186,6 +189,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
               value={formData.phoneNumber}
               onChange={handleChange}
               error={fieldErrors.phoneNumber}
+              autoComplete="tel"
               required={requirePhoneNumber}
             />
           </div>
@@ -201,6 +205,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             onChange={handleChange}
             error={fieldErrors.password}
             variant={allRequirementsMet ? 'success' : 'default'}
+            autoComplete="new-password"
             required
           />
           {formData.password && !allRequirementsMet && (
@@ -234,6 +239,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             value={formData.confirmPassword}
             onChange={handleChange}
             error={fieldErrors.confirmPassword}
+            autoComplete="new-password"
             required
           />
         </div>

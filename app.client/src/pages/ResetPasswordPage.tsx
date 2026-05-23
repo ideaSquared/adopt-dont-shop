@@ -170,6 +170,7 @@ export const ResetPasswordPage: React.FC = () => {
               error={errors.password?.message}
               autoFocus
               disabled={!token}
+              autoComplete='new-password'
               {...register('password')}
             />
             <div className={styles.passwordRequirements}>
@@ -191,6 +192,7 @@ export const ResetPasswordPage: React.FC = () => {
               placeholder='Confirm new password'
               error={errors.confirmPassword?.message}
               disabled={!token}
+              autoComplete='new-password'
               {...register('confirmPassword')}
             />
           </div>

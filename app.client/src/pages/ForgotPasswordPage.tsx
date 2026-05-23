@@ -128,6 +128,7 @@ export const ForgotPasswordPage: React.FC = () => {
               placeholder='Enter your email'
               error={errors.email?.message}
               autoFocus
+              autoComplete='email'
               {...register('email')}
             />
           </div>
