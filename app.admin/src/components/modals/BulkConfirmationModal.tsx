@@ -19,6 +19,13 @@ type BulkConfirmationModalProps = {
   reasonPlaceholder?: string;
   isLoading?: boolean;
   resultSummary?: { succeeded: number; failed: number } | null;
+  // UX P2 D: when the bulk action partially failed, give the operator a way
+  // to re-run the action without rebuilding the selection. The backend bulk
+  // endpoints (POST /api/v1/users/bulk-update, etc.) only return aggregate
+  // {success, failed} counts today — there is no per-item failed-IDs payload
+  // — so retry must re-attempt the same userIds the parent originally
+  // submitted. A backend follow-up is required to enable retry-failed-only.
+  onRetry?: () => void | Promise<void>;
 };
 
 const variantIcon: Record<BulkConfirmationVariant, React.ReactNode> = {
@@ -41,6 +48,7 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
   reasonPlaceholder = 'Enter reason...',
   isLoading = false,
   resultSummary,
+  onRetry,
 }) => {
   const [reason, setReason] = useState('');
   const titleId = useId();
@@ -114,11 +122,19 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
 
         <div className={styles.modalBody}>
           {resultSummary ? (
-            <div className={styles.resultBanner({ hasFailures: resultSummary.failed > 0 })}>
-              <FiCheckCircle className={styles.resultIcon} />
-              {resultSummary.succeeded} succeeded
-              {resultSummary.failed > 0 && `, ${resultSummary.failed} failed`}
-            </div>
+            <>
+              <div className={styles.resultBanner({ hasFailures: resultSummary.failed > 0 })}>
+                <FiCheckCircle className={styles.resultIcon} />
+                {resultSummary.succeeded} succeeded
+                {resultSummary.failed > 0 && `, ${resultSummary.failed} failed`}
+              </div>
+              {resultSummary.failed > 0 && (
+                <p className={styles.failureGuidance}>
+                  Some items couldn&apos;t be updated. Close this dialog and check the table for
+                  per-row status, or try the action again.
+                </p>
+              )}
+            </>
           ) : (
             <>
               <p className={styles.description}>{description}</p>
@@ -147,9 +163,16 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
 
         <div className={styles.modalFooter}>
           {resultSummary ? (
-            <Button variant='primary' onClick={onClose}>
-              Done
-            </Button>
+            <>
+              {resultSummary.failed > 0 && onRetry && (
+                <Button variant='outline' onClick={onRetry} disabled={isLoading}>
+                  {isLoading ? 'Retrying...' : 'Try again'}
+                </Button>
+              )}
+              <Button variant='primary' onClick={onClose}>
+                Done
+              </Button>
+            </>
           ) : (
             <>
               <Button variant='outline' onClick={onClose} disabled={isLoading}>

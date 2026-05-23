@@ -180,3 +180,10 @@ export const requiredMark = style({
   color: '#ef4444',
   marginLeft: '0.25rem',
 });
+
+export const failureGuidance = style({
+  margin: '0',
+  fontSize: '0.8125rem',
+  color: '#6b7280',
+  lineHeight: '1.5',
+});

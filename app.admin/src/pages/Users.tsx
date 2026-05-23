@@ -117,6 +117,13 @@ const Users: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  // UX P2 D: keep the last submitted batch around so the "Try again" button on
+  // the result view can re-run the same userIds + reason without the operator
+  // rebuilding the selection. Cleared on close.
+  const [lastBulkSubmission, setLastBulkSubmission] = useState<{
+    userIds: string[];
+    reason?: string;
+  } | null>(null);
   const bulkUpdateUsers = useBulkUpdateUsers();
 
   const { data, isLoading, error, refetch } = useUsers({
@@ -264,21 +271,20 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleBulkConfirm = async (reason?: string) => {
-    if (!bulkAction) {
-      return;
-    }
-
-    const userIds = Array.from(selectedRows);
+  const runBulkAction = async (
+    action: BulkActionType,
+    userIds: string[],
+    reason?: string
+  ): Promise<{ succeeded: number; failed: number }> => {
     let result: { successCount?: number; failedCount?: number; success?: number; failed?: number };
 
-    if (bulkAction === 'activate') {
+    if (action === 'activate') {
       result = await bulkUpdateUsers.mutateAsync({
         userIds,
         updateData: { status: 'active' },
         reason,
       });
-    } else if (bulkAction === 'deactivate') {
+    } else if (action === 'deactivate') {
       result = await bulkUpdateUsers.mutateAsync({
         userIds,
         updateData: { status: 'inactive' },
@@ -293,16 +299,43 @@ const Users: React.FC = () => {
       }));
     }
 
-    setBulkResult({
+    return {
       succeeded: result.successCount ?? result.success ?? 0,
       failed: result.failedCount ?? result.failed ?? 0,
-    });
+    };
+  };
+
+  const handleBulkConfirm = async (reason?: string) => {
+    if (!bulkAction) {
+      return;
+    }
+    const userIds = Array.from(selectedRows);
+    const summary = await runBulkAction(bulkAction, userIds, reason);
+    setBulkResult(summary);
+    setLastBulkSubmission({ userIds, reason });
     setSelectedRows(new Set());
+  };
+
+  // UX P2 D: re-run the entire batch with the same userIds + reason. The backend
+  // bulk endpoints return only aggregate counts, so we cannot retry just the
+  // failed subset without a per-item failed-IDs response shape — that's a
+  // follow-up.
+  const handleBulkRetry = async () => {
+    if (!bulkAction || !lastBulkSubmission) {
+      return;
+    }
+    const summary = await runBulkAction(
+      bulkAction,
+      lastBulkSubmission.userIds,
+      lastBulkSubmission.reason
+    );
+    setBulkResult(summary);
   };
 
   const handleBulkModalClose = () => {
     setBulkAction(null);
     setBulkResult(null);
+    setLastBulkSubmission(null);
   };
 
   if (error) {
@@ -642,6 +675,7 @@ const Users: React.FC = () => {
         }
         isLoading={bulkUpdateUsers.isPending || deleteUser.isPending}
         resultSummary={bulkResult}
+        onRetry={handleBulkRetry}
       />
 
       <ToastContainer position='top-right'>
