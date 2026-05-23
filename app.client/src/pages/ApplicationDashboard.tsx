@@ -1,4 +1,5 @@
 import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { useChat } from '@/contexts/ChatContext';
 import { useUnreadConversations } from '@adopt-dont-shop/lib.chat';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -216,7 +217,7 @@ export const ApplicationDashboard: React.FC = () => {
                     : 'default') as 'submitted' | 'approved' | 'rejected' | 'withdrawn' | 'default',
                 })}
               >
-                {application.status.replace('_', ' ')}
+                {applicationStatusLabel(application.status)}
               </span>
 
               <div className={styles.applicationDetails}>

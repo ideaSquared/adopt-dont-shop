@@ -3,6 +3,7 @@ import * as styles from '../ChatDetailModal.css';
 import { Button, toast } from '@adopt-dont-shop/lib.components';
 import { type Conversation, type Participant } from '@adopt-dont-shop/lib.chat';
 import { moderationService, type Report } from '@adopt-dont-shop/lib.moderation';
+import { reportStatusLabel } from '@adopt-dont-shop/lib.types';
 import { FiFlag, FiFileText, FiInfo, FiAlertTriangle } from 'react-icons/fi';
 
 type ModerationTabProps = {
@@ -120,7 +121,7 @@ export const ModerationTab: React.FC<ModerationTabProps> = ({ chat, chatId }) =>
                               : '#991b1b',
                       }}
                     >
-                      {report.status}
+                      {reportStatusLabel(report.status)}
                     </span>
                   </div>
                   <div className={styles.reportDescription}>
