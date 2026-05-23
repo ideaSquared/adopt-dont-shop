@@ -58,16 +58,16 @@ export const ForgotPasswordPage: React.FC = () => {
         error_message: err instanceof Error ? err.message : 'Unknown error',
       });
 
-      // For security, still show success even on error (don't reveal if email exists)
-      // However, if there's a rate limit or server error, we should show that
-      const error = err as Error & { response?: { status?: number; data?: { message?: string } } };
+      // C2-6: never differentiate 200 / 4xx in the UI — even a distinct
+      // 429 response would let an attacker time-correlate "this email
+      // hit the rate limit" with "this email exists". Show the same
+      // success screen on every response except a genuine 5xx outage,
+      // where there's nothing to enumerate.
+      const error = err as Error & { response?: { status?: number } };
 
-      if (error.response?.status === 429) {
-        setError('Too many requests. Please try again later.');
-      } else if (error.response?.status && error.response.status >= 500) {
+      if (error.response?.status && error.response.status >= 500) {
         setError('Server error. Please try again later.');
       } else {
-        // Don't reveal whether email exists - show success
         setSubmittedEmail(data.email);
         setIsSuccess(true);
       }
