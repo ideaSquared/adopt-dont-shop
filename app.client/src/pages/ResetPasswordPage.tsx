@@ -32,6 +32,12 @@ export const ResetPasswordPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(5);
+  // C2-3: keep the submit disabled until the mount-time token check has
+  // finished. Defaulting to `true` means Enter-to-submit before the
+  // useEffect runs can't fire off a request against a missing/invalid
+  // token; we only flip this to `false` once we've confirmed a token is
+  // present in the URL.
+  const [tokenValidated, setTokenValidated] = useState(false);
   const navigate = useNavigate();
   const { logEvent } = useStatsig();
 
@@ -50,7 +56,10 @@ export const ResetPasswordPage: React.FC = () => {
     if (!token) {
       setError('Invalid or missing reset token. Please request a new password reset link.');
       logEvent('password_reset_token_missing', 1, {});
+      return;
     }
+
+    setTokenValidated(true);
   }, [token, logEvent]);
 
   // Countdown and redirect after successful password reset
@@ -201,7 +210,7 @@ export const ResetPasswordPage: React.FC = () => {
             type='submit'
             size='lg'
             variant='primary'
-            disabled={isLoading || !token}
+            disabled={isLoading || !tokenValidated}
             isFullWidth
           >
             {isLoading ? 'Resetting Password...' : 'Reset Password'}
