@@ -221,18 +221,33 @@ describe('ApplicationDashboard (ADS-634)', () => {
   // value the frontend Application type never emits — so 'withdrawn'
   // applications silently fell through to the 'default' grey badge. Each
   // reachable status now renders its own readable label.
-  it.each(['submitted', 'approved', 'rejected', 'withdrawn'] as const)(
-    'renders the %s status label on the application card',
-    async status => {
-      getUserApplicationsMock.mockResolvedValue([makeApplication({ status })]);
-      getPetByIdMock.mockResolvedValue(makePet());
+  it('renders "Submitted" on a submitted application card', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'submitted' })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+    render(<ApplicationDashboard />);
+    expect(await screen.findByText('Submitted')).toBeInTheDocument();
+  });
 
-      render(<ApplicationDashboard />);
+  it('renders "Approved" on an approved application card', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'approved' })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+    render(<ApplicationDashboard />);
+    expect(await screen.findByText('Approved')).toBeInTheDocument();
+  });
 
-      const label = await screen.findByText(status.replace('_', ' '));
-      expect(label).toBeInTheDocument();
-    }
-  );
+  it('renders "Rejected" on a rejected application card', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'rejected' })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+    render(<ApplicationDashboard />);
+    expect(await screen.findByText('Rejected')).toBeInTheDocument();
+  });
+
+  it('renders "Withdrawn" on a withdrawn application card', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'withdrawn' })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+    render(<ApplicationDashboard />);
+    expect(await screen.findByText('Withdrawn')).toBeInTheDocument();
+  });
 
   // ADS C4 (follow-up to PR #676): while status is still 'submitted', surface
   // the workflow stage so adopters can see e.g. 'home visit scheduled' rather
@@ -262,15 +277,19 @@ describe('ApplicationDashboard (ADS-634)', () => {
     expect(screen.queryByTestId('stage-badge')).not.toBeInTheDocument();
   });
 
-  it.each(['approved', 'rejected', 'withdrawn'] as const)(
-    'does not render a stage badge for terminal status %s even when a stage is present',
-    async status => {
+  it.each([
+    { status: 'approved' as const, label: 'Approved' },
+    { status: 'rejected' as const, label: 'Rejected' },
+    { status: 'withdrawn' as const, label: 'Withdrawn' },
+  ])(
+    'does not render a stage badge for terminal status $status even when a stage is present',
+    async ({ status, label }) => {
       getUserApplicationsMock.mockResolvedValue([makeApplication({ status, stage: 'reviewing' })]);
       getPetByIdMock.mockResolvedValue(makePet());
 
       render(<ApplicationDashboard />);
 
-      await screen.findByText(status);
+      await screen.findByText(label);
       expect(screen.queryByTestId('stage-badge')).not.toBeInTheDocument();
     }
   );

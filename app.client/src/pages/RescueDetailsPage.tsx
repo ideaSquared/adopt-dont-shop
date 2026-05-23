@@ -1,6 +1,7 @@
 import { PetCard } from '@/components/PetCard';
 import { rescueService, petService, Rescue, Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { rescueStatusLabel } from '@adopt-dont-shop/lib.types';
 import { safeHref } from '@adopt-dont-shop/lib.utils';
 import React, { useEffect, useState } from 'react';
 import {
@@ -89,16 +90,6 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
       : 'Individual Rescue';
   };
 
-  const formatRescueStatus = (status: string) => {
-    const statusMap = {
-      pending: 'Pending Verification',
-      verified: 'Verified',
-      suspended: 'Suspended',
-      inactive: 'Inactive',
-    };
-    return statusMap[status as keyof typeof statusMap] || status;
-  };
-
   if (loading) {
     return (
       <div className={styles.pageContainer}>
@@ -144,13 +135,13 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
           {rescue.status && (
             <div className='meta-item'>
               <MdVerified className='icon' />
-              <span>{formatRescueStatus(rescue.status)}</span>
+              <span>{rescueStatusLabel(rescue.status)}</span>
             </div>
           )}
         </div>
         <div className='verification-badge'>
           <Badge variant={rescue.status === 'verified' ? 'success' : 'warning'}>
-            {rescue.status === 'verified' ? '✓ Verified' : formatRescueStatus(rescue.status)}
+            {rescue.status === 'verified' ? '✓ Verified' : rescueStatusLabel(rescue.status)}
           </Badge>
         </div>
         <div className='contact-info'>

@@ -1,6 +1,7 @@
 import React from 'react';
 import * as styles from '../RescueDetailModal.css';
 import { FiMapPin } from 'react-icons/fi';
+import { rescueStatusLabel, type RescueStatusValue } from '@adopt-dont-shop/lib.types';
 import type { AdminRescue } from '@/types/rescue';
 
 type OverviewTabProps = {
@@ -18,14 +19,15 @@ const formatDate = (dateString?: string): string => {
   });
 };
 
-const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: RescueStatusValue) => {
+  const label = rescueStatusLabel(status);
   switch (status) {
     case 'verified':
-      return <span className={styles.badgeSuccess}>Verified</span>;
+      return <span className={styles.badgeSuccess}>{label}</span>;
     case 'pending':
-      return <span className={styles.badgeWarning}>Pending</span>;
+      return <span className={styles.badgeWarning}>{label}</span>;
     default:
-      return <span className={styles.badgeDanger}>{status}</span>;
+      return <span className={styles.badgeDanger}>{label}</span>;
   }
 };
 
