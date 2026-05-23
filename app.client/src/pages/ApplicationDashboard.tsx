@@ -173,7 +173,7 @@ export const ApplicationDashboard: React.FC = () => {
                   )}
                   <div>
                     <h3 className={styles.petDetailsH3}>
-                      {application.pet?.name || 'Pet Name Unavailable'}
+                      {application.pet?.name || 'Unknown pet'}
                     </h3>
                     <p className={styles.petDetailsP}>
                       {application.pet?.breed} • {application.pet?.age_years} years old
