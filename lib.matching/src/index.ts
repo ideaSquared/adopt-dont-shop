@@ -56,4 +56,6 @@ export type MatchTopPick = {
   score: number;
   reasons: ReasonChip[];
   rescueName: string;
+  breedName?: string | null;
+  photoUrl?: string | null;
 };

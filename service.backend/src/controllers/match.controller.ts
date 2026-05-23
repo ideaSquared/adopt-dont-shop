@@ -141,16 +141,25 @@ export class MatchController {
 
       res.status(200).json({
         success: true,
-        data: top.map(({ pet, score, reasons }) => ({
-          petId: pet.petId,
-          name: pet.name,
-          type: pet.type,
-          ageGroup: pet.ageGroup,
-          size: pet.size,
-          score,
-          reasons,
-          rescueName: (pet as Pet & { Rescue?: { name: string } }).Rescue?.name ?? 'Unknown Rescue',
-        })),
+        data: top.map(({ pet, score, reasons }) => {
+          const media = (pet as Pet & { Media?: PetMedia[] }).Media ?? [];
+          const primaryImage =
+            media.find(m => m.is_primary) ??
+            [...media].sort((a, b) => a.order_index - b.order_index)[0];
+          return {
+            petId: pet.petId,
+            name: pet.name,
+            type: pet.type,
+            ageGroup: pet.ageGroup,
+            size: pet.size,
+            score,
+            reasons,
+            rescueName:
+              (pet as Pet & { Rescue?: { name: string } }).Rescue?.name ?? 'Unknown Rescue',
+            breedName: (pet as Pet & { Breed?: { name: string } }).Breed?.name ?? null,
+            photoUrl: primaryImage?.thumbnail_url ?? primaryImage?.url ?? null,
+          };
+        }),
       });
     } catch (err) {
       logger.error('match.top-picks failed', {

@@ -22,11 +22,11 @@ export type MatchReasonChipsProps = {
 };
 
 const VARIANT_BY_KIND: Record<MatchReasonChipKind, BadgeVariant> = {
-  pref_match: 'primary',
+  pref_match: 'success',
   lifestyle: 'success',
   distance: 'info',
-  similar_to_liked: 'secondary',
-  fresh: 'warning',
+  similar_to_liked: 'info',
+  fresh: 'neutral',
 };
 
 export const MatchReasonChips: React.FC<MatchReasonChipsProps> = ({
