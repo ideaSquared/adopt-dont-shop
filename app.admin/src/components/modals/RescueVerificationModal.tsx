@@ -133,6 +133,7 @@ export const RescueVerificationModal: React.FC<RescueVerificationModalProps> = (
                   onChange={e => setRejectionReason(e.target.value)}
                   placeholder='Explain why this rescue is being rejected...'
                   required={!isApproval}
+                  aria-required={!isApproval || undefined}
                   disabled={loading}
                 />
               </div>

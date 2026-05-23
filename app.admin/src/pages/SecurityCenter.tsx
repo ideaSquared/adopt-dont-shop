@@ -419,6 +419,7 @@ const IpRulesTab: React.FC<IpRulesTabProps> = ({ initialIp = '' }) => {
           value={cidr}
           onChange={e => setCidr(e.target.value)}
           required
+          aria-required={true}
         />
         <input
           className={styles.input}
