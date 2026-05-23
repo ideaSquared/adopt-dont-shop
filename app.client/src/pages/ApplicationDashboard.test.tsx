@@ -221,20 +221,25 @@ describe('ApplicationDashboard (ADS-634)', () => {
   // value the frontend Application type never emits — so 'withdrawn'
   // applications silently fell through to the 'default' grey badge. Each
   // reachable status now renders its own readable label.
-  it.each([
-    ['submitted', 'Submitted'],
-    ['approved', 'Approved'],
-    ['rejected', 'Rejected'],
-    ['withdrawn', 'Withdrawn'],
-  ] as const)('renders the %s status label on the application card', async (status, label) => {
-    getUserApplicationsMock.mockResolvedValue([makeApplication({ status })]);
-    getPetByIdMock.mockResolvedValue(makePet());
+  const STATUS_LABEL_CASES = [
+    { status: 'submitted' as const, label: 'Submitted' },
+    { status: 'approved' as const, label: 'Approved' },
+    { status: 'rejected' as const, label: 'Rejected' },
+    { status: 'withdrawn' as const, label: 'Withdrawn' },
+  ];
 
-    render(<ApplicationDashboard />);
+  it.each(STATUS_LABEL_CASES)(
+    'renders the $label status label on the application card',
+    async ({ status, label }) => {
+      getUserApplicationsMock.mockResolvedValue([makeApplication({ status })]);
+      getPetByIdMock.mockResolvedValue(makePet());
 
-    const labelEl = await screen.findByText(label);
-    expect(labelEl).toBeInTheDocument();
-  });
+      render(<ApplicationDashboard />);
+
+      const labelEl = await screen.findByText(label);
+      expect(labelEl).toBeInTheDocument();
+    }
+  );
 
   // UX P2 E: when an application's pet lookup fails or returns no record,
   // the card used to display "Pet Name Unavailable" — a phrase that reads
