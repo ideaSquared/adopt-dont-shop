@@ -23,11 +23,21 @@ export const chatValidation = {
       .isIn(Object.values(ChatType))
       .withMessage(`Type must be one of: ${Object.values(ChatType).join(', ')}`),
     body('participantIds')
+      .optional()
       .isArray({ min: 1, max: CHAT_CONSTANTS.MAX_PARTICIPANTS })
       .withMessage(
         `Participant IDs must be an array with 1-${CHAT_CONSTANTS.MAX_PARTICIPANTS} participants`
       ),
-    body('participantIds.*').isUUID().withMessage('Each participant ID must be a valid UUID'),
+    body('participantIds.*')
+      .optional()
+      .isUUID()
+      .withMessage('Each participant ID must be a valid UUID'),
+    body().custom(value => {
+      if (!value.rescueId && (!value.participantIds || value.participantIds.length === 0)) {
+        throw new Error('Either rescueId or participantIds is required');
+      }
+      return true;
+    }),
     body('title')
       .optional()
       .trim()
