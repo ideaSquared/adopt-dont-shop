@@ -592,6 +592,37 @@ describe('AnalyticsService', () => {
     });
   });
 
+  describe('do-not-track', () => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(Navigator.prototype, 'doNotTrack');
+
+    afterEach(() => {
+      if (originalDescriptor) {
+        Object.defineProperty(Navigator.prototype, 'doNotTrack', originalDescriptor);
+      }
+    });
+
+    it('drops events when navigator.doNotTrack is "1" even with consent granted', async () => {
+      Object.defineProperty(navigator, 'doNotTrack', { value: '1', configurable: true });
+
+      const dntService = new AnalyticsService({ autoTrackPageViews: false });
+      dntService.setConsent({ analytics: true });
+      const dntApi = dntService['apiService'];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Justification: assert outbound traffic via the internal apiService
+      // because the public API silently drops DNT-blocked events.
+      const postSpy = (dntApi as any).post as ReturnType<typeof vi.fn>;
+      postSpy.mockResolvedValue({ success: true });
+
+      await dntService.trackEvent({ category: 'test', action: 'click' });
+      await dntService.trackPageView({ url: 'https://example.com/x', title: 'X' });
+
+      vi.advanceTimersByTime(5000);
+
+      expect(postSpy).not.toHaveBeenCalled();
+      dntService.destroy();
+    });
+  });
+
   describe('healthCheck', () => {
     it('should return true when API is healthy', async () => {
       mockApiService.get.mockResolvedValue({ status: 'ok' });

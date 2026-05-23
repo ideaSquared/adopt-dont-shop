@@ -197,11 +197,25 @@ export class AnalyticsService {
   }
 
   /**
+   * Honour navigator.doNotTrack. DNT is a binary header — `'1'` means
+   * the user explicitly opted out of tracking. Some browsers default
+   * to `'1'`; others leave it undefined. We block only on an explicit
+   * `'1'`, which is the standard pattern.
+   */
+  private isDoNotTrackEnabled(): boolean {
+    return typeof navigator !== 'undefined' && navigator.doNotTrack === '1';
+  }
+
+  /**
    * Track user engagement event
    */
   public async trackEvent(
     event: Omit<UserEngagementEvent, 'sessionId' | 'timestamp'>
   ): Promise<void> {
+    if (this.isDoNotTrackEnabled()) {
+      return;
+    }
+
     if (!this.consentGranted) {
       return;
     }
@@ -234,6 +248,10 @@ export class AnalyticsService {
   public async trackPageView(
     pageView: Omit<PageViewEvent, 'sessionId' | 'timestamp'> | PageViewEvent
   ): Promise<void> {
+    if (this.isDoNotTrackEnabled()) {
+      return;
+    }
+
     if (!this.consentGranted) {
       return;
     }
