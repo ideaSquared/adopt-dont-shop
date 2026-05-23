@@ -1,5 +1,6 @@
 import type { Worker } from 'bullmq';
 import { Op } from 'sequelize';
+import { z } from 'zod';
 import RevokedToken from '../models/RevokedToken';
 import { buildWorker, getReportsQueue, isQueueAvailable } from '../lib/queue';
 import { logger } from '../utils/logger';
@@ -19,6 +20,14 @@ import { logger } from '../utils/logger';
 
 export const REVOKED_TOKENS_PURGE_JOB_NAME = 'auth:revoked-tokens-purge';
 export const REVOKED_TOKENS_PURGE_REPEAT_KEY = 'auth:revoked-tokens-purge:daily';
+
+/**
+ * Defense-in-depth: re-validate job payloads at execution time. The
+ * purge job carries no data — `.strict()` keeps it that way so any
+ * extra producer-added fields fail validation rather than being silently
+ * ignored. Mirrors reports.worker.ts.
+ */
+export const RevokedTokensPurgeJobSchema = z.object({}).strict();
 
 // Default: 04:15 UTC daily — offset from retention's 03:30 so the two
 // don't contend for the same worker slot. Override via env.
@@ -67,6 +76,14 @@ export const startRevokedTokensPurgeWorker = (): Worker | null => {
   workerInstance = buildWorker(async job => {
     if (job.name !== REVOKED_TOKENS_PURGE_JOB_NAME) {
       return;
+    }
+    const parsed = RevokedTokensPurgeJobSchema.safeParse(job.data);
+    if (!parsed.success) {
+      logger.warn('revoked-tokens-purge.job: rejecting malformed payload', {
+        jobName: job.name,
+        issues: parsed.error.issues.map(i => ({ path: i.path.join('.'), code: i.code })),
+      });
+      throw new Error('Invalid revoked-tokens purge job payload');
     }
     const deleted = await purgeExpiredRevokedTokens();
     logger.info('Revoked-tokens purge finished', { deleted });
