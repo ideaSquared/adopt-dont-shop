@@ -234,6 +234,47 @@ describe('ApplicationDashboard (ADS-634)', () => {
     }
   );
 
+  // ADS C4 (follow-up to PR #676): while status is still 'submitted', surface
+  // the workflow stage so adopters can see e.g. 'home visit scheduled' rather
+  // than just 'submitted'. Terminal statuses keep their own badge.
+  it.each([
+    ['pending', 'Application pending'],
+    ['reviewing', 'Application under review'],
+    ['visiting', 'Home visit scheduled'],
+    ['deciding', 'Awaiting decision'],
+  ] as const)('renders the in-progress stage label for stage %s', async (stage, expectedLabel) => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'submitted', stage })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+
+    render(<ApplicationDashboard />);
+
+    const badge = await screen.findByTestId('stage-badge');
+    expect(badge).toHaveTextContent(expectedLabel);
+  });
+
+  it('does not render a stage badge when the application has no stage', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'submitted' })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+
+    render(<ApplicationDashboard />);
+
+    await screen.findByText('Luna');
+    expect(screen.queryByTestId('stage-badge')).not.toBeInTheDocument();
+  });
+
+  it.each(['approved', 'rejected', 'withdrawn'] as const)(
+    'does not render a stage badge for terminal status %s even when a stage is present',
+    async status => {
+      getUserApplicationsMock.mockResolvedValue([makeApplication({ status, stage: 'reviewing' })]);
+      getPetByIdMock.mockResolvedValue(makePet());
+
+      render(<ApplicationDashboard />);
+
+      await screen.findByText(status);
+      expect(screen.queryByTestId('stage-badge')).not.toBeInTheDocument();
+    }
+  );
+
   // UX P2 E: when an application's pet lookup fails or returns no record,
   // the card used to display "Pet Name Unavailable" — a phrase that reads
   // like a system error to applicants. Replace with "Unknown pet" and keep
