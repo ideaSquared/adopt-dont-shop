@@ -96,6 +96,7 @@ export const CheckboxInput = ({
           defaultChecked={defaultChecked}
           disabled={disabled}
           required={required}
+          aria-required={required ? true : undefined}
           data-testid={dataTestId}
           onChange={onChange}
           className={hiddenCheckbox}

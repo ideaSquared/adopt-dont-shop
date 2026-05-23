@@ -175,4 +175,44 @@ describe('Modal', () => {
 
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('includes custom role="button" elements in the focus trap', async () => {
+    const user = userEvent.setup();
+    const handleClose = vi.fn();
+    renderWithTheme(
+      <Modal isOpen={true} onClose={handleClose} showCloseButton={false}>
+        <button>Real button</button>
+        <div role='button' tabIndex={0} data-testid='role-button'>
+          Custom close
+        </div>
+      </Modal>
+    );
+
+    const realButton = screen.getByText('Real button');
+    const customButton = screen.getByTestId('role-button');
+
+    realButton.focus();
+    await user.tab();
+    expect(customButton).toHaveFocus();
+
+    // Tab from the last focusable wraps to the first
+    await user.tab();
+    expect(realButton).toHaveFocus();
+  });
+
+  it('restores focus to the trigger element on close', () => {
+    const handleClose = vi.fn();
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Trigger';
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    const { rerender } = renderWithTheme(<MockModal isOpen={true} onClose={handleClose} />);
+
+    rerender(<MockModal isOpen={false} onClose={handleClose} />);
+
+    expect(document.activeElement).toBe(trigger);
+    document.body.removeChild(trigger);
+  });
 });

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import React from 'react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import React, { useRef } from 'react';
 import { FileUpload } from './FileUpload';
 
 const renderWithTheme = (component: React.ReactElement) => render(component);
@@ -190,5 +190,41 @@ describe('FileUpload', () => {
     rerender(<FileUpload state='warning' data-testid='file-upload' />);
 
     expect(screen.getByTestId('file-upload')).toBeInTheDocument();
+  });
+
+  it('sets aria-required on the hidden file input when required is true', () => {
+    renderWithTheme(<FileUpload required data-testid='file-upload' />);
+    const input = screen
+      .getByTestId('file-upload')
+      .querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).toHaveAttribute('aria-required', 'true');
+  });
+
+  it('does not set aria-required on the hidden file input when required is false', () => {
+    renderWithTheme(<FileUpload data-testid='file-upload' />);
+    const input = screen
+      .getByTestId('file-upload')
+      .querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).not.toHaveAttribute('aria-required');
+  });
+
+  it('forwards ref to the underlying file input', () => {
+    const RefTest: React.FC = () => {
+      const inputRef = useRef<HTMLInputElement>(null);
+      return (
+        <>
+          <FileUpload ref={inputRef} data-testid='file-upload' />
+          <button onClick={() => inputRef.current?.focus()}>focus</button>
+        </>
+      );
+    };
+    renderWithTheme(<RefTest />);
+    const input = screen
+      .getByTestId('file-upload')
+      .querySelector<HTMLInputElement>('input[type="file"]');
+    act(() => {
+      screen.getByText('focus').click();
+    });
+    expect(input).toHaveFocus();
   });
 });
