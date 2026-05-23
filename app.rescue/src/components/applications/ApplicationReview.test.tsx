@@ -443,3 +443,115 @@ describe('ApplicationReview backdrop accessibility (UX P0/P1 #7)', () => {
     expect(screen.queryByRole('button', { name: /close modal/i })).toBeNull();
   });
 });
+
+/**
+ * UX P2 B: cancelling a home visit used to call window.prompt(), which is
+ * not accessible, can't be styled, and is blocked by some browsers. The
+ * cancellation reason is now collected via an inline modal form that matches
+ * the existing reschedule/complete patterns and requires a non-empty reason.
+ */
+describe('ApplicationReview cancel-visit modal (UX P2 B)', () => {
+  const scheduledVisit = {
+    id: 'visit-1',
+    applicationId: 'app-1',
+    scheduledDate: '2026-06-01',
+    scheduledTime: '10:00',
+    assignedStaff: 'staff-1',
+    status: 'scheduled' as const,
+  };
+
+  const renderWithVisit = () => {
+    const onUpdateVisit = vi.fn().mockResolvedValue(undefined);
+    const baseApplication = {
+      id: 'app-1',
+      status: 'submitted',
+      petName: 'Buddy',
+      applicantName: 'John Doe',
+      submittedDaysAgo: 2,
+      stage: 'PENDING' as const,
+    };
+    render(
+      <MemoryRouter>
+        <ApplicationReview
+          application={baseApplication}
+          references={[]}
+          homeVisits={[scheduledVisit]}
+          timeline={[]}
+          loading={false}
+          error={null}
+          onClose={vi.fn()}
+          onStatusUpdate={vi.fn().mockResolvedValue(undefined)}
+          onStageTransition={vi.fn().mockResolvedValue(undefined)}
+          onReferenceUpdate={vi.fn()}
+          onScheduleVisit={vi.fn()}
+          onUpdateVisit={onUpdateVisit}
+          onAddTimelineEvent={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+    return { onUpdateVisit };
+  };
+
+  const openCancelModal = () => {
+    // Switch to Home Visits tab.
+    fireEvent.click(screen.getByRole('button', { name: /home visits/i }));
+    // Click the visit's Cancel Visit button.
+    fireEvent.click(screen.getByRole('button', { name: /cancel visit/i }));
+  };
+
+  let promptSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    promptSpy = vi.spyOn(window, 'prompt').mockImplementation(() => {
+      throw new Error('window.prompt must not be used — use the cancel modal');
+    });
+  });
+
+  it('opens an in-page dialog instead of calling window.prompt', () => {
+    renderWithVisit();
+    openCancelModal();
+
+    expect(screen.getByRole('dialog', { name: /cancel home visit/i })).toBeInTheDocument();
+    expect(promptSpy).not.toHaveBeenCalled();
+  });
+
+  it('blocks submit while the reason is empty or whitespace', () => {
+    const { onUpdateVisit } = renderWithVisit();
+    openCancelModal();
+
+    const submit = screen.getByRole('button', { name: /confirm cancellation/i });
+    expect(submit).toBeDisabled();
+
+    const reasonInput = screen.getByLabelText(/reason for cancellation/i);
+    expect(reasonInput).toBeRequired();
+    expect(reasonInput).toHaveAttribute('aria-required', 'true');
+
+    fireEvent.change(reasonInput, { target: { value: '   ' } });
+    expect(submit).toBeDisabled();
+
+    fireEvent.change(reasonInput, { target: { value: 'Family emergency' } });
+    expect(submit).not.toBeDisabled();
+
+    expect(onUpdateVisit).not.toHaveBeenCalled();
+  });
+
+  it('calls onUpdateVisit with the typed reason when submitted', async () => {
+    const { onUpdateVisit } = renderWithVisit();
+    openCancelModal();
+
+    fireEvent.change(screen.getByLabelText(/reason for cancellation/i), {
+      target: { value: 'Family emergency' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /confirm cancellation/i }));
+
+    await waitFor(() => {
+      expect(onUpdateVisit).toHaveBeenCalledWith(
+        'visit-1',
+        expect.objectContaining({
+          status: 'cancelled',
+          cancelReason: 'Family emergency',
+        })
+      );
+    });
+  });
+});

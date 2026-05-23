@@ -162,6 +162,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     conditions: '',
   });
   const [viewingVisit, setViewingVisit] = useState<string | null>(null);
+  // UX P2 B: replace window.prompt() with a modal for cancel-visit reason.
+  const [cancellingVisit, setCancellingVisit] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   // Helper functions for timeline
   const formatTimelineTimestamp = (timestamp: string) => {
@@ -267,6 +270,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     setEditingVisit(null);
     setCompletingVisit(null);
     setViewingVisit(null);
+    setCancellingVisit(null);
+    setCancelReason('');
     setVisitForm({
       scheduledDate: '',
       scheduledTime: '',
@@ -564,9 +569,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   };
 
   const handleCancelVisit = async (visitId: string) => {
-    const reason = prompt('Please enter a reason for cancelling this visit:');
+    // UX P2 B: validation is enforced by the disabled submit + HTML `required`
+    // attribute on the textarea, but guard here as a belt-and-braces measure
+    // in case a future caller invokes this without going through the modal.
+    const reason = cancelReason.trim();
     if (!reason) {
-      return; // User cancelled or didn't provide reason
+      return;
     }
 
     try {
@@ -575,6 +583,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         cancelReason: reason,
         cancelledAt: new Date().toISOString(),
       });
+
+      setCancellingVisit(null);
+      setCancelReason('');
 
       if (onRefresh) {
         onRefresh();
@@ -1470,7 +1481,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             </button>
                             <button
                               className={styles.button({ variant: 'danger' })}
-                              onClick={() => handleCancelVisit(visit.id)}
+                              onClick={() => {
+                                setCancellingVisit(visit.id);
+                                setCancelReason('');
+                              }}
                             >
                               ❌ Cancel Visit
                             </button>
@@ -1487,7 +1501,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             </button>
                             <button
                               className={styles.button({ variant: 'danger' })}
-                              onClick={() => handleCancelVisit(visit.id)}
+                              onClick={() => {
+                                setCancellingVisit(visit.id);
+                                setCancelReason('');
+                              }}
                             >
                               ❌ Cancel Visit
                             </button>
@@ -1722,6 +1739,61 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                               disabled={!completeForm.outcome || !completeForm.notes}
                             >
                               Complete Visit
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* UX P2 B: Cancel Visit Form (replaces window.prompt) */}
+                      {cancellingVisit === visit.id && (
+                        <div
+                          className={styles.rescheduleForm}
+                          role="dialog"
+                          aria-modal="true"
+                          aria-labelledby={`cancel-visit-title-${visit.id}`}
+                        >
+                          <h5
+                            id={`cancel-visit-title-${visit.id}`}
+                            className={styles.rescheduleTitle}
+                          >
+                            Cancel Home Visit
+                          </h5>
+                          <div className={styles.formRow}>
+                            <div className={styles.formGroup}>
+                              <label
+                                className={styles.formLabel}
+                                htmlFor={`cancel-reason-${visit.id}`}
+                              >
+                                Reason for Cancellation
+                              </label>
+                              <textarea
+                                id={`cancel-reason-${visit.id}`}
+                                className={styles.formTextarea}
+                                value={cancelReason}
+                                onChange={e => setCancelReason(e.target.value)}
+                                placeholder="Why is this visit being cancelled?"
+                                rows={3}
+                                required
+                                aria-required="true"
+                              />
+                            </div>
+                          </div>
+                          <div className={styles.formActions}>
+                            <button
+                              className={styles.button({ variant: 'secondary' })}
+                              onClick={() => {
+                                setCancellingVisit(null);
+                                setCancelReason('');
+                              }}
+                            >
+                              Keep Visit
+                            </button>
+                            <button
+                              className={styles.button({ variant: 'danger' })}
+                              onClick={() => handleCancelVisit(visit.id)}
+                              disabled={!cancelReason.trim()}
+                            >
+                              Confirm Cancellation
                             </button>
                           </div>
                         </div>
