@@ -83,7 +83,7 @@ export const textArea = style({
   resize: 'vertical',
   minHeight: '100px',
   boxSizing: 'border-box',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',

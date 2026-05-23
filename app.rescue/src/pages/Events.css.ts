@@ -74,7 +74,7 @@ export const primaryButton = style({
     '&:active': {
       transform: 'translateY(0)',
     },
-    '&:focus': {
+    '&:focus-visible': {
       outline: 'none',
       boxShadow: `0 0 0 3px ${vars.colors.infoBgSubtle}`,
     },

@@ -326,7 +326,7 @@ export const input = style({
   fontSize: '0.875rem',
   color: '#111827',
   background: '#ffffff',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',

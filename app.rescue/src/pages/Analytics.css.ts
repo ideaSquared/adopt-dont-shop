@@ -73,7 +73,7 @@ export const filterSelect = style({
     '&:hover': {
       borderColor: vars.colors.info,
     },
-    '&:focus': {
+    '&:focus-visible': {
       outline: 'none',
       borderColor: vars.colors.info,
       boxShadow: `0 0 0 3px ${vars.colors.infoBgSubtle}`,

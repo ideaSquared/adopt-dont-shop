@@ -102,7 +102,7 @@ export const select = style({
   ':hover': {
     borderColor: vars.text.muted,
   },
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.info,
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',

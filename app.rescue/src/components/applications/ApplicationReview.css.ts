@@ -422,7 +422,7 @@ export const formSelect = style({
   fontSize: '0.875rem',
   background: 'white',
   transition: 'border-color 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
@@ -440,7 +440,7 @@ export const formTextarea = style({
   fontFamily: 'inherit',
   transition: 'border-color 0.2s ease',
   boxSizing: 'border-box',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
@@ -595,7 +595,7 @@ export const select = style({
   borderRadius: '0.375rem',
   fontSize: '0.875rem',
   background: 'white',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
@@ -611,7 +611,7 @@ export const textArea = style({
   resize: 'vertical',
   minHeight: '100px',
   boxSizing: 'border-box',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
@@ -698,7 +698,7 @@ export const statusSelect = style({
   borderRadius: '0.375rem',
   background: 'white',
   marginBottom: '0.5rem',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)',
@@ -715,7 +715,7 @@ export const notesInput = style({
   minHeight: '80px',
   margin: '0.5rem 0',
   boxSizing: 'border-box',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)',
@@ -770,7 +770,7 @@ export const formInput = style({
   background: 'white',
   transition: 'border-color 0.2s ease',
   boxSizing: 'border-box',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',

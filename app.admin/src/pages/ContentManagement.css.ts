@@ -345,7 +345,7 @@ export const formInput = style({
   border: `1px solid ${vars.border.color.muted}`,
   borderRadius: '8px',
   fontSize: '0.875rem',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.infoHover,
   },
@@ -363,7 +363,7 @@ export const formTextarea = style({
   resize: 'vertical',
   minHeight: '200px',
   fontFamily: 'monospace',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.infoHover,
   },

@@ -121,7 +121,7 @@ export const select = style({
   color: vars.text.primary,
   fontSize: '0.875rem',
   minWidth: '150px',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
   },

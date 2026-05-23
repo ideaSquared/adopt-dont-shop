@@ -138,7 +138,7 @@ export const textArea = style({
   color: '#111827',
   resize: 'vertical',
   boxSizing: 'border-box',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
     boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,

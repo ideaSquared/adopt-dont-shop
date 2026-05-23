@@ -42,7 +42,7 @@ export const select = style({
   color: '#111827',
   cursor: 'pointer',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px #dbeafe',
@@ -60,7 +60,7 @@ export const searchInput = style({
   background: 'white',
   color: '#111827',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px #dbeafe',
@@ -86,7 +86,7 @@ export const viewButton = recipe({
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    ':focus': {
+    ':focus-visible': {
       outline: 'none',
       boxShadow: '0 0 0 3px #dbeafe',
     },
