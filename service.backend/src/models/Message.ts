@@ -166,6 +166,7 @@ Message.init(
     sequence: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      defaultValue: 0,
       // No defaultValue: every write must compute the next sequence
       // explicitly under the per-chat lock in chat.service.sendMessage.
       // A model-level default would let a forgotten field silently
