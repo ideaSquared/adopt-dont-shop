@@ -366,3 +366,29 @@ export type ApplicationProfile = z.infer<typeof ApplicationProfileSchema>;
  */
 export const ApplicationModelShapeSchema = ApplicationProfileSchema.partial();
 export type ApplicationModelShape = z.infer<typeof ApplicationModelShapeSchema>;
+
+// ----- Application drafts -----------------------------------------------
+
+/**
+ * Backend-synced application drafts (replacement for the legacy
+ * localStorage-only flow). Last-write-wins semantics: every PUT
+ * overwrites the entire `answers` blob for the (user, pet) pair.
+ *
+ * `answers` reuses the same caps as the create/update payloads so a
+ * draft can't carry a shape the submit endpoint would refuse.
+ */
+export const ApplicationDraftSchema = z.object({
+  petId: z
+    .string()
+    .min(1)
+    .transform((v) => v as PetId),
+  answers: ApplicationAnswersSchema,
+  updatedAt: z.coerce.date(),
+  expiresAt: z.coerce.date().nullable().optional(),
+});
+export type ApplicationDraft = z.infer<typeof ApplicationDraftSchema>;
+
+export const ApplicationDraftUpsertRequestSchema = z.object({
+  answers: ApplicationAnswersSchema,
+});
+export type ApplicationDraftUpsertRequest = z.infer<typeof ApplicationDraftUpsertRequestSchema>;

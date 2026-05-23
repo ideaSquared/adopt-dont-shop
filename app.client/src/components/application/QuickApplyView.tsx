@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Button } from '@adopt-dont-shop/lib.components';
 import * as styles from './QuickApplyView.css';
 import type { Pet } from '@/services';
-import type { SaveStatus } from '@/hooks/use-auto-save';
+import type { SaveStatus } from '@/hooks/useApplicationDraft';
 import { PetHeroCard } from './PetHeroCard';
 import { PreFilledSectionCard } from './PreFilledSectionCard';
 import { QuestionField, type Question } from './QuestionField';
