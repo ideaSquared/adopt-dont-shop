@@ -24,6 +24,11 @@ export class AnalyticsService {
   private sessionId: string;
   private eventQueue: UserEngagementEvent[] = [];
   private flushTimer: NodeJS.Timeout | null = null;
+  // Fail-closed: events are silently dropped until the host app calls
+  // `setConsent({ analytics: true })`. This mirrors the UserConsent
+  // record for the `analytics` purpose — see lib.legal /
+  // lib.observability consent gates.
+  private consentGranted = false;
 
   constructor(config: Partial<AnalyticsServiceConfig> = {}, apiService?: ApiService) {
     this.config = {
@@ -181,11 +186,26 @@ export class AnalyticsService {
   }
 
   /**
+   * Set the user's analytics consent state. Called by host apps after
+   * loading the user's UserConsent record (or after the cookie banner
+   * resolves). Until this is called with `analytics: true`, all event-
+   * emitting methods silently drop their payloads — including any
+   * userAgent / referrer they would otherwise collect.
+   */
+  public setConsent(consent: { analytics: boolean }): void {
+    this.consentGranted = consent.analytics;
+  }
+
+  /**
    * Track user engagement event
    */
   public async trackEvent(
     event: Omit<UserEngagementEvent, 'sessionId' | 'timestamp'>
   ): Promise<void> {
+    if (!this.consentGranted) {
+      return;
+    }
+
     if (!this.shouldSampleEvent()) {
       return;
     }
@@ -214,6 +234,10 @@ export class AnalyticsService {
   public async trackPageView(
     pageView: Omit<PageViewEvent, 'sessionId' | 'timestamp'> | PageViewEvent
   ): Promise<void> {
+    if (!this.consentGranted) {
+      return;
+    }
+
     if (!this.shouldSampleEvent()) {
       return;
     }

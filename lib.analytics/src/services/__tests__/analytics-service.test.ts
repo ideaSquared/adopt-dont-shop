@@ -62,6 +62,12 @@ describe('AnalyticsService', () => {
       debug: false,
       autoTrackPageViews: false, // Disable for testing
     });
+    // The service ships fail-closed: until the host app calls
+    // setConsent({ analytics: true }) no events fire. Most existing
+    // behaviour tests are written against the "user has accepted
+    // analytics" path, so opt in by default and verify the gate in a
+    // dedicated describe block below.
+    service.setConsent({ analytics: true });
 
     mockApiService = service['apiService'];
   });
@@ -365,6 +371,7 @@ describe('AnalyticsService', () => {
         sampleRate: 1,
         autoTrackPageViews: false,
       });
+      sampledService.setConsent({ analytics: true });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // Justification: shouldSampleEvent is private and cannot be forced to
@@ -517,6 +524,71 @@ describe('AnalyticsService', () => {
 
       expect(newSessionId).not.toBe(originalSessionId);
       expect(newSessionId).toMatch(/^session_\d+_[a-z0-9]+$/);
+    });
+  });
+
+  describe('consent gating', () => {
+    it('drops events when consent has not been granted', async () => {
+      const unconsented = new AnalyticsService({ autoTrackPageViews: false });
+      const unconsentedApi = unconsented['apiService'];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Justification: the internal apiService is what we need to assert
+      // against — the public API has no "did you send the event" hook
+      // because the contract is "events are silently dropped".
+      const postSpy = (unconsentedApi as any).post as ReturnType<typeof vi.fn>;
+      postSpy.mockResolvedValue({ success: true });
+
+      await unconsented.trackEvent({ category: 'test', action: 'click' });
+      await unconsented.trackPageView({ url: 'https://example.com/x', title: 'X' });
+
+      vi.advanceTimersByTime(5000);
+
+      expect(postSpy).not.toHaveBeenCalled();
+      unconsented.destroy();
+    });
+
+    it('sends events once consent is granted', async () => {
+      const gated = new AnalyticsService({ autoTrackPageViews: false });
+      const gatedApi = gated['apiService'];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Justification: same as above — observe outbound calls via the
+      // internal apiService since the public API surface has no
+      // "delivered" callback.
+      const postSpy = (gatedApi as any).post as ReturnType<typeof vi.fn>;
+      postSpy.mockResolvedValue({ success: true });
+
+      gated.setConsent({ analytics: true });
+      await gated.trackEvent({ category: 'test', action: 'click' });
+      vi.advanceTimersByTime(5000);
+
+      expect(postSpy).toHaveBeenCalledWith(
+        '/api/v1/analytics/events/batch',
+        expect.objectContaining({
+          events: expect.arrayContaining([
+            expect.objectContaining({ category: 'test', action: 'click' }),
+          ]),
+        })
+      );
+      gated.destroy();
+    });
+
+    it('stops sending events when consent is revoked', async () => {
+      const gated = new AnalyticsService({ autoTrackPageViews: false });
+      const gatedApi = gated['apiService'];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Justification: same as above — observe outbound calls via the
+      // internal apiService since the public API surface has no
+      // "delivered" callback.
+      const postSpy = (gatedApi as any).post as ReturnType<typeof vi.fn>;
+      postSpy.mockResolvedValue({ success: true });
+
+      gated.setConsent({ analytics: true });
+      gated.setConsent({ analytics: false });
+      await gated.trackEvent({ category: 'test', action: 'click' });
+      vi.advanceTimersByTime(5000);
+
+      expect(postSpy).not.toHaveBeenCalled();
+      gated.destroy();
     });
   });
 
