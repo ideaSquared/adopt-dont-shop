@@ -10,7 +10,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test-utils/render';
 import userEvent from '@testing-library/user-event';
-import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 
 const navigateMock = vi.fn();
 const getUserApplicationsMock = vi.fn();
@@ -222,18 +221,20 @@ describe('ApplicationDashboard (ADS-634)', () => {
   // value the frontend Application type never emits — so 'withdrawn'
   // applications silently fell through to the 'default' grey badge. Each
   // reachable status now renders its own readable label.
-  it.each(['submitted', 'approved', 'rejected', 'withdrawn'] as const)(
-    'renders the %s status label on the application card',
-    async status => {
-      getUserApplicationsMock.mockResolvedValue([makeApplication({ status })]);
-      getPetByIdMock.mockResolvedValue(makePet());
+  it.each([
+    ['submitted', 'Submitted'],
+    ['approved', 'Approved'],
+    ['rejected', 'Rejected'],
+    ['withdrawn', 'Withdrawn'],
+  ] as const)('renders the %s status label on the application card', async (status, label) => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status })]);
+    getPetByIdMock.mockResolvedValue(makePet());
 
-      render(<ApplicationDashboard />);
+    render(<ApplicationDashboard />);
 
-      const label = await screen.findByText(applicationStatusLabel(status));
-      expect(label).toBeInTheDocument();
-    }
-  );
+    const labelEl = await screen.findByText(label);
+    expect(labelEl).toBeInTheDocument();
+  });
 
   // UX P2 E: when an application's pet lookup fails or returns no record,
   // the card used to display "Pet Name Unavailable" — a phrase that reads
