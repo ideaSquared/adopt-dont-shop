@@ -33,7 +33,7 @@ interface MessageAttributes {
   // Per-chat monotonic counter assigned at INSERT time under a chat-row
   // lock (see chat.service.sendMessage). Lets the frontend sort messages
   // deterministically when Socket.IO arrivals race the REST response.
-  sequence: number;
+  sequence?: number;
   // reactions / read_status moved to typed tables (plan 2.1).
   search_vector?: TsVector;
   // Content moderation fields
