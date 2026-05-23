@@ -542,7 +542,12 @@ describe('UserService', () => {
 
       const result = await UserService.bulkUpdateUsers(updates, admin.userId);
 
-      expect(result).toBe(2);
+      expect(result).toMatchObject({
+        success: 2,
+        failed: 0,
+        failedIds: [],
+      });
+      expect(result.results).toHaveLength(2);
 
       // Verify in database
       const updatedUser1 = await User.findByPk(user1.userId);
@@ -724,6 +729,78 @@ describe('UserService', () => {
       );
       expect(bulkCall).toBeDefined();
       expect(bulkCall?.details).toMatchObject({ reason: null });
+    });
+
+    // Per-item retry UI relies on `failedIds` so the operator can re-run
+    // only the rows that failed. Mixed-outcome batches must report the
+    // exact subset that failed, plus a per-id result list.
+    it('returns failedIds and per-id results when some updates fail', async () => {
+      const user = await User.create({
+        email: 'bulk-mixed-success@example.com',
+        password: 'hashedpassword',
+        firstName: 'Mixed',
+        lastName: 'Success',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-mixed@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'Mixed',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      // Use a uuid-shaped id that has no corresponding row so the
+      // per-id update affects 0 rows and the service marks it failed.
+      const missingId = '00000000-0000-0000-0000-000000000000';
+      const updates: BulkUserUpdateData[] = [
+        {
+          userIds: [user.userId, missingId],
+          updates: { status: UserStatus.INACTIVE },
+        },
+      ];
+
+      const result = await UserService.bulkUpdateUsers(updates, admin.userId);
+
+      expect(result.success).toBe(1);
+      expect(result.failed).toBe(1);
+      expect(result.failedIds).toEqual([missingId]);
+      expect(result.results).toHaveLength(2);
+      const successEntry = result.results.find(r => r.id === user.userId);
+      const failureEntry = result.results.find(r => r.id === missingId);
+      expect(successEntry).toMatchObject({ success: true });
+      expect(failureEntry).toMatchObject({ success: false });
+      expect(failureEntry?.error).toBeTruthy();
+    });
+
+    it('returns an empty failedIds array when every update succeeds', async () => {
+      const user = await User.create({
+        email: 'bulk-all-success@example.com',
+        password: 'hashedpassword',
+        firstName: 'All',
+        lastName: 'Success',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-all-success@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'AllSuccess',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      const result = await UserService.bulkUpdateUsers(
+        [{ userIds: [user.userId], updates: { status: UserStatus.INACTIVE } }],
+        admin.userId
+      );
+
+      expect(result.failedIds).toEqual([]);
+      expect(result.success).toBe(1);
+      expect(result.failed).toBe(0);
     });
   });
 
