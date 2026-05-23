@@ -13,14 +13,25 @@ export const table = style({
 
 export const th = style({
   textAlign: 'left',
-  padding: '8px 12px',
+  padding: 0,
   borderBottom: '1px solid var(--color-border, #e5e7eb)',
-  cursor: 'pointer',
   color: 'var(--color-text-muted, #6b7280)',
   fontWeight: 600,
   background: 'var(--color-surface-muted, #f9fafb)',
   position: 'sticky',
   top: 0,
+});
+
+export const sortButton = style({
+  width: '100%',
+  textAlign: 'left',
+  padding: '8px 12px',
+  background: 'transparent',
+  border: 'none',
+  cursor: 'pointer',
+  color: 'inherit',
+  font: 'inherit',
+  fontWeight: 'inherit',
 });
 
 export const td = style({

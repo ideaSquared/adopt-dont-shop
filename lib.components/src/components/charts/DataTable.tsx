@@ -69,17 +69,31 @@ export const DataTable: React.FC<DataTableProps> = ({
         <table className={styles.table}>
           <thead>
             <tr>
-              {columns.map(col => (
-                <th
-                  key={col.key}
-                  className={styles.th}
-                  onClick={() => handleSort(col.key)}
-                  data-testid={`th-${col.key}`}
-                >
-                  {col.label}
-                  {sortKey === col.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
-                </th>
-              ))}
+              {columns.map(col => {
+                const isSorted = sortKey === col.key;
+                const ariaSort: 'ascending' | 'descending' | 'none' = isSorted
+                  ? sortDir === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none';
+                return (
+                  <th
+                    key={col.key}
+                    className={styles.th}
+                    data-testid={`th-${col.key}`}
+                    aria-sort={ariaSort}
+                  >
+                    <button
+                      type='button'
+                      className={styles.sortButton}
+                      onClick={() => handleSort(col.key)}
+                    >
+                      {col.label}
+                      {isSorted ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+                    </button>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
