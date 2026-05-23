@@ -429,8 +429,14 @@ export class RescueApplicationService {
 
         return [];
       } catch (fallbackError) {
+        // UX P2 G: previously returned `[]` here, which was indistinguishable
+        // from "no home visits scheduled" — the UI rendered an empty section
+        // even when the entire request had failed. Re-throw so the consuming
+        // hook can surface an inline error.
         console.error('Error fetching application data for home visit fallback:', fallbackError);
-        return [];
+        throw fallbackError instanceof Error
+          ? fallbackError
+          : new Error('Failed to load home visits');
       }
     }
   }

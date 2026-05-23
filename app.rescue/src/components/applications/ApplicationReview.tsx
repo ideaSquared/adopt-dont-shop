@@ -46,6 +46,8 @@ interface ApplicationReviewProps {
   homeVisits: HomeVisit[];
   timeline: ApplicationTimeline[];
   timelineError?: string | null;
+  referencesError?: string | null;
+  homeVisitsError?: string | null;
   loading: boolean;
   error: string | null;
   onClose: () => void;
@@ -68,6 +70,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   homeVisits,
   timeline,
   timelineError = null,
+  referencesError = null,
+  homeVisitsError = null,
   loading,
   error,
   onClose,
@@ -1132,6 +1136,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           <div className={styles.tabPanel({ active: activeTab === 'references' })}>
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>Reference Checks</h3>
+              {referencesError && (
+                <div className={styles.card} role="alert">
+                  <p>Failed to load reference checks.</p>
+                  <p>{referencesError}</p>
+                </div>
+              )}
               {extractedReferences.length === 0 ? (
                 <div className={styles.card}>
                   <p>No references found for this application.</p>
@@ -1268,6 +1278,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                     : 'Schedule Visit'}
                 </button>
               </div>
+
+              {homeVisitsError && (
+                <div className={styles.card} role="alert">
+                  <p>Failed to load home visits.</p>
+                  <p>{homeVisitsError}</p>
+                </div>
+              )}
 
               {showScheduleVisit && (
                 <div className={styles.scheduleVisitForm}>

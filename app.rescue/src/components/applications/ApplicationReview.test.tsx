@@ -450,6 +450,64 @@ describe('ApplicationReview backdrop accessibility (UX P0/P1 #7)', () => {
  * cancellation reason is now collected via an inline modal form that matches
  * the existing reschedule/complete patterns and requires a non-empty reason.
  */
+/**
+ * UX P2 G: when references or home-visits fail to load, the rest of the
+ * applicant data should still render and the user should see a per-section
+ * inline error rather than a generic "Failed to load application details".
+ */
+describe('ApplicationReview per-section error indicators (UX P2 G)', () => {
+  const renderWithErrors = (errors: { referencesError?: string; homeVisitsError?: string }) => {
+    const baseApplication = {
+      id: 'app-1',
+      status: 'submitted',
+      petName: 'Buddy',
+      applicantName: 'John Doe',
+      submittedDaysAgo: 2,
+      stage: 'PENDING' as const,
+    };
+    render(
+      <MemoryRouter>
+        <ApplicationReview
+          application={baseApplication}
+          references={[]}
+          homeVisits={[]}
+          timeline={[]}
+          referencesError={errors.referencesError ?? null}
+          homeVisitsError={errors.homeVisitsError ?? null}
+          loading={false}
+          error={null}
+          onClose={vi.fn()}
+          onStatusUpdate={vi.fn().mockResolvedValue(undefined)}
+          onStageTransition={vi.fn().mockResolvedValue(undefined)}
+          onReferenceUpdate={vi.fn()}
+          onScheduleVisit={vi.fn()}
+          onUpdateVisit={vi.fn()}
+          onAddTimelineEvent={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+  };
+
+  it('surfaces a references load error without taking down the modal', () => {
+    renderWithErrors({ referencesError: 'network down' });
+
+    fireEvent.click(screen.getByRole('button', { name: /references/i }));
+    const alert = screen.getByText(/failed to load reference checks/i);
+    expect(alert).toBeInTheDocument();
+    // Surrounding screen still renders: the section header is still visible.
+    expect(screen.getByRole('heading', { name: /reference checks/i })).toBeInTheDocument();
+  });
+
+  it('surfaces a home-visits load error without taking down the modal', () => {
+    renderWithErrors({ homeVisitsError: 'network down' });
+
+    fireEvent.click(screen.getByRole('button', { name: /home visits/i }));
+    expect(screen.getByText(/failed to load home visits/i)).toBeInTheDocument();
+    // The "Schedule Visit" affordance still renders.
+    expect(screen.getByRole('button', { name: /schedule visit/i })).toBeInTheDocument();
+  });
+});
+
 describe('ApplicationReview cancel-visit modal (UX P2 B)', () => {
   const scheduledVisit = {
     id: 'visit-1',

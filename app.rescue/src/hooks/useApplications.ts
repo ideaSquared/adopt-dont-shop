@@ -111,6 +111,10 @@ export const useApplicationDetails = (applicationId: string | null) => {
   const [homeVisits, setHomeVisits] = useState<HomeVisit[]>([]);
   const [timeline, setTimeline] = useState<ApplicationTimeline[]>([]);
   const [timelineError, setTimelineError] = useState<string | null>(null);
+  // UX P2 G: surface per-section failures independently so a single broken
+  // sub-resource doesn't blow away the rest of the modal.
+  const [referencesError, setReferencesError] = useState<string | null>(null);
+  const [homeVisitsError, setHomeVisitsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -123,15 +127,25 @@ export const useApplicationDetails = (applicationId: string | null) => {
       setLoading(true);
       setError(null);
       setTimelineError(null);
+      setReferencesError(null);
+      setHomeVisitsError(null);
 
-      // UX P0/P1 #6: timeline failures used to be swallowed inside the
-      // service and returned as `[]`. They now throw, so we handle them
-      // independently here — a failed timeline shouldn't blow away the
-      // applicant data the rest of the modal needs.
-      const [appData, referencesData, visitsData, timelineResult] = await Promise.all([
+      // UX P0/P1 #6 + P2 G: sub-resource failures (timeline, references,
+      // home visits) used to either swallow to `[]` or take down the whole
+      // modal via Promise.all rejection. They now surface per-section so
+      // the rest of the applicant data remains visible.
+      const [appData, referencesResult, visitsResult, timelineResult] = await Promise.all([
         applicationService.getApplicationById(applicationId),
-        applicationService.getReferenceChecks(applicationId),
-        applicationService.getHomeVisits(applicationId),
+        applicationService.getReferenceChecks(applicationId).catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : 'Failed to load reference checks';
+          setReferencesError(message);
+          return [] as ReferenceCheck[];
+        }),
+        applicationService.getHomeVisits(applicationId).catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : 'Failed to load home visits';
+          setHomeVisitsError(message);
+          return [] as HomeVisit[];
+        }),
         applicationService.getApplicationTimeline(applicationId).catch((err: unknown) => {
           const message = err instanceof Error ? err.message : 'Failed to load timeline';
           setTimelineError(message);
@@ -140,8 +154,8 @@ export const useApplicationDetails = (applicationId: string | null) => {
       ]);
 
       setApplication(appData);
-      setReferences(referencesData);
-      setHomeVisits(visitsData);
+      setReferences(referencesResult);
+      setHomeVisits(visitsResult);
       setTimeline(timelineResult);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch application details');
@@ -251,6 +265,8 @@ export const useApplicationDetails = (applicationId: string | null) => {
     homeVisits,
     timeline,
     timelineError,
+    referencesError,
+    homeVisitsError,
     loading,
     error,
     updateReferenceCheck,

@@ -185,3 +185,32 @@ describe('RescueApplicationService.getApplicationTimeline error propagation (UX 
     await expect(service.getApplicationTimeline('app-1')).resolves.toEqual([]);
   });
 });
+
+/**
+ * UX P2 G: getHomeVisits used to fall back to the application data when
+ * the dedicated home-visits endpoint failed; if THAT fallback also failed
+ * it returned `[]` — indistinguishable from "no visits scheduled" — which
+ * masked outages from rescue staff. The double-failure path now propagates
+ * the error so the consuming hook can surface an inline error indicator.
+ */
+describe('RescueApplicationService.getHomeVisits error propagation (UX P2 G)', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rejects when both the dedicated endpoint and the application fallback fail', async () => {
+    apiServiceMock.get
+      .mockRejectedValueOnce(new Error('home-visits endpoint down'))
+      .mockRejectedValueOnce(new Error('application endpoint down'));
+
+    await expect(service.getHomeVisits('app-1')).rejects.toThrow(/application endpoint down/);
+  });
+
+  it('still resolves with an empty array when the dedicated endpoint succeeds with no visits', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({ success: true, visits: [] });
+
+    await expect(service.getHomeVisits('app-1')).resolves.toEqual([]);
+  });
+});
