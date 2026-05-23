@@ -31,6 +31,9 @@ export const floatingContainer = recipe({
     animationName: slideUp,
     animationDuration: '0.5s',
     animationTimingFunction: 'ease-out',
+    // Desktop-only floating CTA. On mobile the "Discover" action is already
+    // surfaced as the first tab in BottomTabBar, so we hide this nudge to
+    // avoid duplication and to keep clear of the bottom nav.
     '@media': {
       '(max-width: 768px)': {
         display: 'none',
