@@ -19,6 +19,7 @@ export const Button = ({
   className,
   onClick,
   ref,
+  type = 'button',
   ...props
 }: ButtonProps) => {
   const effectiveStartIcon = startIcon ?? leftIcon;
@@ -51,7 +52,7 @@ export const Button = ({
       onClick={handleClick}
       aria-disabled={disabled || isLoading}
       aria-busy={isLoading}
-      type='button'
+      type={type}
       {...props}
     >
       {effectiveStartIcon && !isLoading && (

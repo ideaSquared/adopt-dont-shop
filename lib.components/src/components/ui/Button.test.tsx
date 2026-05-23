@@ -84,4 +84,22 @@ describe('Button', () => {
 
     expect(handleClick).not.toHaveBeenCalled();
   });
+
+  it('defaults to type="button"', () => {
+    renderWithTheme(<Button>Default</Button>);
+    const button = screen.getByRole('button', { name: /default/i });
+    expect(button).toHaveAttribute('type', 'button');
+  });
+
+  it('honours an explicit type="submit"', () => {
+    renderWithTheme(<Button type='submit'>Submit</Button>);
+    const button = screen.getByRole('button', { name: /submit/i });
+    expect(button).toHaveAttribute('type', 'submit');
+  });
+
+  it('honours an explicit type="reset"', () => {
+    renderWithTheme(<Button type='reset'>Reset</Button>);
+    const button = screen.getByRole('button', { name: /reset/i });
+    expect(button).toHaveAttribute('type', 'reset');
+  });
 });
