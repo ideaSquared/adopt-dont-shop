@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useRealtimeAnalytics } from '@adopt-dont-shop/lib.analytics';
 import { RescueApplicationService } from '../services/applicationService';
 import type {
   ApplicationListItem,
@@ -87,6 +88,13 @@ export const useApplications = () => {
   useEffect(() => {
     fetchApplications();
   }, [fetchApplications]);
+
+  // ADS C4-6: live-update the application list when the backend emits a
+  // new submission or status change for this rescue. Both events trigger
+  // the same plain refetch — no optimistic patching — so the list stays
+  // consistent with the server.
+  useRealtimeAnalytics('application_created', fetchApplications);
+  useRealtimeAnalytics('application_updated', fetchApplications);
 
   return {
     applications,

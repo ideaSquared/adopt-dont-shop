@@ -42,7 +42,7 @@ import emailService from './email.service';
 import { NotificationService } from './notification.service';
 import { NotificationType } from '../models/Notification';
 import { TimelineEventType } from '../models/ApplicationTimeline';
-import { emitToUser } from '../socket/socket-registry';
+import { emitToUser, emitToRescue } from '../socket/socket-registry';
 import { JsonObject, JsonValue } from '../types/common';
 
 import {
@@ -301,7 +301,7 @@ export class ApplicationService {
         throw new Error('User not found');
       }
 
-      return await sequelize.transaction(async t => {
+      const result = await sequelize.transaction(async t => {
         // Lock the pet row to prevent concurrent applications racing on status
         const pet = await Pet.findByPk(applicationData.petId, {
           transaction: t,
@@ -476,6 +476,16 @@ export class ApplicationService {
           answers: incomingAnswers,
         };
       });
+
+      // ADS C4-6: notify the rescue's live application list that a new
+      // submission landed so the rescue dashboard can refetch immediately.
+      if (result.rescueId && result.applicationId) {
+        emitToRescue(result.rescueId, 'application_created', {
+          applicationId: result.applicationId,
+        });
+      }
+
+      return result;
     } catch (error) {
       // Race condition safety net: if two concurrent requests both pass the
       // pre-flight findOne check, the DB unique index rejects the second
@@ -1236,6 +1246,12 @@ export class ApplicationService {
         status: application.status,
         stage: application.stage,
         updatedAt: application.updatedAt,
+      });
+
+      // ADS C4-6: also broadcast to the rescue's live application list so
+      // staff dashboards refetch without polling.
+      emitToRescue(application.rescueId, 'application_updated', {
+        applicationId,
       });
 
       return {
