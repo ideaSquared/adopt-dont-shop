@@ -1998,13 +1998,14 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
       {/* Visit Details Modal */}
       {viewingVisit && homeVisits.find(v => v.id === viewingVisit) && (
+        // UX P2 I: backdrop is a click-target convenience, not an interactive
+        // control — the explicit × close button below is the accessible
+        // affordance. Matches the other modal-backdrop patterns in this file.
         <div
           className={styles.visitDetailsModal}
           onClick={e => e.target === e.currentTarget && setViewingVisit(null)}
           onKeyDown={e => e.key === 'Escape' && setViewingVisit(null)}
-          role="button"
-          tabIndex={-1}
-          aria-label="Close details"
+          role="presentation"
         >
           <div className={styles.visitDetailsContent}>
             <div className={styles.visitDetailsHeader}>

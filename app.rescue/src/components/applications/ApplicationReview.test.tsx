@@ -117,6 +117,7 @@ vi.mock('./ApplicationReview.css', () => {
     'visitDetailsModal',
     'visitHeader',
     'visitInfo',
+    'visitDetailsBody',
     'visitNotes',
     'visitOutcome',
     'visitStaff',
@@ -434,13 +435,58 @@ describe('ApplicationReview cross-links (ADS-644)', () => {
  * button to screen readers — the real close button inside the modal is the
  * accessible affordance. The backdrop should be `role="presentation"`.
  */
-describe('ApplicationReview backdrop accessibility (UX P0/P1 #7)', () => {
+describe('ApplicationReview backdrop accessibility (UX P0/P1 #7 + UX P2 I)', () => {
   it('renders the modal backdrop without role="button"', () => {
     renderReview();
 
     // No button on the page should be labelled "Close modal" — the only
     // close affordance is the explicit Close button inside the modal.
     expect(screen.queryByRole('button', { name: /close modal/i })).toBeNull();
+  });
+
+  it('renders the visit-details backdrop without role="button" (UX P2 I)', () => {
+    const completedVisit = {
+      id: 'visit-1',
+      applicationId: 'app-1',
+      scheduledDate: '2026-06-01',
+      scheduledTime: '10:00',
+      assignedStaff: 'staff-1',
+      status: 'completed' as const,
+      outcome: 'approved' as const,
+    };
+    const baseApplication = {
+      id: 'app-1',
+      status: 'submitted',
+      petName: 'Buddy',
+      applicantName: 'John Doe',
+      submittedDaysAgo: 2,
+      stage: 'PENDING' as const,
+    };
+    render(
+      <MemoryRouter>
+        <ApplicationReview
+          application={baseApplication}
+          references={[]}
+          homeVisits={[completedVisit]}
+          timeline={[]}
+          loading={false}
+          error={null}
+          onClose={vi.fn()}
+          onStatusUpdate={vi.fn().mockResolvedValue(undefined)}
+          onStageTransition={vi.fn().mockResolvedValue(undefined)}
+          onReferenceUpdate={vi.fn()}
+          onScheduleVisit={vi.fn()}
+          onUpdateVisit={vi.fn()}
+          onAddTimelineEvent={vi.fn()}
+        />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /home visits/i }));
+    fireEvent.click(screen.getByRole('button', { name: /view details/i }));
+
+    // The "Close details" backdrop label should no longer be announced as a button.
+    expect(screen.queryByRole('button', { name: /close details/i })).toBeNull();
   });
 });
 

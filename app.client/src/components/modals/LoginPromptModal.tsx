@@ -40,13 +40,15 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
   };
 
   return (
+    // UX P2 I: backdrop is a click-target convenience, not an interactive
+    // control — the accessible close affordance is the ✕ button inside the
+    // modal content.
     <div
       className={styles.modalOverlay({ isOpen })}
       onClick={onClose}
-      role='button'
-      tabIndex={0}
+      role='presentation'
       onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+        if (e.key === 'Escape') {
           onClose();
         }
       }}

@@ -67,6 +67,9 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
   };
 
   return (
+    // UX P2 I: the backdrop is a click-target convenience, not an interactive
+    // control — the accessible close affordance is the ✕ button below.
+    // role="presentation" matches the sibling modal patterns.
     <div
       className={styles.formOverlay}
       onClick={e => {
@@ -75,9 +78,7 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
         }
       }}
       onKeyDown={e => e.key === 'Escape' && onCancel()}
-      role="button"
-      tabIndex={-1}
-      aria-label="Close modal"
+      role="presentation"
     >
       <div className={styles.formModal}>
         <div className={styles.modalHeader}>

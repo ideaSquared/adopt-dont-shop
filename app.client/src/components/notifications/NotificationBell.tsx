@@ -193,33 +193,33 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
       </div>
 
       {/* Overlay for mobile */}
+      {/* UX P2 I: backdrop is a click-target convenience, not an interactive
+          control — the accessible close affordance is the bell button itself. */}
       <div
         className={styles.overlay({ isOpen })}
         onClick={() => setIsOpen(false)}
-        role='button'
-        tabIndex={0}
+        role='presentation'
         onKeyDown={e => {
           if (e.key === 'Escape') {
             setIsOpen(false);
           }
         }}
-        aria-label='Close notifications'
       />
 
       {/* Full Notification Center Modal */}
       {showFullCenter && (
         <>
+          {/* UX P2 I: backdrop is a click-target convenience, not an interactive
+              control — the explicit close affordance lives inside fullCenterModal. */}
           <div
             className={styles.overlay({ isOpen: true })}
             onClick={closeFullCenter}
-            role='button'
-            tabIndex={0}
+            role='presentation'
             onKeyDown={e => {
               if (e.key === 'Escape') {
                 closeFullCenter();
               }
             }}
-            aria-label='Close notification center'
           />
           <div className={styles.fullCenterModal}>
             <NotificationCenterComponent onClose={closeFullCenter} />
