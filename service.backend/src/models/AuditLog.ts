@@ -136,6 +136,10 @@ AuditLog.init(
         name: 'audit_logs_user_idx',
         fields: ['user'],
       },
+      {
+        name: 'audit_logs_login_failures_idx',
+        fields: ['action', 'status', { name: 'timestamp', order: 'DESC' }],
+      },
     ],
     hooks: {
       beforeUpdate: () => guard('UPDATE'),
