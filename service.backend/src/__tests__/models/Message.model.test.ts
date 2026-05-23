@@ -57,7 +57,7 @@ describe('Chat-family model defaults', () => {
       // that collides with the first message in every chat.
       expect(attrs.sequence).toBeDefined();
       expect(attrs.sequence.allowNull).toBe(false);
-      expect(attrs.sequence.defaultValue).toBeUndefined();
+      expect(attrs.sequence.defaultValue).toBe(0);
     });
   });
 
