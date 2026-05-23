@@ -1,7 +1,10 @@
-import React, { createContext, ReactNode, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useEffect, useRef, useState } from 'react';
 import { apiService } from '@adopt-dont-shop/lib.api';
+import { toast } from '@adopt-dont-shop/lib.components';
 import { authService } from '../services/auth-service';
 import { LoginRequest, RegisterRequest, User, STORAGE_KEYS } from '../types';
+
+const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please log in again.';
 
 export interface AuthContextType {
   user: User | null;
@@ -59,6 +62,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // C2-5: keep the latest user reference accessible inside the stable
+  // onUnauthorized callback registered with apiService. We only want
+  // to surface the session-expired toast for users who were actually
+  // signed in — a 401 returned to the login form is "bad credentials",
+  // not session expiry, and that flow shows its own error.
+  const sessionUserRef = useRef<User | null>(null);
+  useEffect(() => {
+    sessionUserRef.current = user;
+  }, [user]);
 
   // Fire a single post-authentication signal so consuming apps can run
   // session-scoped setup (e.g. initialize notifications) for both fresh
@@ -142,6 +154,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   useEffect(() => {
     apiService.updateConfig({
       onUnauthorized: () => {
+        // C2-5: only surface the toast when the user was actually
+        // signed in (using the ref so the latest value is read inside
+        // this stable callback). Showing the toast on the unauthed
+        // login screen would be confusing — the cause there is bad
+        // credentials, not session expiry.
+        if (sessionUserRef.current) {
+          toast.error(SESSION_EXPIRED_MESSAGE);
+        }
         authService.clearTokens();
         setUser(null);
       },
