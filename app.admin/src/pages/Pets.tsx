@@ -282,6 +282,7 @@ const Pets: React.FC = () => {
         columns={columns}
         data={pets}
         loading={isLoading}
+        error={error instanceof Error ? error.message : null}
         emptyMessage='No pets found matching your criteria'
         currentPage={page}
         totalPages={totalPages}
