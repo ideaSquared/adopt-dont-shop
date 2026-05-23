@@ -655,6 +655,24 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                           >
                             Make primary
                           </button>
+                          {/* Keyboard-accessible reorder controls — the drag handlers
+                              above are mouse-only, so AT users need explicit buttons. */}
+                          <button
+                            type="button"
+                            onClick={() => reorderImages(index, index - 1)}
+                            disabled={index === 0 || img.status !== 'uploaded'}
+                            aria-label={`Move up: ${img.filename}`}
+                          >
+                            Move up
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => reorderImages(index, index + 1)}
+                            disabled={index === images.length - 1 || img.status !== 'uploaded'}
+                            aria-label={`Move down: ${img.filename}`}
+                          >
+                            Move down
+                          </button>
                           <button
                             type="button"
                             onClick={() => removeImage(img.localId)}

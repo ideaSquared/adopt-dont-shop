@@ -105,7 +105,7 @@ export const select = style({
   background: '#ffffff',
   color: '#111827',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
@@ -124,7 +124,7 @@ export const textArea = style({
   resize: 'vertical',
   fontFamily: 'inherit',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
@@ -140,7 +140,7 @@ export const input = style({
   background: '#ffffff',
   color: '#111827',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',

@@ -393,7 +393,7 @@ export const textArea = style({
   fontFamily: 'inherit',
   resize: 'vertical',
   marginBottom: '1.5rem',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',

@@ -83,6 +83,13 @@ describe('AppShell', () => {
     expect(screen.getByTestId('swipe-fab')).toBeInTheDocument();
   });
 
+  it('renders a skip-to-main-content link pointing at the main region', () => {
+    renderShell();
+    const skip = screen.getByRole('link', { name: /skip to main content/i });
+    expect(skip).toHaveAttribute('href', '#main-content');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
+  });
+
   it('clears the stored consent record when the footer "Manage cookies" link is clicked', async () => {
     window.localStorage.setItem(
       COOKIE_CONSENT_STORAGE_KEY,

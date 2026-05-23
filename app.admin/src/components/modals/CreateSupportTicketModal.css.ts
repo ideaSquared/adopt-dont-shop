@@ -30,7 +30,7 @@ export const select = style({
   ':hover': {
     borderColor: '#9ca3af',
   },
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
@@ -51,7 +51,7 @@ export const textArea = style({
   ':hover': {
     borderColor: '#9ca3af',
   },
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',

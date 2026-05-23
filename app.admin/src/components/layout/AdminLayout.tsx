@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SkipLink } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
@@ -17,9 +18,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   return (
     <div className={styles.layoutContainer}>
-      <a href='#main-content' className={styles.skipLink}>
-        Skip to main content
-      </a>
+      <SkipLink />
       <AdminSidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
       <main className={styles.mainContent({ sidebarCollapsed })}>
         <AdminHeader sidebarCollapsed={sidebarCollapsed} />

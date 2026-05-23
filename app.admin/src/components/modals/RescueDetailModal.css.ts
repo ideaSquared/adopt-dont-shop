@@ -41,8 +41,9 @@ export const closeButton = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: '36px',
-  height: '36px',
+  // WCAG 2.5.5 AA: 44x44 minimum touch target.
+  minWidth: '44px',
+  minHeight: '44px',
   border: 'none',
   borderRadius: '8px',
   background: '#f3f4f6',
@@ -325,7 +326,7 @@ export const input = style({
   fontSize: '0.875rem',
   color: '#111827',
   background: '#ffffff',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',

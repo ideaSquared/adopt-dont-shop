@@ -128,7 +128,7 @@ export const select = style({
   ':hover': {
     borderColor: '#9ca3af',
   },
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
     boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,

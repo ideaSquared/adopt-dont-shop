@@ -149,12 +149,12 @@ globalStyle(`${filterGroup} input`, {
   fontSize: '0.9rem',
 });
 
-globalStyle(`${filterGroup} select:focus`, {
+globalStyle(`${filterGroup} select:focus-visible`, {
   outline: 'none',
   borderColor: '#4ecdc4',
 });
 
-globalStyle(`${filterGroup} input:focus`, {
+globalStyle(`${filterGroup} input:focus-visible`, {
   outline: 'none',
   borderColor: '#4ecdc4',
 });

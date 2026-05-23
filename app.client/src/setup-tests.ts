@@ -165,6 +165,13 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   }: React.ComponentPropsWithoutRef<'footer'> & { extraLinks?: React.ReactNode }) =>
     React.createElement('footer', props, children, extraLinks),
   InstallPwaBanner: () => null,
+  SkipLink: ({
+    href = '#main-content',
+    children = 'Skip to main content',
+  }: {
+    href?: string;
+    children?: React.ReactNode;
+  }) => React.createElement('a', { href }, children),
   TextInput: ({
     label,
     id,

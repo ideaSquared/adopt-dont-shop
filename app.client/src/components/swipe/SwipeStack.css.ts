@@ -75,5 +75,6 @@ export const skeletonCard = style({
       maxWidth: 'min(92vw, 420px)',
       height: 'min(70vh, 640px)',
     },
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
 });

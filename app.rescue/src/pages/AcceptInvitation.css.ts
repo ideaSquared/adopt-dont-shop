@@ -93,7 +93,7 @@ export const formInput = style({
   transition: 'border-color 0.2s ease',
   boxSizing: 'border-box',
   selectors: {
-    '&:focus': {
+    '&:focus-visible': {
       outline: 'none',
       borderColor: vars.colors.primary,
     },
@@ -107,7 +107,7 @@ export const formInput = style({
 export const formInputError = style({
   borderColor: vars.colors.dangerHover,
   selectors: {
-    '&:focus': {
+    '&:focus-visible': {
       outline: 'none',
       borderColor: vars.colors.dangerHover,
     },
