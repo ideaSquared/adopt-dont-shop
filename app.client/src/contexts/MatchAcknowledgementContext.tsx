@@ -1,6 +1,10 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import {
+  useRealtimeAnalytics,
+  type ApplicationStatusChangedPayload,
+} from '@adopt-dont-shop/lib.analytics';
+import {
   applicationService,
   petService,
   type Application,
@@ -171,6 +175,18 @@ export const MatchAcknowledgementProvider = ({ children }: MatchAcknowledgementP
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [isAuthenticated, user, checkForMatches]);
+
+  // ADS C4-5: subscribe to backend application_status_changed events so a
+  // status transition surfaces the match modal immediately instead of
+  // waiting up to 60s for the next poll. The polling above stays in
+  // place as a safety net for disconnected sockets / dropped events.
+  const handleStatusChanged = useCallback(
+    (_payload: ApplicationStatusChangedPayload) => {
+      void checkForMatches();
+    },
+    [checkForMatches]
+  );
+  useRealtimeAnalytics('application_status_changed', handleStatusChanged);
 
   const value = useMemo<MatchAcknowledgementContextValue>(
     () => ({

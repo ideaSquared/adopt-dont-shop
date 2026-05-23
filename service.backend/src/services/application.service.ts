@@ -42,6 +42,7 @@ import emailService from './email.service';
 import { NotificationService } from './notification.service';
 import { NotificationType } from '../models/Notification';
 import { TimelineEventType } from '../models/ApplicationTimeline';
+import { emitToUser } from '../socket/socket-registry';
 import { JsonObject, JsonValue } from '../types/common';
 
 import {
@@ -1226,6 +1227,17 @@ export class ApplicationService {
       }
 
       await application.reload();
+
+      // ADS C4-5: push the status change to the applicant's personal
+      // user:{id} room so an open ApplicationDashboard / Match flow
+      // doesn't have to wait for the 60s poll.
+      emitToUser(application.userId, 'application_status_changed', {
+        applicationId,
+        status: application.status,
+        stage: application.stage,
+        updatedAt: application.updatedAt,
+      });
+
       return {
         ...(application.toJSON() as ApplicationData),
         answers: await loadAnswersJson(applicationId),

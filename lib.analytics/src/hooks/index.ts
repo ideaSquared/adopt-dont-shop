@@ -24,4 +24,7 @@ export type {
   AnalyticsInvalidatePayload,
   AnalyticsMetricUpdatePayload,
   ReportsScheduledRunCompletePayload,
+  ApplicationStatusChangedPayload,
+  ApplicationListChangePayload,
+  RescueVerifiedPayload,
 } from './useRealtimeAnalytics';
