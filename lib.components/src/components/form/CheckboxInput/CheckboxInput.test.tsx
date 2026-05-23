@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import React, { useRef } from 'react';
 import { CheckboxInput } from './CheckboxInput';
 
 const renderWithTheme = (component: React.ReactElement) => render(component);
@@ -69,5 +69,35 @@ describe('CheckboxInput', () => {
     renderWithTheme(<CheckboxInput indeterminate />);
     const checkbox = screen.getByRole('checkbox');
     expect(checkbox).toBeInTheDocument();
+  });
+
+  it('sets aria-required when required is true', () => {
+    renderWithTheme(<CheckboxInput required />);
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).toHaveAttribute('aria-required', 'true');
+  });
+
+  it('does not set aria-required when required is false', () => {
+    renderWithTheme(<CheckboxInput />);
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).not.toHaveAttribute('aria-required');
+  });
+
+  it('forwards ref to the underlying checkbox input', () => {
+    const RefTest: React.FC = () => {
+      const inputRef = useRef<HTMLInputElement>(null);
+      return (
+        <>
+          <CheckboxInput ref={inputRef} data-testid='ref-checkbox' />
+          <button onClick={() => inputRef.current?.focus()}>focus</button>
+        </>
+      );
+    };
+    renderWithTheme(<RefTest />);
+    const checkbox = screen.getByTestId('ref-checkbox');
+    act(() => {
+      screen.getByText('focus').click();
+    });
+    expect(checkbox).toHaveFocus();
   });
 });

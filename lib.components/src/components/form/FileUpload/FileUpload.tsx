@@ -26,6 +26,7 @@ export interface FileUploadProps {
   onFileRemove?: (index: number) => void;
   onError?: (error: string) => void;
   files?: File[];
+  ref?: React.Ref<HTMLInputElement>;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -72,9 +73,19 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   onFileRemove,
   onError,
   files = [],
+  ref,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const combinedInputRef = (node: HTMLInputElement | null) => {
+    (inputRef as React.MutableRefObject<HTMLInputElement | null>).current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
+    }
+  };
 
   const validateFiles = useCallback(
     (fileList: FileList): File[] => {
@@ -207,12 +218,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       )}
 
       <input
-        ref={inputRef}
+        ref={combinedInputRef}
         className={styles.hiddenInput}
         type='file'
         accept={accept}
         multiple={multiple}
         disabled={disabled}
+        required={required}
+        aria-required={required ? true : undefined}
         onChange={handleInputChange}
       />
 

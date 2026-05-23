@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import React, { useRef } from 'react';
 import { TextArea } from './TextArea';
 
 const renderWithTheme = (component: React.ReactElement) => render(component);
@@ -98,6 +98,36 @@ describe('TextArea', () => {
     renderWithTheme(<TextArea autoResize />);
     const textarea = screen.getByRole('textbox');
     expect(textarea).toBeInTheDocument();
+  });
+
+  it('sets aria-required when required is true', () => {
+    renderWithTheme(<TextArea required />);
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).toHaveAttribute('aria-required', 'true');
+  });
+
+  it('does not set aria-required when required is false', () => {
+    renderWithTheme(<TextArea />);
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).not.toHaveAttribute('aria-required');
+  });
+
+  it('forwards ref to the underlying textarea', () => {
+    const RefTest: React.FC = () => {
+      const textareaRef = useRef<HTMLTextAreaElement>(null);
+      return (
+        <>
+          <TextArea ref={textareaRef} data-testid='ref-textarea' />
+          <button onClick={() => textareaRef.current?.focus()}>focus</button>
+        </>
+      );
+    };
+    renderWithTheme(<RefTest />);
+    const textarea = screen.getByTestId('ref-textarea');
+    act(() => {
+      screen.getByText('focus').click();
+    });
+    expect(textarea).toHaveFocus();
   });
 
   it('combines all props correctly', async () => {

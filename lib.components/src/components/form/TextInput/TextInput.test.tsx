@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import React, { useRef } from 'react';
 import { TextInput } from './TextInput';
 
 const renderWithTheme = (component: React.ReactElement) => render(component);
@@ -63,6 +63,36 @@ describe('TextInput', () => {
     renderWithTheme(<TextInput data-testid='test-input' />);
     const input = screen.getByTestId('test-input');
     expect(input).toBeInTheDocument();
+  });
+
+  it('sets aria-required when required is true', () => {
+    renderWithTheme(<TextInput required />);
+    const input = screen.getByRole('textbox');
+    expect(input).toHaveAttribute('aria-required', 'true');
+  });
+
+  it('does not set aria-required when required is false', () => {
+    renderWithTheme(<TextInput />);
+    const input = screen.getByRole('textbox');
+    expect(input).not.toHaveAttribute('aria-required');
+  });
+
+  it('forwards ref to the underlying input', () => {
+    const RefTest: React.FC = () => {
+      const inputRef = useRef<HTMLInputElement>(null);
+      return (
+        <>
+          <TextInput ref={inputRef} data-testid='ref-input' />
+          <button onClick={() => inputRef.current?.focus()}>focus</button>
+        </>
+      );
+    };
+    renderWithTheme(<RefTest />);
+    const input = screen.getByTestId('ref-input');
+    act(() => {
+      screen.getByText('focus').click();
+    });
+    expect(input).toHaveFocus();
   });
 
   it('handles focus and blur events', async () => {

@@ -67,6 +67,7 @@ export const TextInput = ({
       defaultValue={defaultValue}
       disabled={disabled}
       required={required}
+      aria-required={required ? true : undefined}
       readOnly={readOnly}
       data-testid={dataTestId}
       aria-invalid={effectiveState === 'error'}
