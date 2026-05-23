@@ -1,6 +1,7 @@
 import type { Worker } from 'bullmq';
 import { z } from 'zod';
 import { buildWorker, getReportsQueue, isQueueAvailable } from '../lib/queue';
+import AuditLog from '../models/AuditLog';
 import { runRetentionEnforcement } from '../services/data-retention.service';
 import { logger } from '../utils/logger';
 
@@ -24,6 +25,7 @@ import { logger } from '../utils/logger';
 
 export const RETENTION_JOB_NAME = 'privacy:retention-enforcement';
 export const RETENTION_REPEAT_KEY = 'privacy:retention-enforcement:daily';
+export const RETENTION_ENFORCEMENT_RAN_ACTION = 'RETENTION_ENFORCEMENT_RAN';
 
 /**
  * Defense-in-depth: re-validate job payloads at execution time. BullMQ
@@ -90,6 +92,25 @@ export const startRetentionWorker = (): Worker | null => {
       throw new Error('Invalid retention job payload');
     }
     const result = await runRetentionEnforcement();
+    // System-level audit row — mirrors legal-reminder.worker.ts. No user
+    // attribution; AuditLog.create directly because the immutable-trigger
+    // only blocks UPDATE/DELETE. Written only on success — failures
+    // bubble up to BullMQ's retry path and don't leave a misleading
+    // "ran" row behind.
+    await AuditLog.create({
+      service: 'adopt-dont-shop-backend',
+      user: null,
+      user_email_snapshot: null,
+      action: RETENTION_ENFORCEMENT_RAN_ACTION,
+      level: 'INFO',
+      timestamp: new Date(),
+      metadata: {
+        entity: 'System',
+        entityId: 'retention-enforcement',
+        details: { ...result },
+      },
+      category: 'System',
+    });
     logger.info('Retention job finished', { result });
   });
 

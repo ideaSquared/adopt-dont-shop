@@ -1,6 +1,7 @@
 import type { Worker } from 'bullmq';
 import { Op } from 'sequelize';
 import { z } from 'zod';
+import AuditLog from '../models/AuditLog';
 import RevokedToken from '../models/RevokedToken';
 import { buildWorker, getReportsQueue, isQueueAvailable } from '../lib/queue';
 import { logger } from '../utils/logger';
@@ -20,6 +21,7 @@ import { logger } from '../utils/logger';
 
 export const REVOKED_TOKENS_PURGE_JOB_NAME = 'auth:revoked-tokens-purge';
 export const REVOKED_TOKENS_PURGE_REPEAT_KEY = 'auth:revoked-tokens-purge:daily';
+export const REVOKED_TOKENS_PURGE_RAN_ACTION = 'REVOKED_TOKENS_PURGE_RAN';
 
 /**
  * Defense-in-depth: re-validate job payloads at execution time. The
@@ -86,6 +88,23 @@ export const startRevokedTokensPurgeWorker = (): Worker | null => {
       throw new Error('Invalid revoked-tokens purge job payload');
     }
     const deleted = await purgeExpiredRevokedTokens();
+    // System-level audit row — mirrors legal-reminder.worker.ts. No user
+    // attribution; AuditLog.create directly because the immutable-trigger
+    // only blocks UPDATE/DELETE. Written only on success.
+    await AuditLog.create({
+      service: 'adopt-dont-shop-backend',
+      user: null,
+      user_email_snapshot: null,
+      action: REVOKED_TOKENS_PURGE_RAN_ACTION,
+      level: 'INFO',
+      timestamp: new Date(),
+      metadata: {
+        entity: 'System',
+        entityId: 'revoked-tokens-purge',
+        details: { deleted },
+      },
+      category: 'System',
+    });
     logger.info('Revoked-tokens purge finished', { deleted });
   });
 

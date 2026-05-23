@@ -1,6 +1,7 @@
 import type { Worker } from 'bullmq';
 import { z } from 'zod';
 import { buildWorker, getReportsQueue, isQueueAvailable } from '../lib/queue';
+import AuditLog from '../models/AuditLog';
 import { runWeeklyDigest } from '../services/weekly-digest.service';
 import { logger } from '../utils/logger';
 
@@ -21,6 +22,7 @@ import { logger } from '../utils/logger';
 
 export const WEEKLY_DIGEST_JOB_NAME = 'engagement:weekly-digest';
 export const WEEKLY_DIGEST_REPEAT_KEY = 'engagement:weekly-digest:saturday';
+export const WEEKLY_DIGEST_RAN_ACTION = 'WEEKLY_DIGEST_RAN';
 
 /**
  * Defense-in-depth: re-validate job payloads at execution time. The
@@ -81,6 +83,23 @@ export const startWeeklyDigestWorker = (): Worker | null => {
       throw new Error('Invalid weekly digest job payload');
     }
     const result = await runWeeklyDigest();
+    // System-level audit row — mirrors legal-reminder.worker.ts. No user
+    // attribution; AuditLog.create directly because the immutable-trigger
+    // only blocks UPDATE/DELETE. Written only on success.
+    await AuditLog.create({
+      service: 'adopt-dont-shop-backend',
+      user: null,
+      user_email_snapshot: null,
+      action: WEEKLY_DIGEST_RAN_ACTION,
+      level: 'INFO',
+      timestamp: new Date(),
+      metadata: {
+        entity: 'System',
+        entityId: 'weekly-digest',
+        details: { ...result },
+      },
+      category: 'System',
+    });
     logger.info('Weekly digest finished', { result });
   });
 

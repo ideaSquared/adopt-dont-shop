@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { matchService } from '../matching';
 import { loadMatchConfig } from '../matching/config';
 import AdopterMatchProfile from '../models/AdopterMatchProfile';
+import AuditLog from '../models/AuditLog';
 import { NotificationType } from '../models/Notification';
 import Pet, { PetStatus } from '../models/Pet';
 import Rescue from '../models/Rescue';
@@ -29,6 +30,7 @@ import { logger } from '../utils/logger';
 
 export const MATCH_DIGEST_JOB_NAME = 'match:daily-digest';
 export const MATCH_DIGEST_REPEAT_KEY = 'match:daily-digest:08utc';
+export const MATCH_DIGEST_RAN_ACTION = 'MATCH_DIGEST_RAN';
 const MATCH_DIGEST_CRON = process.env.MATCH_DIGEST_CRON ?? '0 8 * * *';
 const TOP_N = 3;
 const FALLBACK_LOOKBACK_MS = 24 * 60 * 60 * 1000;
@@ -159,6 +161,23 @@ export const startMatchDigestWorker = (): Worker | null => {
       throw new Error('Invalid match digest job payload');
     }
     const result = await runMatchDigest();
+    // System-level audit row — mirrors legal-reminder.worker.ts. No user
+    // attribution; AuditLog.create directly because the immutable-trigger
+    // only blocks UPDATE/DELETE. Written only on success.
+    await AuditLog.create({
+      service: 'adopt-dont-shop-backend',
+      user: null,
+      user_email_snapshot: null,
+      action: MATCH_DIGEST_RAN_ACTION,
+      level: 'INFO',
+      timestamp: new Date(),
+      metadata: {
+        entity: 'System',
+        entityId: 'match-digest',
+        details: { ...result },
+      },
+      category: 'System',
+    });
     logger.info('Match digest finished', result);
   });
   return workerInstance;
