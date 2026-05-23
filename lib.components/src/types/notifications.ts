@@ -16,6 +16,11 @@ export enum NotificationType {
   STAFF_ASSIGNMENT = 'staff_assignment',
   PET_UPDATE = 'pet_update',
   FOLLOW_UP = 'follow_up',
+  // ADS C4: dedicated values for the rescue/moderation flows that
+  // originally landed under SYSTEM_ANNOUNCEMENT in PR #676.
+  RESCUE_VERIFIED = 'rescue_verified',
+  MODERATION_REPORT_RESOLVED = 'moderation_report_resolved',
+  USER_SANCTIONED = 'user_sanctioned',
 }
 
 export enum NotificationPriority {
@@ -69,6 +74,9 @@ export const getNotificationTypeLabel = (type: string): string => {
     [NotificationType.STAFF_ASSIGNMENT]: 'Staff Assignments',
     [NotificationType.PET_UPDATE]: 'Pet Updates',
     [NotificationType.FOLLOW_UP]: 'Follow Ups',
+    [NotificationType.RESCUE_VERIFIED]: 'Rescue Verified',
+    [NotificationType.MODERATION_REPORT_RESOLVED]: 'Report Update',
+    [NotificationType.USER_SANCTIONED]: 'Account Action',
   };
 
   return labels[type] || type;

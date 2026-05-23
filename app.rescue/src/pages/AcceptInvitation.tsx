@@ -264,6 +264,7 @@ const AcceptInvitation: React.FC = () => {
                 placeholder="Enter your first name"
                 disabled={submitting}
                 required
+                aria-required={true}
                 autoFocus
                 autoComplete="given-name"
               />
@@ -283,6 +284,7 @@ const AcceptInvitation: React.FC = () => {
                 placeholder="Enter your last name"
                 disabled={submitting}
                 required
+                aria-required={true}
                 autoComplete="family-name"
               />
               {errors.lastName && <span className={styles.formError}>{errors.lastName}</span>}
@@ -301,6 +303,7 @@ const AcceptInvitation: React.FC = () => {
                 placeholder="Create a secure password"
                 disabled={submitting}
                 required
+                aria-required={true}
                 autoComplete="new-password"
               />
               {errors.password && <span className={styles.formError}>{errors.password}</span>}
@@ -320,6 +323,7 @@ const AcceptInvitation: React.FC = () => {
                 placeholder="Re-enter your password"
                 disabled={submitting}
                 required
+                aria-required={true}
                 autoComplete="new-password"
               />
               {errors.confirmPassword && (

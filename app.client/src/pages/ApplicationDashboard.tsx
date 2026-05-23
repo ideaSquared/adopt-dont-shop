@@ -13,6 +13,19 @@ interface ApplicationWithPet extends Application {
   pet?: Pet;
 }
 
+// ADS C4 (follow-up to PR #676): the backend's ApplicationStage enum carries
+// the in-progress workflow state alongside the terminal `status`. Surface a
+// human-readable label only for stages an adopter would meaningfully see
+// while status is still 'submitted' — `resolved`/`withdrawn` map to a
+// terminal status badge instead. `pending` covers freshly submitted
+// applications that haven't been picked up for review yet.
+const IN_PROGRESS_STAGE_LABELS: Record<string, string> = {
+  pending: 'Application pending',
+  reviewing: 'Application under review',
+  visiting: 'Home visit scheduled',
+  deciding: 'Awaiting decision',
+};
+
 const getPrimaryThumbnailUrl = (pet: Pet | undefined): string | undefined => {
   const primary = pet?.images?.find(img => img.is_primary) ?? pet?.images?.[0];
   return resolveFileUrl(primary?.thumbnail_url ?? primary?.url);
@@ -219,6 +232,19 @@ export const ApplicationDashboard: React.FC = () => {
               >
                 {applicationStatusLabel(application.status)}
               </span>
+
+              {/* ADS C4 (follow-up to PR #676): while the terminal status is
+                  still 'submitted', show the workflow stage so adopters can
+                  tell e.g. 'awaiting decision' apart from 'just submitted'.
+                  Don't override the terminal badge — approved/rejected/
+                  withdrawn carry their own meaning. */}
+              {application.status === 'submitted' &&
+                application.stage &&
+                IN_PROGRESS_STAGE_LABELS[application.stage] && (
+                  <span className={styles.stageBadge} data-testid='stage-badge'>
+                    {IN_PROGRESS_STAGE_LABELS[application.stage]}
+                  </span>
+                )}
 
               <div className={styles.applicationDetails}>
                 {application.submittedAt && (
