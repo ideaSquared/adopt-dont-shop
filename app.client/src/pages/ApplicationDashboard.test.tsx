@@ -221,25 +221,33 @@ describe('ApplicationDashboard (ADS-634)', () => {
   // value the frontend Application type never emits — so 'withdrawn'
   // applications silently fell through to the 'default' grey badge. Each
   // reachable status now renders its own readable label.
-  const STATUS_LABEL_CASES = [
-    { status: 'submitted' as const, label: 'Submitted' },
-    { status: 'approved' as const, label: 'Approved' },
-    { status: 'rejected' as const, label: 'Rejected' },
-    { status: 'withdrawn' as const, label: 'Withdrawn' },
-  ];
+  it('renders "Submitted" on a submitted application card', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'submitted' })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+    render(<ApplicationDashboard />);
+    expect(await screen.findByText('Submitted')).toBeInTheDocument();
+  });
 
-  it.each(STATUS_LABEL_CASES)(
-    'renders the $label status label on the application card',
-    async ({ status, label }) => {
-      getUserApplicationsMock.mockResolvedValue([makeApplication({ status })]);
-      getPetByIdMock.mockResolvedValue(makePet());
+  it('renders "Approved" on an approved application card', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'approved' })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+    render(<ApplicationDashboard />);
+    expect(await screen.findByText('Approved')).toBeInTheDocument();
+  });
 
-      render(<ApplicationDashboard />);
+  it('renders "Rejected" on a rejected application card', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'rejected' })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+    render(<ApplicationDashboard />);
+    expect(await screen.findByText('Rejected')).toBeInTheDocument();
+  });
 
-      const labelEl = await screen.findByText(label);
-      expect(labelEl).toBeInTheDocument();
-    }
-  );
+  it('renders "Withdrawn" on a withdrawn application card', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication({ status: 'withdrawn' })]);
+    getPetByIdMock.mockResolvedValue(makePet());
+    render(<ApplicationDashboard />);
+    expect(await screen.findByText('Withdrawn')).toBeInTheDocument();
+  });
 
   // UX P2 E: when an application's pet lookup fails or returns no record,
   // the card used to display "Pet Name Unavailable" — a phrase that reads
