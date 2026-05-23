@@ -35,6 +35,9 @@ export const modalOverlay = recipe({
         animationName: fadeIn,
         animationDuration: '0.3s',
         animationTimingFunction: 'ease',
+        '@media': {
+          '(prefers-reduced-motion: reduce)': { animation: 'none' },
+        },
       },
       false: {
         opacity: 0,
@@ -68,6 +71,9 @@ export const modalContent = recipe({
         animationName: slideUp,
         animationDuration: '0.3s',
         animationTimingFunction: 'ease',
+        '@media': {
+          '(prefers-reduced-motion: reduce)': { animation: 'none' },
+        },
       },
       false: {},
     },
