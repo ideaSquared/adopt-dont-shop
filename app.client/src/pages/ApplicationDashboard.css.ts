@@ -129,6 +129,7 @@ export const statusBadge = recipe({
       under_review: { background: vars.colors.warning },
       approved: { background: vars.colors.success },
       rejected: { background: vars.colors.danger },
+      withdrawn: { background: vars.text.muted },
       default: { background: vars.text.muted },
     },
   },

@@ -203,16 +203,17 @@ export const ApplicationDashboard: React.FC = () => {
 
               <span
                 className={styles.statusBadge({
-                  status: (['submitted', 'under_review', 'approved', 'rejected'].includes(
+                  // ADS C4-1: `under_review` was previously in this allowlist but
+                  // ApplicationStatusSchema only emits 'submitted' | 'approved' |
+                  // 'rejected' | 'withdrawn', so the branch was unreachable and the
+                  // 'withdrawn' status fell through to the 'default' badge. List the
+                  // statuses that can actually appear so withdrawn applications get
+                  // their own visual treatment.
+                  status: (['submitted', 'approved', 'rejected', 'withdrawn'].includes(
                     application.status
                   )
                     ? application.status
-                    : 'default') as
-                    | 'submitted'
-                    | 'under_review'
-                    | 'approved'
-                    | 'rejected'
-                    | 'default',
+                    : 'default') as 'submitted' | 'approved' | 'rejected' | 'withdrawn' | 'default',
                 })}
               >
                 {application.status.replace('_', ' ')}
