@@ -427,3 +427,19 @@ describe('ApplicationReview cross-links (ADS-644)', () => {
     expect(screen.queryByRole('link', { name: 'View foster placement' })).toBeNull();
   });
 });
+
+/**
+ * UX P0/P1 #7: the modal backdrop used to claim role="button" with
+ * aria-label="Close modal" purely to satisfy lint. That announced an extra
+ * button to screen readers — the real close button inside the modal is the
+ * accessible affordance. The backdrop should be `role="presentation"`.
+ */
+describe('ApplicationReview backdrop accessibility (UX P0/P1 #7)', () => {
+  it('renders the modal backdrop without role="button"', () => {
+    renderReview();
+
+    // No button on the page should be labelled "Close modal" — the only
+    // close affordance is the explicit Close button inside the modal.
+    expect(screen.queryByRole('button', { name: /close modal/i })).toBeNull();
+  });
+});
