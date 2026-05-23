@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Button } from '@adopt-dont-shop/lib.components';
-import type { SaveStatus } from '@/hooks/use-auto-save';
+import type { SaveStatus } from '@/hooks/useApplicationDraft';
 import type { Pet } from '@/services';
 import { QuestionCategoryStep } from './QuestionCategoryStep';
 import type { Question } from './QuestionField';

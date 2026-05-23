@@ -582,6 +582,13 @@ router.post(
   AuthController.confirmTwoFactorRecovery
 );
 
+// ADS C4-5: dismissible sanction banner — list + acknowledge endpoints
+// power a top-of-page banner across all 3 apps so users have a
+// persistent notice of any active warnings / suspensions until they
+// dismiss them per-sanction.
+router.get('/sanctions/active', authenticateToken, AuthController.getActiveSanctions);
+router.post('/sanctions/:id/acknowledge', authenticateToken, AuthController.acknowledgeSanction);
+
 // Two-Factor Authentication routes
 router.post('/2fa/setup', authenticateToken, twoFactorLimiter, AuthController.twoFactorSetup);
 router.post(

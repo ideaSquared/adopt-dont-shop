@@ -1043,7 +1043,37 @@ export class ApplicationController extends BaseController {
 
   updateHomeVisit = async (req: AuthenticatedRequest, res: Response) => {
     const { applicationId, visitId } = req.params;
-    const updateData = req.body;
+    const {
+      scheduled_date,
+      scheduled_time,
+      assigned_staff,
+      notes,
+      outcome,
+      outcome_notes,
+      reschedule_reason,
+      cancelled_reason,
+      status,
+      started_at,
+      rescheduled_at,
+      cancelled_at,
+      conditions,
+    } = req.body;
+
+    const updateData = {
+      ...(scheduled_date !== undefined && { scheduledDate: scheduled_date }),
+      ...(scheduled_time !== undefined && { scheduledTime: scheduled_time }),
+      ...(assigned_staff !== undefined && { assignedStaff: assigned_staff }),
+      ...(notes !== undefined && { notes }),
+      ...(outcome !== undefined && { outcome }),
+      ...(outcome_notes !== undefined && { outcomeNotes: outcome_notes }),
+      ...(reschedule_reason !== undefined && { rescheduleReason: reschedule_reason }),
+      ...(cancelled_reason !== undefined && { cancelledReason: cancelled_reason }),
+      ...(status !== undefined && { status }),
+      ...(started_at !== undefined && { startedAt: started_at }),
+      ...(rescheduled_at !== undefined && { rescheduledAt: rescheduled_at }),
+      ...(cancelled_at !== undefined && { cancelledAt: cancelled_at }),
+      ...(conditions !== undefined && { conditions }),
+    };
 
     const visit = await ApplicationService.updateHomeVisit(
       applicationId,

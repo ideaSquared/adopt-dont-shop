@@ -11,6 +11,7 @@ import {
   UpdateProfileRequestSchema,
 } from '@adopt-dont-shop/lib.validation';
 import AuthService from '../services/auth.service';
+import ModerationService from '../services/moderation.service';
 import { UserService } from '../services/user.service';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
@@ -241,6 +242,38 @@ export class AuthController {
   async getCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
     // Simply return the authenticated user from the request
     res.json(req.user);
+  }
+
+  /**
+   * ADS C4-5: Return the caller's unacknowledged, active sanctions so
+   * the in-app banner can render them at the top of every page.
+   */
+  async getActiveSanctions(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const userId = req.user!.userId;
+    const sanctions = await ModerationService.getActiveSanctionsForUser(userId);
+    res.json({
+      sanctions: sanctions.map(s => ({
+        id: s.actionId,
+        type: s.actionType,
+        reason: s.reason,
+        severity: s.severity,
+        expiresAt: s.expiresAt ? s.expiresAt.toISOString() : null,
+        acknowledgedAt: s.acknowledgedAt ? s.acknowledgedAt.toISOString() : null,
+      })),
+    });
+  }
+
+  /**
+   * ADS C4-5: Mark a sanction as acknowledged by the caller. The service
+   * enforces ownership (target_user_id must match) — returns 204 on
+   * success, 403 if the sanction belongs to another user, 404 if it
+   * doesn't exist.
+   */
+  async acknowledgeSanction(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+    await ModerationService.acknowledgeSanction(userId, id);
+    res.status(204).send();
   }
 
   /**

@@ -115,6 +115,7 @@ const baseSchema = z.object({
   CORS_ORIGIN: z.string().optional(),
   FRONTEND_URL: z.string().optional(),
   RESCUE_FRONTEND_URL: z.string().optional(),
+  ADMIN_FRONTEND_URL: z.string().optional(),
   STATSIG_SERVER_SECRET_KEY: z.string().optional(),
 });
 

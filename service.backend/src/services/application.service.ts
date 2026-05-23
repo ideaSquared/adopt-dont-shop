@@ -1975,7 +1975,7 @@ export class ApplicationService {
         userId,
       });
 
-      return { updatedCount: applications.length };
+      return { updatedCount: applications.length, failedIds: [] };
     });
   }
 

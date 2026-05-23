@@ -13,7 +13,7 @@ import TwoFactorRecovery from '../models/TwoFactorRecovery';
 import EmailQueue, { EmailStatus, EmailType, EmailPriority } from '../models/EmailQueue';
 import { logger, loggerHelpers } from '../utils/logger';
 import { decryptSecret, encryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
-import { getValidatedFrontendOrigin } from '../utils/url-allowlist';
+import { EmailLinkType, resolveEmailLinkBase } from '../utils/email-url';
 import { AuditLogService } from './auditLog.service';
 import { redactEmail } from './redact';
 import { env } from '../config/env';
@@ -94,7 +94,7 @@ export class AuthService {
       // Send verification email
       try {
         const emailService = (await import('./email.service')).default;
-        const frontendUrl = getValidatedFrontendOrigin();
+        const frontendUrl = resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION);
         const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
         const template = await emailService.getTemplateByName('Email Verification');
@@ -126,7 +126,7 @@ export class AuthService {
             fromEmail: process.env.EMAIL_FROM_ADDRESS || 'noreply@adoptdontshop.com',
             toEmail: user.email,
             subject: 'Verify Your Email',
-            htmlContent: `<p>Hello ${user.firstName},</p><p>Please verify your email by clicking <a href="${getValidatedFrontendOrigin()}/verify-email?token=${verificationToken}">here</a></p>`,
+            htmlContent: `<p>Hello ${user.firstName},</p><p>Please verify your email by clicking <a href="${resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION)}/verify-email?token=${verificationToken}">here</a></p>`,
             type: EmailType.TRANSACTIONAL,
             priority: EmailPriority.HIGH,
             status: EmailStatus.QUEUED,
@@ -140,7 +140,7 @@ export class AuthService {
             templateData: {
               firstName: user.firstName,
               verificationToken,
-              verificationUrl: `${getValidatedFrontendOrigin()}/verify-email?token=${verificationToken}`,
+              verificationUrl: `${resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION)}/verify-email?token=${verificationToken}`,
               expiresAt: verificationExpires.toISOString(),
             },
           });
@@ -164,7 +164,7 @@ export class AuthService {
   }
 
   private static async sendAccountExistsEmail(email: string): Promise<void> {
-    const frontendUrl = getValidatedFrontendOrigin();
+    const frontendUrl = resolveEmailLinkBase(EmailLinkType.ACCOUNT_EXISTS);
     const resetUrl = `${frontendUrl}/forgot-password`;
     try {
       const emailService = (await import('./email.service')).default;
@@ -574,7 +574,8 @@ export class AuthService {
         const emailService = (await import('./email.service')).default;
         // ADS-438: validate FRONTEND_URL origin before building the link so a
         // misconfigured env var cannot redirect users to an attacker domain.
-        const resetUrl = `${getValidatedFrontendOrigin()}/reset-password?token=${resetToken}`;
+        // Password reset is a typed-adopter email — pins to the client app.
+        const resetUrl = `${resolveEmailLinkBase(EmailLinkType.PASSWORD_RESET)}/reset-password?token=${resetToken}`;
 
         await emailService.sendEmail({
           toEmail: user.email,
@@ -881,7 +882,7 @@ Need help? Contact us at support@adoptdontshop.com
       try {
         const emailService = (await import('./email.service')).default;
         // ADS-438: validate FRONTEND_URL origin before building the link.
-        const recoveryUrl = `${getValidatedFrontendOrigin()}/auth/2fa/recover?token=${plaintextToken}`;
+        const recoveryUrl = `${resolveEmailLinkBase(EmailLinkType.TWO_FACTOR_RECOVERY)}/auth/2fa/recover?token=${plaintextToken}`;
 
         await emailService.sendEmail({
           toEmail: user.email,
@@ -1114,7 +1115,7 @@ Need help? Contact us at support@adoptdontshop.com
         const user = await User.findByPk(userId);
         if (user) {
           const emailService = (await import('./email.service')).default;
-          const loginUrl = `${getValidatedFrontendOrigin()}/login`;
+          const loginUrl = `${resolveEmailLinkBase(EmailLinkType.TWO_FACTOR_RECOVERY)}/login`;
 
           await emailService.sendEmail({
             toEmail: user.email,
@@ -1382,7 +1383,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
           templateData: {
             firstName: user.firstName,
             verificationToken: verificationToken,
-            verificationUrl: `${getValidatedFrontendOrigin()}/verify-email?token=${verificationToken}`,
+            verificationUrl: `${resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION)}/verify-email?token=${verificationToken}`,
             expiresAt: verificationExpires.toISOString(),
           },
           type: 'transactional',
@@ -1836,7 +1837,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
 
       const emailService = (await import('./email.service')).default;
       // ADS-438: origin is validated against the configured allowlist.
-      const frontendUrl = getValidatedFrontendOrigin();
+      const frontendUrl = resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION);
 
       for (const user of unverifiedUsers) {
         try {

@@ -36,6 +36,7 @@ import { installAuditLogsImmutableTrigger } from './models/audit-logs-immutable'
 import adminRoutes from './routes/admin.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import applicationRoutes from './routes/application.routes';
+import applicationDraftRoutes from './routes/application-draft.routes';
 import applicationProfileRoutes from './routes/application-profile.routes';
 import authRoutes from './routes/auth.routes';
 import chatRoutes from './routes/chat.routes';
@@ -333,6 +334,9 @@ app.use('/monitoring', monitoringRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/auth', authRoutes);
+// Drafts router mounted BEFORE the main applications router so its
+// /drafts/:petId paths aren't shadowed by /:applicationId in the latter.
+app.use('/api/v1/applications/drafts', applicationDraftRoutes);
 app.use('/api/v1/applications', applicationRoutes);
 app.use('/api/v1/profile', applicationProfileRoutes);
 app.use('/api/v1/chats', chatRoutes);

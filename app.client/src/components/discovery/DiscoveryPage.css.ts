@@ -211,6 +211,9 @@ export const spinner = style({
   animationTimingFunction: 'linear',
   animationIterationCount: 'infinite',
   marginBottom: '1rem',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
 });
 
 export const errorState = style({

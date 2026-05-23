@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { UserId } from '@adopt-dont-shop/lib.types';
 import { isSingleScriptLocalPart, normalizeEmail } from '../normalize-email';
+import { BulkOperationFailedIdsSchema } from './bulk-response';
 
 /**
  * Canonical Zod schemas for the User domain.
@@ -240,3 +241,20 @@ export const BulkUserUpdateRequestSchema = z.object({
   reason: z.string().trim().min(1, 'Reason is required').max(500).optional(),
 });
 export type BulkUserUpdateRequest = z.infer<typeof BulkUserUpdateRequestSchema>;
+
+/**
+ * Response shape for POST /api/v1/users/bulk-update.
+ *
+ * Aggregate counts (`success`, `failed`) are kept for backward
+ * compatibility with existing callers. `failedIds` is always present
+ * (may be empty) so the admin UI can light up per-item retry without
+ * re-fetching to diff the input. `results` is optional finer-grained
+ * detail.
+ */
+export const BulkUserUpdateResponseSchema = z
+  .object({
+    success: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+  })
+  .merge(BulkOperationFailedIdsSchema);
+export type BulkUserUpdateResponse = z.infer<typeof BulkUserUpdateResponseSchema>;

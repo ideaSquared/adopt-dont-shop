@@ -158,6 +158,10 @@ export type { ProgressiveImageProps } from './components/ui/ProgressiveImage';
 export { InstallPwaBanner } from './components/ui/InstallPwaBanner';
 export type { InstallPwaBannerProps } from './components/ui/InstallPwaBanner';
 
+// Dismissible sanction banner (ADS C4-5)
+export { SanctionBanner } from './components/ui/SanctionBanner';
+export type { ActiveSanction, SanctionBannerProps } from './components/ui/SanctionBanner';
+
 // A11y primitives
 export { SkipLink } from './components/ui/SkipLink';
 export type { SkipLinkProps } from './components/ui/SkipLink';

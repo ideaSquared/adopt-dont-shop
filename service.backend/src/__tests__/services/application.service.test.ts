@@ -1261,7 +1261,7 @@ describe('ApplicationService - Business Logic', () => {
         'staff-123'
       );
 
-      expect(result).toEqual({ updatedCount: 3 });
+      expect(result).toEqual({ updatedCount: 3, failedIds: [] });
       expect(MockedApplication.update).toHaveBeenCalledTimes(1);
 
       const auditedIds = logSpy.mock.calls.map(([data]) => data.entityId);

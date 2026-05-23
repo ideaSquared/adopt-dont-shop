@@ -62,6 +62,9 @@ export const notificationButton = recipe({
         animationDuration: '2s',
         animationTimingFunction: 'ease-in-out',
         animationIterationCount: 'infinite',
+        '@media': {
+          '(prefers-reduced-motion: reduce)': { animation: 'none' },
+        },
       },
       false: {},
     },
@@ -93,6 +96,9 @@ export const notificationBadge = style({
   animationDuration: '1.5s',
   animationTimingFunction: 'ease-in-out',
   animationIterationCount: 'infinite',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
   zIndex: 20,
   pointerEvents: 'none',
   filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))',

@@ -1,10 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, Container, MatchReasonChips, Spinner } from '@adopt-dont-shop/lib.components';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Card,
+  Container,
+  MatchReasonChips,
+  ProgressiveImage,
+  Spinner,
+} from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import type { MatchTopPick } from '@adopt-dont-shop/lib.matching';
 import { useMatchPreferences } from '@/hooks/useMatchPreferences';
 import { apiService } from '@/services';
+import { resolveFileUrl } from '@/utils/fileUtils';
+import * as styles from './TopPicksHomeModule.css';
+
+const TYPE_ICON: Record<string, string> = {
+  dog: '🐕',
+  cat: '🐈',
+  rabbit: '🐇',
+  bird: '🦜',
+  small_mammal: '🐹',
+};
+
+const titleCase = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+const scoreLabel = (score: number): string => {
+  if (score >= 75) return 'Great match';
+  if (score >= 50) return 'Strong match';
+  if (score >= 25) return 'Good match';
+  return 'Possible match';
+};
 
 /**
  * ADS-636: HomePage "Your top picks" module.
@@ -16,6 +41,7 @@ import { apiService } from '@/services';
 export const TopPicksHomeModule: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { hasPreferences } = useMatchPreferences();
+  const navigate = useNavigate();
   const [picks, setPicks] = useState<MatchTopPick[]>([]);
   const [loading, setLoading] = useState(false);
   const [errored, setErrored] = useState(false);
@@ -59,45 +85,71 @@ export const TopPicksHomeModule: React.FC = () => {
   }
 
   return (
-    <section aria-labelledby='top-picks-home-heading'>
+    <section aria-labelledby='top-picks-home-heading' className={styles.section}>
       <Container>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
-            marginBottom: '1rem',
-          }}
-        >
+        <div className={styles.header}>
           <h2 id='top-picks-home-heading'>Your top picks</h2>
-          <Link to='/match/top-picks'>See all</Link>
+          <Link to='/match/top-picks' className={styles.seeAll}>
+            See all →
+          </Link>
         </div>
         {loading ? (
           <Spinner />
         ) : (
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            {picks.map(pick => (
-              <Card key={pick.petId}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+          <div className={styles.grid}>
+            {picks.map(pick => {
+              const url = resolveFileUrl(pick.photoUrl ?? undefined);
+              const icon = TYPE_ICON[pick.type] ?? '🐾';
+              const open = () => navigate(`/pets/${pick.petId}`);
+              return (
+                <Card
+                  key={pick.petId}
+                  className={styles.card}
+                  role='link'
+                  tabIndex={0}
+                  onClick={open}
+                  onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && open()}
                 >
-                  <div>
-                    <Link to={`/pets/${pick.petId}`}>
-                      <h3>{pick.name}</h3>
-                    </Link>
-                    <p>
-                      {pick.type} · {pick.ageGroup} · {pick.size} · {pick.rescueName}
-                    </p>
-                    <MatchReasonChips reasons={pick.reasons} />
+                  <div className={styles.imageWrap}>
+                    {url ? (
+                      <ProgressiveImage
+                        src={url}
+                        alt={pick.name}
+                        className={styles.image}
+                        errorFallback={
+                          <div className={styles.placeholder} aria-hidden='true'>
+                            {icon}
+                          </div>
+                        }
+                        placeholder={
+                          <div className={styles.placeholder} aria-hidden='true'>
+                            {icon}
+                          </div>
+                        }
+                      />
+                    ) : (
+                      <div className={styles.placeholder} aria-hidden='true'>
+                        {icon}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{pick.score}</div>
-                </div>
-              </Card>
-            ))}
+                  <div className={styles.body}>
+                    <div className={styles.titleRow}>
+                      <h3 className={styles.name}>{pick.name}</h3>
+                      <span className={styles.scoreChip}>★ {scoreLabel(pick.score)}</span>
+                    </div>
+                    <p className={styles.meta}>
+                      {titleCase(pick.type)}
+                      {pick.breedName ? ` · ${pick.breedName}` : ''} · {titleCase(pick.ageGroup)}
+                    </p>
+                    <p className={styles.rescue}>{pick.rescueName}</p>
+                    <div className={styles.reasons}>
+                      <MatchReasonChips reasons={pick.reasons} max={2} />
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
       </Container>

@@ -48,6 +48,12 @@ export const heroContainer = style({
   },
 });
 
+globalStyle(`${heroContainer}::before`, {
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
+});
+
 export const heroContent = style({
   maxWidth: '1200px',
   margin: '0 auto',
@@ -156,6 +162,13 @@ export const primaryButton = style({
       maxWidth: '280px',
       justifyContent: 'center',
     },
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
+});
+
+globalStyle(`${primaryButton}::before`, {
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
 });
 
@@ -165,6 +178,9 @@ export const primaryButtonIcon = style({
   animationDuration: '2s',
   animationTimingFunction: 'ease-in-out',
   animationIterationCount: 'infinite',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
 });
 
 export const secondaryButton = style({
@@ -260,4 +276,7 @@ export const sparkle = style({
   animationDuration: '1.5s',
   animationTimingFunction: 'ease-in-out',
   animationIterationCount: 'infinite',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
 });

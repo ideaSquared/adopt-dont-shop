@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ApplicationId, PetId } from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
+import { BulkOperationFailedIdsSchema } from './bulk-response';
 
 /**
  * Canonical Zod schemas for the Application domain.
@@ -306,6 +307,21 @@ export const ApplicationBulkUpdateRequestSchema = z.object({
 });
 export type ApplicationBulkUpdateRequest = z.infer<typeof ApplicationBulkUpdateRequestSchema>;
 
+/**
+ * Response shape for POST /api/v1/applications/bulk-update.
+ *
+ * The application bulk update is atomic — the whole batch commits or
+ * rolls back, so `failedIds` is always empty when the call returns
+ * successfully. Kept in the schema for parity with the other bulk
+ * endpoints so frontend consumers can rely on a uniform shape.
+ */
+export const ApplicationBulkUpdateResponseSchema = z
+  .object({
+    updatedCount: z.number().int().nonnegative(),
+  })
+  .merge(BulkOperationFailedIdsSchema);
+export type ApplicationBulkUpdateResponse = z.infer<typeof ApplicationBulkUpdateResponseSchema>;
+
 // ----- Read / model shape -----------------------------------------------
 
 export const ApplicationProfileSchema = z.object({
@@ -350,3 +366,29 @@ export type ApplicationProfile = z.infer<typeof ApplicationProfileSchema>;
  */
 export const ApplicationModelShapeSchema = ApplicationProfileSchema.partial();
 export type ApplicationModelShape = z.infer<typeof ApplicationModelShapeSchema>;
+
+// ----- Application drafts -----------------------------------------------
+
+/**
+ * Backend-synced application drafts (replacement for the legacy
+ * localStorage-only flow). Last-write-wins semantics: every PUT
+ * overwrites the entire `answers` blob for the (user, pet) pair.
+ *
+ * `answers` reuses the same caps as the create/update payloads so a
+ * draft can't carry a shape the submit endpoint would refuse.
+ */
+export const ApplicationDraftSchema = z.object({
+  petId: z
+    .string()
+    .min(1)
+    .transform((v) => v as PetId),
+  answers: ApplicationAnswersSchema,
+  updatedAt: z.coerce.date(),
+  expiresAt: z.coerce.date().nullable().optional(),
+});
+export type ApplicationDraft = z.infer<typeof ApplicationDraftSchema>;
+
+export const ApplicationDraftUpsertRequestSchema = z.object({
+  answers: ApplicationAnswersSchema,
+});
+export type ApplicationDraftUpsertRequest = z.infer<typeof ApplicationDraftUpsertRequestSchema>;

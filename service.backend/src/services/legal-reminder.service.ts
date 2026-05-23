@@ -1,11 +1,12 @@
 import { Op } from 'sequelize';
 import { z } from 'zod';
 import AuditLog from '../models/AuditLog';
-import User from '../models/User';
+import User, { UserType } from '../models/User';
 import { AuditLogService } from './auditLog.service';
 import emailService from './email.service';
 import { PendingReacceptanceItem, getPendingReacceptance } from './legal-content.service';
 import { logger } from '../utils/logger';
+import { EmailLinkType, resolveEmailLinkBase } from '../utils/email-url';
 
 /**
  * ADS-497 (slice 3): admin-triggered re-acceptance reminder email.
@@ -146,9 +147,10 @@ const documentLabel = (documentType: 'terms' | 'privacy'): string =>
 
 const renderReminderHtml = (
   firstName: string | null,
-  pending: ReadonlyArray<ReminderableDocument>
+  pending: ReadonlyArray<ReminderableDocument>,
+  recipientPrimaryRole: UserType | undefined
 ): string => {
-  const baseUrl = process.env.FRONTEND_URL || 'https://adoptdontshop.com';
+  const baseUrl = resolveEmailLinkBase(EmailLinkType.LEGAL_REACCEPTANCE, recipientPrimaryRole);
   const supportEmail = process.env.SUPPORT_EMAIL || 'support@adoptdontshop.com';
   const greeting = firstName ? `Hi ${firstName},` : 'Hi there,';
   const items = pending
@@ -181,9 +183,10 @@ const renderReminderHtml = (
 
 const renderReminderText = (
   firstName: string | null,
-  pending: ReadonlyArray<ReminderableDocument>
+  pending: ReadonlyArray<ReminderableDocument>,
+  recipientPrimaryRole: UserType | undefined
 ): string => {
-  const baseUrl = process.env.FRONTEND_URL || 'https://adoptdontshop.com';
+  const baseUrl = resolveEmailLinkBase(EmailLinkType.LEGAL_REACCEPTANCE, recipientPrimaryRole);
   const supportEmail = process.env.SUPPORT_EMAIL || 'support@adoptdontshop.com';
   const greeting = firstName ? `Hi ${firstName},` : 'Hi there,';
   const items = pending
@@ -232,7 +235,7 @@ export const sendReacceptanceReminder = async (
   const { userId, triggeredBy = null } = options;
 
   const user = await User.findByPk(userId, {
-    attributes: ['userId', 'email', 'firstName'],
+    attributes: ['userId', 'email', 'firstName', 'userType'],
   });
   if (!user) {
     throw new Error('User not found');
@@ -270,8 +273,8 @@ export const sendReacceptanceReminder = async (
     toName: user.firstName ?? undefined,
     userId,
     subject: buildSubject(pending),
-    htmlContent: renderReminderHtml(user.firstName ?? null, pending),
-    textContent: renderReminderText(user.firstName ?? null, pending),
+    htmlContent: renderReminderHtml(user.firstName ?? null, pending, user.userType),
+    textContent: renderReminderText(user.firstName ?? null, pending, user.userType),
     type: 'transactional',
     priority: 'normal',
     metadata: {

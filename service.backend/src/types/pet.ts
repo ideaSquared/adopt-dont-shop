@@ -297,6 +297,10 @@ export interface BulkPetOperationResult {
     petId: string;
     error: string;
   }>;
+  // Additive per-item failure detail so the admin UI can offer
+  // per-item retry without re-fetching to diff against the input.
+  failedIds: string[];
+  results: Array<{ id: string; success: boolean; error?: string }>;
 }
 
 // Pet Import/Export Types

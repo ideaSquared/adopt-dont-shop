@@ -1,5 +1,6 @@
 import Application from './Application';
 import ApplicationAnswer from './ApplicationAnswer';
+import ApplicationDraft from './ApplicationDraft';
 import ApplicationQuestion from './ApplicationQuestion';
 import ApplicationReference from './ApplicationReference';
 import ApplicationStatusTransition from './ApplicationStatusTransition';
@@ -107,6 +108,7 @@ const models = {
   FosterPlacement,
   Application,
   ApplicationAnswer,
+  ApplicationDraft,
   ApplicationQuestion,
   ApplicationReference,
   ApplicationStatusTransition,
@@ -716,6 +718,7 @@ try {
 export {
   Application,
   ApplicationAnswer,
+  ApplicationDraft,
   ApplicationQuestion,
   ApplicationReference,
   ApplicationStatusTransition,

@@ -9,6 +9,7 @@ import Pet from '../models/Pet';
 import Rescue from '../models/Rescue';
 import sequelize from '../sequelize';
 import logger from '../utils/logger';
+import { ApiError } from '../middleware/error-handler';
 import { NotificationType } from '../models/Notification';
 import { AuditLogService } from './auditLog.service';
 import { NotificationService } from './notification.service';
@@ -819,7 +820,7 @@ class ModerationService {
     assignTo?: string;
     escalateTo?: string;
     escalationReason?: string;
-  }): Promise<{ success: boolean; updated: number }> {
+  }): Promise<{ success: boolean; updated: number; failedIds: string[] }> {
     const {
       reportIds,
       action,
@@ -1025,7 +1026,11 @@ class ModerationService {
         `Bulk ${action} completed: ${updated} of ${reportIds.length} reports updated by ${moderatorId}`
       );
 
-      return { success: true, updated };
+      // The moderation bulk update is atomic — the whole batch commits or
+      // rolls back, so `failedIds` is always empty on the returned (success)
+      // path. Kept for parity with the other bulk-endpoint response shapes
+      // so the admin UI can rely on a uniform contract.
+      return { success: true, updated, failedIds: [] };
     } catch (error) {
       await transaction.rollback();
       logger.error('Error in bulk update:', error);
@@ -1207,6 +1212,68 @@ class ModerationService {
     return [...neverExpiringActions, ...futureExpiringActions].sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
     );
+  }
+
+  /**
+   * ADS C4-5: Return sanctions that should appear in the dismissible
+   * banner for `userId`. Active, owned by this user, not yet
+   * acknowledged, and not expired. The set is the SANCTION_ACTIONS
+   * subset of moderator actions (warnings / suspensions / bans /
+   * restrictions) — informational notices the user should see until
+   * they dismiss them.
+   */
+  async getActiveSanctionsForUser(userId: string): Promise<ModeratorAction[]> {
+    const SANCTION_ACTIONS: ActionType[] = [
+      ActionType.WARNING_ISSUED,
+      ActionType.USER_SUSPENDED,
+      ActionType.USER_BANNED,
+      ActionType.ACCOUNT_RESTRICTED,
+    ];
+    const [neverExpiring, futureExpiring] = await Promise.all([
+      ModeratorAction.findAll({
+        where: {
+          targetUserId: userId,
+          isActive: true,
+          actionType: { [Op.in]: SANCTION_ACTIONS },
+          acknowledgedAt: { [Op.is]: null },
+          expiresAt: { [Op.is]: null },
+        },
+        order: [['createdAt', 'DESC']],
+      }),
+      ModeratorAction.findAll({
+        where: {
+          targetUserId: userId,
+          isActive: true,
+          actionType: { [Op.in]: SANCTION_ACTIONS },
+          acknowledgedAt: { [Op.is]: null },
+          expiresAt: { [Op.gt]: new Date() },
+        },
+        order: [['createdAt', 'DESC']],
+      }),
+    ]);
+    return [...neverExpiring, ...futureExpiring].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
+  }
+
+  /**
+   * ADS C4-5: Mark a sanction as acknowledged by its target user. Throws
+   * NotFoundError if the action does not exist; throws ForbiddenError if
+   * the caller is not the sanction's target_user. Idempotent — a second
+   * call leaves `acknowledged_at` at its original value.
+   */
+  async acknowledgeSanction(userId: string, actionId: string): Promise<void> {
+    const action = await ModeratorAction.findByPk(actionId);
+    if (!action) {
+      throw new ApiError(404, 'Sanction not found');
+    }
+    if (action.targetUserId !== userId) {
+      throw new ApiError(403, 'Forbidden');
+    }
+    if (action.acknowledgedAt) {
+      return;
+    }
+    await action.update({ acknowledgedAt: new Date() });
   }
 
   async expireActions(): Promise<number> {
