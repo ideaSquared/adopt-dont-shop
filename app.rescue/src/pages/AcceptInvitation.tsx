@@ -22,6 +22,9 @@ const AcceptInvitation: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [invitationEmail, setInvitationEmail] = useState<string>('');
+  const [rescueName, setRescueName] = useState<string | null>(null);
+  const [invitedByName, setInvitedByName] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<AcceptInvitationFormData>({
     firstName: '',
@@ -45,6 +48,9 @@ const AcceptInvitation: React.FC = () => {
         const details = await invitationService.getInvitationDetails(token);
         if (details) {
           setInvitationEmail(details.email);
+          setRescueName(details.rescueName ?? null);
+          setInvitedByName(details.invitedByName ?? null);
+          setRole(details.role ?? null);
         } else {
           setError('Invitation not found or has expired.');
         }
@@ -192,7 +198,7 @@ const AcceptInvitation: React.FC = () => {
             <p>Unable to process invitation</p>
           </div>
           <div className={styles.cardBody}>
-            <div className={styles.errorContainer}>
+            <div className={styles.errorContainer} role="alert" aria-live="assertive">
               <h3>⚠️ Error</h3>
               <p>{error}</p>
             </div>
@@ -218,13 +224,27 @@ const AcceptInvitation: React.FC = () => {
         <div className={styles.cardBody}>
           <div className={styles.invitationInfo}>
             <p>
-              <strong>You've been invited to join a rescue organization</strong>
+              <strong>
+                {invitedByName && rescueName ? (
+                  <>
+                    You've been invited by {invitedByName} to join {rescueName}
+                    {role ? <> as {role}</> : null}
+                  </>
+                ) : rescueName ? (
+                  <>
+                    You've been invited to join {rescueName}
+                    {role ? <> as {role}</> : null}
+                  </>
+                ) : (
+                  <>You've been invited to join a rescue organization</>
+                )}
+              </strong>
               You're registering with: {invitationEmail}
             </p>
           </div>
 
           {error && (
-            <div className={styles.errorContainer}>
+            <div className={styles.errorContainer} role="alert" aria-live="assertive">
               <h3>⚠️ Error</h3>
               <p>{error}</p>
             </div>
@@ -245,6 +265,7 @@ const AcceptInvitation: React.FC = () => {
                 disabled={submitting}
                 required
                 autoFocus
+                autoComplete="given-name"
               />
               {errors.firstName && <span className={styles.formError}>{errors.firstName}</span>}
             </div>
@@ -262,6 +283,7 @@ const AcceptInvitation: React.FC = () => {
                 placeholder="Enter your last name"
                 disabled={submitting}
                 required
+                autoComplete="family-name"
               />
               {errors.lastName && <span className={styles.formError}>{errors.lastName}</span>}
             </div>
@@ -279,6 +301,7 @@ const AcceptInvitation: React.FC = () => {
                 placeholder="Create a secure password"
                 disabled={submitting}
                 required
+                autoComplete="new-password"
               />
               {errors.password && <span className={styles.formError}>{errors.password}</span>}
               <small className={styles.passwordHint}>Must be at least 8 characters</small>
@@ -297,6 +320,7 @@ const AcceptInvitation: React.FC = () => {
                 placeholder="Re-enter your password"
                 disabled={submitting}
                 required
+                autoComplete="new-password"
               />
               {errors.confirmPassword && (
                 <span className={styles.formError}>{errors.confirmPassword}</span>
