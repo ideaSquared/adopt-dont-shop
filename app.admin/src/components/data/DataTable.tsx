@@ -194,8 +194,10 @@ export function DataTable<T extends object>({
                 <SkeletonTableRow key={i} columnCount={columns.length} hasCheckbox={selectable} />
               ))
             ) : error ? (
-              <tr className={styles.emptyRow} role='alert'>
-                <td colSpan={columns.length + (selectable ? 1 : 0)}>{error}</td>
+              <tr className={styles.emptyRow}>
+                <td colSpan={columns.length + (selectable ? 1 : 0)}>
+                  <div role='alert'>{error}</div>
+                </td>
               </tr>
             ) : data.length === 0 ? (
               <tr className={styles.emptyRow}>
