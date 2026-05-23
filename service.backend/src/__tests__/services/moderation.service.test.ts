@@ -281,6 +281,68 @@ describe('ModerationService', () => {
       spy.mockRestore();
     });
 
+    // ADS C4-4: when a moderator applies a sanction to a user (warning,
+    // suspension, ban, restriction), the targeted user must receive an
+    // in-app notification documenting it so they have a record once
+    // they're next online. The notification is best-effort and never
+    // affects the sanction itself.
+    it('notifies the sanctioned user when a moderator applies a warning', async () => {
+      const { reporter, reportedUser, moderator } = await seedUsers();
+      const report = await seedReport(reporter.userId, reportedUser.userId);
+
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockResolvedValue({} as never);
+
+      await moderationService.takeModerationAction(moderator.userId, {
+        reportId: report.reportId,
+        targetEntityType: 'user',
+        targetEntityId: reportedUser.userId,
+        targetUserId: reportedUser.userId,
+        actionType: ActionType.WARNING_ISSUED,
+        severity: ActionSeverity.LOW,
+        reason: 'Inappropriate content',
+        description: 'Please review the community guidelines.',
+      });
+
+      // Two notifications: one to the reporter (C4-2), one to the sanctioned user (C4-4)
+      expect(spy).toHaveBeenCalledTimes(2);
+      const sanctionedCall = spy.mock.calls.find(c => c[0].userId === reportedUser.userId);
+      expect(sanctionedCall).toBeDefined();
+      expect(sanctionedCall?.[0].type).toBe(NotificationType.SYSTEM_ANNOUNCEMENT);
+      expect(sanctionedCall?.[0].data).toMatchObject({
+        actionType: ActionType.WARNING_ISSUED,
+        reason: 'Inappropriate content',
+      });
+
+      spy.mockRestore();
+    });
+
+    it('does not notify the target user for NO_ACTION outcomes (not a sanction)', async () => {
+      const { reporter, reportedUser, moderator } = await seedUsers();
+      const report = await seedReport(reporter.userId, reportedUser.userId);
+
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockResolvedValue({} as never);
+
+      await moderationService.takeModerationAction(moderator.userId, {
+        reportId: report.reportId,
+        targetEntityType: 'user',
+        targetEntityId: reportedUser.userId,
+        targetUserId: reportedUser.userId,
+        actionType: ActionType.NO_ACTION,
+        severity: ActionSeverity.LOW,
+        reason: 'No violation',
+      });
+
+      // Only the reporter is notified (dismissal); the target user is not.
+      const sanctionedCalls = spy.mock.calls.filter(c => c[0].userId === reportedUser.userId);
+      expect(sanctionedCalls).toHaveLength(0);
+
+      spy.mockRestore();
+    });
+
     it('completes the moderation action even when notifying the reporter fails', async () => {
       const { reporter, reportedUser, moderator } = await seedUsers();
       const report = await seedReport(reporter.userId, reportedUser.userId);

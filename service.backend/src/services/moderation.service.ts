@@ -490,6 +490,28 @@ class ModerationService {
         });
       }
 
+      // ADS C4-4: notify the sanctioned user (the target of the action) so
+      // they have an in-app record next time they're online. Sanctions
+      // cover warnings, suspensions, bans, and account restrictions —
+      // anything that meaningfully changes how the user can use the
+      // platform. Best-effort: notification failures don't roll back.
+      const SANCTION_ACTIONS: ActionType[] = [
+        ActionType.WARNING_ISSUED,
+        ActionType.USER_SUSPENDED,
+        ActionType.USER_BANNED,
+        ActionType.ACCOUNT_RESTRICTED,
+      ];
+      if (actionData.targetUserId && SANCTION_ACTIONS.includes(actionData.actionType)) {
+        await this.notifySanctionedUser({
+          userId: actionData.targetUserId,
+          actionId: action.actionId,
+          actionType: actionData.actionType,
+          reason: actionData.reason,
+          description: actionData.description,
+          expiresAt: action.expiresAt,
+        });
+      }
+
       await AuditLogService.log({
         userId: moderatorId,
         action: 'MODERATION_ACTION_TAKEN',
@@ -1055,6 +1077,55 @@ class ModerationService {
         reportId,
         reporterId,
         resolution,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * ADS C4-4: Notify a user that a moderation sanction was applied to
+   * their account (warning, suspension, ban, restriction). Best-effort:
+   * the sanction itself has already committed.
+   *
+   * Reuses NotificationType.SYSTEM_ANNOUNCEMENT for the same reason as
+   * notifyReporterOfResolution — the Postgres ENUM for notification.type
+   * can't grow without a migration. The discriminator lives in
+   * `data.actionType` so the UI can pick an appropriate icon / copy.
+   */
+  private async notifySanctionedUser(params: {
+    userId: string;
+    actionId: string;
+    actionType: ActionType;
+    reason: string;
+    description?: string;
+    expiresAt?: Date;
+  }): Promise<void> {
+    const { userId, actionId, actionType, reason, description, expiresAt } = params;
+    const titles: Record<string, string> = {
+      [ActionType.WARNING_ISSUED]: 'A moderator issued you a warning',
+      [ActionType.USER_SUSPENDED]: 'Your account has been suspended',
+      [ActionType.USER_BANNED]: 'Your account has been banned',
+      [ActionType.ACCOUNT_RESTRICTED]: 'Your account has been restricted',
+    };
+    try {
+      await NotificationService.createNotification({
+        userId,
+        type: NotificationType.SYSTEM_ANNOUNCEMENT,
+        title: titles[actionType] ?? 'A moderation action was taken on your account',
+        message: description ?? reason,
+        data: {
+          actionId,
+          actionType,
+          reason,
+          ...(description !== undefined ? { description } : {}),
+          ...(expiresAt !== undefined ? { expiresAt: expiresAt.toISOString() } : {}),
+        },
+      });
+    } catch (error) {
+      logger.warn('Failed to notify sanctioned user', {
+        userId,
+        actionId,
+        actionType,
         error: error instanceof Error ? error.message : String(error),
       });
     }
