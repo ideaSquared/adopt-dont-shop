@@ -96,6 +96,7 @@ const StaffForm: React.FC<StaffFormProps> = ({
               placeholder="Enter the user ID of the user to add as staff (e.g., user_0000rscst01)"
               disabled={isEditing || loading}
               required
+              aria-required={true}
             />
             {errors.userId && <span className={styles.formError}>{errors.userId}</span>}
             <small className={styles.formHelp}>

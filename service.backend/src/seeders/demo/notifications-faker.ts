@@ -27,6 +27,9 @@ const TYPE_TITLE: Record<NotificationType, string> = {
   [NotificationType.STAFF_ASSIGNMENT]: 'You have been assigned a new task',
   [NotificationType.PET_UPDATE]: 'Pet profile updated',
   [NotificationType.FOLLOW_UP]: 'Follow-up check-in',
+  [NotificationType.RESCUE_VERIFIED]: 'Your rescue has been verified',
+  [NotificationType.MODERATION_REPORT_RESOLVED]: 'Report update',
+  [NotificationType.USER_SANCTIONED]: 'Account action',
 };
 
 const TYPE_BAG: NotificationType[] = (() => {

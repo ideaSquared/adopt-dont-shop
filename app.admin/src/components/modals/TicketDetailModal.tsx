@@ -255,6 +255,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
             placeholder='Type your response here...'
             disabled={isSubmitting}
             required
+            aria-required={true}
             minLength={1}
             maxLength={10000}
           />

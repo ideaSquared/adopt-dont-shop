@@ -31,8 +31,12 @@ export enum TimelineEventType {
   MANUAL_OVERRIDE = 'manual_override',
 }
 
-// Extended types for rescue app UI
-export interface ApplicationListItem extends ApplicationWithPetInfo {
+// Extended types for rescue app UI. Omit lib.applications' `stage`
+// (lowercase, optional) so the local uppercase ApplicationStage from
+// ./applicationStages stays the source of truth for the rescue UI.
+// The two enums represent the same workflow; aligning them on
+// lowercase is a separate follow-up.
+export interface ApplicationListItem extends Omit<ApplicationWithPetInfo, 'stage'> {
   applicantName: string;
   submittedDaysAgo: number;
   priority: ApplicationPriority;

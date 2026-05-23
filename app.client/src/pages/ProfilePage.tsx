@@ -16,6 +16,7 @@ import {
   toast,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
+import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as styles from './ProfilePage.css';
@@ -404,7 +405,7 @@ export const ProfilePage: React.FC = () => {
                       : 'default') as 'submitted' | 'approved' | 'rejected' | 'default',
                   })}
                 >
-                  {application.status.replace('_', ' ')}
+                  {applicationStatusLabel(application.status)}
                 </span>
                 <div className={styles.smallTopGap}>
                   <Button

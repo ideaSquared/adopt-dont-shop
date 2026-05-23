@@ -578,7 +578,7 @@ describe('RescueService - Behavioral Testing', () => {
       expect(spy).toHaveBeenCalledTimes(1);
       const args = spy.mock.calls[0][0];
       expect(args.userId).toBe('user-123');
-      expect(args.type).toBe(NotificationType.SYSTEM_ANNOUNCEMENT);
+      expect(args.type).toBe(NotificationType.RESCUE_VERIFIED);
       expect(args.data).toMatchObject({ rescueId: rescue.rescueId, event: 'rescue_verified' });
 
       expect(vi.mocked(emitToRescue)).toHaveBeenCalledWith(

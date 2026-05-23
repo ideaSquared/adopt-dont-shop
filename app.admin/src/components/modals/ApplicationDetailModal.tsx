@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Heading, Text } from '@adopt-dont-shop/lib.components';
+import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import type { AdminApplication } from '@/services/applicationService';
 import * as styles from './ApplicationDetailModal.css';
 
@@ -29,7 +30,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       <div className={styles.container}>
         <section>
           <Heading level='h3'>Status</Heading>
-          <Text>{application.status}</Text>
+          <Text>{applicationStatusLabel(application.status)}</Text>
         </section>
 
         <section>
