@@ -42,6 +42,10 @@ export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
       custom: {
         app: 'client',
         userType: user?.userType,
+        // Defensive: include rescueId so future per-rescue gating rules
+        // can bucket correctly. Adopters don't have a rescueId, so the
+        // field is undefined in the common case.
+        rescueId: user?.rescueId,
         isAuthenticated: !!user,
       },
     }),

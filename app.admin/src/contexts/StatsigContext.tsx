@@ -26,6 +26,10 @@ export const StatsigWrapper: React.FC<StatsigWrapperProps> = ({ children }) => {
         app: 'admin',
         userType: user?.userType,
         role: user?.userType, // admin or moderator
+        // Defensive: include rescueId so future per-rescue gating rules
+        // can bucket correctly. Admins typically have no rescueId, so
+        // the field is undefined in the common case.
+        rescueId: user?.rescueId,
         isAuthenticated: !!user,
       },
     }),
