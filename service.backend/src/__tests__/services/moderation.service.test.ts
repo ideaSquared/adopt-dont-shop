@@ -226,7 +226,7 @@ describe('ModerationService', () => {
       expect(spy).toHaveBeenCalledTimes(1);
       const args = spy.mock.calls[0][0];
       expect(args.userId).toBe(reporter.userId);
-      expect(args.type).toBe(NotificationType.SYSTEM_ANNOUNCEMENT);
+      expect(args.type).toBe(NotificationType.MODERATION_REPORT_RESOLVED);
       expect(args.data).toMatchObject({ reportId: report.reportId, resolution: 'resolved' });
 
       const refreshed = await Report.findByPk(report.reportId);
@@ -253,6 +253,7 @@ describe('ModerationService', () => {
       expect(spy).toHaveBeenCalledTimes(1);
       const args = spy.mock.calls[0][0];
       expect(args.userId).toBe(reporter.userId);
+      expect(args.type).toBe(NotificationType.MODERATION_REPORT_RESOLVED);
       expect(args.data).toMatchObject({ resolution: 'dismissed' });
 
       spy.mockRestore();
@@ -276,6 +277,7 @@ describe('ModerationService', () => {
       expect(spy).toHaveBeenCalledTimes(1);
       const args = spy.mock.calls[0][0];
       expect(args.userId).toBe(reporter.userId);
+      expect(args.type).toBe(NotificationType.MODERATION_REPORT_RESOLVED);
       expect(args.data).toMatchObject({ reportId: report.reportId, resolution: 'escalated' });
 
       spy.mockRestore();
@@ -309,7 +311,7 @@ describe('ModerationService', () => {
       expect(spy).toHaveBeenCalledTimes(2);
       const sanctionedCall = spy.mock.calls.find(c => c[0].userId === reportedUser.userId);
       expect(sanctionedCall).toBeDefined();
-      expect(sanctionedCall?.[0].type).toBe(NotificationType.SYSTEM_ANNOUNCEMENT);
+      expect(sanctionedCall?.[0].type).toBe(NotificationType.USER_SANCTIONED);
       expect(sanctionedCall?.[0].data).toMatchObject({
         actionType: ActionType.WARNING_ISSUED,
         reason: 'Inappropriate content',
