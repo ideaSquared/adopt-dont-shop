@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import type { Worker } from 'bullmq';
 import { z } from 'zod';
 import { buildWorker, getReportsQueue, isQueueAvailable } from '../lib/queue';
@@ -66,6 +67,15 @@ const RenderAndEmailJobSchema = z.object({
    * always populate it.
    */
   requestedBy: z.string().optional(),
+  /**
+   * Pass-10 W3: stable dispatch-window anchor used to construct
+   * per-recipient idempotency keys. Set by `handleScheduledRun` to the
+   * schedule's `last_run_at`. Optional for backward compatibility and
+   * for ad-hoc manual sends (which don't need cross-retry idempotency
+   * — the user clicks once, BullMQ retries are the only duplicate
+   * source).
+   */
+  dispatchAt: z.string().optional(),
 });
 
 export type ScheduledRunJob = z.infer<typeof ScheduledRunJobSchema>;
@@ -167,8 +177,9 @@ const handleScheduledRun = async (data: ScheduledRunJob): Promise<void> => {
     return;
   }
 
+  const dispatchAt = new Date();
   schedule.last_status = ScheduledReportStatus.PENDING;
-  schedule.last_run_at = new Date();
+  schedule.last_run_at = dispatchAt;
   await schedule.save();
 
   await getReportsQueue().add(RENDER_AND_EMAIL, {
@@ -178,6 +189,7 @@ const handleScheduledRun = async (data: ScheduledRunJob): Promise<void> => {
     format: schedule.format,
     triggeredBy: 'schedule',
     requestedBy,
+    dispatchAt: dispatchAt.toISOString(),
   } satisfies RenderAndEmailJob);
 };
 
@@ -245,13 +257,27 @@ const handleRenderAndEmail = async (data: RenderAndEmailJob): Promise<void> => {
     }
   }
 
+  // Pass-10 W3: per-recipient idempotency key. If the worker crashes
+  // partway through this loop, BullMQ retries the entire job —
+  // recipients [0..k) would otherwise get duplicate emails. The key is
+  // derived from a stable (schedule, recipient, format, dispatch-window)
+  // tuple so a retry computes the same key and the email service's
+  // findOrCreate short-circuits the second insert. Sha256-truncated to
+  // fit the 64-char column.
   for (const r of data.recipients) {
+    const idempotencyKey =
+      data.scheduleId && data.dispatchAt
+        ? createHash('sha256')
+            .update(`${data.scheduleId}|${r.email}|${data.format}|${data.dispatchAt}`)
+            .digest('hex')
+        : undefined;
     await emailService.sendEmail({
       toEmail: r.email,
       subject,
       htmlContent: html,
       attachments: attachment ? [attachment] : undefined,
       userId: r.userId,
+      idempotencyKey,
     });
   }
 

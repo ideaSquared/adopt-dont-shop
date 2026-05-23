@@ -504,7 +504,7 @@ class EmailService {
       // NOT be stripped — legitimate line breaks belong there.
 
       // Create email queue entry
-      const email = await EmailQueue.create({
+      const emailDefaults = {
         templateId: options.templateId,
         fromEmail: stripHeaderField(
           options.fromEmail || process.env.DEFAULT_FROM_EMAIL || 'noreply@adoptdontshop.com'
@@ -530,7 +530,34 @@ class EmailService {
         campaignId: options.campaignId,
         tags: options.tags || [],
         metadata: options.metadata || {},
-      });
+        idempotencyKey: options.idempotencyKey ?? null,
+      };
+
+      // Pass-10 W3: opt-in idempotency. When the caller supplies an
+      // idempotencyKey, use findOrCreate so a retry that re-runs the same
+      // send is a no-op rather than a duplicate queue row. Callers that
+      // don't supply a key (transactional emails, password resets,
+      // notifications) go through the plain create path so the unique
+      // index never fires.
+      let email: EmailQueue;
+      let alreadyQueued = false;
+      if (options.idempotencyKey) {
+        const [row, created] = await EmailQueue.findOrCreate({
+          where: { idempotencyKey: options.idempotencyKey },
+          defaults: emailDefaults,
+        });
+        email = row;
+        alreadyQueued = !created;
+        if (alreadyQueued) {
+          logger.info('Skipping duplicate email send — idempotency key already used', {
+            emailId: email.emailId,
+            idempotencyKey: options.idempotencyKey,
+          });
+          return email.emailId;
+        }
+      } else {
+        email = await EmailQueue.create(emailDefaults);
+      }
 
       await AuditLogService.log({
         action: 'EMAIL_QUEUED',

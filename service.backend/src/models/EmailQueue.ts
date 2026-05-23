@@ -90,6 +90,16 @@ interface EmailQueueAttributes {
   userId?: string;
   // createdBy removed — provided by auditColumns helper as `created_by`.
   tags?: string[];
+  /**
+   * ADS-105 follow-up (pass-10 W3): opt-in idempotency key. Callers that
+   * need send-once semantics on retry (currently reports.worker
+   * render-and-email) construct a stable per-(schedule, recipient,
+   * format, dispatch-window) key. EmailService.sendEmail uses
+   * findOrCreate on this column to short-circuit duplicate sends after a
+   * BullMQ retry. Other senders leave it null and behave exactly as
+   * before.
+   */
+  idempotencyKey?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -133,6 +143,7 @@ class EmailQueue
   public campaignId?: string;
   public userId?: string;
   public tags?: string[];
+  public idempotencyKey?: string | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -533,6 +544,12 @@ EmailQueue.init(
           this.setDataValue('tags', value || ([] as any));
         }
       },
+    },
+    idempotencyKey: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+      unique: true,
+      field: 'idempotency_key',
     },
     createdAt: {
       type: DataTypes.DATE,

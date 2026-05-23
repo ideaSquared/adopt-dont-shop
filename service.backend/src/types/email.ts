@@ -45,6 +45,14 @@ export interface SendEmailOptions {
   campaignId?: string;
   tags?: string[];
   metadata?: JsonObject;
+  /**
+   * Opt-in idempotency key. When set, EmailService.sendEmail uses
+   * findOrCreate on EmailQueue.idempotency_key — a second send attempt
+   * with the same key short-circuits ("already queued/sent") instead of
+   * creating a duplicate row. Callers that don't need this leave it
+   * undefined and the column stays NULL. See pass-10 W3.
+   */
+  idempotencyKey?: string;
 }
 
 export interface BulkEmailRecipient {
