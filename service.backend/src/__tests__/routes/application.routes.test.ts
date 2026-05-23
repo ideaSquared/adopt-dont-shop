@@ -43,6 +43,7 @@ vi.mock('../../services/application.service', () => ({
     getApplicationHistory: vi.fn(),
     getApplicationFormStructure: vi.fn(),
     validateApplicationAnswers: vi.fn(),
+    updateHomeVisit: vi.fn(),
   },
   default: {
     getApplications: vi.fn(),
@@ -58,6 +59,7 @@ vi.mock('../../services/application.service', () => ({
     getApplicationHistory: vi.fn(),
     getApplicationFormStructure: vi.fn(),
     validateApplicationAnswers: vi.fn(),
+    updateHomeVisit: vi.fn(),
   },
 }));
 
@@ -446,6 +448,72 @@ describe('Application routes', () => {
 
       expect(res.status).toBe(200);
       expect(ApplicationService.getApplicationStatistics).toHaveBeenCalledWith('rescue-B');
+    });
+  });
+
+  describe('PUT /api/v1/applications/:applicationId/home-visits/:visitId', () => {
+    const applicationId = '11111111-1111-1111-1111-111111111111';
+    const visitId = '22222222-2222-2222-2222-222222222222';
+
+    beforeEach(() => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockRescueStaffUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+      vi.mocked(ApplicationService.updateHomeVisit).mockResolvedValue({
+        id: visitId,
+      } as unknown as Awaited<ReturnType<typeof ApplicationService.updateHomeVisit>>);
+    });
+
+    it('translates snake_case body fields to camelCase before calling the service', async () => {
+      const res = await request(buildApp())
+        .put(`/api/v1/applications/${applicationId}/home-visits/${visitId}`)
+        .send({
+          scheduled_date: '2026-06-01',
+          scheduled_time: '14:00',
+          assigned_staff: 'staff-uuid-1',
+          notes: 'bring paperwork',
+          outcome: 'approved',
+          outcome_notes: 'all good',
+          reschedule_reason: 'weather',
+          cancelled_reason: 'no-show',
+          status: 'completed',
+        });
+
+      expect(res.status).toBe(200);
+      expect(ApplicationService.updateHomeVisit).toHaveBeenCalledTimes(1);
+      const [passedApplicationId, , passedUpdate, passedActor] = vi.mocked(
+        ApplicationService.updateHomeVisit
+      ).mock.calls[0];
+      expect(passedApplicationId).toBe(applicationId);
+      expect(passedActor).toBe(mockRescueStaffUser.userId);
+      expect(passedUpdate).toMatchObject({
+        scheduledDate: '2026-06-01',
+        scheduledTime: '14:00',
+        assignedStaff: 'staff-uuid-1',
+        notes: 'bring paperwork',
+        outcome: 'approved',
+        outcomeNotes: 'all good',
+        rescheduleReason: 'weather',
+        cancelledReason: 'no-show',
+        status: 'completed',
+      });
+      // Service must NOT receive snake_case keys it would silently ignore.
+      expect(passedUpdate).not.toHaveProperty('scheduled_date');
+      expect(passedUpdate).not.toHaveProperty('reschedule_reason');
+      expect(passedUpdate).not.toHaveProperty('cancelled_reason');
+    });
+
+    it('returns 404 when the service reports the visit was not found', async () => {
+      vi.mocked(ApplicationService.updateHomeVisit).mockResolvedValue(null);
+
+      const res = await request(buildApp())
+        .put(`/api/v1/applications/${applicationId}/home-visits/${visitId}`)
+        .send({ status: 'cancelled', cancelled_reason: 'duplicate' });
+
+      expect(res.status).toBe(404);
     });
   });
 });
