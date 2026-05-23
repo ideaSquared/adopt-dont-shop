@@ -249,6 +249,7 @@ describe('GdprService', () => {
           sender_id: user.userId,
           content: 'This is my real message content',
           content_format: 'plain',
+          sequence: 0,
           attachments: '[]',
           created_at: new Date(),
           updated_at: new Date(),
@@ -455,6 +456,7 @@ describe('GdprService', () => {
           sender_id: user.userId,
           content: 'msg',
           content_format: 'plain',
+          sequence: 0,
           attachments: JSON.stringify([
             {
               attachment_id: 'missing-file-1',

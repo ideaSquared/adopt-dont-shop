@@ -298,12 +298,14 @@ describe('ChatService', () => {
 
         await ChatService.createChat(chatData, userId);
 
-        expect(MockedMessage.create).toHaveBeenCalledWith({
-          chat_id: mockChat.chat_id,
-          sender_id: userId,
-          content: initialMessage,
-          content_format: MessageContentFormat.PLAIN,
-        });
+        expect(MockedMessage.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            chat_id: mockChat.chat_id,
+            sender_id: userId,
+            content: initialMessage,
+            content_format: MessageContentFormat.PLAIN,
+          })
+        );
       });
     });
 
