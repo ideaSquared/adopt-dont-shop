@@ -464,6 +464,64 @@ describe('PetFormModal — image upload field (ADS-574)', () => {
     expect(submitted.images).toEqual(['/uploads/pets/pets_b.png', '/uploads/pets/pets_a.png']);
   });
 
+  it('exposes keyboard-accessible Move up / Move down controls that reorder images', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn((_data: SubmitArg) => Promise.resolve());
+    const uploadImage = vi
+      .fn<(file: File) => Promise<ImageUploadResponse>>()
+      .mockResolvedValueOnce(makeUploadResponse('a'))
+      .mockResolvedValueOnce(makeUploadResponse('b'))
+      .mockResolvedValueOnce(makeUploadResponse('c'));
+
+    renderWithProviders(
+      <PetFormModal
+        isOpen={true}
+        onClose={() => {}}
+        onSubmit={onSubmit}
+        uploadImage={uploadImage}
+      />
+    );
+
+    await fillRequiredFields(user);
+
+    const fileInput = screen.getByLabelText(/add pet photos/i);
+    await act(async () => {
+      fireEvent.change(fileInput, {
+        target: {
+          files: [makeImageFile('a.png'), makeImageFile('b.png'), makeImageFile('c.png')],
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(uploadImage).toHaveBeenCalledTimes(3);
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /move down: a\.png/i })).toBeEnabled();
+    });
+
+    // Click "Move down" on the first photo — a.png moves to index 1, b.png
+    // moves to index 0 (becoming the cover).
+    await user.click(screen.getByRole('button', { name: /move down: a\.png/i }));
+
+    // After the move the aria-labels reflect the new positions: the first
+    // row can no longer move up; the last row can no longer move down.
+    expect(screen.getByRole('button', { name: /move up: b\.png/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /move down: c\.png/i })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: /add pet/i }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    const submitted = onSubmit.mock.calls[0][0];
+    expect(submitted.images).toEqual([
+      '/uploads/pets/pets_b.png',
+      '/uploads/pets/pets_a.png',
+      '/uploads/pets/pets_c.png',
+    ]);
+  });
+
   it('refuses to add more files once the max count is reached', async () => {
     const onSubmit = vi.fn((_data: SubmitArg) => Promise.resolve());
     const uploadImage = vi
