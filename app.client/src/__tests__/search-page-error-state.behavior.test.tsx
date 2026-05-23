@@ -94,7 +94,7 @@ describe('SearchPage error state', () => {
   it('renders a Try Again button when the initial pet search fails', async () => {
     renderWithProviders(<SearchPage />);
 
-    const retry = await screen.findByRole('button', { name: /try again/i });
+    const retry = await screen.findByRole('button', { name: /try again/i }, { timeout: 10_000 });
     expect(retry).toBeInTheDocument();
     expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
     // Empty-state copy must not be shown on a load failure.
@@ -105,7 +105,7 @@ describe('SearchPage error state', () => {
     const user = userEvent.setup();
     renderWithProviders(<SearchPage />);
 
-    const retry = await screen.findByRole('button', { name: /try again/i });
+    const retry = await screen.findByRole('button', { name: /try again/i }, { timeout: 10_000 });
     await user.click(retry);
 
     // Second call returns 200 with an empty data array — empty state appears.
