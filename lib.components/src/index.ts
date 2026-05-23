@@ -47,6 +47,8 @@ export { CheckboxInput } from './components/form/CheckboxInput';
 export { SelectInput } from './components/form/SelectInput/';
 export type { SelectOption } from './components/form/SelectInput/';
 export { TextArea } from './components/form/TextArea';
+// `TextInput` is deprecated — prefer `Input`. Still exported for existing
+// consumers; do not add new call sites.
 export { TextInput } from './components/form/TextInput';
 export { Input } from './components/ui/Input';
 export { FormField, FormRow, FormSection } from './components/form/FormField';
