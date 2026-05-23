@@ -3,29 +3,33 @@
  * Simplified for small charities with 4-status workflow
  */
 
-export type ApplicationStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn';
+import { applicationStatusLabel, type ApplicationStatusValue } from '@adopt-dont-shop/lib.types';
+
+export type ApplicationStatus = ApplicationStatusValue;
+
+const APPLICATION_STATUSES: readonly ApplicationStatusValue[] = [
+  'submitted',
+  'approved',
+  'rejected',
+  'withdrawn',
+];
+
+const isApplicationStatus = (status: string): status is ApplicationStatusValue =>
+  (APPLICATION_STATUSES as readonly string[]).includes(status);
 
 /**
- * Formats an application status into a human-readable string
- * @param status - The raw status string
- * @returns Formatted status string
+ * Formats an application status into a human-readable string. Delegates to the
+ * shared label function for canonical statuses; falls back to title-cased value
+ * for unknown inputs (e.g. legacy stage values).
  */
 export const formatStatusName = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    submitted: 'Submitted',
-    approved: 'Approved',
-    rejected: 'Rejected',
-    withdrawn: 'Withdrawn',
-  };
-
-  // Return mapped value or fallback to title case conversion
-  return (
-    statusMap[status] ||
-    status
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  );
+  if (isApplicationStatus(status)) {
+    return applicationStatusLabel(status);
+  }
+  return status
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 /**
