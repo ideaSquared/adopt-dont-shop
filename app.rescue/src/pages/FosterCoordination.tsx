@@ -224,6 +224,7 @@ const FosterCoordination: React.FC = () => {
               value={form.petId}
               onChange={e => setForm({ ...form, petId: e.target.value })}
               required
+              aria-required={true}
             >
               <option value="">— Select a pet —</option>
               {pets.map(pet => (
@@ -239,6 +240,7 @@ const FosterCoordination: React.FC = () => {
               value={form.fosterUserId}
               onChange={e => setForm({ ...form, fosterUserId: e.target.value })}
               required
+              aria-required={true}
             >
               <option value="">— Select a foster user —</option>
               {staff.map(s => (
@@ -255,6 +257,7 @@ const FosterCoordination: React.FC = () => {
               value={form.startDate}
               onChange={e => setForm({ ...form, startDate: e.target.value })}
               required
+              aria-required={true}
             />
           </label>
           <label>

@@ -107,6 +107,7 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
               placeholder="staff@example.com"
               disabled={loading}
               required
+              aria-required={true}
             />
             {errors.email && <span className={styles.formError}>{errors.email}</span>}
             <small className={styles.formHelp}>

@@ -135,6 +135,17 @@ export const statusBadge = recipe({
   },
 });
 
+export const stageBadge = style({
+  display: 'inline-block',
+  marginLeft: '0.5rem',
+  padding: '0.25rem 0.75rem',
+  borderRadius: vars.border.radius.pill,
+  fontSize: '0.75rem',
+  fontWeight: '600',
+  background: vars.colors.warning,
+  color: 'white',
+});
+
 export const applicationDetails = style({
   marginTop: '1rem',
 });

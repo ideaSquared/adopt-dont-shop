@@ -180,6 +180,7 @@ export class ApplicationController extends BaseController {
       userId: applicationModel.userId as string,
       rescueId: applicationModel.rescueId as string,
       status: applicationModel.status as ApplicationStatus,
+      stage: applicationModel.stage as string | undefined,
       submittedAt: applicationModel.submittedAt as string,
       reviewedAt: applicationModel.reviewedAt as string,
       reviewedBy: applicationModel.actionedBy as string,
