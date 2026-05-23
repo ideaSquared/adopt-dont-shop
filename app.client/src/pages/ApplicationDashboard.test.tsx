@@ -10,6 +10,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test-utils/render';
 import userEvent from '@testing-library/user-event';
+import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 
 const navigateMock = vi.fn();
 const getUserApplicationsMock = vi.fn();
@@ -229,7 +230,7 @@ describe('ApplicationDashboard (ADS-634)', () => {
 
       render(<ApplicationDashboard />);
 
-      const label = await screen.findByText(status.replace('_', ' '));
+      const label = await screen.findByText(applicationStatusLabel(status));
       expect(label).toBeInTheDocument();
     }
   );
