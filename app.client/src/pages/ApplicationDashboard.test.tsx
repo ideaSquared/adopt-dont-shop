@@ -216,4 +216,18 @@ describe('ApplicationDashboard (ADS-634)', () => {
 
     expect(navigateMock).toHaveBeenCalledWith('/chat/conv-99');
   });
+
+  // UX P2 E: when an application's pet lookup fails or returns no record,
+  // the card used to display "Pet Name Unavailable" — a phrase that reads
+  // like a system error to applicants. Replace with "Unknown pet" and keep
+  // the card rendering normally.
+  it('renders "Unknown pet" instead of the old placeholder when pet data is missing', async () => {
+    getUserApplicationsMock.mockResolvedValue([makeApplication()]);
+    getPetByIdMock.mockResolvedValue(null);
+
+    render(<ApplicationDashboard />);
+
+    expect(await screen.findByText(/unknown pet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/pet name unavailable/i)).not.toBeInTheDocument();
+  });
 });

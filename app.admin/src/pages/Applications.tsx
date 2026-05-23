@@ -245,6 +245,7 @@ const Applications: React.FC = () => {
         columns={columns}
         data={applications}
         loading={isLoading}
+        error={error instanceof Error ? error.message : null}
         emptyMessage='No applications found matching your criteria'
         currentPage={page}
         totalPages={totalPages}

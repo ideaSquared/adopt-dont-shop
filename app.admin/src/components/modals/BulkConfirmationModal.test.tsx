@@ -56,3 +56,58 @@ describe('BulkConfirmationModal accessibility', () => {
     expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
   });
 });
+
+/**
+ * UX P2 D — Failure visibility + retry
+ *
+ * The bulk endpoints return only aggregate {succeeded, failed} counts today,
+ * so the modal can't render a per-item failed list. Instead it surfaces the
+ * partial-failure case with explicit guidance text and offers the operator a
+ * "Try again" button that re-runs the whole batch (parent retains userIds +
+ * reason and is responsible for re-invoking the mutation).
+ */
+describe('BulkConfirmationModal — partial-failure retry (UX P2 D)', () => {
+  it('renders failure guidance and a Try again button when failures > 0', () => {
+    const onRetry = vi.fn();
+    render(
+      <BulkConfirmationModal
+        {...defaultProps}
+        resultSummary={{ succeeded: 2, failed: 1 }}
+        onRetry={onRetry}
+      />
+    );
+
+    expect(screen.getByText(/2 succeeded, 1 failed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Some items couldn't be updated/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+  });
+
+  it('invokes onRetry when the Try again button is pressed', () => {
+    const onRetry = vi.fn();
+    render(
+      <BulkConfirmationModal
+        {...defaultProps}
+        resultSummary={{ succeeded: 2, failed: 1 }}
+        onRetry={onRetry}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /try again/i }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not render the Try again button when all items succeeded', () => {
+    const onRetry = vi.fn();
+    render(
+      <BulkConfirmationModal
+        {...defaultProps}
+        resultSummary={{ succeeded: 3, failed: 0 }}
+        onRetry={onRetry}
+      />
+    );
+
+    expect(screen.getByText(/3 succeeded/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Some items couldn't be updated/i)).not.toBeInTheDocument();
+  });
+});

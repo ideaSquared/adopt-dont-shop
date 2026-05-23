@@ -222,8 +222,10 @@ describe('Rescue Management page', () => {
     it('shows an error message when the rescue API fails', async () => {
       mockGetAll.mockRejectedValue(new Error('Failed to load rescue data'));
       renderWithProviders(<Rescues />);
+      // UX P2 H: the error now surfaces both as the top banner AND the inline
+      // DataTable error row, so there can be more than one match.
       await waitFor(() => {
-        expect(screen.getByText('Failed to load rescue data')).toBeInTheDocument();
+        expect(screen.getAllByText('Failed to load rescue data').length).toBeGreaterThan(0);
       });
     });
 
@@ -231,7 +233,7 @@ describe('Rescue Management page', () => {
       mockGetAll.mockRejectedValue(new Error('Failed to fetch rescues'));
       renderWithProviders(<Rescues />);
       await waitFor(() => {
-        expect(screen.getByText(/failed to fetch rescues/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/failed to fetch rescues/i).length).toBeGreaterThan(0);
       });
     });
   });

@@ -40,13 +40,14 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
   }
 
   return (
+    // UX P2 I: backdrop is a click-target convenience, not an interactive
+    // control — the accessible close affordance is the ✕ button inside.
     <div
       className={styles.overlay({ show: true })}
       onClick={handleClose}
-      role='button'
-      tabIndex={0}
+      role='presentation'
       onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+        if (e.key === 'Escape') {
           handleClose();
         }
       }}

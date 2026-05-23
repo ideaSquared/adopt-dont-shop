@@ -7,14 +7,30 @@ type Props = {
   value: boolean | undefined;
   onChange: (value: boolean | undefined) => void;
   hasError?: boolean;
+  // UX P2 F: forwarded by QuestionField when isRequired so the radiogroup
+  // announces "required" to screen readers.
+  isRequired?: boolean;
+  ariaLabel?: string;
 };
 
-export const BooleanTiles: React.FC<Props> = ({ name, value, onChange, hasError = false }) => {
+export const BooleanTiles: React.FC<Props> = ({
+  name,
+  value,
+  onChange,
+  hasError = false,
+  isRequired = false,
+  ariaLabel,
+}) => {
   const yesSelected = value === true;
   const noSelected = value === false;
 
   return (
-    <div className={styles.group} role='radiogroup'>
+    <div
+      className={styles.group}
+      role='radiogroup'
+      aria-required={isRequired ? true : undefined}
+      aria-label={ariaLabel}
+    >
       <label
         className={clsx(
           styles.tile,

@@ -56,6 +56,13 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
   const { questionType, questionKey, questionText, helpText, placeholder, options, isRequired } =
     question;
 
+  // UX P2 F: surface required-state to assistive tech. The visible `*` is
+  // aria-hidden (intentional — sighted users see a coloured glyph, screen
+  // readers should not announce literal "asterisk"), so each control owns its
+  // own aria-required to expose "required field" semantically.
+  const ariaRequired = isRequired ? true : undefined;
+  const ariaLabel = isRequired ? `${questionText} (required)` : undefined;
+
   const renderInput = () => {
     if (questionKey === 'household_members') {
       return <HouseholdMembersField value={value} onChange={onChange} hasError={!!error} />;
@@ -73,6 +80,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
             value={typeof value === 'boolean' ? value : undefined}
             onChange={onChange}
             hasError={!!error}
+            isRequired={isRequired}
+            ariaLabel={ariaLabel}
           />
         );
 
@@ -86,6 +95,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
               onChange={next => onChange(next)}
               iconFor={getIconFor(questionKey)}
               hasError={!!error}
+              isRequired={isRequired}
+              ariaLabel={ariaLabel}
             />
           );
         }
@@ -94,6 +105,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
             className={styles.select({ hasError: !!error })}
             value={asString(value)}
             onChange={e => onChange(e.target.value || undefined)}
+            aria-required={ariaRequired}
+            aria-label={ariaLabel}
           >
             <option value=''>Select an option…</option>
             {options?.map(opt => (
@@ -106,8 +119,10 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
 
       case 'multi_select': {
         const selected = asStringArray(value);
+        // aria-required is not supported on role="group"; surface required
+        // semantics on each individual checkbox input instead.
         return (
-          <div className={styles.checkboxGroup}>
+          <div className={styles.checkboxGroup} role='group' aria-label={ariaLabel}>
             {options?.map(opt => (
               <label key={opt} className={styles.checkboxLabel}>
                 <input
@@ -119,6 +134,7 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
                       : selected.filter(s => s !== opt);
                     onChange(next.length > 0 ? next : undefined);
                   }}
+                  aria-required={ariaRequired}
                 />
                 {opt}
               </label>
@@ -135,6 +151,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
             value={typeof value === 'number' ? value : ''}
             placeholder={placeholder ?? undefined}
             onChange={e => onChange(e.target.value !== '' ? Number(e.target.value) : undefined)}
+            aria-required={ariaRequired}
+            aria-label={ariaLabel}
           />
         );
 
@@ -145,6 +163,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
             className={styles.input({ hasError: !!error })}
             value={asString(value)}
             onChange={e => onChange(e.target.value || undefined)}
+            aria-required={ariaRequired}
+            aria-label={ariaLabel}
           />
         );
 
@@ -156,6 +176,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
             placeholder={placeholder ?? undefined}
             rows={3}
             onChange={e => onChange(e.target.value || undefined)}
+            aria-required={ariaRequired}
+            aria-label={ariaLabel}
           />
         );
 
@@ -167,6 +189,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
             value={asString(value)}
             placeholder={placeholder ?? undefined}
             onChange={e => onChange(e.target.value || undefined)}
+            aria-required={ariaRequired}
+            aria-label={ariaLabel}
           />
         );
 
@@ -178,6 +202,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
             value={asString(value)}
             placeholder={placeholder ?? undefined}
             onChange={e => onChange(e.target.value || undefined)}
+            aria-required={ariaRequired}
+            aria-label={ariaLabel}
           />
         );
 
@@ -187,6 +213,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
             type='file'
             className={styles.input({ hasError: !!error })}
             onChange={e => onChange(e.target.files?.[0]?.name ?? undefined)}
+            aria-required={ariaRequired}
+            aria-label={ariaLabel}
           />
         );
 
@@ -198,6 +226,8 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
             value={asString(value)}
             placeholder={placeholder ?? undefined}
             onChange={e => onChange(e.target.value || undefined)}
+            aria-required={ariaRequired}
+            aria-label={ariaLabel}
           />
         );
     }

@@ -280,6 +280,7 @@ export function DataTable<T extends object>({
                   key={pageNum}
                   className={styles.pageButton({ active: currentPage === pageNum })}
                   onClick={() => onPageChange(pageNum)}
+                  aria-current={currentPage === pageNum ? 'page' : undefined}
                 >
                   {pageNum}
                 </button>
