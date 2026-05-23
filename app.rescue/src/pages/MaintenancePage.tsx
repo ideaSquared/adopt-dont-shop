@@ -12,8 +12,8 @@ const MaintenancePage = () => (
 
     <h1 className={styles.title}>We&apos;re grooming the servers!</h1>
     <p className={styles.body}>
-      Our team of highly trained cats is batting important cables around right
-      now. We&apos;ll be back before you can say &ldquo;pspspsps.&rdquo;
+      Our team of highly trained cats is batting important cables around right now. We&apos;ll be
+      back before you can say &ldquo;pspspsps.&rdquo;
     </p>
     <p className={styles.subtitle}>
       &ldquo;Have you tried turning it off and sitting on it?&rdquo; — The cats, probably
