@@ -73,3 +73,27 @@ describe('ForgotPasswordPage enumeration-resistant response handling [C2-6]', ()
     ).not.toBeInTheDocument();
   });
 });
+
+describe('ForgotPasswordPage async error announcement [C2-7]', () => {
+  const submitForm = async () => {
+    const user = userEvent.setup();
+    render(<ForgotPasswordPage />);
+    await user.type(screen.getByPlaceholderText(/enter your email/i), 'user@example.com');
+    await user.click(screen.getByRole('button', { name: /send reset instructions/i }));
+  };
+
+  beforeEach(() => {
+    forgotPasswordMock.mockReset();
+  });
+
+  it('exposes the 5xx error in a role="alert" live region', async () => {
+    const err = new Error('boom') as Error & { response: { status: number } };
+    err.response = { status: 500 };
+    forgotPasswordMock.mockRejectedValueOnce(err);
+
+    await submitForm();
+
+    const alert = await waitFor(() => screen.getByRole('alert'));
+    expect(alert).toHaveTextContent(/server error/i);
+  });
+});

@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { render } from '@/test-utils/render';
-import { waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { VerifyEmailPage } from './VerifyEmailPage';
 
 const verifyEmailMock = vi.fn();
@@ -65,5 +65,22 @@ describe('VerifyEmailPage [ADS-375]', () => {
     vi.useRealTimers();
 
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('VerifyEmailPage async error announcement [C2-7]', () => {
+  beforeEach(() => {
+    verifyEmailMock.mockReset();
+    navigateMock.mockReset();
+    searchParamsValue = new URLSearchParams('?token=token-bad');
+  });
+
+  it('exposes the verification failure in a role="alert" live region', async () => {
+    verifyEmailMock.mockRejectedValueOnce(new Error('Verification token is malformed'));
+
+    render(<VerifyEmailPage />);
+
+    const alert = await waitFor(() => screen.getByRole('alert'));
+    expect(alert).toHaveTextContent(/verification token is malformed/i);
   });
 });

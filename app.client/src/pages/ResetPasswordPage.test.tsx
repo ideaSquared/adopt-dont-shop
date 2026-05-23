@@ -52,3 +52,18 @@ describe('ResetPasswordPage submit-gate before token validation [C2-3]', () => {
     expect(submit).toBeDisabled();
   });
 });
+
+describe('ResetPasswordPage async error announcement [C2-7]', () => {
+  beforeEach(() => {
+    navigateMock.mockReset();
+  });
+
+  it('exposes the missing-token error in a role="alert" live region on mount', async () => {
+    searchParamsValue = new URLSearchParams('');
+
+    render(<ResetPasswordPage />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent(/invalid or missing reset token/i);
+  });
+});

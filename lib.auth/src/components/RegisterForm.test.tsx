@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AuthContext, type AuthContextType } from '../contexts/AuthContext';
 import { RegisterForm } from './RegisterForm';
 
-const buildAuthValue = (): AuthContextType => ({
+const buildAuthValue = (overrides: Partial<AuthContextType> = {}): AuthContextType => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
@@ -13,11 +14,15 @@ const buildAuthValue = (): AuthContextType => ({
   logout: vi.fn(),
   updateProfile: vi.fn(),
   refreshUser: vi.fn(),
+  ...overrides,
 });
 
-const renderRegisterForm = (requirePhoneNumber = false) =>
+const renderRegisterForm = (
+  requirePhoneNumber = false,
+  value: AuthContextType = buildAuthValue()
+) =>
   render(
-    <AuthContext.Provider value={buildAuthValue()}>
+    <AuthContext.Provider value={value}>
       <RegisterForm requirePhoneNumber={requirePhoneNumber} />
     </AuthContext.Provider>
   );
@@ -62,5 +67,31 @@ describe('RegisterForm autocomplete attributes', () => {
       'autocomplete',
       'new-password'
     );
+  });
+});
+
+describe('RegisterForm async error announcement [C2-7]', () => {
+  it('exposes the form-level error in a role="alert" live region', async () => {
+    const user = userEvent.setup();
+    const registerMock = vi.fn().mockRejectedValue(new Error('Email already in use.'));
+
+    renderRegisterForm(true, buildAuthValue({ register: registerMock }));
+
+    await user.type(screen.getByPlaceholderText(/enter your first name/i), 'Ada');
+    await user.type(screen.getByPlaceholderText(/enter your last name/i), 'Lovelace');
+    await user.type(screen.getByPlaceholderText(/enter your email/i), 'ada@example.com');
+    await user.type(screen.getByPlaceholderText(/\(555\) 123-4567/), '5551234567');
+    await user.type(screen.getByPlaceholderText(/create a strong password/i), 'Password1!');
+    await user.type(screen.getByPlaceholderText(/confirm your password/i), 'Password1!');
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+
+    await waitFor(() => {
+      expect(registerMock).toHaveBeenCalled();
+    });
+
+    const alert = await waitFor(() => screen.getByRole('alert'));
+    expect(alert).toHaveTextContent(/email already in use/i);
+    expect(alert).toHaveAttribute('aria-live', 'assertive');
   });
 });

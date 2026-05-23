@@ -198,7 +198,7 @@ const AcceptInvitation: React.FC = () => {
             <p>Unable to process invitation</p>
           </div>
           <div className={styles.cardBody}>
-            <div className={styles.errorContainer}>
+            <div className={styles.errorContainer} role="alert" aria-live="assertive">
               <h3>⚠️ Error</h3>
               <p>{error}</p>
             </div>
@@ -244,7 +244,7 @@ const AcceptInvitation: React.FC = () => {
           </div>
 
           {error && (
-            <div className={styles.errorContainer}>
+            <div className={styles.errorContainer} role="alert" aria-live="assertive">
               <h3>⚠️ Error</h3>
               <p>{error}</p>
             </div>

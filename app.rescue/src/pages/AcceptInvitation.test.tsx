@@ -93,3 +93,20 @@ describe('AcceptInvitation invitation context [C2-4]', () => {
     expect(screen.getByText(/invited to join a rescue organization/i)).toBeInTheDocument();
   });
 });
+
+describe('AcceptInvitation async error announcement [C2-7]', () => {
+  beforeEach(() => {
+    getInvitationDetailsMock.mockReset();
+    searchParamsValue = new URLSearchParams('?token=bad-token');
+  });
+
+  it('exposes the load failure in a role="alert" live region', async () => {
+    getInvitationDetailsMock.mockRejectedValue(new Error('boom'));
+
+    renderWithProviders(<AcceptInvitation />);
+
+    const alert = await waitFor(() => screen.getByRole('alert'));
+    expect(alert).toHaveTextContent(/failed to load invitation details/i);
+    expect(alert).toHaveAttribute('aria-live', 'assertive');
+  });
+});

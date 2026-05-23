@@ -76,3 +76,20 @@ describe('LoginForm 2FA token field [C2-2]', () => {
     expect(token).toHaveValue(backupCode);
   });
 });
+
+describe('LoginForm async error announcement [C2-7]', () => {
+  it('exposes the form-level error in a role="alert" live region', async () => {
+    const user = userEvent.setup();
+    const login = vi.fn().mockRejectedValue(new Error('Invalid email or password.'));
+
+    renderLoginForm(buildAuthValue({ login }));
+
+    await user.type(screen.getByPlaceholderText(/enter your email/i), 'a@b.com');
+    await user.type(screen.getByPlaceholderText(/enter your password/i), 'wrong');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    const alert = await waitFor(() => screen.getByRole('alert'));
+    expect(alert).toHaveTextContent(/invalid email or password/i);
+    expect(alert).toHaveAttribute('aria-live', 'assertive');
+  });
+});
