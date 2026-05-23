@@ -1,4 +1,4 @@
-import { Op, WhereOptions, type Includeable } from 'sequelize';
+import { Op, Transaction, WhereOptions, type Includeable } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
 import MessageReaction from '../models/MessageReaction';
 import MessageRead from '../models/MessageRead';
@@ -724,7 +724,7 @@ export class ChatService {
       // unaffected — each chat row is its own lock anchor.
       const chat = await Chat.findByPk(data.chatId, {
         transaction,
-        lock: transaction.LOCK.UPDATE,
+        lock: Transaction.LOCK.UPDATE,
       });
 
       if (!chat) {
@@ -941,7 +941,7 @@ export class ChatService {
       // sequence value. Same pattern as sendMessage().
       await Chat.findByPk(data.chatId, {
         transaction,
-        lock: transaction.LOCK.UPDATE,
+        lock: Transaction.LOCK.UPDATE,
       });
       const currentMax = await Message.max<number | null, Message>('sequence', {
         where: { chat_id: data.chatId },
@@ -1810,7 +1810,7 @@ export class ChatService {
       // per-chat monotonic ordering guarantee.
       await Chat.findByPk(messageData.chatId, {
         transaction,
-        lock: transaction.LOCK.UPDATE,
+        lock: Transaction.LOCK.UPDATE,
       });
       const currentMax = await Message.max<number | null, Message>('sequence', {
         where: { chat_id: messageData.chatId },
