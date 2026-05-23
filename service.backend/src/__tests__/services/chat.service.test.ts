@@ -56,10 +56,10 @@ vi.mock('../../models', () => ({
   Message: {
     create: vi.fn(),
     findByPk: vi.fn(),
+    findOne: vi.fn(),
     findAll: vi.fn(),
     findAndCountAll: vi.fn(),
     count: vi.fn(),
-    max: vi.fn(),
     update: vi.fn(),
   },
   User: {
