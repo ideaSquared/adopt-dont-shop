@@ -109,6 +109,36 @@ describe('DataTable accessibility', () => {
   });
 });
 
+describe('DataTable pagination accessibility (UX P2 C)', () => {
+  it('marks the current page button with aria-current="page"', () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        currentPage={2}
+        totalPages={5}
+        onPageChange={vi.fn()}
+      />
+    );
+    const currentPageButton = screen.getByRole('button', { name: '2' });
+    expect(currentPageButton).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('does not mark non-current page buttons with aria-current', () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        currentPage={2}
+        totalPages={5}
+        onPageChange={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('button', { name: '1' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('button', { name: '3' })).not.toHaveAttribute('aria-current');
+  });
+});
+
 describe('DataTable load-state differentiation', () => {
   it('renders skeleton rows when loading', () => {
     render(<DataTable columns={columns} data={[]} loading />);
