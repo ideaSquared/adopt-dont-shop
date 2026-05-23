@@ -530,6 +530,13 @@ User.init(
             'verificationToken',
             'twoFactorSecret',
             'twoFactorPendingSecret',
+            // Backup codes are stored bcrypt-hashed but are still
+            // sensitive: leaking the hashes confirms 2FA enrollment
+            // and exposes a recovery factor to offline cracking.
+            // Routes that need to surface freshly-generated codes
+            // (e.g. /auth/2fa/enable) return them out-of-band rather
+            // than via the User instance, so excluding here is safe.
+            'backupCodes',
           ],
         },
       },

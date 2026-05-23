@@ -119,6 +119,21 @@ Invitation.init(
     tableName: 'invitations',
     timestamps: true,
     underscored: true,
+    // Defensive: the token column stores the SHA-256 hash of the
+    // invite (beforeSave hashes any plaintext write), but downstream
+    // routes should never need to surface even the hash. Exclude by
+    // default so a future `res.json(invitation)` can't accidentally
+    // leak it. Service code that needs the hash (acceptInvitation
+    // lookup) reads it via the explicit attribute selection in its
+    // findOne call.
+    defaultScope: {
+      attributes: { exclude: ['token'] },
+    },
+    scopes: {
+      withToken: {
+        attributes: { include: ['token'] },
+      },
+    },
     indexes: [
       {
         unique: true,
