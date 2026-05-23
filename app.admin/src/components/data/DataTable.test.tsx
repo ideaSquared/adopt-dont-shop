@@ -108,3 +108,27 @@ describe('DataTable accessibility', () => {
     });
   });
 });
+
+describe('DataTable load-state differentiation', () => {
+  it('renders skeleton rows when loading', () => {
+    render(<DataTable columns={columns} data={[]} loading />);
+    // Loading skeletons replace the empty/error rows.
+    expect(screen.queryByText(/no data available/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('renders the error banner when error is set, even if data is empty', () => {
+    render(
+      <DataTable columns={columns} data={[]} error='Failed to load rescues.' emptyMessage='None' />
+    );
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent(/failed to load rescues/i);
+    expect(screen.queryByText(/^none$/i)).not.toBeInTheDocument();
+  });
+
+  it('renders the empty message when not loading, no error, and no data', () => {
+    render(<DataTable columns={columns} data={[]} emptyMessage='Nothing here yet.' />);
+    expect(screen.getByText(/nothing here yet\./i)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});

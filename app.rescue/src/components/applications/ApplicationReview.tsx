@@ -45,6 +45,7 @@ interface ApplicationReviewProps {
   references: ReferenceCheck[];
   homeVisits: HomeVisit[];
   timeline: ApplicationTimeline[];
+  timelineError?: string | null;
   loading: boolean;
   error: string | null;
   onClose: () => void;
@@ -66,6 +67,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   application,
   homeVisits,
   timeline,
+  timelineError = null,
   loading,
   error,
   onClose,
@@ -592,9 +594,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         className={styles.overlay}
         onClick={e => e.target === e.currentTarget && onClose()}
         onKeyDown={e => e.key === 'Escape' && onClose()}
-        role="button"
-        tabIndex={-1}
-        aria-label="Close modal"
+        role="presentation"
       >
         <div className={styles.loadingContainer}>
           <div className={styles.spinner} />
@@ -610,9 +610,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         className={styles.overlay}
         onClick={e => e.target === e.currentTarget && onClose()}
         onKeyDown={e => e.key === 'Escape' && onClose()}
-        role="button"
-        tabIndex={-1}
-        aria-label="Close modal"
+        role="presentation"
       >
         <div className={styles.errorContainer}>
           <div className={styles.errorText}>Error loading application</div>
@@ -715,9 +713,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       className={styles.overlay}
       onClick={e => e.target === e.currentTarget && onClose()}
       onKeyDown={e => e.key === 'Escape' && onClose()}
-      role="button"
-      tabIndex={-1}
-      aria-label="Close modal"
+      role="presentation"
     >
       <div className={styles.modal}>
         {/* Header */}
@@ -1814,7 +1810,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               )}
 
               <div className={styles.timelineContainer}>
-                {timeline.length === 0 ? (
+                {timelineError ? (
+                  <div className={styles.emptyTimeline} role="alert">
+                    <p>Failed to load timeline events.</p>
+                    <p>{timelineError}</p>
+                  </div>
+                ) : timeline.length === 0 ? (
                   <div className={styles.emptyTimeline}>
                     <p>No timeline events yet.</p>
                     <p>

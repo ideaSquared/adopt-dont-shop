@@ -599,11 +599,11 @@ export class RescueApplicationService {
         newStatus: item.new_status,
       }));
     } catch (error) {
+      // UX P0/P1 #6: previously this returned `[]` on error, which was
+      // indistinguishable from a genuine empty timeline. Re-throw so the
+      // caller can render an error state instead of a silent empty list.
       console.error(`Failed to fetch timeline for application ${applicationId}:`, error);
-
-      // Return empty array instead of throwing to prevent UI crashes
-      console.warn('Returning empty timeline array due to API error');
-      return [];
+      throw error instanceof Error ? error : new Error('Failed to load application timeline');
     }
   }
 

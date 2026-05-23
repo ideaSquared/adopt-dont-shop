@@ -127,6 +127,8 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
               value={reason}
               onChange={e => setReason(e.target.value)}
               className={styles.reasonInput}
+              required
+              aria-required="true"
             />
           )}
           <button

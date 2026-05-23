@@ -106,11 +106,11 @@ const ApplicationStatsCards: React.FC<ApplicationStatsProps> = () => {
     );
   }
 
-  if (!applications || applications.length === 0) {
-    return null;
-  }
-
-  const stats = calculateApplicationStats(applications);
+  // UX P0/P1 #6: previously this returned `null` whenever there were no
+  // applications, which left the page header bare and made it look like
+  // the stats had errored. Compute zero-valued stats so the cards render
+  // with explicit "0"s.
+  const stats = calculateApplicationStats(applications ?? []);
 
   const statCards = [
     {

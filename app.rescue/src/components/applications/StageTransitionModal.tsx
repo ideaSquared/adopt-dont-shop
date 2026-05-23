@@ -74,9 +74,7 @@ const StageTransitionModal: React.FC<StageTransitionModalProps> = ({
       className={styles.overlay}
       onClick={e => e.target === e.currentTarget && onClose()}
       onKeyDown={e => e.key === 'Escape' && onClose()}
-      role="button"
-      tabIndex={-1}
-      aria-label="Close modal"
+      role="presentation"
     >
       <div className={styles.modal}>
         <div className={styles.header}>

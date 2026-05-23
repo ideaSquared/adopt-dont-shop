@@ -345,6 +345,15 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
       return;
     }
 
+    // UX P0/P1 #10: if any uploads errored, block submit and let the user
+    // either retry or remove the failed entries explicitly. Previously we
+    // silently dropped errored uploads, which made it look like the form
+    // had saved fewer photos than the user thought.
+    if (images.some(img => img.status === 'error')) {
+      setImageError('Some images failed to upload. Remove or retry them before saving.');
+      return;
+    }
+
     // Only finalised uploads contribute to the submit payload — uploading /
     // errored slots are dropped silently (the user sees them as not-yet-
     // attached in the preview).

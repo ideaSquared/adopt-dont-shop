@@ -4,13 +4,16 @@ import { Alert, Container, Spinner } from '@adopt-dont-shop/lib.components';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PetCard } from '../components/PetCard';
+import { useFavorites } from '../contexts/FavoritesContext';
 import * as styles from './FavoritesPage.css';
 
 export const FavoritesPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  const favoritesContext = useFavorites();
   const [favorites, setFavorites] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -36,10 +39,27 @@ export const FavoritesPage: React.FC = () => {
     fetchFavorites();
   }, [isAuthenticated]);
 
+  // ADS UX P0 #1: when an un-favorite API call fails, PetCard keeps the pet
+  // in its internal state and surfaces the failure via FavoritesContext.error.
+  // Mirror that here so the rendered list never drifts ahead of the server:
+  // we only remove from local state on a successful toggle (handled below),
+  // and we surface the context error so the user knows the toggle didn't
+  // stick.
+  useEffect(() => {
+    if (favoritesContext.error) {
+      setActionError(favoritesContext.error);
+    }
+  }, [favoritesContext.error]);
+
   const handleFavoriteToggle = async (petId: string, isFavorite: boolean) => {
     if (!isFavorite) {
-      // Pet was removed from favorites, update the list
+      // PetCard only fires this callback after the remove API call has
+      // resolved successfully, so removing from local state here is safe.
+      // If the underlying call had failed, the callback would not fire and
+      // the pet would stay in the list (with FavoritesContext.error
+      // surfacing the failure via the effect above).
       setFavorites(prev => prev.filter(pet => pet.pet_id !== petId));
+      setActionError(null);
     }
   };
 
@@ -104,6 +124,13 @@ export const FavoritesPage: React.FC = () => {
       {error && (
         <Alert variant='error' className={styles.errorAlert}>
           {error}
+        </Alert>
+      )}
+
+      {/* Action error (e.g. an un-favorite call failed) */}
+      {actionError && !error && (
+        <Alert variant='error' className={styles.errorAlert}>
+          {actionError}
         </Alert>
       )}
 

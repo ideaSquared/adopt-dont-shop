@@ -275,7 +275,7 @@ describe('PetFormModal — image upload field (ADS-574)', () => {
     expect(submitted.images).toEqual(['/uploads/pets/pets_rex.png']);
   });
 
-  it('surfaces an inline error when the upload service rejects and excludes the file from the payload', async () => {
+  it('surfaces an inline upload error and blocks submission until errored images are resolved (UX P0/P1 #10)', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn((_data: SubmitArg) => Promise.resolve());
 
@@ -301,11 +301,10 @@ describe('PetFormModal — image upload field (ADS-574)', () => {
 
     await user.click(screen.getByRole('button', { name: /add pet/i }));
 
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledTimes(1);
-    });
-    const submitted = onSubmit.mock.calls[0][0];
-    expect(submitted.images ?? []).toEqual([]);
+    // The form refuses to submit and surfaces a remove-or-retry message
+    // instead of silently dropping the failed image.
+    expect(await screen.findByText(/some images failed to upload/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('lets the user remove an uploaded image before submission', async () => {

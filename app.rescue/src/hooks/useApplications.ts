@@ -110,6 +110,7 @@ export const useApplicationDetails = (applicationId: string | null) => {
   const [references, setReferences] = useState<ReferenceCheck[]>([]);
   const [homeVisits, setHomeVisits] = useState<HomeVisit[]>([]);
   const [timeline, setTimeline] = useState<ApplicationTimeline[]>([]);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,18 +122,27 @@ export const useApplicationDetails = (applicationId: string | null) => {
     try {
       setLoading(true);
       setError(null);
+      setTimelineError(null);
 
-      const [appData, referencesData, visitsData, timelineData] = await Promise.all([
+      // UX P0/P1 #6: timeline failures used to be swallowed inside the
+      // service and returned as `[]`. They now throw, so we handle them
+      // independently here — a failed timeline shouldn't blow away the
+      // applicant data the rest of the modal needs.
+      const [appData, referencesData, visitsData, timelineResult] = await Promise.all([
         applicationService.getApplicationById(applicationId),
         applicationService.getReferenceChecks(applicationId),
         applicationService.getHomeVisits(applicationId),
-        applicationService.getApplicationTimeline(applicationId),
+        applicationService.getApplicationTimeline(applicationId).catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : 'Failed to load timeline';
+          setTimelineError(message);
+          return [] as ApplicationTimeline[];
+        }),
       ]);
 
       setApplication(appData);
       setReferences(referencesData);
       setHomeVisits(visitsData);
-      setTimeline(timelineData);
+      setTimeline(timelineResult);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch application details');
     } finally {
@@ -240,6 +250,7 @@ export const useApplicationDetails = (applicationId: string | null) => {
     references,
     homeVisits,
     timeline,
+    timelineError,
     loading,
     error,
     updateReferenceCheck,
