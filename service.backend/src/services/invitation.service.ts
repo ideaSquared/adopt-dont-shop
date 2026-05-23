@@ -10,6 +10,7 @@ import EmailTemplateService from './email-template.service';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { logger } from '../utils/logger';
 import { hashToken } from '../utils/secrets';
+import { EmailLinkType, resolveEmailLinkBase } from '../utils/email-url';
 
 export class InvitationService {
   /**
@@ -111,7 +112,7 @@ export class InvitationService {
 
       // Send invitation email
       try {
-        const invitationUrl = `${process.env.RESCUE_FRONTEND_URL || 'http://localhost:3002'}/accept-invitation?token=${token}`;
+        const invitationUrl = `${resolveEmailLinkBase(EmailLinkType.RESCUE_INVITATION)}/accept-invitation?token=${token}`;
 
         await EmailTemplateService.sendStaffInvitation({
           recipientEmail: email,
