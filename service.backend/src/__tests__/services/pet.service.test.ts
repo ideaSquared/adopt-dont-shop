@@ -895,6 +895,14 @@ describe('PetService', () => {
       expect(result.successCount).toBe(1);
       expect(result.failedCount).toBe(1);
       expect(result.errors[0]).toMatchObject({ petId: 'nonexistent' });
+      // failedIds + per-id results power per-item retry in the admin UI.
+      expect(result.failedIds).toEqual(['nonexistent']);
+      expect(result.results).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: pet1Id, success: true }),
+          expect.objectContaining({ id: 'nonexistent', success: false }),
+        ])
+      );
     });
 
     it('rejects bulk archive of pets owned by another rescue [ADS-372]', async () => {

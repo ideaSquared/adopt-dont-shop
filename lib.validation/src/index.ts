@@ -4,4 +4,5 @@ export * from './schemas/user';
 export * from './schemas/pet';
 export * from './schemas/rescue';
 export * from './schemas/application';
+export * from './schemas/bulk-response';
 export * from './normalize-email';

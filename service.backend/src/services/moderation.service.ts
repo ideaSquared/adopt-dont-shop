@@ -820,7 +820,7 @@ class ModerationService {
     assignTo?: string;
     escalateTo?: string;
     escalationReason?: string;
-  }): Promise<{ success: boolean; updated: number }> {
+  }): Promise<{ success: boolean; updated: number; failedIds: string[] }> {
     const {
       reportIds,
       action,
@@ -1026,7 +1026,11 @@ class ModerationService {
         `Bulk ${action} completed: ${updated} of ${reportIds.length} reports updated by ${moderatorId}`
       );
 
-      return { success: true, updated };
+      // The moderation bulk update is atomic — the whole batch commits or
+      // rolls back, so `failedIds` is always empty on the returned (success)
+      // path. Kept for parity with the other bulk-endpoint response shapes
+      // so the admin UI can rely on a uniform contract.
+      return { success: true, updated, failedIds: [] };
     } catch (error) {
       await transaction.rollback();
       logger.error('Error in bulk update:', error);

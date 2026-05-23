@@ -26,6 +26,10 @@ export type BulkRescueResult = {
   successCount: number;
   failedCount: number;
   errors: Array<{ rescueId: string; error: string }>;
+  // Additive per-item failure detail so the admin UI can offer
+  // per-item retry without re-fetching to diff against the input.
+  failedIds: string[];
+  results: Array<{ id: string; success: boolean; error?: string }>;
 };
 
 export interface RescueSearchOptions {
@@ -1649,7 +1653,13 @@ export class RescueService {
     performedBy: string,
     reason?: string
   ): Promise<BulkRescueResult> {
-    const result: BulkRescueResult = { successCount: 0, failedCount: 0, errors: [] };
+    const result: BulkRescueResult = {
+      successCount: 0,
+      failedCount: 0,
+      errors: [],
+      failedIds: [],
+      results: [],
+    };
 
     for (const rescueId of rescueIds) {
       try {
@@ -1663,12 +1673,13 @@ export class RescueService {
           await RescueService.suspendRescue(rescueId, performedBy, reason);
         }
         result.successCount++;
+        result.results.push({ id: rescueId, success: true });
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
         result.failedCount++;
-        result.errors.push({
-          rescueId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        result.errors.push({ rescueId, error: message });
+        result.failedIds.push(rescueId);
+        result.results.push({ id: rescueId, success: false, error: message });
       }
     }
 

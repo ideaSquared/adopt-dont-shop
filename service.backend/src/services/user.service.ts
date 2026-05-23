@@ -1326,7 +1326,15 @@ export class UserService {
     };
   }
 
-  static async bulkUpdateUsers(updates: BulkUserUpdateData[], updatedBy: string): Promise<number> {
+  static async bulkUpdateUsers(
+    updates: BulkUserUpdateData[],
+    updatedBy: string
+  ): Promise<{
+    success: number;
+    failed: number;
+    failedIds: string[];
+    results: Array<{ id: string; success: boolean; error?: string }>;
+  }> {
     const startTime = Date.now();
 
     try {
@@ -1363,21 +1371,43 @@ export class UserService {
         ? { ...payload, tokensInvalidBefore: new Date() }
         : payload;
 
-      const [affectedRows] = await User.update(effectiveUpdates, {
-        where: {
-          userId: {
-            [Op.in]: targetUserIds,
-          },
-        },
-        individualHooks: true,
+      // Per-id updates with allSettled so a failure on one user (validation,
+      // hook reject, etc.) doesn't take down the whole batch and we can return
+      // the precise list of failedIds for per-item retry in the admin UI.
+      const settled = await Promise.allSettled(
+        targetUserIds.map(async userId => {
+          const [affected] = await User.update(effectiveUpdates, {
+            where: { userId },
+            individualHooks: true,
+          });
+          if (affected === 0) {
+            throw new Error('User not found');
+          }
+          return userId;
+        })
+      );
+
+      const results = settled.map((outcome, index) => {
+        const id = targetUserIds[index];
+        if (outcome.status === 'fulfilled') {
+          return { id, success: true };
+        }
+        const reasonMessage =
+          outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason);
+        return { id, success: false, error: reasonMessage };
       });
+
+      const failedIds = results.filter(r => !r.success).map(r => r.id);
+      const successCount = results.length - failedIds.length;
 
       // Log bulk update — ADS-651: per-user entries each carry the
       // operator reason so the audit log captures *why* every affected
       // user changed state, not just that they were part of a bulk job.
+      // Only audit the successful rows; failed updates didn't change state.
       const reason = updates[0].reason ?? null;
+      const successfulIds = results.filter(r => r.success).map(r => r.id);
       await Promise.all(
-        updates[0].userIds.map(userId =>
+        successfulIds.map(userId =>
           AuditLogService.log({
             action: 'BULK_UPDATE',
             entity: 'User',
@@ -1404,7 +1434,12 @@ export class UserService {
         );
       }
 
-      return affectedRows;
+      return {
+        success: successCount,
+        failed: failedIds.length,
+        failedIds,
+        results,
+      };
     } catch (error) {
       logger.error('Failed to bulk update users:', {
         error: error instanceof Error ? error.message : String(error),

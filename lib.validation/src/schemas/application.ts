@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ApplicationId, PetId } from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
+import { BulkOperationFailedIdsSchema } from './bulk-response';
 
 /**
  * Canonical Zod schemas for the Application domain.
@@ -305,6 +306,21 @@ export const ApplicationBulkUpdateRequestSchema = z.object({
   reason: z.string().trim().min(1, 'Reason is required').max(500).optional(),
 });
 export type ApplicationBulkUpdateRequest = z.infer<typeof ApplicationBulkUpdateRequestSchema>;
+
+/**
+ * Response shape for POST /api/v1/applications/bulk-update.
+ *
+ * The application bulk update is atomic — the whole batch commits or
+ * rolls back, so `failedIds` is always empty when the call returns
+ * successfully. Kept in the schema for parity with the other bulk
+ * endpoints so frontend consumers can rely on a uniform shape.
+ */
+export const ApplicationBulkUpdateResponseSchema = z
+  .object({
+    updatedCount: z.number().int().nonnegative(),
+  })
+  .merge(BulkOperationFailedIdsSchema);
+export type ApplicationBulkUpdateResponse = z.infer<typeof ApplicationBulkUpdateResponseSchema>;
 
 // ----- Read / model shape -----------------------------------------------
 

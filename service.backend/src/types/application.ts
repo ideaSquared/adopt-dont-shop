@@ -285,6 +285,10 @@ export interface BulkApplicationUpdate {
 
 export interface BulkApplicationResult {
   updatedCount: number;
+  // The application bulk update is atomic — the whole batch commits or
+  // rolls back, so `failedIds` is always empty on the returned (success)
+  // path. Kept for parity with the other bulk-endpoint response shapes.
+  failedIds: string[];
 }
 
 // Workflow and Business Logic Types

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { PetId, RescueId } from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
+import { BulkOperationFailedIdsSchema } from './bulk-response';
 
 /**
  * Canonical Zod schemas for the Pet domain.
@@ -310,6 +311,27 @@ export const BulkPetOperationRequestSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });
 export type BulkPetOperationRequest = z.infer<typeof BulkPetOperationRequestSchema>;
+
+/**
+ * Response shape for POST /api/v1/pets/bulk-update. `failedIds` is
+ * always present (may be empty) so the admin UI can offer per-item
+ * retry.
+ */
+export const BulkPetOperationResponseSchema = z
+  .object({
+    successCount: z.number().int().nonnegative(),
+    failedCount: z.number().int().nonnegative(),
+    errors: z
+      .array(
+        z.object({
+          petId: z.string(),
+          error: z.string(),
+        })
+      )
+      .optional(),
+  })
+  .merge(BulkOperationFailedIdsSchema);
+export type BulkPetOperationResponse = z.infer<typeof BulkPetOperationResponseSchema>;
 
 // ----- Read / model shape ------------------------------------------------
 

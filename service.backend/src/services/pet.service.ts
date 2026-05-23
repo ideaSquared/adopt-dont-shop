@@ -1400,6 +1400,8 @@ export class PetService {
         successCount: 0,
         failedCount: 0,
         errors: [],
+        failedIds: [],
+        results: [],
       };
 
       for (const petId of petIds) {
@@ -1451,12 +1453,13 @@ export class PetService {
             }
           });
           results.successCount++;
+          results.results.push({ id: petId, success: true });
         } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
           results.failedCount++;
-          results.errors.push({
-            petId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+          results.errors.push({ petId, error: message });
+          results.failedIds.push(petId);
+          results.results.push({ id: petId, success: false, error: message });
         }
       }
 
