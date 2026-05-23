@@ -155,3 +155,7 @@ export type { ProgressiveImageProps } from './components/ui/ProgressiveImage';
 // PWA install prompt
 export { InstallPwaBanner } from './components/ui/InstallPwaBanner';
 export type { InstallPwaBannerProps } from './components/ui/InstallPwaBanner';
+
+// A11y primitives
+export { SkipLink } from './components/ui/SkipLink';
+export type { SkipLinkProps } from './components/ui/SkipLink';

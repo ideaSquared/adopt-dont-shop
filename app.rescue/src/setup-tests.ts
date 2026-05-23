@@ -195,6 +195,13 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         )
       : null,
   InstallPwaBanner: () => null,
+  SkipLink: ({
+    href = '#main-content',
+    children = 'Skip to main content',
+  }: {
+    href?: string;
+    children?: React.ReactNode;
+  }) => React.createElement('a', { href }, children),
   toast: Object.assign(vi.fn(), {
     success: vi.fn(),
     error: vi.fn(),

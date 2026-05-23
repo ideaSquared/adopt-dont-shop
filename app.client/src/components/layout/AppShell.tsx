@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Footer, InstallPwaBanner } from '@adopt-dont-shop/lib.components';
+import { Footer, InstallPwaBanner, SkipLink } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AppNavbar } from '@/components/navigation/AppNavbar';
 import { BottomTabBar } from '@/components/navigation/BottomTabBar';
@@ -13,9 +13,7 @@ export const AppShell: React.FC = () => {
 
   return (
     <div className={styles.shell}>
-      <a href='#main-content' className={styles.skipLink}>
-        Skip to main content
-      </a>
+      <SkipLink />
       <header>
         <AppNavbar />
       </header>
