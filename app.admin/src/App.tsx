@@ -35,6 +35,7 @@ const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
 const ContentManagement = lazy(() => import('./pages/ContentManagement'));
 const BroadcastNotifications = lazy(() => import('./pages/BroadcastNotifications'));
 const PrivacyTools = lazy(() => import('./pages/PrivacyTools'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 const PageLoader = () => (
   <div className={styles.pageLoader}>
@@ -178,8 +179,8 @@ const AdminApp: React.FC = () => {
               <Route path='/security' element={<SecurityCenter />} />
               <Route path='/security/:tab' element={<SecurityCenter />} />
 
-              {/* Catch-all redirect */}
-              <Route path='*' element={<Navigate to='/' replace />} />
+              {/* Catch-all 404 */}
+              <Route path='*' element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </AdminLayout>

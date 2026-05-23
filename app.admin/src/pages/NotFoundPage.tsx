@@ -27,7 +27,7 @@ const NotFoundPage = () => (
       &ldquo;Maybe it got adopted? That&apos;s a happy ending, right?&rdquo;
     </p>
 
-    <Link to="/" className={styles.homeLink}>
+    <Link to='/' className={styles.homeLink}>
       🏠 Back to dashboard
     </Link>
   </div>
