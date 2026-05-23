@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import sequelize from '../../sequelize';
 import User, { UserStatus, UserType } from '../../models/User';
 import Report, { ReportStatus, ReportCategory, ReportSeverity } from '../../models/Report';
 import ModeratorAction, { ActionType, ActionSeverity } from '../../models/ModeratorAction';
+import moderationService from '../../services/moderation.service';
+import { NotificationService } from '../../services/notification.service';
+import { NotificationType } from '../../models/Notification';
 
 describe('ModerationService', () => {
   beforeEach(async () => {
@@ -150,6 +153,215 @@ describe('ModerationService', () => {
     it('should handle empty report queries gracefully', async () => {
       const reports = await Report.findAll();
       expect(reports).toHaveLength(0);
+    });
+  });
+
+  // ADS C4-2: when a moderator resolves / dismisses / escalates a report, the
+  // reporter who filed it must receive an in-app notification documenting the
+  // outcome. The notification side-effect runs after the moderation
+  // transaction commits — failures here must not affect the action itself.
+  describe('Reporter notifications on report resolution (C4-2)', () => {
+    const seedUsers = async () => {
+      const reporter = await User.create({
+        email: 'reporter-c42@example.com',
+        password: 'hashedpassword',
+        firstName: 'Reporter',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const reportedUser = await User.create({
+        email: 'reported-c42@example.com',
+        password: 'hashedpassword',
+        firstName: 'Reported',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const moderator = await User.create({
+        email: 'mod-c42@example.com',
+        password: 'hashedpassword',
+        firstName: 'Mod',
+        lastName: 'User',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+      return { reporter, reportedUser, moderator };
+    };
+
+    const seedReport = async (
+      reporterId: string,
+      reportedUserId: string,
+      status: ReportStatus = ReportStatus.UNDER_REVIEW
+    ) =>
+      Report.create({
+        reporterId,
+        reportedEntityType: 'user',
+        reportedEntityId: reportedUserId,
+        reportedUserId,
+        category: ReportCategory.INAPPROPRIATE_CONTENT,
+        severity: ReportSeverity.MEDIUM,
+        title: 'Test report',
+        description: 'Test description',
+        evidence: [],
+        status,
+      });
+
+    it('notifies the reporter when their report is resolved via bulk update', async () => {
+      const { reporter, reportedUser, moderator } = await seedUsers();
+      const report = await seedReport(reporter.userId, reportedUser.userId);
+
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockResolvedValue({} as never);
+
+      const result = await moderationService.bulkUpdateReports({
+        reportIds: [report.reportId],
+        action: 'resolve',
+        moderatorId: moderator.userId,
+        resolutionNotes: 'Resolved via test',
+      });
+
+      expect(result.updated).toBe(1);
+      expect(spy).toHaveBeenCalledTimes(1);
+      const args = spy.mock.calls[0][0];
+      expect(args.userId).toBe(reporter.userId);
+      expect(args.type).toBe(NotificationType.SYSTEM_ANNOUNCEMENT);
+      expect(args.data).toMatchObject({ reportId: report.reportId, resolution: 'resolved' });
+
+      const refreshed = await Report.findByPk(report.reportId);
+      expect(refreshed?.resolvedAt).toBeTruthy();
+
+      spy.mockRestore();
+    });
+
+    it('notifies the reporter when their report is dismissed via bulk update', async () => {
+      const { reporter, reportedUser, moderator } = await seedUsers();
+      const report = await seedReport(reporter.userId, reportedUser.userId, ReportStatus.PENDING);
+
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockResolvedValue({} as never);
+
+      await moderationService.bulkUpdateReports({
+        reportIds: [report.reportId],
+        action: 'dismiss',
+        moderatorId: moderator.userId,
+        resolutionNotes: 'No action needed',
+      });
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      const args = spy.mock.calls[0][0];
+      expect(args.userId).toBe(reporter.userId);
+      expect(args.data).toMatchObject({ resolution: 'dismissed' });
+
+      spy.mockRestore();
+    });
+
+    it('notifies the reporter when their report is escalated via escalateReport', async () => {
+      const { reporter, reportedUser, moderator } = await seedUsers();
+      const report = await seedReport(reporter.userId, reportedUser.userId, ReportStatus.PENDING);
+
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockResolvedValue({} as never);
+
+      await moderationService.escalateReport(
+        report.reportId,
+        moderator.userId,
+        moderator.userId,
+        'Needs senior review'
+      );
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      const args = spy.mock.calls[0][0];
+      expect(args.userId).toBe(reporter.userId);
+      expect(args.data).toMatchObject({ reportId: report.reportId, resolution: 'escalated' });
+
+      spy.mockRestore();
+    });
+
+    // ADS C4-4: when a moderator applies a sanction to a user (warning,
+    // suspension, ban, restriction), the targeted user must receive an
+    // in-app notification documenting it so they have a record once
+    // they're next online. The notification is best-effort and never
+    // affects the sanction itself.
+    it('notifies the sanctioned user when a moderator applies a warning', async () => {
+      const { reporter, reportedUser, moderator } = await seedUsers();
+      const report = await seedReport(reporter.userId, reportedUser.userId);
+
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockResolvedValue({} as never);
+
+      await moderationService.takeModerationAction(moderator.userId, {
+        reportId: report.reportId,
+        targetEntityType: 'user',
+        targetEntityId: reportedUser.userId,
+        targetUserId: reportedUser.userId,
+        actionType: ActionType.WARNING_ISSUED,
+        severity: ActionSeverity.LOW,
+        reason: 'Inappropriate content',
+        description: 'Please review the community guidelines.',
+      });
+
+      // Two notifications: one to the reporter (C4-2), one to the sanctioned user (C4-4)
+      expect(spy).toHaveBeenCalledTimes(2);
+      const sanctionedCall = spy.mock.calls.find(c => c[0].userId === reportedUser.userId);
+      expect(sanctionedCall).toBeDefined();
+      expect(sanctionedCall?.[0].type).toBe(NotificationType.SYSTEM_ANNOUNCEMENT);
+      expect(sanctionedCall?.[0].data).toMatchObject({
+        actionType: ActionType.WARNING_ISSUED,
+        reason: 'Inappropriate content',
+      });
+
+      spy.mockRestore();
+    });
+
+    it('does not notify the target user for NO_ACTION outcomes (not a sanction)', async () => {
+      const { reporter, reportedUser, moderator } = await seedUsers();
+      const report = await seedReport(reporter.userId, reportedUser.userId);
+
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockResolvedValue({} as never);
+
+      await moderationService.takeModerationAction(moderator.userId, {
+        reportId: report.reportId,
+        targetEntityType: 'user',
+        targetEntityId: reportedUser.userId,
+        targetUserId: reportedUser.userId,
+        actionType: ActionType.NO_ACTION,
+        severity: ActionSeverity.LOW,
+        reason: 'No violation',
+      });
+
+      // Only the reporter is notified (dismissal); the target user is not.
+      const sanctionedCalls = spy.mock.calls.filter(c => c[0].userId === reportedUser.userId);
+      expect(sanctionedCalls).toHaveLength(0);
+
+      spy.mockRestore();
+    });
+
+    it('completes the moderation action even when notifying the reporter fails', async () => {
+      const { reporter, reportedUser, moderator } = await seedUsers();
+      const report = await seedReport(reporter.userId, reportedUser.userId);
+
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockRejectedValue(new Error('notification provider down'));
+
+      const result = await moderationService.bulkUpdateReports({
+        reportIds: [report.reportId],
+        action: 'resolve',
+        moderatorId: moderator.userId,
+      });
+
+      expect(result.updated).toBe(1);
+      const refreshed = await Report.findByPk(report.reportId);
+      expect(refreshed?.resolvedAt).toBeTruthy();
+
+      spy.mockRestore();
     });
   });
 });

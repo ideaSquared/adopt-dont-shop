@@ -217,6 +217,23 @@ describe('ApplicationDashboard (ADS-634)', () => {
     expect(navigateMock).toHaveBeenCalledWith('/chat/conv-99');
   });
 
+  // ADS C4-1: the status-badge selector used to whitelist 'under_review' — a
+  // value the frontend Application type never emits — so 'withdrawn'
+  // applications silently fell through to the 'default' grey badge. Each
+  // reachable status now renders its own readable label.
+  it.each(['submitted', 'approved', 'rejected', 'withdrawn'] as const)(
+    'renders the %s status label on the application card',
+    async status => {
+      getUserApplicationsMock.mockResolvedValue([makeApplication({ status })]);
+      getPetByIdMock.mockResolvedValue(makePet());
+
+      render(<ApplicationDashboard />);
+
+      const label = await screen.findByText(status.replace('_', ' '));
+      expect(label).toBeInTheDocument();
+    }
+  );
+
   // UX P2 E: when an application's pet lookup fails or returns no record,
   // the card used to display "Pet Name Unavailable" — a phrase that reads
   // like a system error to applicants. Replace with "Unknown pet" and keep

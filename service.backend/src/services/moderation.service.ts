@@ -9,7 +9,9 @@ import Pet from '../models/Pet';
 import Rescue from '../models/Rescue';
 import sequelize from '../sequelize';
 import logger from '../utils/logger';
+import { NotificationType } from '../models/Notification';
 import { AuditLogService } from './auditLog.service';
+import { NotificationService } from './notification.service';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
@@ -431,6 +433,13 @@ class ModerationService {
       }
 
       // Update related report if provided
+      // ADS C4-2: capture (reporterId, resolution) so we can notify the
+      // reporter once the transaction commits.
+      let resolvedReportContext: {
+        reportId: string;
+        reporterId: string;
+        resolution: 'resolved' | 'dismissed';
+      } | null = null;
       if (actionData.reportId) {
         const report = await Report.findByPk(actionData.reportId, { transaction });
         if (report) {
@@ -460,10 +469,48 @@ class ModerationService {
             },
             { transaction }
           );
+          if (report.reporterId) {
+            resolvedReportContext = {
+              reportId: report.reportId,
+              reporterId: report.reporterId,
+              resolution: newStatus === ReportStatus.DISMISSED ? 'dismissed' : 'resolved',
+            };
+          }
         }
       }
 
       await transaction.commit();
+
+      // ADS C4-2: notify reporter after commit so a notification failure
+      // never rolls back the moderation outcome.
+      if (resolvedReportContext) {
+        await this.notifyReporterOfResolution({
+          ...resolvedReportContext,
+          resolutionNotes: actionData.description,
+        });
+      }
+
+      // ADS C4-4: notify the sanctioned user (the target of the action) so
+      // they have an in-app record next time they're online. Sanctions
+      // cover warnings, suspensions, bans, and account restrictions —
+      // anything that meaningfully changes how the user can use the
+      // platform. Best-effort: notification failures don't roll back.
+      const SANCTION_ACTIONS: ActionType[] = [
+        ActionType.WARNING_ISSUED,
+        ActionType.USER_SUSPENDED,
+        ActionType.USER_BANNED,
+        ActionType.ACCOUNT_RESTRICTED,
+      ];
+      if (actionData.targetUserId && SANCTION_ACTIONS.includes(actionData.actionType)) {
+        await this.notifySanctionedUser({
+          userId: actionData.targetUserId,
+          actionId: action.actionId,
+          actionType: actionData.actionType,
+          reason: actionData.reason,
+          description: actionData.description,
+          expiresAt: action.expiresAt,
+        });
+      }
 
       await AuditLogService.log({
         userId: moderatorId,
@@ -737,6 +784,16 @@ class ModerationService {
 
       await transaction.commit();
 
+      // ADS C4-2: notify the reporter that their report has been escalated.
+      if (report.reporterId) {
+        await this.notifyReporterOfResolution({
+          reportId,
+          reporterId: report.reporterId,
+          resolution: 'escalated',
+          resolutionNotes: reason,
+        });
+      }
+
       await AuditLogService.log({
         userId: escalatedBy,
         action: 'REPORT_ESCALATED',
@@ -782,6 +839,14 @@ class ModerationService {
     try {
       let updated = 0;
       const updatedReportIds: string[] = [];
+      // ADS C4-2: collect reporter notification context for resolve / dismiss /
+      // escalate actions. Sent after commit so a notification failure can't
+      // roll back the moderation work.
+      const reporterNotifications: Array<{
+        reportId: string;
+        reporterId: string;
+        resolution: 'resolved' | 'dismissed' | 'escalated';
+      }> = [];
 
       for (const reportId of reportIds) {
         const report = await Report.findByPk(reportId, { transaction });
@@ -813,6 +878,13 @@ class ModerationService {
                 { transaction }
               );
               didUpdate = true;
+              if (report.reporterId) {
+                reporterNotifications.push({
+                  reportId: report.reportId,
+                  reporterId: report.reporterId,
+                  resolution: 'resolved',
+                });
+              }
             }
             break;
 
@@ -837,6 +909,13 @@ class ModerationService {
                 { transaction }
               );
               didUpdate = true;
+              if (report.reporterId) {
+                reporterNotifications.push({
+                  reportId: report.reportId,
+                  reporterId: report.reporterId,
+                  resolution: 'dismissed',
+                });
+              }
             }
             break;
 
@@ -892,6 +971,13 @@ class ModerationService {
                 { transaction }
               );
               didUpdate = true;
+              if (report.reporterId) {
+                reporterNotifications.push({
+                  reportId: report.reportId,
+                  reporterId: report.reporterId,
+                  resolution: 'escalated',
+                });
+              }
             }
             break;
         }
@@ -903,6 +989,16 @@ class ModerationService {
       }
 
       await transaction.commit();
+
+      // ADS C4-2: notify each reporter of their report's outcome. Run after
+      // commit and serially-awaited; createNotification has its own internal
+      // try/catch so one failure won't abort the rest.
+      for (const notif of reporterNotifications) {
+        await this.notifyReporterOfResolution({
+          ...notif,
+          resolutionNotes: action === 'escalate' ? escalationReason : resolutionNotes,
+        });
+      }
 
       // Write one audit log row per affected report so each handled report
       // has a discrete entry, even when actioned via a bulk operation.
@@ -934,6 +1030,104 @@ class ModerationService {
       await transaction.rollback();
       logger.error('Error in bulk update:', error);
       throw error;
+    }
+  }
+
+  /**
+   * ADS C4-2: Notify a reporter that their report reached a resolution
+   * (resolved / dismissed / escalated). Best-effort: failures must not
+   * affect the moderation outcome — the action has already committed.
+   *
+   * We fall back to NotificationType.SYSTEM_ANNOUNCEMENT because the
+   * Postgres ENUM for notification.type cannot grow without a migration
+   * (out of scope for this fix); the `data.reportId` and
+   * `data.resolution` discriminate the moderation context for the UI.
+   */
+  private async notifyReporterOfResolution(params: {
+    reportId: string;
+    reporterId: string;
+    resolution: 'resolved' | 'dismissed' | 'escalated';
+    resolutionNotes?: string;
+  }): Promise<void> {
+    const { reportId, reporterId, resolution, resolutionNotes } = params;
+    const titles: Record<typeof resolution, string> = {
+      resolved: 'Your report was resolved',
+      dismissed: 'Your report was dismissed',
+      escalated: 'Your report was escalated',
+    };
+    const messages: Record<typeof resolution, string> = {
+      resolved: 'A moderator has resolved a report you submitted.',
+      dismissed: 'A moderator reviewed your report and took no further action.',
+      escalated: 'Your report has been escalated for further review.',
+    };
+    try {
+      await NotificationService.createNotification({
+        userId: reporterId,
+        type: NotificationType.SYSTEM_ANNOUNCEMENT,
+        title: titles[resolution],
+        message: messages[resolution],
+        data: {
+          reportId,
+          resolution,
+          ...(resolutionNotes !== undefined ? { resolutionNotes } : {}),
+        },
+      });
+    } catch (error) {
+      logger.warn('Failed to notify reporter of resolution', {
+        reportId,
+        reporterId,
+        resolution,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * ADS C4-4: Notify a user that a moderation sanction was applied to
+   * their account (warning, suspension, ban, restriction). Best-effort:
+   * the sanction itself has already committed.
+   *
+   * Reuses NotificationType.SYSTEM_ANNOUNCEMENT for the same reason as
+   * notifyReporterOfResolution — the Postgres ENUM for notification.type
+   * can't grow without a migration. The discriminator lives in
+   * `data.actionType` so the UI can pick an appropriate icon / copy.
+   */
+  private async notifySanctionedUser(params: {
+    userId: string;
+    actionId: string;
+    actionType: ActionType;
+    reason: string;
+    description?: string;
+    expiresAt?: Date;
+  }): Promise<void> {
+    const { userId, actionId, actionType, reason, description, expiresAt } = params;
+    const titles: Record<string, string> = {
+      [ActionType.WARNING_ISSUED]: 'A moderator issued you a warning',
+      [ActionType.USER_SUSPENDED]: 'Your account has been suspended',
+      [ActionType.USER_BANNED]: 'Your account has been banned',
+      [ActionType.ACCOUNT_RESTRICTED]: 'Your account has been restricted',
+    };
+    try {
+      await NotificationService.createNotification({
+        userId,
+        type: NotificationType.SYSTEM_ANNOUNCEMENT,
+        title: titles[actionType] ?? 'A moderation action was taken on your account',
+        message: description ?? reason,
+        data: {
+          actionId,
+          actionType,
+          reason,
+          ...(description !== undefined ? { description } : {}),
+          ...(expiresAt !== undefined ? { expiresAt: expiresAt.toISOString() } : {}),
+        },
+      });
+    } catch (error) {
+      logger.warn('Failed to notify sanctioned user', {
+        userId,
+        actionId,
+        actionType,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

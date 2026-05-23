@@ -24,7 +24,16 @@ vi.mock('../../services/email.service', () => ({
   },
 }));
 
+// ADS C4-5 / C4-6: capture socket emits without requiring a live IO server.
+vi.mock('../../socket/socket-registry', () => ({
+  emitToUser: vi.fn(),
+  emitToRescue: vi.fn(),
+  emitAuthRoleChanged: vi.fn(),
+  disconnectAllSockets: vi.fn(),
+}));
+
 import { ApplicationService } from '../../services/application.service';
+import { emitToUser, emitToRescue } from '../../socket/socket-registry';
 import Application, { ApplicationStatus, ApplicationPriority } from '../../models/Application';
 import ApplicationAnswer from '../../models/ApplicationAnswer';
 import ApplicationReferenceModel from '../../models/ApplicationReference';
@@ -203,6 +212,29 @@ describe('ApplicationService - Business Logic', () => {
       expect(result).toBeDefined();
     });
 
+    // ADS C4-6: when an application is created, the rescue's live
+    // application list should see an `application_created` event so the
+    // rescue dashboard can refetch without waiting for a poll.
+    it('emits application_created to the rescue after successful creation', async () => {
+      const mockUser = createMockUser();
+      const mockPet = createMockPet();
+      const mockApplication = createMockApplication();
+      const request = createValidApplicationRequest();
+
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+      MockedApplication.create = vi.fn().mockResolvedValue(mockApplication);
+
+      await ApplicationService.createApplication(request, mockUserId);
+
+      expect(vi.mocked(emitToRescue)).toHaveBeenCalledWith(
+        mockRescueId,
+        'application_created',
+        expect.objectContaining({ applicationId: mockApplicationId })
+      );
+    });
+
     it('prevents duplicate applications for same pet', async () => {
       // Given: User already has an application for this pet
       const mockUser = createMockUser();
@@ -315,6 +347,53 @@ describe('ApplicationService - Business Logic', () => {
           toStatus: ApplicationStatus.APPROVED,
           transitionedBy: 'rescue-staff-123',
         })
+      );
+    });
+
+    // ADS C4-5: after a status update commits, the applicant's personal
+    // user:{id} socket room receives an `application_status_changed`
+    // event so any open client refreshes immediately instead of waiting
+    // up to 60s for the next poll.
+    it('emits application_status_changed to the applicant after a status update', async () => {
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
+
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+
+      await ApplicationService.updateApplicationStatus(
+        mockApplicationId,
+        { status: ApplicationStatus.APPROVED, actionedBy: 'rescue-staff-123' },
+        'rescue-staff-123'
+      );
+
+      expect(vi.mocked(emitToUser)).toHaveBeenCalledWith(
+        mockUserId,
+        'application_status_changed',
+        expect.objectContaining({
+          applicationId: mockApplicationId,
+        })
+      );
+    });
+
+    // ADS C4-6: on a status update, the rescue's live application list
+    // also receives an `application_updated` event so staff dashboards
+    // refetch without polling.
+    it('emits application_updated to the rescue after a status update', async () => {
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
+
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+
+      await ApplicationService.updateApplicationStatus(
+        mockApplicationId,
+        { status: ApplicationStatus.APPROVED, actionedBy: 'rescue-staff-123' },
+        'rescue-staff-123'
+      );
+
+      expect(vi.mocked(emitToRescue)).toHaveBeenCalledWith(
+        mockRescueId,
+        'application_updated',
+        expect.objectContaining({ applicationId: mockApplicationId })
       );
     });
 
