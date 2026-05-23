@@ -277,15 +277,19 @@ describe('ApplicationDashboard (ADS-634)', () => {
     expect(screen.queryByTestId('stage-badge')).not.toBeInTheDocument();
   });
 
-  it.each(['approved', 'rejected', 'withdrawn'] as const)(
-    'does not render a stage badge for terminal status %s even when a stage is present',
-    async status => {
+  it.each([
+    { status: 'approved' as const, label: 'Approved' },
+    { status: 'rejected' as const, label: 'Rejected' },
+    { status: 'withdrawn' as const, label: 'Withdrawn' },
+  ])(
+    'does not render a stage badge for terminal status $status even when a stage is present',
+    async ({ status, label }) => {
       getUserApplicationsMock.mockResolvedValue([makeApplication({ status, stage: 'reviewing' })]);
       getPetByIdMock.mockResolvedValue(makePet());
 
       render(<ApplicationDashboard />);
 
-      await screen.findByText(status);
+      await screen.findByText(label);
       expect(screen.queryByTestId('stage-badge')).not.toBeInTheDocument();
     }
   );
