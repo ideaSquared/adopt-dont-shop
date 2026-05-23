@@ -45,6 +45,8 @@ interface ModeratorActionAttributes {
   // evidence moved to moderation_evidence (plan 2.1).
   notificationSent: boolean;
   internalNotes?: string;
+  // ADS C4-5: timestamp the sanctioned user dismissed the in-app banner.
+  acknowledgedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,6 +79,7 @@ class ModeratorAction
   public reversalReason?: string;
   public notificationSent!: boolean;
   public internalNotes?: string;
+  public acknowledgedAt?: Date;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -236,6 +239,11 @@ ModeratorAction.init(
       type: DataTypes.TEXT,
       allowNull: true,
       field: 'internal_notes',
+    },
+    acknowledgedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'acknowledged_at',
     },
     createdAt: {
       type: DataTypes.DATE,
