@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AuthContext, type AuthContextType } from '../contexts/AuthContext';
 import { LoginForm } from './LoginForm';
 
-const buildAuthValue = (): AuthContextType => ({
+const buildAuthValue = (overrides: Partial<AuthContextType> = {}): AuthContextType => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
@@ -13,11 +14,12 @@ const buildAuthValue = (): AuthContextType => ({
   logout: vi.fn(),
   updateProfile: vi.fn(),
   refreshUser: vi.fn(),
+  ...overrides,
 });
 
-const renderLoginForm = () =>
+const renderLoginForm = (value: AuthContextType = buildAuthValue()) =>
   render(
-    <AuthContext.Provider value={buildAuthValue()}>
+    <AuthContext.Provider value={value}>
       <LoginForm />
     </AuthContext.Provider>
   );
@@ -37,5 +39,40 @@ describe('LoginForm autocomplete attributes', () => {
     const passwordInput = screen.getByPlaceholderText(/enter your password/i);
 
     expect(passwordInput).toHaveAttribute('autocomplete', 'current-password');
+  });
+});
+
+describe('LoginForm 2FA token field [C2-2]', () => {
+  // Step into the 2FA state by stubbing login to throw the well-known
+  // "two-factor required" error the form keys on, then exercise the
+  // hex backup-code path. The 16-char hex codes the backend issues must
+  // survive a paste without being truncated to 8 chars.
+  const enter2faMode = async () => {
+    const user = userEvent.setup();
+    const login = vi.fn().mockRejectedValue(new Error('Two-factor authentication code required'));
+
+    renderLoginForm(buildAuthValue({ login }));
+
+    await user.type(screen.getByPlaceholderText(/enter your email/i), 'a@b.com');
+    await user.type(screen.getByPlaceholderText(/enter your password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('000000')).toBeInTheDocument();
+    });
+
+    return { user };
+  };
+
+  it('preserves the full 16-char hex backup code the user pastes', async () => {
+    const { user } = await enter2faMode();
+
+    const token = screen.getByPlaceholderText('000000');
+    const backupCode = '0123456789abcdef';
+
+    await user.click(token);
+    await user.paste(backupCode);
+
+    expect(token).toHaveValue(backupCode);
   });
 });

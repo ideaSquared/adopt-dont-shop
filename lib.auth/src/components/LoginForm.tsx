@@ -178,10 +178,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               className={styles.tokenInput}
               type="text"
               inputMode="numeric"
-              maxLength={8}
+              maxLength={16}
               placeholder="000000"
               value={twoFactorToken}
-              onChange={(e) => setTwoFactorToken(e.target.value.replace(/[^a-fA-F0-9]/g, ''))}
+              onChange={(e) => setTwoFactorToken(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
               autoComplete="one-time-code"
               autoFocus
             />
