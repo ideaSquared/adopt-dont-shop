@@ -6,6 +6,7 @@ import { AppNavbar } from '@/components/navigation/AppNavbar';
 import { BottomTabBar } from '@/components/navigation/BottomTabBar';
 import { SwipeOnboarding } from '@/components/onboarding/SwipeOnboarding';
 import { SwipeFloatingButton } from '@/components/ui/SwipeFloatingButton';
+import { SanctionBannerHost } from '@/components/SanctionBannerHost';
 import * as styles from './AppShell.css';
 
 export const AppShell: React.FC = () => {
@@ -17,6 +18,9 @@ export const AppShell: React.FC = () => {
       <header>
         <AppNavbar />
       </header>
+      {/* ADS C4-5: dismissible sanction banner sits above the main-content
+          target so the SkipLink still bypasses it to '#main-content'. */}
+      <SanctionBannerHost />
       <main id='main-content' className={styles.main} tabIndex={-1}>
         <Outlet />
       </main>

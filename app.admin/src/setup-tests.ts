@@ -128,6 +128,8 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     href?: string;
     children?: React.ReactNode;
   }) => React.createElement('a', { href }, children),
+  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  SanctionBanner: () => null,
   // ADS-585: useConfirm mock returns both `confirm` and `confirmProps` so tests
   // covering pages that spread `confirmProps` into ConfirmDialog don't crash.
   useConfirm: () => ({
