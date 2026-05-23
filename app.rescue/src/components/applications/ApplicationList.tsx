@@ -268,7 +268,10 @@ const ApplicationList: React.FC<ApplicationListProps> = ({
     onFilterChange(newFilter);
   };
 
-  if (error) {
+  // ADS UX P0/P1 #5: loading wins over error so a refetch in progress never
+  // flashes an error banner; once the request settles, error renders inside
+  // the table area below if it persists. Empty and populated table follow.
+  if (!loading && error) {
     return (
       <div className={styles.errorContainer}>
         <div className={styles.errorContent}>

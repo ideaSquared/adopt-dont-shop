@@ -23,6 +23,12 @@ export interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
   loading?: boolean;
+  /**
+   * ADS UX P0/P1 #5: when set, the table body renders an error banner row
+   * instead of the empty-state row so the user can tell load failure apart
+   * from a genuinely empty result set.
+   */
+  error?: string | null;
   emptyMessage?: string;
   onRowClick?: (row: T) => void;
   // Pagination
@@ -47,6 +53,7 @@ export function DataTable<T extends object>({
   columns,
   data,
   loading = false,
+  error = null,
   emptyMessage = 'No data available',
   onRowClick,
   currentPage = 1,
@@ -186,6 +193,10 @@ export function DataTable<T extends object>({
               Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
                 <SkeletonTableRow key={i} columnCount={columns.length} hasCheckbox={selectable} />
               ))
+            ) : error ? (
+              <tr className={styles.emptyRow} role='alert'>
+                <td colSpan={columns.length + (selectable ? 1 : 0)}>{error}</td>
+              </tr>
             ) : data.length === 0 ? (
               <tr className={styles.emptyRow}>
                 <td colSpan={columns.length + (selectable ? 1 : 0)}>{emptyMessage}</td>

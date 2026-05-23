@@ -159,6 +159,55 @@ describe('ApplicationList stage action buttons', () => {
   });
 });
 
+describe('ApplicationList load-state differentiation (UX P0/P1 #5)', () => {
+  it('shows the loading spinner and hides the empty/error UI while loading', () => {
+    render(
+      <ApplicationList {...baseProps} loading applications={[]} onApplicationSelect={vi.fn()} />
+    );
+
+    expect(screen.getByText(/loading applications\.\.\./i)).toBeInTheDocument();
+    expect(screen.queryByText(/no applications found/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/error loading applications/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the error banner when not loading and an error is set', () => {
+    render(
+      <ApplicationList
+        {...baseProps}
+        error="Network error"
+        applications={[]}
+        onApplicationSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/error loading applications/i)).toBeInTheDocument();
+    expect(screen.getByText(/network error/i)).toBeInTheDocument();
+    expect(screen.queryByText(/loading applications\.\.\./i)).not.toBeInTheDocument();
+  });
+
+  it('shows the empty state when not loading, no error, and no applications', () => {
+    render(<ApplicationList {...baseProps} applications={[]} onApplicationSelect={vi.fn()} />);
+
+    expect(screen.getByText(/no applications found matching your criteria/i)).toBeInTheDocument();
+    expect(screen.queryByText(/error loading applications/i)).not.toBeInTheDocument();
+  });
+
+  it('prefers the loading spinner over an error banner when both states are active', () => {
+    render(
+      <ApplicationList
+        {...baseProps}
+        loading
+        error="stale error"
+        applications={[]}
+        onApplicationSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/loading applications\.\.\./i)).toBeInTheDocument();
+    expect(screen.queryByText(/error loading applications/i)).not.toBeInTheDocument();
+  });
+});
+
 describe('ApplicationList [ADS-576] selection UI removed', () => {
   it('renders no checkbox inputs in the table', () => {
     render(
