@@ -1,9 +1,10 @@
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { Alert, Button, Card, Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { Alert, Button, Card, Spinner } from '@adopt-dont-shop/lib.components';
 import type { AdopterMatchProfile, AdopterLifestyle } from '@adopt-dont-shop/lib.matching';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { apiService } from '@/services';
+import * as styles from './MatchOnboardingPage.css';
 
 type FormState = {
   preferred_types: string[];
@@ -16,19 +17,111 @@ type FormState = {
   notify_new_matches: boolean;
 };
 
-const TYPES = ['dog', 'cat', 'rabbit', 'bird', 'small_mammal'];
-const SIZES = ['extra_small', 'small', 'medium', 'large', 'extra_large'];
-const AGES = ['baby', 'young', 'adult', 'senior'];
-const ENERGY = ['low', 'medium', 'high', 'very_high'];
+type Option = { value: string; label: string; icon: string };
+
+const TYPES: Option[] = [
+  { value: 'dog', label: 'Dog', icon: '🐕' },
+  { value: 'cat', label: 'Cat', icon: '🐈' },
+  { value: 'rabbit', label: 'Rabbit', icon: '🐇' },
+  { value: 'bird', label: 'Bird', icon: '🦜' },
+  { value: 'small_mammal', label: 'Small mammal', icon: '🐹' },
+];
+const SIZES: Option[] = [
+  { value: 'extra_small', label: 'Extra small', icon: '🐭' },
+  { value: 'small', label: 'Small', icon: '🐰' },
+  { value: 'medium', label: 'Medium', icon: '🐕' },
+  { value: 'large', label: 'Large', icon: '🐩' },
+  { value: 'extra_large', label: 'Extra large', icon: '🦮' },
+];
+const AGES: Option[] = [
+  { value: 'baby', label: 'Baby', icon: '🍼' },
+  { value: 'young', label: 'Young', icon: '🌱' },
+  { value: 'adult', label: 'Adult', icon: '🌳' },
+  { value: 'senior', label: 'Senior', icon: '🧓' },
+];
+const ENERGY: Option[] = [
+  { value: 'low', label: 'Low', icon: '😴' },
+  { value: 'medium', label: 'Medium', icon: '🚶' },
+  { value: 'high', label: 'High', icon: '🏃' },
+  { value: 'very_high', label: 'Very high', icon: '⚡' },
+];
+
+type LifestyleTile = {
+  key: keyof Pick<AdopterLifestyle, 'has_children' | 'has_other_pets' | 'yard'>;
+  label: string;
+  icon: string;
+};
+
+const LIFESTYLE_TILES: LifestyleTile[] = [
+  { key: 'has_children', label: 'Children at home', icon: '👶' },
+  { key: 'has_other_pets', label: 'Other pets', icon: '🐾' },
+  { key: 'yard', label: 'Yard / garden', icon: '🌳' },
+];
+
+const EXTRA_TILES = [
+  { key: 'open_to_special_needs' as const, label: 'Open to special needs', icon: '💖' },
+  { key: 'notify_new_matches' as const, label: 'Notify on new matches', icon: '🔔' },
+];
 
 const toggle = (arr: string[], v: string): string[] =>
   arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
 
-/**
- * Minimal match preferences wizard. Single page rather than 3-step
- * modal for v1 — keeps the UX visible and the surface obvious; can
- * be split into stepper later without changing the payload.
- */
+type ChipGroupProps = {
+  name: string;
+  options: Option[];
+  selected: string[];
+  onToggle: (value: string) => void;
+};
+
+const ChipGroup: React.FC<ChipGroupProps> = ({ name, options, selected, onToggle }) => (
+  <div className={styles.chipGroup} role='group' aria-label={name}>
+    {options.map(opt => {
+      const isSelected = selected.includes(opt.value);
+      return (
+        <label
+          key={opt.value}
+          className={`${styles.chip} ${isSelected ? styles.chipSelected : ''}`}
+        >
+          <input
+            type='checkbox'
+            className={styles.srInput}
+            checked={isSelected}
+            onChange={() => onToggle(opt.value)}
+          />
+          <span className={styles.chipIcon} aria-hidden='true'>
+            {opt.icon}
+          </span>
+          {opt.label}
+        </label>
+      );
+    })}
+  </div>
+);
+
+type TileProps = {
+  icon: string;
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+};
+
+const Tile: React.FC<TileProps> = ({ icon, label, checked, onChange }) => (
+  <label className={`${styles.tile} ${checked ? styles.tileSelected : ''}`}>
+    <input
+      type='checkbox'
+      className={styles.srInput}
+      checked={checked}
+      onChange={e => onChange(e.target.checked)}
+    />
+    <span className={styles.tileIcon} aria-hidden='true'>
+      {icon}
+    </span>
+    {label}
+  </label>
+);
+
+const formatDistance = (v: number | '') => (v === '' ? 'Any' : `${v} km`);
+
 export const MatchOnboardingPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -77,13 +170,29 @@ export const MatchOnboardingPage: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <Container>
-        <p>Sign in to set match preferences.</p>
-        <Link to='/login'>Sign in</Link>
-      </Container>
+      <div className={styles.container}>
+        <Card className={styles.card}>
+          <div className={styles.header}>
+            <span className={styles.heroIcon} aria-hidden='true'>
+              🐾
+            </span>
+            <h1>Match preferences</h1>
+            <p>Sign in to tell us what kind of pet you&apos;re looking for.</p>
+          </div>
+          <Link to='/login'>
+            <Button>Sign in</Button>
+          </Link>
+        </Card>
+      </div>
     );
   }
-  if (loading) return <Spinner />;
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <Spinner />
+      </div>
+    );
+  }
 
   const submit = async () => {
     try {
@@ -102,171 +211,150 @@ export const MatchOnboardingPage: React.FC = () => {
     }
   };
 
+  const hoursAlone = form.lifestyle.hours_alone_daily ?? 0;
+  const distanceVal = form.max_distance_km === '' ? 50 : form.max_distance_km;
+
   return (
-    <Container>
-      <h1>Match preferences</h1>
-      {error && <Alert variant='error'>{error}</Alert>}
+    <div className={styles.container}>
+      <Card className={styles.card}>
+        <div className={styles.header}>
+          <span className={styles.heroIcon} aria-hidden='true'>
+            🐾
+          </span>
+          <h1>Find your match</h1>
+          <p>Tell us what you&apos;re looking for — we&apos;ll surface your best matches.</p>
+        </div>
 
-      <Card>
-        <h3>What kind of pet?</h3>
-        {TYPES.map(t => (
-          <label key={t} style={{ marginRight: '0.5rem' }}>
-            <input
-              type='checkbox'
-              checked={form.preferred_types.includes(t)}
-              onChange={() =>
-                setForm(f => ({ ...f, preferred_types: toggle(f.preferred_types, t) }))
-              }
-            />
-            {t}
-          </label>
-        ))}
-      </Card>
+        {error && (
+          <div className={styles.alertWrap}>
+            <Alert variant='error'>{error}</Alert>
+          </div>
+        )}
 
-      <Card>
-        <h3>Size</h3>
-        {SIZES.map(s => (
-          <label key={s} style={{ marginRight: '0.5rem' }}>
-            <input
-              type='checkbox'
-              checked={form.preferred_sizes.includes(s)}
-              onChange={() =>
-                setForm(f => ({ ...f, preferred_sizes: toggle(f.preferred_sizes, s) }))
-              }
-            />
-            {s}
-          </label>
-        ))}
-      </Card>
-
-      <Card>
-        <h3>Age group</h3>
-        {AGES.map(a => (
-          <label key={a} style={{ marginRight: '0.5rem' }}>
-            <input
-              type='checkbox'
-              checked={form.preferred_age_groups.includes(a)}
-              onChange={() =>
-                setForm(f => ({ ...f, preferred_age_groups: toggle(f.preferred_age_groups, a) }))
-              }
-            />
-            {a}
-          </label>
-        ))}
-      </Card>
-
-      <Card>
-        <h3>Energy level</h3>
-        {ENERGY.map(e => (
-          <label key={e} style={{ marginRight: '0.5rem' }}>
-            <input
-              type='checkbox'
-              checked={form.preferred_energy.includes(e)}
-              onChange={() =>
-                setForm(f => ({ ...f, preferred_energy: toggle(f.preferred_energy, e) }))
-              }
-            />
-            {e}
-          </label>
-        ))}
-      </Card>
-
-      <Card>
-        <h3>Lifestyle</h3>
-        <label>
-          <input
-            type='checkbox'
-            checked={!!form.lifestyle.has_children}
-            onChange={e =>
-              setForm(f => ({
-                ...f,
-                lifestyle: { ...f.lifestyle, has_children: e.target.checked },
-              }))
-            }
+        <div className={styles.section}>
+          <h3>What kind of pet?</h3>
+          <p className='hint'>Pick one or more.</p>
+          <ChipGroup
+            name='Pet type'
+            options={TYPES}
+            selected={form.preferred_types}
+            onToggle={v => setForm(f => ({ ...f, preferred_types: toggle(f.preferred_types, v) }))}
           />
-          Children at home
-        </label>
-        <label style={{ marginLeft: '1rem' }}>
-          <input
-            type='checkbox'
-            checked={!!form.lifestyle.has_other_pets}
-            onChange={e =>
-              setForm(f => ({
-                ...f,
-                lifestyle: { ...f.lifestyle, has_other_pets: e.target.checked },
-              }))
-            }
+        </div>
+
+        <div className={styles.section}>
+          <h3>Size</h3>
+          <ChipGroup
+            name='Size'
+            options={SIZES}
+            selected={form.preferred_sizes}
+            onToggle={v => setForm(f => ({ ...f, preferred_sizes: toggle(f.preferred_sizes, v) }))}
           />
-          Other pets at home
-        </label>
-        <label style={{ marginLeft: '1rem' }}>
-          <input
-            type='checkbox'
-            checked={!!form.lifestyle.yard}
-            onChange={e =>
-              setForm(f => ({ ...f, lifestyle: { ...f.lifestyle, yard: e.target.checked } }))
-            }
-          />
-          Yard
-        </label>
-        <div style={{ marginTop: '0.5rem' }}>
-          Hours alone daily:{' '}
-          <input
-            type='number'
-            min={0}
-            max={24}
-            value={form.lifestyle.hours_alone_daily ?? ''}
-            onChange={e =>
-              setForm(f => ({
-                ...f,
-                lifestyle: {
-                  ...f.lifestyle,
-                  hours_alone_daily: e.target.value === '' ? undefined : Number(e.target.value),
-                },
-              }))
+        </div>
+
+        <div className={styles.section}>
+          <h3>Age group</h3>
+          <ChipGroup
+            name='Age group'
+            options={AGES}
+            selected={form.preferred_age_groups}
+            onToggle={v =>
+              setForm(f => ({ ...f, preferred_age_groups: toggle(f.preferred_age_groups, v) }))
             }
           />
         </div>
-      </Card>
 
-      <Card>
-        <h3>Reach</h3>
-        <div>
-          Max distance (km):{' '}
-          <input
-            type='number'
-            min={1}
-            value={form.max_distance_km}
-            onChange={e =>
-              setForm(f => ({
-                ...f,
-                max_distance_km: e.target.value === '' ? '' : Number(e.target.value),
-              }))
+        <div className={styles.section}>
+          <h3>Energy level</h3>
+          <ChipGroup
+            name='Energy level'
+            options={ENERGY}
+            selected={form.preferred_energy}
+            onToggle={v =>
+              setForm(f => ({ ...f, preferred_energy: toggle(f.preferred_energy, v) }))
             }
           />
         </div>
-        <label>
-          <input
-            type='checkbox'
-            checked={form.open_to_special_needs}
-            onChange={e => setForm(f => ({ ...f, open_to_special_needs: e.target.checked }))}
-          />
-          Open to special-needs pets
-        </label>
-        <label style={{ display: 'block' }}>
-          <input
-            type='checkbox'
-            checked={form.notify_new_matches}
-            onChange={e => setForm(f => ({ ...f, notify_new_matches: e.target.checked }))}
-          />
-          Notify me when new matches appear
-        </label>
-      </Card>
 
-      <Button onClick={submit} disabled={saving}>
-        {saving ? 'Saving…' : 'Save preferences'}
-      </Button>
-    </Container>
+        <div className={styles.section}>
+          <h3>Your home</h3>
+          <div className={styles.tileGrid}>
+            {LIFESTYLE_TILES.map(t => (
+              <Tile
+                key={t.key}
+                icon={t.icon}
+                label={t.label}
+                checked={!!form.lifestyle[t.key]}
+                onChange={checked =>
+                  setForm(f => ({
+                    ...f,
+                    lifestyle: { ...f.lifestyle, [t.key]: checked },
+                  }))
+                }
+              />
+            ))}
+          </div>
+          <div className={styles.sliderField}>
+            <div className={styles.sliderHeader}>
+              <span>⏰ Hours alone daily</span>
+              <span className={styles.sliderValue}>{hoursAlone}h</span>
+            </div>
+            <input
+              className={styles.slider}
+              type='range'
+              min={0}
+              max={12}
+              step={1}
+              value={hoursAlone}
+              onChange={e =>
+                setForm(f => ({
+                  ...f,
+                  lifestyle: { ...f.lifestyle, hours_alone_daily: Number(e.target.value) },
+                }))
+              }
+              aria-label='Hours alone daily'
+            />
+          </div>
+        </div>
+
+        <div className={styles.section}>
+          <h3>Reach</h3>
+          <div className={styles.sliderField}>
+            <div className={styles.sliderHeader}>
+              <span>📍 Max distance</span>
+              <span className={styles.sliderValue}>{formatDistance(distanceVal)}</span>
+            </div>
+            <input
+              className={styles.slider}
+              type='range'
+              min={5}
+              max={500}
+              step={5}
+              value={distanceVal}
+              onChange={e => setForm(f => ({ ...f, max_distance_km: Number(e.target.value) }))}
+              aria-label='Max distance in kilometres'
+            />
+          </div>
+          <div className={styles.tileGrid} style={{ marginTop: '1rem' }}>
+            {EXTRA_TILES.map(t => (
+              <Tile
+                key={t.key}
+                icon={t.icon}
+                label={t.label}
+                checked={form[t.key]}
+                onChange={checked => setForm(f => ({ ...f, [t.key]: checked }))}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          <Button onClick={submit} disabled={saving}>
+            {saving ? 'Saving…' : 'Save preferences'}
+          </Button>
+        </div>
+      </Card>
+    </div>
   );
 };
 
