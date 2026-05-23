@@ -686,7 +686,7 @@ export class RescueService {
           recipients.map(userId =>
             NotificationService.createNotification({
               userId,
-              type: NotificationType.SYSTEM_ANNOUNCEMENT,
+              type: NotificationType.RESCUE_VERIFIED,
               title: 'Your rescue has been verified',
               message: `${rescue.name} is now verified and can publish listings.`,
               data: { rescueId, event: 'rescue_verified' },

@@ -65,6 +65,10 @@ export interface FrontendApplication {
   userId: string;
   rescueId: string;
   status: ApplicationStatus;
+  // ADS C4 (follow-up to PR #676): expose the workflow stage to clients so
+  // adopters can see e.g. "Home visit scheduled" while status is still
+  // 'submitted'. Optional because legacy/test fixtures may omit it.
+  stage?: string;
   submittedAt?: string;
   reviewedAt?: string;
   reviewedBy?: string;

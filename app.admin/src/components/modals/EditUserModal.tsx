@@ -101,6 +101,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
               value={formData.firstName}
               onChange={e => setFormData({ ...formData, firstName: e.target.value })}
               required
+              aria-required={true}
             />
           </div>
 
@@ -114,6 +115,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
               value={formData.lastName}
               onChange={e => setFormData({ ...formData, lastName: e.target.value })}
               required
+              aria-required={true}
             />
           </div>
         </div>
@@ -128,6 +130,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
             value={formData.email}
             onChange={e => setFormData({ ...formData, email: e.target.value })}
             required
+            aria-required={true}
           />
         </div>
 

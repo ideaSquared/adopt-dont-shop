@@ -4,6 +4,20 @@ import { z } from 'zod';
 
 export const ApplicationStatusSchema = z.enum(['submitted', 'approved', 'rejected', 'withdrawn']);
 
+// ADS C4 (follow-up to PR #676): the backend tracks an in-progress workflow
+// `stage` alongside the terminal `status`. Adopter-facing clients need this
+// to differentiate a freshly submitted application from one that is e.g.
+// awaiting a home visit. Values mirror service.backend's ApplicationStage
+// enum (src/models/Application.ts).
+export const ApplicationStageSchema = z.enum([
+  'pending',
+  'reviewing',
+  'visiting',
+  'deciding',
+  'resolved',
+  'withdrawn',
+]);
+
 export const ApplicationPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
 
 // ── ApplicationData sub-schemas ───────────────────────────────────────────────
@@ -168,6 +182,10 @@ export const ApplicationSchema = z.object({
   userId: z.string(),
   rescueId: z.string(),
   status: ApplicationStatusSchema,
+  // Optional for backwards compatibility — older backend responses (and
+  // older clients/tests) may omit it. Present on adopter and rescue reads
+  // from the canonical transformApplicationModel.
+  stage: ApplicationStageSchema.optional(),
   priority: ApplicationPrioritySchema.optional(),
   // These four columns are nullable in the database, so the JSON wire shape
   // can be `null` (not just absent). Use `.nullish()` to accept both null
@@ -242,6 +260,7 @@ export const DocumentsResponseSchema = z.object({
 // ── Inferred types ─────────────────────────────────────────────────────────────
 
 export type ApplicationStatus = z.infer<typeof ApplicationStatusSchema>;
+export type ApplicationStage = z.infer<typeof ApplicationStageSchema>;
 export type ApplicationPriority = z.infer<typeof ApplicationPrioritySchema>;
 export type PersonalInfo = z.infer<typeof PersonalInfoSchema>;
 export type LivingSituation = z.infer<typeof LivingSituationSchema>;
