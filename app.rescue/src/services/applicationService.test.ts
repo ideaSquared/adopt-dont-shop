@@ -159,3 +159,29 @@ describe('RescueApplicationService.transitionStage (ADS-642)', () => {
     expect(apiServiceMock.patch).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * UX P0/P1 #6: getApplicationTimeline used to swallow every fetch error
+ * and return `[]`. That made it impossible for the timeline modal to tell
+ * "no events yet" apart from "the API blew up". It now propagates the
+ * error so callers can render a proper error state.
+ */
+describe('RescueApplicationService.getApplicationTimeline error propagation (UX P0/P1 #6)', () => {
+  const service = new RescueApplicationService();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rejects with the underlying error when the timeline request fails', async () => {
+    apiServiceMock.get.mockRejectedValueOnce(new Error('network down'));
+
+    await expect(service.getApplicationTimeline('app-1')).rejects.toThrow(/network down/);
+  });
+
+  it('still resolves with an empty array when the backend returns no events', async () => {
+    apiServiceMock.get.mockResolvedValueOnce({ timeline: [] });
+
+    await expect(service.getApplicationTimeline('app-1')).resolves.toEqual([]);
+  });
+});

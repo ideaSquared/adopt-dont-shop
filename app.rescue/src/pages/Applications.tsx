@@ -56,6 +56,7 @@ const Applications: React.FC = () => {
     references,
     homeVisits,
     timeline,
+    timelineError,
     loading: detailsLoading,
     error: detailsError,
     updateReferenceCheck,
@@ -199,6 +200,7 @@ const Applications: React.FC = () => {
           references={references}
           homeVisits={homeVisits}
           timeline={timeline}
+          timelineError={timelineError}
           loading={detailsLoading}
           error={detailsError}
           onClose={handleCloseReview}
