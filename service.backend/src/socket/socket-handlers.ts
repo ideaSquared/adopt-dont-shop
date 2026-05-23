@@ -446,6 +446,11 @@ export class SocketHandlers {
       // a stale token can't keep platform-room access after a demote.
       if (socket.rescueId) {
         socket.join(`analytics:rescue:${socket.rescueId}`);
+        // ADS C4-3 / C4-6: general-purpose rescue room used for non-
+        // analytics events (rescue verification, application list
+        // updates). Kept separate from the analytics room so the
+        // analytics-emitter debounce can't drop fan-out for live data.
+        socket.join(`rescue:${socket.rescueId}`);
       }
       if (socket.role === 'super_admin' || socket.role === 'admin' || socket.role === 'moderator') {
         socket.join('analytics:platform');

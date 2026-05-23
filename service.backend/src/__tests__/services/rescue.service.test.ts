@@ -4,6 +4,9 @@ import { Rescue, StaffMember, User, Pet, Application } from '../../models';
 import { UserType, UserStatus } from '../../models/User';
 import { PetStatus } from '../../models/Pet';
 import { RescueService } from '../../services/rescue.service';
+import { NotificationService } from '../../services/notification.service';
+import { NotificationType } from '../../models/Notification';
+import { emitToRescue } from '../../socket/socket-registry';
 
 // Mock only external services
 vi.mock('../../services/auditLog.service', () => ({
@@ -21,6 +24,12 @@ vi.mock('../../services/charity-commission.service', () => ({
 }));
 vi.mock('../../services/email.service', () => ({
   default: { sendEmail: vi.fn().mockResolvedValue('email-id') },
+}));
+vi.mock('../../socket/socket-registry', () => ({
+  emitToRescue: vi.fn(),
+  emitToUser: vi.fn(),
+  emitAuthRoleChanged: vi.fn(),
+  disconnectAllSockets: vi.fn(),
 }));
 
 vi.mock('../../utils/logger', () => ({
@@ -532,6 +541,85 @@ describe('RescueService - Behavioral Testing', () => {
       });
 
       await expect(RescueService.verifyRescue(rescue.rescueId, 'admin-123')).rejects.toThrow();
+    });
+
+    // ADS C4-3: when an admin verifies a rescue, every active staff member of
+    // that rescue should receive an in-app notification, and a `rescue:verified`
+    // event should fan out to the rescue:{id} socket room so any open
+    // dashboard refreshes immediately.
+    it('notifies rescue staff and emits rescue:verified after verification', async () => {
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockResolvedValue({} as never);
+
+      const rescue = await Rescue.create({
+        name: 'Notify Rescue',
+        email: 'notify@rescue.org',
+        phone: '555-0123',
+        address: '123 Main St',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+        contactPerson: 'Jane Smith',
+        status: 'pending',
+      });
+
+      await StaffMember.create({
+        rescueId: rescue.rescueId,
+        userId: 'user-123',
+        title: 'Founder',
+        isVerified: true,
+        addedBy: 'admin-123',
+        addedAt: new Date(),
+      });
+
+      await RescueService.verifyRescue(rescue.rescueId, 'admin-123');
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      const args = spy.mock.calls[0][0];
+      expect(args.userId).toBe('user-123');
+      expect(args.type).toBe(NotificationType.SYSTEM_ANNOUNCEMENT);
+      expect(args.data).toMatchObject({ rescueId: rescue.rescueId, event: 'rescue_verified' });
+
+      expect(vi.mocked(emitToRescue)).toHaveBeenCalledWith(
+        rescue.rescueId,
+        'rescue:verified',
+        expect.objectContaining({ rescueId: rescue.rescueId })
+      );
+
+      spy.mockRestore();
+    });
+
+    it('completes verification even when notifying staff fails', async () => {
+      const spy = vi
+        .spyOn(NotificationService, 'createNotification')
+        .mockRejectedValue(new Error('notification down'));
+
+      const rescue = await Rescue.create({
+        name: 'Failing Notify Rescue',
+        email: 'fail@rescue.org',
+        phone: '555-0123',
+        address: '123 Main St',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+        contactPerson: 'Jane Smith',
+        status: 'pending',
+      });
+
+      await StaffMember.create({
+        rescueId: rescue.rescueId,
+        userId: 'user-123',
+        title: 'Founder',
+        isVerified: true,
+        addedBy: 'admin-123',
+        addedAt: new Date(),
+      });
+
+      const result = await RescueService.verifyRescue(rescue.rescueId, 'admin-123');
+      expect(result.status).toBe('verified');
+
+      spy.mockRestore();
     });
   });
 

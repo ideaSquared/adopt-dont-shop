@@ -7,6 +7,9 @@ import { logger, loggerHelpers } from '../utils/logger';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
 import { AuditLogService } from './auditLog.service';
+import { NotificationService } from './notification.service';
+import { NotificationType } from '../models/Notification';
+import { emitToRescue } from '../socket/socket-registry';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
 import { verifyCompaniesHouseNumber } from './companies-house.service';
@@ -664,6 +667,38 @@ export class RescueService {
       );
 
       await transaction.commit();
+
+      // ADS C4-3: notify rescue staff and broadcast a live event to the
+      // rescue:{id} room so an open rescue dashboard can react without
+      // waiting for a poll. Best-effort: failures here must not unwind
+      // the verification itself.
+      try {
+        const staff = await StaffMember.findAll({
+          where: { rescueId, deletedAt: null },
+          attributes: ['userId'],
+        });
+        const recipients = Array.from(new Set(staff.map(s => s.userId)));
+        await Promise.all(
+          recipients.map(userId =>
+            NotificationService.createNotification({
+              userId,
+              type: NotificationType.SYSTEM_ANNOUNCEMENT,
+              title: 'Your rescue has been verified',
+              message: `${rescue.name} is now verified and can publish listings.`,
+              data: { rescueId, event: 'rescue_verified' },
+            })
+          )
+        );
+        emitToRescue(rescueId, 'rescue:verified', {
+          rescueId,
+          verifiedAt: rescue.verifiedAt,
+        });
+      } catch (notifyError) {
+        logger.warn('Failed to notify rescue staff of verification', {
+          rescueId,
+          error: notifyError instanceof Error ? notifyError.message : String(notifyError),
+        });
+      }
 
       logger.info(`Verified rescue: ${rescueId}`);
       return rescue;

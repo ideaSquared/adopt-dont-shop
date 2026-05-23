@@ -117,3 +117,24 @@ export function emitAuthRoleChanged(userId: string): void {
   }
   liveIo.to(`user:${userId}`).emit('auth:role-changed', { at: new Date().toISOString() });
 }
+
+/**
+ * ADS C4-3 / C4-5 / C4-6: thin wrappers around `io.to(room).emit(...)`
+ * so service-layer code can fan out events without having to plumb a
+ * Socket.IO reference or know the room-naming convention. Each is a
+ * no-op when the IO server is not registered, so calling them in
+ * service tests (which don't spin up the WebSocket transport) is safe.
+ */
+export function emitToUser(userId: string, event: string, payload: unknown): void {
+  if (!liveIo) {
+    return;
+  }
+  liveIo.to(`user:${userId}`).emit(event, payload);
+}
+
+export function emitToRescue(rescueId: string, event: string, payload: unknown): void {
+  if (!liveIo) {
+    return;
+  }
+  liveIo.to(`rescue:${rescueId}`).emit(event, payload);
+}
