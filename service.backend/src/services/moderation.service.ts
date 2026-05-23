@@ -1039,10 +1039,10 @@ class ModerationService {
    * (resolved / dismissed / escalated). Best-effort: failures must not
    * affect the moderation outcome — the action has already committed.
    *
-   * We fall back to NotificationType.SYSTEM_ANNOUNCEMENT because the
-   * Postgres ENUM for notification.type cannot grow without a migration
-   * (out of scope for this fix); the `data.reportId` and
-   * `data.resolution` discriminate the moderation context for the UI.
+   * Uses NotificationType.MODERATION_REPORT_RESOLVED (added by
+   * migration 08-add-notification-c4-enum-values). The `data.reportId`
+   * and `data.resolution` discriminators stay in place so UI consumers
+   * that already parse them continue to work.
    */
   private async notifyReporterOfResolution(params: {
     reportId: string;
@@ -1064,7 +1064,7 @@ class ModerationService {
     try {
       await NotificationService.createNotification({
         userId: reporterId,
-        type: NotificationType.SYSTEM_ANNOUNCEMENT,
+        type: NotificationType.MODERATION_REPORT_RESOLVED,
         title: titles[resolution],
         message: messages[resolution],
         data: {
@@ -1088,10 +1088,10 @@ class ModerationService {
    * their account (warning, suspension, ban, restriction). Best-effort:
    * the sanction itself has already committed.
    *
-   * Reuses NotificationType.SYSTEM_ANNOUNCEMENT for the same reason as
-   * notifyReporterOfResolution — the Postgres ENUM for notification.type
-   * can't grow without a migration. The discriminator lives in
-   * `data.actionType` so the UI can pick an appropriate icon / copy.
+   * Uses NotificationType.USER_SANCTIONED (added by migration
+   * 08-add-notification-c4-enum-values). The `data.actionType`
+   * discriminator stays in place so UI consumers can still pick an
+   * appropriate icon / copy.
    */
   private async notifySanctionedUser(params: {
     userId: string;
@@ -1111,7 +1111,7 @@ class ModerationService {
     try {
       await NotificationService.createNotification({
         userId,
-        type: NotificationType.SYSTEM_ANNOUNCEMENT,
+        type: NotificationType.USER_SANCTIONED,
         title: titles[actionType] ?? 'A moderation action was taken on your account',
         message: description ?? reason,
         data: {

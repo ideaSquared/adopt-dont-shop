@@ -58,3 +58,19 @@ describe('InviteStaffModal backdrop accessibility (UX P2 I)', () => {
     expect(closeButton).not.toBeNull();
   });
 });
+
+describe('InviteStaffModal aria-required (a11y sweep — extends PR #673/#674 C1-2)', () => {
+  it('marks the required email input with aria-required="true"', () => {
+    render(<InviteStaffModal onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    const emailInput = screen.getByLabelText(/email address/i);
+    expect(emailInput).toHaveAttribute('aria-required', 'true');
+  });
+
+  it('does not set aria-required on the optional title input', () => {
+    render(<InviteStaffModal onSubmit={vi.fn()} onCancel={vi.fn()} />);
+
+    const titleInput = screen.getByLabelText(/title\/role/i);
+    expect(titleInput).not.toHaveAttribute('aria-required');
+  });
+});

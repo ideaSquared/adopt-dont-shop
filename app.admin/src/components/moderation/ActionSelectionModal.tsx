@@ -167,6 +167,7 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
                 placeholder='Explain why this action is being taken. This will be shown to the user.'
                 disabled={isLoading}
                 required
+                aria-required={true}
               />
               <p className={styles.helpText}>This message will be visible to the affected user</p>
             </div>
