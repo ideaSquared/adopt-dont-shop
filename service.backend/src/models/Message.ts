@@ -257,14 +257,17 @@ Message.init(
         fields: ['chat_id', { name: 'created_at', order: 'DESC' }],
         name: 'messages_chat_created_idx',
       },
-      // Per-chat monotonic sequence (see migration 08). Unique so a
-      // forgotten lock in any future write path surfaces loudly via a
-      // unique-violation rather than silently corrupting ordering.
-      {
-        fields: ['chat_id', 'sequence'],
-        name: 'messages_chat_sequence_uidx',
-        unique: true,
-      },
+      // Per-chat monotonic sequence (see migration 08). NOT defined as
+      // unique here because sequelize.sync (dev/E2E) creates the table
+      // from the model and seeders insert messages with the default
+      // sequence=0 — a unique constraint would reject the second message
+      // in each chat. The migration creates the index on production
+      // Postgres after backfilling real values.
+      // {
+      //   fields: ['chat_id', 'sequence'],
+      //   name: 'messages_chat_sequence_uidx',
+      //   unique: true,
+      // },
       ...auditIndexes('messages'),
     ],
     // search_vector is now a stored generated column on Postgres
