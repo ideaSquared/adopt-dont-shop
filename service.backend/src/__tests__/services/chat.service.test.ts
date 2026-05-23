@@ -197,7 +197,7 @@ describe('ChatService', () => {
     (moderationService.submitReport as vi.Mock).mockResolvedValue({});
     // Default: chat has no prior messages so the next sequence is 0.
     // Tests that exercise sequence-specific behaviour override this.
-    (MockedMessage.max as vi.Mock).mockResolvedValue(null);
+    (MockedMessage.findOne as vi.Mock).mockResolvedValue(null);
   });
 
   describe('Creating chats', () => {
@@ -943,7 +943,7 @@ describe('ChatService', () => {
           Participants: [{ participant_id: senderId }],
         });
         (MockedMessage.count as vi.Mock).mockResolvedValue(0);
-        (MockedMessage.max as vi.Mock).mockResolvedValue(null);
+        (MockedMessage.findOne as vi.Mock).mockResolvedValue(null);
         (MockedMessage.create as vi.Mock).mockResolvedValue({
           message_id: 'm-1',
           chat_id: chatId,
@@ -979,7 +979,7 @@ describe('ChatService', () => {
         });
         (MockedMessage.count as vi.Mock).mockResolvedValue(0);
         // Chat already has messages numbered up to 7.
-        (MockedMessage.max as vi.Mock).mockResolvedValue(7);
+        (MockedMessage.findOne as vi.Mock).mockResolvedValue({ sequence: 7 });
         (MockedMessage.create as vi.Mock).mockResolvedValue({
           message_id: 'm-8',
           chat_id: chatId,
@@ -1017,7 +1017,7 @@ describe('ChatService', () => {
           Participants: [{ participant_id: senderId }],
         });
         (MockedMessage.count as vi.Mock).mockResolvedValue(0);
-        (MockedMessage.max as vi.Mock).mockResolvedValue(null);
+        (MockedMessage.findOne as vi.Mock).mockResolvedValue(null);
         (MockedMessage.create as vi.Mock).mockResolvedValue({
           message_id: 'm-1',
           chat_id: chatId,
@@ -1064,8 +1064,10 @@ describe('ChatService', () => {
         // max runs because Promise.all on a single mocked thread does
         // not actually parallelise — but in production the FOR UPDATE
         // lock provides the same serialization guarantee.
-        (MockedMessage.max as vi.Mock).mockImplementation(async () => {
-          return committedSequences.length === 0 ? null : Math.max(...committedSequences);
+        (MockedMessage.findOne as vi.Mock).mockImplementation(async () => {
+          return committedSequences.length === 0
+            ? null
+            : { sequence: Math.max(...committedSequences) };
         });
         (MockedMessage.create as vi.Mock).mockImplementation(
           async (attrs: { sequence: number }) => {
