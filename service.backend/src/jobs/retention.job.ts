@@ -1,4 +1,5 @@
 import type { Worker } from 'bullmq';
+import { z } from 'zod';
 import { buildWorker, getReportsQueue, isQueueAvailable } from '../lib/queue';
 import { runRetentionEnforcement } from '../services/data-retention.service';
 import { logger } from '../utils/logger';
@@ -23,6 +24,17 @@ import { logger } from '../utils/logger';
 
 export const RETENTION_JOB_NAME = 'privacy:retention-enforcement';
 export const RETENTION_REPEAT_KEY = 'privacy:retention-enforcement:daily';
+
+/**
+ * Defense-in-depth: re-validate job payloads at execution time. BullMQ
+ * persists job.data as JSON in Redis, so a queue compromise or a
+ * mis-deployment that pushed a hand-crafted payload would otherwise hit
+ * the handler with whatever shape it likes. The retention job carries no
+ * data — `.strict()` keeps it that way so any extra producer-added
+ * fields fail validation rather than being silently ignored. Mirrors
+ * reports.worker.ts.
+ */
+export const RetentionJobSchema = z.object({}).strict();
 
 // Default: 03:30 UTC daily. Override via RETENTION_CRON env var. The
 // cron is BullMQ-compatible (5- or 6-field format).
@@ -65,6 +77,17 @@ export const startRetentionWorker = (): Worker | null => {
   workerInstance = buildWorker(async job => {
     if (job.name !== RETENTION_JOB_NAME) {
       return;
+    }
+    const parsed = RetentionJobSchema.safeParse(job.data);
+    if (!parsed.success) {
+      // Don't log job.data verbatim — it may carry attacker-controlled
+      // payload. Throw so BullMQ surfaces the failure rather than letting
+      // the worker silently run the retention sweep on a poisoned job.
+      logger.warn('retention.job: rejecting malformed payload', {
+        jobName: job.name,
+        issues: parsed.error.issues.map(i => ({ path: i.path.join('.'), code: i.code })),
+      });
+      throw new Error('Invalid retention job payload');
     }
     const result = await runRetentionEnforcement();
     logger.info('Retention job finished', { result });
