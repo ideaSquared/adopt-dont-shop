@@ -789,14 +789,15 @@ export class ChatService {
         : {};
 
       // Compute the next per-chat sequence under the chat-row lock we
-      // took above. `Message.max('sequence', ...)` returns null when the
-      // chat has no messages yet; we coalesce to -1 so the first message
-      // lands at 0 — matching the migration backfill convention.
-      const currentMax = await Message.max<number | null, Message>('sequence', {
+      // took above. Use findOne + ORDER BY instead of Model.max (which
+      // may not be available in all Sequelize v7 test contexts).
+      const latest = await Message.findOne({
+        attributes: ['sequence'],
         where: { chat_id: data.chatId },
+        order: [['sequence', 'DESC']],
         transaction,
       });
-      const nextSequence = (currentMax ?? -1) + 1;
+      const nextSequence = (latest?.sequence ?? -1) + 1;
 
       // Create the message with proper field names
       const message = await Message.create(
@@ -943,11 +944,13 @@ export class ChatService {
         transaction,
         lock: Transaction.LOCK.UPDATE,
       });
-      const currentMax = await Message.max<number | null, Message>('sequence', {
+      const latestMsg = await Message.findOne({
+        attributes: ['sequence'],
         where: { chat_id: data.chatId },
+        order: [['sequence', 'DESC']],
         transaction,
       });
-      const nextSequence = (currentMax ?? -1) + 1;
+      const nextSequence = (latestMsg?.sequence ?? -1) + 1;
 
       // Store scheduled message in database with a special status
       const scheduledMessage = await Message.create(
@@ -1812,11 +1815,13 @@ export class ChatService {
         transaction,
         lock: Transaction.LOCK.UPDATE,
       });
-      const currentMax = await Message.max<number | null, Message>('sequence', {
+      const latestMsg = await Message.findOne({
+        attributes: ['sequence'],
         where: { chat_id: messageData.chatId },
+        order: [['sequence', 'DESC']],
         transaction,
       });
-      const nextSequence = (currentMax ?? -1) + 1;
+      const nextSequence = (latestMsg?.sequence ?? -1) + 1;
 
       const message = await Message.create(
         {
