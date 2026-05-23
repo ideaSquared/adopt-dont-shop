@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { sensitiveWriteLimiter } from '../middleware/rate-limiter';
+import { ApiError } from '../middleware/error-handler';
 import { InvitationService } from '../services/invitation.service';
 import User from '../models/User';
 import { logger } from '../utils/logger';
@@ -52,27 +53,20 @@ router.post(
 
       res.status(201).json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error accepting invitation:', { error: errorMessage });
+      logger.error('Error accepting invitation:', {
+        error: error instanceof Error ? error.message : String(error),
+      });
 
-      if (errorMessage.includes('not found') || errorMessage.includes('expired')) {
-        return res.status(404).json({
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
           success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('already been used')) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
+          message: error.message,
         });
       }
 
       res.status(500).json({
         success: false,
         message: 'Failed to accept invitation',
-        error: errorMessage,
       });
     }
   }
@@ -143,13 +137,20 @@ router.get(
         },
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error getting invitation details:', { error: errorMessage });
+      logger.error('Error getting invitation details:', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
 
       res.status(500).json({
         success: false,
         message: 'Failed to get invitation details',
-        error: errorMessage,
       });
     }
   }

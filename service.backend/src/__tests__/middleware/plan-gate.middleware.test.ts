@@ -202,7 +202,7 @@ describe('Plan Gate Middleware', () => {
         mockRescue.findByPk.mockRejectedValue(new Error('DB error'));
         const req = makeReq();
         await requirePlan('growth')(req as AuthenticatedRequest, res as Response, next);
-        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.status).toHaveBeenCalledWith(403);
         expect(next).not.toHaveBeenCalled();
       });
     });

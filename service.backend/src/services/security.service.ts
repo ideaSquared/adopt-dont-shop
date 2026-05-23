@@ -6,6 +6,7 @@ import User from '../models/User';
 import { JsonObject } from '../types/common';
 import { ipMatches, isValidCidrOrIp } from '../utils/ip-match';
 import { loggerHelpers } from '../utils/logger';
+import { BadRequestError, NotFoundError } from '../middleware/error-handler';
 import { AuditLogService } from './auditLog.service';
 
 export type SessionRow = {
@@ -119,7 +120,7 @@ class SecurityService {
   static async revokeSession(sessionId: string, actorId: string): Promise<{ userId: string }> {
     const row = await RefreshToken.findByPk(sessionId);
     if (!row) {
-      throw new Error('Session not found');
+      throw new NotFoundError('Session not found');
     }
     row.is_revoked = true;
     await row.save();
@@ -203,7 +204,7 @@ class SecurityService {
     actorId: string;
   }): Promise<IpRuleRow> {
     if (!isValidCidrOrIp(input.cidr)) {
-      throw new Error('Invalid CIDR or IP address');
+      throw new BadRequestError('Invalid CIDR or IP address');
     }
     const row = await IpRule.create({
       type: input.type,
@@ -230,7 +231,7 @@ class SecurityService {
   static async deleteIpRule(ipRuleId: string, actorId: string): Promise<void> {
     const row = await IpRule.findByPk(ipRuleId);
     if (!row) {
-      throw new Error('IP rule not found');
+      throw new NotFoundError('IP rule not found');
     }
     const snapshot = SecurityService.toIpRuleRow(row);
     await row.destroy();
@@ -291,7 +292,7 @@ class SecurityService {
   static async unlockAccount(userId: string, actorId: string): Promise<{ wasLocked: boolean }> {
     const user = await User.findByPk(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
     const wasLocked = user.lockedUntil !== null || user.loginAttempts > 0;
     user.loginAttempts = 0;
@@ -318,7 +319,7 @@ class SecurityService {
   ): Promise<void> {
     const user = await User.findByPk(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
     // Lock for 24h — long enough that no-one can sign back in via
     // password before the admin has investigated, but auto-clears so

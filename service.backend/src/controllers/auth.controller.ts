@@ -17,6 +17,7 @@ import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 import { validateBody } from '../middleware/zod-validate';
 import { clearCsrfSessionCookie, rotateCsrfSessionCookie } from '../middleware/csrf';
+import { ApiError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
 
@@ -99,19 +100,14 @@ export class AuthController {
       const { refreshToken: _, ...responseBody } = result;
       res.json(responseBody);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Login failed:', error);
 
-      if (
-        errorMessage.includes('Invalid credentials') ||
-        errorMessage.includes('Please verify your email') ||
-        errorMessage.includes('Account is temporarily locked')
-      ) {
-        res.status(401).json({ error: errorMessage });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
 
-      res.status(400).json({ error: errorMessage });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -188,15 +184,14 @@ export class AuthController {
       const result = await authService.confirmPasswordReset(req.body);
       res.json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Password reset confirmation failed:', error);
 
-      if (errorMessage.includes('Invalid or expired')) {
-        res.status(400).json({ error: errorMessage });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
 
-      res.status(500).json({ error: 'Failed to reset password' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -214,15 +209,14 @@ export class AuthController {
       const result = await authService.verifyEmail(token);
       res.json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Email verification failed:', error);
 
-      if (errorMessage.includes('Invalid or expired')) {
-        res.status(400).json({ error: errorMessage });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
 
-      res.status(500).json({ error: 'Failed to verify email' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -313,19 +307,14 @@ export class AuthController {
       const result = await AuthService.enableTwoFactor(userId, token);
       res.json({ success: true, backupCodes: result.backupCodes });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('2FA enable failed:', error);
 
-      if (
-        errorMessage.includes('Invalid verification code') ||
-        errorMessage.includes('setup has not been initiated') ||
-        errorMessage.includes('setup has expired')
-      ) {
-        res.status(400).json({ error: errorMessage });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
 
-      res.status(500).json({ error: 'Failed to enable two-factor authentication' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -442,15 +431,14 @@ export class AuthController {
       const result = await authService.confirmTwoFactorRecovery(req.body);
       res.json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('2FA recovery confirmation failed:', error);
 
-      if (errorMessage.includes('Invalid or expired')) {
-        res.status(400).json({ error: errorMessage });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
 
-      res.status(500).json({ error: 'Failed to confirm two-factor recovery' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -465,15 +453,14 @@ export class AuthController {
       const updatedUser = await UserService.updateUserProfile(userId, updateData);
       res.json(updatedUser);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Update profile failed:', error);
 
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
 
-      res.status(500).json({ error: 'Failed to update profile' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 }

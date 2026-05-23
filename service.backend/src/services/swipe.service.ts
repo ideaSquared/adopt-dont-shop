@@ -1,5 +1,6 @@
 import sequelize from '../sequelize';
 import { JsonObject } from '../types/common';
+import { NotFoundError } from '../middleware/error-handler';
 import { logger } from '../utils/logger';
 
 interface SessionLengthResult {
@@ -305,7 +306,7 @@ export class SwipeService {
       );
 
       if (!results.length) {
-        throw new Error('Session not found');
+        throw new NotFoundError('Session not found');
       }
 
       interface SessionStatsRow {

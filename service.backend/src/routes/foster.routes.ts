@@ -2,6 +2,7 @@ import { Router, type Response } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
+import { ApiError } from '../middleware/error-handler';
 import fosterService from '../services/foster.service';
 import { FosterPlacementStatus } from '../models/FosterPlacement';
 import { UserType } from '../models/User';
@@ -66,9 +67,10 @@ router.post(
       return res.status(201).json({ data: placement });
     } catch (error) {
       logger.error('Failed to create foster placement', { error });
-      return res
-        .status(400)
-        .json({ error: error instanceof Error ? error.message : 'Failed to create placement' });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
+      return res.status(500).json({ error: 'Failed to create placement' });
     }
   }
 );

@@ -17,6 +17,12 @@ import { EmailLinkType, resolveEmailLinkBase } from '../utils/email-url';
 import { AuditLogService } from './auditLog.service';
 import { redactEmail } from './redact';
 import { env } from '../config/env';
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+  ForbiddenError,
+} from '../middleware/error-handler';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { invalidateUserTokens } from '../lib/invalidate-user-tokens';
 import { disconnectAllSockets } from '../socket/socket-registry';
@@ -99,7 +105,7 @@ export class AuthService {
 
         const template = await emailService.getTemplateByName('Email Verification');
         if (!template) {
-          throw new Error("Email template 'Email Verification' not found");
+          throw new NotFoundError("Email template 'Email Verification' not found");
         }
 
         await emailService.sendEmail({
@@ -271,7 +277,7 @@ export class AuthService {
               reason: 'unknown_email',
             },
           });
-          throw new Error('Invalid credentials');
+          throw new UnauthorizedError('Invalid credentials');
         }
 
         if (user.isAccountLocked()) {
@@ -289,7 +295,7 @@ export class AuthService {
             userAgent,
             details: { reason: 'account_locked' },
           });
-          throw new Error('Account is temporarily locked. Please try again later.');
+          throw new ForbiddenError('Account is temporarily locked. Please try again later.');
         }
 
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
@@ -320,7 +326,7 @@ export class AuthService {
               loginAttempts: user.loginAttempts,
             },
           });
-          throw new Error('Invalid credentials');
+          throw new UnauthorizedError('Invalid credentials');
         }
 
         // Check if email is verified
@@ -335,7 +341,7 @@ export class AuthService {
             userAgent,
             details: { reason: 'email_not_verified' },
           });
-          throw new Error('Please verify your email before logging in');
+          throw new ForbiddenError('Please verify your email before logging in');
         }
 
         // Check 2FA if enabled
@@ -351,7 +357,7 @@ export class AuthService {
               userAgent,
               details: { reason: 'two_factor_required' },
             });
-            throw new Error('Two-factor authentication code required');
+            throw new BadRequestError('Two-factor authentication code required');
           }
 
           const isValidTwoFactor = await this.verifyTwoFactorToken(
@@ -374,7 +380,7 @@ export class AuthService {
               userAgent,
               details: { reason: 'invalid_two_factor' },
             });
-            throw new Error('Invalid two-factor authentication code');
+            throw new BadRequestError('Invalid two-factor authentication code');
           }
         }
 
@@ -450,7 +456,7 @@ export class AuthService {
       const storedToken = await RefreshToken.findByPk(decoded.jti);
 
       if (!storedToken) {
-        throw new Error('Invalid refresh token');
+        throw new UnauthorizedError('Invalid refresh token');
       }
 
       // Refresh-token rotation is security-critical: a partial write on the
@@ -479,14 +485,14 @@ export class AuthService {
           userId: storedToken.user_id,
           familyId: storedToken.family_id,
         });
-        throw new Error('Invalid refresh token');
+        throw new UnauthorizedError('Invalid refresh token');
       }
 
       if (storedToken.isExpired()) {
         await sequelize.transaction(async transaction => {
           await storedToken.update({ is_revoked: true }, { transaction });
         });
-        throw new Error('Invalid refresh token');
+        throw new UnauthorizedError('Invalid refresh token');
       }
 
       const user = await User.findByPk(decoded.userId, {
@@ -499,7 +505,7 @@ export class AuthService {
       });
 
       if (!user || !user.canLogin()) {
-        throw new Error('Invalid refresh token');
+        throw new UnauthorizedError('Invalid refresh token');
       }
 
       const newTokenId = crypto.randomUUID();
@@ -526,7 +532,7 @@ export class AuthService {
         error: error instanceof Error ? error.message : String(error),
         userId: decoded?.userId,
       });
-      throw new Error('Invalid refresh token');
+      throw new UnauthorizedError('Invalid refresh token');
     }
   }
 
@@ -723,7 +729,7 @@ Need help? Contact us at support@adoptdontshop.com
       });
 
       if (!user) {
-        throw new Error('Invalid or expired reset token');
+        throw new BadRequestError('Invalid or expired reset token');
       }
 
       // ADS: atomic single-use claim of the reset token. Two concurrent
@@ -754,7 +760,7 @@ Need help? Contact us at support@adoptdontshop.com
       );
 
       if (affectedCount === 0) {
-        throw new Error('Invalid or expired reset token');
+        throw new BadRequestError('Invalid or expired reset token');
       }
 
       // ADS: full session kick — bumps tokens_invalid_before (so any
@@ -1033,7 +1039,7 @@ Need help? Contact us at support@adoptdontshop.com
         });
 
         if (!recovery) {
-          throw new Error('Invalid or expired recovery token');
+          throw new BadRequestError('Invalid or expired recovery token');
         }
 
         // Conditional UPDATE provides the atomic single-use claim:
@@ -1053,7 +1059,7 @@ Need help? Contact us at support@adoptdontshop.com
         );
 
         if (affectedCount === 0) {
-          throw new Error('Invalid or expired recovery token');
+          throw new BadRequestError('Invalid or expired recovery token');
         }
 
         const user = await User.findByPk(recovery.user_id, { transaction });
@@ -1061,7 +1067,7 @@ Need help? Contact us at support@adoptdontshop.com
           // Should not happen — FK CASCADE keeps these in sync — but be
           // defensive: a missing user means the row is orphaned and the
           // token must not be honoured.
-          throw new Error('Invalid or expired recovery token');
+          throw new BadRequestError('Invalid or expired recovery token');
         }
 
         user.twoFactorEnabled = false;
@@ -1076,7 +1082,7 @@ Need help? Contact us at support@adoptdontshop.com
 
       if (!userId) {
         // Defensive: the transaction body always assigns userId on success.
-        throw new Error('Invalid or expired recovery token');
+        throw new BadRequestError('Invalid or expired recovery token');
       }
 
       // Out-of-transaction cleanup (mirrors disableTwoFactor): a 2FA
@@ -1191,7 +1197,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
       });
 
       if (!user) {
-        throw new Error('Invalid or expired verification token');
+        throw new BadRequestError('Invalid or expired verification token');
       }
 
       // Idempotent: a duplicate request (React StrictMode dev double-mount,
@@ -1491,23 +1497,23 @@ If this wasn't you, your account may be compromised. Reset your password immedia
 
   private static validatePassword(password: string): void {
     if (password.length < 8) {
-      throw new Error('Password must be at least 8 characters long');
+      throw new BadRequestError('Password must be at least 8 characters long');
     }
 
     if (!/(?=.*[a-z])/.test(password)) {
-      throw new Error('Password must contain at least one lowercase letter');
+      throw new BadRequestError('Password must contain at least one lowercase letter');
     }
 
     if (!/(?=.*[A-Z])/.test(password)) {
-      throw new Error('Password must contain at least one uppercase letter');
+      throw new BadRequestError('Password must contain at least one uppercase letter');
     }
 
     if (!/(?=.*\d)/.test(password)) {
-      throw new Error('Password must contain at least one number');
+      throw new BadRequestError('Password must contain at least one number');
     }
 
     if (!/(?=.*[@$!%*?&])/.test(password)) {
-      throw new Error('Password must contain at least one special character');
+      throw new BadRequestError('Password must contain at least one special character');
     }
   }
 
@@ -1523,16 +1529,16 @@ If this wasn't you, your account may be compromised. Reset your password immedia
   ): Promise<void> {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new Error('Invalid credentials');
+      throw new UnauthorizedError('Invalid credentials');
     }
 
     if (user.twoFactorEnabled) {
       if (!twoFactorToken) {
-        throw new Error('Two-factor authentication code required');
+        throw new BadRequestError('Two-factor authentication code required');
       }
       const isValid = await this.verifyTwoFactorToken(user, twoFactorToken);
       if (!isValid) {
-        throw new Error('Invalid two-factor authentication code');
+        throw new BadRequestError('Invalid two-factor authentication code');
       }
     }
   }
@@ -1543,7 +1549,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
     transaction?: Transaction
   ): Promise<boolean> {
     if (!user.twoFactorSecret) {
-      throw new Error('Two-factor authentication is not set up for this user');
+      throw new BadRequestError('Two-factor authentication is not set up for this user');
     }
 
     // twoFactorSecret is stored AES-256-GCM-encrypted; speakeasy needs the
@@ -1670,7 +1676,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
 
     const user = await User.findByPk(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
 
     user.twoFactorPendingSecret = encryptSecret(secret);
@@ -1707,23 +1713,25 @@ If this wasn't you, your account may be compromised. Reset your password immedia
     // initiateTwoFactorSetup and times out after PENDING_2FA_TTL_MS.
     const user = await User.scope('withSecrets').findByPk(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
 
     if (!user.twoFactorPendingSecret) {
-      throw new Error('Two-factor setup has not been initiated. Please start setup again.');
+      throw new BadRequestError(
+        'Two-factor setup has not been initiated. Please start setup again.'
+      );
     }
     if (user.twoFactorPendingExpiresAt && user.twoFactorPendingExpiresAt.getTime() < Date.now()) {
       user.twoFactorPendingSecret = null;
       user.twoFactorPendingExpiresAt = null;
       await user.save();
-      throw new Error('Two-factor setup has expired. Please start setup again.');
+      throw new BadRequestError('Two-factor setup has expired. Please start setup again.');
     }
 
     const plainPendingSecret = decryptSecret(user.twoFactorPendingSecret);
     const isValid = this.verifyTwoFactorSetupToken(plainPendingSecret, token);
     if (!isValid) {
-      throw new Error('Invalid verification code. Please try again.');
+      throw new BadRequestError('Invalid verification code. Please try again.');
     }
 
     const backupCodes = this.generateBackupCodes();
@@ -1759,7 +1767,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
   static async disableTwoFactor(userId: string): Promise<void> {
     const user = await User.findByPk(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
 
     user.twoFactorEnabled = false;

@@ -2,6 +2,7 @@ import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
 import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
+import { NotFoundError, BadRequestError, ForbiddenError } from '../middleware/error-handler';
 import { config } from '../config';
 import { AuthenticatedRequest } from '../types/api';
 import { JsonObject } from '../types/common';
@@ -235,7 +236,7 @@ export class FileUploadService {
     const resolved = path.resolve(filePath);
     const relative = path.relative(uploadsRoot, resolved);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
-      throw new Error('Refused path outside uploads root');
+      throw new ForbiddenError('Refused path outside uploads root');
     }
     return resolved;
   }
@@ -354,7 +355,7 @@ export class FileUploadService {
       // Get upload record
       const uploadRecord = await this.getUploadRecord(uploadId);
       if (!uploadRecord) {
-        throw new Error('Upload record not found');
+        throw new NotFoundError('Upload record not found');
       }
 
       const isOwner = uploadRecord.uploaded_by === deletedBy.id;
@@ -505,7 +506,7 @@ export class FileUploadService {
 
     if (!allAllowedTypes.includes(file.mimetype)) {
       await deleteFile();
-      throw new Error(`File type ${file.mimetype} is not allowed`);
+      throw new BadRequestError(`File type ${file.mimetype} is not allowed`);
     }
 
     // Validate file content matches declared MIME type (magic-byte check).
@@ -521,7 +522,7 @@ export class FileUploadService {
     const isSafe = await this.scanForMalware(validatedFilePath);
     if (!isSafe) {
       await deleteFile();
-      throw new Error('File failed malware scan and has been removed');
+      throw new ForbiddenError('File failed malware scan and has been removed');
     }
   }
 
@@ -545,7 +546,9 @@ export class FileUploadService {
         // Allow certain text-based files that don't have magic bytes
         const textBasedMimeTypes = ['text/plain', 'text/csv'];
         if (!textBasedMimeTypes.includes(file.mimetype)) {
-          throw new Error('Unable to determine file type - file may be corrupted or invalid');
+          throw new BadRequestError(
+            'Unable to determine file type - file may be corrupted or invalid'
+          );
         }
         // For text files, we allow them but log for monitoring
         logger.warn('Text file without magic bytes uploaded', {
@@ -557,7 +560,7 @@ export class FileUploadService {
 
       // Check if detected MIME type matches declared MIME type
       if (fileTypeResult.mime !== file.mimetype) {
-        throw new Error(
+        throw new BadRequestError(
           `File type mismatch - declared: ${file.mimetype}, detected: ${fileTypeResult.mime}. Possible MIME type spoofing attack.`
         );
       }
@@ -636,7 +639,9 @@ export class FileUploadService {
 
       // If sanitization removed content, the file is suspicious
       if (!cleanSvg || cleanSvg.length === 0) {
-        throw new Error('SVG sanitization removed all content - file may contain malicious code');
+        throw new BadRequestError(
+          'SVG sanitization removed all content - file may contain malicious code'
+        );
       }
 
       // Write the sanitized content back to the file
@@ -775,7 +780,7 @@ export class FileUploadService {
     const width = meta.width ?? 0;
     const height = meta.height ?? 0;
     if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
-      throw new Error(
+      throw new BadRequestError(
         `Image dimensions ${width}x${height} exceed maximum allowed dimension of ${MAX_IMAGE_DIMENSION}px`
       );
     }

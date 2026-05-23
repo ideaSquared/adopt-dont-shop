@@ -1,6 +1,7 @@
 import { Readable } from 'stream';
 import { ModelStatic, Model, Op, QueryTypes, WhereOptions } from 'sequelize';
 import { isSingleScriptLocalPart } from '@adopt-dont-shop/lib.validation';
+import { NotFoundError, BadRequestError } from '../middleware/error-handler';
 import Application from '../models/Application';
 import AuditLog from '../models/AuditLog';
 import Pet from '../models/Pet';
@@ -238,7 +239,7 @@ class AdminService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const originalStatus = user.status;
@@ -291,7 +292,7 @@ class AdminService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       user.status = UserStatus.SUSPENDED;
@@ -345,7 +346,7 @@ class AdminService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       user.status = UserStatus.ACTIVE;
@@ -392,7 +393,7 @@ class AdminService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       await user.destroy();
@@ -508,7 +509,7 @@ class AdminService {
     try {
       const rescue = await Rescue.findByPk(rescueId);
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       rescue.status = 'verified';
@@ -560,7 +561,7 @@ class AdminService {
     try {
       const rescue = await Rescue.findByPk(rescueId);
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       await rescue.update({
@@ -743,10 +744,10 @@ class AdminService {
     // We still page rather than `findAll()`-with-no-limit so a stale
     // caller can't OOM the process.
     if (!Object.prototype.hasOwnProperty.call(EXPORT_QUERY_OPTIONS, dataType)) {
-      throw new Error('Invalid data type for export');
+      throw new BadRequestError('Invalid data type for export');
     }
     if (format !== 'json' && format !== 'jsonl' && format !== 'csv') {
-      throw new Error(`Unsupported export format: ${format}`);
+      throw new BadRequestError(`Unsupported export format: ${format}`);
     }
 
     const stream = AdminService.streamExport(dataType as ExportType, format as ExportFormat);
@@ -767,7 +768,7 @@ class AdminService {
   static streamExport(dataType: ExportType, format: ExportFormat = 'json'): Readable {
     const options = EXPORT_QUERY_OPTIONS[dataType];
     if (!options) {
-      throw new Error('Invalid data type for export');
+      throw new BadRequestError('Invalid data type for export');
     }
 
     const { model, attributesExclude } = options;
@@ -897,11 +898,11 @@ class AdminService {
               if (data && typeof data === 'object') {
                 result = await this.updateUserStatus(userId, data.status as UserStatus, adminId);
               } else {
-                throw new Error('Update data required for update operation');
+                throw new BadRequestError('Update data required for update operation');
               }
               break;
             default:
-              throw new Error(`Unknown operation: ${operation}`);
+              throw new BadRequestError(`Unknown operation: ${operation}`);
           }
           results.push({ userId, success: true, result });
         } catch (error) {
@@ -948,7 +949,7 @@ class AdminService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Pass-9 added a mixed-script gate to the User model's
@@ -961,7 +962,7 @@ class AdminService {
       // the admin path can't sidestep the registration policy.
       const localPart = user.email.split('@')[0] ?? '';
       if (!isSingleScriptLocalPart(localPart)) {
-        throw new Error(
+        throw new BadRequestError(
           'Cannot verify user with mixed-script email — user must update their email first'
         );
       }

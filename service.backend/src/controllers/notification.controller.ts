@@ -6,6 +6,7 @@ import { RichTextProcessingService } from '../services/rich-text-processing.serv
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 import { parsePaginationLimit } from '../utils/pagination';
+import { ApiError } from '../middleware/error-handler';
 
 /**
  * Hard cap mirroring the route-level express-validator (max 100). Acts as
@@ -79,14 +80,11 @@ export class NotificationController {
         data: notification,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
       logger.error('Get notification by ID failed:', error);
-      const statusCode =
-        error instanceof Error && error.message === 'Notification not found' ? 404 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: 'Failed to retrieve notification',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   };
 
@@ -128,21 +126,11 @@ export class NotificationController {
         data: notification,
       });
     } catch (error) {
-      logger.error('Create notification failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'User not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to create notification',
-        error: errorMessage,
-      });
+      logger.error('Create notification failed:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   };
 
@@ -169,28 +157,11 @@ export class NotificationController {
         message: 'Notification marked as read',
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
       logger.error('Mark notification as read failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Notification not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('already marked as read')) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to mark notification as read',
-        error: errorMessage,
-      });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   };
 
@@ -230,21 +201,11 @@ export class NotificationController {
         message: 'Notification deleted successfully',
       });
     } catch (error) {
-      logger.error('Delete notification failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Notification not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to delete notification',
-        error: errorMessage,
-      });
+      logger.error('Delete notification failed:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   };
 
@@ -272,21 +233,11 @@ export class NotificationController {
         data: preferences,
       });
     } catch (error) {
-      logger.error('Get notification preferences failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'User not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve notification preferences',
-        error: errorMessage,
-      });
+      logger.error('Get notification preferences failed:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   };
 
@@ -317,21 +268,11 @@ export class NotificationController {
         data: updatedPreferences,
       });
     } catch (error) {
-      logger.error('Update notification preferences failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'User not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update notification preferences',
-        error: errorMessage,
-      });
+      logger.error('Update notification preferences failed:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   };
 

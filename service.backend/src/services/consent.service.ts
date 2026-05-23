@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BadRequestError } from '../middleware/error-handler';
 import EmailPreference, { EmailFrequency, NotificationType } from '../models/EmailPreference';
 import { AuditLogService } from './auditLog.service';
 import { COOKIES_VERSION, PRIVACY_VERSION, TERMS_VERSION } from './legal-content.service';
@@ -98,7 +99,7 @@ export const recordConsent = async (
   context: ConsentContext
 ): Promise<ConsentRecord> => {
   if (!input.tosAccepted || !input.privacyAccepted) {
-    throw new Error('Terms of Service and Privacy Policy must be accepted');
+    throw new BadRequestError('Terms of Service and Privacy Policy must be accepted');
   }
 
   const tosVersion = input.tosVersion ?? TERMS_VERSION;

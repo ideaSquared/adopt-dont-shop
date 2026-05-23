@@ -8,6 +8,7 @@ import { UserType } from '../models/User';
 import { isAdminRole } from '../utils/is-admin-role';
 import { logger } from '../utils/logger';
 import { validateBody } from '../middleware/zod-validate';
+import { ApiError } from '../middleware/error-handler';
 import {
   ACCESS_TOKEN_COOKIE,
   ACCESS_TOKEN_COOKIE_OPTIONS,
@@ -67,12 +68,12 @@ export class GdprController {
       res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
       res.json({ success: true, message: 'Account scheduled for deletion' });
     } catch (error) {
-      logger.error('GDPR self-erase failed', { error });
-      if (error instanceof Error && error.message === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
-      res.status(500).json({ error: 'Failed to schedule account deletion' });
+      logger.error('GDPR self-erase failed', { error });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -87,12 +88,12 @@ export class GdprController {
       await GdprService.requestErasure(userId, { reason, actorUserId: req.user!.userId });
       res.json({ success: true, message: 'User scheduled for deletion' });
     } catch (error) {
-      logger.error('GDPR admin erase failed', { error });
-      if (error instanceof Error && error.message === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
-      res.status(500).json({ error: 'Failed to schedule user deletion' });
+      logger.error('GDPR admin erase failed', { error });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -112,18 +113,12 @@ export class GdprController {
       await GdprService.cancelErasure(userId, { userId: req.user!.userId });
       res.json({ success: true, message: 'User erasure cancelled' });
     } catch (error) {
-      logger.error('GDPR cancel-erasure failed', { error });
-      if (error instanceof Error) {
-        if (error.message === 'User not found') {
-          res.status(404).json({ error: 'User not found' });
-          return;
-        }
-        if (error.message === 'User already anonymized — cannot cancel erasure') {
-          res.status(409).json({ error: error.message });
-          return;
-        }
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
       }
-      res.status(500).json({ error: 'Failed to cancel user erasure' });
+      logger.error('GDPR cancel-erasure failed', { error });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -167,12 +162,12 @@ export class GdprController {
         },
       });
     } catch (error) {
-      logger.error('GDPR rescue erase failed', { error });
-      if (error instanceof Error && error.message === 'Rescue not found') {
-        res.status(404).json({ error: 'Rescue not found' });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
-      res.status(500).json({ error: 'Failed to erase rescue' });
+      logger.error('GDPR rescue erase failed', { error });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 

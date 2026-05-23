@@ -53,7 +53,7 @@ export const requirePlan =
       next();
     } catch (error) {
       logger.error('Plan gate error', { error });
-      res.status(500).json({ error: 'Plan check failed' });
+      res.status(403).json({ error: 'Plan check failed' });
     }
   };
 
@@ -97,6 +97,6 @@ export const requirePlanFeature =
       next();
     } catch (error) {
       logger.error('Plan feature gate error', { error });
-      res.status(500).json({ error: 'Plan check failed' });
+      res.status(403).json({ error: 'Plan check failed' });
     }
   };

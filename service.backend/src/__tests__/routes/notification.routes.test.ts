@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
 import { AuthenticatedRequest } from '../../types';
+import { NotFoundError } from '../../middleware/error-handler';
 
 vi.mock('../../utils/logger', () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
@@ -155,7 +156,7 @@ describe('Notification routes', () => {
     });
 
     it('returns 404 when the user record cannot be found', async () => {
-      mockGetPreferences.mockRejectedValue(new Error('User not found'));
+      mockGetPreferences.mockRejectedValue(new NotFoundError('User not found'));
       const res = await request(buildApp()).get('/api/v1/notifications/preferences');
       expect(res.status).toBe(404);
     });

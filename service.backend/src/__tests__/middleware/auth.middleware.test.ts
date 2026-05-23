@@ -790,9 +790,9 @@ describe('Authentication Middleware', () => {
           mockNext
         );
 
-        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.status).toHaveBeenCalledWith(401);
         expect(mockResponse.json).toHaveBeenCalledWith({
-          error: 'Authentication error',
+          error: 'Authentication failed',
         });
         expect(mockNext).not.toHaveBeenCalled();
       });
@@ -1250,9 +1250,9 @@ describe('Authentication Middleware', () => {
         const middleware = requireRole('admin');
         middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
-        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
-          error: 'Authorization error',
+          error: 'Authorization check failed',
         });
         expect(mockNext).not.toHaveBeenCalled();
         expect(logger.error).toHaveBeenCalledWith(

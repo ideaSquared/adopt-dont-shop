@@ -14,7 +14,7 @@ import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
-import { NotFoundError } from '../services/reports.service';
+import { ApiError, NotFoundError } from '../middleware/error-handler';
 import { FileUploadService } from '../services/file-upload.service';
 import { AuthenticatedRequest } from '../types';
 import { parsePage, parsePaginationLimit } from '../utils/pagination';
@@ -335,45 +335,14 @@ export class ApplicationController extends BaseController {
         data: application,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
       logger.error('Error creating application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('unverified rescue')) {
-        return res.status(403).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (
-        errorMessage.includes('not available') ||
-        errorMessage.includes('already have an active')
-      ) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('validation failed')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to create application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -411,21 +380,14 @@ export class ApplicationController extends BaseController {
         data: transformedApplication,
       });
     } catch (error) {
-      logger.error('Error getting application by ID:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
           success: false,
-          message: 'Access denied',
+          message: error.message,
         });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      logger.error('Error getting application by ID:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -463,35 +425,14 @@ export class ApplicationController extends BaseController {
         data: application,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
       logger.error('Error updating application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      if (errorMessage.includes('cannot be updated')) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -519,35 +460,11 @@ export class ApplicationController extends BaseController {
         data: application,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Error submitting application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      if (errorMessage.includes('Only draft applications') || errorMessage.includes('incomplete')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to submit application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -591,28 +508,11 @@ export class ApplicationController extends BaseController {
         data: application,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Error updating application status:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage.includes('Cannot transition')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update application status',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -640,35 +540,11 @@ export class ApplicationController extends BaseController {
         data: application,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Error withdrawing application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      if (errorMessage.includes('cannot be withdrawn')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to withdraw application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -731,28 +607,11 @@ export class ApplicationController extends BaseController {
         data: application,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Error adding document:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to add document',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -768,28 +627,11 @@ export class ApplicationController extends BaseController {
         message: 'Document removed successfully',
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Error removing document:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found' || errorMessage === 'Document not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to remove document',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -818,28 +660,11 @@ export class ApplicationController extends BaseController {
         data: application,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Error updating reference:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage.includes('index out of bounds')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update reference',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -938,28 +763,11 @@ export class ApplicationController extends BaseController {
         message: 'Application deleted successfully',
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Error deleting application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to delete application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
