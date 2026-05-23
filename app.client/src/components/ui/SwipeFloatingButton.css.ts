@@ -112,15 +112,17 @@ export const calloutBubble = recipe({
 
 export const closeButton = style({
   position: 'absolute',
-  top: '0.5rem',
-  right: '0.5rem',
-  background: 'none',
+  top: '-0.5rem',
+  right: '-0.5rem',
+  background: 'transparent',
   border: 'none',
   color: '#999',
   cursor: 'pointer',
   padding: 0,
-  width: '20px',
-  height: '20px',
+  // WCAG 2.5.5 AA: 44x44 minimum touch target. Visible icon stays small;
+  // tap area is enlarged via min dimensions on a transparent background.
+  minWidth: '44px',
+  minHeight: '44px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
