@@ -80,6 +80,9 @@ export const placeholderIconSpin = style({
   animationDuration: '2s',
   animationTimingFunction: 'linear',
   animationIterationCount: 'infinite',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
 });
 
 export const placeholderText = style({

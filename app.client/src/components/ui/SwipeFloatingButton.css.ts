@@ -38,6 +38,7 @@ export const floatingContainer = recipe({
       '(max-width: 768px)': {
         display: 'none',
       },
+      '(prefers-reduced-motion: reduce)': { animation: 'none' },
     },
   },
   variants: {
@@ -81,6 +82,7 @@ export const calloutBubbleBase = style({
       maxWidth: '160px',
       padding: '0.875rem 1.25rem',
     },
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
 });
 
@@ -161,6 +163,7 @@ export const floatingButton = style({
       width: '56px',
       height: '56px',
     },
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
 });
 
