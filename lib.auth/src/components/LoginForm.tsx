@@ -195,7 +195,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           type="submit"
           size="lg"
           variant="primary"
-          disabled={isLoading || (needs2FA && twoFactorToken.length < 6)}
+          disabled={
+            isLoading ||
+            (!needs2FA && (!formData.email || !formData.password)) ||
+            (needs2FA && twoFactorToken.length < 6)
+          }
           style={{ width: '100%' }}
         >
           {isLoading ? 'Signing In...' : needs2FA ? 'Verify' : 'Sign In'}
