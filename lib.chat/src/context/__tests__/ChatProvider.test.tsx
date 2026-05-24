@@ -162,6 +162,73 @@ describe('ChatProvider', () => {
     expect(latest?.unreadMessageCount).toBe(0);
   });
 
+  it('orders incoming messages by server sequence even when they arrive out of order', async () => {
+    // Socket.IO has no ordering guarantee across two messages emitted in
+    // quick succession — they can land on the client in reverse order
+    // under transient network reordering. The provider sorts by the
+    // per-chat server sequence (migration 08) so the visible list always
+    // reflects the canonical send order.
+    const conversation = buildConversation({ id: 'chat-1', unreadCount: 0 });
+    const { chatService } = buildHarness([conversation]);
+
+    let latest: Harness | null = null;
+    const onRender = (h: Harness) => {
+      latest = h;
+    };
+
+    const ActiveSetter = () => {
+      const ctx = useChat();
+      useEffect(() => {
+        if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+          ctx.setActiveConversation(ctx.conversations[0]);
+        }
+      }, [ctx]);
+      return null;
+    };
+
+    vi.spyOn(chatService, 'getMessages').mockResolvedValue({
+      data: [],
+      success: true,
+      timestamp: '2026-01-01T00:00:00Z',
+      pagination: {
+        page: 1,
+        limit: 50,
+        total: 0,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
+    });
+    vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
+
+    render(
+      <ChatProvider
+        chatService={chatService}
+        user={{ userId: 'user-1', firstName: 'Alice' }}
+        isAuthenticated
+      >
+        <ActiveSetter />
+        <TestConsumer onRender={onRender} />
+      </ChatProvider>
+    );
+
+    await waitFor(() => expect(latest?.conversations).toHaveLength(1));
+
+    // Emit sequence 2 BEFORE sequence 0 and 1 to simulate the race.
+    const second = buildMessage({ id: 'msg-b', content: 'second', sequence: 1 });
+    const third = buildMessage({ id: 'msg-c', content: 'third', sequence: 2 });
+    const first = buildMessage({ id: 'msg-a', content: 'first', sequence: 0 });
+
+    await act(async () => {
+      chatService.simulateIncomingMessage(third);
+      chatService.simulateIncomingMessage(first);
+      chatService.simulateIncomingMessage(second);
+    });
+
+    await waitFor(() => expect(latest?.messages).toHaveLength(3));
+    expect(latest?.messages.map((m) => m.id)).toEqual(['msg-a', 'msg-b', 'msg-c']);
+  });
+
   it('bumps unread count for incoming messages to a non-active conversation', async () => {
     const active = buildConversation({ id: 'chat-1' });
     const other = buildConversation({ id: 'chat-2' });

@@ -40,6 +40,29 @@ const generateClientId = (): string => {
   return `client-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
+// Sort messages by server-assigned per-chat sequence (service.backend
+// migration 08). Without this, Socket.IO arrivals could appear in the
+// wrong order when network latency reorders them against the REST
+// response. Optimistic / pending messages have no sequence yet; we
+// place them after all sequenced messages, ordered by their local
+// timestamp, so a just-sent bubble stays at the bottom of the list.
+const sortMessagesBySequence = (list: ReadonlyArray<Message>): Message[] => {
+  return [...list].sort((a, b) => {
+    const aHas = typeof a.sequence === 'number';
+    const bHas = typeof b.sequence === 'number';
+    if (aHas && bHas) {
+      return (a.sequence ?? 0) - (b.sequence ?? 0);
+    }
+    if (aHas) {
+      return -1;
+    }
+    if (bHas) {
+      return 1;
+    }
+    return a.timestamp.localeCompare(b.timestamp);
+  });
+};
+
 type ConversationApiResponse = Conversation & { chat_id?: string };
 
 const mapConversationIds = (list: ReadonlyArray<ConversationApiResponse>): Conversation[] =>
@@ -168,7 +191,9 @@ export function ChatProvider({
         if (prev.some((m) => m.id === message.id)) {
           return prev;
         }
-        return [...prev, message];
+        // Sort by server-assigned sequence so an out-of-order Socket.IO
+        // arrival lands at its correct position rather than the end.
+        return sortMessagesBySequence([...prev, message]);
       });
 
       setConversations((prev) =>
@@ -278,7 +303,7 @@ export function ChatProvider({
           limit: MESSAGES_PAGE_SIZE,
         });
         const list = Array.isArray(response?.data) ? response.data : [];
-        setMessages(list);
+        setMessages(sortMessagesBySequence(list));
         if (list.length < MESSAGES_PAGE_SIZE) {
           setHasMoreMessages(false);
         }
@@ -309,7 +334,7 @@ export function ChatProvider({
         setHasMoreMessages(false);
         return;
       }
-      setMessages((prev) => [...list, ...prev]);
+      setMessages((prev) => sortMessagesBySequence([...list, ...prev]));
       setCurrentPage(nextPage);
       if (list.length < MESSAGES_PAGE_SIZE) {
         setHasMoreMessages(false);
@@ -358,9 +383,9 @@ export function ChatProvider({
         setMessages((prev) => {
           const withoutOptimistic = prev.filter((m) => m.id !== pending.clientId);
           if (withoutOptimistic.some((m) => m.id === sent.id)) {
-            return withoutOptimistic;
+            return sortMessagesBySequence(withoutOptimistic);
           }
-          return [...withoutOptimistic, sent];
+          return sortMessagesBySequence([...withoutOptimistic, sent]);
         });
         setConversations((prev) =>
           prev.map((conv) =>

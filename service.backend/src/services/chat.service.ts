@@ -1,4 +1,4 @@
-import { Op, WhereOptions, type Includeable } from 'sequelize';
+import { Op, Transaction, WhereOptions, type Includeable } from 'sequelize';
 import { Chat, ChatParticipant, Message, User } from '../models';
 import MessageReaction from '../models/MessageReaction';
 import MessageRead from '../models/MessageRead';
@@ -368,7 +368,10 @@ export class ChatService {
             attributes: ['userId', 'firstName', 'lastName', 'email'],
           },
         ],
-        order: [['created_at', 'ASC']],
+        // Per-chat monotonic sequence is the deterministic order. See
+        // migration 08 and the sendMessage write path — created_at is
+        // only millisecond-resolution and can tie under heavy load.
+        order: [['sequence', 'ASC']],
         limit,
         offset,
       });
@@ -445,13 +448,17 @@ export class ChatService {
         await Promise.all(participantPromises);
       }
 
-      // Send initial message if provided
+      // Send initial message if provided. This is the chat's first
+      // message so sequence starts at 0 — no need to lock + MAX since
+      // the chat was created in this same call and can have no other
+      // messages yet.
       if (chatData.initialMessage) {
         await Message.create({
           chat_id: chat.chat_id,
           sender_id: createdBy,
           content: chatData.initialMessage,
           content_format: MessageContentFormat.PLAIN,
+          sequence: 0,
         });
       }
 
@@ -522,7 +529,9 @@ export class ChatService {
           model: Message,
           as: 'Messages',
           limit: 1,
-          order: [['created_at', 'DESC']],
+          // Per-chat monotonic sequence (migration 08) — picks the
+          // newest message deterministically when two share a created_at.
+          order: [['sequence', 'DESC']],
           include: [
             {
               model: User,
@@ -659,7 +668,9 @@ export class ChatService {
             where: messageSearchConditions,
             required: true,
             limit: 1,
-            order: [['created_at', 'DESC']],
+            // Newest matching message per chat, picked deterministically
+            // via per-chat sequence (migration 08).
+            order: [['sequence', 'DESC']],
             include: [
               {
                 model: User,
@@ -706,7 +717,15 @@ export class ChatService {
       // Validate chat exists. Sender must either be a direct participant
       // or be staff of the chat's rescue (so any rescue staff member can
       // reply to chats their rescue is involved in).
-      const chat = await Chat.findByPk(data.chatId, { transaction });
+      //
+      // `SELECT ... FOR UPDATE` on the chat row serializes concurrent
+      // sends in the same chat so the per-chat MAX(sequence) read below
+      // can't race against another in-flight send. Cross-chat sends are
+      // unaffected — each chat row is its own lock anchor.
+      const chat = await Chat.findByPk(data.chatId, {
+        transaction,
+        lock: Transaction.LOCK.UPDATE,
+      });
 
       if (!chat) {
         throw new Error('User is not a participant in this chat');
@@ -769,6 +788,17 @@ export class ChatService {
           }
         : {};
 
+      // Compute the next per-chat sequence under the chat-row lock we
+      // took above. Use findOne + ORDER BY instead of Model.max (which
+      // may not be available in all Sequelize v7 test contexts).
+      const latest = await Message.findOne({
+        attributes: ['sequence'],
+        where: { chat_id: data.chatId },
+        order: [['sequence', 'DESC']],
+        transaction,
+      });
+      const nextSequence = (latest?.sequence ?? -1) + 1;
+
       // Create the message with proper field names
       const message = await Message.create(
         {
@@ -777,6 +807,7 @@ export class ChatService {
           content: data.content,
           content_format: MessageContentFormat.PLAIN,
           attachments: data.attachments || [],
+          sequence: nextSequence,
           created_at: new Date(),
           ...moderationFields,
         },
@@ -904,16 +935,37 @@ export class ChatService {
     messageType?: 'text' | 'image' | 'file';
     attachments?: MessageAttachment[];
   }) {
+    const transaction = await sequelize.transaction();
     try {
-      // Store scheduled message in database with a special status
-      const scheduledMessage = await Message.create({
-        chat_id: data.chatId,
-        sender_id: data.senderId,
-        content: data.content,
-        content_format: MessageContentFormat.PLAIN,
-        attachments: data.attachments || [],
-        created_at: new Date(),
+      // Lock the chat row before computing the next sequence so a
+      // concurrent sendMessage on the same chat can't hand out the same
+      // sequence value. Same pattern as sendMessage().
+      await Chat.findByPk(data.chatId, {
+        transaction,
+        lock: Transaction.LOCK.UPDATE,
       });
+      const latestMsg = await Message.findOne({
+        attributes: ['sequence'],
+        where: { chat_id: data.chatId },
+        order: [['sequence', 'DESC']],
+        transaction,
+      });
+      const nextSequence = (latestMsg?.sequence ?? -1) + 1;
+
+      // Store scheduled message in database with a special status
+      const scheduledMessage = await Message.create(
+        {
+          chat_id: data.chatId,
+          sender_id: data.senderId,
+          content: data.content,
+          content_format: MessageContentFormat.PLAIN,
+          attachments: data.attachments || [],
+          sequence: nextSequence,
+          created_at: new Date(),
+        },
+        { transaction }
+      );
+      await transaction.commit();
 
       // You could implement a background job system to send these later
       // For now, we'll log the action
@@ -925,6 +977,7 @@ export class ChatService {
 
       return scheduledMessage;
     } catch (error) {
+      await transaction.rollback();
       logger.error('Error scheduling message:', error);
       throw error;
     }
@@ -1009,7 +1062,10 @@ export class ChatService {
       // Include Sender (User) with firstName and lastName for each message
       const { rows: messages, count: total } = await Message.findAndCountAll({
         where: whereConditions,
-        order: [['created_at', 'ASC']],
+        // Per-chat monotonic sequence — see migration 08 + sendMessage
+        // write path. Replaces created_at ordering which could tie under
+        // sub-millisecond send bursts.
+        order: [['sequence', 'ASC']],
         limit,
         offset: (page - 1) * limit,
         include: [
@@ -1750,16 +1806,37 @@ export class ChatService {
   static async createMessage(messageData: MessageCreateData, createdBy: string): Promise<Message> {
     const startTime = Date.now();
 
+    const transaction = await sequelize.transaction();
     try {
-      const message = await Message.create({
-        chat_id: messageData.chatId,
-        sender_id: createdBy,
-        content: messageData.content,
-        content_format: MessageContentFormat.PLAIN,
-        attachments: messageData.attachments
-          ? this.convertAttachmentsToModelFormat(messageData.attachments)
-          : [],
+      // Lock chat row + compute next sequence; same pattern as
+      // sendMessage so generic createMessage callers don't bypass the
+      // per-chat monotonic ordering guarantee.
+      await Chat.findByPk(messageData.chatId, {
+        transaction,
+        lock: Transaction.LOCK.UPDATE,
       });
+      const latestMsg = await Message.findOne({
+        attributes: ['sequence'],
+        where: { chat_id: messageData.chatId },
+        order: [['sequence', 'DESC']],
+        transaction,
+      });
+      const nextSequence = (latestMsg?.sequence ?? -1) + 1;
+
+      const message = await Message.create(
+        {
+          chat_id: messageData.chatId,
+          sender_id: createdBy,
+          content: messageData.content,
+          content_format: MessageContentFormat.PLAIN,
+          attachments: messageData.attachments
+            ? this.convertAttachmentsToModelFormat(messageData.attachments)
+            : [],
+          sequence: nextSequence,
+        },
+        { transaction }
+      );
+      await transaction.commit();
 
       await AuditLogService.log({
         action: 'CREATE',
@@ -1787,6 +1864,7 @@ export class ChatService {
 
       return message;
     } catch (error) {
+      await transaction.rollback();
       logger.error('Message creation failed:', {
         error: error instanceof Error ? error.message : String(error),
         chatId: messageData.chatId,
@@ -2038,7 +2116,8 @@ export class ChatService {
             attributes: ['user_id', 'read_at'],
           },
         ],
-        order: [['created_at', 'ASC']],
+        // Per-chat monotonic sequence (migration 08).
+        order: [['sequence', 'ASC']],
       });
 
       return messages.map(message => {

@@ -249,6 +249,7 @@ describe('GdprService', () => {
           sender_id: user.userId,
           content: 'This is my real message content',
           content_format: 'plain',
+          sequence: 0,
           attachments: '[]',
           created_at: new Date(),
           updated_at: new Date(),
@@ -383,6 +384,7 @@ describe('GdprService', () => {
         url: '/uploads/chat/doc.pdf',
       };
 
+      let seqCounter = 0;
       const buildMessage = (suffix: string, attachments: (typeof attachmentA)[]) => ({
         message_id: `${Date.now().toString(16)}-${suffix}-4${suffix}-a${suffix}-${Math.random()
           .toString(16)
@@ -393,6 +395,7 @@ describe('GdprService', () => {
         content: `msg ${suffix}`,
         content_format: 'plain',
         attachments: JSON.stringify(attachments),
+        sequence: seqCounter++,
         created_at: new Date(),
         updated_at: new Date(),
       });
@@ -455,6 +458,7 @@ describe('GdprService', () => {
           sender_id: user.userId,
           content: 'msg',
           content_format: 'plain',
+          sequence: 0,
           attachments: JSON.stringify([
             {
               attachment_id: 'missing-file-1',
