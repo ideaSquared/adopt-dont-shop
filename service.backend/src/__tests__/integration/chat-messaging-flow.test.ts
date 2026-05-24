@@ -570,7 +570,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
         expect(MockedMessage.findAndCountAll).toHaveBeenCalledWith(
           expect.objectContaining({
-            order: [['created_at', 'ASC']],
+            order: [['sequence', 'ASC']],
           })
         );
       });

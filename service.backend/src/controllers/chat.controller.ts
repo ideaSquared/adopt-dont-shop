@@ -36,6 +36,7 @@ interface MessageWithSender {
   content_format: string;
   type: string;
   attachments: unknown[];
+  sequence: number;
   created_at: string;
   updated_at: string;
   Sender?: User | SerializedUser;
@@ -52,6 +53,7 @@ type SerializedMessage = {
   content_format: string;
   type: string;
   attachments: unknown[];
+  sequence: number;
   created_at: string;
   updated_at: string;
   Sender?: User | SerializedUser;
@@ -135,6 +137,9 @@ export type FrontendMessage = {
   senderRescueName: string | null;
   content: string;
   timestamp: string;
+  // Per-chat monotonic sequence (see migration 08). Lets the frontend
+  // sort deterministically when REST and Socket.IO arrivals race.
+  sequence: number;
   type: string;
   status: string;
   attachments: unknown[];
@@ -181,6 +186,7 @@ export const toFrontendMessage = (
     senderRescueName: isRescueStaff ? (context.rescueName ?? null) : null,
     content: msg.content || '',
     timestamp: readCreatedAt(msg) ?? '',
+    sequence: typeof msg.sequence === 'number' ? msg.sequence : 0,
     type: msg.content_format || 'text',
     status: 'sent',
     attachments: msg.attachments || [],
