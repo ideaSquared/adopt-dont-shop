@@ -1,36 +1,17 @@
 import { Router, type Response } from 'express';
-import { body, param, query, validationResult } from 'express-validator';
+import { body, param, query } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
-import { ApiError } from '../middleware/error-handler';
-import fosterService from '../services/foster.service';
 import { FosterPlacementStatus } from '../models/FosterPlacement';
 import { UserType } from '../models/User';
+import { FosterController } from '../controllers/foster.controller';
 import type { AuthenticatedRequest } from '../types/auth';
-import { logger } from '../utils/logger';
 
 const router = Router();
 
 router.use(authenticateToken);
 
-const ADMIN_USER_TYPES = [UserType.ADMIN, UserType.SUPER_ADMIN];
-const FOSTER_ROUTE_USER_TYPES = [...ADMIN_USER_TYPES, UserType.RESCUE_STAFF];
-
-const isAdmin = (req: AuthenticatedRequest): boolean => {
-  const role = req.user?.userType as UserType | undefined;
-  return role !== undefined && ADMIN_USER_TYPES.includes(role);
-};
-
-// Per-record scoping check. Distinct from the route-level `requireRole`
-// guard: that filters out roles entirely, this one decides whether an
-// already-authorised caller may operate on a *specific* placement based
-// on its rescueId.
-const rescueScopeOrAdmin = (req: AuthenticatedRequest, rescueId: string): boolean => {
-  if (isAdmin(req)) {
-    return true;
-  }
-  return req.user?.rescueId === rescueId;
-};
+const FOSTER_ROUTE_USER_TYPES = [UserType.ADMIN, UserType.SUPER_ADMIN, UserType.RESCUE_STAFF];
 
 router.post(
   '/placements',
@@ -42,37 +23,7 @@ router.post(
     body('startDate').isISO8601(),
     body('notes').optional().isString().isLength({ max: 2000 }),
   ],
-  async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    if (!rescueScopeOrAdmin(req, req.body.rescueId)) {
-      return res.status(403).json({ error: 'Cannot create placements for this rescue' });
-    }
-    try {
-      const placement = await fosterService.createPlacement(
-        {
-          petId: req.body.petId,
-          fosterUserId: req.body.fosterUserId,
-          rescueId: req.body.rescueId,
-          startDate: new Date(req.body.startDate),
-          notes: req.body.notes,
-        },
-        req.user.userId
-      );
-      return res.status(201).json({ data: placement });
-    } catch (error) {
-      logger.error('Failed to create foster placement', { error });
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      return res.status(500).json({ error: 'Failed to create placement' });
-    }
-  }
+  (req: AuthenticatedRequest, res: Response) => FosterController.createPlacement(req, res)
 );
 
 router.get(
@@ -83,57 +34,14 @@ router.get(
     query('fosterUserId').optional().isUUID(),
     query('status').optional().isIn(Object.values(FosterPlacementStatus)),
   ],
-  async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    // Non-admins must resolve to a concrete rescue scope. Falling through
-    // to `undefined` would skip the rescueId filter in the service and
-    // leak placements across every rescue (ADS-606).
-    if (!isAdmin(req) && !req.user.rescueId) {
-      return res.status(403).json({ error: 'No rescue scope' });
-    }
-    // Non-admins are scoped to their own rescue.
-    const scopedRescueId = isAdmin(req)
-      ? (req.query.rescueId as string | undefined)
-      : (req.user.rescueId ?? undefined);
-
-    try {
-      const placements = await fosterService.list({
-        rescueId: scopedRescueId,
-        fosterUserId: req.query.fosterUserId as string | undefined,
-        status: req.query.status as FosterPlacementStatus | undefined,
-      });
-      return res.json({ data: placements });
-    } catch (error) {
-      logger.error('Failed to list foster placements', { error });
-      return res.status(500).json({ error: 'Failed to list placements' });
-    }
-  }
+  (req: AuthenticatedRequest, res: Response) => FosterController.listPlacements(req, res)
 );
 
 router.get(
   '/placements/:id',
   requireRole(...FOSTER_ROUTE_USER_TYPES),
   [param('id').isUUID()],
-  async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    const placement = await fosterService.getById(req.params.id);
-    if (!placement) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    if (!rescueScopeOrAdmin(req, placement.rescueId)) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    return res.json({ data: placement });
-  }
+  (req: AuthenticatedRequest, res: Response) => FosterController.getPlacement(req, res)
 );
 
 router.post(
@@ -145,39 +53,7 @@ router.post(
     body('endDate').optional().isISO8601(),
     body('notes').optional().isString().isLength({ max: 2000 }),
   ],
-  async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    const existing = await fosterService.getById(req.params.id);
-    if (!existing) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    if (!rescueScopeOrAdmin(req, existing.rescueId)) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    try {
-      const placement = await fosterService.endPlacement(
-        req.params.id,
-        {
-          outcome: req.body.outcome,
-          endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
-          notes: req.body.notes,
-        },
-        req.user.userId
-      );
-      return res.json({ data: placement });
-    } catch (error) {
-      logger.error('Failed to end foster placement', { error });
-      return res
-        .status(400)
-        .json({ error: error instanceof Error ? error.message : 'Failed to end placement' });
-    }
-  }
+  (req: AuthenticatedRequest, res: Response) => FosterController.endPlacement(req, res)
 );
 
 export default router;

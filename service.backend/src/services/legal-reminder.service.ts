@@ -1,6 +1,6 @@
 import { Op } from 'sequelize';
 import { z } from 'zod';
-import { NotFoundError, BadRequestError } from '../middleware/error-handler';
+import { NotFoundError, UnprocessableError } from '../middleware/error-handler';
 import AuditLog from '../models/AuditLog';
 import User, { UserType } from '../models/User';
 import { AuditLogService } from './auditLog.service';
@@ -242,7 +242,7 @@ export const sendReacceptanceReminder = async (
     throw new NotFoundError('User not found');
   }
   if (!user.email) {
-    throw new BadRequestError('User has no email address on file');
+    throw new UnprocessableError('User has no email address on file');
   }
 
   const { pending: allPending } = await getPendingReacceptance(userId);

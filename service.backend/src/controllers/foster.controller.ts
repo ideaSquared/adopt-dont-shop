@@ -1,0 +1,128 @@
+import { type Response } from 'express';
+import { validationResult } from 'express-validator';
+import { ApiError } from '../middleware/error-handler';
+import fosterService from '../services/foster.service';
+import { FosterPlacementStatus } from '../models/FosterPlacement';
+import { UserType } from '../models/User';
+import type { AuthenticatedRequest } from '../types/auth';
+import { logger } from '../utils/logger';
+
+const ADMIN_USER_TYPES = [UserType.ADMIN, UserType.SUPER_ADMIN];
+
+export class FosterController {
+  private static isAdmin(req: AuthenticatedRequest): boolean {
+    const role = req.user?.userType as UserType | undefined;
+    return role !== undefined && ADMIN_USER_TYPES.includes(role);
+  }
+
+  private static rescueScopeOrAdmin(req: AuthenticatedRequest, rescueId: string): boolean {
+    if (FosterController.isAdmin(req)) {
+      return true;
+    }
+    return req.user?.rescueId === rescueId;
+  }
+
+  static async createPlacement(req: AuthenticatedRequest, res: Response) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    if (!FosterController.rescueScopeOrAdmin(req, req.body.rescueId)) {
+      return res.status(403).json({ error: 'Cannot create placements for this rescue' });
+    }
+    try {
+      const placement = await fosterService.createPlacement(
+        {
+          petId: req.body.petId,
+          fosterUserId: req.body.fosterUserId,
+          rescueId: req.body.rescueId,
+          startDate: new Date(req.body.startDate),
+          notes: req.body.notes,
+        },
+        req.user!.userId
+      );
+      return res.status(201).json({ data: placement });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
+      logger.error('Failed to create foster placement', { error });
+      return res.status(500).json({ error: 'Failed to create placement' });
+    }
+  }
+
+  static async listPlacements(req: AuthenticatedRequest, res: Response) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    if (!FosterController.isAdmin(req) && !req.user?.rescueId) {
+      return res.status(403).json({ error: 'No rescue scope' });
+    }
+    const scopedRescueId = FosterController.isAdmin(req)
+      ? (req.query.rescueId as string | undefined)
+      : (req.user?.rescueId ?? undefined);
+
+    try {
+      const placements = await fosterService.list({
+        rescueId: scopedRescueId,
+        fosterUserId: req.query.fosterUserId as string | undefined,
+        status: req.query.status as FosterPlacementStatus | undefined,
+      });
+      return res.json({ data: placements });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
+      logger.error('Failed to list foster placements', { error });
+      return res.status(500).json({ error: 'Failed to list placements' });
+    }
+  }
+
+  static async getPlacement(req: AuthenticatedRequest, res: Response) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const placement = await fosterService.getById(req.params.id);
+    if (!placement) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    if (!FosterController.rescueScopeOrAdmin(req, placement.rescueId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    return res.json({ data: placement });
+  }
+
+  static async endPlacement(req: AuthenticatedRequest, res: Response) {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const existing = await fosterService.getById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    if (!FosterController.rescueScopeOrAdmin(req, existing.rescueId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    try {
+      const placement = await fosterService.endPlacement(
+        req.params.id,
+        {
+          outcome: req.body.outcome,
+          endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
+          notes: req.body.notes,
+        },
+        req.user!.userId
+      );
+      return res.json({ data: placement });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
+      logger.error('Failed to end foster placement', { error });
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+}
