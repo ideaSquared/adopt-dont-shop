@@ -68,7 +68,7 @@ export const FavoritesPage: React.FC = () => {
     return (
       <Container className={styles.pageContainer}>
         <div className={styles.loginPrompt}>
-          <h2>🔐 Login Required</h2>
+          <h2>Login Required</h2>
           <p>
             Please log in to view your favorite pets. Your favorites will be saved across all your
             devices.
@@ -84,7 +84,7 @@ export const FavoritesPage: React.FC = () => {
   return (
     <Container className={styles.pageContainer}>
       <div className={styles.header}>
-        <h1>❤️ Your Favorite Pets</h1>
+        <h1>Your Favorite Pets</h1>
         <p>
           Keep track of the pets that caught your heart. Your favorites are saved and synced across
           all your devices.
@@ -152,7 +152,6 @@ export const FavoritesPage: React.FC = () => {
       {/* Empty state */}
       {!loading && !error && favorites.length === 0 && (
         <div className={styles.emptyState}>
-          <span className='emoji'>💔</span>
           <h2>No favorites yet</h2>
           <p>
             You haven&apos;t saved any pets to your favorites yet. Start exploring to find pets that
@@ -160,10 +159,10 @@ export const FavoritesPage: React.FC = () => {
           </p>
           <div className={styles.ctaButtonRow}>
             <Link to='/discover' className={styles.ctaButton}>
-              🔍 Start Swiping
+              Start Swiping
             </Link>
             <Link to='/search' className={`${styles.ctaButton} ${styles.ctaButtonGreen}`}>
-              📋 Browse All Pets
+              Browse All Pets
             </Link>
           </div>
         </div>
