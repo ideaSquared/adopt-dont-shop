@@ -153,11 +153,11 @@ export const HomePage: React.FC = () => {
         <section className={styles.heroSection}>
           <div className={styles.heroGlow} aria-hidden />
           <div className={`${styles.container} ${styles.heroInner}`}>
-            <span className={styles.heroEyebrow}>10,000+ adopted · 500+ rescue partners</span>
-            <h1 className={styles.heroTitle}>Find Your Perfect Companion</h1>
+            <span className={styles.heroEyebrow}>Rescue pets, matched to you</span>
+            <h1 className={styles.heroTitle}>Find Your Next Companion</h1>
             <p className={styles.heroSubtitle}>
-              Every pet deserves a loving home. Browse thousands of adoptable pets and find your new
-              best friend today.
+              Every pet deserves a loving home. Browse adoptable pets from verified rescues and start
+              your adoption journey.
             </p>
             <div className={styles.heroActions}>
               <Link to='/search' onClick={() => handleCTAClick('browse_pets')}>
@@ -211,38 +211,14 @@ export const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Statistics Section */}
-      <section className={styles.statsSection}>
-        <div className={styles.container}>
-          <div className='stats-grid'>
-            <div className='stat-item'>
-              <h3>10,000+</h3>
-              <p>Pets Adopted</p>
-            </div>
-            <div className='stat-item'>
-              <h3>500+</h3>
-              <p>Rescue Partners</p>
-            </div>
-            <div className='stat-item'>
-              <h3>50+</h3>
-              <p>States Covered</p>
-            </div>
-            <div className='stat-item'>
-              <h3>24/7</h3>
-              <p>Support Available</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Call to Action Section */}
       <section className={styles.ctaSection}>
         <div className={styles.container}>
           <h2>Ready to Make a Difference?</h2>
           <p>
             {isAuthenticated
-              ? 'Browse our available pets and find your new best friend today!'
-              : 'Create your account and start your adoption journey today!'}
+              ? 'Browse our available pets and find your next companion.'
+              : 'Create your account and start your adoption journey.'}
           </p>
           {isAuthenticated ? (
             <Link to='/search' onClick={() => handleCTAClick('browse_pets')}>

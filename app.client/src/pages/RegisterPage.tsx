@@ -13,7 +13,7 @@ export const RegisterPage: React.FC = () => {
   return (
     <AuthLayout
       title='Create Your Account'
-      subtitle='Join thousands of people who have found their perfect pet companion'
+      subtitle='Find your next companion through adoption'
       footer={
         <div className={styles.loginPrompt}>
           <p>Already have an account?</p>

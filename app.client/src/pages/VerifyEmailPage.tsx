@@ -116,8 +116,7 @@ export const VerifyEmailPage: React.FC = () => {
             <div className={styles.header}>
               <h1>Email Verified!</h1>
               <p>
-                Your email has been successfully verified. You can now access all features of Adopt
-                Don't Shop.
+                Email verified. You can now access all features of Adopt Don't Shop.
               </p>
             </div>
             <Alert variant='success'>Verification successful! Redirecting to login...</Alert>

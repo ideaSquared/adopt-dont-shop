@@ -60,7 +60,7 @@ const MACRO_STEPS: readonly MacroStepDef[] = [
     id: 'this_pet',
     title: 'About {petName} ❤️',
     description: petName =>
-      `Last bit! Just a few questions about ${petName ?? 'this pet'} and we're done.`,
+      `Last bit — a few questions about ${petName ?? 'this pet'} and we're done.`,
     categories: ['final_acknowledgments'],
   },
 ];

@@ -31,14 +31,14 @@ export const QuickApplicationPrompt: React.FC<QuickApplicationPromptProps> = ({
 
       <div className={styles.promptContent}>
         <p className={styles.promptContentP}>
-          Great news! Your profile is {completionPercentage}% complete, so you can apply for{' '}
-          {petName} with just a few clicks using your saved information.
+          Your profile is {completionPercentage}% complete, so you can apply for {petName} in a
+          few clicks using your saved information.
         </p>
 
         <div className={styles.benefits}>
           <span className={styles.benefit}>✨ Pre-filled forms</span>
           <span className={styles.benefit}>⏱️ 2-minute application</span>
-          <span className={styles.benefit}>🎯 Higher approval rate</span>
+          <span className={styles.benefit}>🎯 Faster to submit</span>
         </div>
 
         <div className={styles.buttonGroup}>

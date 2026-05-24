@@ -68,7 +68,7 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
 
         <p className={styles.message}>
           To {getActionMessage()}, you&apos;ll need to create an account or sign in. It&apos;s free
-          and helps us find you the perfect pet match!
+          and helps us match you with the right pet.
         </p>
 
         <div className={styles.buttonGroup}>
