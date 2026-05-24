@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import { ThemeToggle, toast } from '@adopt-dont-shop/lib.components';
+import { SettingsFormSkeleton } from '../components/skeletons';
 import { usePermissions } from '../contexts/PermissionsContext';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
@@ -112,7 +113,7 @@ const RescueSettings: React.FC = () => {
   if (loading) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.loadingContainer}>Loading rescue settings...</div>
+        <SettingsFormSkeleton />
       </div>
     );
   }
