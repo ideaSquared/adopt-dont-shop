@@ -14,6 +14,13 @@ export type ModalProps = {
   size?: ModalSize;
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
+  /**
+   * Whether pressing Escape closes the modal. Defaults to `true`.
+   *
+   * Only set to `false` for blocking modals that require explicit user
+   * action (e.g. LegalReacceptanceModal). Passing `!isSubmitting` is
+   * fine to prevent close during async operations.
+   */
   closeOnEscape?: boolean;
   className?: string;
   'data-testid'?: string;

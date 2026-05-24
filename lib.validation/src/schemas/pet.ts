@@ -50,7 +50,12 @@ export const PetIdSchema = z
 // RescueIdSchema lives in schemas/rescue.ts — Pet uses RescueId only
 // for FK references in shapes below.
 
-const PetNameSchema = z.string().trim().min(1, 'Name is required').max(100);
+const stripHtmlTags = (val: string) => val.replace(/[<>]/g, '');
+const PetNameSchema = z
+  .string()
+  .trim()
+  .transform(stripHtmlTags)
+  .pipe(z.string().min(1, 'Name is required').max(100));
 const BreedSchema = z.string().trim().min(1).max(100);
 const ColorSchema = z.string().trim().min(1).max(100);
 

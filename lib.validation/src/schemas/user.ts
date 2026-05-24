@@ -83,7 +83,8 @@ export const PhoneNumberSchema = z
       .max(20, 'Phone number must be at most 20 digits')
   );
 
-const NameSchema = z.string().trim().min(1).max(100);
+const stripHtmlTags = (val: string) => val.replace(/[<>]/g, '');
+const NameSchema = z.string().trim().transform(stripHtmlTags).pipe(z.string().min(1).max(100));
 
 // ----- Profile / read shape ----------------------------------------------
 

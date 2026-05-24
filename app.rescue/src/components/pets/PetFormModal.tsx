@@ -799,7 +799,11 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSubmitting || !formData.name.trim()}
+            >
               {isSubmitting ? 'Saving...' : pet ? 'Update Pet' : 'Add Pet'}
             </Button>
           </div>

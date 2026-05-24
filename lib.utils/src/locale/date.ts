@@ -83,6 +83,34 @@ export function formatRelativeDate(date: Date | string | number): string {
 }
 
 /**
+ * Format a date for user-facing display: "24 May 2026".
+ *
+ * Use this for absolute dates shown in UI — it produces a consistent
+ * human-readable format across all three apps. For relative dates
+ * ("2 days ago") use {@link formatRelativeDate} instead.
+ *
+ * @param date - Date object, ISO string, or timestamp
+ * @param options - Optional. Pass `{ includeTime: true }` to append "HH:mm".
+ * @returns Formatted date string, e.g. "24 May 2026" or "24 May 2026, 14:30"
+ */
+export function formatDisplayDate(
+  date: Date | string | number,
+  options?: { includeTime?: boolean }
+): string {
+  try {
+    const dateObj = typeof date === 'string' ? parseISO(date) : new Date(date);
+    if (!isValid(dateObj)) {
+      return 'Invalid date';
+    }
+    const pattern = options?.includeTime ? 'd MMM yyyy, HH:mm' : 'd MMM yyyy';
+    return format(dateObj, pattern, { locale: enGB });
+  } catch (error) {
+    console.error('Error formatting display date:', error);
+    return 'Invalid date';
+  }
+}
+
+/**
  * Format a date with a custom format string
  * @param date - Date object, ISO string, or timestamp
  * @param formatString - Format string (date-fns format)

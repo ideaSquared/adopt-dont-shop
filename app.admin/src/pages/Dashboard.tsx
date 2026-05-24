@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { Heading, Stack, Text } from '@adopt-dont-shop/lib.components';
 import { useReports } from '@adopt-dont-shop/lib.moderation';
 import { useTickets, formatRelativeTime } from '@adopt-dont-shop/lib.support-tickets';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { usePlatformMetrics, useApplications } from '../hooks';
 import * as styles from './Dashboard.css';
 
@@ -222,7 +223,7 @@ const Dashboard: React.FC = () => {
                   {oldestApplication.petName}
                 </Link>
                 <span className={styles.attentionMeta}>
-                  Submitted {new Date(oldestApplication.createdAt).toLocaleDateString('en-GB')}
+                  Submitted {formatDisplayDate(oldestApplication.createdAt)}
                 </span>
               </li>
             </ul>

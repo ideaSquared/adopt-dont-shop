@@ -215,4 +215,17 @@ describe('Modal', () => {
     expect(document.activeElement).toBe(trigger);
     document.body.removeChild(trigger);
   });
+
+  it('re-focuses the first focusable element when reopened after close', async () => {
+    const handleClose = vi.fn();
+    const { rerender } = renderWithTheme(<MockModal isOpen={true} onClose={handleClose} />);
+
+    rerender(<MockModal isOpen={false} onClose={handleClose} />);
+    rerender(<MockModal isOpen={true} onClose={handleClose} />);
+
+    await vi.waitFor(() => {
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      expect(closeButton).toHaveFocus();
+    });
+  });
 });

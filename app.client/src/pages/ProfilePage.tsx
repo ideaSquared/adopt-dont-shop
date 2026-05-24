@@ -17,6 +17,7 @@ import {
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as styles from './ProfilePage.css';
@@ -275,11 +276,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    return formatDisplayDate(dateString);
   };
 
   const renderProfileTab = () => (
