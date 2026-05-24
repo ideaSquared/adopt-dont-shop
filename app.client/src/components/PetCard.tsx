@@ -24,7 +24,6 @@ export const PetCard: React.FC<PetCardProps> = ({
   isFavorite: propIsFavorite,
 }) => {
   'use memo';
-  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { isAuthenticated } = useAuth();
   const favorites = useFavorites();
@@ -66,12 +65,15 @@ export const PetCard: React.FC<PetCardProps> = ({
       return;
     }
 
-    setIsLoadingFavorite(true);
+    // Optimistic: flip immediately via the context (which already does
+    // its own optimistic update) and notify parent right away so the UI
+    // feels instant. Revert the parent callback on error.
+    const newFavorite = !isFavorite;
+    onFavoriteToggle?.(pet.pet_id, newFavorite);
 
     try {
       if (isFavorite) {
         await favorites.removeFromFavorites(pet.pet_id);
-        onFavoriteToggle?.(pet.pet_id, false);
 
         // Log favorite removal
         logEvent('pet_unfavorited', 1, {
@@ -82,7 +84,6 @@ export const PetCard: React.FC<PetCardProps> = ({
         });
       } else {
         await favorites.addToFavorites(pet.pet_id);
-        onFavoriteToggle?.(pet.pet_id, true);
 
         // Log favorite addition
         logEvent('pet_favorited', 1, {
@@ -93,6 +94,9 @@ export const PetCard: React.FC<PetCardProps> = ({
         });
       }
     } catch (error) {
+      // Revert the optimistic parent callback
+      onFavoriteToggle?.(pet.pet_id, isFavorite);
+
       console.error('Failed to toggle favorite:', error);
 
       // Log favorite error
@@ -101,8 +105,6 @@ export const PetCard: React.FC<PetCardProps> = ({
         action: isFavorite ? 'remove' : 'add',
         error_message: error instanceof Error ? error.message : 'Unknown error',
       });
-    } finally {
-      setIsLoadingFavorite(false);
     }
   };
 
@@ -216,7 +218,6 @@ export const PetCard: React.FC<PetCardProps> = ({
           <button
             className={styles.favoriteButton}
             onClick={handleFavoriteClick}
-            disabled={isLoadingFavorite}
             style={{ color: isFavorite ? '#ff6b6b' : '#ccc' }}
           >
             {isFavorite ? <MdFavorite size={24} /> : <MdFavoriteBorder size={24} />}
