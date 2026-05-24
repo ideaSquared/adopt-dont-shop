@@ -493,9 +493,6 @@ const PetManagement: React.FC = () => {
                 setAgeGroupFilter('');
                 setGenderFilter('');
               }}
-              onApplyFilters={() => {
-                // Filters are applied immediately in this implementation
-              }}
             />
           </div>
         </div>
