@@ -1,4 +1,5 @@
 import React from 'react';
+import { TextArea } from '@adopt-dont-shop/lib.components';
 import { BooleanTiles } from './BooleanTiles';
 import * as styles from './QuestionField.css';
 import { CurrentPetsField } from './CurrentPetsField';
@@ -70,6 +71,26 @@ export const QuestionField: React.FC<QuestionFieldProps> = ({
 
     if (questionKey === 'current_pets') {
       return <CurrentPetsField value={value} onChange={onChange} hasError={!!error} />;
+    }
+
+    if (questionKey === 'why_adopt') {
+      return (
+        <TextArea
+          value={asString(value)}
+          placeholder={placeholder ?? undefined}
+          rows={6}
+          autoResize
+          minRows={6}
+          maxRows={20}
+          showCharacterCount
+          maxLength={2000}
+          required={isRequired}
+          error={error}
+          fullWidth
+          aria-label={ariaLabel}
+          onChange={e => onChange(e.target.value || undefined)}
+        />
+      );
     }
 
     switch (questionType) {
