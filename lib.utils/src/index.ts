@@ -14,3 +14,6 @@ export { safeHref } from './safe-href';
 
 // SQL LIKE/iLike wildcard escaper for user-supplied search terms
 export { escapeLikePattern } from './escape-like';
+
+// User-facing error message helper (maps HTTP status / network errors)
+export { getErrorMessage } from './get-error-message';
