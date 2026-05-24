@@ -50,7 +50,7 @@ export const PetIdSchema = z
 // RescueIdSchema lives in schemas/rescue.ts — Pet uses RescueId only
 // for FK references in shapes below.
 
-const stripHtmlTags = (val: string) => val.replace(/<[^>]*>/g, '');
+const stripHtmlTags = (val: string) => val.replace(/[<>]/g, '');
 const PetNameSchema = z
   .string()
   .trim()
