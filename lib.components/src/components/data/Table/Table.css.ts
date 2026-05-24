@@ -261,9 +261,23 @@ export const srOnly = style({
   clip: 'rect(0 0 0 0)',
 });
 
+const shimmer = keyframes({
+  '0%': { backgroundPosition: '200% 0' },
+  '100%': { backgroundPosition: '-200% 0' },
+});
+
 export const loadingSkeletonCell = style({
   height: '20px',
   width: '100%',
+  background: `linear-gradient(90deg, ${vars.background.muted} 25%, ${vars.border.color.muted} 50%, ${vars.background.muted} 75%)`,
+  backgroundSize: '200% 100%',
+  animation: `${shimmer} 1.5s ease-in-out infinite`,
+  borderRadius: vars.border.radius.sm,
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      animation: 'none',
+    },
+  },
 });
 
 export const emptyStateIcon = style({

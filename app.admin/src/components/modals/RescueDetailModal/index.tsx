@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Button, Skeleton, SkeletonText } from '@adopt-dont-shop/lib.components';
 import { rescueStatusLabel, type RescueStatus } from '@adopt-dont-shop/lib.types';
-import { Skeleton, SkeletonText } from '../../ui/Skeleton';
 import { FiX, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import type { AdminRescue, RescueStatistics } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';

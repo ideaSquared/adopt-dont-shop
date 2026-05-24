@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import clsx from 'clsx';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Button, Skeleton } from '@adopt-dont-shop/lib.components';
 import type {
   FieldAccessLevel,
   FieldAccessMap,
@@ -20,7 +20,6 @@ import {
   CardTitle,
   CardContent,
 } from '../components/ui';
-import { Skeleton } from '../components/ui/Skeleton';
 import * as styles from './FieldPermissions.css';
 
 const RESOURCES: ReadonlyArray<FieldPermissionResource> = [

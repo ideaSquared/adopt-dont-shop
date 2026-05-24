@@ -1,4 +1,5 @@
 import { style, keyframes } from '@vanilla-extract/css';
+import { vars } from '../../../styles/theme.css';
 
 const shimmer = keyframes({
   '0%': { backgroundPosition: '200% 0' },
@@ -6,9 +7,14 @@ const shimmer = keyframes({
 });
 
 export const skeletonBase = style({
-  background: 'linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%)',
+  background: `linear-gradient(90deg, ${vars.background.muted} 25%, ${vars.border.color.muted} 50%, ${vars.background.muted} 75%)`,
   backgroundSize: '200% 100%',
   animation: `${shimmer} 1.5s ease-in-out infinite`,
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      animation: 'none',
+    },
+  },
 });
 
 export const textLine = style({
@@ -27,14 +33,14 @@ export const cellContainer = style({
 });
 
 export const cardContainer = style({
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '12px',
-  padding: '1.5rem',
+  background: vars.background.surface,
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: vars.border.radius.lg,
+  padding: vars.spacing[4],
 });
 
 export const tableCell = style({
-  padding: '1rem',
+  padding: vars.spacing[3],
 });
 
 export const checkboxSkeleton = style({
@@ -56,19 +62,19 @@ export const flexFill = style({
 
 export const textRowPrimary = style({
   height: '0.875rem',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   marginBottom: '0.25rem',
 });
 
 export const textRowSecondary = style({
   height: '0.75rem',
   width: '70%',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
 });
 
 export const genericTextRow = style({
   height: '0.875rem',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
 });
 
 export const avatarLarge = style({
@@ -82,17 +88,17 @@ export const avatarRow = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.75rem',
-  marginBottom: '1rem',
+  marginBottom: vars.spacing[3],
 });
 
 export const cardTextPrimary = style({
   height: '1rem',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
   marginBottom: '0.375rem',
 });
 
 export const cardTextSecondary = style({
   height: '0.875rem',
   width: '60%',
-  borderRadius: '4px',
+  borderRadius: vars.border.radius.sm,
 });
