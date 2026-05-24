@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Heading, Text, Button, Input, toast } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
   FiAlertTriangle,
@@ -106,27 +106,40 @@ const VALID_REPORT_STATUSES: ReadonlySet<string> = new Set([
 const VALID_REPORT_SEVERITIES: ReadonlySet<string> = new Set(['critical', 'high', 'medium', 'low']);
 
 const Moderation: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const initialStatusParam = searchParams.get('status');
-  const initialSeverityParam = searchParams.get('severity');
-  const initialStatus: ReportStatus | 'all' =
-    initialStatusParam && VALID_REPORT_STATUSES.has(initialStatusParam)
-      ? (initialStatusParam as ReportStatus)
-      : 'all';
-  const initialSeverity: ReportSeverity | 'all' =
-    initialSeverityParam && VALID_REPORT_SEVERITIES.has(initialSeverityParam)
-      ? (initialSeverityParam as ReportSeverity)
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const statusParam = searchParams.get('status');
+  const severityParam = searchParams.get('severity');
+  const statusFilter: ReportStatus | 'all' =
+    statusParam && VALID_REPORT_STATUSES.has(statusParam) ? (statusParam as ReportStatus) : 'all';
+  const severityFilter: ReportSeverity | 'all' =
+    severityParam && VALID_REPORT_SEVERITIES.has(severityParam)
+      ? (severityParam as ReportSeverity)
       : 'all';
 
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>(initialStatus);
-  const [severityFilter, setSeverityFilter] = useState<ReportSeverity | 'all'>(initialSeverity);
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Bulk selection state
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -183,12 +196,14 @@ const Moderation: React.FC = () => {
 
   const handleOpenActionModal = (report: Report) => {
     setSelectedReport(report);
+    setActionError(null);
     setIsActionModalOpen(true);
   };
 
   const handleCloseActionModal = () => {
     setIsActionModalOpen(false);
     setSelectedReport(null);
+    setActionError(null);
   };
 
   const handleActionSubmit = async (actionData: ActionSelectionData) => {
@@ -206,13 +221,9 @@ const Moderation: React.FC = () => {
       handleCloseActionModal();
       await refetch();
     } catch (err) {
-      // UX P0/P1 #8: previously the catch only console.error'd, which left
-      // the modal open in limbo with no signal to the user. Keep the modal
-      // open so they can retry / close, and surface the failure via the
-      // app-admin toast pattern.
       console.error('Failed to take moderation action:', err);
       const message = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(`Failed to take moderation action: ${message}`, { duration: 6000 });
+      setActionError(`Failed to take moderation action: ${message}`);
     }
   };
 
@@ -441,7 +452,7 @@ const Moderation: React.FC = () => {
             id='mod-status-filter'
             className={styles.select}
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as any)}
+            onChange={e => setFilterParam('status', e.target.value)}
           >
             <option value='all'>All Statuses</option>
             <option value='pending'>Pending</option>
@@ -460,7 +471,7 @@ const Moderation: React.FC = () => {
             id='mod-severity-filter'
             className={styles.select}
             value={severityFilter}
-            onChange={e => setSeverityFilter(e.target.value as any)}
+            onChange={e => setFilterParam('severity', e.target.value)}
           >
             <option value='all'>All Severities</option>
             <option value='critical'>Critical</option>
@@ -513,6 +524,7 @@ const Moderation: React.FC = () => {
         data={reports}
         columns={columns}
         loading={isLoading}
+        emptyMessage='No reports found matching your criteria. Try adjusting your filters or search query.'
         onRowClick={handleOpenDetailModal}
         currentPage={pagination?.page || 1}
         totalPages={pagination?.totalPages || 1}
@@ -535,6 +547,7 @@ const Moderation: React.FC = () => {
         onSubmit={handleActionSubmit}
         reportTitle={selectedReport?.title || ''}
         isLoading={isActionLoading}
+        error={actionError}
       />
 
       <BulkModerationModal

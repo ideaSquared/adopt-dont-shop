@@ -5,6 +5,7 @@ import { anonSwipeLimit } from '../middleware/anon-swipe-limit';
 import { authenticateToken, optionalAuth } from '../middleware/auth';
 import { idempotency } from '../middleware/idempotency';
 import sequelize from '../sequelize';
+import { logger } from '../utils/logger';
 
 const router = Router();
 const discoveryController = new DiscoveryController();
@@ -253,11 +254,10 @@ router.get('/db-test', async (req, res) => {
       },
     });
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Discovery database check failed', { error });
     res.status(500).json({
       success: false,
       message: 'Database connection failed',
-      error: errorMessage,
       timestamp: new Date().toISOString(),
     });
   }

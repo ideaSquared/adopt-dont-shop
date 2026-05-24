@@ -69,6 +69,12 @@ export const metricChangeNegative = style({
   fontWeight: '500',
 });
 
+export const metricChangeNeutral = style({
+  fontSize: '0.875rem',
+  color: vars.text.tertiary,
+  fontWeight: '500',
+});
+
 const shimmerAnim = keyframes({
   '0%': { backgroundPosition: '-200px 0' },
   '100%': { backgroundPosition: 'calc(200px + 100%) 0' },

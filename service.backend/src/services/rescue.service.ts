@@ -1,6 +1,12 @@
 import { Op, Order, WhereOptions } from 'sequelize';
 import EmailService from './email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
+import {
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+  ForbiddenError,
+} from '../middleware/error-handler';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import type { RescueAttributes, RescueCreationAttributes } from '../models/Rescue';
 import { logger, loggerHelpers } from '../utils/logger';
@@ -320,7 +326,7 @@ export class RescueService {
       });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (includeStats) {
@@ -378,7 +384,7 @@ export class RescueService {
           transaction,
         });
         if (existingCount >= RescueService.RESCUE_CREATION_CAP_PER_USER) {
-          throw new Error('Maximum number of rescues per user reached');
+          throw new ForbiddenError('Maximum number of rescues per user reached');
         }
       }
 
@@ -388,7 +394,7 @@ export class RescueService {
         transaction,
       });
       if (existingByEmail) {
-        throw new Error('A rescue organization with this email already exists');
+        throw new ConflictError('A rescue organization with this email already exists');
       }
 
       // Check for duplicate registration numbers
@@ -398,7 +404,9 @@ export class RescueService {
           transaction,
         });
         if (existingByCH) {
-          throw new Error('A rescue is already registered with this Companies House number');
+          throw new ConflictError(
+            'A rescue is already registered with this Companies House number'
+          );
         }
       }
       if (rescueData.charityRegistrationNumber) {
@@ -407,7 +415,9 @@ export class RescueService {
           transaction,
         });
         if (existingByCharity) {
-          throw new Error('A rescue is already registered with this charity registration number');
+          throw new ConflictError(
+            'A rescue is already registered with this charity registration number'
+          );
         }
       }
 
@@ -533,7 +543,7 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       // If email is being updated, check for conflicts
@@ -547,7 +557,7 @@ export class RescueService {
         });
 
         if (existingRescue) {
-          throw new Error('A rescue organization with this email already exists');
+          throw new ConflictError('A rescue organization with this email already exists');
         }
       }
 
@@ -627,11 +637,11 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (rescue.status === 'verified') {
-        throw new Error('Rescue is already verified');
+        throw new ConflictError('Rescue is already verified');
       }
 
       await rescue.update(
@@ -738,15 +748,15 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (rescue.status === 'verified') {
-        throw new Error('Cannot reject an already verified rescue');
+        throw new ConflictError('Cannot reject an already verified rescue');
       }
 
       if (rescue.status === 'rejected') {
-        throw new Error('Rescue is already rejected');
+        throw new ConflictError('Rescue is already rejected');
       }
 
       await rescue.update(
@@ -816,11 +826,11 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (rescue.status === 'suspended') {
-        throw new Error('Rescue is already suspended');
+        throw new ConflictError('Rescue is already suspended');
       }
 
       await rescue.update({ status: 'suspended' }, { transaction });
@@ -1012,7 +1022,7 @@ export class RescueService {
       // Verify rescue exists
       const rescue = await Rescue.findByPk(rescueId, { transaction });
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       // Enforce plan staff seat limit before allowing the add.
@@ -1021,7 +1031,7 @@ export class RescueService {
       // Verify user exists
       const user = await User.findByPk(userId, { transaction });
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Check if user is already an active staff member. paranoid scope
@@ -1032,7 +1042,7 @@ export class RescueService {
       });
 
       if (existingActiveStaff) {
-        throw new Error('User is already a staff member of this rescue');
+        throw new ConflictError('User is already a staff member of this rescue');
       }
 
       // Check if user was previously a staff member (soft deleted) — opt
@@ -1164,7 +1174,7 @@ export class RescueService {
       });
 
       if (!staffMember) {
-        throw new Error('Staff member not found');
+        throw new NotFoundError('Staff member not found');
       }
 
       const user = staffMember.user!;
@@ -1219,7 +1229,7 @@ export class RescueService {
       // Verify rescue exists
       const rescue = await Rescue.findByPk(rescueId);
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       // Find the staff member
@@ -1229,7 +1239,7 @@ export class RescueService {
       });
 
       if (!staffMember) {
-        throw new Error('Staff member not found');
+        throw new NotFoundError('Staff member not found');
       }
 
       // Update the staff member
@@ -1418,11 +1428,11 @@ export class RescueService {
       });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (rescue.deletedAt) {
-        throw new Error('Rescue organization is already deleted');
+        throw new ConflictError('Rescue organization is already deleted');
       }
 
       // paranoid soft-delete sets deletedAt; the audit log captures who.
@@ -1470,7 +1480,7 @@ export class RescueService {
     try {
       const rescue = await Rescue.findByPk(rescueId);
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       const { page = 1, limit = 20, search, role } = options;
@@ -1553,7 +1563,7 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       // Get current settings or initialize empty object
@@ -1619,7 +1629,7 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId);
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       type RescueSettings = { adoptionPolicies?: AdoptionPolicy | null };

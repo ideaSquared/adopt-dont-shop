@@ -192,6 +192,9 @@ export const ApplicationPage: React.FC = () => {
   // their previous answers, or opt out by starting over. `null` = undecided
   // (banner showing); 'resume'/'startOver' = decided and banner hidden.
   const [draftDecision, setDraftDecision] = useState<'resume' | 'startOver' | null>(null);
+  // ADS-535: model hook rejects SUBMITTED rows without this flag set true.
+  // Captured on the review step (or QuickApply submit area), not as a question.
+  const [referencesConsented, setReferencesConsented] = useState(false);
 
   const { saveStatus, lastSaved, scheduleSave, saveNow, clearDraft, loadedDraft } =
     useApplicationDraft(petId);
@@ -316,6 +319,7 @@ export const ApplicationPage: React.FC = () => {
         {
           petId: pet.pet_id,
           answers,
+          referencesConsented,
         }
       );
 
@@ -463,6 +467,8 @@ export const ApplicationPage: React.FC = () => {
           onSwitchToGuided={() => setViewMode('guided')}
           isSubmitting={isSubmitting}
           saveStatus={saveStatus}
+          referencesConsented={referencesConsented}
+          onReferencesConsentChange={setReferencesConsented}
         />
       ) : (
         <>
@@ -491,6 +497,8 @@ export const ApplicationPage: React.FC = () => {
               isSubmitting={isSubmitting}
               saveStatus={saveStatus}
               lastSaved={lastSaved}
+              referencesConsented={referencesConsented}
+              onReferencesConsentChange={setReferencesConsented}
             />
           ) : (
             <Alert variant='error' title='No questions available'>

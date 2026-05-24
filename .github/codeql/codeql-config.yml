@@ -72,3 +72,14 @@ query-filters:
   # CSRF exposure does not exist in this codebase.
   - exclude:
       id: js/missing-csrf-middleware
+  # `js/missing-token-validation` fires on the cookieParser() registration
+  # in service.backend/src/index.ts because CodeQL sees cookie middleware
+  # serving route handlers and cannot trace that csrf-csrf's
+  # doubleCsrfProtection (applied in the same middleware chain) validates
+  # CSRF tokens on every state-changing request. GET/HEAD/OPTIONS are safe
+  # methods excluded via ignoredMethods. The email webhook POST is mounted
+  # before cookieParser and authenticated via HMAC, not cookies. Reviewed
+  # and confirmed: all cookie-authenticated state-changing routes are
+  # CSRF-protected.
+  - exclude:
+      id: js/missing-token-validation

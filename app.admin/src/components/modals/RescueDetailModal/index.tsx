@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { Heading, Text } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
 import { rescueStatusLabel, type RescueStatus } from '@adopt-dont-shop/lib.types';
 import { Skeleton, SkeletonText } from '../../ui/Skeleton';
-import { FiX } from 'react-icons/fi';
+import { FiX, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import type { AdminRescue, RescueStatistics } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import * as styles from '../RescueDetailModal.css';
@@ -18,6 +18,8 @@ type RescueDetailModalProps = {
   rescueId: string;
   onClose: () => void;
   onUpdate?: () => void;
+  onApprove?: (rescue: AdminRescue) => void;
+  onReject?: (rescue: AdminRescue) => void;
 };
 
 type ActiveTab = 'overview' | 'contact' | 'policies' | 'staff' | 'listings' | 'plan';
@@ -49,6 +51,8 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   rescueId,
   onClose,
   onUpdate,
+  onApprove,
+  onReject,
 }) => {
   const [rescue, setRescue] = useState<AdminRescue | null>(null);
   const [, setStatistics] = useState<RescueStatistics | null>(null);
@@ -162,6 +166,23 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
             </>
           )}
         </div>
+
+        {!loading && rescue && rescue.status === 'pending' && (onApprove || onReject) && (
+          <div className={styles.modalFooter}>
+            {onReject && (
+              <Button variant='danger' onClick={() => onReject(rescue)}>
+                <FiXCircle style={{ marginRight: '0.5rem' }} />
+                Reject
+              </Button>
+            )}
+            {onApprove && (
+              <Button variant='primary' onClick={() => onApprove(rescue)}>
+                <FiCheckCircle style={{ marginRight: '0.5rem' }} />
+                Approve
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

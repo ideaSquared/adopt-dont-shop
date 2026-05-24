@@ -1,13 +1,4 @@
 import { vi } from 'vitest';
-// Mock logger before importing error handler
-vi.mock('../../utils/logger', () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-  },
-}));
-
 import { Request, Response, NextFunction } from 'express';
 import { DatabaseError } from 'sequelize';
 import { errorHandler, ApiError } from '../../middleware/error-handler';
@@ -283,7 +274,8 @@ describe('Error Handler Middleware', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'error',
-          message: 'Database connection failed',
+          message: 'Internal server error',
+          detail: 'Database connection failed',
           code: 500,
         })
       );
@@ -298,7 +290,7 @@ describe('Error Handler Middleware', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'error',
-          message: 'Something went wrong',
+          message: 'Internal server error',
           code: 500,
         })
       );

@@ -31,6 +31,7 @@ import {
   PetStatusUpdate,
   PetUpdateData,
 } from '../types/pet';
+import { BadRequestError, NotFoundError, ConflictError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import User, { UserType } from '../models/User';
@@ -1044,7 +1045,7 @@ export class PetService {
     try {
       const pet = await Pet.findByPk(petId);
       if (!pet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Existing image count drives the default order_index for the
@@ -1159,7 +1160,7 @@ export class PetService {
       });
 
       if (deleted === 0) {
-        throw new Error('Image not found');
+        throw new NotFoundError('Image not found');
       }
 
       // Log image removal
@@ -1316,7 +1317,7 @@ export class PetService {
     try {
       const pet = await Pet.findByPk(petId);
       if (!pet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Calculate days since posted
@@ -1449,7 +1450,7 @@ export class PetService {
                 await this.deletePet(petId, updatedBy, reason, tx);
                 break;
               default:
-                throw new Error(`Unknown operation: ${operationType}`);
+                throw new BadRequestError(`Unknown operation: ${operationType}`);
             }
           });
           results.successCount++;
@@ -1806,7 +1807,7 @@ export class PetService {
       // Check if pet exists
       const pet = await Pet.findByPk(petId);
       if (!pet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Check if already favorited (including soft-deleted records)
@@ -1817,7 +1818,7 @@ export class PetService {
 
       if (existingFavorite && !existingFavorite.deletedAt) {
         // Already favorited and not soft-deleted
-        throw new Error('Pet is already in favorites');
+        throw new ConflictError('Pet is already in favorites');
       }
 
       if (existingFavorite && existingFavorite.deletedAt) {
@@ -1846,7 +1847,7 @@ export class PetService {
       });
 
       if (!favorite) {
-        throw new Error('Pet is not in favorites');
+        throw new ConflictError('Pet is not in favorites');
       }
 
       await favorite.destroy();
@@ -1962,7 +1963,7 @@ export class PetService {
 
       // Validate pet type
       if (!Object.values(PetType).includes(validType as PetType)) {
-        throw new Error(`Invalid pet type: ${type}`);
+        throw new BadRequestError(`Invalid pet type: ${type}`);
       }
 
       const breeds = await Breed.findAll({
@@ -2009,7 +2010,7 @@ export class PetService {
       // First get the reference pet
       const referencePet = await Pet.findByPk(petId);
       if (!referencePet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Plan 2.4 — breed is an FK; "same breed" is now an FK
@@ -2079,7 +2080,7 @@ export class PetService {
       // Verify pet exists
       const pet = await Pet.findByPk(petId);
       if (!pet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Create the report. Evidence (if any) lives in moderation_evidence

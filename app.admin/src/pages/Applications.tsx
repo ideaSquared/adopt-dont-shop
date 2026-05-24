@@ -39,12 +39,27 @@ const VALID_STATUS_FILTERS: ReadonlySet<string> = new Set([
 ]);
 
 const Applications: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const initialStatus = searchParams.get('status');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const statusParam = searchParams.get('status');
+  const statusFilter = statusParam && VALID_STATUS_FILTERS.has(statusParam) ? statusParam : 'all';
+
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>(
-    initialStatus && VALID_STATUS_FILTERS.has(initialStatus) ? initialStatus : 'all'
-  );
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [rescueFilter, setRescueFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
@@ -170,7 +185,7 @@ const Applications: React.FC = () => {
             id='apps-status-filter'
             className={styles.select}
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            onChange={e => setFilterParam('status', e.target.value)}
           >
             <option value='all'>All Statuses</option>
             <option value='submitted'>Submitted</option>

@@ -319,7 +319,7 @@ export const ProfilePage: React.FC = () => {
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Preferred Contact</span>
                   <span className={styles.infoValue}>
-                    {user.preferredContactMethod || 'Not specified'}
+                    {user.preferredContactMethod || 'Not provided'}
                   </span>
                 </div>
                 <div className={styles.infoItem}>

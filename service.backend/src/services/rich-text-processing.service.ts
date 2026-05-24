@@ -1,5 +1,6 @@
 import DOMPurify from 'isomorphic-dompurify';
 import { marked } from 'marked';
+import { BadRequestError } from '../middleware/error-handler';
 import { logger } from '../utils/logger';
 
 // Configure marked once at module load. `marked.use({ tokenizer: { html } })`
@@ -105,7 +106,7 @@ export class RichTextProcessingService {
 
       // Validate input length
       if (markdown.length > (opts.maxLength || 10000)) {
-        throw new Error(`Content exceeds maximum length of ${opts.maxLength} characters`);
+        throw new BadRequestError(`Content exceeds maximum length of ${opts.maxLength} characters`);
       }
 
       // Configure marked options
@@ -155,7 +156,7 @@ export class RichTextProcessingService {
 
       // Validate input length
       if (html.length > (opts.maxLength || 10000)) {
-        throw new Error(`Content exceeds maximum length of ${opts.maxLength} characters`);
+        throw new BadRequestError(`Content exceeds maximum length of ${opts.maxLength} characters`);
       }
 
       // Sanitize HTML

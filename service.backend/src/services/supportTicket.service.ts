@@ -8,6 +8,7 @@ import User from '../models/User';
 import { Op, Transaction, WhereOptions } from 'sequelize';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
+import { NotFoundError, BadRequestError } from '../middleware/error-handler';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
@@ -183,7 +184,7 @@ class SupportTicketService {
       });
 
       if (!ticket) {
-        throw new Error('Ticket not found');
+        throw new NotFoundError('Ticket not found');
       }
 
       return ticket;
@@ -327,10 +328,12 @@ class SupportTicketService {
 
         for (const attachment of response.attachments) {
           if (attachment.fileSize > MAX_ATTACHMENT_SIZE) {
-            throw new Error(`Attachment ${attachment.filename} exceeds maximum size of 10MB`);
+            throw new BadRequestError(
+              `Attachment ${attachment.filename} exceeds maximum size of 10MB`
+            );
           }
           if (!ALLOWED_MIME_TYPES.includes(attachment.mimeType)) {
-            throw new Error(
+            throw new BadRequestError(
               `Attachment ${attachment.filename} has unsupported file type: ${attachment.mimeType}`
             );
           }

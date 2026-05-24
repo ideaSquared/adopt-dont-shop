@@ -27,6 +27,7 @@ import { FileUploadService } from './file-upload.service';
 import { NotificationService } from './notification.service';
 import { AuditLog, withAuditMutationAllowed } from '../models/AuditLog';
 import { logger } from '../utils/logger';
+import { NotFoundError, ConflictError } from '../middleware/error-handler';
 
 /**
  * GDPR data subject rights — erasure (Art. 17) and export (Art. 15/20).
@@ -147,7 +148,7 @@ export const GdprService = {
     return sequelize.transaction(async (tx: Transaction) => {
       const user = await User.findByPk(userId, { transaction: tx, paranoid: false });
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const pendingAt = new Date();
@@ -234,7 +235,7 @@ export const GdprService = {
           paranoid: false,
         });
         if (!user) {
-          throw new Error('User not found');
+          throw new NotFoundError('User not found');
         }
 
         if (user.email.endsWith(`@${ANON_EMAIL_DOMAIN}`)) {
@@ -392,11 +393,11 @@ export const GdprService = {
     return sequelize.transaction(async (tx: Transaction) => {
       const user = await User.findByPk(userId, { transaction: tx, paranoid: false });
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       if (user.email.endsWith(`@${ANON_EMAIL_DOMAIN}`)) {
-        throw new Error('User already anonymized — cannot cancel erasure');
+        throw new ConflictError('User already anonymized — cannot cancel erasure');
       }
 
       const restorePayload: Record<string, unknown> = {
@@ -602,7 +603,7 @@ export const GdprService = {
         paranoid: false,
       });
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       const alreadyArchived =

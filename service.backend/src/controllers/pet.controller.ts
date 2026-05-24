@@ -18,6 +18,7 @@ import { PetType, Size, Gender, PetStatus, AgeGroup } from '../models/Pet';
 import PetService, { PetSearchFilters } from '../services/pet.service';
 import type { BulkPetOperation } from '../types/pet';
 import { AuthenticatedRequest } from '../types';
+import { ApiError } from '../middleware/error-handler';
 import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { logger } from '../utils/logger';
 import { parsePage, parsePaginationLimit } from '../utils/pagination';
@@ -375,11 +376,18 @@ export class PetController {
       });
     } catch (error) {
       logger.error('Update pet failed:', error);
-      const statusCode = error instanceof Error && error.message === 'Pet not found' ? 404 : 500;
-      res.status(statusCode).json({
+
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      res.status(500).json({
         success: false,
-        message: 'Failed to update pet',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Internal server error',
       });
     }
   };
@@ -405,11 +413,18 @@ export class PetController {
       });
     } catch (error) {
       logger.error('Delete pet failed:', error);
-      const statusCode = error instanceof Error && error.message === 'Pet not found' ? 404 : 500;
-      res.status(statusCode).json({
+
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      res.status(500).json({
         success: false,
-        message: 'Failed to delete pet',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Internal server error',
       });
     }
   };
@@ -436,11 +451,18 @@ export class PetController {
       });
     } catch (error) {
       logger.error('Update pet images failed:', error);
-      const statusCode = error instanceof Error && error.message === 'Pet not found' ? 404 : 500;
-      res.status(statusCode).json({
+
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      res.status(500).json({
         success: false,
-        message: 'Failed to update pet images',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Internal server error',
       });
     }
   };
@@ -470,15 +492,18 @@ export class PetController {
       });
     } catch (error) {
       logger.error('Remove pet image failed:', error);
-      const statusCode =
-        error instanceof Error &&
-        (error.message === 'Pet not found' || error.message === 'Image not found')
-          ? 404
-          : 500;
-      res.status(statusCode).json({
+
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      res.status(500).json({
         success: false,
-        message: 'Failed to remove pet image',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Internal server error',
       });
     }
   };
@@ -619,11 +644,18 @@ export class PetController {
       });
     } catch (error) {
       logger.error('Update pet status failed:', error);
-      const statusCode = error instanceof Error && error.message === 'Pet not found' ? 404 : 500;
-      res.status(statusCode).json({
+
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      res.status(500).json({
         success: false,
-        message: 'Failed to update pet status',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Internal server error',
       });
     }
   };
@@ -843,12 +875,18 @@ export class PetController {
       });
     } catch (error) {
       logger.error(`Error getting similar pets for ${req.params.petId}:`, error);
-      res.status(404).json({
+
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      res.status(500).json({
         success: false,
-        message:
-          error instanceof Error && error.message === 'Pet not found'
-            ? 'Pet not found'
-            : 'Failed to retrieve similar pets',
+        message: 'Internal server error',
       });
     }
   };
@@ -885,12 +923,18 @@ export class PetController {
       });
     } catch (error) {
       logger.error(`Error reporting pet ${req.params.petId}:`, error);
-      res.status(404).json({
+
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      res.status(500).json({
         success: false,
-        message:
-          error instanceof Error && error.message === 'Pet not found'
-            ? 'Pet not found'
-            : 'Failed to submit pet report',
+        message: 'Internal server error',
       });
     }
   };

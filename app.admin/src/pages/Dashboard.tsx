@@ -18,12 +18,14 @@ const formatGrowthLabel = (current: number, previous: number, label: string): st
   return `${sign}${pct}% from last month`;
 };
 
+type MetricTone = 'positive' | 'neutral' | 'negative';
+
 type MetricDefinition = {
   icon: string;
   label: string;
   value: string;
   change: string;
-  positive: boolean;
+  tone: MetricTone;
   href: string;
 };
 
@@ -74,7 +76,7 @@ const Dashboard: React.FC = () => {
             0,
             `${formatNumber(data.users.newThisMonth)} new this month`
           ),
-          positive: data.users.newThisMonth >= 0,
+          tone: data.users.newThisMonth >= 0 ? 'positive' : 'negative',
           href: '/users',
         },
         {
@@ -82,7 +84,7 @@ const Dashboard: React.FC = () => {
           label: 'Active Rescues',
           value: formatNumber(data.rescues.verified),
           change: `${formatNumber(data.rescues.pending)} pending verification`,
-          positive: data.rescues.pending === 0,
+          tone: 'neutral',
           href: '/rescues?status=verified',
         },
         {
@@ -90,7 +92,7 @@ const Dashboard: React.FC = () => {
           label: 'Pets Listed',
           value: formatNumber(data.pets.available),
           change: `${formatNumber(data.pets.total)} total pets`,
-          positive: true,
+          tone: 'positive',
           href: '/pets?status=available',
         },
         {
@@ -98,7 +100,7 @@ const Dashboard: React.FC = () => {
           label: 'Adoptions (30d)',
           value: formatNumber(data.pets.adopted),
           change: `${formatNumber(data.applications.approved)} applications approved`,
-          positive: data.pets.adopted > 0,
+          tone: data.pets.adopted > 0 ? 'positive' : 'neutral',
           href: '/pets?status=adopted',
         },
         {
@@ -106,7 +108,7 @@ const Dashboard: React.FC = () => {
           label: 'Pending Applications',
           value: formatNumber(data.applications.pending),
           change: `${formatNumber(data.applications.total)} total this month`,
-          positive: data.applications.pending === 0,
+          tone: 'neutral',
           href: '/applications?status=submitted',
         },
         {
@@ -114,7 +116,7 @@ const Dashboard: React.FC = () => {
           label: 'New Users (30d)',
           value: formatNumber(data.users.newThisMonth),
           change: `${formatNumber(data.users.active)} active users`,
-          positive: data.users.newThisMonth > 0,
+          tone: data.users.newThisMonth > 0 ? 'positive' : 'neutral',
           href: '/users',
         },
       ]
@@ -164,7 +166,11 @@ const Dashboard: React.FC = () => {
                 <div className={styles.metricValue}>{metric.value}</div>
                 <div
                   className={
-                    metric.positive ? styles.metricChangePositive : styles.metricChangeNegative
+                    metric.tone === 'positive'
+                      ? styles.metricChangePositive
+                      : metric.tone === 'negative'
+                        ? styles.metricChangeNegative
+                        : styles.metricChangeNeutral
                   }
                 >
                   {metric.change}

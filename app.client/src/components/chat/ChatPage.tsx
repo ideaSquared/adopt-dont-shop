@@ -33,7 +33,7 @@ export function ChatPage() {
     return (
       <div className={styles.chatContainer}>
         <div className={styles.loginPrompt}>
-          <h2>🔐 Login Required</h2>
+          <h2>Login Required</h2>
           <p>
             Please log in to access your messages. Connect with rescue organizations and stay
             updated on your adoption applications.

@@ -12,6 +12,7 @@ import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { UserType } from '../models/User';
 import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
 import { PLAN_LIMITS, type RescuePlan } from '../config/plans';
+import { ApiError } from '../middleware/error-handler';
 
 export class RescueController {
   /**
@@ -88,13 +89,11 @@ export class RescueController {
         data: rescueData,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Get rescue by ID failed:', error);
-      const statusCode = error instanceof Error && error.message === 'Rescue not found' ? 404 : 500;
-      res.status(statusCode).json({
-        success: false,
-        message: 'Failed to retrieve rescue',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -143,28 +142,11 @@ export class RescueController {
         data: rescue,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Create rescue failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage.includes('already exists')) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('Maximum number of rescues')) {
-        return res.status(403).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to create rescue organization',
-        error: errorMessage,
-      });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -197,28 +179,11 @@ export class RescueController {
         data: rescue,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Update rescue failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Rescue not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('already exists')) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update rescue',
-        error: errorMessage,
-      });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -247,28 +212,11 @@ export class RescueController {
         data: rescue,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Verify rescue failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Rescue not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('already verified')) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to verify rescue',
-        error: errorMessage,
-      });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -297,28 +245,11 @@ export class RescueController {
         data: rescue,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Reject rescue failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Rescue not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('already verified') || errorMessage.includes('already rejected')) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to reject rescue',
-        error: errorMessage,
-      });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -390,28 +321,11 @@ export class RescueController {
         data: staffMember,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Add staff member failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('already a staff member')) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to add staff member',
-        error: errorMessage,
-      });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -448,21 +362,11 @@ export class RescueController {
         message: result.message,
       });
     } catch (error) {
-      logger.error('Remove staff member failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Staff member not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to remove staff member',
-        error: errorMessage,
-      });
+      logger.error('Remove staff member failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -506,28 +410,11 @@ export class RescueController {
         data: result,
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
       logger.error('Update staff member failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Staff member not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage === 'Rescue not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update staff member',
-        error: errorMessage,
-      });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -626,21 +513,11 @@ export class RescueController {
         message: result.message,
       });
     } catch (error) {
-      logger.error('Delete rescue failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Rescue not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to delete rescue',
-        error: errorMessage,
-      });
+      logger.error('Delete rescue failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -737,21 +614,11 @@ export class RescueController {
         data: result,
       });
     } catch (error) {
-      logger.error('Update adoption policies failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Rescue not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update adoption policies',
-        error: errorMessage,
-      });
+      logger.error('Update adoption policies failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -778,21 +645,11 @@ export class RescueController {
         data: adoptionPolicies,
       });
     } catch (error) {
-      logger.error('Get adoption policies failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Rescue not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve adoption policies',
-        error: errorMessage,
-      });
+      logger.error('Get adoption policies failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 
@@ -880,21 +737,11 @@ export class RescueController {
         },
       });
     } catch (error) {
-      logger.error('Send email to rescue failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Rescue not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
       }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to send email',
-        error: errorMessage,
-      });
+      logger.error('Send email to rescue failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 

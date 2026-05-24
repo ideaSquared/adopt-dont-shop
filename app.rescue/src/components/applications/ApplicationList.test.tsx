@@ -52,6 +52,7 @@ vi.mock('./ApplicationList.css', () => ({
   errorText: 'errorText',
   errorTitle: 'errorTitle',
   errorMessage: 'errorMessage',
+  skeletonBlock: 'skeletonBlock',
 }));
 
 // Stub child components so we exercise ApplicationList in isolation.
@@ -205,6 +206,22 @@ describe('ApplicationList load-state differentiation (UX P0/P1 #5)', () => {
 
     expect(screen.getByText(/loading applications\.\.\./i)).toBeInTheDocument();
     expect(screen.queryByText(/error loading applications/i)).not.toBeInTheDocument();
+  });
+
+  it('shows skeleton rows instead of a spinner when loading with existing applications', () => {
+    render(
+      <ApplicationList
+        {...baseProps}
+        loading
+        applications={[buildApplication()]}
+        onApplicationSelect={vi.fn()}
+      />
+    );
+
+    // No spinner text — the skeleton rows replace the spinner.
+    expect(screen.queryByText(/loading applications\.\.\./i)).not.toBeInTheDocument();
+    // The table structure is still rendered (thead is visible).
+    expect(screen.getByText('Applicant')).toBeInTheDocument();
   });
 });
 

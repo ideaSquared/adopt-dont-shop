@@ -2,6 +2,7 @@ import { Response } from 'express';
 import SupportTicketService from '../services/supportTicket.service';
 import { TicketCategory, TicketPriority, TicketStatus } from '../models/SupportTicket';
 import { logger } from '../utils/logger';
+import { ApiError } from '../middleware/error-handler';
 import { AuthenticatedRequest } from '../types/api';
 import User from '../models/User';
 
@@ -179,15 +180,15 @@ export class UserSupportController {
       });
     } catch (error: unknown) {
       logger.error('Error in getMyTicket:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
           success: false,
-          error: 'Ticket not found',
+          error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: 'Failed to fetch support ticket',
+          error: 'Internal server error',
         });
       }
     }
@@ -241,15 +242,15 @@ export class UserSupportController {
       });
     } catch (error: unknown) {
       logger.error('Error in replyToMyTicket:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
           success: false,
-          error: 'Ticket not found',
+          error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: 'Failed to add reply to ticket',
+          error: 'Internal server error',
         });
       }
     }
@@ -283,15 +284,15 @@ export class UserSupportController {
       });
     } catch (error: unknown) {
       logger.error('Error in getMyTicketMessages:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
           success: false,
-          error: 'Ticket not found',
+          error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: 'Failed to fetch ticket messages',
+          error: 'Internal server error',
         });
       }
     }

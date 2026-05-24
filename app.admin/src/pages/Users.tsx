@@ -117,6 +117,7 @@ const Users: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const [bulkFailedIds, setBulkFailedIds] = useState<string[]>([]);
   // UX P2 D: keep the last submitted batch around so the "Try again" button on
   // the result view can re-run the same userIds + reason without the operator
   // rebuilding the selection. Cleared on close.
@@ -275,8 +276,14 @@ const Users: React.FC = () => {
     action: BulkActionType,
     userIds: string[],
     reason?: string
-  ): Promise<{ succeeded: number; failed: number }> => {
-    let result: { successCount?: number; failedCount?: number; success?: number; failed?: number };
+  ): Promise<{ succeeded: number; failed: number; failedIds: string[] }> => {
+    let result: {
+      successCount?: number;
+      failedCount?: number;
+      success?: number;
+      failed?: number;
+      failedIds?: string[];
+    };
 
     if (action === 'activate') {
       result = await bulkUpdateUsers.mutateAsync({
@@ -291,17 +298,26 @@ const Users: React.FC = () => {
         reason,
       });
     } else {
-      result = await Promise.all(
-        userIds.map(id => deleteUser.mutateAsync({ userId: id, reason }).catch(() => null))
-      ).then(results => ({
-        successCount: results.filter(r => r !== null).length,
-        failedCount: results.filter(r => r === null).length,
-      }));
+      const outcomes = await Promise.all(
+        userIds.map(id =>
+          deleteUser
+            .mutateAsync({ userId: id, reason })
+            .then(() => id)
+            .catch(() => null)
+        )
+      );
+      const deletedFailedIds = userIds.filter((_, i) => outcomes[i] === null);
+      result = {
+        successCount: outcomes.filter(r => r !== null).length,
+        failedCount: deletedFailedIds.length,
+        failedIds: deletedFailedIds,
+      };
     }
 
     return {
       succeeded: result.successCount ?? result.success ?? 0,
       failed: result.failedCount ?? result.failed ?? 0,
+      failedIds: result.failedIds ?? [],
     };
   };
 
@@ -311,15 +327,12 @@ const Users: React.FC = () => {
     }
     const userIds = Array.from(selectedRows);
     const summary = await runBulkAction(bulkAction, userIds, reason);
-    setBulkResult(summary);
+    setBulkResult({ succeeded: summary.succeeded, failed: summary.failed });
+    setBulkFailedIds(summary.failedIds);
     setLastBulkSubmission({ userIds, reason });
     setSelectedRows(new Set());
   };
 
-  // UX P2 D: re-run the entire batch with the same userIds + reason. The backend
-  // bulk endpoints return only aggregate counts, so we cannot retry just the
-  // failed subset without a per-item failed-IDs response shape — that's a
-  // follow-up.
   const handleBulkRetry = async () => {
     if (!bulkAction || !lastBulkSubmission) {
       return;
@@ -329,12 +342,24 @@ const Users: React.FC = () => {
       lastBulkSubmission.userIds,
       lastBulkSubmission.reason
     );
-    setBulkResult(summary);
+    setBulkResult({ succeeded: summary.succeeded, failed: summary.failed });
+    setBulkFailedIds(summary.failedIds);
+  };
+
+  const handleBulkRetryFailed = async () => {
+    if (!bulkAction || bulkFailedIds.length === 0) {
+      return;
+    }
+    const reason = lastBulkSubmission?.reason;
+    const summary = await runBulkAction(bulkAction, bulkFailedIds, reason);
+    setBulkResult({ succeeded: summary.succeeded, failed: summary.failed });
+    setBulkFailedIds(summary.failedIds);
   };
 
   const handleBulkModalClose = () => {
     setBulkAction(null);
     setBulkResult(null);
+    setBulkFailedIds([]);
     setLastBulkSubmission(null);
   };
 
@@ -579,7 +604,7 @@ const Users: React.FC = () => {
         columns={columns}
         data={users}
         loading={isLoading}
-        emptyMessage='No users found matching your criteria'
+        emptyMessage='No users found matching your criteria. Try adjusting your search or filters.'
         onRowClick={handleRowClick}
         currentPage={page}
         totalPages={totalPages}
@@ -675,6 +700,8 @@ const Users: React.FC = () => {
         }
         isLoading={bulkUpdateUsers.isPending || deleteUser.isPending}
         resultSummary={bulkResult}
+        failedIds={bulkFailedIds}
+        onRetryFailed={handleBulkRetryFailed}
         onRetry={handleBulkRetry}
       />
 

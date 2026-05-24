@@ -313,17 +313,25 @@ describe('ApplicationReview - ADS-579 rejection confirmation', () => {
     expect(onStatusUpdate).not.toHaveBeenCalled();
   });
 
-  it('approving an application bypasses the confirmation dialog', async () => {
+  it('shows a confirmation dialog before approving and proceeds only on confirm', async () => {
     const { onStatusUpdate } = renderReview();
 
     openStatusPanelAndSelect('approved');
     clickUpdate();
 
+    // Confirmation dialog is visible for approval.
+    const dialog = await screen.findByTestId('reject-confirm-dialog');
+    expect(dialog).toHaveTextContent(/approve this application/i);
+
+    // Backend not yet called.
+    expect(onStatusUpdate).not.toHaveBeenCalled();
+
+    // Confirm.
+    fireEvent.click(screen.getByRole('button', { name: /approve application/i }));
+
     await waitFor(() => {
       expect(onStatusUpdate).toHaveBeenCalledWith('approved', '');
     });
-    // No confirm dialog opened.
-    expect(screen.queryByTestId('reject-confirm-dialog')).not.toBeInTheDocument();
   });
 });
 

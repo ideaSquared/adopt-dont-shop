@@ -2,6 +2,7 @@ import { DataTypes, Model, Op, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
+import { ApiError } from '../middleware/error-handler';
 
 // Simple application status enum for small charities
 export enum ApplicationStatus {
@@ -345,11 +346,11 @@ Application.init(
           }>
         ) {
           if (!Array.isArray(value)) {
-            throw new Error('Documents must be an array');
+            throw new ApiError(400, 'Documents must be an array');
           }
           value.forEach(doc => {
             if (!doc.document_id || !doc.document_type || !doc.file_name || !doc.file_url) {
-              throw new Error('Each document must have required fields');
+              throw new ApiError(400, 'Each document must have required fields');
             }
           });
         },
@@ -556,12 +557,16 @@ Application.init(
           Boolean(application.rescueId);
         if (isRealApplicationRow && application.status === ApplicationStatus.SUBMITTED) {
           if (application.requiresCoppaConsent && !application.parentalConsentGivenAt) {
-            throw new Error(
+            throw new ApiError(
+              400,
               'Parental consent is required for households containing children under 13'
             );
           }
           if (!application.referencesConsented) {
-            throw new Error('You must confirm that your references have consented to be contacted');
+            throw new ApiError(
+              400,
+              'You must confirm that your references have consented to be contacted'
+            );
           }
         }
       },
@@ -603,7 +608,8 @@ Application.init(
           return;
         }
         if (!isValidTransition(previousStatus, newStatus)) {
-          throw new Error(
+          throw new ApiError(
+            400,
             `Invalid application status transition: ${previousStatus} -> ${newStatus}`
           );
         }

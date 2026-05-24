@@ -6,6 +6,7 @@ import SupportTicket, {
   TicketCategory,
 } from '../models/SupportTicket';
 import { logger } from '../utils/logger';
+import { ApiError } from '../middleware/error-handler';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/api';
 
@@ -212,15 +213,15 @@ export class SupportTicketController {
       });
     } catch (error: unknown) {
       logger.error('Error in getTicketById:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
           success: false,
-          error: 'Ticket not found',
+          error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: 'Failed to fetch support ticket',
+          error: 'Internal server error',
         });
       }
     }
@@ -286,15 +287,15 @@ export class SupportTicketController {
       });
     } catch (error: unknown) {
       logger.error('Error in updateTicket:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
           success: false,
-          error: 'Ticket not found',
+          error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: 'Failed to update support ticket',
+          error: 'Internal server error',
         });
       }
     }
@@ -325,15 +326,15 @@ export class SupportTicketController {
       });
     } catch (error: unknown) {
       logger.error('Error in assignTicket:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
           success: false,
-          error: 'Ticket not found',
+          error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: 'Failed to assign ticket',
+          error: 'Internal server error',
         });
       }
     }
@@ -371,15 +372,15 @@ export class SupportTicketController {
       });
     } catch (error: unknown) {
       logger.error('Error in addResponse:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
           success: false,
-          error: 'Ticket not found',
+          error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: 'Failed to add response',
+          error: 'Internal server error',
         });
       }
     }
@@ -410,15 +411,15 @@ export class SupportTicketController {
       });
     } catch (error: unknown) {
       logger.error('Error in escalateTicket:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
           success: false,
-          error: 'Ticket not found',
+          error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: 'Failed to escalate ticket',
+          error: 'Internal server error',
         });
       }
     }
@@ -443,15 +444,15 @@ export class SupportTicketController {
       });
     } catch (error: unknown) {
       logger.error('Error in getTicketMessages:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
           success: false,
-          error: 'Ticket not found',
+          error: error.message,
         });
       } else {
         res.status(500).json({
           success: false,
-          error: 'Failed to fetch ticket messages',
+          error: 'Internal server error',
         });
       }
     }

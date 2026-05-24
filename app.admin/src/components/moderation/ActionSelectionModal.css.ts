@@ -84,6 +84,16 @@ export const reportText = style({
   color: '#111827',
 });
 
+export const inlineError = style({
+  background: '#fee2e2',
+  border: '1px solid #fecaca',
+  borderRadius: '8px',
+  padding: '0.75rem 1rem',
+  color: '#991b1b',
+  fontSize: '0.875rem',
+  marginBottom: '1.5rem',
+});
+
 export const formGroup = style({
   marginBottom: '1.5rem',
 });

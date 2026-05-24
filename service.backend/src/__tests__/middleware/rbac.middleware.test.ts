@@ -162,9 +162,9 @@ describe('RBAC Middleware', () => {
         const middleware = requireRole(UserType.ADMIN);
         middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
-        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
-          error: 'Authorization error',
+          error: 'Authorization check failed',
         });
         expect(logger.error).toHaveBeenCalledWith('RBAC middleware error:', expect.any(Error));
       });
@@ -676,9 +676,9 @@ describe('RBAC Middleware', () => {
         const middleware = requireOwnershipOrAdmin(getOwnerWithError);
         middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
 
-        expect(mockResponse.status).toHaveBeenCalledWith(500);
+        expect(mockResponse.status).toHaveBeenCalledWith(403);
         expect(mockResponse.json).toHaveBeenCalledWith({
-          error: 'Authorization error',
+          error: 'Authorization check failed',
         });
         expect(logger.error).toHaveBeenCalledWith('Ownership middleware error:', expect.any(Error));
       });

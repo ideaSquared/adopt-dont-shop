@@ -9,7 +9,13 @@ import Pet from '../models/Pet';
 import Rescue from '../models/Rescue';
 import sequelize from '../sequelize';
 import logger from '../utils/logger';
-import { ApiError } from '../middleware/error-handler';
+import {
+  ApiError,
+  NotFoundError,
+  ConflictError,
+  BadRequestError,
+  ForbiddenError,
+} from '../middleware/error-handler';
 import { NotificationType } from '../models/Notification';
 import { AuditLogService } from './auditLog.service';
 import { NotificationService } from './notification.service';
@@ -113,7 +119,7 @@ class ModerationService {
       });
 
       if (existingReport) {
-        throw new Error('You have already submitted a report for this content');
+        throw new ConflictError('You have already submitted a report for this content');
       }
 
       // Evidence rows live in moderation_evidence (plan 2.1) — pull
@@ -349,11 +355,11 @@ class ModerationService {
     try {
       const report = await Report.findByPk(reportId, { transaction });
       if (!report) {
-        throw new Error('Report not found');
+        throw new NotFoundError('Report not found');
       }
 
       if (report.status !== ReportStatus.PENDING) {
-        throw new Error('Report cannot be assigned in its current status');
+        throw new ConflictError('Report cannot be assigned in its current status');
       }
 
       const previousStatus = report.status;
@@ -544,11 +550,11 @@ class ModerationService {
     try {
       const action = await ModeratorAction.findByPk(actionId, { transaction });
       if (!action) {
-        throw new Error('Moderation action not found');
+        throw new NotFoundError('Moderation action not found');
       }
 
       if (!action.canBeReversed()) {
-        throw new Error('This action cannot be reversed');
+        throw new ConflictError('This action cannot be reversed');
       }
 
       await action.update(
@@ -755,11 +761,11 @@ class ModerationService {
     try {
       const report = await Report.findByPk(reportId, { transaction });
       if (!report) {
-        throw new Error('Report not found');
+        throw new NotFoundError('Report not found');
       }
 
       if (![ReportStatus.PENDING, ReportStatus.UNDER_REVIEW].includes(report.status)) {
-        throw new Error('Report cannot be escalated in its current status');
+        throw new ConflictError('Report cannot be escalated in its current status');
       }
 
       const previousStatus = report.status;
@@ -832,7 +838,7 @@ class ModerationService {
     } = options;
 
     if (!reportIds || reportIds.length === 0) {
-      throw new Error('Report IDs are required');
+      throw new BadRequestError('Report IDs are required');
     }
 
     const transaction = await sequelize.transaction();
@@ -852,7 +858,7 @@ class ModerationService {
       for (const reportId of reportIds) {
         const report = await Report.findByPk(reportId, { transaction });
         if (!report) {
-          throw new Error(`Report ${reportId} not found`);
+          throw new NotFoundError(`Report ${reportId} not found`);
         }
 
         const previousStatus = report.status;
@@ -922,7 +928,7 @@ class ModerationService {
 
           case 'assign':
             if (!assignTo) {
-              throw new Error('assignTo is required for assign action');
+              throw new BadRequestError('assignTo is required for assign action');
             }
             if (report.status === ReportStatus.PENDING) {
               await report.update(
@@ -949,7 +955,7 @@ class ModerationService {
 
           case 'escalate':
             if (!escalateTo) {
-              throw new Error('escalateTo is required for escalate action');
+              throw new BadRequestError('escalateTo is required for escalate action');
             }
             if ([ReportStatus.PENDING, ReportStatus.UNDER_REVIEW].includes(report.status)) {
               await report.update(

@@ -34,6 +34,7 @@ const FosterCoordination: React.FC = () => {
 
   const [pets, setPets] = useState<Pet[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [petSearch, setPetSearch] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -54,17 +55,33 @@ const FosterCoordination: React.FC = () => {
     load();
   }, [statusFilter]);
 
-  // Load pickers once we know the rescue. The list endpoint returns up to
-  // 20 pets per page; foster coordinators typically have a small handful of
-  // active pets, so the first page is sufficient for the picker.
+  // Load pickers once we know the rescue. Fetch all pages so the pet
+  // picker isn't limited to the first 20 results.
   useEffect(() => {
     if (!rescueId) {
       return;
     }
-    petService
-      .getPetsByRescue(rescueId)
-      .then(res => setPets(res.data))
-      .catch(() => setPets([]));
+    const loadAllPets = async () => {
+      try {
+        const first = await petService.getPetsByRescue(rescueId, 1);
+        let allPets = [...first.data];
+        const totalPages = first.pagination.totalPages;
+        if (totalPages > 1) {
+          const remaining = await Promise.all(
+            Array.from({ length: totalPages - 1 }, (_, i) =>
+              petService.getPetsByRescue(rescueId, i + 2)
+            )
+          );
+          for (const page of remaining) {
+            allPets = [...allPets, ...page.data];
+          }
+        }
+        setPets(allPets);
+      } catch {
+        setPets([]);
+      }
+    };
+    loadAllPets();
     staffService
       .getRescueStaff()
       .then(setStaff)
@@ -87,6 +104,7 @@ const FosterCoordination: React.FC = () => {
       });
       setShowCreate(false);
       setForm({ petId: '', fosterUserId: '', startDate: '', notes: '' });
+      setPetSearch('');
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create placement');
@@ -133,6 +151,16 @@ const FosterCoordination: React.FC = () => {
     () => (petIdFilter ? placements.filter(p => p.petId === petIdFilter) : placements),
     [placements, petIdFilter]
   );
+
+  const filteredPets = useMemo(() => {
+    if (!petSearch.trim()) {
+      return pets;
+    }
+    const q = petSearch.toLowerCase();
+    return pets.filter(
+      p => p.name?.toLowerCase().includes(q) || p.breed?.toLowerCase().includes(q)
+    );
+  }, [pets, petSearch]);
 
   const staffLabel = (id: string): string => {
     const match = staff.find(s => s.userId === id);
@@ -220,14 +248,27 @@ const FosterCoordination: React.FC = () => {
         <form onSubmit={handleCreate} className={styles.modalForm}>
           <label>
             Pet
+            <input
+              type="text"
+              placeholder="Search pets by name or breed..."
+              value={petSearch}
+              onChange={e => setPetSearch(e.target.value)}
+              style={{ width: '100%', marginBottom: '0.25rem', padding: '0.375rem' }}
+            />
             <select
               value={form.petId}
               onChange={e => setForm({ ...form, petId: e.target.value })}
               required
               aria-required={true}
             >
-              <option value="">— Select a pet —</option>
-              {pets.map(pet => (
+              <option value="">
+                {pets.length === 0
+                  ? 'Loading pets...'
+                  : filteredPets.length === 0
+                    ? 'No pets match your search'
+                    : `Select a pet (${filteredPets.length} of ${pets.length})`}
+              </option>
+              {filteredPets.map(pet => (
                 <option key={pet.pet_id} value={pet.pet_id}>
                   {pet.name} {pet.breed ? `(${pet.breed})` : ''}
                 </option>

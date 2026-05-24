@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { FileUploadService, sanitizeDisplayFilename } from '../services/file-upload.service';
+import { ApiError } from '../middleware/error-handler';
 import { AuthenticatedRequest } from '../types/api';
 import { logger } from '../utils/logger';
 
@@ -55,7 +56,12 @@ export class UploadController {
         userId,
         error: error instanceof Error ? error.message : String(error),
       });
-      return res.status(500).json({ error: 'Failed to store uploaded file' });
+
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
+
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 }

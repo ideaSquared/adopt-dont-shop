@@ -378,7 +378,11 @@ describe('User Management page', () => {
     it('shows an empty message when no users match', () => {
       setupSuccessfulLoad([]);
       renderWithProviders(<Users />);
-      expect(screen.getByText('No users found matching your criteria')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'No users found matching your criteria. Try adjusting your search or filters.'
+        )
+      ).toBeInTheDocument();
     });
   });
 

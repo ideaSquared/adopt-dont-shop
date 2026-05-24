@@ -619,14 +619,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                 <span className='label'>Gender</span>
                 <span className='value'>{pet.gender}</span>
               </div>
-              {pet.location && (
+              {pet.rescue?.location && (
                 <div className='info-item'>
                   <span className='label'>Location</span>
-                  <span className='value'>
-                    {pet.location.coordinates
-                      ? `${pet.location.coordinates[1]}, ${pet.location.coordinates[0]}`
-                      : 'Not specified'}
-                  </span>
+                  <span className='value'>{pet.rescue.location}</span>
                 </div>
               )}
             </div>

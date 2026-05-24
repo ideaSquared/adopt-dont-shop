@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@adopt-dont-shop/lib.components';
 import * as styles from './PetFilters.css';
 
@@ -14,15 +14,57 @@ interface PetFiltersProps {
   };
   onFilterChange: (key: string, value: string) => void;
   onClearFilters: () => void;
-  onApplyFilters: () => void;
 }
 
-const PetFilters: React.FC<PetFiltersProps> = ({
-  filters,
-  onFilterChange,
-  onClearFilters,
-  onApplyFilters,
-}) => {
+const DEBOUNCE_MS = 300;
+
+const PetFilters: React.FC<PetFiltersProps> = ({ filters, onFilterChange, onClearFilters }) => {
+  // Local state for text inputs so we can debounce them
+  const [localSearch, setLocalSearch] = useState(filters.search);
+  const [localBreed, setLocalBreed] = useState(filters.breed);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const breedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync local state when filters are cleared externally
+  useEffect(() => {
+    setLocalSearch(filters.search);
+  }, [filters.search]);
+
+  useEffect(() => {
+    setLocalBreed(filters.breed);
+  }, [filters.breed]);
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearch(value);
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+    searchTimerRef.current = setTimeout(() => {
+      onFilterChange('search', value);
+    }, DEBOUNCE_MS);
+  };
+
+  const handleBreedChange = (value: string) => {
+    setLocalBreed(value);
+    if (breedTimerRef.current) {
+      clearTimeout(breedTimerRef.current);
+    }
+    breedTimerRef.current = setTimeout(() => {
+      onFilterChange('breed', value);
+    }, DEBOUNCE_MS);
+  };
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+      if (breedTimerRef.current) {
+        clearTimeout(breedTimerRef.current);
+      }
+    };
+  }, []);
   return (
     <div className={styles.filtersContainer}>
       <div className={styles.filtersHeader}>
@@ -38,8 +80,8 @@ const PetFilters: React.FC<PetFiltersProps> = ({
             id="search"
             type="text"
             placeholder="Pet name, breed, or ID..."
-            value={filters.search}
-            onChange={e => onFilterChange('search', e.target.value)}
+            value={localSearch}
+            onChange={e => handleSearchChange(e.target.value)}
           />
         </div>
 
@@ -106,8 +148,8 @@ const PetFilters: React.FC<PetFiltersProps> = ({
             id="breed"
             type="text"
             placeholder="Enter breed..."
-            value={filters.breed}
-            onChange={e => onFilterChange('breed', e.target.value)}
+            value={localBreed}
+            onChange={e => handleBreedChange(e.target.value)}
           />
         </div>
 
@@ -146,9 +188,6 @@ const PetFilters: React.FC<PetFiltersProps> = ({
       <div className={styles.filterActions}>
         <Button variant="outline" onClick={onClearFilters}>
           Clear Filters
-        </Button>
-        <Button variant="primary" onClick={onApplyFilters}>
-          Apply Filters
         </Button>
       </div>
     </div>

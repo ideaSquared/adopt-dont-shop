@@ -8,6 +8,7 @@ import { FileUploadService, sanitizeDisplayFilename } from '../services/file-upl
 import { broadcastNewMessage, isUserOnline } from '../socket/socket-handlers';
 import { ChatMessage } from '../types/chat';
 import { isAdminRole } from '../utils/is-admin-role';
+import { ApiError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuthenticatedRequest } from '../types/auth';
 
@@ -388,16 +389,11 @@ export class ChatController {
         data: transformedChat,
       });
     } catch (error) {
-      logger.error('Error getting chat:', error);
-      if (error instanceof Error && error.message === 'Chat not found') {
-        return res.status(404).json({
-          error: 'Chat not found',
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-      res.status(500).json({
-        error: 'Failed to get chat',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error('Error getting chat:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -635,17 +631,11 @@ export class ChatController {
         message: 'Message sent successfully',
       });
     } catch (error) {
-      logger.error('Error sending message:', error);
-      if (error instanceof Error && error.message === 'User is not a participant in this chat') {
-        return res.status(403).json({
-          error: 'Access denied',
-          message: error.message,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-      res.status(500).json({
-        error: 'Failed to send message',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error('Error sending message:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -701,21 +691,11 @@ export class ChatController {
         },
       });
     } catch (error) {
-      logger.error('Error getting messages:', {
-        error: error instanceof Error ? error.message : String(error),
-        chatId: req.params.chatId,
-        duration: Date.now() - startTime,
-      });
-      if (error instanceof Error && error.message === 'User is not a participant in this chat') {
-        return res.status(403).json({
-          error: 'Access denied',
-          message: error.message,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-      res.status(500).json({
-        error: 'Failed to get messages',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error('Error getting messages:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -751,17 +731,11 @@ export class ChatController {
         data: { unreadCount: count },
       });
     } catch (error) {
-      logger.error('Error getting unread count:', error);
-      if (error instanceof Error && error.message === 'User is not a participant in this chat') {
-        return res.status(403).json({
-          error: 'Access denied',
-          message: error.message,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-      res.status(500).json({
-        error: 'Failed to get unread count',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error('Error getting unread count:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -794,17 +768,11 @@ export class ChatController {
         message: 'Participant added successfully',
       });
     } catch (error) {
-      logger.error('Error adding participant:', error);
-      if (error instanceof Error && error.message === 'Only chat admins can add participants') {
-        return res.status(403).json({
-          error: 'Access denied',
-          message: error.message,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-      res.status(500).json({
-        error: 'Failed to add participant',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error('Error adding participant:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -823,20 +791,11 @@ export class ChatController {
         message: 'Participant removed successfully',
       });
     } catch (error) {
-      logger.error('Error removing participant:', error);
-      if (
-        error instanceof Error &&
-        error.message === 'Only chat admins can remove other participants'
-      ) {
-        return res.status(403).json({
-          error: 'Access denied',
-          message: error.message,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-      res.status(500).json({
-        error: 'Failed to remove participant',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error('Error removing participant:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -875,17 +834,11 @@ export class ChatController {
         message: 'Chat deleted successfully',
       });
     } catch (error) {
-      logger.error('Error deleting chat:', error);
-      if (error instanceof Error && error.message === 'Only chat admins can delete chats') {
-        return res.status(403).json({
-          error: 'Access denied',
-          message: error.message,
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-      res.status(500).json({
-        error: 'Failed to delete chat',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error('Error deleting chat:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -905,16 +858,11 @@ export class ChatController {
         message: 'Message deleted successfully',
       });
     } catch (error) {
-      logger.error('Error deleting message:', error);
-      if (error instanceof Error && error.message === 'Message not found') {
-        return res.status(404).json({
-          error: 'Message not found',
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-      res.status(500).json({
-        error: 'Failed to delete message',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error('Error deleting message:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -942,22 +890,11 @@ export class ChatController {
         message: 'Reaction added successfully',
       });
     } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
       logger.error('Error adding reaction:', error);
-      if (error instanceof Error && error.message === 'Message not found') {
-        return res.status(404).json({
-          error: 'Message not found',
-        });
-      }
-      if (error instanceof Error && error.message === 'User is not a participant in this chat') {
-        return res.status(403).json({
-          error: 'Access denied',
-          message: error.message,
-        });
-      }
-      res.status(500).json({
-        error: 'Failed to add reaction',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -985,16 +922,11 @@ export class ChatController {
         message: 'Reaction removed successfully',
       });
     } catch (error) {
-      logger.error('Error removing reaction:', error);
-      if (error instanceof Error && error.message === 'Message not found') {
-        return res.status(404).json({
-          error: 'Message not found',
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
-      res.status(500).json({
-        error: 'Failed to remove reaction',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      logger.error('Error removing reaction:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 

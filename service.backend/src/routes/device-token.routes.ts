@@ -1,9 +1,8 @@
-import { Router, Response } from 'express';
-import { body, param, validationResult } from 'express-validator';
-import DeviceToken, { DevicePlatform, TokenStatus } from '../models/DeviceToken';
+import { Router } from 'express';
+import { body, param } from 'express-validator';
+import { DevicePlatform } from '../models/DeviceToken';
 import { authenticateToken } from '../middleware/auth';
-import { AuthenticatedRequest } from '../types/auth';
-import { logger } from '../utils/logger';
+import { DeviceTokenController } from '../controllers/device-token.controller';
 
 const router = Router();
 
@@ -21,100 +20,15 @@ router.post(
     body('appVersion').optional().isString().isLength({ max: 50 }),
     body('deviceInfo').optional().isObject(),
   ],
-  async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    try {
-      const { token, platform, appVersion, deviceInfo } = req.body;
-
-      const [device] = await DeviceToken.findOrCreate({
-        where: { user_id: req.user.userId, device_token: token },
-        defaults: {
-          user_id: req.user.userId,
-          device_token: token,
-          platform,
-          app_version: appVersion ?? null,
-          device_info: deviceInfo ?? {},
-          status: TokenStatus.ACTIVE,
-        },
-      });
-
-      // Defense-in-depth (ADS-611): on re-registration of an EXISTING
-      // token, only bump last-used. Do NOT overwrite platform /
-      // app_version / device_info from the request payload — those
-      // fields are device-fingerprint inputs and any future fraud/
-      // trust-risk scoring must see the original values, not whatever
-      // the latest caller submitted. New tokens get full metadata via
-      // `defaults` above on creation only.
-      device.markAsUsed();
-      await device.save();
-
-      return res.status(201).json({ data: { tokenId: device.token_id } });
-    } catch (error) {
-      logger.error('Failed to register device token', { error });
-      return res.status(500).json({ error: 'Failed to register device token' });
-    }
-  }
+  DeviceTokenController.registerToken
 );
 
-router.get('/', async (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  try {
-    const tokens = await DeviceToken.findAll({
-      where: { user_id: req.user.userId },
-      order: [['last_used_at', 'DESC']],
-    });
-    return res.json({
-      data: tokens.map(t => ({
-        tokenId: t.token_id,
-        platform: t.platform,
-        appVersion: t.app_version,
-        status: t.status,
-        lastUsedAt: t.last_used_at,
-        expiresAt: t.expires_at,
-        createdAt: t.created_at,
-      })),
-    });
-  } catch (error) {
-    logger.error('Failed to list device tokens', { error });
-    return res.status(500).json({ error: 'Failed to list device tokens' });
-  }
-});
+router.get('/', DeviceTokenController.listTokens);
 
 router.delete(
   '/:tokenId',
   [param('tokenId').isUUID().withMessage('tokenId must be a UUID')],
-  async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    try {
-      const device = await DeviceToken.findOne({
-        where: { token_id: req.params.tokenId, user_id: req.user.userId },
-      });
-      if (!device) {
-        return res.status(404).json({ error: 'Device token not found' });
-      }
-      await device.destroy();
-      return res.status(204).send();
-    } catch (error) {
-      logger.error('Failed to delete device token', { error });
-      return res.status(500).json({ error: 'Failed to delete device token' });
-    }
-  }
+  DeviceTokenController.deleteToken
 );
 
 export default router;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useApplications, useApplicationDetails } from '../hooks/useApplications';
 import ApplicationList from '../components/applications/ApplicationList';
 import ApplicationReview from '../components/applications/ApplicationReview';
@@ -13,6 +13,7 @@ const Applications: React.FC = () => {
   // ADS-644: when deep-linked from a pet card or foster row, scope the
   // application list to that pet via the existing petId filter.
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialPetId = searchParams.get('petId');
   const [selectedApplication, setSelectedApplication] = useState<ApplicationListItem | null>(null);
   // ADS-642: selection is stored as a map of id → application snapshot
@@ -95,6 +96,22 @@ const Applications: React.FC = () => {
     }
   };
 
+  // Derive the filtered pet name when a petId filter is active.
+  const filteredPetName = useMemo(() => {
+    if (!filter.petId) {
+      return null;
+    }
+    const match = applications.find(a => a.petId === filter.petId);
+    return match?.petName ?? filter.petId;
+  }, [filter.petId, applications]);
+
+  const clearPetFilter = () => {
+    const { petId: _removed, ...rest } = filter;
+    updateFilter(rest);
+    // Remove the petId from the URL without a full navigation
+    navigate('/applications', { replace: true });
+  };
+
   // ADS-642: derive the Set passed to ApplicationList from the
   // selection map. The list only owns the id-level toggles; this page
   // tracks the full snapshot so the BulkActionBar can compute
@@ -167,6 +184,43 @@ const Applications: React.FC = () => {
         <p>Review and process adoption applications.</p>
       </div>
 
+      {filteredPetName && (
+        <div
+          data-testid="pet-filter-banner"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: '0.5rem',
+            marginBottom: '1rem',
+            fontSize: '0.875rem',
+            color: '#1e40af',
+          }}
+        >
+          <span>
+            Filtered by: <strong>{filteredPetName}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={clearPetFilter}
+            style={{
+              background: 'none',
+              border: '1px solid #93c5fd',
+              borderRadius: '0.25rem',
+              cursor: 'pointer',
+              padding: '0.25rem 0.5rem',
+              fontSize: '0.75rem',
+              color: '#1e40af',
+            }}
+          >
+            Clear filter
+          </button>
+        </div>
+      )}
+
       <StageCountSummary applications={applications} />
 
       <BulkActionBar
@@ -178,6 +232,7 @@ const Applications: React.FC = () => {
         busy={bulkBusy}
         resultSummary={bulkResult}
         onBulkAction={handleBulkAction}
+        onResultDismiss={() => setBulkResult(null)}
       />
 
       {/* Applications List */}
