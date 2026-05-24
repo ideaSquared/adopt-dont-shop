@@ -1,4 +1,5 @@
 import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { ApplicationCardSkeletonList } from '@/components/skeletons';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
@@ -125,9 +126,10 @@ export const ApplicationDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className={styles.container}>
-        <div className={styles.loadingState}>
-          <div>Loading your applications...</div>
+        <div className={styles.header}>
+          <h1 className={styles.title}>My Applications</h1>
         </div>
+        <ApplicationCardSkeletonList count={3} />
       </div>
     );
   }
