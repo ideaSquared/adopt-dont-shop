@@ -264,10 +264,6 @@ const PetManagement: React.FC = () => {
     }
   };
 
-  const handleSearch = (searchTerm: string) => {
-    setFilterParam('search', searchTerm);
-  };
-
   const handleToggleSelectPet = (petId: string) => {
     setSelectedPetIds(prev => {
       const next = new Set(prev);
