@@ -13,6 +13,7 @@ export type {
 } from '../schemas';
 
 import type { ReconnectionConfig } from '../schemas';
+import type { ServiceConfig, ServiceOptions } from '@adopt-dont-shop/lib.types';
 
 // QueuedMessage contains File[] (browser API) which cannot be represented in Zod
 export type QueuedMessage = {
@@ -23,10 +24,8 @@ export type QueuedMessage = {
   retryCount: number;
 };
 
-export type ChatServiceConfig = {
-  apiUrl?: string;
+export type ChatServiceConfig = Omit<ServiceConfig, 'headers'> & {
   socketUrl?: string;
-  debug?: boolean;
   headers?: Record<string, string | (() => string) | { Authorization?: string }>;
   reconnection?: Partial<ReconnectionConfig>;
   enableMessageQueue?: boolean;
@@ -41,11 +40,7 @@ export type ChatServiceConfig = {
   csrfToken?: () => Promise<string | null>;
 };
 
-export type ChatServiceOptions = {
-  timeout?: number;
-  useCache?: boolean;
-  metadata?: Record<string, unknown>;
-};
+export type ChatServiceOptions = ServiceOptions;
 
 // ADS-262: response envelopes are owned by @adopt-dont-shop/lib.types.
 export type { BaseResponse, ErrorResponse, PaginatedResponse } from '@adopt-dont-shop/lib.types';

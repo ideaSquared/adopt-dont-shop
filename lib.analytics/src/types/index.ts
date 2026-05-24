@@ -1,22 +1,9 @@
+import type { ServiceConfig } from '@adopt-dont-shop/lib.types';
+
 /**
  * Configuration options for AnalyticsService
  */
-export interface AnalyticsServiceConfig {
-  /**
-   * API base URL
-   */
-  apiUrl?: string;
-
-  /**
-   * Enable debug logging
-   */
-  debug?: boolean;
-
-  /**
-   * Custom headers to include with requests
-   */
-  headers?: Record<string, string>;
-
+export type AnalyticsServiceConfig = ServiceConfig & {
   /**
    * Analytics provider configuration
    */
@@ -41,7 +28,7 @@ export interface AnalyticsServiceConfig {
    * Sample rate for events (0-100)
    */
   sampleRate?: number;
-}
+};
 
 /**
  * User engagement event tracking

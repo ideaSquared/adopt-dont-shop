@@ -34,14 +34,11 @@ export type Pet = {
   status?: string;
 };
 
-export type RescueServiceConfig = {
-  apiUrl?: string;
-  debug?: boolean;
-  headers?: Record<string, string>;
-};
+import type { ServiceConfig, ServiceOptions } from '@adopt-dont-shop/lib.types';
 
-export type RescueServiceOptions = {
-  timeout?: number;
+export type RescueServiceConfig = ServiceConfig;
+
+export type RescueServiceOptions = ServiceOptions & {
   headers?: Record<string, string>;
   retry?: boolean;
 };

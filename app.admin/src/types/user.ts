@@ -1,7 +1,8 @@
 // User type definitions matching the backend API structure
-import type { UserRole } from '@adopt-dont-shop/lib.types';
+import type { UserRole, UserStatus as LibUserStatus } from '@adopt-dont-shop/lib.types';
 
 export type UserType = UserRole;
+export type UserStatus = LibUserStatus;
 
 export const ADMIN_USER_TYPES: readonly UserType[] = [
   'admin',
@@ -9,13 +10,6 @@ export const ADMIN_USER_TYPES: readonly UserType[] = [
   'super_admin',
   'support_agent',
 ];
-
-export type UserStatus =
-  | 'active'
-  | 'inactive'
-  | 'suspended'
-  | 'pending_verification'
-  | 'deactivated';
 
 export interface User {
   userId: string;

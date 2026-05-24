@@ -1,27 +1,12 @@
-/**
- * Utility functions for formatting and handling application statuses
- * Simplified for small charities with 4-status workflow
- */
+import {
+  applicationStatusLabel,
+  type ApplicationStatus,
+  APPLICATION_STATUSES,
+} from '@adopt-dont-shop/lib.types';
 
-import { applicationStatusLabel, type ApplicationStatusValue } from '@adopt-dont-shop/lib.types';
-
-export type ApplicationStatus = ApplicationStatusValue;
-
-const APPLICATION_STATUSES: readonly ApplicationStatusValue[] = [
-  'submitted',
-  'approved',
-  'rejected',
-  'withdrawn',
-];
-
-const isApplicationStatus = (status: string): status is ApplicationStatusValue =>
+const isApplicationStatus = (status: string): status is ApplicationStatus =>
   (APPLICATION_STATUSES as readonly string[]).includes(status);
 
-/**
- * Formats an application status into a human-readable string. Delegates to the
- * shared label function for canonical statuses; falls back to title-cased value
- * for unknown inputs (e.g. legacy stage values).
- */
 export const formatStatusName = (status: string): string => {
   if (isApplicationStatus(status)) {
     return applicationStatusLabel(status);
@@ -32,11 +17,6 @@ export const formatStatusName = (status: string): string => {
     .join(' ');
 };
 
-/**
- * Gets the color variant for a status (useful for badges, buttons, etc.)
- * @param status - The status string
- * @returns Color variant string
- */
 export const getStatusColor = (
   status: string
 ): 'primary' | 'success' | 'warning' | 'danger' | 'secondary' => {
@@ -54,11 +34,6 @@ export const getStatusColor = (
   }
 };
 
-/**
- * Gets a brief description of what the status means
- * @param status - The status string
- * @returns Description string
- */
 export const getStatusDescription = (status: string): string => {
   const descriptions: Record<string, string> = {
     submitted: 'Application has been submitted for review',
@@ -70,21 +45,11 @@ export const getStatusDescription = (status: string): string => {
   return descriptions[status] || 'Status information not available';
 };
 
-/**
- * Checks if a status represents a completed/final state
- * @param status - The status string
- * @returns True if status is final
- */
 export const isFinalStatus = (status: string): boolean => {
   const finalStatuses = ['approved', 'rejected', 'withdrawn'];
   return finalStatuses.includes(status);
 };
 
-/**
- * Gets the priority level of a status (for sorting/display purposes)
- * @param status - The status string
- * @returns Priority number (lower = higher priority)
- */
 export const getStatusPriority = (status: string): number => {
   const priorities: Record<string, number> = {
     submitted: 1,

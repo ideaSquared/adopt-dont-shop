@@ -1,39 +1,21 @@
 import { z } from 'zod';
-import type { ApplicationId, PetId } from '@adopt-dont-shop/lib.types';
+import {
+  APPLICATION_STATUSES,
+  APPLICATION_STAGES,
+  APPLICATION_PRIORITIES,
+  type ApplicationId,
+  type PetId,
+} from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
 import { BulkOperationFailedIdsSchema } from './bulk-response';
 
-/**
- * Canonical Zod schemas for the Application domain.
- *
- * Final entity in the Phase 3 Zod rollout. Same role as
- * schemas/user.ts, schemas/pet.ts, and schemas/rescue.ts: one source
- * of truth for Application-shaped data, used by service.backend
- * request validation and (over time) the application-related forms in
- * app.client / app.rescue.
- *
- * Values mirror the enums and validators in
- * service.backend/src/models/Application.ts and the express-validator
- * chains in service.backend/src/controllers/application.controller.ts.
- */
-
 // ----- Enums --------------------------------------------------------------
 
-export const ApplicationStatusSchema = z.enum(['submitted', 'approved', 'rejected', 'withdrawn']);
-export type ApplicationStatusValue = z.infer<typeof ApplicationStatusSchema>;
+export const ApplicationStatusSchema = z.enum(APPLICATION_STATUSES);
 
-export const ApplicationPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
-export type ApplicationPriorityValue = z.infer<typeof ApplicationPrioritySchema>;
+export const ApplicationPrioritySchema = z.enum(APPLICATION_PRIORITIES);
 
-export const ApplicationStageSchema = z.enum([
-  'pending',
-  'reviewing',
-  'visiting',
-  'deciding',
-  'resolved',
-  'withdrawn',
-]);
-export type ApplicationStageValue = z.infer<typeof ApplicationStageSchema>;
+export const ApplicationStageSchema = z.enum(APPLICATION_STAGES);
 
 export const ApplicationOutcomeSchema = z.enum(['approved', 'rejected', 'withdrawn']);
 export type ApplicationOutcomeValue = z.infer<typeof ApplicationOutcomeSchema>;

@@ -13,8 +13,6 @@ export type {
 // ADS-262: response envelopes are owned by @adopt-dont-shop/lib.types.
 export type { PaginatedResponse } from '@adopt-dont-shop/lib.types';
 
-export type PetsServiceConfig = {
-  apiUrl?: string;
-  debug?: boolean;
-  headers?: Record<string, string>;
-};
+import type { ServiceConfig } from '@adopt-dont-shop/lib.types';
+
+export type PetsServiceConfig = ServiceConfig;

@@ -1,24 +1,17 @@
 import { z } from 'zod';
+import {
+  APPLICATION_STATUSES,
+  APPLICATION_STAGES,
+  APPLICATION_PRIORITIES,
+} from '@adopt-dont-shop/lib.types';
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
-export const ApplicationStatusSchema = z.enum(['submitted', 'approved', 'rejected', 'withdrawn']);
+export const ApplicationStatusSchema = z.enum(APPLICATION_STATUSES);
 
-// ADS C4 (follow-up to PR #676): the backend tracks an in-progress workflow
-// `stage` alongside the terminal `status`. Adopter-facing clients need this
-// to differentiate a freshly submitted application from one that is e.g.
-// awaiting a home visit. Values mirror service.backend's ApplicationStage
-// enum (src/models/Application.ts).
-export const ApplicationStageSchema = z.enum([
-  'pending',
-  'reviewing',
-  'visiting',
-  'deciding',
-  'resolved',
-  'withdrawn',
-]);
+export const ApplicationStageSchema = z.enum(APPLICATION_STAGES);
 
-export const ApplicationPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
+export const ApplicationPrioritySchema = z.enum(APPLICATION_PRIORITIES);
 
 // ── ApplicationData sub-schemas ───────────────────────────────────────────────
 //
@@ -259,9 +252,11 @@ export const DocumentsResponseSchema = z.object({
 
 // ── Inferred types ─────────────────────────────────────────────────────────────
 
-export type ApplicationStatus = z.infer<typeof ApplicationStatusSchema>;
-export type ApplicationStage = z.infer<typeof ApplicationStageSchema>;
-export type ApplicationPriority = z.infer<typeof ApplicationPrioritySchema>;
+export type {
+  ApplicationStatus,
+  ApplicationStage,
+  ApplicationPriority,
+} from '@adopt-dont-shop/lib.types';
 export type PersonalInfo = z.infer<typeof PersonalInfoSchema>;
 export type LivingSituation = z.infer<typeof LivingSituationSchema>;
 export type PetExperience = z.infer<typeof PetExperienceSchema>;

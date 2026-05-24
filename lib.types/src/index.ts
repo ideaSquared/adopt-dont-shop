@@ -25,3 +25,9 @@ export * from './status-labels';
 
 // Notification enums and helpers (cross-cutting across all apps)
 export * from './types/notifications';
+
+// Domain status types (canonical value sets for all entities)
+export * from './types/domain-status';
+
+// Common utility types (sort, date range, service config)
+export * from './types/common';

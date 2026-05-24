@@ -15,6 +15,8 @@ export type {
   DiscoveryQueue,
 } from '@adopt-dont-shop/lib.discovery';
 export type { BaseResponse, PaginatedResponse } from '@adopt-dont-shop/lib.types';
+import type { RescueStatus } from '@adopt-dont-shop/lib.types';
+export type { RescueStatus } from '@adopt-dont-shop/lib.types';
 
 // Legacy interface for backward compatibility - maps new structure to old
 export type PetPhoto = {
@@ -59,7 +61,7 @@ export type Rescue = {
   contactTitle?: string;
   contactEmail?: string;
   contactPhone?: string;
-  status: 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
+  status: RescueStatus;
   verifiedAt?: string;
   verifiedBy?: string;
   settings?: {
