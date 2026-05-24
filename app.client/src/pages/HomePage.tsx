@@ -156,8 +156,8 @@ export const HomePage: React.FC = () => {
             <span className={styles.heroEyebrow}>Rescue pets, matched to you</span>
             <h1 className={styles.heroTitle}>Find Your Next Companion</h1>
             <p className={styles.heroSubtitle}>
-              Every pet deserves a loving home. Browse adoptable pets from verified rescues and start
-              your adoption journey.
+              Every pet deserves a loving home. Browse adoptable pets from verified rescues and
+              start your adoption journey.
             </p>
             <div className={styles.heroActions}>
               <Link to='/search' onClick={() => handleCTAClick('browse_pets')}>

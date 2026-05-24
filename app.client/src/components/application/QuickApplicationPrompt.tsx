@@ -31,8 +31,8 @@ export const QuickApplicationPrompt: React.FC<QuickApplicationPromptProps> = ({
 
       <div className={styles.promptContent}>
         <p className={styles.promptContentP}>
-          Your profile is {completionPercentage}% complete, so you can apply for {petName} in a
-          few clicks using your saved information.
+          Your profile is {completionPercentage}% complete, so you can apply for {petName} in a few
+          clicks using your saved information.
         </p>
 
         <div className={styles.benefits}>
