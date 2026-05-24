@@ -111,3 +111,81 @@ describe('BulkConfirmationModal — partial-failure retry (UX P2 D)', () => {
     expect(screen.queryByText(/Some items couldn't be updated/i)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Failed IDs display + retry-failed-only
+ *
+ * When the backend returns per-item failedIds, the modal shows a collapsible
+ * list and an optional "Retry failed only" button.
+ */
+describe('BulkConfirmationModal — failedIds display', () => {
+  it('renders a collapsible toggle showing the count of failed IDs', () => {
+    render(
+      <BulkConfirmationModal
+        {...defaultProps}
+        resultSummary={{ succeeded: 2, failed: 2 }}
+        failedIds={['user-1', 'user-2']}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /2 failed items/i })).toBeInTheDocument();
+  });
+
+  it('expands to show individual failed IDs when toggled', () => {
+    render(
+      <BulkConfirmationModal
+        {...defaultProps}
+        resultSummary={{ succeeded: 1, failed: 2 }}
+        failedIds={['user-abc', 'user-def']}
+      />
+    );
+
+    expect(screen.queryByText('user-abc')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /2 failed items/i }));
+
+    expect(screen.getByText('user-abc')).toBeInTheDocument();
+    expect(screen.getByText('user-def')).toBeInTheDocument();
+  });
+
+  it('does not show failed IDs section when failedIds is empty', () => {
+    render(
+      <BulkConfirmationModal
+        {...defaultProps}
+        resultSummary={{ succeeded: 3, failed: 0 }}
+        failedIds={[]}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: /failed item/i })).not.toBeInTheDocument();
+  });
+
+  it('renders a Retry failed only button when onRetryFailed and failedIds are provided', () => {
+    const onRetryFailed = vi.fn();
+    render(
+      <BulkConfirmationModal
+        {...defaultProps}
+        resultSummary={{ succeeded: 1, failed: 1 }}
+        failedIds={['user-1']}
+        onRetryFailed={onRetryFailed}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /retry failed only/i })).toBeInTheDocument();
+  });
+
+  it('invokes onRetryFailed when Retry failed only is clicked', () => {
+    const onRetryFailed = vi.fn();
+    render(
+      <BulkConfirmationModal
+        {...defaultProps}
+        resultSummary={{ succeeded: 1, failed: 1 }}
+        failedIds={['user-1']}
+        onRetryFailed={onRetryFailed}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /retry failed only/i }));
+    expect(onRetryFailed).toHaveBeenCalledTimes(1);
+  });
+});
