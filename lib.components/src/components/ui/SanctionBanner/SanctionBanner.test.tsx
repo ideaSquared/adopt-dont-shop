@@ -37,7 +37,7 @@ describe('SanctionBanner', () => {
       expect(screen.getAllByTestId('sanction-banner-item')).toHaveLength(2);
     });
     expect(screen.getByText('A moderator issued you a warning')).toBeInTheDocument();
-    expect(screen.getByText('Your account has been suspended')).toBeInTheDocument();
+    expect(screen.getByText('We suspended your account')).toBeInTheDocument();
     expect(screen.getByText('Repeated harassment')).toBeInTheDocument();
   });
 
@@ -72,7 +72,7 @@ describe('SanctionBanner', () => {
     await waitFor(() => {
       expect(screen.queryByText('A moderator issued you a warning')).not.toBeInTheDocument();
     });
-    expect(screen.getByText('Your account has been suspended')).toBeInTheDocument();
+    expect(screen.getByText('We suspended your account')).toBeInTheDocument();
   });
 
   it('refetches when the refreshKey prop changes', async () => {

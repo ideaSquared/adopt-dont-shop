@@ -37,9 +37,9 @@ export type SanctionBannerProps = {
 
 const TITLES: Record<string, string> = {
   warning_issued: 'A moderator issued you a warning',
-  user_suspended: 'Your account has been suspended',
-  user_banned: 'Your account has been banned',
-  account_restricted: 'Your account has been restricted',
+  user_suspended: 'We suspended your account',
+  user_banned: 'We banned your account',
+  account_restricted: 'We restricted your account',
 };
 
 const titleFor = (type: string): string =>
