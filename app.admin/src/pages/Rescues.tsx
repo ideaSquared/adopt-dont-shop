@@ -381,6 +381,8 @@ const Rescues: React.FC = () => {
           rescueId={selectedRescue.rescueId}
           onClose={handleModalClose}
           onUpdate={fetchRescues}
+          onApprove={handleApprove}
+          onReject={handleReject}
         />
       )}
 

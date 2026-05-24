@@ -498,6 +498,14 @@ export const skeletonName = style({
   marginBottom: '0.5rem',
 });
 
+export const modalFooter = style({
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: '0.75rem',
+  padding: '1.25rem 1.5rem',
+  borderTop: '1px solid #e5e7eb',
+});
+
 export const successMessage = style({
   padding: '0.75rem',
   marginBottom: '1rem',
