@@ -1,81 +1,42 @@
-// Type definitions for app.admin
+// Re-export auth types from the canonical shared library
+export type { LoginRequest, RegisterRequest, AuthResponse } from '@adopt-dont-shop/lib.auth';
+export type { BaseResponse, PaginatedResponse } from '@adopt-dont-shop/lib.types';
 
-// Basic API response types
-export interface ApiResponse<T> {
+// Re-export User types from user.ts (admin-specific shape with nullable fields)
+export type { User, AdminUser, UserType, UserStatus } from './user';
+export { ADMIN_USER_TYPES } from './user';
+
+// App-specific API response wrapper (simpler than BaseResponse for admin pages)
+export type ApiResponse<T> = {
   success: boolean;
   data: T;
   message?: string;
   errors?: string[];
-}
-
-// Re-export User types from user.ts
-export type { User, AdminUser, UserType, UserStatus } from './user';
-export { ADMIN_USER_TYPES } from './user';
-import type { User, UserType } from './user';
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  firstName: string | null;
-  lastName: string | null;
-  userType?: UserType;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
-  refreshToken?: string;
-}
-
-// Pagination types
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta?: {
-    currentPage?: number;
-    totalItems?: number;
-    itemsPerPage?: number;
-    totalPages?: number;
-  };
-  pagination?: {
-    page?: number;
-    limit?: number;
-    total?: number;
-    pages?: number;
-    currentPage?: number;
-    totalItems?: number;
-    itemsPerPage?: number;
-    totalPages?: number;
-  };
-}
+};
 
 // Basic Pet types for admin management
-export interface Pet {
+export type Pet = {
   pet_id: string;
   name: string;
   rescue_id: string;
   status: 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care';
   created_at: string;
   updated_at: string;
-}
+};
 
 // Rescue management types
-export interface Rescue {
+export type Rescue = {
   rescue_id: string;
   rescue_name: string;
   status: 'active' | 'inactive' | 'suspended';
   created_at: string;
   updated_at: string;
-}
+};
 
 // Admin dashboard types
-export interface DashboardStats {
+export type DashboardStats = {
   total_users: number;
   total_rescues: number;
   total_pets: number;
   total_applications: number;
-}
+};

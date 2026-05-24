@@ -1,223 +1,32 @@
-// User and Authentication Types
-export interface User {
-  userId: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber?: string;
-  emailVerified: boolean;
-  userType: 'adopter' | 'rescue_staff' | 'admin' | 'moderator' | 'super_admin' | 'support_agent';
-  status: 'active' | 'inactive' | 'suspended' | 'pending_verification' | 'deactivated';
-  profileImageUrl?: string;
-  bio?: string;
-  dateOfBirth?: string;
-  country?: string;
-  city?: string;
-  addressLine1?: string;
-  addressLine2?: string;
-  postalCode?: string;
-  location?: {
-    type?: string;
-    coordinates?: [number, number];
-    address?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
-  };
-  privacySettings?: {
-    profileVisibility?: string;
-    showLocation?: boolean;
-    allowMessages?: boolean;
-    showAdoptionHistory?: boolean;
-  };
-  notificationPreferences?: {
-    emailNotifications?: boolean;
-    pushNotifications?: boolean;
-    smsNotifications?: boolean;
-    marketingEmails?: boolean;
-  };
-  timezone?: string;
-  language?: string;
-  twoFactorEnabled?: boolean;
-  lastLoginAt?: string;
-  termsAcceptedAt?: string;
-  privacyPolicyAcceptedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  // Legacy fields for backward compatibility
-  phone?: string;
-  preferredContactMethod?: 'email' | 'phone' | 'both';
-  preferences?: {
-    petTypes?: string[];
-    maxDistance?: number;
-    newsletterOptIn?: boolean;
-  };
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber?: string;
-  userType?: 'adopter' | 'rescue_staff' | 'admin' | 'moderator' | 'super_admin' | 'support_agent';
-  // Legacy field for frontend form compatibility
-  confirmPassword?: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string; // Backend returns 'token', not 'accessToken'
-  refreshToken: string;
-  expiresIn: number;
-  // Legacy field for frontend compatibility
-  accessToken?: string;
-}
-
-// Pet Types - Updated to match backend API response
-export interface Pet {
-  pet_id: string;
-  name: string;
-  rescue_id: string;
-  short_description: string;
-  long_description: string;
-  age_years: number;
-  age_months: number;
-  age_group: 'young' | 'adult' | 'senior';
-  gender: 'male' | 'female';
-  status: 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care';
-  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'other';
-  breed: string;
-  secondary_breed?: string;
-  weight_kg: string;
-  size: 'small' | 'medium' | 'large' | 'extra_large';
-  color: string;
-  markings?: string;
-  microchip_id: string;
-  archived: boolean;
-  featured: boolean;
-  priority_listing: boolean;
-  adoption_fee: string;
-  special_needs: boolean;
-  special_needs_description?: string;
-  house_trained: boolean;
-  good_with_children?: boolean;
-  good_with_dogs?: boolean;
-  good_with_cats?: boolean;
-  good_with_small_animals?: boolean;
-  energy_level: 'low' | 'medium' | 'high' | 'very_high';
-  exercise_needs: string;
-  grooming_needs: string;
-  training_notes?: string;
-  temperament: string[];
-  medical_notes?: string;
-  behavioral_notes?: string;
-  surrender_reason?: string;
-  intake_date: string;
-  vaccination_status: 'unknown' | 'partial' | 'up_to_date';
-  vaccination_date?: string;
-  spay_neuter_status: 'unknown' | 'intact' | 'spayed' | 'neutered';
-  spay_neuter_date?: string;
-  last_vet_checkup?: string;
-  images: PetImage[];
-  videos: PetVideo[];
-  location: {
-    type: string;
-    coordinates: [number, number];
-    crs?: {
-      type: string;
-      properties: {
-        name: string;
-      };
-    };
-  };
-  available_since: string;
-  adopted_date?: string;
-  foster_start_date?: string;
-  foster_end_date?: string;
-  view_count: number;
-  favorite_count: number;
-  application_count: number;
-  search_vector: string;
-  tags: string[];
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string;
-
-  // Computed distance from user location (in miles, when location search is active)
-  distance?: number;
-
-  // Rescue information (joined from rescue table)
-  rescue?: {
-    name: string;
-    location?: string;
-    phone?: string;
-    email?: string;
-    // A13: surfaces verification state to the client so the apply/message
-    // affordances can be disabled and a "Pending verification" badge can
-    // be shown next to the rescue name.
-    status?: 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
-  };
-}
-
-export interface PetImage {
-  url: string;
-  caption?: string;
-  image_id: string;
-  is_primary: boolean;
-  order_index: number;
-  uploaded_at: string;
-  thumbnail_url?: string;
-}
-
-export interface PetVideo {
-  url: string;
-  caption?: string;
-  video_id: string;
-  order_index: number;
-  uploaded_at: string;
-  thumbnail_url?: string;
-}
+// Re-export shared types from canonical library packages
+export type { User, LoginRequest, RegisterRequest, AuthResponse } from '@adopt-dont-shop/lib.auth';
+export type { Pet, PetImage, PetVideo, PetSearchFilters } from '@adopt-dont-shop/lib.pets';
+export type {
+  Application,
+  ApplicationData,
+  ApplicationStatus,
+} from '@adopt-dont-shop/lib.applications';
+export type {
+  SwipeSession,
+  SwipeAction,
+  PetDiscoveryQueue,
+  SwipeStats,
+  DiscoveryPet,
+  DiscoveryQueue,
+} from '@adopt-dont-shop/lib.discovery';
+export type { BaseResponse, PaginatedResponse } from '@adopt-dont-shop/lib.types';
 
 // Legacy interface for backward compatibility - maps new structure to old
-export interface PetPhoto {
+export type PetPhoto = {
   photoId: string;
   url: string;
   isPrimary: boolean;
   caption?: string;
   order: number;
-}
+};
 
-export interface PetSearchFilters {
-  search?: string;
-  type?: string;
-  breed?: string;
-  age?: {
-    min?: number;
-    max?: number;
-  };
-  ageGroup?: string;
-  size?: string;
-  gender?: string;
-  status?: string;
-  location?: string;
-  latitude?: number;
-  longitude?: number;
-  maxDistance?: number;
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-
-// API Response Types
-export interface ApiResponse<T> {
+// API Response type (simplified, app-specific wrapper)
+export type ApiResponse<T> = {
   success: boolean;
   data: T;
   pagination?: {
@@ -228,126 +37,10 @@ export interface ApiResponse<T> {
   };
   message?: string;
   error?: string;
-}
+};
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
-
-// Application Types
-export interface ApplicationData {
-  petId: string;
-  userId: string;
-  rescueId: string;
-  personalInfo: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address: string;
-    city: string;
-    county: string; // Changed from state to county for UK
-    postcode: string; // Changed from zipCode to postcode for UK
-    country: string; // Added country field for international support
-    dateOfBirth?: string;
-    occupation?: string;
-  };
-  livingConditions: {
-    housingType: 'house' | 'apartment' | 'condo' | 'other';
-    isOwned: boolean;
-    hasYard: boolean;
-    yardSize?: 'small' | 'medium' | 'large';
-    yardFenced?: boolean;
-    allowsPets: boolean;
-    landlordContact?: string;
-    householdSize: number;
-    householdMembers?: Array<{
-      name: string;
-      age: number;
-      relationship: string;
-    }>;
-    hasAllergies: boolean;
-    allergyDetails?: string;
-  };
-  petExperience: {
-    hasPetsCurrently: boolean;
-    currentPets?: Array<{
-      type: string;
-      breed?: string;
-      age: number;
-      spayedNeutered: boolean;
-      vaccinated: boolean;
-    }>;
-    previousPets?: Array<{
-      type: string;
-      breed?: string;
-      yearsOwned: number;
-      whatHappened: string;
-    }>;
-    experienceLevel: 'beginner' | 'some' | 'experienced' | 'expert';
-    willingToTrain: boolean;
-    hoursAloneDaily: number;
-    exercisePlans: string;
-  };
-  references: {
-    veterinarian?: {
-      name: string;
-      clinicName: string;
-      phone: string;
-      email?: string;
-      yearsUsed: number;
-    };
-    personal: Array<{
-      name: string;
-      relationship: string;
-      phone: string;
-      email?: string;
-      yearsKnown: number;
-    }>;
-  };
-  additionalInfo?: {
-    whyAdopt: string;
-    expectations: string;
-    petName?: string;
-    emergencyPlan: string;
-    agreement: boolean;
-  };
-}
-
-export type ApplicationStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn';
-
-export interface Application {
-  id: string;
-  petId: string;
-  userId: string;
-  rescueId: string;
-  status: ApplicationStatus;
-  submittedAt?: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  reviewNotes?: string;
-  data: ApplicationData;
-  documents?: Array<{
-    id: string;
-    type: string;
-    filename: string;
-    url: string;
-    uploadedAt: string;
-  }>;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Rescue Types
-export interface Rescue {
+// Rescue Types (client-facing view)
+export type Rescue = {
   rescueId: string;
   name: string;
   email: string;
@@ -381,7 +74,6 @@ export interface Rescue {
   deletedBy?: string;
   createdAt: string;
   updatedAt: string;
-  // Computed properties for backwards compatibility
   verified: boolean;
   location: {
     address: string;
@@ -391,75 +83,10 @@ export interface Rescue {
     country: string;
   };
   type: 'individual' | 'organization';
-}
-
-// Swipe Interface Types
-export interface SwipeSession {
-  sessionId: string;
-  userId?: string;
-  startTime: string;
-  endTime?: string;
-  totalSwipes: number;
-  likes: number;
-  passes: number;
-  superLikes: number;
-  filters: PetSearchFilters;
-}
-
-export interface SwipeAction {
-  action: 'like' | 'pass' | 'super_like' | 'info';
-  petId: string;
-  timestamp: string;
-  sessionId: string;
-}
-
-export interface PetDiscoveryQueue {
-  pets: DiscoveryPet[];
-  currentIndex: number;
-  hasMore: boolean;
-  nextBatchSize: number;
-}
-
-export interface SwipeStats {
-  totalSessions: number;
-  totalSwipes: number;
-  totalLikes: number;
-  totalPasses: number;
-  totalSuperLikes: number;
-  likeToSwipeRatio: number;
-  averageSessionDuration: number;
-  favoriteBreeds: string[];
-  favoriteAgeGroups: string[];
-}
-
-// Discovery-specific types for optimized responses
-export interface DiscoveryPet {
-  petId: string;
-  name: string;
-  type: 'dog' | 'cat' | 'rabbit' | 'bird' | 'other';
-  breed?: string;
-  ageGroup: 'baby' | 'young' | 'adult' | 'senior';
-  ageYears?: number;
-  ageMonths?: number;
-  size: 'extra_small' | 'small' | 'medium' | 'large' | 'extra_large';
-  gender: 'male' | 'female' | 'unknown';
-  images: string[];
-  shortDescription?: string;
-  distance?: number;
-  rescueName: string;
-  isSponsored?: boolean;
-  compatibilityScore?: number;
-}
-
-export interface DiscoveryQueue {
-  pets: DiscoveryPet[];
-  sessionId: string;
-  hasMore: boolean;
-  nextCursor?: string;
-}
+};
 
 // Enhanced Profile Types for Application Defaults and Pre-population
-export interface ApplicationDefaults {
+export type ApplicationDefaults = {
   personalInfo?: {
     firstName?: string;
     lastName?: string;
@@ -535,24 +162,19 @@ export interface ApplicationDefaults {
     emergencyPlan?: string;
     agreement?: boolean;
   };
-  /**
-   * Rescue-specific and otherwise-unstructured question answers, keyed by
-   * `questionKey`. Lets returning users skip re-answering custom questions
-   * a rescue has configured.
-   */
   customAnswers?: Record<string, unknown>;
-}
+};
 
-export interface ApplicationPreferences {
+export type ApplicationPreferences = {
   auto_populate: boolean;
   quick_apply_enabled: boolean;
   completion_reminders: boolean;
   default_pet_types?: string[];
   preferred_contact_method?: 'email' | 'phone' | 'both';
   notification_frequency?: 'immediate' | 'daily' | 'weekly';
-}
+};
 
-export interface ProfileCompletionStatus {
+export type ProfileCompletionStatus = {
   basic_info: boolean;
   living_situation: boolean;
   pet_experience: boolean;
@@ -561,28 +183,28 @@ export interface ProfileCompletionStatus {
   last_updated: Date | null;
   completed_sections: string[];
   recommended_next_steps: string[];
-}
+};
 
-export interface QuickApplicationCapability {
+export type QuickApplicationCapability = {
   canProceed: boolean;
   completionPercentage: number;
   missingRequirements: string[];
   estimatedTimeMinutes: number;
   missingFields?: string[];
   prePopulationData?: ApplicationDefaults;
-}
+};
 
-export interface ApplicationPrePopulationData {
+export type ApplicationPrePopulationData = {
   defaults: ApplicationDefaults;
   completionStatus: ProfileCompletionStatus;
   quickApplicationCapability: QuickApplicationCapability;
-}
+};
 
-export interface ProfileCompletionResponse {
+export type ProfileCompletionResponse = {
   completionStatus: ProfileCompletionStatus;
   quickApplicationCapability: QuickApplicationCapability;
   prePopulationData: ApplicationDefaults;
   missingFields: string[];
   recommendations: string[];
   canQuickApply: boolean;
-}
+};

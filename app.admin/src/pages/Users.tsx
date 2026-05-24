@@ -134,7 +134,7 @@ const Users: React.FC = () => {
     limit: 20,
   });
 
-  const totalPages = data?.pagination?.pages ?? data?.pagination?.totalPages ?? 1;
+  const totalPages = data?.pagination?.totalPages ?? 1;
 
   const suspendUser = useSuspendUser();
   const unsuspendUser = useUnsuspendUser();

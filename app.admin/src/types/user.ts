@@ -1,12 +1,7 @@
 // User type definitions matching the backend API structure
+import type { UserRole } from '@adopt-dont-shop/lib.types';
 
-export type UserType =
-  | 'adopter'
-  | 'rescue_staff'
-  | 'admin'
-  | 'moderator'
-  | 'super_admin'
-  | 'support_agent';
+export type UserType = UserRole;
 
 export const ADMIN_USER_TYPES: readonly UserType[] = [
   'admin',

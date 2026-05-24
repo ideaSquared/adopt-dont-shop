@@ -104,7 +104,7 @@ const Rescues: React.FC = () => {
       });
 
       setRescues(result.data);
-      setTotalPages(result.pagination?.pages ?? 1);
+      setTotalPages(result.pagination?.totalPages ?? 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch rescues');
       setRescues([]);

@@ -22,3 +22,6 @@ export {
 
 // Shared display labels for status enums
 export * from './status-labels';
+
+// Notification enums and helpers (cross-cutting across all apps)
+export * from './types/notifications';
