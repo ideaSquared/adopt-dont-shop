@@ -376,3 +376,16 @@ export const errorMessage = style({
   color: '#b91c1c',
   margin: 0,
 });
+
+const shimmer = keyframes({
+  '0%': { backgroundPosition: '-200% 0' },
+  '100%': { backgroundPosition: '200% 0' },
+});
+
+export const skeletonBlock = style({
+  height: '0.875rem',
+  borderRadius: '0.25rem',
+  background: 'linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%)',
+  backgroundSize: '200% 100%',
+  animation: `${shimmer} 1.5s ease-in-out infinite`,
+});

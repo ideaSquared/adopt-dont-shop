@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import * as styles from './BulkActionBar.css';
 import type { ApplicationListItem } from '../../types/applications';
 import { canApplyBulkAction, type BulkStageAction } from '../../utils/applicationStageTransitions';
@@ -14,6 +14,7 @@ export type BulkActionBarProps = {
   onBulkAction: (action: BulkStageAction, eligibleIds: string[], reason?: string) => Promise<void>;
   busy?: boolean;
   resultSummary?: { successCount: number; failedCount: number } | null;
+  onResultDismiss?: () => void;
 };
 
 const ACTION_LABEL: Record<BulkStageAction, string> = {
@@ -37,16 +38,30 @@ const splitSelection = (action: BulkStageAction, apps: ApplicationListItem[]) =>
   return { eligible, blocked };
 };
 
+const AUTO_DISMISS_MS = 5000;
+
 const BulkActionBar: React.FC<BulkActionBarProps> = ({
   selectedApplications,
   onClearSelection,
   onBulkAction,
   busy = false,
   resultSummary,
+  onResultDismiss,
 }) => {
   const selectedCount = selectedApplications.length;
   const [pendingAction, setPendingAction] = useState<BulkStageAction | null>(null);
   const [reason, setReason] = useState('');
+
+  // Auto-dismiss the result summary after a timeout so stale banners
+  // don't linger. The parent still controls the actual state — we just
+  // fire the callback to let it clear.
+  useEffect(() => {
+    if (!resultSummary || !onResultDismiss) {
+      return;
+    }
+    const timer = setTimeout(onResultDismiss, AUTO_DISMISS_MS);
+    return () => clearTimeout(timer);
+  }, [resultSummary, onResultDismiss]);
 
   const split = useMemo(
     () => (pendingAction ? splitSelection(pendingAction, selectedApplications) : null),
@@ -110,6 +125,11 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({
         <span className={styles.fullWidthRow}>
           Bulk action complete: <strong>{resultSummary.successCount}</strong> succeeded,{' '}
           <strong>{resultSummary.failedCount}</strong> failed.
+          {onResultDismiss && (
+            <button type="button" onClick={onResultDismiss} className={styles.neutralButton}>
+              Dismiss
+            </button>
+          )}
         </span>
       )}
 
