@@ -81,6 +81,11 @@ vi.mock('../../middleware/auth-rate-limit', () => ({
   registrationEmailLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
     next(),
   loginIpLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  passwordResetIpLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  passwordResetEmailLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+    next(),
+  passwordResetTokenLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+    next(),
 }));
 
 vi.mock('../../middleware/turnstile', () => ({

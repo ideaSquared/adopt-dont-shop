@@ -4,6 +4,9 @@ import { authenticateToken } from '../middleware/auth';
 import { enforceIpRules } from '../middleware/ip-rules';
 import {
   loginIpLimiter,
+  passwordResetEmailLimiter,
+  passwordResetIpLimiter,
+  passwordResetTokenLimiter,
   registrationEmailLimiter,
   registrationIpLimiter,
 } from '../middleware/auth-rate-limit';
@@ -305,7 +308,8 @@ router.post('/refresh-token', authLimiter, AuthController.refreshToken);
  */
 router.post(
   '/forgot-password',
-  passwordResetLimiter,
+  passwordResetIpLimiter,
+  passwordResetEmailLimiter,
   authValidation.forgotPassword,
   AuthController.requestPasswordReset
 );
@@ -357,7 +361,7 @@ router.post(
  */
 router.post(
   '/reset-password',
-  passwordResetLimiter,
+  passwordResetTokenLimiter,
   authValidation.resetPassword,
   AuthController.confirmPasswordReset
 );
