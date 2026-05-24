@@ -58,7 +58,7 @@ export const Button = ({
     >
       {isLoading && (
         <span className={styles.iconContainer} aria-hidden='true'>
-          <DotSpinner size={size === 'sm' ? 14 : 16} />
+          <DotSpinner size={size === 'sm' ? 'xs' : 'sm'} />
         </span>
       )}
       {effectiveStartIcon && !isLoading && (
