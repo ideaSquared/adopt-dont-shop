@@ -42,15 +42,28 @@ const VALID_PET_STATUS_FILTERS: ReadonlySet<string> = new Set([
 ]);
 
 const Pets: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const initialStatusParam = searchParams.get('status');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const statusParam = searchParams.get('status');
+  const statusFilter =
+    statusParam && VALID_PET_STATUS_FILTERS.has(statusParam) ? statusParam : 'all';
+
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>(
-    initialStatusParam && VALID_PET_STATUS_FILTERS.has(initialStatusParam)
-      ? initialStatusParam
-      : 'all'
-  );
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [rescueFilter, setRescueFilter] = useState<string>('all');
   const [includeArchived, setIncludeArchived] = useState(false);
@@ -191,7 +204,7 @@ const Pets: React.FC = () => {
             id='pets-status-filter'
             className={styles.select}
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            onChange={e => setFilterParam('status', e.target.value)}
           >
             <option value='all'>All Statuses</option>
             <option value='available'>Available</option>

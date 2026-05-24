@@ -106,21 +106,33 @@ const VALID_REPORT_STATUSES: ReadonlySet<string> = new Set([
 const VALID_REPORT_SEVERITIES: ReadonlySet<string> = new Set(['critical', 'high', 'medium', 'low']);
 
 const Moderation: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const initialStatusParam = searchParams.get('status');
-  const initialSeverityParam = searchParams.get('severity');
-  const initialStatus: ReportStatus | 'all' =
-    initialStatusParam && VALID_REPORT_STATUSES.has(initialStatusParam)
-      ? (initialStatusParam as ReportStatus)
-      : 'all';
-  const initialSeverity: ReportSeverity | 'all' =
-    initialSeverityParam && VALID_REPORT_SEVERITIES.has(initialSeverityParam)
-      ? (initialSeverityParam as ReportSeverity)
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const statusParam = searchParams.get('status');
+  const severityParam = searchParams.get('severity');
+  const statusFilter: ReportStatus | 'all' =
+    statusParam && VALID_REPORT_STATUSES.has(statusParam) ? (statusParam as ReportStatus) : 'all';
+  const severityFilter: ReportSeverity | 'all' =
+    severityParam && VALID_REPORT_SEVERITIES.has(severityParam)
+      ? (severityParam as ReportSeverity)
       : 'all';
 
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>(initialStatus);
-  const [severityFilter, setSeverityFilter] = useState<ReportSeverity | 'all'>(initialSeverity);
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
@@ -441,7 +453,7 @@ const Moderation: React.FC = () => {
             id='mod-status-filter'
             className={styles.select}
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as any)}
+            onChange={e => setFilterParam('status', e.target.value)}
           >
             <option value='all'>All Statuses</option>
             <option value='pending'>Pending</option>
@@ -460,7 +472,7 @@ const Moderation: React.FC = () => {
             id='mod-severity-filter'
             className={styles.select}
             value={severityFilter}
-            onChange={e => setSeverityFilter(e.target.value as any)}
+            onChange={e => setFilterParam('severity', e.target.value)}
           >
             <option value='all'>All Severities</option>
             <option value='critical'>Critical</option>
