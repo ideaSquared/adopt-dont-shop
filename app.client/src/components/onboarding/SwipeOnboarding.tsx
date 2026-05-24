@@ -63,10 +63,10 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
           </div>
         </div>
 
-        <div className={styles.title}>Meet Your New Favorite Feature!</div>
+        <div className={styles.title}>Meet Your New Favorite Feature</div>
         <div className={styles.subtitle}>
-          Swipe through adorable pets and find your perfect match in seconds. It&apos;s fast, fun,
-          and incredibly effective!
+          Swipe through adoptable pets matched to your preferences. It&apos;s fast, fun, and a
+          better way to browse.
         </div>
 
         <div className={styles.features}>

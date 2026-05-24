@@ -969,7 +969,7 @@ Need help? Contact us at support@adoptdontshop.com
 
 We received a request to recover access to your Adopt Don't Shop account by disabling two-factor authentication.
 
-Confirming this link will turn off two-factor authentication and sign you out of all active sessions. You will be able to sign in with just your password until you re-enable two-factor authentication.
+Confirming this link will turn off two-factor authentication and sign you out of all active sessions. You will be able to sign in with your password alone until you re-enable two-factor authentication.
 
 To continue, click the link below or copy and paste it into your browser:
 
@@ -1134,9 +1134,9 @@ Need help? Contact us at support@adoptdontshop.com
                 <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px;">
                   <h2 style="color: #333;">Two-Factor Authentication Disabled</h2>
                   <p>Hi ${user.firstName},</p>
-                  <p>Two-factor authentication has just been disabled on your account using the
+                  <p>Two-factor authentication was disabled on your account using the
                   email recovery link. All active sessions have been signed out for your security.</p>
-                  <p>You can now sign in with just your password. We recommend re-enabling
+                  <p>You can now sign in with your password alone. We recommend re-enabling
                   two-factor authentication as soon as you can.</p>
                   <p><a href="${loginUrl}" style="display:inline-block;padding:12px 24px;background:#667eea;color:#fff;border-radius:6px;text-decoration:none;">Sign in</a></p>
                   <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:12px;margin:20px 0;">
@@ -1151,9 +1151,9 @@ Need help? Contact us at support@adoptdontshop.com
             `,
             textContent: `Hi ${user.firstName},
 
-Two-factor authentication has just been disabled on your account using the email recovery link. All active sessions have been signed out for your security.
+Two-factor authentication was disabled on your account using the email recovery link. All active sessions have been signed out for your security.
 
-You can now sign in with just your password: ${loginUrl}
+You can now sign in with your password alone: ${loginUrl}
 
 We recommend re-enabling two-factor authentication as soon as you can.
 
