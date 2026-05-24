@@ -26,6 +26,7 @@ interface ActionSelectionModalProps {
   onSubmit: (data: ActionSelectionData) => void;
   reportTitle: string;
   isLoading?: boolean;
+  error?: string | null;
 }
 
 const actionTypeLabels: Record<ActionType, string> = {
@@ -54,6 +55,7 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
   onSubmit,
   reportTitle,
   isLoading = false,
+  error = null,
 }) => {
   const [actionType, setActionType] = useState<ActionType>('no_action');
   const [reason, setReason] = useState('');
@@ -113,6 +115,12 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
               <div className={styles.reportTitle}>Report:</div>
               <div className={styles.reportText}>{reportTitle}</div>
             </div>
+
+            {error && (
+              <div className={styles.inlineError} role='alert'>
+                {error}
+              </div>
+            )}
 
             <div className={styles.formGroup}>
               <label className={styles.label} htmlFor='actionType'>

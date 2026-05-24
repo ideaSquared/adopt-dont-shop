@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Heading, Text, Button, Input, toast } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
   FiAlertTriangle,
@@ -127,6 +127,7 @@ const Moderation: React.FC = () => {
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Bulk selection state
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -183,12 +184,14 @@ const Moderation: React.FC = () => {
 
   const handleOpenActionModal = (report: Report) => {
     setSelectedReport(report);
+    setActionError(null);
     setIsActionModalOpen(true);
   };
 
   const handleCloseActionModal = () => {
     setIsActionModalOpen(false);
     setSelectedReport(null);
+    setActionError(null);
   };
 
   const handleActionSubmit = async (actionData: ActionSelectionData) => {
@@ -206,13 +209,9 @@ const Moderation: React.FC = () => {
       handleCloseActionModal();
       await refetch();
     } catch (err) {
-      // UX P0/P1 #8: previously the catch only console.error'd, which left
-      // the modal open in limbo with no signal to the user. Keep the modal
-      // open so they can retry / close, and surface the failure via the
-      // app-admin toast pattern.
       console.error('Failed to take moderation action:', err);
       const message = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(`Failed to take moderation action: ${message}`, { duration: 6000 });
+      setActionError(`Failed to take moderation action: ${message}`);
     }
   };
 
@@ -535,6 +534,7 @@ const Moderation: React.FC = () => {
         onSubmit={handleActionSubmit}
         reportTitle={selectedReport?.title || ''}
         isLoading={isActionLoading}
+        error={actionError}
       />
 
       <BulkModerationModal
