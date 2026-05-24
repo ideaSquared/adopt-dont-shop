@@ -254,7 +254,7 @@ export const PetCard: React.FC<PetCardProps> = ({
 
         {pet.short_description && <p className={styles.description}>{pet.short_description}</p>}
 
-        {pet.rescue_id && <div className={styles.rescueInfo}>Rescue ID: {pet.rescue_id}</div>}
+        {pet.rescue?.name && <div className={styles.rescueInfo}>From {pet.rescue.name}</div>}
 
         <div className={styles.cardActions}>
           <Button size='sm' variant='primary' className={styles.actionButton}>
