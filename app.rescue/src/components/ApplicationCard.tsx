@@ -89,6 +89,11 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
         <div className={styles.basicInfo}>
           <h3 className={styles.applicantName}>{application.applicant_name}</h3>
           <div className={styles.petName}>Applying for: {application.pet_name}</div>
+          {/* NOTE: app.rescue only shows the status badge on these cards
+              because rescue staff use the dedicated ApplicationReview page for
+              detailed stage info. app.client shows both status + stage badges
+              so adopters can track progress. This is intentional per-role
+              design, not an oversight. */}
           <span
             className={styles.statusBadge({
               status: statusVariant,
