@@ -1,29 +1,11 @@
 import { z } from 'zod';
-import type { RescueId } from '@adopt-dont-shop/lib.types';
+import { RESCUE_STATUSES, type RescueId } from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
 import { BulkOperationFailedIdsSchema } from './bulk-response';
 
-/**
- * Canonical Zod schemas for the Rescue domain.
- *
- * Same role as schemas/user.ts and schemas/pet.ts: one source of truth
- * for Rescue-shaped data, used by service.backend request validation
- * and (over time) the rescue / admin frontends.
- *
- * The values mirror the validators in service.backend/src/models/Rescue.ts
- * and the express-validator chains in service.backend/src/routes/rescue.routes.ts.
- */
-
 // ----- Enums --------------------------------------------------------------
 
-export const RescueStatusSchema = z.enum([
-  'pending',
-  'verified',
-  'suspended',
-  'inactive',
-  'rejected',
-]);
-export type RescueStatusValue = z.infer<typeof RescueStatusSchema>;
+export const RescueStatusSchema = z.enum(RESCUE_STATUSES);
 
 // ----- Primitives ---------------------------------------------------------
 

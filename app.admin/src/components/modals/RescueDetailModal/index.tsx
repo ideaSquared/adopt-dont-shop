@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { Heading, Text, Button } from '@adopt-dont-shop/lib.components';
-import { rescueStatusLabel, type RescueStatusValue } from '@adopt-dont-shop/lib.types';
+import { rescueStatusLabel, type RescueStatus } from '@adopt-dont-shop/lib.types';
 import { Skeleton, SkeletonText } from '../../ui/Skeleton';
 import { FiX, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import type { AdminRescue, RescueStatistics } from '@/types/rescue';
@@ -35,7 +35,7 @@ const formatDate = (dateString?: string): string => {
   });
 };
 
-const getStatusBadge = (status: RescueStatusValue) => {
+const getStatusBadge = (status: RescueStatus) => {
   const label = rescueStatusLabel(status);
   switch (status) {
     case 'verified':

@@ -1,24 +1,9 @@
-/**
- * Centralized display labels for status enums shared across all apps.
- *
- * Background: the cross-app UX audit (third pass, finding C5) found that
- * status labels diverged between apps — e.g. `submitted` rendered as
- * "Submitted" in one app, "Pending" in another, and "Under Review"
- * elsewhere. These functions are the single source of truth for the
- * human-readable label of each enum value.
- *
- * The union types here mirror the canonical backend enums in
- * service.backend/src/models/{Application,Report}.ts and the Zod schemas
- * in lib.rescue. They are duplicated (not imported) because lib.types is
- * zero-dep and consumed by both frontend and backend.
- */
+import type { ApplicationStatus, ApplicationStage, RescueStatus } from './types/domain-status';
 
 // ── Applications ──────────────────────────────────────────────────────────────
 
-export type ApplicationStatusValue = 'submitted' | 'approved' | 'rejected' | 'withdrawn';
-
-export const applicationStatusLabel = (status: ApplicationStatusValue): string => {
-  const labels: Record<ApplicationStatusValue, string> = {
+export const applicationStatusLabel = (status: ApplicationStatus): string => {
+  const labels: Record<ApplicationStatus, string> = {
     submitted: 'Submitted',
     approved: 'Approved',
     rejected: 'Rejected',
@@ -27,16 +12,8 @@ export const applicationStatusLabel = (status: ApplicationStatusValue): string =
   return labels[status];
 };
 
-export type ApplicationStageValue =
-  | 'pending'
-  | 'reviewing'
-  | 'visiting'
-  | 'deciding'
-  | 'resolved'
-  | 'withdrawn';
-
-export const applicationStageLabel = (stage: ApplicationStageValue): string => {
-  const labels: Record<ApplicationStageValue, string> = {
+export const applicationStageLabel = (stage: ApplicationStage): string => {
+  const labels: Record<ApplicationStage, string> = {
     pending: 'Pending',
     reviewing: 'Reviewing',
     visiting: 'Home Visit',
@@ -64,10 +41,8 @@ export const reportStatusLabel = (status: ReportStatusValue): string => {
 
 // ── Rescues ───────────────────────────────────────────────────────────────────
 
-export type RescueStatusValue = 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected';
-
-export const rescueStatusLabel = (status: RescueStatusValue): string => {
-  const labels: Record<RescueStatusValue, string> = {
+export const rescueStatusLabel = (status: RescueStatus): string => {
+  const labels: Record<RescueStatus, string> = {
     pending: 'Pending Verification',
     verified: 'Verified',
     suspended: 'Suspended',

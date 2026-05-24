@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import React from 'react';
 
 import { ButtonProps } from '../../types';
+import { DotSpinner } from './Spinner';
 import * as styles from './Button.css';
 
 export const Button = ({
@@ -55,6 +56,11 @@ export const Button = ({
       type={type}
       {...props}
     >
+      {isLoading && (
+        <span className={styles.iconContainer} aria-hidden='true'>
+          <DotSpinner size={size === 'sm' ? 'xs' : 'sm'} />
+        </span>
+      )}
       {effectiveStartIcon && !isLoading && (
         <span className={styles.iconContainer}>{effectiveStartIcon}</span>
       )}

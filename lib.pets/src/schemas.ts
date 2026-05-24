@@ -1,45 +1,30 @@
 import { z } from 'zod';
+import {
+  PET_STATUSES,
+  PET_TYPES,
+  PET_GENDERS,
+  PET_SIZES,
+  PET_AGE_GROUPS,
+  PET_ENERGY_LEVELS,
+} from '@adopt-dont-shop/lib.types';
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 //
-// Schemas mirror the backend's Sequelize enum definitions in
-// `service.backend/src/models/Pet.ts`. Keep them in sync — any value the
-// backend can emit but the schema rejects will throw inside `normalisePet`
-// and surface as "empty pet list" in the UI (no card renders, search
-// looks broken). When the backend grows a new variant, add it here in
-// the same commit.
+// Schemas use the canonical const arrays from lib.types as the single source
+// of truth for enum values. Keep lib.types in sync with the backend's
+// Sequelize enum definitions in `service.backend/src/models/Pet.ts`.
 
-export const PetStatusSchema = z.enum([
-  'available',
-  'pending',
-  'adopted',
-  'foster',
-  'medical_hold',
-  'behavioral_hold',
-  'on_hold',
-  'medical_care',
-  'not_available',
-  'deceased',
-]);
+export const PetStatusSchema = z.enum(PET_STATUSES);
 
-export const PetTypeSchema = z.enum([
-  'dog',
-  'cat',
-  'rabbit',
-  'bird',
-  'reptile',
-  'small_mammal',
-  'fish',
-  'other',
-]);
+export const PetTypeSchema = z.enum(PET_TYPES);
 
-export const PetGenderSchema = z.enum(['male', 'female', 'unknown']);
+export const PetGenderSchema = z.enum(PET_GENDERS);
 
-export const PetSizeSchema = z.enum(['extra_small', 'small', 'medium', 'large', 'extra_large']);
+export const PetSizeSchema = z.enum(PET_SIZES);
 
-export const PetAgeGroupSchema = z.enum(['baby', 'young', 'adult', 'senior']);
+export const PetAgeGroupSchema = z.enum(PET_AGE_GROUPS);
 
-export const PetEnergyLevelSchema = z.enum(['low', 'medium', 'high', 'very_high']);
+export const PetEnergyLevelSchema = z.enum(PET_ENERGY_LEVELS);
 
 export const PetVaccinationStatusSchema = z.enum([
   'up_to_date',
@@ -342,7 +327,16 @@ export const PetUpdateDataSchema = z.object({
 
 // ── Inferred types ─────────────────────────────────────────────────────────────
 
-export type PetStatus = z.infer<typeof PetStatusSchema>;
+// Re-export canonical status/enum types from lib.types
+export type {
+  PetStatus,
+  PetType,
+  PetGender,
+  PetSize,
+  PetAgeGroup,
+  PetEnergyLevel,
+} from '@adopt-dont-shop/lib.types';
+
 export type PetImage = z.infer<typeof PetImageSchema>;
 export type PetVideo = z.infer<typeof PetVideoSchema>;
 export type Pet = z.infer<typeof PetSchema>;

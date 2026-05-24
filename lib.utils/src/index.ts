@@ -17,3 +17,6 @@ export { escapeLikePattern } from './escape-like';
 
 // User-facing error message helper (maps HTTP status / network errors)
 export { getErrorMessage } from './get-error-message';
+
+// Null-safe date formatter
+export { safeFormatDate } from './safe-format-date';

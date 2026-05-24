@@ -1,12 +1,9 @@
+import type { ServiceConfig, ServiceOptions } from '@adopt-dont-shop/lib.types';
+
 /**
  * Configuration options for UtilsService
  */
-export interface UtilsServiceConfig {
-  /**
-   * Enable debug logging
-   */
-  debug?: boolean;
-
+export type UtilsServiceConfig = ServiceConfig & {
   /**
    * Default timezone for date operations
    */
@@ -21,17 +18,9 @@ export interface UtilsServiceConfig {
    * Custom metadata
    */
   metadata?: Record<string, unknown>;
-}
+};
 
-/**
- * Options for UtilsService operations
- */
-export interface UtilsServiceOptions {
-  /**
-   * Custom metadata
-   */
-  metadata?: Record<string, unknown>;
-}
+export type UtilsServiceOptions = ServiceOptions;
 
 // ===== UTILITY TYPES =====
 

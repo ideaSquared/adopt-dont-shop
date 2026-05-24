@@ -14,7 +14,9 @@ describe('Pet schemas', () => {
     it('PetStatusSchema accepts the canonical states and rejects others', () => {
       expect(PetStatusSchema.parse('available')).toBe('available');
       expect(PetStatusSchema.parse('medical_hold')).toBe('medical_hold');
-      expect(() => PetStatusSchema.parse('on_hold')).toThrow();
+      expect(PetStatusSchema.parse('on_hold')).toBe('on_hold');
+      expect(PetStatusSchema.parse('medical_care')).toBe('medical_care');
+      expect(() => PetStatusSchema.parse('invalid_status')).toThrow();
     });
 
     it('PetTypeSchema accepts the canonical species', () => {
@@ -181,7 +183,7 @@ describe('Pet schemas', () => {
     });
 
     it('rejects status values outside the canonical enum', () => {
-      expect(() => PetSearchFiltersSchema.parse({ status: 'on_hold' })).toThrow();
+      expect(() => PetSearchFiltersSchema.parse({ status: 'invalid_status' })).toThrow();
     });
   });
 

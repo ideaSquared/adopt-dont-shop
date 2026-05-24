@@ -16,23 +16,10 @@ export type {
   ApplicationStats,
 } from '../schemas';
 
-/**
- * Configuration options for ApplicationsService
- */
-export type ApplicationsServiceConfig = {
-  apiUrl?: string;
-  debug?: boolean;
-  headers?: Record<string, string>;
-};
+import type { ServiceConfig, ServiceOptions } from '@adopt-dont-shop/lib.types';
 
-/**
- * Options for ApplicationsService operations
- */
-export type ApplicationsServiceOptions = {
-  timeout?: number;
-  useCache?: boolean;
-  metadata?: Record<string, unknown>;
-};
+export type ApplicationsServiceConfig = ServiceConfig;
+export type ApplicationsServiceOptions = ServiceOptions;
 
 // ADS-262: response envelopes are owned by @adopt-dont-shop/lib.types.
 export type { BaseResponse, ErrorResponse, PaginatedResponse } from '@adopt-dont-shop/lib.types';

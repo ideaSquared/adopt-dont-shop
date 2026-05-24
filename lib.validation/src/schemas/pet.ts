@@ -1,57 +1,30 @@
 import { z } from 'zod';
-import type { PetId, RescueId } from '@adopt-dont-shop/lib.types';
+import {
+  PET_STATUSES,
+  PET_TYPES,
+  PET_GENDERS,
+  PET_SIZES,
+  PET_AGE_GROUPS,
+  PET_ENERGY_LEVELS,
+  type PetId,
+  type RescueId,
+} from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
 import { BulkOperationFailedIdsSchema } from './bulk-response';
 
-/**
- * Canonical Zod schemas for the Pet domain.
- *
- * Same role as schemas/user.ts: one source of truth for Pet-shaped data,
- * used by service.backend request validation and (over time) the
- * frontend forms in app.rescue / app.admin / app.client.
- *
- * The values mirror the enums and validators in
- * service.backend/src/models/Pet.ts. Rule of thumb: if you're tempted
- * to add a check here, it should also exist on the model — and vice
- * versa.
- */
-// ----- Enums (match the values exported from Pet.ts) ---------------------
+// ----- Enums (canonical values from lib.types) ---------------------------
 
-export const PetStatusSchema = z.enum([
-  'available',
-  'pending',
-  'adopted',
-  'foster',
-  'medical_hold',
-  'behavioral_hold',
-  'not_available',
-  'deceased',
-]);
-export type PetStatusValue = z.infer<typeof PetStatusSchema>;
+export const PetStatusSchema = z.enum(PET_STATUSES);
 
-export const PetTypeSchema = z.enum([
-  'dog',
-  'cat',
-  'rabbit',
-  'bird',
-  'reptile',
-  'small_mammal',
-  'fish',
-  'other',
-]);
-export type PetTypeValue = z.infer<typeof PetTypeSchema>;
+export const PetTypeSchema = z.enum(PET_TYPES);
 
-export const GenderSchema = z.enum(['male', 'female', 'unknown']);
-export type GenderValue = z.infer<typeof GenderSchema>;
+export const GenderSchema = z.enum(PET_GENDERS);
 
-export const SizeSchema = z.enum(['extra_small', 'small', 'medium', 'large', 'extra_large']);
-export type SizeValue = z.infer<typeof SizeSchema>;
+export const SizeSchema = z.enum(PET_SIZES);
 
-export const AgeGroupSchema = z.enum(['baby', 'young', 'adult', 'senior']);
-export type AgeGroupValue = z.infer<typeof AgeGroupSchema>;
+export const AgeGroupSchema = z.enum(PET_AGE_GROUPS);
 
-export const EnergyLevelSchema = z.enum(['low', 'medium', 'high', 'very_high']);
-export type EnergyLevelValue = z.infer<typeof EnergyLevelSchema>;
+export const EnergyLevelSchema = z.enum(PET_ENERGY_LEVELS);
 
 export const VaccinationStatusSchema = z.enum([
   'up_to_date',

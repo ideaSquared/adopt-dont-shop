@@ -72,6 +72,10 @@ export const rescueName = style({
   color: vars.text.secondary,
   fontSize: '0.875rem',
   fontWeight: vars.typography.weight.medium,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  maxWidth: '100%',
 });
 
 export const cardTopRow = style({
@@ -105,6 +109,10 @@ export const petDetailsH3 = style({
   fontSize: '1.25rem',
   fontWeight: vars.typography.weight.semibold,
   color: vars.text.primary,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  maxWidth: '100%',
 });
 
 export const petDetailsP = style({

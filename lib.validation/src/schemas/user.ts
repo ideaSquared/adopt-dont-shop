@@ -1,34 +1,21 @@
 import { z } from 'zod';
-import type { UserId } from '@adopt-dont-shop/lib.types';
+import { USER_STATUSES, type UserId, type UserRole } from '@adopt-dont-shop/lib.types';
 import { isSingleScriptLocalPart, normalizeEmail } from '../normalize-email';
 import { BulkOperationFailedIdsSchema } from './bulk-response';
 
-/**
- * Canonical Zod schemas for the User domain.
- *
- * One source of truth for User-shaped data, used by:
- *  - service.backend request validation (replacing express-validator)
- *  - service.backend Sequelize beforeValidate cross-check
- *  - frontend forms via lib.auth (LoginForm, RegisterForm, ProfileForm)
- *
- * The schema definitions deliberately match the Sequelize column-level
- * validators in service.backend/src/models/User.ts. Drift between the
- * two is what we're trying to eliminate.
- */
+// ----- Enums (canonical values from lib.types) ---------------------------
 
-// ----- Enums (match the values exported from User.ts) ---------------------
+export const UserStatusSchema = z.enum(USER_STATUSES);
 
-export const UserStatusSchema = z.enum([
-  'active',
-  'inactive',
-  'suspended',
-  'pending_verification',
-  'deactivated',
-]);
-export type UserStatusValue = z.infer<typeof UserStatusSchema>;
-
-export const UserTypeSchema = z.enum(['adopter', 'rescue_staff', 'admin', 'moderator']);
-export type UserTypeValue = z.infer<typeof UserTypeSchema>;
+const USER_TYPES = [
+  'adopter',
+  'rescue_staff',
+  'admin',
+  'moderator',
+  'super_admin',
+  'support_agent',
+] as const satisfies readonly UserRole[];
+export const UserTypeSchema = z.enum(USER_TYPES);
 
 // ----- Primitives ---------------------------------------------------------
 

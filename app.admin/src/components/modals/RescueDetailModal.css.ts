@@ -242,6 +242,10 @@ export const staffName = style({
   fontWeight: '600',
   color: '#111827',
   fontSize: '0.9375rem',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  maxWidth: '100%',
 });
 
 export const staffEmail = style({
