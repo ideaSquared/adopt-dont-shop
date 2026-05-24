@@ -41,14 +41,11 @@ export const ApplicationDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadApplications();
-  }, []);
-
-  const loadApplications = async () => {
+  const loadApplications = async (signal?: { cancelled: boolean }) => {
     try {
       setLoading(true);
       const userApplications = await applicationService.getUserApplications();
+      if (signal?.cancelled) return;
 
       // Load pet details for each application
       const applicationsWithPets = await Promise.all(
@@ -63,14 +60,24 @@ export const ApplicationDashboard: React.FC = () => {
         })
       );
 
+      if (signal?.cancelled) return;
       setApplications(applicationsWithPets);
     } catch (error) {
+      if (signal?.cancelled) return;
       console.error('Failed to load applications:', error);
       setError('Failed to load your applications. Please try again.');
     } finally {
-      setLoading(false);
+      if (!signal?.cancelled) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const signal = { cancelled: false };
+    loadApplications(signal);
+    return () => {
+      signal.cancelled = true;
+    };
+  }, []);
 
   // Map an application to the corresponding conversation (if any).
   // Conversations are tagged with petId + rescueId server-side; we use both
