@@ -5,7 +5,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { renderWithProviders, screen, waitFor } from '../test-utils';
+import { renderWithProviders, screen, waitFor, fireEvent } from '../test-utils';
 import Applications from '../pages/Applications';
 import Moderation from '../pages/Moderation';
 import Support from '../pages/Support';
@@ -172,6 +172,17 @@ describe('Applications list page reads ?status= from URL', () => {
     });
     expect(screen.getByDisplayValue('All Statuses')).toBeInTheDocument();
   });
+
+  it('persists status filter change to URL state', async () => {
+    renderWithProviders(<Applications />, { initialRoute: '/applications' });
+    const statusSelect = screen.getByLabelText('Status');
+    fireEvent.change(statusSelect, { target: { value: 'approved' } });
+    await waitFor(() => {
+      expect(mockUseApplications).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'approved' })
+      );
+    });
+  });
 });
 
 describe('Moderation list page reads ?status= and ?severity= from URL', () => {
@@ -192,6 +203,15 @@ describe('Moderation list page reads ?status= and ?severity= from URL', () => {
       );
     });
   });
+
+  it('persists severity filter change to URL state', async () => {
+    renderWithProviders(<Moderation />, { initialRoute: '/moderation' });
+    const severitySelect = screen.getByLabelText('Severity');
+    fireEvent.change(severitySelect, { target: { value: 'high' } });
+    await waitFor(() => {
+      expect(mockUseReports).toHaveBeenCalledWith(expect.objectContaining({ severity: 'high' }));
+    });
+  });
 });
 
 describe('Support list page reads ?status= from URL', () => {
@@ -199,6 +219,15 @@ describe('Support list page reads ?status= from URL', () => {
     renderWithProviders(<Support />, { initialRoute: '/support?status=escalated' });
     await waitFor(() => {
       expect(mockUseTickets).toHaveBeenCalledWith(expect.objectContaining({ status: 'escalated' }));
+    });
+  });
+
+  it('persists status filter change to URL state', async () => {
+    renderWithProviders(<Support />, { initialRoute: '/support' });
+    const statusSelect = screen.getByLabelText('Status');
+    fireEvent.change(statusSelect, { target: { value: 'open' } });
+    await waitFor(() => {
+      expect(mockUseTickets).toHaveBeenCalledWith(expect.objectContaining({ status: 'open' }));
     });
   });
 });
@@ -217,6 +246,15 @@ describe('Pets list page reads ?status= from URL', () => {
     renderWithProviders(<Pets />, { initialRoute: '/pets?status=available' });
     await waitFor(() => {
       expect(mockUsePets).toHaveBeenCalledWith(expect.objectContaining({ status: 'available' }));
+    });
+  });
+
+  it('persists status filter change to URL state', async () => {
+    renderWithProviders(<Pets />, { initialRoute: '/pets' });
+    const statusSelect = screen.getByLabelText('Status');
+    fireEvent.change(statusSelect, { target: { value: 'adopted' } });
+    await waitFor(() => {
+      expect(mockUsePets).toHaveBeenCalledWith(expect.objectContaining({ status: 'adopted' }));
     });
   });
 });

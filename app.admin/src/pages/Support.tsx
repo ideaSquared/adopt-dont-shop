@@ -63,15 +63,28 @@ const VALID_TICKET_STATUSES: ReadonlySet<string> = new Set([
 ]);
 
 const Support: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const initialStatusParam = searchParams.get('status');
-  const initialStatus: TicketStatus | 'all' =
-    initialStatusParam && VALID_TICKET_STATUSES.has(initialStatusParam)
-      ? (initialStatusParam as TicketStatus)
-      : 'all';
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const statusParam = searchParams.get('status');
+  const statusFilter: TicketStatus | 'all' =
+    statusParam && VALID_TICKET_STATUSES.has(statusParam) ? (statusParam as TicketStatus) : 'all';
+
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>(initialStatus);
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<TicketCategory | 'all'>('all');
   const [page, setPage] = useState(1);
@@ -307,7 +320,7 @@ const Support: React.FC = () => {
             id='support-status-filter'
             className={styles.select}
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as TicketStatus | 'all')}
+            onChange={e => setFilterParam('status', e.target.value)}
           >
             <option value='all'>All Statuses</option>
             <option value='open'>Open</option>
