@@ -1,6 +1,6 @@
 import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
-import { formatDisplayDate, safeFormatDate } from '@adopt-dont-shop/lib.utils';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
 import { useUnreadConversations } from '@adopt-dont-shop/lib.chat';
 import React, { useEffect, useMemo, useState } from 'react';
