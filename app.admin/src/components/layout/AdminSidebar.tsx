@@ -175,7 +175,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
         >
           <div className={styles.navSectionTitle({ collapsed })}>Content</div>
           <NavLink
-            to='/content'
+            to='/content-management'
             className={({ isActive }) =>
               styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
             }
