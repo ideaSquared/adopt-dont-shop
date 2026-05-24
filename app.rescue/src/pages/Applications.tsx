@@ -178,6 +178,7 @@ const Applications: React.FC = () => {
         busy={bulkBusy}
         resultSummary={bulkResult}
         onBulkAction={handleBulkAction}
+        onResultDismiss={() => setBulkResult(null)}
       />
 
       {/* Applications List */}
