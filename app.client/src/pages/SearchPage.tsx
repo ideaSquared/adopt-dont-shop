@@ -258,7 +258,8 @@ export const SearchPage: React.FC = () => {
         {pagination && pagination.totalPages > 1 && (
           <div className={styles.pagination}>
             <div className='page-info'>
-              Page {pagination.page} of {pagination.totalPages}({pagination.total} total pets)
+              Showing page {pagination.page} of {pagination.totalPages} &mdash; {pagination.total}{' '}
+              pets
             </div>
 
             <div className='page-controls'>
