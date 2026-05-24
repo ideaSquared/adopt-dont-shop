@@ -5,8 +5,8 @@ import {
   Container,
   MatchReasonChips,
   ProgressiveImage,
-  Spinner,
 } from '@adopt-dont-shop/lib.components';
+import { PetCardSkeletonGrid } from '@/components/skeletons';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import type { MatchTopPick } from '@adopt-dont-shop/lib.matching';
 import { useMatchPreferences } from '@/hooks/useMatchPreferences';
@@ -94,7 +94,9 @@ export const TopPicksHomeModule: React.FC = () => {
           </Link>
         </div>
         {loading ? (
-          <Spinner />
+          <div className={styles.grid}>
+            <PetCardSkeletonGrid count={3} />
+          </div>
         ) : (
           <div className={styles.grid}>
             {picks.map(pick => {

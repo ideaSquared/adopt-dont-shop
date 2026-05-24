@@ -1,5 +1,6 @@
 import { applicationService, Application } from '@/services';
-import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
+import { Alert, Button } from '@adopt-dont-shop/lib.components';
+import { ApplicationDetailSkeleton } from '@/components/skeletons';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
@@ -111,9 +112,7 @@ export const ApplicationDetailsPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className={styles.container}>
-        <div className={styles.loadingContainer}>
-          <Spinner />
-        </div>
+        <ApplicationDetailSkeleton />
       </div>
     );
   }
