@@ -191,7 +191,8 @@ export const ApplicationDashboard: React.FC = () => {
                       {application.pet?.name || 'Unknown pet'}
                     </h3>
                     <p className={styles.petDetailsP}>
-                      {application.pet?.breed} • {application.pet?.age_years} years old
+                      {application.pet?.breed ?? '—'} • {application.pet?.age_years ?? '—'} years
+                      old
                     </p>
                     {rescueName && <p className={styles.rescueName}>{rescueName}</p>}
                   </div>
