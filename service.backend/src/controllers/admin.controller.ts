@@ -3,6 +3,7 @@ import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import User, { UserStatus, UserType } from '../models/User';
 import Rescue from '../models/Rescue';
 import AdminService from '../services/admin.service';
+import { ApiError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
 import type { RescuePlan } from '../config/plans';
@@ -142,14 +143,15 @@ export class AdminController {
         userId: req.params.userId,
         duration: Date.now() - startTime,
       });
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({
-          error: 'User not found',
+
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({
+          error: error.message,
         });
       }
+
       res.status(500).json({
-        error: 'Failed to perform user action',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
       });
     }
   }
@@ -385,7 +387,6 @@ export class AdminController {
       if (!res.headersSent) {
         res.status(500).json({
           error: 'Failed to export data',
-          message: error instanceof Error ? error.message : 'Unknown error',
         });
       } else {
         res.end();

@@ -1,6 +1,7 @@
 import { Op, Transaction } from 'sequelize';
 import { Chat, ChatParticipant, Message, MessageRead } from '../models';
 import sequelize from '../sequelize';
+import { NotFoundError, ForbiddenError } from '../middleware/error-handler';
 import { logger } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 
@@ -43,7 +44,7 @@ export class MessageReadStatusService {
       // Get the message and verify it exists
       const message = await Message.findByPk(messageId, { transaction: t });
       if (!message) {
-        throw new Error('Message not found');
+        throw new NotFoundError('Message not found');
       }
 
       // Check if user is a participant in the chat
@@ -56,7 +57,7 @@ export class MessageReadStatusService {
       });
 
       if (!isParticipant) {
-        throw new Error('User is not a participant in this chat');
+        throw new ForbiddenError('User is not a participant in this chat');
       }
 
       // Update or create read status
@@ -142,7 +143,7 @@ export class MessageReadStatusService {
       });
 
       if (!isParticipant) {
-        throw new Error('User is not a participant in this chat');
+        throw new ForbiddenError('User is not a participant in this chat');
       }
 
       // Find all unread messages in the chat

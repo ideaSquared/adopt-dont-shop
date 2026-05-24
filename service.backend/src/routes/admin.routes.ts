@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AdminController } from '../controllers/admin.controller';
 import { SecurityController } from '../controllers/security.controller';
 import { authenticateToken } from '../middleware/auth';
+import { ApiError } from '../middleware/error-handler';
 import { requireAdmin, requirePermission } from '../middleware/rbac';
 import { authLimiter, generalLimiter } from '../middleware/rate-limiter';
 import { handleValidationErrors } from '../middleware/validation';
@@ -1583,21 +1584,17 @@ router.post(
       });
       res.status(200).json(result);
     } catch (error) {
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
+      }
       const message = error instanceof Error ? error.message : 'Unknown error';
-      if (message === 'User not found') {
-        res.status(404).json({ error: message });
-        return;
-      }
-      if (message === 'User has no email address on file') {
-        res.status(422).json({ error: message });
-        return;
-      }
       logger.error('Failed to send legal re-acceptance reminder', {
         userId,
         triggeredBy: req.user?.userId,
         error: message,
       });
-      res.status(500).json({ error: 'Failed to send reminder' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 );

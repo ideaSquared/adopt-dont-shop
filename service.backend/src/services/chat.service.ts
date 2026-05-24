@@ -1,4 +1,10 @@
 import { Op, Transaction, WhereOptions, type Includeable } from 'sequelize';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+  ConflictError,
+} from '../middleware/error-handler';
 import { Chat, ChatParticipant, Message, User } from '../models';
 import MessageReaction from '../models/MessageReaction';
 import MessageRead from '../models/MessageRead';
@@ -236,7 +242,7 @@ export class ChatService {
       where: { chat_id: chatId, participant_id: userId },
     });
     if (!participant) {
-      throw new Error('User is not a participant in this chat');
+      throw new ForbiddenError('User is not a participant in this chat');
     }
   }
 
@@ -728,7 +734,7 @@ export class ChatService {
       });
 
       if (!chat) {
-        throw new Error('User is not a participant in this chat');
+        throw new ForbiddenError('User is not a participant in this chat');
       }
 
       const isRescueStaffOfChat = !!data.senderRescueId && chat.rescue_id === data.senderRescueId;
@@ -739,7 +745,7 @@ export class ChatService {
           transaction,
         });
         if (!participant) {
-          throw new Error('User is not a participant in this chat');
+          throw new ForbiddenError('User is not a participant in this chat');
         }
       }
 
@@ -756,7 +762,7 @@ export class ChatService {
       });
 
       if (recentMessages >= 10) {
-        throw new Error('Rate limit exceeded. Please wait before sending more messages.');
+        throw new ForbiddenError('Rate limit exceeded. Please wait before sending more messages.');
       }
 
       // Validate message type if provided
@@ -775,7 +781,7 @@ export class ChatService {
       const scanResult = ContentModerationService.scanContent(data.content);
 
       if (ContentModerationService.isMessageBlocked(scanResult)) {
-        throw new Error('Message blocked: content violates platform policy');
+        throw new ForbiddenError('Message blocked: content violates platform policy');
       }
 
       const moderationFields = scanResult.isFlagged
@@ -1040,10 +1046,10 @@ export class ChatService {
 
       // Validate inputs
       if (page < 1) {
-        throw new Error('Page must be greater than 0');
+        throw new BadRequestError('Page must be greater than 0');
       }
       if (limit < 1 || limit > 100) {
-        throw new Error('Limit must be between 1 and 100');
+        throw new BadRequestError('Limit must be between 1 and 100');
       }
 
       // Only participants (or rescue staff for that chat's rescue) can
@@ -1226,7 +1232,7 @@ export class ChatService {
       });
 
       if (!adder) {
-        throw new Error('Only rescue staff can add participants');
+        throw new ForbiddenError('Only rescue staff can add participants');
       }
 
       // Check if user is already a participant
@@ -1235,7 +1241,7 @@ export class ChatService {
       });
 
       if (existing) {
-        throw new Error('User is already a participant');
+        throw new ConflictError('User is already a participant');
       }
 
       // Add new participant
@@ -1277,7 +1283,7 @@ export class ChatService {
         });
 
         if (!remover) {
-          throw new Error('Only rescue staff can remove other participants');
+          throw new ForbiddenError('Only rescue staff can remove other participants');
         }
       }
 
@@ -1315,7 +1321,7 @@ export class ChatService {
     try {
       const chat = await Chat.findByPk(chatId);
       if (!chat) {
-        throw new Error('Chat not found');
+        throw new NotFoundError('Chat not found');
       }
 
       const originalData = chat.toJSON();
@@ -1372,7 +1378,7 @@ export class ChatService {
     try {
       const chat = await Chat.findByPk(chatId);
       if (!chat) {
-        throw new Error('Chat not found');
+        throw new NotFoundError('Chat not found');
       }
 
       await chat.destroy();
@@ -1419,7 +1425,7 @@ export class ChatService {
     try {
       const message = await Message.findByPk(messageId);
       if (!message) {
-        throw new Error('Message not found');
+        throw new NotFoundError('Message not found');
       }
 
       await this.requireChatParticipant(message.chat_id, userId, false);
@@ -1443,7 +1449,7 @@ export class ChatService {
     try {
       const message = await Message.findByPk(messageId);
       if (!message) {
-        throw new Error('Message not found');
+        throw new NotFoundError('Message not found');
       }
 
       // Previously this check was missing — anyone with a JWT and a
@@ -1559,7 +1565,7 @@ export class ChatService {
       const message = await Message.findByPk(messageId);
 
       if (!message) {
-        throw new Error('Message not found');
+        throw new NotFoundError('Message not found');
       }
 
       // Soft delete by updating the appropriate field
@@ -1610,7 +1616,7 @@ export class ChatService {
       });
 
       if (!participant) {
-        throw new Error('Participant not found in chat');
+        throw new NotFoundError('Participant not found in chat');
       }
 
       // Update the participant record appropriately
@@ -1644,7 +1650,7 @@ export class ChatService {
     try {
       const message = await Message.findByPk(messageId);
       if (!message) {
-        throw new Error('Message not found');
+        throw new NotFoundError('Message not found');
       }
 
       // Verify user is a participant in the chat
@@ -1656,7 +1662,7 @@ export class ChatService {
       });
 
       if (!participant) {
-        throw new Error('User is not a participant in this chat');
+        throw new ForbiddenError('User is not a participant in this chat');
       }
 
       // Update the message record appropriately
@@ -1885,7 +1891,7 @@ export class ChatService {
     try {
       const message = await Message.findByPk(messageId);
       if (!message) {
-        throw new Error('Message not found');
+        throw new NotFoundError('Message not found');
       }
 
       const originalData = message.toJSON();

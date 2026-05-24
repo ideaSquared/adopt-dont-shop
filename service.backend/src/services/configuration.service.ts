@@ -1,3 +1,4 @@
+import { BadRequestError } from '../middleware/error-handler';
 import { ConfigValue } from '../types/common';
 import {
   BulkConfigurationResult,
@@ -188,32 +189,38 @@ class ConfigurationService {
     }
 
     if (rules.required && (value === null || value === undefined || value === '')) {
-      throw new Error(`Configuration '${key}' is required`);
+      throw new BadRequestError(`Configuration '${key}' is required`);
     }
 
     if (typeof value === 'string') {
       if (rules.minLength && value.length < rules.minLength) {
-        throw new Error(`Configuration '${key}' must be at least ${rules.minLength} characters`);
+        throw new BadRequestError(
+          `Configuration '${key}' must be at least ${rules.minLength} characters`
+        );
       }
       if (rules.maxLength && value.length > rules.maxLength) {
-        throw new Error(`Configuration '${key}' must be at most ${rules.maxLength} characters`);
+        throw new BadRequestError(
+          `Configuration '${key}' must be at most ${rules.maxLength} characters`
+        );
       }
       if (rules.pattern && !new RegExp(rules.pattern).test(value)) {
-        throw new Error(`Configuration '${key}' does not match required pattern`);
+        throw new BadRequestError(`Configuration '${key}' does not match required pattern`);
       }
     }
 
     if (typeof value === 'number') {
       if (rules.min !== undefined && value < rules.min) {
-        throw new Error(`Configuration '${key}' must be at least ${rules.min}`);
+        throw new BadRequestError(`Configuration '${key}' must be at least ${rules.min}`);
       }
       if (rules.max !== undefined && value > rules.max) {
-        throw new Error(`Configuration '${key}' must be at most ${rules.max}`);
+        throw new BadRequestError(`Configuration '${key}' must be at most ${rules.max}`);
       }
     }
 
     if (rules.allowedValues && !rules.allowedValues.includes(value)) {
-      throw new Error(`Configuration '${key}' must be one of: ${rules.allowedValues.join(', ')}`);
+      throw new BadRequestError(
+        `Configuration '${key}' must be one of: ${rules.allowedValues.join(', ')}`
+      );
     }
   }
 

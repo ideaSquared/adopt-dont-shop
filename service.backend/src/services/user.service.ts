@@ -24,7 +24,12 @@ import {
 import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
-import { ForbiddenError } from './reports.service';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+  ConflictError,
+} from '../middleware/error-handler';
 import { isAdminRole } from '../utils/is-admin-role';
 import { redactSensitiveFields } from '../utils/redact';
 import RefreshToken from '../models/RefreshToken';
@@ -225,7 +230,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Store original data for audit
@@ -441,7 +446,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Plan 5.6: notification prefs and privacy prefs live in their own
@@ -497,7 +502,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Sequential reads — SQLite (test dialect) can't parallelise queries
@@ -545,7 +550,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const defaultPreferences: UserPreferences = {
@@ -604,7 +609,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Get real application count
@@ -737,7 +742,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Get real application count
@@ -1090,7 +1095,7 @@ export class UserService {
 
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const oldUserType = user.userType;
@@ -1153,11 +1158,11 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       if (user.status === UserStatus.INACTIVE) {
-        throw new Error('User is already deactivated');
+        throw new ConflictError('User is already deactivated');
       }
 
       user.status = UserStatus.INACTIVE;
@@ -1206,11 +1211,11 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       if (user.status === UserStatus.ACTIVE) {
-        throw new Error('User is already active');
+        throw new ConflictError('User is already active');
       }
 
       user.status = UserStatus.ACTIVE;
@@ -1277,7 +1282,7 @@ export class UserService {
     operation: string
   ): void {
     if (requestingUserId === targetUserId) {
-      throw new Error(`Cannot ${operation} your own account`);
+      throw new ForbiddenError(`Cannot ${operation} your own account`);
     }
   }
 
@@ -1287,7 +1292,7 @@ export class UserService {
     operation: string
   ): void {
     if (targetUserIds.includes(requestingUserId)) {
-      throw new Error(`Cannot include your own account in bulk ${operation} operation`);
+      throw new ForbiddenError(`Cannot include your own account in bulk ${operation} operation`);
     }
   }
 
@@ -1381,7 +1386,7 @@ export class UserService {
             individualHooks: true,
           });
           if (affected === 0) {
-            throw new Error('User not found');
+            throw new NotFoundError('User not found');
           }
           return userId;
         })
@@ -1460,7 +1465,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Soft delete related data first
@@ -1541,7 +1546,7 @@ export class UserService {
       });
 
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Extract unique permissions from all roles

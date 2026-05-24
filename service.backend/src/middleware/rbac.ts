@@ -33,7 +33,7 @@ export const requireRole = (...allowedRoles: UserType[]) => {
       next();
     } catch (error) {
       logger.error('RBAC middleware error:', error);
-      res.status(500).json({ error: 'Authorization error' });
+      res.status(403).json({ error: 'Authorization check failed' });
     }
   };
 };
@@ -221,7 +221,7 @@ export const requireOwnershipOrAdmin = (
       });
     } catch (error) {
       logger.error('Ownership middleware error:', error);
-      res.status(500).json({ error: 'Authorization error' });
+      res.status(403).json({ error: 'Authorization check failed' });
     }
   };
 };

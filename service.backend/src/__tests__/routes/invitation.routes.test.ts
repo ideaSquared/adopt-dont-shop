@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { errorHandler } from '../../middleware/error-handler';
+import { errorHandler, NotFoundError } from '../../middleware/error-handler';
 
 vi.mock('../../utils/logger', () => ({
   logger: {
@@ -54,7 +54,7 @@ describe('Invitation routes — token safety in error logs', () => {
 
     beforeEach(() => {
       vi.mocked(InvitationService.acceptInvitation).mockRejectedValue(
-        new Error('Invitation not found')
+        new NotFoundError('Invitation not found')
       );
     });
 

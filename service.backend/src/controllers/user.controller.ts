@@ -11,6 +11,7 @@ import {
   REFRESH_TOKEN_COOKIE_OPTIONS,
 } from './auth.controller';
 import { AuthenticatedRequest } from '../types';
+import { ApiError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { validateBody } from '../middleware/zod-validate';
 
@@ -129,15 +130,12 @@ export class UserController {
 
       res.json(user);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Get user by ID failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
-
-      res.status(500).json({ error: 'Failed to get user' });
+      logger.error('Get user by ID failed:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -160,15 +158,12 @@ export class UserController {
       const updatedUser = await UserService.updateUserProfile(userId, updateData);
       res.json(updatedUser);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Update user failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
-
-      res.status(500).json({ error: 'Failed to update user' });
+      logger.error('Update user failed:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -186,20 +181,12 @@ export class UserController {
       const result = await UserService.deactivateUser(userId, requestingUserId);
       res.json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
+      }
       logger.error('Deactivate user failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      if (errorMessage.includes('Cannot deactivate')) {
-        res.status(400).json({ error: errorMessage });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to deactivate user' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -214,15 +201,12 @@ export class UserController {
       const result = await UserService.reactivateUser(userId, requestingUserId);
       res.json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Activate user failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
-
-      res.status(500).json({ error: 'Failed to activate user' });
+      logger.error('Activate user failed:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -254,15 +238,12 @@ export class UserController {
       );
       res.json(result);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Bulk update users failed:', error);
-
-      if (errorMessage.includes('Cannot include your own account')) {
-        res.status(400).json({ error: errorMessage });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
-
-      res.status(500).json({ error: 'Failed to bulk update users' });
+      logger.error('Bulk update users failed:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -326,21 +307,12 @@ export class UserController {
         data: activitySummary,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Get user activity summary failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({
-          success: false,
-          error: 'User not found',
-        });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
-
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get user activity summary',
-      });
+      logger.error('Get user activity summary failed:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -360,29 +332,12 @@ export class UserController {
         message: 'User role updated successfully',
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
+      }
       logger.error('Update user role failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({
-          success: false,
-          error: 'User not found',
-        });
-        return;
-      }
-
-      if (errorMessage.includes('Cannot change role')) {
-        res.status(400).json({
-          success: false,
-          error: errorMessage,
-        });
-        return;
-      }
-
-      res.status(500).json({
-        success: false,
-        error: 'Failed to update user role',
-      });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -401,21 +356,12 @@ export class UserController {
         message: 'User reactivated successfully',
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Reactivate user failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({
-          success: false,
-          error: 'User not found',
-        });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
         return;
       }
-
-      res.status(500).json({
-        success: false,
-        error: 'Failed to reactivate user',
-      });
+      logger.error('Reactivate user failed:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -482,11 +428,11 @@ export class UserController {
         duration: Date.now() - startTime,
       });
 
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({ error: 'User not found' });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
 
-      return res.status(500).json({ error: 'Failed to delete account' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -518,15 +464,11 @@ export class UserController {
         duration: Date.now() - startTime,
       });
 
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({
-          error: 'User not found',
-        });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
 
-      return res.status(500).json({
-        error: 'Failed to get user permissions',
-      });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 

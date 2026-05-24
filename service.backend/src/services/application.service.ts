@@ -36,7 +36,13 @@ import User, { UserType } from '../models/User';
 import sequelize from '../sequelize';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
-import { NotFoundError } from './reports.service';
+import {
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+  ForbiddenError,
+  UnprocessableError,
+} from '../middleware/error-handler';
 import ApplicationTimelineService from './applicationTimeline.service';
 import emailService from './email.service';
 import { NotificationService } from './notification.service';
@@ -298,7 +304,7 @@ export class ApplicationService {
       // Validate user exists (outside transaction — read-only, no race risk)
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const result = await sequelize.transaction(async t => {
@@ -308,7 +314,7 @@ export class ApplicationService {
           lock: t.LOCK.UPDATE,
         });
         if (!pet) {
-          throw new Error('Pet not found');
+          throw new NotFoundError('Pet not found');
         }
 
         // A13: applications may only be submitted to a verified rescue.
@@ -317,11 +323,11 @@ export class ApplicationService {
         // closes the loop for any caller that hits the API directly.
         const rescue = await Rescue.findByPk(pet.rescueId, { transaction: t });
         if (!rescue || rescue.status !== 'verified') {
-          throw new Error('Cannot interact with unverified rescue');
+          throw new ForbiddenError('Cannot interact with unverified rescue');
         }
 
         if (pet.status !== 'available') {
-          throw new Error('Pet is not available for adoption');
+          throw new ConflictError('Pet is not available for adoption');
         }
 
         // Check for existing active application for this pet by this user
@@ -337,7 +343,7 @@ export class ApplicationService {
         });
 
         if (existingApplication) {
-          throw new Error('You already have an active application for this pet');
+          throw new ConflictError('You already have an active application for this pet');
         }
 
         // Validate answers against required questions
@@ -347,7 +353,7 @@ export class ApplicationService {
         );
 
         if (!validationResult.is_valid) {
-          throw new Error(
+          throw new UnprocessableError(
             `Application validation failed: ${validationResult.errors.map(e => e.message).join(', ')}`
           );
         }
@@ -491,7 +497,7 @@ export class ApplicationService {
       // pre-flight findOne check, the DB unique index rejects the second
       // INSERT. Map that to the same user-facing error as the pre-flight guard.
       if (error instanceof UniqueConstraintError) {
-        throw new Error('You already have an active application for this pet');
+        throw new ConflictError('You already have an active application for this pet');
       }
 
       logger.error('Failed to create application:', {
@@ -571,7 +577,7 @@ export class ApplicationService {
       // Check permissions
       if (userId && userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
         if (userType === UserType.ADOPTER && application.userId !== userId) {
-          throw new Error('Access denied');
+          throw new ForbiddenError('Access denied');
         }
         if (userType === UserType.RESCUE_STAFF) {
           const StaffMember = (await import('../models/StaffMember')).default;
@@ -580,7 +586,7 @@ export class ApplicationService {
             attributes: ['rescueId'],
           });
           if (!membership || membership.rescueId !== application.rescueId) {
-            throw new Error('Access denied');
+            throw new ForbiddenError('Access denied');
           }
         }
       }
@@ -646,9 +652,7 @@ export class ApplicationService {
         });
 
         if (!staffMember?.rescueId) {
-          throw Object.assign(new Error('Unable to determine rescue for staff user'), {
-            statusCode: 403,
-          });
+          throw new ForbiddenError('Unable to determine rescue for staff user');
         }
 
         staffRescueIdOverride = staffMember.rescueId;
@@ -901,17 +905,17 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions - only owner can update their own applications
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       // Validate that application can be updated (only submitted applications can be updated)
       if (application.status !== ApplicationStatus.SUBMITTED) {
-        throw new Error('Application cannot be updated once processed');
+        throw new ConflictError('Application cannot be updated once processed');
       }
 
       // Answers and references live in their typed tables (plan 2.1)
@@ -1043,18 +1047,18 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       // In simplified workflow, applications are submitted upon creation
       // This method is kept for API compatibility but does nothing
       if (application.status !== ApplicationStatus.SUBMITTED) {
-        throw new Error('Application is not in a valid state');
+        throw new ConflictError('Application is not in a valid state');
       }
 
       // Validate application completeness — answers live in the typed
@@ -1067,7 +1071,7 @@ export class ApplicationService {
       );
 
       if (!validationResult.is_valid) {
-        throw new Error(
+        throw new UnprocessableError(
           `Application is incomplete: ${validationResult.errors.map(e => e.message).join(', ')}`
         );
       }
@@ -1112,7 +1116,7 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // ADS-234: enforce rescue ownership. The route already checks the
@@ -1130,15 +1134,15 @@ export class ApplicationService {
           where: { userId: actionedBy, isVerified: true },
         });
         if (!membership || membership.rescueId !== application.rescueId) {
-          throw Object.assign(new Error('Access denied: application belongs to another rescue'), {
-            statusCode: 403,
-          });
+          throw new ForbiddenError('Access denied: application belongs to another rescue');
         }
       }
 
       // Validate status transition
       if (!application.canTransitionTo(statusUpdate.status)) {
-        throw new Error(`Cannot transition from ${application.status} to ${statusUpdate.status}`);
+        throw new ConflictError(
+          `Cannot transition from ${application.status} to ${statusUpdate.status}`
+        );
       }
 
       const previousStatus = application.status;
@@ -1352,17 +1356,17 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       // Validate application can be withdrawn
       if (!application.isInProgress()) {
-        throw new Error('Application cannot be withdrawn in current status');
+        throw new ConflictError('Application cannot be withdrawn in current status');
       }
 
       const previousStatus = application.status;
@@ -1429,12 +1433,12 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       const newDocument = {
@@ -1503,11 +1507,11 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       const documentIndex = application.documents.findIndex(
@@ -1515,7 +1519,7 @@ export class ApplicationService {
       );
 
       if (documentIndex === -1) {
-        throw new Error('Document not found');
+        throw new NotFoundError('Document not found');
       }
 
       const removedDoc = application.documents[documentIndex];
@@ -1551,7 +1555,7 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Determine the reference index to update
@@ -1560,14 +1564,14 @@ export class ApplicationService {
       if (referenceUpdate.referenceId) {
         // ID-based approach
         if (!referenceUpdate.referenceId.startsWith('ref-')) {
-          throw new Error(
+          throw new BadRequestError(
             `Invalid reference ID format: ${referenceUpdate.referenceId}. Expected format: ref-X`
           );
         }
 
         const indexFromId = parseInt(referenceUpdate.referenceId.split('-')[1], 10);
         if (isNaN(indexFromId)) {
-          throw new Error(
+          throw new BadRequestError(
             `Could not extract reference index from ID: ${referenceUpdate.referenceId}`
           );
         }
@@ -1576,7 +1580,7 @@ export class ApplicationService {
         // Fallback index-based approach
         referenceIndex = referenceUpdate.reference_index;
       } else {
-        throw new Error('Either referenceId or reference_index must be provided');
+        throw new BadRequestError('Either referenceId or reference_index must be provided');
       }
 
       // References live in the application_references typed table now
@@ -2106,12 +2110,12 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       await application.destroy();

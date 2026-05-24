@@ -1,3 +1,4 @@
+import { NotFoundError } from '../middleware/error-handler';
 import User from '../models/User';
 import UserApplicationPrefs from '../models/UserApplicationPrefs';
 import {
@@ -36,7 +37,7 @@ export class ApplicationProfileService {
       });
 
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       return (user.applicationDefaults as ApplicationDefaults) || null;
@@ -70,7 +71,7 @@ export class ApplicationProfileService {
       const user = await User.findByPk(userId);
 
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Merge with existing defaults
@@ -114,7 +115,7 @@ export class ApplicationProfileService {
     try {
       const user = await User.findByPk(userId, { attributes: ['userId'] });
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
       // Plan 5.6: prefs live in user_application_prefs. Auto-created
       // by User.afterCreate; findOrCreate is defensive against
@@ -154,7 +155,7 @@ export class ApplicationProfileService {
     try {
       const user = await User.findByPk(userId, { attributes: ['userId'] });
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const [row] = await UserApplicationPrefs.findOrCreate({
@@ -198,7 +199,7 @@ export class ApplicationProfileService {
       });
 
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const defaults = (user.applicationDefaults as ApplicationDefaults) || {};
@@ -262,7 +263,7 @@ export class ApplicationProfileService {
       });
 
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const defaults = (user.applicationDefaults as ApplicationDefaults) || {};

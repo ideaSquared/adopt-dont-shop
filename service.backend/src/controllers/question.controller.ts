@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { QuestionCategory, QuestionType } from '../models/ApplicationQuestion';
 import { AuthenticatedRequest } from '../types/api';
+import { ApiError } from '../middleware/error-handler';
 import QuestionService from '../services/question.service';
 
 export class QuestionController {
@@ -136,9 +137,11 @@ export class QuestionController {
       const question = await QuestionService.createQuestion(rescueId, req.body);
       res.status(201).json({ success: true, question });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create question';
-      const status = message.includes('must have') || message.includes('cannot') ? 400 : 500;
-      res.status(status).json({ success: false, error: message });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
   }
 
@@ -153,9 +156,11 @@ export class QuestionController {
       const question = await QuestionService.updateQuestion(questionId, rescueId, req.body);
       res.status(200).json({ success: true, question });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update question';
-      const status = message === 'Question not found' ? 404 : 500;
-      res.status(status).json({ success: false, error: message });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
   }
 
@@ -170,9 +175,11 @@ export class QuestionController {
       await QuestionService.deleteQuestion(questionId, rescueId);
       res.status(200).json({ success: true, message: 'Question deleted successfully' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete question';
-      const status = message === 'Question not found' ? 404 : 500;
-      res.status(status).json({ success: false, error: message });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
   }
 
@@ -187,9 +194,11 @@ export class QuestionController {
       await QuestionService.reorderQuestions(rescueId, req.body.questions);
       res.status(200).json({ success: true, message: 'Questions reordered successfully' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to reorder questions';
-      const status = message.includes('not found') ? 404 : 500;
-      res.status(status).json({ success: false, error: message });
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
   }
 }

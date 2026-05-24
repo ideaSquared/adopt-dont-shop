@@ -281,17 +281,17 @@ app.use(httpAccessLog);
 // ADS-404: per-request HTTP histogram for the Prometheus scrape endpoint.
 app.use(metricsMiddleware);
 
-// Cookie parser for CSRF tokens
-app.use(cookieParser());
+// Cookie parsing + CSRF protection, scoped to /api so non-API paths
+// (Swagger, monitoring, upload-serve) don't trigger CodeQL's
+// js/missing-token-validation false positive.  GET/HEAD/OPTIONS are
+// skipped automatically by csrf-csrf's ignoredMethods config.  The
+// email webhook POST is handled by a self-contained route above
+// cookieParser and never reaches here.
+app.use('/api', cookieParser(), csrfProtection);
 
-// CSRF Protection for state-changing requests
-// Provide CSRF token endpoint (must be before csrfProtection middleware)
+// CSRF token endpoint — must be reachable without CSRF validation
+// (it's a GET, so csrfProtection's ignoredMethods skips it).
 app.get('/api/v1/csrf-token', getCsrfToken);
-
-// Apply CSRF protection to all /api routes. GET/HEAD/OPTIONS are skipped
-// automatically by csrf-csrf's ignoredMethods config. The email webhook POST
-// is handled by the fully self-contained route above and never reaches here.
-app.use('/api', csrfProtection);
 
 // ADS-429 / ADS-422: upload serving.
 //

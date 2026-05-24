@@ -5,6 +5,7 @@ import ApplicationQuestion, {
 } from '../models/ApplicationQuestion';
 import { generateCryptoUuid as uuidv4 } from '../utils/uuid-helpers';
 import { logger } from '../utils/logger';
+import { NotFoundError } from '../middleware/error-handler';
 import { JsonObject } from '../types/common';
 
 export type CreateQuestionData = {
@@ -150,7 +151,7 @@ export class QuestionService {
       });
 
       if (!question) {
-        throw new Error('Question not found');
+        throw new NotFoundError('Question not found');
       }
 
       const updates: Partial<ApplicationQuestion> = {};
@@ -206,7 +207,7 @@ export class QuestionService {
       });
 
       if (!question) {
-        throw new Error('Question not found');
+        throw new NotFoundError('Question not found');
       }
 
       await question.destroy();
@@ -228,7 +229,7 @@ export class QuestionService {
       });
 
       if (questions.length !== reorderEntries.length) {
-        throw new Error('Some questions not found or do not belong to this rescue');
+        throw new NotFoundError('Some questions not found or do not belong to this rescue');
       }
 
       await Promise.all(

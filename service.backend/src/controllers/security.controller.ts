@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import SecurityService from '../services/security.service';
 import { IpRuleType } from '../models/IpRule';
+import { ApiError } from '../middleware/error-handler';
 import { logger } from '../utils/logger';
 import { AuthenticatedRequest } from '../types/auth';
 
@@ -30,14 +31,11 @@ export class SecurityController {
       const result = await SecurityService.revokeSession(sessionId, req.user!.userId);
       return res.json({ success: true, data: result });
     } catch (error) {
-      if (error instanceof Error && error.message === 'Session not found') {
-        return res.status(404).json({ error: error.message });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
       logger.error('Error revoking session:', error);
-      return res.status(500).json({
-        error: 'Failed to revoke session',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -94,14 +92,11 @@ export class SecurityController {
       });
       return res.status(201).json({ success: true, data: rule });
     } catch (error) {
-      if (error instanceof Error && error.message === 'Invalid CIDR or IP address') {
-        return res.status(400).json({ error: error.message });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
       logger.error('Error creating IP rule:', error);
-      return res.status(500).json({
-        error: 'Failed to create IP rule',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -111,14 +106,11 @@ export class SecurityController {
       await SecurityService.deleteIpRule(ipRuleId, req.user!.userId);
       return res.status(204).send();
     } catch (error) {
-      if (error instanceof Error && error.message === 'IP rule not found') {
-        return res.status(404).json({ error: error.message });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
       logger.error('Error deleting IP rule:', error);
-      return res.status(500).json({
-        error: 'Failed to delete IP rule',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -128,14 +120,11 @@ export class SecurityController {
       const result = await SecurityService.unlockAccount(userId, req.user!.userId);
       return res.json({ success: true, data: result });
     } catch (error) {
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({ error: error.message });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
       logger.error('Error unlocking account:', error);
-      return res.status(500).json({
-        error: 'Failed to unlock account',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -146,14 +135,11 @@ export class SecurityController {
       await SecurityService.forceLockAccount(userId, req.user!.userId, reason ?? null);
       return res.json({ success: true });
     } catch (error) {
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({ error: error.message });
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ error: error.message });
       }
       logger.error('Error force-locking account:', error);
-      return res.status(500).json({
-        error: 'Failed to lock account',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
