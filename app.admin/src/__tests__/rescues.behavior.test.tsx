@@ -284,7 +284,9 @@ describe('Rescue Management page', () => {
       renderWithProviders(<Rescues />);
       await waitFor(() => {
         expect(
-          screen.getByText('No rescue organizations found matching your criteria')
+          screen.getByText(
+            'No rescue organizations found matching your criteria. Try adjusting your search or filters.'
+          )
         ).toBeInTheDocument();
       });
     });

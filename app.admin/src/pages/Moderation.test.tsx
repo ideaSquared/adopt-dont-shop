@@ -1,31 +1,16 @@
 /**
  * UX P0/P1 #8: when a moderation action submission fails, the page
- * previously only console.error'd the failure — the modal stayed open
- * with no feedback. The handler now surfaces the failure via the
- * app-admin `toast.error` pattern so the user can retry or close.
+ * surfaces the failure as a persistent inline error in the action modal
+ * so the user can see the error, retry, or close.
  */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '../test-utils';
 
-const toastErrorMock = vi.fn();
 const resolveReportMock = vi.fn();
 const dismissReportMock = vi.fn();
 const refetchMock = vi.fn().mockResolvedValue(undefined);
-
-vi.mock('@adopt-dont-shop/lib.components', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('@adopt-dont-shop/lib.components');
-  return {
-    ...actual,
-    toast: Object.assign(vi.fn(), {
-      error: (...args: unknown[]) => toastErrorMock(...args),
-      success: vi.fn(),
-      info: vi.fn(),
-      warning: vi.fn(),
-    }),
-  };
-});
 
 const sampleReport = {
   reportId: 'rep-1',
@@ -66,27 +51,32 @@ vi.mock('@adopt-dont-shop/lib.moderation', () => ({
 }));
 
 // Replace ActionSelectionModal with a stub that exposes a "submit" button
-// firing onSubmit with a deterministic payload — that's all we need to
-// observe the error-handling branch.
+// firing onSubmit with a deterministic payload, and renders the error prop
+// inline so we can assert on it.
 vi.mock('../components/moderation/ActionSelectionModal', () => ({
   ActionSelectionModal: ({
     isOpen,
     onSubmit,
+    error,
   }: {
     isOpen: boolean;
     onSubmit: (data: { actionType: string; reason: string }) => void;
+    error?: string | null;
   }) => {
     if (!isOpen) {
       return null;
     }
     return (
-      <button
-        type='button'
-        onClick={() => onSubmit({ actionType: 'no_action', reason: 'looked fine' })}
-        data-testid='stub-action-submit'
-      >
-        Submit Action
-      </button>
+      <div>
+        {error && <div role='alert'>{error}</div>}
+        <button
+          type='button'
+          onClick={() => onSubmit({ actionType: 'no_action', reason: 'looked fine' })}
+          data-testid='stub-action-submit'
+        >
+          Submit Action
+        </button>
+      </div>
     );
   },
 }));
@@ -112,7 +102,7 @@ describe('Moderation handleActionSubmit error feedback', () => {
     vi.clearAllMocks();
   });
 
-  it('surfaces a toast.error when the dismiss mutation throws', async () => {
+  it('surfaces an inline error in the modal when the dismiss mutation throws', async () => {
     dismissReportMock.mockRejectedValueOnce(new Error('Server exploded'));
 
     renderWithProviders(<Moderation />);
@@ -121,14 +111,13 @@ describe('Moderation handleActionSubmit error feedback', () => {
     fireEvent.click(screen.getByTestId('stub-action-submit'));
 
     await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledTimes(1);
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent(/failed to take moderation action/i);
+      expect(alert).toHaveTextContent(/server exploded/i);
     });
-    const [message] = toastErrorMock.mock.calls[0];
-    expect(message).toMatch(/failed to take moderation action/i);
-    expect(message).toMatch(/server exploded/i);
   });
 
-  it('does not show a toast.error when the mutation succeeds', async () => {
+  it('does not show an inline error when the mutation succeeds', async () => {
     dismissReportMock.mockResolvedValueOnce(undefined);
 
     renderWithProviders(<Moderation />);
@@ -139,6 +128,6 @@ describe('Moderation handleActionSubmit error feedback', () => {
     await waitFor(() => {
       expect(dismissReportMock).toHaveBeenCalled();
     });
-    expect(toastErrorMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
