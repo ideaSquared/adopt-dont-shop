@@ -1,13 +1,4 @@
 import { vi } from 'vitest';
-// Mock logger before importing error handler
-vi.mock('../../utils/logger', () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-  },
-}));
-
 import { Request, Response, NextFunction } from 'express';
 import { DatabaseError } from 'sequelize';
 import { errorHandler, ApiError } from '../../middleware/error-handler';
