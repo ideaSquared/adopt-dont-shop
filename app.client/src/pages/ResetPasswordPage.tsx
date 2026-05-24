@@ -133,9 +133,9 @@ export const ResetPasswordPage: React.FC = () => {
       <div className={styles.container}>
         <Card className={styles.resetPasswordCard}>
           <div className={styles.successContainer}>
-            <h2>Password Reset Successful!</h2>
-            <p>Your password has been successfully updated.</p>
-            <p>You can now log in with your new password.</p>
+            <h2>Password updated</h2>
+            <p>Your password has been updated.</p>
+            <p>You can now sign in with your new password.</p>
             <p className='redirect-message'>
               Redirecting to login in {redirectCountdown} seconds...
             </p>

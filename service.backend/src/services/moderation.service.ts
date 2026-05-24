@@ -1067,9 +1067,9 @@ class ModerationService {
       escalated: 'Your report was escalated',
     };
     const messages: Record<typeof resolution, string> = {
-      resolved: 'A moderator has resolved a report you submitted.',
+      resolved: 'A moderator resolved your report.',
       dismissed: 'A moderator reviewed your report and took no further action.',
-      escalated: 'Your report has been escalated for further review.',
+      escalated: 'We escalated your report for further review.',
     };
     try {
       await NotificationService.createNotification({
@@ -1114,9 +1114,9 @@ class ModerationService {
     const { userId, actionId, actionType, reason, description, expiresAt } = params;
     const titles: Record<string, string> = {
       [ActionType.WARNING_ISSUED]: 'A moderator issued you a warning',
-      [ActionType.USER_SUSPENDED]: 'Your account has been suspended',
-      [ActionType.USER_BANNED]: 'Your account has been banned',
-      [ActionType.ACCOUNT_RESTRICTED]: 'Your account has been restricted',
+      [ActionType.USER_SUSPENDED]: 'We suspended your account',
+      [ActionType.USER_BANNED]: 'We banned your account',
+      [ActionType.ACCOUNT_RESTRICTED]: 'We restricted your account',
     };
     try {
       await NotificationService.createNotification({
