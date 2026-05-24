@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Container, Heading, Text } from '@adopt-dont-shop/lib.components';
+import { Card, Container, Heading, Spinner, Text } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useDashboardData } from '../hooks';
 import { UnreadMessagesPanel } from '../components/dashboard/UnreadMessagesPanel';
@@ -19,7 +19,7 @@ const Dashboard: React.FC = () => {
           <Text>Loading dashboard data...</Text>
         </div>
         <div className={styles.loadingState}>
-          <Text>📊 Loading...</Text>
+          <Spinner size="md" label="Loading dashboard data" />
         </div>
       </Container>
     );
