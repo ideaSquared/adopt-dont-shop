@@ -365,7 +365,7 @@ const Rescues: React.FC = () => {
         data={rescues}
         loading={loading}
         error={error}
-        emptyMessage='No rescue organizations found matching your criteria'
+        emptyMessage='No rescue organizations found matching your criteria. Try adjusting your search or filters.'
         onRowClick={rescue => handleViewDetails(rescue.rescueId)}
         currentPage={currentPage}
         totalPages={totalPages}

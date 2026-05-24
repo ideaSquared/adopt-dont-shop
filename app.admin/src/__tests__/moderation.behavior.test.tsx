@@ -280,7 +280,11 @@ describe('Content Moderation page', () => {
       });
 
       renderWithProviders(<Moderation />);
-      expect(screen.getByText('No data available')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'No reports found matching your criteria. Try adjusting your filters or search query.'
+        )
+      ).toBeInTheDocument();
     });
   });
 

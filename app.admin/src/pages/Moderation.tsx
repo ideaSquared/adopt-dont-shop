@@ -512,6 +512,7 @@ const Moderation: React.FC = () => {
         data={reports}
         columns={columns}
         loading={isLoading}
+        emptyMessage='No reports found matching your criteria. Try adjusting your filters or search query.'
         onRowClick={handleOpenDetailModal}
         currentPage={pagination?.page || 1}
         totalPages={pagination?.totalPages || 1}

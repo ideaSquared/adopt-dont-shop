@@ -604,7 +604,7 @@ const Users: React.FC = () => {
         columns={columns}
         data={users}
         loading={isLoading}
-        emptyMessage='No users found matching your criteria'
+        emptyMessage='No users found matching your criteria. Try adjusting your search or filters.'
         onRowClick={handleRowClick}
         currentPage={page}
         totalPages={totalPages}
