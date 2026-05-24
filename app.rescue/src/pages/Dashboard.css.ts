@@ -45,6 +45,71 @@ globalStyle(`${welcomeMessage} p`, {
   color: vars.colors.infoActive,
 });
 
+export const onboardingBanner = style({
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '1rem',
+  background: `linear-gradient(135deg, ${vars.colors.successBgSubtle} 0%, ${vars.colors.infoBgSubtle} 100%)`,
+  border: `1px solid ${vars.colors.successBorderSubtle}`,
+  borderRadius: '12px',
+  padding: '1.5rem',
+  marginBottom: '2rem',
+});
+
+export const onboardingContent = style({
+  flex: 1,
+});
+
+export const onboardingTitle = style({
+  margin: '0 0 0.5rem 0',
+  fontSize: '1.1rem',
+  fontWeight: 600,
+  color: vars.text.primary,
+});
+
+export const onboardingText = style({
+  margin: '0 0 1rem 0',
+  color: vars.text.secondary,
+  fontSize: '0.95rem',
+});
+
+export const onboardingActions = style({
+  display: 'flex',
+  gap: '1rem',
+  flexWrap: 'wrap',
+});
+
+export const onboardingLink = style({
+  padding: '0.5rem 1rem',
+  background: vars.colors.info,
+  color: 'white',
+  borderRadius: '8px',
+  textDecoration: 'none',
+  fontWeight: 500,
+  fontSize: '0.875rem',
+  transition: 'background 0.2s ease',
+  selectors: {
+    '&:hover': {
+      background: vars.colors.infoHover,
+    },
+  },
+});
+
+export const onboardingDismiss = style({
+  background: 'none',
+  border: 'none',
+  fontSize: '1.25rem',
+  color: vars.text.tertiary,
+  cursor: 'pointer',
+  padding: '0.25rem',
+  lineHeight: 1,
+  borderRadius: '4px',
+  transition: 'color 0.2s ease',
+  ':hover': {
+    color: vars.text.primary,
+  },
+});
+
 export const metricsGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
