@@ -216,7 +216,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
               styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
             }
           >
-            <FiShield />
+            <FiLock />
             <span className={styles.navLinkSpan({ collapsed })}>Privacy Tools</span>
           </NavLink>
           <NavLink
