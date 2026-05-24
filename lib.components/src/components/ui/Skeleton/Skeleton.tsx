@@ -12,6 +12,7 @@ type SkeletonProps = {
 
 export const Skeleton: React.FC<SkeletonProps> = ({ width, height, radius, className, style }) => (
   <div
+    aria-hidden='true'
     className={clsx(styles.skeletonBase, className)}
     style={{
       width: width ?? '100%',
@@ -28,7 +29,7 @@ type SkeletonTextProps = {
 };
 
 export const SkeletonText: React.FC<SkeletonTextProps> = ({ lines = 3, lastLineWidth = '60%' }) => (
-  <div>
+  <div aria-hidden='true'>
     {Array.from({ length: lines }, (_, i) => (
       <div
         key={i}

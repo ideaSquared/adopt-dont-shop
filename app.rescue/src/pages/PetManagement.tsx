@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/lib.components';
+import { PetListSkeleton } from '../components/skeletons';
 import { Pet, PetStatus, petManagementService } from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { apiService } from '@adopt-dont-shop/lib.api';
@@ -330,9 +331,8 @@ const PetManagement: React.FC = () => {
   if (loading && pets.length === 0) {
     return (
       <Container className={styles.pageContainer}>
-        <div className={styles.loadingContainer}>
-          <Text>Loading pets...</Text>
-        </div>
+        <Heading level="h1">Pet Management</Heading>
+        <PetListSkeleton />
       </Container>
     );
   }

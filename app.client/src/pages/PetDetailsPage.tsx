@@ -4,6 +4,7 @@ import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { petService, Pet } from '@/services';
 import { Badge, Button, Card, toast } from '@adopt-dont-shop/lib.components';
+import { PetDetailSkeleton } from '@/components/skeletons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { resolveFileUrl } from '../utils/fileUtils';
@@ -477,7 +478,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   if (loading) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.loadingContainer}>Loading pet details...</div>
+        <PetDetailSkeleton />
       </div>
     );
   }

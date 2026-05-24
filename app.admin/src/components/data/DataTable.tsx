@@ -9,7 +9,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from 'react-icons/fi';
-import { SkeletonTableRow } from '../ui/Skeleton';
+import { SkeletonTableRow } from '@adopt-dont-shop/lib.components';
 
 export interface Column<T> {
   id: string;

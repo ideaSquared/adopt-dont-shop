@@ -9,10 +9,17 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   TwoFactorSettings: () => null,
 }));
 
-vi.mock('@adopt-dont-shop/lib.components', () => ({
-  ThemeToggle: () => null,
-  toast: { success: vi.fn(), error: vi.fn() },
-}));
+vi.mock('@adopt-dont-shop/lib.components', async () => {
+  const React = await import('react');
+  return {
+    ThemeToggle: () => null,
+    toast: { success: vi.fn(), error: vi.fn() },
+    Skeleton: (props: Record<string, unknown>) =>
+      React.createElement('div', { 'aria-hidden': 'true', ...props }),
+    SkeletonText: () => React.createElement('div', { 'aria-hidden': 'true' }),
+    SkeletonCard: () => React.createElement('div', { 'aria-hidden': 'true' }),
+  };
+});
 
 vi.mock('../contexts/PermissionsContext', () => ({
   usePermissions: () => ({ hasPermission: () => true }),

@@ -1,6 +1,7 @@
 import { PetCard } from '@/components/PetCard';
 import { rescueService, petService, Rescue, Pet } from '@/services';
 import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
+import { RescueDetailSkeleton } from '@/components/skeletons';
 import { rescueStatusLabel } from '@adopt-dont-shop/lib.types';
 import { safeHref } from '@adopt-dont-shop/lib.utils';
 import React, { useEffect, useState } from 'react';
@@ -93,7 +94,7 @@ export const RescueDetailsPage: React.FC<RescueDetailsPageProps> = () => {
   if (loading) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.loadingContainer}>Loading rescue details...</div>
+        <RescueDetailSkeleton />
       </div>
     );
   }

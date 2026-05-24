@@ -5,7 +5,7 @@ import { petService } from '../services/libraryServices';
 import { staffService, type StaffMember } from '../services/staffService';
 import type { Pet } from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { Modal, useConfirm, ConfirmDialog } from '@adopt-dont-shop/lib.components';
+import { Modal, useConfirm, ConfirmDialog, SkeletonCard } from '@adopt-dont-shop/lib.components';
 import * as styles from './FosterCoordination.css';
 
 const FosterCoordination: React.FC = () => {
@@ -196,7 +196,11 @@ const FosterCoordination: React.FC = () => {
       </div>
 
       {loading ? (
-        <p>Loading placements…</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {Array.from({ length: 3 }, (_, i) => (
+            <SkeletonCard key={i} lines={2} />
+          ))}
+        </div>
       ) : visiblePlacements.length === 0 ? (
         <p>No foster placements found.</p>
       ) : (

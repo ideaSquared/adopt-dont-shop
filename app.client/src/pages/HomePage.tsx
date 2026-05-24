@@ -6,7 +6,8 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService, Pet } from '@/services';
-import { Button, Spinner } from '@adopt-dont-shop/lib.components';
+import { Button } from '@adopt-dont-shop/lib.components';
+import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as styles from './HomePage.css';
@@ -185,8 +186,8 @@ export const HomePage: React.FC = () => {
           <h2>Featured Pets</h2>
 
           {isLoading && (
-            <div className={styles.loadingContainer}>
-              <Spinner />
+            <div className={styles.petGrid}>
+              <PetCardSkeletonGrid count={8} />
             </div>
           )}
 

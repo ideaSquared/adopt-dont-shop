@@ -5,7 +5,8 @@ import { useSearchFilters } from '@/hooks/useSearchFilters';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService, PaginatedResponse, Pet } from '@/services';
-import { Button, Container, SelectInput, Spinner } from '@adopt-dont-shop/lib.components';
+import { Button, Container, SelectInput } from '@adopt-dont-shop/lib.components';
+import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import * as styles from './SearchPage.css';
@@ -227,8 +228,8 @@ export const SearchPage: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <div className={styles.loadingContainer}>
-            <Spinner size='lg' />
+          <div className={styles.petGrid}>
+            <PetCardSkeletonGrid count={8} />
           </div>
         ) : error ? (
           <div className={styles.emptyState}>

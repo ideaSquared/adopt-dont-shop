@@ -1,6 +1,7 @@
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { petService, Pet } from '@/services';
-import { Alert, Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { Alert, Container } from '@adopt-dont-shop/lib.components';
+import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PetCard } from '../components/PetCard';
@@ -115,8 +116,8 @@ export const FavoritesPage: React.FC = () => {
 
       {/* Loading state */}
       {loading && (
-        <div className={styles.loadingContainer}>
-          <Spinner size='lg' />
+        <div className={styles.petGrid}>
+          <PetCardSkeletonGrid count={6} />
         </div>
       )}
 

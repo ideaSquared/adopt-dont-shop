@@ -29,6 +29,7 @@ export { Button } from './components/ui/Button';
 export { default as DateTime } from './components/ui/DateTime/DateTime';
 export { Heading } from './components/ui/Heading';
 export { DotSpinner, Spinner } from './components/ui/Spinner';
+export { Skeleton, SkeletonCard, SkeletonTableRow, SkeletonText } from './components/ui/Skeleton';
 export { Text } from './components/ui/Text';
 
 // Layout Components

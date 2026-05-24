@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Card, Container, Heading, Spinner, Text } from '@adopt-dont-shop/lib.components';
+import { Card, Container, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useDashboardData } from '../hooks';
 import { UnreadMessagesPanel } from '../components/dashboard/UnreadMessagesPanel';
+import { DashboardSkeleton } from '../components/skeletons';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './Dashboard.css';
 
@@ -16,11 +17,8 @@ const Dashboard: React.FC = () => {
       <Container className={styles.dashboardContainer}>
         <div className={styles.dashboardHeader}>
           <Heading level="h1">Rescue Dashboard</Heading>
-          <Text>Loading dashboard data...</Text>
         </div>
-        <div className={styles.loadingState}>
-          <Spinner size="md" label="Loading dashboard data" />
-        </div>
+        <DashboardSkeleton />
       </Container>
     );
   }

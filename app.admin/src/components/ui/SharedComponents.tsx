@@ -129,7 +129,3 @@ export const EmptyState = ({ className, ...props }: React.HTMLAttributes<HTMLDiv
 export const EmptyStateIcon = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`${styles.emptyStateIcon}${className ? ` ${className}` : ''}`} {...props} />
 );
-
-export const LoadingSpinner = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.loadingSpinner}${className ? ` ${className}` : ''}`} {...props} />
-);

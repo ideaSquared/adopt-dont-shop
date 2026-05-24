@@ -1,4 +1,5 @@
 import React from 'react';
+import { SkeletonCard } from '@adopt-dont-shop/lib.components';
 import { StaffMember } from '../../types/staff';
 import * as styles from './StaffOverview.css';
 
@@ -12,10 +13,9 @@ const StaffOverview: React.FC<StaffOverviewProps> = ({ staff, loading = false })
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.overviewSkeleton}>
-          <div className={styles.skeletonCard} />
-          <div className={styles.skeletonCard} />
-          <div className={styles.skeletonCard} />
-          <div className={styles.skeletonCard} />
+          {Array.from({ length: 4 }, (_, i) => (
+            <SkeletonCard key={i} lines={2} />
+          ))}
         </div>
       </div>
     );
