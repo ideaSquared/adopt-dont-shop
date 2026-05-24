@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Heading, Text } from '@adopt-dont-shop/lib.components';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import type { AdminPet } from '@/services/petService';
 import * as styles from './PetDetailModal.css';
 
@@ -13,7 +14,7 @@ const formatDate = (value?: string) => {
   if (!value) {
     return '—';
   }
-  return new Date(value).toLocaleString('en-GB');
+  return formatDisplayDate(value, { includeTime: true });
 };
 
 export const PetDetailModal: React.FC<PetDetailModalProps> = ({ isOpen, onClose, pet }) => {

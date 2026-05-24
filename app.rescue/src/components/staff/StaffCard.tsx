@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { StaffMember } from '../../types/staff';
 import StatusBadge from '../common/StatusBadge';
 import * as styles from './StaffCard.css';
@@ -19,15 +20,7 @@ const StaffCard: React.FC<StaffCardProps> = ({
   canRemove = false,
 }) => {
   const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return 'Unknown date';
-    }
+    return formatDisplayDate(dateString);
   };
 
   const getInitials = (firstName: string, lastName: string) => {

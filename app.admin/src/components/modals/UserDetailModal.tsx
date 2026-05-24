@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal } from '@adopt-dont-shop/lib.components';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import type { AdminUser } from '@/types';
 import { FiMail, FiPhone, FiCalendar, FiClock, FiUser, FiShield } from 'react-icons/fi';
 import * as styles from './UserDetailModal.css';
@@ -122,9 +123,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClos
               <FiCalendar />
               Joined
             </div>
-            <div className={styles.detailValue}>
-              {new Date(user.createdAt).toLocaleDateString()}
-            </div>
+            <div className={styles.detailValue}>{formatDisplayDate(user.createdAt)}</div>
           </div>
 
           <div className={styles.detailItem}>
@@ -134,7 +133,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClos
             </div>
             <div className={styles.detailValue}>
               {user.lastLogin ? (
-                new Date(user.lastLogin).toLocaleDateString()
+                formatDisplayDate(user.lastLogin)
               ) : (
                 <span className={styles.emptyValue}>Never</span>
               )}
@@ -147,9 +146,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClos
                 <FiClock />
                 Last Updated
               </div>
-              <div className={styles.detailValue}>
-                {new Date(user.updatedAt).toLocaleDateString()}
-              </div>
+              <div className={styles.detailValue}>{formatDisplayDate(user.updatedAt)}</div>
             </div>
           )}
         </div>

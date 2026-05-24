@@ -1,6 +1,7 @@
 import { applicationService, Application } from '@/services';
 import { Alert, Button, Spinner } from '@adopt-dont-shop/lib.components';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -104,13 +105,7 @@ export const ApplicationDetailsPage: React.FC = () => {
     if (!dateString) {
       return 'Not available';
     }
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatDisplayDate(dateString, { includeTime: true });
   };
 
   if (isLoading) {

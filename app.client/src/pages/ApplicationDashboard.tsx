@@ -1,5 +1,6 @@
 import { Badge, Button, Card } from '@adopt-dont-shop/lib.components';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
 import { useUnreadConversations } from '@adopt-dont-shop/lib.chat';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -249,13 +250,11 @@ export const ApplicationDashboard: React.FC = () => {
               <div className={styles.applicationDetails}>
                 {application.submittedAt && (
                   <p>
-                    <strong>Submitted:</strong>{' '}
-                    {new Date(application.submittedAt).toLocaleDateString()}
+                    <strong>Submitted:</strong> {formatDisplayDate(application.submittedAt)}
                   </p>
                 )}
                 <p>
-                  <strong>Last Updated:</strong>{' '}
-                  {new Date(application.updatedAt).toLocaleDateString()}
+                  <strong>Last Updated:</strong> {formatDisplayDate(application.updatedAt)}
                 </p>
               </div>
 

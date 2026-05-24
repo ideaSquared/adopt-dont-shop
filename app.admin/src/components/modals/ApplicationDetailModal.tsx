@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import type { AdminApplication } from '@/services/applicationService';
 import * as styles from './ApplicationDetailModal.css';
 
@@ -14,7 +15,7 @@ const formatDate = (value?: string) => {
   if (!value) {
     return '—';
   }
-  return new Date(value).toLocaleString('en-GB');
+  return formatDisplayDate(value, { includeTime: true });
 };
 
 export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
