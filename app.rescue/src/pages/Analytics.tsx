@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Heading, toast } from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
@@ -55,6 +55,13 @@ const Analytics: React.FC = () => {
   // Loading and error state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Email report modal state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch analytics data
   useEffect(() => {
@@ -136,13 +143,27 @@ const Analytics: React.FC = () => {
     }
   };
 
-  const handleEmailReport = async () => {
-    try {
-      const email = prompt('Enter email address to send report:');
-      if (!email) {
-        return;
-      }
+  const handleEmailReport = () => {
+    setEmailAddress('');
+    setEmailError('');
+    setShowEmailModal(true);
+    // Focus the input on next render
+    setTimeout(() => emailInputRef.current?.focus(), 0);
+  };
 
+  const handleEmailModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = emailAddress.trim();
+    if (!trimmed) {
+      setEmailError('Email is required');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+    try {
+      setSendingEmail(true);
       await analyticsService.emailReport(
         'full-analytics',
         {
@@ -150,15 +171,15 @@ const Analytics: React.FC = () => {
           petType: petTypeFilter !== 'all' ? petTypeFilter : undefined,
           staffMemberId: staffFilter !== 'all' ? staffFilter : undefined,
         },
-        [email]
+        [trimmed]
       );
-
+      setShowEmailModal(false);
       toast.success('Report sent successfully!');
     } catch (err) {
       console.error('Email report failed:', err);
-      toast.error('Failed to send report. Please try again.', {
-        action: { label: 'Retry', onClick: handleEmailReport },
-      });
+      toast.error('Failed to send report. Please try again.');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -407,6 +428,70 @@ const Analytics: React.FC = () => {
           </div>
         </Card>
       </div>
+      {/* Email Report Modal */}
+      {showEmailModal && (
+        <div
+          className={styles.emailModalOverlay}
+          onClick={e => e.target === e.currentTarget && setShowEmailModal(false)}
+          onKeyDown={e => e.key === 'Escape' && setShowEmailModal(false)}
+          role="presentation"
+        >
+          <div className={styles.emailModalContent}>
+            <div className={styles.emailModalHeader}>
+              <h2 className={styles.emailModalTitle}>Email Report</h2>
+              <button
+                type="button"
+                className={styles.emailModalCloseButton}
+                onClick={() => setShowEmailModal(false)}
+                disabled={sendingEmail}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleEmailModalSubmit} className={styles.emailModalForm}>
+              <div className={styles.emailModalFormGroup}>
+                <label className={styles.emailModalLabel} htmlFor="report-email">
+                  Email Address <span style={{ color: '#dc3545' }}>*</span>
+                </label>
+                <input
+                  ref={emailInputRef}
+                  id="report-email"
+                  type="email"
+                  className={styles.emailModalInput}
+                  value={emailAddress}
+                  onChange={e => {
+                    setEmailAddress(e.target.value);
+                    if (emailError) {
+                      setEmailError('');
+                    }
+                  }}
+                  placeholder="recipient@example.com"
+                  disabled={sendingEmail}
+                  required
+                />
+                {emailError && <span className={styles.emailModalError}>{emailError}</span>}
+              </div>
+              <div className={styles.emailModalActions}>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailModal(false)}
+                  disabled={sendingEmail}
+                  className={styles.emailModalCancelButton}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingEmail}
+                  className={styles.emailModalSubmitButton}
+                >
+                  {sendingEmail ? 'Sending...' : 'Send Report'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
