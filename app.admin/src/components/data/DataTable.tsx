@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import * as styles from './DataTable.css';
 import {
   FiChevronUp,
@@ -67,21 +68,38 @@ export function DataTable<T extends object>({
   onSelectionChange,
   getRowId = (_row: T) => String(Math.random()),
 }: DataTableProps<T>) {
-  const [localSort, setLocalSort] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(
-    null
-  );
+  // When no controlled onSort is provided, persist sort state in URL
+  // query params so it survives pagination and page refreshes.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSortColumn = searchParams.get('sortBy') ?? undefined;
+  const urlSortDirection = (searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc') as
+    | 'asc'
+    | 'desc';
+
+  // Effective sort: controlled props take precedence, then URL params
+  const effectiveSortColumn = sortColumn ?? urlSortColumn;
+  const effectiveSortDirection = sortColumn
+    ? sortDirection
+    : urlSortColumn
+      ? urlSortDirection
+      : sortDirection;
 
   const handleSort = (columnId: string) => {
     const newDirection =
-      (sortColumn || localSort?.column) === columnId &&
-      (sortDirection || localSort?.direction) === 'asc'
-        ? 'desc'
-        : 'asc';
+      effectiveSortColumn === columnId && effectiveSortDirection === 'asc' ? 'desc' : 'asc';
 
     if (onSort) {
       onSort(columnId, newDirection);
     } else {
-      setLocalSort({ column: columnId, direction: newDirection });
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          next.set('sortBy', columnId);
+          next.set('sortOrder', newDirection);
+          return next;
+        },
+        { replace: true }
+      );
     }
   };
 
@@ -145,8 +163,8 @@ export function DataTable<T extends object>({
                 </th>
               )}
               {columns.map(column => {
-                const activeColumn = sortColumn || localSort?.column;
-                const activeDirection = sortDirection || localSort?.direction;
+                const activeColumn = effectiveSortColumn;
+                const activeDirection = effectiveSortDirection;
                 const isSortActive = activeColumn === column.id;
                 const ariaSort = column.sortable
                   ? isSortActive
