@@ -1,6 +1,6 @@
 /**
  * UX P0/P1 #5: when the pet-search API fails, SearchPage must render a
- * recoverable error state with a "Try Again" button rather than dropping
+ * recoverable error state with a "Retry" button rather than dropping
  * the user into an empty-state look-alike.
  */
 import { http, HttpResponse } from 'msw';
@@ -91,26 +91,26 @@ afterEach(() => {
 afterAll(() => server.close());
 
 describe('SearchPage error state', () => {
-  it('renders a Try Again button when the initial pet search fails', async () => {
+  it('renders a Retry button when the initial pet search fails', async () => {
     renderWithProviders(<SearchPage />);
 
-    const retry = await screen.findByRole('button', { name: /try again/i }, { timeout: 10_000 });
+    const retry = await screen.findByRole('button', { name: /retry/i }, { timeout: 10_000 });
     expect(retry).toBeInTheDocument();
-    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+    expect(screen.getByText(/unable to load results/i)).toBeInTheDocument();
     // Empty-state copy must not be shown on a load failure.
-    expect(screen.queryByText(/no pets found/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no pets match/i)).not.toBeInTheDocument();
   });
 
-  it('refetches when the user clicks Try Again', async () => {
+  it('refetches when the user clicks Retry', async () => {
     const user = userEvent.setup();
     renderWithProviders(<SearchPage />);
 
-    const retry = await screen.findByRole('button', { name: /try again/i }, { timeout: 10_000 });
+    const retry = await screen.findByRole('button', { name: /retry/i }, { timeout: 10_000 });
     await user.click(retry);
 
     // Second call returns 200 with an empty data array — empty state appears.
     await waitFor(() => {
-      expect(screen.getByText(/no pets found/i)).toBeInTheDocument();
+      expect(screen.getByText(/no pets match/i)).toBeInTheDocument();
     });
   });
 });

@@ -142,7 +142,7 @@ export const SearchPage: React.FC = () => {
       });
     } catch (err) {
       console.error('Search error details:', err);
-      setError('Failed to load pets. Please try again.');
+      setError('Something went wrong loading results. Please check your connection and try again.');
       setPets([]);
       setPagination(null);
 
@@ -232,14 +232,14 @@ export const SearchPage: React.FC = () => {
           </div>
         ) : error ? (
           <div className={styles.emptyState}>
-            <h3>Oops! Something went wrong</h3>
+            <h3>Unable to load results</h3>
             <p>{error}</p>
-            <Button onClick={loadPets}>Try Again</Button>
+            <Button onClick={loadPets}>Retry</Button>
           </div>
         ) : !pets || pets.length === 0 ? (
           <div className={styles.emptyState}>
-            <h3>No pets found</h3>
-            <p>Try adjusting your search criteria or clearing some filters to see more results.</p>
+            <h3>No pets match your filters</h3>
+            <p>Try broadening your search by removing some filters or using different keywords.</p>
             {hasActiveFilters && <Button onClick={handleClearAll}>Clear All Filters</Button>}
           </div>
         ) : (
