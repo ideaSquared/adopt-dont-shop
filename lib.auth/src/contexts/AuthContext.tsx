@@ -219,28 +219,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
         // Provide helpful redirect information
         let redirectApp = '';
-        let redirectPort = '';
         switch (response.user.userType) {
           case 'adopter':
             redirectApp = 'Client App';
-            redirectPort = 'port 3000';
             break;
           case 'rescue_staff':
             redirectApp = 'Rescue App';
-            redirectPort = 'port 3002';
             break;
           case 'admin':
           case 'moderator':
             redirectApp = 'Admin App';
-            redirectPort = 'port 3001';
             break;
           default:
             redirectApp = 'appropriate application';
-            redirectPort = '';
         }
 
         throw new Error(
-          `This app is for ${allowedUserTypes.join(' and ')} users only. As a ${response.user.userType}, please use the ${redirectApp}${redirectPort ? ` (${redirectPort})` : ''}.`
+          `This app is for ${allowedUserTypes.join(' and ')} users only. As a ${response.user.userType}, please use the ${redirectApp}.`
         );
       }
 

@@ -191,10 +191,10 @@ export const SearchPage: React.FC = () => {
   return (
     <Container className={styles.searchContainer}>
       <div className={styles.searchHeader}>
-        <h1>Find Your Perfect Pet</h1>
+        <h1>Find Your Next Pet</h1>
         <p>
-          Search through thousands of loving pets waiting for their forever homes. Use the filters
-          below to find exactly what you&apos;re looking for.
+          Browse adoptable pets from verified rescues. Use the filters below to find exactly what
+          you&apos;re looking for.
         </p>
       </div>
 
