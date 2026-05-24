@@ -237,7 +237,14 @@ export const ApplicationDashboard: React.FC = () => {
                   still 'submitted', show the workflow stage so adopters can
                   tell e.g. 'awaiting decision' apart from 'just submitted'.
                   Don't override the terminal badge — approved/rejected/
-                  withdrawn carry their own meaning. */}
+                  withdrawn carry their own meaning.
+
+                  NOTE: app.client shows BOTH a status badge AND a stage badge
+                  here because adopters need to see their application's
+                  progress within the 'submitted' status. app.rescue only shows
+                  the status badge on its cards (ApplicationCard.tsx) because
+                  rescue staff use the dedicated review page for detailed stage
+                  info. This is intentional per-role design, not an oversight. */}
               {application.status === 'submitted' &&
                 application.stage &&
                 IN_PROGRESS_STAGE_LABELS[application.stage] && (
