@@ -94,7 +94,8 @@ class AdminRescueService {
         page: number;
         limit: number;
         total: number;
-        pages: number;
+        pages?: number;
+        totalPages?: number;
       };
     }>(this.baseUrl, params);
 
@@ -102,9 +103,17 @@ class AdminRescueService {
       throw new Error('Failed to fetch rescues');
     }
 
+    const totalPages = response.pagination.totalPages ?? response.pagination.pages ?? 1;
     return {
       data: response.data,
-      pagination: response.pagination,
+      pagination: {
+        page: response.pagination.page,
+        limit: response.pagination.limit,
+        total: response.pagination.total,
+        totalPages,
+        hasNext: response.pagination.page < totalPages,
+        hasPrev: response.pagination.page > 1,
+      },
     };
   }
 
@@ -190,7 +199,8 @@ class AdminRescueService {
         page: number;
         limit: number;
         total: number;
-        pages: number;
+        pages?: number;
+        totalPages?: number;
       };
     }>(`${this.baseUrl}/${rescueId}/staff`, params);
 
@@ -198,9 +208,17 @@ class AdminRescueService {
       throw new Error('Failed to fetch staff members');
     }
 
+    const totalPages = response.pagination.totalPages ?? response.pagination.pages ?? 1;
     return {
       data: response.data,
-      pagination: response.pagination,
+      pagination: {
+        page: response.pagination.page,
+        limit: response.pagination.limit,
+        total: response.pagination.total,
+        totalPages,
+        hasNext: response.pagination.page < totalPages,
+        hasPrev: response.pagination.page > 1,
+      },
     };
   }
 

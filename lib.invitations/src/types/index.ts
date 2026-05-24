@@ -1,32 +1,7 @@
-/**
- * Configuration options for InvitationsService
- */
-export interface InvitationsServiceConfig {
-  /**
-   * API base URL
-   */
-  apiUrl?: string;
+import type { ServiceConfig, ServiceOptions } from '@adopt-dont-shop/lib.types';
 
-  /**
-   * Enable debug logging
-   */
-  debug?: boolean;
-}
-
-/**
- * Options for InvitationsService operations
- */
-export interface InvitationsServiceOptions {
-  /**
-   * Timeout in milliseconds
-   */
-  timeout?: number;
-
-  /**
-   * Custom metadata
-   */
-  metadata?: Record<string, unknown>;
-}
+export type InvitationsServiceConfig = ServiceConfig;
+export type InvitationsServiceOptions = ServiceOptions;
 
 /**
  * Payload for sending an invitation

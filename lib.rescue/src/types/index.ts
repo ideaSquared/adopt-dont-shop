@@ -10,7 +10,9 @@ export type {
   RescueSearchFilters,
 } from '../schemas';
 
-// PaginatedResponse is generic and cannot be derived from a Zod schema directly
+// ADS-262: response envelopes are owned by @adopt-dont-shop/lib.types.
+export type { PaginatedResponse } from '@adopt-dont-shop/lib.types';
+
 export type Pagination = {
   page: number;
   limit: number;
@@ -18,11 +20,6 @@ export type Pagination = {
   totalPages: number;
   hasNext: boolean;
   hasPrev: boolean;
-};
-
-export type PaginatedResponse<T> = {
-  data: T[];
-  pagination: Pagination;
 };
 
 // Internal Pet type used within rescue context
@@ -37,14 +34,11 @@ export type Pet = {
   status?: string;
 };
 
-export type RescueServiceConfig = {
-  apiUrl?: string;
-  debug?: boolean;
-  headers?: Record<string, string>;
-};
+import type { ServiceConfig, ServiceOptions } from '@adopt-dont-shop/lib.types';
 
-export type RescueServiceOptions = {
-  timeout?: number;
+export type RescueServiceConfig = ServiceConfig;
+
+export type RescueServiceOptions = ServiceOptions & {
   headers?: Record<string, string>;
   retry?: boolean;
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import * as styles from '../RescueDetailModal.css';
 import { FiMapPin } from 'react-icons/fi';
-import { rescueStatusLabel, type RescueStatusValue } from '@adopt-dont-shop/lib.types';
+import { rescueStatusLabel, type RescueStatus } from '@adopt-dont-shop/lib.types';
 import type { AdminRescue } from '@/types/rescue';
 
 type OverviewTabProps = {
@@ -19,7 +19,7 @@ const formatDate = (dateString?: string): string => {
   });
 };
 
-const getStatusBadge = (status: RescueStatusValue) => {
+const getStatusBadge = (status: RescueStatus) => {
   const label = rescueStatusLabel(status);
   switch (status) {
     case 'verified':

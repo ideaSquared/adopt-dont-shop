@@ -121,17 +121,9 @@ export interface RescueEmailPayload {
 }
 
 /**
- * Paginated response for list operations
+ * Paginated response re-exported from canonical source
  */
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-}
+export type { PaginatedResponse } from '@adopt-dont-shop/lib.types';
 
 /**
  * Options for fetching a rescue

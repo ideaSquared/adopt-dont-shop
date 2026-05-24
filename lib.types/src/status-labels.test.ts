@@ -4,15 +4,13 @@ import {
   applicationStageLabel,
   reportStatusLabel,
   rescueStatusLabel,
-  type ApplicationStatusValue,
-  type ApplicationStageValue,
   type ReportStatusValue,
-  type RescueStatusValue,
 } from './status-labels';
+import type { ApplicationStatus, ApplicationStage, RescueStatus } from './types/domain-status';
 
 describe('status label functions', () => {
   it('returns a non-empty label for every application status', () => {
-    const values: ApplicationStatusValue[] = ['submitted', 'approved', 'rejected', 'withdrawn'];
+    const values: ApplicationStatus[] = ['submitted', 'approved', 'rejected', 'withdrawn'];
     values.forEach(value => {
       const label = applicationStatusLabel(value);
       expect(label).toBeTruthy();
@@ -21,7 +19,7 @@ describe('status label functions', () => {
   });
 
   it('returns a non-empty label for every application stage', () => {
-    const values: ApplicationStageValue[] = [
+    const values: ApplicationStage[] = [
       'pending',
       'reviewing',
       'visiting',
@@ -52,13 +50,7 @@ describe('status label functions', () => {
   });
 
   it('returns a non-empty label for every rescue status', () => {
-    const values: RescueStatusValue[] = [
-      'pending',
-      'verified',
-      'suspended',
-      'inactive',
-      'rejected',
-    ];
+    const values: RescueStatus[] = ['pending', 'verified', 'suspended', 'inactive', 'rejected'];
     values.forEach(value => {
       const label = rescueStatusLabel(value);
       expect(label).toBeTruthy();
