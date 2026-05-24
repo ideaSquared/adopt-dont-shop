@@ -143,7 +143,7 @@ const Analytics: React.FC = () => {
     }
   };
 
-  const handleEmailReport = () => {
+  const handleEmailReport = async () => {
     setEmailAddress('');
     setEmailError('');
     setShowEmailModal(true);
