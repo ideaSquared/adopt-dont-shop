@@ -644,8 +644,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   const handleStatusUpdate = async () => {
     // ADS-579: Rejection is irreversible and must notify the applicant.
-    // Require explicit confirmation before committing; other transitions
-    // proceed without a prompt as before.
+    // Approval is equally irreversible — confirm both transitions so
+    // rescue staff cannot accidentally finalise an application.
     if (newStatus === 'rejected') {
       const confirmed = await confirm({
         title: 'Reject this application?',
@@ -654,6 +654,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         confirmText: 'Reject application',
         cancelText: 'Cancel',
         variant: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
+    } else if (newStatus === 'approved') {
+      const confirmed = await confirm({
+        title: 'Approve this application?',
+        message:
+          'The applicant will be notified by email that their application has been approved. This action cannot be undone via the status dropdown.',
+        confirmText: 'Approve application',
+        cancelText: 'Cancel',
+        variant: 'info',
       });
       if (!confirmed) {
         return;
