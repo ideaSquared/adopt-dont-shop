@@ -138,7 +138,7 @@ export const ApplicationDashboard: React.FC = () => {
         <div className={styles.emptyState}>
           <h2>Error loading applications</h2>
           <p>{error}</p>
-          <Button onClick={loadApplications}>Try Again</Button>
+          <Button onClick={() => loadApplications()}>Try Again</Button>
         </div>
       </div>
     );
