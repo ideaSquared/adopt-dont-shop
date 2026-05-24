@@ -68,8 +68,34 @@ const PetManagement: React.FC = () => {
   const { user, refreshUser } = useAuth();
   // ADS-644: cross-linking. When deep-linked via /pets?petId=... we use the
   // petId as the search filter so the matching pet card surfaces immediately.
-  const [searchParams] = useSearchParams();
-  const initialPetId = searchParams.get('petId');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Filter state is driven by URL search params so refresh/back preserves it.
+  const statusFilter = (searchParams.get('status') ?? 'all') as PetStatus | 'all';
+  const searchFilter = searchParams.get('search') ?? searchParams.get('petId') ?? '';
+  const typeFilter = searchParams.get('type') ?? '';
+  const sizeFilter = searchParams.get('size') ?? '';
+  const breedFilter = searchParams.get('breed') ?? '';
+  const ageGroupFilter = searchParams.get('ageGroup') ?? '';
+  const genderFilter = searchParams.get('gender') ?? '';
+
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        // Reset to page 1 when filters change
+        next.delete('page');
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [pets, setPets] = useState<Pet[]>([]);
   const [stats, setStats] = useState<PetStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,17 +104,8 @@ const PetManagement: React.FC = () => {
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
 
-  // Filter states
-  const [statusFilter, setStatusFilter] = useState<PetStatus | 'all'>('all');
-  const [searchFilter, setSearchFilter] = useState(initialPetId ?? '');
-  const [typeFilter, setTypeFilter] = useState<string>('');
-  const [sizeFilter, setSizeFilter] = useState<string>('');
-  const [breedFilter, setBreedFilter] = useState<string>('');
-  const [ageGroupFilter, setAgeGroupFilter] = useState<string>('');
-  const [genderFilter, setGenderFilter] = useState<string>('');
-
   // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  const currentPage = Number(searchParams.get('page') ?? '1');
   const [totalPages, setTotalPages] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
@@ -147,7 +164,6 @@ const PetManagement: React.FC = () => {
       const response = await petManagementService.getMyRescuePets(filters);
 
       setPets(response.pets);
-      setCurrentPage(response.pagination.page);
       setTotalPages(response.pagination.totalPages);
       setHasNext(response.pagination.hasNext);
       setHasPrev(response.pagination.hasPrev);
@@ -249,8 +265,7 @@ const PetManagement: React.FC = () => {
   };
 
   const handleSearch = (searchTerm: string) => {
-    setSearchFilter(searchTerm);
-    setCurrentPage(1); // Reset to first page
+    setFilterParam('search', searchTerm);
   };
 
   const handleToggleSelectPet = (petId: string) => {
@@ -302,7 +317,18 @@ const PetManagement: React.FC = () => {
   };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (page > 1) {
+          next.set('page', String(page));
+        } else {
+          next.delete('page');
+        }
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   if (loading && pets.length === 0) {
@@ -446,7 +472,7 @@ const PetManagement: React.FC = () => {
                   : {}
               }
               onStatusChange={status => {
-                setStatusFilter(status as any);
+                setFilterParam('status', status);
               }}
             />
           </div>
@@ -462,36 +488,23 @@ const PetManagement: React.FC = () => {
                 gender: genderFilter,
               }}
               onFilterChange={(key, value) => {
-                if (key === 'search') {
-                  handleSearch(value);
-                }
-                if (key === 'type') {
-                  setTypeFilter(value);
-                }
-                if (key === 'status') {
-                  setStatusFilter(value as any);
-                }
-                if (key === 'size') {
-                  setSizeFilter(value);
-                }
-                if (key === 'breed') {
-                  setBreedFilter(value);
-                }
-                if (key === 'ageGroup') {
-                  setAgeGroupFilter(value);
-                }
-                if (key === 'gender') {
-                  setGenderFilter(value);
-                }
+                setFilterParam(key, value);
               }}
               onClearFilters={() => {
-                setSearchFilter('');
-                setTypeFilter('');
-                setStatusFilter('all');
-                setSizeFilter('');
-                setBreedFilter('');
-                setAgeGroupFilter('');
-                setGenderFilter('');
+                setSearchParams(
+                  prev => {
+                    const next = new URLSearchParams(prev);
+                    // Keep petId if it was the original deep-link param
+                    const keepKeys = new Set(['petId']);
+                    for (const key of [...next.keys()]) {
+                      if (!keepKeys.has(key)) {
+                        next.delete(key);
+                      }
+                    }
+                    return next;
+                  },
+                  { replace: true }
+                );
               }}
             />
           </div>
