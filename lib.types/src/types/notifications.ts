@@ -15,6 +15,9 @@ export enum NotificationType {
   STAFF_ASSIGNMENT = 'staff_assignment',
   PET_UPDATE = 'pet_update',
   FOLLOW_UP = 'follow_up',
+  RESCUE_VERIFIED = 'rescue_verified',
+  MODERATION_REPORT_RESOLVED = 'moderation_report_resolved',
+  USER_SANCTIONED = 'user_sanctioned',
 }
 
 export enum NotificationPriority {
@@ -66,6 +69,9 @@ export const getNotificationTypeLabel = (type: string): string => {
     [NotificationType.STAFF_ASSIGNMENT]: 'Staff Assignments',
     [NotificationType.PET_UPDATE]: 'Pet Updates',
     [NotificationType.FOLLOW_UP]: 'Follow Ups',
+    [NotificationType.RESCUE_VERIFIED]: 'Rescue Verified',
+    [NotificationType.MODERATION_REPORT_RESOLVED]: 'Report Resolved',
+    [NotificationType.USER_SANCTIONED]: 'User Sanctioned',
   };
 
   return labels[type] || type;

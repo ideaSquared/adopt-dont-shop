@@ -1,6 +1,6 @@
 import { apiService } from './libraryServices';
-
-export type ApplicationStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn';
+import type { ApplicationStatus } from '@adopt-dont-shop/lib.types';
+export type { ApplicationStatus } from '@adopt-dont-shop/lib.types';
 
 export type AdminApplication = {
   applicationId: string;

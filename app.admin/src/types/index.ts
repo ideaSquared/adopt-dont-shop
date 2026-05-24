@@ -1,6 +1,7 @@
 // Re-export auth types from the canonical shared library
 export type { LoginRequest, RegisterRequest, AuthResponse } from '@adopt-dont-shop/lib.auth';
-export type { BaseResponse, PaginatedResponse } from '@adopt-dont-shop/lib.types';
+export type { BaseResponse, PaginatedResponse, PetStatus } from '@adopt-dont-shop/lib.types';
+import type { PetStatus } from '@adopt-dont-shop/lib.types';
 
 // Re-export User types from user.ts (admin-specific shape with nullable fields)
 export type { User, AdminUser, UserType, UserStatus } from './user';
@@ -19,7 +20,7 @@ export type Pet = {
   pet_id: string;
   name: string;
   rescue_id: string;
-  status: 'available' | 'pending' | 'adopted' | 'on_hold' | 'medical_care';
+  status: PetStatus;
   created_at: string;
   updated_at: string;
 };
