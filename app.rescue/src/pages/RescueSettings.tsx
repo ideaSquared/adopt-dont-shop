@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import { ThemeToggle, toast } from '@adopt-dont-shop/lib.components';
@@ -14,10 +15,35 @@ import * as styles from './RescueSettings.css';
 
 type TabType = 'profile' | 'policies' | 'questions' | 'preferences' | 'security' | 'appearance';
 
+const VALID_TABS: ReadonlySet<string> = new Set<TabType>([
+  'profile',
+  'policies',
+  'questions',
+  'preferences',
+  'security',
+  'appearance',
+]);
+
+const parseTabFromHash = (hash: string): TabType => {
+  const value = hash.replace('#', '');
+  return VALID_TABS.has(value) ? (value as TabType) : 'profile';
+};
+
 const RescueSettings: React.FC = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
-  const [activeTab, setActiveTab] = useState<TabType>('profile');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const activeTab = parseTabFromHash(location.hash);
+
+  const setActiveTab = useCallback(
+    (tab: TabType) => {
+      const hash = tab === 'profile' ? '' : `#${tab}`;
+      navigate(`${location.pathname}${hash}`, { replace: true });
+    },
+    [navigate, location.pathname]
+  );
   const [rescue, setRescue] = useState<RescueProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
