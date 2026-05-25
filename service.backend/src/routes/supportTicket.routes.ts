@@ -1,10 +1,23 @@
 import express from 'express';
+import { z } from 'zod';
 import { SupportTicketController } from '../controllers/supportTicket.controller';
 import { authenticateToken } from '../middleware/auth';
 import { idempotency } from '../middleware/idempotency';
 import { requirePermission } from '../middleware/rbac';
 import { PERMISSIONS } from '../types/rbac';
 import { generalLimiter } from '../middleware/rate-limiter';
+import { validateBody } from '../middleware/zod-validate';
+import { TicketStatus, TicketPriority, TicketCategory } from '../models/SupportTicket';
+
+const UpdateTicketSchema = z.object({
+  status: z.nativeEnum(TicketStatus).optional(),
+  priority: z.nativeEnum(TicketPriority).optional(),
+  category: z.nativeEnum(TicketCategory).optional(),
+  assignedTo: z.string().uuid().optional(),
+  tags: z.array(z.string()).optional(),
+  internalNotes: z.string().optional(),
+  dueDate: z.string().datetime().optional(),
+});
 
 const router = express.Router();
 
@@ -215,6 +228,7 @@ router.patch(
   '/tickets/:ticketId',
   requirePermission(PERMISSIONS.SUPPORT_TICKET_UPDATE),
   generalLimiter,
+  validateBody(UpdateTicketSchema),
   SupportTicketController.updateTicket
 );
 

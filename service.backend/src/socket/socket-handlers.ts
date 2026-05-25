@@ -520,7 +520,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'join_chat',
           message: 'Failed to join chat',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -556,7 +555,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'leave_chat',
           message: 'Failed to leave chat',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -591,7 +589,6 @@ export class SocketHandlers {
           socket.emit('error', {
             event: 'message_sent_notification',
             message: 'Failed to send notification',
-            error: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
@@ -658,7 +655,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'send_message',
           message: 'Failed to send message',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -692,7 +688,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'mark_as_read',
           message: 'Failed to mark messages as read',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -734,7 +729,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'add_reaction',
           message: 'Failed to add reaction',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -774,7 +768,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'remove_reaction',
           message: 'Failed to remove reaction',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
