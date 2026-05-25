@@ -1199,10 +1199,8 @@ class ModerationService {
         where: {
           targetUserId: userId,
           isActive: true,
-          // Sequelize 7 narrows `[Op.is]` to `null` only; passing `null`
-          // directly emits the same `IS NULL` SQL.
-          expiresAt: { [Op.is]: null },
-        },
+          expiresAt: null,
+        } as WhereOptions,
         order: [['createdAt', 'DESC']],
       }),
       ModeratorAction.findAll({
@@ -1210,7 +1208,7 @@ class ModerationService {
           targetUserId: userId,
           isActive: true,
           expiresAt: { [Op.gt]: new Date() },
-        },
+        } as WhereOptions,
         order: [['createdAt', 'DESC']],
       }),
     ]);
@@ -1241,9 +1239,9 @@ class ModerationService {
           targetUserId: userId,
           isActive: true,
           actionType: { [Op.in]: SANCTION_ACTIONS },
-          acknowledgedAt: { [Op.is]: null },
-          expiresAt: { [Op.is]: null },
-        },
+          acknowledgedAt: null,
+          expiresAt: null,
+        } as WhereOptions,
         order: [['createdAt', 'DESC']],
       }),
       ModeratorAction.findAll({
@@ -1251,9 +1249,9 @@ class ModerationService {
           targetUserId: userId,
           isActive: true,
           actionType: { [Op.in]: SANCTION_ACTIONS },
-          acknowledgedAt: { [Op.is]: null },
+          acknowledgedAt: null,
           expiresAt: { [Op.gt]: new Date() },
-        },
+        } as WhereOptions,
         order: [['createdAt', 'DESC']],
       }),
     ]);

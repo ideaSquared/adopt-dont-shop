@@ -741,15 +741,11 @@ export class ApplicationService {
 
       // Boolean field filtering
       if (filters.hasInterviewNotes !== undefined) {
-        whereConditions.interviewNotes = filters.hasInterviewNotes
-          ? { [Op.not]: null }
-          : { [Op.is]: null };
+        whereConditions.interviewNotes = filters.hasInterviewNotes ? { [Op.not]: null } : null;
       }
 
       if (filters.hasHomeVisitNotes !== undefined) {
-        whereConditions.homeVisitNotes = filters.hasHomeVisitNotes
-          ? { [Op.not]: null }
-          : { [Op.is]: null };
+        whereConditions.homeVisitNotes = filters.hasHomeVisitNotes ? { [Op.not]: null } : null;
       }
 
       // ADS-575: pet-type / pet-breed filters. Both are matched
