@@ -26,8 +26,8 @@ the operator-side steps that the compose file alone doesn't capture.
 
 ## Release deploy
 
-The `service-backend-migrate` init container runs `sequelize-cli db:migrate`
-once before `service-backend` starts. Compose's
+The `service-backend-migrate` init container runs `npm run db:migrate`
+(custom Umzug runner) once before `service-backend` starts. Compose's
 `service_completed_successfully` dependency gates the backend on a clean
 migration. [ADS-393]
 
@@ -74,7 +74,7 @@ Recovery paths:
    including the new fix.
 2. **Migration partially applied (multi-statement, no transaction)** —
    the affected migration's row is NOT in `SequelizeMeta` because
-   sequelize-cli only writes it after `up()` returns successfully.
+   the Umzug runner only writes it after `up()` returns successfully.
    Re-running `db:migrate` will retry the whole `up()`. If the migration
    is not idempotent, hand-revert what landed via psql before re-running.
 3. **Migration succeeded but health check failed** — the migration is
@@ -106,7 +106,7 @@ migration before rolling back the application image:
 
 ```bash
 docker compose -f docker-compose.prod.yml run --rm service-backend-migrate \
-  npx sequelize-cli db:migrate:undo
+  npm run db:migrate:undo
 ```
 
 ## Database TLS (ADS-540)
