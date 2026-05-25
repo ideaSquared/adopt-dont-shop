@@ -117,6 +117,42 @@ export const loginIpLimiter = buildLimiter('login-ip', {
   skipSuccessfulRequests: true,
 });
 
+/**
+ * IP-keyed password reset request limiter — 10 per hour per IP.
+ * Defense in depth alongside the per-email limiter below.
+ */
+export const passwordResetIpLimiter = buildLimiter('reset-request-ip', {
+  windowMs: ONE_HOUR_MS,
+  max: 10,
+});
+
+/**
+ * Per-email password reset request limiter — 3 per hour per email.
+ * Prevents inbox DoS and email enumeration from rotating IPs.
+ * Response stays 200 regardless of whether the email exists (anti-enumeration
+ * is handled in the controller; this limiter only caps the send rate).
+ */
+export const passwordResetEmailLimiter = buildLimiter('reset-request-email', {
+  windowMs: ONE_HOUR_MS,
+  max: 3,
+  keyGenerator: emailKey,
+});
+
+/**
+ * Per-token password reset confirm limiter — 5 attempts per token per hour.
+ * Limits brute-force against short-lived reset tokens from rotating IPs.
+ * Keyed on the raw token value so each issued token has its own budget.
+ */
+export const passwordResetTokenLimiter = buildLimiter('reset-confirm-token', {
+  windowMs: ONE_HOUR_MS,
+  max: 5,
+  keyGenerator: (req: Request): string => {
+    const body = req.body as Record<string, unknown> | undefined;
+    const token = typeof body?.token === 'string' ? body.token : '';
+    return `token:${token}`;
+  },
+});
+
 if (!isProd() && !devBypass()) {
   // One-off boot warning: dev now blocks like prod (good for testing brute-
   // force protection); set RATE_LIMIT_DEV_BYPASS=true to bypass.

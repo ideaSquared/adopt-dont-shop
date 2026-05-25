@@ -123,3 +123,104 @@ describe('auth-rate-limit (ADS-436, ADS-439)', () => {
     expect(last).toBe(429);
   }, 10000);
 });
+
+describe('auth-rate-limit: password reset limiters (ADS-663)', () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  it('passwordResetIpLimiter blocks after 10 requests from the same IP', async () => {
+    process.env.NODE_ENV = 'production';
+    const { passwordResetIpLimiter } = await import('../../middleware/auth-rate-limit');
+    const app = buildApp(passwordResetIpLimiter);
+
+    let last = 200;
+    for (let i = 0; i < 12; i++) {
+      const res = await request(app)
+        .post('/r')
+        .send({ email: `u${i}@ex.test` });
+      last = res.status;
+    }
+    expect(last).toBe(429);
+  }, 15000);
+
+  it('passwordResetEmailLimiter blocks the same email after 3 requests regardless of IP', async () => {
+    process.env.NODE_ENV = 'production';
+    const { passwordResetEmailLimiter } = await import('../../middleware/auth-rate-limit');
+    const app = buildApp(passwordResetEmailLimiter);
+
+    let last = 200;
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app)
+        .post('/r')
+        .set('x-forwarded-for', `10.0.0.${i}`)
+        .send({ email: 'target@ex.test' });
+      last = res.status;
+    }
+    expect(last).toBe(429);
+  }, 10000);
+
+  it('passwordResetEmailLimiter does NOT block a different email', async () => {
+    process.env.NODE_ENV = 'production';
+    const { passwordResetEmailLimiter } = await import('../../middleware/auth-rate-limit');
+    const app = buildApp(passwordResetEmailLimiter);
+
+    // Exhaust the budget for one email
+    for (let i = 0; i < 4; i++) {
+      await request(app).post('/r').send({ email: 'victim@ex.test' });
+    }
+
+    // A different email must still go through
+    const res = await request(app).post('/r').send({ email: 'other@ex.test' });
+    expect(res.status).toBe(200);
+  }, 10000);
+
+  it('passwordResetTokenLimiter blocks the same token after 5 attempts', async () => {
+    process.env.NODE_ENV = 'production';
+    const { passwordResetTokenLimiter } = await import('../../middleware/auth-rate-limit');
+    const app = buildApp(passwordResetTokenLimiter);
+
+    let last = 200;
+    for (let i = 0; i < 7; i++) {
+      const res = await request(app).post('/r').send({ token: 'secret-reset-token-abc123' });
+      last = res.status;
+    }
+    expect(last).toBe(429);
+  }, 10000);
+
+  it('passwordResetTokenLimiter does NOT block a different token', async () => {
+    process.env.NODE_ENV = 'production';
+    const { passwordResetTokenLimiter } = await import('../../middleware/auth-rate-limit');
+    const app = buildApp(passwordResetTokenLimiter);
+
+    // Exhaust the budget for one token
+    for (let i = 0; i < 6; i++) {
+      await request(app).post('/r').send({ token: 'exhausted-token' });
+    }
+
+    // A different token must still go through
+    const res = await request(app).post('/r').send({ token: 'fresh-token' });
+    expect(res.status).toBe(200);
+  }, 10000);
+
+  it('passwordResetEmailLimiter honours RATE_LIMIT_DEV_BYPASS=true', async () => {
+    process.env.NODE_ENV = 'development';
+    process.env.RATE_LIMIT_DEV_BYPASS = 'true';
+    const { passwordResetEmailLimiter } = await import('../../middleware/auth-rate-limit');
+    const app = buildApp(passwordResetEmailLimiter);
+
+    let last = 200;
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app).post('/r').send({ email: 'bypass@ex.test' });
+      last = res.status;
+    }
+    expect(last).toBe(200);
+  }, 10000);
+});
