@@ -11,9 +11,17 @@ Content moderation and reporting functionality for Adopt Don't Shop platform.
 
 ## Installation
 
-```bash
-npm install @adopt-dont-shop/lib.moderation
+Workspace package — add to a consumer's `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@adopt-dont-shop/lib.moderation": "*"
+  }
+}
 ```
+
+Then run `npm install` at the repo root to link.
 
 ## Usage
 
