@@ -97,7 +97,7 @@ adopt-dont-shop/
 ├── app.client/         # Client-facing app (React + Vite)
 ├── app.rescue/         # Rescue organization app (React + Vite)
 ├── service.backend/    # API server (Express + Sequelize)
-└── lib.*/             # Shared libraries (23 packages)
+└── lib.*/             # Shared libraries (24 packages)
     ├── lib.analytics
     ├── lib.api
     ├── lib.applications
@@ -110,6 +110,7 @@ adopt-dont-shop/
     ├── lib.feature-flags
     ├── lib.invitations
     ├── lib.legal
+    ├── lib.matching
     ├── lib.moderation
     ├── lib.notifications
     ├── lib.observability
@@ -548,31 +549,30 @@ export const useUser = (userId: string) => {
 };
 ```
 
-### Styled Components
+### Styling (vanilla-extract)
+
+Styles are authored using [vanilla-extract](https://vanilla-extract.style/) (`.css.ts` files). Theme tokens are imported from `lib.components/src/styles/theme.css.ts` as `vars`:
 
 ```typescript
-// Use styled-components for styling
-import styled from 'styled-components';
+// Component.css.ts
+import { style } from '@vanilla-extract/css';
+import { vars } from '../../styles/theme.css';
 
-const Card = styled.div`
-  background-color: white;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-`;
+export const card = style({
+  backgroundColor: vars.background.primary,
+  borderRadius: vars.borderRadius.base,
+  padding: vars.spacing['4'],
+  boxShadow: vars.shadows.sm,
+});
 
-const Button = styled.button`
-  background-color: #2563eb;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  border: none;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #1d4ed8;
-  }
-`;
+export const button = style({
+  backgroundColor: vars.colors.primary,
+  color: vars.text.inverse,
+  padding: `${vars.spacing['2']} ${vars.spacing['4']}`,
+  borderRadius: vars.borderRadius.base,
+  border: 'none',
+  cursor: 'pointer',
+});
 ```
 
 ### State Management

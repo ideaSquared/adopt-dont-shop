@@ -119,8 +119,8 @@ echo $DB_HOST $DB_PORT $DB_NAME $DB_USER
 **Diagnostics:**
 
 ```bash
-# Check migration status
-npx sequelize-cli db:migrate:status
+# Check migration status (via custom Umzug runner)
+npm run db:migrate:status
 
 # View migration history
 SELECT * FROM "SequelizeMeta";
@@ -136,19 +136,19 @@ SELECT * FROM "SequelizeMeta";
 
    ```bash
    # Rollback last migration
-   npx sequelize-cli db:migrate:undo
+   npm run db:migrate:undo
 
    # Fix migration file and re-run
-   npx sequelize-cli db:migrate
+   npm run db:migrate
    ```
 
 2. **Out of sync migrations:**
 
    ```bash
-   # Reset database (development only)
-   npx sequelize-cli db:drop
-   npx sequelize-cli db:create
-   npx sequelize-cli db:migrate
+   # Reset database (development only — run inside backend container)
+   npm run docker:reset
+   npm run docker:dev:detach
+   npm run db:migrate
    ```
 
 3. **Manual migration fix:**
@@ -417,11 +417,12 @@ console.log('Content-Type:', req.headers['content-type']);
 
 1. **Schema validation:**
 
-   ```javascript
-   // Update validation schema
-   const schema = Joi.object({
-     email: Joi.string().email().required(),
-     password: Joi.string().min(8).required(),
+   ```typescript
+   // Update validation schema (project uses Zod, not Joi)
+   import { z } from 'zod';
+   const schema = z.object({
+     email: z.string().email(),
+     password: z.string().min(8),
    });
    ```
 

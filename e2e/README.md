@@ -20,6 +20,7 @@ e2e/
 │   ├── auth.ts                   # loginViaUI, logoutViaUI
 │   ├── factories.ts              # uniqueEmail/petName/text — collision-proof data
 │   ├── pet.ts                    # gotoDiscover, searchForPet, openFirstPet, ...
+│   ├── seeds.ts                  # seed data helpers for test setup
 │   └── selectors.ts              # data-testid constants (used as a fallback only)
 └── tests/
     ├── client/                   # adopter journeys (app.client :3000)

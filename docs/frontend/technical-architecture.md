@@ -388,7 +388,7 @@ NODE_ENV                # Environment (development / production)
 
 ```dockerfile
 # Multi-stage build
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 FROM nginx:alpine AS production
 # Optimized for production
 ```

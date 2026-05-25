@@ -109,16 +109,16 @@ Generate strong secrets and append them to your `.env` with `npm run secrets:gen
 - Added `DEV_DB_NAME` for development environment
 - Database connection now works properly
 
-### 2. Styled Components Dependency Issues ✅ RESOLVED
+### 2. Component Library Dependency Issues ✅ RESOLVED
 
-**Problem**: App-client couldn't resolve `styled-components` from the shared components library.
+**Problem**: App-client couldn't resolve shared component library dependencies.
 
 **Solution**:
 
-- Moved `styled-components` to peerDependencies in `lib.components/package.json`
 - Added missing dependencies (`@radix-ui/react-tooltip`, `@radix-ui/react-dropdown-menu`, `clsx`) to both lib.components and app.client
-- Updated Vite configuration in app.client to properly resolve styled-components
+- Updated Vite configuration in app.client to properly resolve library aliases
 - Rebuilt containers to pick up new dependencies
+- Note: lib.components now uses vanilla-extract (`.css.ts` files) for styling, not styled-components
 
 ### 3. Port Conflicts
 

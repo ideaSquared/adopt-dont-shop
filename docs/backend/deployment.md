@@ -10,7 +10,7 @@ This guide covers deploying the Adopt Don't Shop Backend Service across differen
 
 **Production Environment:**
 
-- Node.js 20+ LTS
+- Node.js 22+ LTS
 - PostgreSQL 16+ with PostGIS
 - Redis 7+ (for session storage and caching)
 - 2+ CPU cores, 4GB+ RAM
@@ -18,7 +18,7 @@ This guide covers deploying the Adopt Don't Shop Backend Service across differen
 
 **Development Environment:**
 
-- Node.js 20+
+- Node.js 22+
 - PostgreSQL 16+
 - Git
 - Docker Desktop (recommended)
@@ -173,13 +173,13 @@ docker build \
 An illustrative minimal alternative (equivalent shape):
 
 ```dockerfile
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-FROM node:20-alpine AS runtime
+FROM node:22-alpine AS runtime
 
 # Security: create non-root user
 RUN addgroup -g 1001 -S nodejs \
@@ -642,7 +642,7 @@ service: adopt-dont-shop-api
 
 provider:
   name: aws
-  runtime: nodejs18.x
+  runtime: nodejs22.x
   region: us-west-2
   environment:
     NODE_ENV: production
