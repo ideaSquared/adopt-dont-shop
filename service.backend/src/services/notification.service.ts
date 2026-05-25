@@ -100,7 +100,7 @@ export class NotificationService {
       // Only show active (non-expired) notifications
       const whereWithOr: WhereOptions = {
         ...whereClause,
-        [Op.or]: [{ expires_at: { [Op.is]: null } }, { expires_at: { [Op.gt]: new Date() } }],
+        [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
       };
 
       const orderClause = [[sortBy, sortOrder]];
@@ -484,7 +484,7 @@ export class NotificationService {
         user_id: userId,
         read_at: null,
         deleted_at: null,
-        [Op.or]: [{ expires_at: { [Op.is]: null } }, { expires_at: { [Op.gt]: new Date() } }],
+        [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
       };
 
       const count = await Notification.count({

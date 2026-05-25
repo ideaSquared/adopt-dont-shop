@@ -85,7 +85,7 @@ export class MatchController {
     }
 
     const [profile] = await AdopterMatchProfile.upsert(
-      payload as unknown as Parameters<typeof AdopterMatchProfile.upsert>[0]
+      payload as unknown as AdopterMatchProfile['_creationAttributes']
     );
 
     res.status(200).json({ success: true, data: profile });
