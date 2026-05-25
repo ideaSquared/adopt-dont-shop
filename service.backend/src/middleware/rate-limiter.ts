@@ -196,9 +196,9 @@ export const loginEmailLimiter =
         standardHeaders: true,
         legacyHeaders: false,
         handler: (req, res) => {
-          logger.warn(
-            `Login email rate limit exceeded for: ${(req.body as Record<string, string> | undefined)?.email}`
-          );
+          logger.warn('Login email rate limit exceeded', {
+            ip: req.ip,
+          });
           res.status(429).json({
             error: 'Too many login attempts for this account, please try again later.',
             retryAfter: 900,
@@ -295,9 +295,9 @@ export const emailResendLimiter =
         standardHeaders: true,
         legacyHeaders: false,
         handler: (req, res) => {
-          logger.warn(
-            `Email resend rate limit exceeded for IP: ${req.ip}, email: ${(req.body as Record<string, string> | undefined)?.email}`
-          );
+          logger.warn('Email resend rate limit exceeded', {
+            ip: req.ip,
+          });
           res.status(429).json({
             error: 'Too many verification email requests. Please try again later.',
             retryAfter: 3600,
