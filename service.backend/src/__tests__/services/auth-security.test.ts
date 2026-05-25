@@ -15,7 +15,7 @@ import { vi } from 'vitest';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import speakeasy from 'speakeasy';
+import * as OTPAuth from 'otpauth';
 import User, { UserStatus, UserType } from '../../models/User';
 import RefreshToken from '../../models/RefreshToken';
 import { AuthService } from '../../services/auth.service';
@@ -35,9 +35,31 @@ const MockedJwt = jwt as vi.MockedObject<jwt>;
 // Mock crypto
 vi.mock('crypto');
 
-// Mock speakeasy
-vi.mock('speakeasy');
-const MockedSpeakeasy = speakeasy as vi.MockedObject<typeof speakeasy>;
+// Mock otpauth — vi.mock is hoisted, so use var (not let/const) for shared refs.
+// eslint-disable-next-line no-var
+var mockTotpValidate: ReturnType<typeof vi.fn>;
+// eslint-disable-next-line no-var
+var mockTotpToString: ReturnType<typeof vi.fn>;
+
+vi.mock('otpauth', () => {
+  mockTotpValidate = vi.fn().mockReturnValue(null);
+  mockTotpToString = vi.fn().mockReturnValue('otpauth://totp/mock');
+
+  const TOTPCtor = vi.fn(function (this: Record<string, unknown>) {
+    this.validate = mockTotpValidate;
+    this.toString = mockTotpToString;
+  });
+
+  const SecretCtor = Object.assign(
+    vi.fn(function (this: Record<string, unknown>) {
+      this.base32 = 'MOCKBASE32SECRET';
+    }),
+    { fromBase32: vi.fn().mockReturnValue({ base32: 'MOCKBASE32SECRET' }) }
+  );
+
+  return { TOTP: TOTPCtor, Secret: SecretCtor };
+});
+const MockedOTPAuth = OTPAuth as vi.MockedObject<typeof OTPAuth>;
 
 // Mock RefreshToken model so token storage doesn't hit the DB
 vi.mock('../../models/RefreshToken');
@@ -173,11 +195,8 @@ describe('AuthService - Security Business Logic', () => {
       ),
     };
 
-    // Setup speakeasy mocks
-    if (!MockedSpeakeasy.totp) {
-      MockedSpeakeasy.totp = {} as typeof speakeasy.totp;
-    }
-    MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(false);
+    // Setup otpauth mocks
+    mockTotpValidate.mockReturnValue(null);
   });
 
   // ==========================================================================
@@ -496,7 +515,7 @@ describe('AuthService - Security Business Logic', () => {
         findOne: vi.fn().mockResolvedValue(mockUser),
       });
       MockedBcrypt.compare = vi.fn().mockResolvedValue(true);
-      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(false);
+      mockTotpValidate.mockReturnValue(null);
 
       const credentials = createValidLoginCredentials({ twoFactorToken: 'invalid-token' });
 
@@ -516,22 +535,18 @@ describe('AuthService - Security Business Logic', () => {
         findOne: vi.fn().mockResolvedValue(mockUser),
       });
       MockedBcrypt.compare = vi.fn().mockResolvedValue(true);
-      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+      mockTotpValidate.mockReturnValue(0);
 
       const credentials = createValidLoginCredentials({ twoFactorToken: '123456' });
 
       // When: Login with correct TOTP token
       const result = await AuthService.login(credentials);
 
-      // Then: Login succeeds and speakeasy was called with correct params
+      // Then: Login succeeds and otpauth TOTP was constructed and validated
       expect(result).toBeDefined();
       expect(result.user).toBeDefined();
-      expect(MockedSpeakeasy.totp.verify).toHaveBeenCalledWith({
-        secret: 'JBSWY3DPEHPK3PXP',
-        encoding: 'base32',
-        token: '123456',
-        window: 1,
-      });
+      expect(MockedOTPAuth.TOTP).toHaveBeenCalled();
+      expect(mockTotpValidate).toHaveBeenCalledWith({ token: '123456', window: 1 });
     });
 
     it('should allow login with valid backup code when TOTP fails', async () => {
@@ -545,7 +560,7 @@ describe('AuthService - Security Business Logic', () => {
         findOne: vi.fn().mockResolvedValue(mockUser),
       });
       MockedBcrypt.compare = vi.fn().mockResolvedValue(true);
-      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(false);
+      mockTotpValidate.mockReturnValue(null);
 
       const credentials = createValidLoginCredentials({ twoFactorToken: 'def67890' });
 
@@ -584,23 +599,19 @@ describe('AuthService - Security Business Logic', () => {
 
   describe('Two-Factor Setup and Management', () => {
     it('should generate a TOTP secret for a user', () => {
-      // Given: speakeasy returns a secret
-      MockedSpeakeasy.generateSecret = vi.fn().mockReturnValue({
-        base32: 'JBSWY3DPEHPK3PXP',
-        otpauth_url:
-          'otpauth://totp/Adopt%20Don%27t%20Shop%20(test%40example.com)?secret=JBSWY3DPEHPK3PXP',
-      });
+      // Given: otpauth Secret and TOTP are mocked
 
       // When: Generating a secret
       const result = AuthService.generateTwoFactorSecret('test@example.com');
 
       // Then: Secret and URL are returned
-      expect(result.secret).toBe('JBSWY3DPEHPK3PXP');
+      expect(result.secret).toBe('MOCKBASE32SECRET');
       expect(result.otpauthUrl).toContain('otpauth://');
-      expect(MockedSpeakeasy.generateSecret).toHaveBeenCalledWith(
+      expect(MockedOTPAuth.Secret).toHaveBeenCalledWith({ size: 20 });
+      expect(MockedOTPAuth.TOTP).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: expect.stringContaining('test@example.com'),
           issuer: "Adopt Don't Shop",
+          label: expect.stringContaining('test@example.com'),
         })
       );
     });
@@ -649,7 +660,7 @@ describe('AuthService - Security Business Logic', () => {
     it('should enable 2FA after verifying setup token', async () => {
       // Given: Valid setup token, pending secret present on the user row
       // (ADS-599: secret is no longer accepted from the client).
-      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+      mockTotpValidate.mockReturnValue(0);
       const mockUser = createMockUser({
         twoFactorPendingSecret: 'JBSWY3DPEHPK3PXP',
         twoFactorPendingExpiresAt: new Date(Date.now() + 60_000),
@@ -678,7 +689,7 @@ describe('AuthService - Security Business Logic', () => {
 
     it('should reject enabling 2FA with invalid setup token', async () => {
       // Given: Invalid setup token, pending secret present
-      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(false);
+      mockTotpValidate.mockReturnValue(null);
       const mockUser = createMockUser({
         twoFactorPendingSecret: 'JBSWY3DPEHPK3PXP',
         twoFactorPendingExpiresAt: new Date(Date.now() + 60_000),
@@ -696,7 +707,7 @@ describe('AuthService - Security Business Logic', () => {
     it('should reject enabling 2FA when setup was not initiated', async () => {
       // ADS-599: with no pending secret on the row the enable must fail
       // — the client can no longer pin its own.
-      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+      mockTotpValidate.mockReturnValue(0);
       const mockUser = createMockUser({
         twoFactorPendingSecret: null,
         twoFactorPendingExpiresAt: null,
@@ -711,7 +722,7 @@ describe('AuthService - Security Business Logic', () => {
     });
 
     it('should reject enabling 2FA when pending secret has expired', async () => {
-      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+      mockTotpValidate.mockReturnValue(0);
       const mockUser = createMockUser({
         twoFactorPendingSecret: 'JBSWY3DPEHPK3PXP',
         twoFactorPendingExpiresAt: new Date(Date.now() - 1_000),
@@ -745,7 +756,7 @@ describe('AuthService - Security Business Logic', () => {
     });
 
     it('should throw error when enabling 2FA for non-existent user', async () => {
-      MockedSpeakeasy.totp.verify = vi.fn().mockReturnValue(true);
+      mockTotpValidate.mockReturnValue(0);
       MockedUser.scope = vi.fn().mockReturnValue({
         findByPk: vi.fn().mockResolvedValue(null),
       });

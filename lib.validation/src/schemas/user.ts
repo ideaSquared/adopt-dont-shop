@@ -55,8 +55,7 @@ export const EmailSchema = z
 
 /**
  * Strong password — 8+ chars, must contain lowercase, uppercase, digit,
- * and one of @$!%*?&. Matches the regex used today in
- * auth.controller.validateRegister.
+ * and at least one non-alphanumeric character (any special character).
  */
 export const StrongPasswordSchema = z
   .string()
@@ -65,7 +64,7 @@ export const StrongPasswordSchema = z
   .regex(/[a-z]/, 'Password must contain a lowercase letter')
   .regex(/[A-Z]/, 'Password must contain an uppercase letter')
   .regex(/\d/, 'Password must contain a digit')
-  .regex(/[@$!%*?&]/, 'Password must contain a special character (@$!%*?&)');
+  .regex(/[^a-zA-Z0-9]/, 'Password must contain a special character');
 
 /**
  * Phone number — 10–20 digits after light normalization (whitespace and

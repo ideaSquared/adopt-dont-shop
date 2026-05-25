@@ -350,6 +350,60 @@ jobs:
           retention-days: 7
 
   # ============================================================================
+  # DEV-AUTH GUARD — ensure production frontend bundles never ship dev-auth
+  # bypass code (ADS-676). Builds all three apps in production mode and scans
+  # the output for patterns like DevLoginPanel, dev_user, dev-token-*, etc.
+  # ============================================================================
+  dev-auth-guard:
+    name: Verify Dev Auth is Properly Gated
+    needs: [changes]
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      # ADS-676: verify that dev-auth bypass patterns only appear inside
+      # import.meta.env.DEV guards (which Vite replaces with `false` and
+      # tree-shakes in production builds). Fail if any reference to
+      # dev_user / dev-token- appears outside lib.auth's DEV-gated
+      # AuthContext or the explicitly dev-only files below.
+      #
+      # Allowed locations (dev-only by design):
+      #   lib.auth/src/contexts/AuthContext.tsx — DEV-gated
+      #   app.*/src/components/dev/*            — dev panels
+      #   app.*/src/utils/devAuth.ts            — dev utilities
+      #   app.*/src/contexts/base/devUtils.ts   — dev utilities
+      #   **/*.test.* / **/*.spec.*             — test files
+      - name: Scan source for ungated dev auth bypass patterns
+        run: |
+          # Find dev_user or dev-token- references in production source
+          # (exclude test files, dev-only directories, and the known
+          # DEV-gated AuthContext).
+          HITS=$(grep -rn 'dev_user\|dev-token-' \
+            app.*/src/ lib.*/src/ \
+            --include='*.ts' --include='*.tsx' \
+            --exclude='*.test.*' --exclude='*.spec.*' \
+            | grep -v '/components/dev/' \
+            | grep -v '/utils/devAuth' \
+            | grep -v '/contexts/base/devUtils' \
+            | grep -v 'AuthContext.tsx' \
+            || true)
+
+          if [ -n "$HITS" ]; then
+            echo "ERROR: Dev auth bypass patterns found outside allowed locations:"
+            echo "$HITS"
+            echo ""
+            echo "dev_user / dev-token- must only appear in:"
+            echo "  - lib.auth/src/contexts/AuthContext.tsx (DEV-gated)"
+            echo "  - app.*/src/components/dev/* (dev-only panels)"
+            echo "  - app.*/src/utils/devAuth.ts (dev-only utilities)"
+            echo "  - Test files (*.test.*, *.spec.*)"
+            exit 1
+          fi
+          echo "All dev auth patterns are properly gated."
+
+  # ============================================================================
   # E2E — Playwright journeys against the full docker-compose stack
   # Behaviour-focused tests across app.client, app.rescue and app.admin.
   # Runs only after the unit/integration jobs succeed to gate the more

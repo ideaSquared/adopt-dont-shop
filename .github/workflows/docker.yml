@@ -102,6 +102,19 @@ jobs:
           cache-to: type=gha,mode=max,ignore-error=true
           build-args: BUILDKIT_INLINE_CACHE=1
 
+      # ADS-673: sign production images with cosign (keyless / Sigstore).
+      # TODO: pin to a full commit SHA once cosign-installer v3.8+ is
+      # verified (tag reference used until then).
+      - name: Install cosign
+        if: github.event_name == 'push'
+        uses: sigstore/cosign-installer@v3.8.0
+
+      - name: Sign backend image
+        if: github.event_name == 'push'
+        run: cosign sign --yes paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+
       - name: Run Trivy vulnerability scanner
         if: github.event_name == 'push'
         run: |

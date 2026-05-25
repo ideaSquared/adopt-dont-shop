@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { Op, Transaction } from 'sequelize';
 import sequelize from '../sequelize';
-import speakeasy from 'speakeasy';
+import * as OTPAuth from 'otpauth';
 import qrcode from 'qrcode';
 import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import User, { UserStatus, UserType } from '../models/User';
@@ -1512,7 +1512,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
       throw new BadRequestError('Password must contain at least one number');
     }
 
-    if (!/(?=.*[@$!%*?&])/.test(password)) {
+    if (!/[^a-zA-Z0-9]/.test(password)) {
       throw new BadRequestError('Password must contain at least one special character');
     }
   }
@@ -1552,16 +1552,18 @@ If this wasn't you, your account may be compromised. Reset your password immedia
       throw new BadRequestError('Two-factor authentication is not set up for this user');
     }
 
-    // twoFactorSecret is stored AES-256-GCM-encrypted; speakeasy needs the
+    // twoFactorSecret is stored AES-256-GCM-encrypted; otpauth needs the
     // raw base32 secret to derive the TOTP. Decrypt on use, never persist.
     const plainSecret = decryptSecret(user.twoFactorSecret);
 
-    const isValidTotp = speakeasy.totp.verify({
-      secret: plainSecret,
-      encoding: 'base32',
-      token,
-      window: 1,
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(plainSecret),
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
     });
+
+    const isValidTotp = totp.validate({ token, window: 1 }) !== null;
 
     if (isValidTotp) {
       return true;
@@ -1644,15 +1646,20 @@ If this wasn't you, your account may be compromised. Reset your password immedia
   }
 
   static generateTwoFactorSecret(userEmail: string): { secret: string; otpauthUrl: string } {
-    const secretObj = speakeasy.generateSecret({
-      name: `Adopt Don't Shop (${userEmail})`,
+    const secret = new OTPAuth.Secret({ size: 20 });
+
+    const totp = new OTPAuth.TOTP({
       issuer: "Adopt Don't Shop",
-      length: 20,
+      label: `Adopt Don't Shop (${userEmail})`,
+      secret,
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
     });
 
     return {
-      secret: secretObj.base32,
-      otpauthUrl: secretObj.otpauth_url ?? '',
+      secret: secret.base32,
+      otpauthUrl: totp.toString(),
     };
   }
 
@@ -1693,12 +1700,14 @@ If this wasn't you, your account may be compromised. Reset your password immedia
   }
 
   static verifyTwoFactorSetupToken(secret: string, token: string): boolean {
-    return speakeasy.totp.verify({
-      secret,
-      encoding: 'base32',
-      token,
-      window: 1,
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(secret),
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
     });
+
+    return totp.validate({ token, window: 1 }) !== null;
   }
 
   static generateBackupCodes(count = 10): string[] {
