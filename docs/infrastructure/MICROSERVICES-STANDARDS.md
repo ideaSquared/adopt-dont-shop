@@ -11,7 +11,7 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 ```
 ┌─────────────────────────────────────────────────────┐
 │              Shared Libraries (npm workspace)        │
-│  @adopt-dont-shop/lib.api, lib-auth, lib-chat...   │
+│  @adopt-dont-shop/lib.api, lib.auth, lib.chat...   │
 └─────────────────────────────────────────────────────┘
                            │
                     "*" dependency
@@ -36,7 +36,7 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 
 **✅ Shared Libraries**
 
-- 23 libraries with consistent ESM architecture
+- 24 libraries with consistent ESM architecture
 - TypeScript-first with full type safety
 - Linked as npm workspace dependencies (`"*"` version)
 - Tested independently
@@ -101,9 +101,9 @@ The canonical index with links is in [`docs/libraries/README.md`](../libraries/R
 - `lib.permissions` — RBAC + field-level permissions
 - `lib.invitations` — staff/user invitations
 
-**Domain services (10)**
+**Domain services (11)**
 
-- `lib.applications`, `lib.chat`, `lib.discovery`, `lib.notifications`, `lib.pets`, `lib.rescue`, `lib.search`, `lib.moderation`, `lib.support-tickets`, `lib.audit-logs`
+- `lib.applications`, `lib.chat`, `lib.discovery`, `lib.matching`, `lib.notifications`, `lib.pets`, `lib.rescue`, `lib.search`, `lib.moderation`, `lib.support-tickets`, `lib.audit-logs`
 
 **UI & analytics (5)**
 

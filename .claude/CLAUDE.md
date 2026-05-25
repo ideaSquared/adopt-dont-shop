@@ -97,7 +97,7 @@ adopt-dont-shop/
 ├── app.client/         # Client-facing app (React + Vite)
 ├── app.rescue/         # Rescue organization app (React + Vite)
 ├── service.backend/    # API server (Express + Sequelize)
-└── lib.*/             # Shared libraries (23 packages)
+└── lib.*/             # Shared libraries (24 packages)
     ├── lib.analytics
     ├── lib.api
     ├── lib.applications
@@ -110,6 +110,7 @@ adopt-dont-shop/
     ├── lib.feature-flags
     ├── lib.invitations
     ├── lib.legal
+    ├── lib.matching
     ├── lib.moderation
     ├── lib.notifications
     ├── lib.observability
