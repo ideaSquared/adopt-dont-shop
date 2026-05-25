@@ -13,7 +13,6 @@ vi.mock('../../config/env', () => ({
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import speakeasy from 'speakeasy';
 import { Op } from 'sequelize';
 import User, { UserStatus, UserType } from '../../models/User';
 import RefreshToken from '../../models/RefreshToken';
@@ -36,13 +35,22 @@ vi.mock('../../utils/logger');
 vi.mock('jsonwebtoken');
 vi.mock('bcryptjs');
 vi.mock('crypto');
-vi.mock('speakeasy', () => ({
-  default: {
-    totp: {
-      verify: vi.fn().mockReturnValue(false),
-    },
-  },
-}));
+// eslint-disable-next-line no-var
+var mockTotpValidate: ReturnType<typeof vi.fn>;
+vi.mock('otpauth', () => {
+  mockTotpValidate = vi.fn().mockReturnValue(null);
+  const TOTPCtor = vi.fn(function (this: Record<string, unknown>) {
+    this.validate = mockTotpValidate;
+    this.toString = vi.fn().mockReturnValue('otpauth://totp/mock');
+  });
+  const SecretCtor = Object.assign(
+    vi.fn(function (this: Record<string, unknown>) {
+      this.base32 = 'MOCKBASE32SECRET';
+    }),
+    { fromBase32: vi.fn().mockReturnValue({ base32: 'MOCKBASE32SECRET' }) }
+  );
+  return { TOTP: TOTPCtor, Secret: SecretCtor };
+});
 
 // Mock email service
 // Plain-object mock users don't run model hooks; stub the at-rest protection
@@ -67,7 +75,6 @@ const MockedAuditLogService = AuditLogService as vi.MockedObject<AuditLogService
 const mockedJwt = jwt as vi.MockedObject<jwt>;
 const mockedBcrypt = bcrypt as vi.MockedObject<bcrypt>;
 const mockedCrypto = crypto as vi.MockedObject<crypto>;
-const mockedSpeakeasy = speakeasy as vi.MockedObject<typeof speakeasy>;
 
 describe('Authentication Flow Integration Tests', () => {
   const validPassword = 'SecurePass123!';
@@ -799,7 +806,7 @@ describe('Authentication Flow Integration Tests', () => {
 
         setupLoginMocks(mockUser);
         mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
-        (mockedSpeakeasy.totp.verify as ReturnType<typeof vi.fn>).mockReturnValue(false);
+        mockTotpValidate.mockReturnValue(null);
 
         const credentialsWithInvalid2FA = {
           ...loginCredentials,
@@ -824,7 +831,7 @@ describe('Authentication Flow Integration Tests', () => {
 
         setupLoginMocks(mockUser);
         mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
-        (mockedSpeakeasy.totp.verify as ReturnType<typeof vi.fn>).mockReturnValue(true);
+        mockTotpValidate.mockReturnValue(0);
 
         const credentialsWithValid2FA = {
           ...loginCredentials,

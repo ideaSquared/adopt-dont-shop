@@ -196,11 +196,17 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    # Optional: Use Docker secrets
-    # secrets:
-    #   - db_password
-    #   - jwt_secret
-    #   - redis_password
+    # ADS-675: secrets mounted at /run/secrets/<name>; backend reads via
+    # readSecretOrEnv() with env-var fallback.
+    secrets:
+      - jwt_secret
+      - jwt_refresh_secret
+      - session_secret
+      - csrf_secret
+      - encryption_key
+      - upload_signing_secret
+      - db_password
+      - redis_password
     depends_on:
       database:
         condition: service_healthy
@@ -348,26 +354,35 @@ networks:
     external: false
 
 # ============================================================================
-# Docker Secrets (Optional but Recommended)
+# Docker Secrets (ADS-675)
 # ============================================================================
-# Uncomment to use Docker secrets instead of environment variables
-# More secure as secrets are only available to containers that need them
-# and are never stored in container images or visible in docker inspect
+# Secrets are mounted as in-memory tmpfs files at /run/secrets/<name>, never
+# written to disk and invisible to `docker inspect`. The backend reads these
+# via readSecretOrEnv() (config/env.ts) with env-var fallback.
 #
-# secrets:
-#   postgres_password:
-#     external: true  # Created with: echo "password" | docker secret create postgres_password -
-#   jwt_secret:
-#     external: true
-#   redis_password:
-#     external: true
-#   db_password:
-#     external: true
-#
-# Usage in services:
-# services:
-#   database:
-#     secrets:
-#       - postgres_password
-#     environment:
-#       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+# Create each secret on the Docker Swarm host:
+#   openssl rand -base64 32 | docker secret create jwt_secret -
+#   openssl rand -base64 32 | docker secret create jwt_refresh_secret -
+#   openssl rand -base64 32 | docker secret create session_secret -
+#   openssl rand -base64 32 | docker secret create csrf_secret -
+#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" | docker secret create encryption_key -
+#   openssl rand -base64 32 | docker secret create upload_signing_secret -
+#   openssl rand -base64 32 | docker secret create db_password -
+#   openssl rand -base64 32 | docker secret create redis_password -
+secrets:
+  jwt_secret:
+    external: true
+  jwt_refresh_secret:
+    external: true
+  session_secret:
+    external: true
+  csrf_secret:
+    external: true
+  encryption_key:
+    external: true
+  upload_signing_secret:
+    external: true
+  db_password:
+    external: true
+  redis_password:
+    external: true

@@ -490,7 +490,7 @@ export class SocketHandlers {
     // Join chat room
     socket.on('join_chat', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'join_chat')) {
+        if (await checkRateLimit(socket, 'join_chat')) {
           return;
         }
         const parsed = JoinChatSchema.safeParse(data);
@@ -528,7 +528,7 @@ export class SocketHandlers {
     // Leave chat room
     socket.on('leave_chat', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'leave_chat')) {
+        if (await checkRateLimit(socket, 'leave_chat')) {
           return;
         }
         const parsed = LeaveChatSchema.safeParse(data);
@@ -566,7 +566,7 @@ export class SocketHandlers {
       'message_sent_notification',
       async (data: { messageId: string; conversationId: string; tempId: string }) => {
         try {
-          if (checkRateLimit(socket, 'message_sent_notification')) {
+          if (await checkRateLimit(socket, 'message_sent_notification')) {
             return;
           }
           const { messageId, conversationId, tempId } = data;
@@ -600,7 +600,7 @@ export class SocketHandlers {
     // Send message (DEPRECATED - API should be used instead)
     socket.on('send_message', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'send_message')) {
+        if (await checkRateLimit(socket, 'send_message')) {
           return;
         }
         const parsed = SendMessageSchema.safeParse(data);
@@ -666,7 +666,7 @@ export class SocketHandlers {
     // Mark messages as read
     socket.on('mark_as_read', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'mark_as_read')) {
+        if (await checkRateLimit(socket, 'mark_as_read')) {
           return;
         }
         const parsed = MarkAsReadSchema.safeParse(data);
@@ -700,7 +700,7 @@ export class SocketHandlers {
     // Add reaction to message
     socket.on('add_reaction', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'add_reaction')) {
+        if (await checkRateLimit(socket, 'add_reaction')) {
           return;
         }
         const parsed = ReactionSchema.safeParse(data);
@@ -742,7 +742,7 @@ export class SocketHandlers {
     // Remove reaction from message
     socket.on('remove_reaction', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'remove_reaction')) {
+        if (await checkRateLimit(socket, 'remove_reaction')) {
           return;
         }
         const parsed = ReactionSchema.safeParse(data);
@@ -787,7 +787,7 @@ export class SocketHandlers {
     // User started typing
     socket.on('typing_start', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'typing_start')) {
+        if (await checkRateLimit(socket, 'typing_start')) {
           return;
         }
         const parsed = TypingStartSchema.safeParse(data);
@@ -820,7 +820,7 @@ export class SocketHandlers {
     // User stopped typing
     socket.on('typing_stop', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'typing_stop')) {
+        if (await checkRateLimit(socket, 'typing_stop')) {
           return;
         }
         const parsed = TypingStopSchema.safeParse(data);
@@ -863,7 +863,7 @@ export class SocketHandlers {
     // we don't leak existence by returning "denied" vs "offline".
     socket.on('get_presence', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'get_presence')) {
+        if (await checkRateLimit(socket, 'get_presence')) {
           return;
         }
         const parsed = GetPresenceSchema.safeParse(data);
@@ -906,8 +906,8 @@ export class SocketHandlers {
     });
 
     // User updates their presence status
-    socket.on('update_presence', (data: { status: 'online' | 'away' }) => {
-      if (checkRateLimit(socket, 'update_presence')) {
+    socket.on('update_presence', async (data: { status: 'online' | 'away' }) => {
+      if (await checkRateLimit(socket, 'update_presence')) {
         return;
       }
       const { status } = data;
@@ -922,7 +922,7 @@ export class SocketHandlers {
    * Setup disconnect handler
    */
   private setupDisconnectHandler(socket: AuthenticatedSocket) {
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       // Track disconnection for health monitoring
       activeConnections = Math.max(0, activeConnections - 1);
       HealthCheckService.updateActiveConnections(activeConnections);
@@ -945,7 +945,7 @@ export class SocketHandlers {
       // Release per-socket rate-limit state. For authenticated
       // sockets the limiter keeps the bucket alive across reconnects
       // (and GCs it on idle); for anonymous sockets it's dropped now.
-      releaseSocket(socket);
+      await releaseSocket(socket);
 
       // ADS-597: stop the auth-refresh timer so it doesn't leak past the
       // socket lifetime.
