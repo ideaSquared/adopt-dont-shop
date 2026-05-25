@@ -55,7 +55,7 @@ const PetManagement: React.FC = () => {
       // Refresh the user data
       await refreshUser();
       setShowRescueSetup(false);
-      toast.success('Demo rescue created successfully! You can now manage pets.');
+      toast.success('Demo rescue created. You can now manage pets.');
     } catch (error) {
       console.error('Error creating demo rescue:', error);
       toast.error('Failed to create demo rescue. Please check the console for details.', {

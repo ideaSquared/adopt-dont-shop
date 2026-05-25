@@ -221,7 +221,7 @@ export function useTimelineEvents() {
           {
             event_type: eventTypeMap[decision],
             title: `Application ${decision}`,
-            description: reason || `Application has been ${decision}`,
+            description: reason || `Application ${decision}`,
             metadata: {
               decision,
               reason,

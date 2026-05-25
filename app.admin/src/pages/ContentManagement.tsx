@@ -244,7 +244,7 @@ const ContentManagement: React.FC = () => {
   const handleArchive = async (item: Content) => {
     const confirmed = await confirm({
       title: 'Archive content?',
-      message: `Archive "${item.title}"? It will be hidden from the site but kept for restoration.`,
+      message: `Archive "${item.title}"? This hides it from the site but keeps it for restoration.`,
       confirmText: 'Archive',
       cancelText: 'Cancel',
       variant: 'warning',

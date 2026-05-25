@@ -169,15 +169,14 @@ const AcceptInvitation: React.FC = () => {
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h1>Welcome!</h1>
-            <p>Your account has been created successfully</p>
+            <p>Account created</p>
           </div>
           <div className={styles.cardBody}>
             <div className={styles.successContainer}>
               <div className={styles.successIcon}>🎉</div>
               <h2>Account Created!</h2>
               <p>
-                Your account has been successfully created. You can now log in to start working with
-                your rescue team.
+                We created your account. You can now log in to start working with your rescue team.
               </p>
               <button className={styles.loginButton} onClick={handleGoToLogin}>
                 Go to Login

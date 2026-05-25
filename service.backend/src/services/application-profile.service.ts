@@ -535,7 +535,7 @@ export class ApplicationProfileService {
     }
 
     if ((status.overall_percentage || status.overallCompleteness * 100) >= 80) {
-      recommendations.push('Your profile is complete enough for quick applications!');
+      recommendations.push('Your profile is complete enough for quick applications.');
     }
 
     return recommendations;
