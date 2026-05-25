@@ -112,6 +112,7 @@ vi.mock('../../models/MessageRead', () => ({
 
 // Import from the mocked models module
 import { Chat, ChatParticipant, Message, User, Rescue } from '../../models';
+import { Op } from 'sequelize';
 import MessageReaction from '../../models/MessageReaction';
 import MessageRead from '../../models/MessageRead';
 import { ChatService } from '../../services/chat.service';
@@ -869,7 +870,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
         expect(MockedMessage.findAll).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              sender_id: expect.objectContaining({ [Symbol.for('ne')]: adopterId }),
+              sender_id: expect.objectContaining({ [Op.ne]: adopterId }),
             }),
           })
         );

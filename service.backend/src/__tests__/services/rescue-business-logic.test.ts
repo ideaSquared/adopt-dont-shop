@@ -18,6 +18,7 @@ import { vi, describe, it, expect, beforeEach, afterEach, afterAll, Mock } from 
 import { RescueService } from '../../services/rescue.service';
 import { Rescue, StaffMember, User, Pet, Application, Role, UserRole } from '../../models';
 import { AuditLogService } from '../../services/auditLog.service';
+import { Op } from 'sequelize';
 
 // Mock dependencies
 vi.mock('../../models');
@@ -785,9 +786,7 @@ describe('RescueService - Business Logic Tests', () => {
       expect(MockedRescue.findAndCountAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            [Symbol.for('or')]: expect.arrayContaining([
-              expect.objectContaining({ name: expect.anything() }),
-            ]),
+            [Op.or]: expect.arrayContaining([expect.objectContaining({ name: expect.anything() })]),
           }),
         })
       );
@@ -833,9 +832,7 @@ describe('RescueService - Business Logic Tests', () => {
       expect(MockedRescue.findAndCountAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            [Symbol.for('or')]: expect.arrayContaining([
-              expect.objectContaining({ city: expect.anything() }),
-            ]),
+            [Op.or]: expect.arrayContaining([expect.objectContaining({ city: expect.anything() })]),
           }),
         })
       );

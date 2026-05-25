@@ -21,7 +21,7 @@ import EmailQueue, { EmailStatus, EmailPriority, EmailType } from '../../models/
 describe('EmailQueue Model', () => {
   describe('isPending - Check if email is pending', () => {
     it('should return true when status is QUEUED', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -37,7 +37,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false when status is not QUEUED', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -55,7 +55,7 @@ describe('EmailQueue Model', () => {
 
   describe('isSent - Check if email was sent', () => {
     it('should return true for SENT status', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -71,7 +71,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return true for DELIVERED status', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.DELIVERED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -87,7 +87,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return true for OPENED status', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.OPENED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -103,7 +103,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return true for CLICKED status', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.CLICKED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -119,7 +119,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false for QUEUED status', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -135,7 +135,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false for FAILED status', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.FAILED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -153,7 +153,7 @@ describe('EmailQueue Model', () => {
 
   describe('isFailed - Check if email failed', () => {
     it('should return true for FAILED status', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.FAILED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -169,7 +169,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return true for BOUNCED status', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.BOUNCED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -185,7 +185,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false for SENT status', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -203,7 +203,7 @@ describe('EmailQueue Model', () => {
 
   describe('canRetry - Check if email can be retried', () => {
     it('should return true when failed and retries not exceeded', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.FAILED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -219,7 +219,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false when retries exceeded', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.FAILED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -235,7 +235,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false when not failed', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -255,7 +255,7 @@ describe('EmailQueue Model', () => {
     it('should return true when scheduled for future', () => {
       const futureDate = new Date(Date.now() + 3600000);
 
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -274,7 +274,7 @@ describe('EmailQueue Model', () => {
     it('should return false when scheduled for past', () => {
       const pastDate = new Date(Date.now() - 3600000);
 
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -291,7 +291,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false when not scheduled', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -309,7 +309,7 @@ describe('EmailQueue Model', () => {
 
   describe('isReadyToSend - Check if email is ready to be sent', () => {
     it('should return true when pending and not scheduled', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -327,7 +327,7 @@ describe('EmailQueue Model', () => {
     it('should return true when pending and scheduled time has passed', () => {
       const pastDate = new Date(Date.now() - 1000);
 
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -346,7 +346,7 @@ describe('EmailQueue Model', () => {
     it('should return false when scheduled for future', () => {
       const futureDate = new Date(Date.now() + 3600000);
 
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -363,7 +363,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return false when not pending', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -381,7 +381,7 @@ describe('EmailQueue Model', () => {
 
   describe('markAsSending - Update status to sending', () => {
     it('should set status to SENDING', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -399,7 +399,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should set lastAttemptAt to current time', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -424,7 +424,7 @@ describe('EmailQueue Model', () => {
 
   describe('markAsSent - Update status to sent', () => {
     it('should set status to SENT', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENDING,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -442,7 +442,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should set sentAt to current time', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENDING,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -465,7 +465,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should set providerId when provided', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENDING,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -483,7 +483,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should set providerMessageId when provided', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENDING,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -504,7 +504,7 @@ describe('EmailQueue Model', () => {
 
   describe('markAsFailed - Update status to failed', () => {
     it('should set status to FAILED', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENDING,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -522,7 +522,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should set failureReason', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENDING,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -540,7 +540,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should increment currentRetries', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENDING,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -560,7 +560,7 @@ describe('EmailQueue Model', () => {
 
   describe('markAsDelivered - Update status to delivered', () => {
     it('should set status to DELIVERED when email was sent', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -578,7 +578,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should set deliveredAt in tracking when tracking exists', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -601,7 +601,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should not update status when email was not sent', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -621,7 +621,7 @@ describe('EmailQueue Model', () => {
 
   describe('markAsBounced - Update status to bounced', () => {
     it('should set status to BOUNCED', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -639,7 +639,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should set bouncedAt in tracking', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -665,7 +665,7 @@ describe('EmailQueue Model', () => {
 
   describe('recordOpen - Track email open', () => {
     it('should create tracking if not exists', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -684,7 +684,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should add open event to tracking', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -704,7 +704,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should update status to OPENED when sent', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -722,7 +722,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should update status to OPENED when delivered', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.DELIVERED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -742,7 +742,7 @@ describe('EmailQueue Model', () => {
 
   describe('recordClick - Track email click', () => {
     it('should create tracking if not exists', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -761,7 +761,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should add click event to tracking', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -781,7 +781,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should update status to CLICKED when sent', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -799,7 +799,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should update status to CLICKED when opened', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.OPENED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -819,7 +819,7 @@ describe('EmailQueue Model', () => {
 
   describe('getOpenCount - Get number of opens', () => {
     it('should return 0 when no tracking', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -835,7 +835,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return correct count of opens', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.OPENED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -857,7 +857,7 @@ describe('EmailQueue Model', () => {
 
   describe('getClickCount - Get number of clicks', () => {
     it('should return 0 when no tracking', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -873,7 +873,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return correct count of clicks', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -895,7 +895,7 @@ describe('EmailQueue Model', () => {
 
   describe('getUniqueClickCount - Get number of unique URLs clicked', () => {
     it('should return 0 when no tracking', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -911,7 +911,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return count of unique URLs', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -933,7 +933,7 @@ describe('EmailQueue Model', () => {
 
   describe('hasBeenOpened - Check if email has been opened', () => {
     it('should return false when no opens', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -949,7 +949,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return true when email has been opened', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -969,7 +969,7 @@ describe('EmailQueue Model', () => {
 
   describe('hasBeenClicked - Check if email links have been clicked', () => {
     it('should return false when no clicks', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -985,7 +985,7 @@ describe('EmailQueue Model', () => {
     });
 
     it('should return true when email has been clicked', () => {
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.SENT,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -1007,7 +1007,7 @@ describe('EmailQueue Model', () => {
     it('should return age in milliseconds', () => {
       const createdDate = new Date(Date.now() - 5000);
 
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -1030,7 +1030,7 @@ describe('EmailQueue Model', () => {
     it('should return age in hours', () => {
       const createdDate = new Date(Date.now() - 7200000);
 
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',
@@ -1049,7 +1049,7 @@ describe('EmailQueue Model', () => {
     it('should round down partial hours', () => {
       const createdDate = new Date(Date.now() - 5400000);
 
-      const email = EmailQueue.build({
+      const email = new EmailQueue({
         status: EmailStatus.QUEUED,
         fromEmail: 'test@example.com',
         toEmail: 'recipient@example.com',

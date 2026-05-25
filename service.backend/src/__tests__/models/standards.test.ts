@@ -47,7 +47,7 @@ describe('Model Standards', () => {
         .filter(m => !INTEGER_PK_WHITELIST.has(m.name))
         .forEach(model => {
           const pkAttrs = Object.values(
-            model.rawAttributes as unknown as Record<string, ModelAttribute>
+            model.rawAttributes as Record<string, ModelAttribute>
           ).filter(a => a.primaryKey);
           if (pkAttrs.some(pk => pk.autoIncrement)) {
             failures.push(model.name);
@@ -62,7 +62,7 @@ describe('Model Standards', () => {
     it('no model uses DataTypes.UUIDV4 as a default value', () => {
       const failures: string[] = [];
       Object.values(sequelize.models).forEach(model => {
-        Object.entries(model.rawAttributes as unknown as Record<string, ModelAttribute>).forEach(
+        Object.entries(model.rawAttributes as Record<string, ModelAttribute>).forEach(
           ([fieldName, attr]) => {
             if (attr.defaultValue === DataTypes.UUIDV4) {
               failures.push(`${model.name}.${fieldName}`);
@@ -82,7 +82,7 @@ describe('Model Standards', () => {
       const failures: string[] = [];
 
       Object.values(sequelize.models).forEach(model => {
-        const attrs = model.rawAttributes as unknown as Record<string, ModelAttribute>;
+        const attrs = model.rawAttributes as Record<string, ModelAttribute>;
         const rawOptions = (
           model as unknown as {
             options: { indexes?: Array<{ fields: Array<string | { name: string }> }> };
@@ -123,10 +123,7 @@ describe('Model Standards', () => {
       const failures: string[] = [];
 
       Object.values(sequelize.models).forEach(model => {
-        const attrs = model.rawAttributes as unknown as Record<
-          string,
-          ModelAttribute & { onDelete?: string }
-        >;
+        const attrs = model.rawAttributes as Record<string, ModelAttribute & { onDelete?: string }>;
         Object.entries(attrs)
           .filter(([, a]) => Boolean(a.references))
           .forEach(([name, a]) => {
@@ -148,7 +145,7 @@ describe('Model Standards', () => {
       const failures: string[] = [];
       Object.values(sequelize.models).forEach(model => {
         const opts = (model as unknown as { options: { paranoid?: boolean } }).options;
-        const attrs = model.rawAttributes as unknown as Record<string, ModelAttribute>;
+        const attrs = model.rawAttributes as Record<string, ModelAttribute>;
         if (opts.paranoid && 'isDeleted' in attrs) {
           failures.push(model.name);
         }
@@ -240,7 +237,7 @@ describe('Model Standards', () => {
     it.each(HAS_AUDIT_COLUMNS)('%s has created_by, updated_by, version', name => {
       const model = sequelize.models[name];
       expect(model, `${name} not registered`).toBeDefined();
-      const attrs = model.rawAttributes as unknown as Record<string, ModelAttribute>;
+      const attrs = model.rawAttributes as Record<string, ModelAttribute>;
       expect(attrs).toHaveProperty('created_by');
       expect(attrs).toHaveProperty('updated_by');
       // version: true makes Sequelize add the column under "version".

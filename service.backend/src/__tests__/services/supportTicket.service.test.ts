@@ -569,15 +569,15 @@ describe('SupportTicketService', () => {
       const callArgs = MockedSupportTicket.findAndCountAll.mock.calls[0][0] as {
         where: Record<string | symbol, unknown>;
       };
-      const orSymbol = Object.getOwnPropertySymbols(callArgs.where).find(
-        s => s.toString() === 'Symbol(or)'
+      const orSymbol = Object.getOwnPropertySymbols(callArgs.where).find(s =>
+        s.toString().includes('or')
       );
       expect(orSymbol).toBeDefined();
       const orConditions = callArgs.where[orSymbol as symbol] as Array<
         Record<string, Record<symbol, string>>
       >;
-      const iLikeSymbol = Object.getOwnPropertySymbols(orConditions[0].subject).find(
-        s => s.toString() === 'Symbol(iLike)'
+      const iLikeSymbol = Object.getOwnPropertySymbols(orConditions[0].subject).find(s =>
+        s.toString().includes('iLike')
       );
       expect(iLikeSymbol).toBeDefined();
       const subjectPattern = orConditions[0].subject[iLikeSymbol as symbol];
