@@ -2,7 +2,6 @@ import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
-import dts from 'vite-plugin-dts';
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -12,7 +11,6 @@ export default defineConfig(({ mode }) => ({
       },
     }),
     vanillaExtractPlugin(),
-    dts(),
   ],
 
   // Development server setup for standalone component development
