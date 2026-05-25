@@ -36,6 +36,33 @@ beforeAll(() => {
   process.env.DB_PORT = process.env.DB_PORT ?? '5432';
 });
 
+// Mock sequelize so that vi.resetModules() + NODE_ENV=production does not
+// attempt a real postgres connection (which fails because `pg` cannot be
+// resolved inside vitest's module isolation sandbox).
+vi.mock('../../sequelize', async () => {
+  const { Sequelize, DataTypes } = await import('sequelize');
+  const instance = new Sequelize('sqlite::memory:', {
+    dialect: 'sqlite',
+    storage: ':memory:',
+    logging: false,
+  });
+  return {
+    __esModule: true,
+    default: instance,
+    getJsonType: () => DataTypes.JSON,
+    getUuidType: () => DataTypes.UUID,
+    getArrayType: () => DataTypes.JSON,
+    getGeometryType: () => DataTypes.STRING,
+    getTsVectorType: () => DataTypes.TEXT,
+    getCitextType: () => DataTypes.STRING,
+    buildPoolConfig: vi.fn(),
+    buildTimeoutConfig: vi.fn(),
+    buildSslConfig: vi.fn(),
+    logEffectiveDbConfig: vi.fn(),
+    buildConnectionString: vi.fn(),
+  };
+});
+
 vi.mock('../../models/AuditLog', () => ({
   AuditLog: {
     create: vi.fn().mockResolvedValue(undefined),
