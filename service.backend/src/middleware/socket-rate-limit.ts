@@ -102,14 +102,17 @@ const ensureGcTimer = (): void => {
 
 export const getBudget = (event: string): EventBudget => BUDGETS[event] ?? DEFAULT_BUDGET;
 
-const redisKey = (key: string, event: string): string =>
-  `${REDIS_KEY_PREFIX}${key}:${event}`;
+const redisKey = (key: string, event: string): string => `${REDIS_KEY_PREFIX}${key}:${event}`;
 
 /**
  * Try to consume via Redis. Returns the post-increment count, or null
  * when Redis is unavailable (caller should fall back to in-memory).
  */
-const consumeRedis = async (key: string, event: string, windowMs: number): Promise<number | null> => {
+const consumeRedis = async (
+  key: string,
+  event: string,
+  windowMs: number
+): Promise<number | null> => {
   const redis = getRedis();
   if (!redis || !isRedisReady()) {
     return null;
@@ -170,7 +173,11 @@ const consumeMemory = (key: string, event: string, now: number): boolean => {
  * client and dropping the inbound event when this returns true; see
  * `checkRateLimit` for the combined helper.
  */
-export const consume = async (key: string, event: string, now: number = Date.now()): Promise<boolean> => {
+export const consume = async (
+  key: string,
+  event: string,
+  now: number = Date.now()
+): Promise<boolean> => {
   const budget = getBudget(event);
 
   const redisCount = await consumeRedis(key, event, budget.windowMs);
