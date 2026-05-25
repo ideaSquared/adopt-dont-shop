@@ -18,7 +18,7 @@ jobs:
       tag_name: ${{ steps.release.outputs.tag_name }}
 
     steps:
-      - uses: googleapis/release-please-action@a02a34c4d625f9be7cb89156071d6f8e03db635a  # v4.2.0
+      - uses: googleapis/release-please-action@v4
         id: release
         with:
           config-file: release-please-config.json
