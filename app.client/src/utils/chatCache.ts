@@ -38,7 +38,7 @@ export class ChatCache<T = unknown> {
   private cache = new Map<string, CacheItem<T>>();
   private readonly ttl: number;
   private readonly maxSize: number;
-  private cleanupTimer: NodeJS.Timeout | null = null;
+  private cleanupTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: CacheOptions = {}) {
     this.ttl = options.ttl || 5 * 60 * 1000; // 5 minutes default
