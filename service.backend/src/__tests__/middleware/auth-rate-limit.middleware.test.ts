@@ -143,7 +143,9 @@ describe('auth-rate-limit: password reset limiters (ADS-663)', () => {
 
     let last = 200;
     for (let i = 0; i < 12; i++) {
-      const res = await request(app).post('/r').send({ email: `u${i}@ex.test` });
+      const res = await request(app)
+        .post('/r')
+        .send({ email: `u${i}@ex.test` });
       last = res.status;
     }
     expect(last).toBe(429);
