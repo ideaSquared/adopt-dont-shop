@@ -155,9 +155,9 @@ export const ApplicationDetailsPage: React.FC = () => {
 
       {application.status === 'withdrawn' && (
         <Alert variant='info' title='Application Withdrawn'>
-          This application has been withdrawn. You can still view the details below for your
-          records. If you&apos;d like to adopt this pet or another pet, you can submit a new
-          application from the pet&apos;s profile page.
+          This application was withdrawn. You can still view the details below for your records. If
+          you&apos;d like to adopt this pet or another pet, you can submit a new application from
+          the pet&apos;s profile page.
         </Alert>
       )}
 

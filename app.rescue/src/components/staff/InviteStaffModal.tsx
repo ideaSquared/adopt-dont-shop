@@ -137,8 +137,8 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
             <div className={styles.infoSection}>
               <h4>📧 How invitations work:</h4>
               <ul>
-                <li>An invitation email will be sent to the provided address</li>
-                <li>The recipient will receive a secure link to create their account</li>
+                <li>We send an invitation email to the provided address</li>
+                <li>The recipient gets a secure link to create their account</li>
                 <li>The invitation is valid for 7 days</li>
                 <li>They'll be automatically added to your rescue team after signing up</li>
               </ul>

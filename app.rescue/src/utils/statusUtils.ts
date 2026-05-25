@@ -36,10 +36,10 @@ export const getStatusColor = (
 
 export const getStatusDescription = (status: string): string => {
   const descriptions: Record<string, string> = {
-    submitted: 'Application has been submitted for review',
-    approved: 'Application has been approved',
-    rejected: 'Application has been rejected',
-    withdrawn: 'Application was withdrawn by applicant',
+    submitted: 'Application submitted for review',
+    approved: 'Application approved',
+    rejected: 'Application rejected',
+    withdrawn: 'Application withdrawn by applicant',
   };
 
   return descriptions[status] || 'Status information not available';

@@ -360,7 +360,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                       <FiAlertTriangle size={16} />
                       <div>
                         {entityContext.deleted
-                          ? 'This entity has been deleted. The link may not work.'
+                          ? 'This entity was deleted. The link may not work.'
                           : 'There was an error loading this entity. The link may not work.'}
                       </div>
                     </div>

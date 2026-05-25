@@ -154,8 +154,8 @@ export const BulkModerationModal: React.FC<BulkModerationModalProps> = ({
               <>
                 <p className={styles.description}>
                   {kind === 'dismiss'
-                    ? 'Dismiss the selected reports with a shared reason. No moderation action will be taken on the reported users.'
-                    : 'Apply the selected sanction to the reported users for all selected reports. Each affected report will be marked resolved.'}
+                    ? 'Dismiss the selected reports with a shared reason. No moderation action against the reported users.'
+                    : 'Apply the selected sanction to the reported users for all selected reports. This resolves each affected report.'}
                 </p>
 
                 <span className={styles.countBadge} data-testid='bulk-selected-count'>

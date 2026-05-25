@@ -193,7 +193,7 @@ export class ApplicationTimelineService {
     metadata?: Record<string, unknown>
   ): Promise<ApplicationTimeline> {
     const title = `Application ${decision}`;
-    const description = reason || `Application has been ${decision}`;
+    const description = reason || `Application ${decision}`;
 
     return this.createEvent({
       application_id,
