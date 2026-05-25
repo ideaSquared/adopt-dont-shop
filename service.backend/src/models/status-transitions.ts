@@ -55,7 +55,7 @@ export const installStatusTransitionTrigger = (
   const fnName = `${options.transitionTable}_apply_to_parent`;
   const triggerName = `${options.transitionTable}_after_insert`;
 
-  transitionModel.addHook('afterSync', async () => {
+  transitionModel.hooks.add('afterSync', async () => {
     if (sequelize.getDialect() !== 'postgres') {
       return;
     }

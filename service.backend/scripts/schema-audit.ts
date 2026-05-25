@@ -142,7 +142,7 @@ const normalizeType = (raw: string): string => raw.trim().toLowerCase().replace(
 
 /**
  * Extract the canonical column list a model would emit at sync() time.
- * Sequelize's getAttributes() is the source of truth — it's the same
+ * Sequelize's rawAttributes is the source of truth — it's the same
  * thing sync() consults.
  *
  * Sequelize associations sometimes inject a second copy of a foreign-key
@@ -153,7 +153,7 @@ const normalizeType = (raw: string): string => raw.trim().toLowerCase().replace(
  * because it carries the model author's allowNull/onDelete intent.
  */
 const expectedColumnsForModel = (model: ModelStatic<Model>): ReadonlyArray<ExpectedColumn> => {
-  const attrs = model.getAttributes() as Record<string, ColumnAttribute>;
+  const attrs = model.rawAttributes as unknown as Record<string, ColumnAttribute>;
   const byField = new Map<string, ExpectedColumn>();
   const explicitlyDeclared = new Set<string>();
   for (const [attrName, attr] of Object.entries(attrs)) {

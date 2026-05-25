@@ -219,6 +219,18 @@ const sequelize = isTestEnvironment
           : false,
     });
 
+// Sequelize 7.0.0-next.1 bug: authenticate() calls this.query(...).return()
+// but .return() is a Bluebird-specific method and query() may return a native
+// Promise in some code paths. Override with a version that avoids .return().
+sequelize.authenticate = async function (options) {
+  await this.query('SELECT 1+1 AS result', {
+    raw: true,
+    plain: true,
+    type: 'SELECT' as never,
+    ...options,
+  });
+};
+
 if (!isTestEnvironment) {
   logEffectiveDbConfig(poolConfig, timeoutConfig, dbSslMode);
 }

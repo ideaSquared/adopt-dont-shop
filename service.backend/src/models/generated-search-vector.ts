@@ -37,7 +37,7 @@ export const installGeneratedSearchVector = (
   const fnName = `${options.table}_search_vector_update`;
   const triggerName = `${options.table}_search_vector_trigger`;
 
-  model.addHook('afterSync', async () => {
+  model.hooks.add('afterSync', async () => {
     if (sequelize.getDialect() !== 'postgres') {
       return;
     }
