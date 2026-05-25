@@ -19,7 +19,9 @@ export default [
       },
     },
     rules: {
-      ...pluginReactHooks.configs.recommended.rules,
+      // react-hooks core rules (v7 "recommended" adds many React Compiler
+      // rules that this codebase isn't ready for — only enable the classic two)
+      'react-hooks/rules-of-hooks': 'error',
 
       // React specific rules
       'react/react-in-jsx-scope': 'off',
