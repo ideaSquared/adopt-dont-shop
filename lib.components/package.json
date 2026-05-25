@@ -4,13 +4,13 @@
   "description": "Shared component library for Adopt Don't Shop applications",
   "main": "dist/adopt-dont-shop-components.umd.js",
   "module": "dist/adopt-dont-shop-components.es.js",
-  "types": "dist/src/index.d.ts",
+  "types": "dist/index.d.ts",
   "license": "MIT",
   "type": "module",
   "style": "dist/adopt-dont-shop-components.css",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/adopt-dont-shop-components.es.js",
       "require": "./dist/adopt-dont-shop-components.umd.js"
     },
@@ -95,7 +95,7 @@
     "rimraf": "^6.1.3",
     "storybook": "^10.3.6",
     "ts-dedent": "^2.2.0",
-"typescript": "^6.0.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4",
     "use-sync-external-store": "^1.6.0",
     "vite": "^8.0.14",
