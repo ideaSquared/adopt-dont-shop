@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Logo } from '@adopt-dont-shop/lib.components';
 import * as styles from './AdminSidebar.css';
+import { useMyInboxCount } from '../../hooks/useMyInboxCount';
 import {
   FiHome,
   FiUsers,
@@ -30,6 +31,8 @@ interface SidebarProps {
 }
 
 export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
+  const { count: myInboxCount } = useMyInboxCount();
+
   return (
     <aside className={styles.sidebarContainer({ collapsed })}>
       <div className={styles.sidebarHeader({ collapsed })}>
@@ -138,6 +141,15 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           >
             <FiInbox />
             <span className={styles.navLinkSpan({ collapsed })}>Inbox</span>
+            {!collapsed && myInboxCount > 0 && (
+              <span
+                className={styles.navBadge}
+                aria-label={`${myInboxCount} items assigned to you`}
+                data-testid='inbox-my-queue-badge'
+              >
+                {myInboxCount}
+              </span>
+            )}
           </NavLink>
           <NavLink
             to='/moderation'

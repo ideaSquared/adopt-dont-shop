@@ -249,3 +249,16 @@ export const collapsedToggleRow = style({
   display: 'flex',
   justifyContent: 'center',
 });
+
+export const navBadge = style({
+  marginLeft: 'auto',
+  background: vars.colors.primary,
+  color: '#ffffff',
+  fontSize: '0.6875rem',
+  fontWeight: '700',
+  borderRadius: '9999px',
+  padding: '0.125rem 0.5rem',
+  minWidth: '1.25rem',
+  textAlign: 'center',
+  lineHeight: '1',
+});

@@ -2,9 +2,11 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders } from '../test-utils';
+import type { InboxFilters } from '../hooks/useInbox';
 
 const mockAssignMutate = vi.fn();
 const mockNavigate = vi.fn();
+const mockUseInbox = vi.fn();
 
 const sampleItems = [
   {
@@ -27,7 +29,7 @@ const sampleItems = [
     summary: 'I forgot my password and reset is not working',
     status: 'open',
     severity: 'medium',
-    assignedTo: 'admin-1',
+    assignedTo: 'admin-user-1',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     relatedUserId: 'user-2',
@@ -49,14 +51,7 @@ const sampleItems = [
 ];
 
 vi.mock('../hooks/useInbox', () => ({
-  useInbox: () => ({
-    data: {
-      data: sampleItems,
-      pagination: { page: 1, limit: 20, total: 3, totalPages: 1 },
-    },
-    isLoading: false,
-    error: null,
-  }),
+  useInbox: (filters: InboxFilters) => mockUseInbox(filters),
   useInboxAssign: () => ({
     mutate: mockAssignMutate,
     isPending: false,
@@ -84,6 +79,14 @@ import Inbox from './Inbox';
 describe('Inbox page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseInbox.mockImplementation((_filters: InboxFilters) => ({
+      data: {
+        data: sampleItems,
+        pagination: { page: 1, limit: 20, total: 3, totalPages: 1 },
+      },
+      isLoading: false,
+      error: null,
+    }));
   });
 
   it('renders the page heading and filter controls', () => {
@@ -185,5 +188,48 @@ describe('Inbox page', () => {
     fireEvent.click(emailLink);
 
     expect(mockNavigate).not.toHaveBeenCalledWith('/messages?chatId=chat-1');
+  });
+
+  describe('My Queue filter', () => {
+    it('does not pass assignedTo filter by default', () => {
+      renderWithProviders(<Inbox />);
+
+      const lastCall = mockUseInbox.mock.calls.at(-1);
+      expect(lastCall?.[0]?.assignedTo).toBeUndefined();
+    });
+
+    it('toggles aria-pressed and queries with current user id when clicked', () => {
+      renderWithProviders(<Inbox />);
+
+      const chip = screen.getByRole('button', { name: /My Queue/i });
+      expect(chip).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.click(chip);
+
+      expect(chip).toHaveAttribute('aria-pressed', 'true');
+      const lastCall = mockUseInbox.mock.calls.at(-1);
+      expect(lastCall?.[0]?.assignedTo).toBe('admin-user-1');
+    });
+
+    it('reads ?assignedTo=me from the URL on initial render', () => {
+      renderWithProviders(<Inbox />, { initialRoute: '/inbox?assignedTo=me' });
+
+      const chip = screen.getByRole('button', { name: /My Queue/i });
+      expect(chip).toHaveAttribute('aria-pressed', 'true');
+
+      const lastCall = mockUseInbox.mock.calls.at(-1);
+      expect(lastCall?.[0]?.assignedTo).toBe('admin-user-1');
+    });
+
+    it('clears the assignedTo filter when toggled off', () => {
+      renderWithProviders(<Inbox />, { initialRoute: '/inbox?assignedTo=me' });
+
+      const chip = screen.getByRole('button', { name: /My Queue/i });
+      fireEvent.click(chip);
+
+      expect(chip).toHaveAttribute('aria-pressed', 'false');
+      const lastCall = mockUseInbox.mock.calls.at(-1);
+      expect(lastCall?.[0]?.assignedTo).toBeUndefined();
+    });
   });
 });
