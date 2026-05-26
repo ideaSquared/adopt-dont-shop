@@ -98,6 +98,28 @@ export class RescueController {
   };
 
   /**
+   * ADS-641: Public rescue registration — no auth required.
+   * Creates user + rescue + staff member in one step.
+   */
+  registerRescue = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const result = await RescueService.registerRescue(req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'Registration successful. Please check your email to verify your account.',
+        data: result,
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
+      }
+      logger.error('Rescue registration failed:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  };
+
+  /**
    * Create new rescue organization
    */
   createRescue = async (req: AuthenticatedRequest, res: Response) => {

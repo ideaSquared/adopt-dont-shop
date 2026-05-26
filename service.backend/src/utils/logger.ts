@@ -9,6 +9,19 @@ import { AuthenticatedRequest } from '../types/auth';
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
 
+const VALID_LOG_LEVELS = ['error', 'warn', 'info', 'http', 'debug', 'silly'] as const;
+type LogLevel = (typeof VALID_LOG_LEVELS)[number];
+
+const resolveLogLevel = (): LogLevel => {
+  const envLevel = process.env.LOG_LEVEL?.toLowerCase();
+  if (envLevel && VALID_LOG_LEVELS.includes(envLevel as LogLevel)) {
+    return envLevel as LogLevel;
+  }
+  return isDevelopment ? 'debug' : 'info';
+};
+
+const configuredLogLevel = resolveLogLevel();
+
 // Type definitions for logger data
 interface LogData {
   [key: string]: unknown;
@@ -209,7 +222,7 @@ const transports: winston.transport[] = [];
 // Console transport
 transports.push(
   new winston.transports.Console({
-    level: isDevelopment ? 'debug' : 'info',
+    level: configuredLogLevel,
     format: isDevelopment ? devFormat : logFormat,
   })
 );
@@ -267,7 +280,7 @@ if (isProduction) {
 
 // Create logger instance
 export const logger = winston.createLogger({
-  level: isDevelopment ? 'debug' : 'info',
+  level: configuredLogLevel,
   levels: logLevels,
   format: logFormat,
   transports,

@@ -220,12 +220,41 @@ function validate(env) {
     }
   }
 
+  // ADS-662: validate LOG_LEVEL against Winston's level set
+  const validLogLevels = ['error', 'warn', 'info', 'http', 'debug', 'silly'];
+  if (env.LOG_LEVEL && !validLogLevels.includes(env.LOG_LEVEL.toLowerCase())) {
+    errors.push(
+      `LOG_LEVEL must be one of ${validLogLevels.join('|')} (got "${env.LOG_LEVEL}")`
+    );
+  }
+
   // Production-only requirements
   if (isProduction) {
     if (!env.CORS_ORIGIN) {
       errors.push('CORS_ORIGIN is required in production');
     } else if (env.CORS_ORIGIN.split(',').some(o => o.trim() === '*' || o.includes('*'))) {
       errors.push("CORS_ORIGIN cannot contain wildcard ('*') in production");
+    }
+    // ADS-668: block dev-style origins in production CORS
+    if (env.CORS_ORIGIN) {
+      const devPatterns = ['localhost', '127.0.0.1', '0.0.0.0', '.ngrok.io', '.ngrok-free.app'];
+      const origins = env.CORS_ORIGIN.split(',').map(o => o.trim());
+      const devOrigins = origins.filter(o =>
+        devPatterns.some(p => o.includes(p))
+      );
+      if (devOrigins.length > 0) {
+        errors.push(
+          `CORS_ORIGIN contains dev-style origins in production: ${devOrigins.join(', ')}. ` +
+          'Use real domain names only'
+        );
+      }
+      const httpOrigins = origins.filter(o => o.startsWith('http://'));
+      if (httpOrigins.length > 0) {
+        warnings.push(
+          `CORS_ORIGIN contains non-HTTPS origins: ${httpOrigins.join(', ')}. ` +
+          'Production should use HTTPS only'
+        );
+      }
     }
     // ADS-410
     if (!env.FRONTEND_URL) {

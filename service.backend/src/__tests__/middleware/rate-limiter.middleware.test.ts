@@ -68,7 +68,8 @@ describe('Rate Limiter Middleware', () => {
       // + ADS-458 (account-deletion, invitation-send, sensitive-write)
       // + ADS-517 (search, report)
       // + ADS-107 (broadcast)
-      expect(rateLimitConfigs.length).toBe(13);
+      // + ADS-641 (rescue-registration)
+      expect(rateLimitConfigs.length).toBe(14);
     });
 
     it('should configure all limiters with standard headers', () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/lib.components';
 import { PetListSkeleton } from '../components/skeletons';
 import { Pet, PetStatus, petManagementService } from '@adopt-dont-shop/lib.pets';
@@ -66,6 +66,7 @@ const PetManagement: React.FC = () => {
     }
   };
 
+  const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   // ADS-644: cross-linking. When deep-linked via /pets?petId=... we use the
   // petId as the search filter so the matching pet card surfaces immediately.
@@ -374,15 +375,7 @@ const PetManagement: React.FC = () => {
             <Button variant="primary" onClick={handleCreateDemoRescue} disabled={loading}>
               {loading ? 'Creating...' : 'Create Demo Rescue (Dev)'}
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                // Navigate to rescue creation form
-                toast.info(
-                  'Full rescue registration coming soon. For now, please use the backend API.'
-                );
-              }}
-            >
+            <Button variant="outline" onClick={() => navigate('/register-rescue')}>
               Register New Rescue
             </Button>
           </div>

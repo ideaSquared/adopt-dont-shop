@@ -21,6 +21,7 @@ import {
   FiSend,
   FiHeart,
   FiFile,
+  FiInbox,
 } from 'react-icons/fi';
 
 interface SidebarProps {
@@ -129,6 +130,15 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           className={`${styles.navSection({ collapsed })} ${styles.navSectionPadding({ collapsed })}`}
         >
           <div className={styles.navSectionTitle({ collapsed })}>Safety &amp; Support</div>
+          <NavLink
+            to='/inbox'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiInbox />
+            <span className={styles.navLinkSpan({ collapsed })}>Inbox</span>
+          </NavLink>
           <NavLink
             to='/moderation'
             className={({ isActive }) =>

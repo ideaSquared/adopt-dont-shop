@@ -9,6 +9,7 @@ import {
 } from '../middleware/error-handler';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import type { RescueAttributes, RescueCreationAttributes } from '../models/Rescue';
+import { UserStatus, UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
@@ -20,6 +21,7 @@ import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
 import { verifyCompaniesHouseNumber } from './companies-house.service';
 import { verifyCharityRegistrationNumber } from './charity-commission.service';
+import type { RescueRegistrationRequest } from '@adopt-dont-shop/lib.validation';
 
 const RESCUE_PET_SORT_FIELDS = ['createdAt', 'updatedAt', 'name'] as const;
 import sequelize from '../sequelize';
@@ -132,6 +134,229 @@ export class RescueService {
   static async isUserStaffOfRescue(userId: string, rescueId: string): Promise<boolean> {
     const membership = await StaffMember.findOne({ where: { userId, rescueId } });
     return Boolean(membership);
+  }
+
+  /**
+   * ADS-641: Public rescue registration — creates a User, Rescue, and
+   * StaffMember (owner role) in a single transaction. After commit,
+   * fires email verification and attempts external verification.
+   * Returns the new rescue and user IDs.
+   */
+  static async registerRescue(
+    data: RescueRegistrationRequest
+  ): Promise<{ rescueId: string; userId: string }> {
+    const startTime = Date.now();
+    const transaction = await Rescue.sequelize!.transaction();
+
+    try {
+      // Check for duplicate user email
+      const existingUser = await User.findOne({
+        where: { email: data.email },
+        transaction,
+      });
+      if (existingUser) {
+        throw new ConflictError('A user with this email already exists');
+      }
+
+      // Check for duplicate rescue email
+      const existingRescue = await Rescue.findOne({
+        where: { email: data.rescueEmail },
+        transaction,
+      });
+      if (existingRescue) {
+        throw new ConflictError('A rescue organization with this email already exists');
+      }
+
+      // Check duplicate registration numbers
+      if (data.companiesHouseNumber) {
+        const existingByCH = await Rescue.findOne({
+          where: { companiesHouseNumber: data.companiesHouseNumber },
+          transaction,
+        });
+        if (existingByCH) {
+          throw new ConflictError(
+            'A rescue is already registered with this Companies House number'
+          );
+        }
+      }
+      if (data.charityRegistrationNumber) {
+        const existingByCharity = await Rescue.findOne({
+          where: { charityRegistrationNumber: data.charityRegistrationNumber },
+          transaction,
+        });
+        if (existingByCharity) {
+          throw new ConflictError(
+            'A rescue is already registered with this charity registration number'
+          );
+        }
+      }
+
+      // Create user (password hashed by model hook)
+      const crypto = await import('crypto');
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      const user = await User.create(
+        {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          password: data.password,
+          userType: UserType.RESCUE_STAFF,
+          status: UserStatus.PENDING_VERIFICATION,
+          emailVerified: false,
+          verificationToken,
+          verificationTokenExpiresAt: verificationExpires,
+          loginAttempts: 0,
+        },
+        { transaction }
+      );
+
+      // Create rescue in pending state
+      const rescue = await Rescue.create(
+        {
+          name: data.name,
+          email: data.rescueEmail,
+          phone: data.phone,
+          address: data.address,
+          city: data.city,
+          county: data.county,
+          postcode: data.postcode,
+          country: data.country,
+          website: data.website,
+          description: data.description,
+          companiesHouseNumber: data.companiesHouseNumber,
+          charityRegistrationNumber: data.charityRegistrationNumber,
+          contactPerson: `${data.firstName} ${data.lastName}`,
+          status: 'pending',
+          created_by: user.userId,
+        } as unknown as RescueCreationAttributes,
+        { transaction }
+      );
+
+      // Create staff member as owner
+      await StaffMember.create(
+        {
+          rescueId: rescue.rescueId,
+          userId: user.userId,
+          title: 'Owner',
+          isVerified: true,
+          addedBy: user.userId,
+          addedAt: new Date(),
+        },
+        { transaction }
+      );
+
+      // Assign rescue_staff role
+      const rescueStaffRole = await Role.findOne({
+        where: { name: 'rescue_staff' },
+        transaction,
+      });
+      if (rescueStaffRole) {
+        await UserRole.create(
+          { userId: user.userId, roleId: rescueStaffRole.roleId },
+          { transaction }
+        );
+      }
+
+      await transaction.commit();
+
+      // --- Post-commit: email verification + external verification ---
+
+      // Send verification email (best-effort)
+      try {
+        const emailService = (await import('./email.service')).default;
+        const { resolveEmailLinkBase, EmailLinkType } = await import('../utils/email-url');
+        const frontendUrl = resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION);
+        const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+        await emailService.sendEmail({
+          toEmail: user.email,
+          toName: `${user.firstName} ${user.lastName}`,
+          subject: 'Verify your email to complete rescue registration',
+          htmlContent: `
+            <p>Hello ${user.firstName},</p>
+            <p>Thank you for registering <strong>${rescue.name}</strong> on Adopt Don't Shop.</p>
+            <p>Please verify your email by clicking <a href="${verificationUrl}">here</a>.</p>
+            <p>This link expires in 24 hours.</p>
+          `,
+          type: EmailType.TRANSACTIONAL,
+          priority: EmailPriority.HIGH,
+        });
+      } catch (emailErr) {
+        logger.error('Failed to send rescue registration verification email', {
+          err: emailErr,
+          userId: user.userId,
+          rescueId: rescue.rescueId,
+        });
+      }
+
+      // Attempt external verification (best-effort — does not fail registration)
+      try {
+        const verificationUpdate = await RescueService.attemptExternalVerification(
+          rescue.rescueId,
+          data.companiesHouseNumber,
+          data.charityRegistrationNumber
+        );
+        if (Object.keys(verificationUpdate).length > 0) {
+          await rescue.update(verificationUpdate);
+        }
+      } catch (verifyErr) {
+        logger.warn('External verification failed during registration (rescue stays pending)', {
+          err: verifyErr,
+          rescueId: rescue.rescueId,
+        });
+      }
+
+      // Audit log (best-effort)
+      try {
+        await AuditLogService.log({
+          userId: user.userId,
+          action: 'register',
+          entity: 'rescue',
+          entityId: rescue.rescueId,
+          details: {
+            rescueId: rescue.rescueId,
+            rescueName: rescue.name,
+            userEmail: user.email,
+          },
+        });
+      } catch (auditErr) {
+        logger.error('Failed to write audit log for rescue registration', {
+          err: auditErr,
+          rescueId: rescue.rescueId,
+        });
+      }
+
+      await invalidateRescueCaches();
+
+      loggerHelpers.logBusiness(
+        'Rescue Registered',
+        {
+          rescueId: rescue.rescueId,
+          userId: user.userId,
+          duration: Date.now() - startTime,
+        },
+        user.userId
+      );
+
+      return { rescueId: rescue.rescueId, userId: user.userId };
+    } catch (error) {
+      // Only rollback if the transaction hasn't been committed yet
+      try {
+        await transaction.rollback();
+      } catch {
+        // Transaction already committed or rolled back — safe to ignore.
+      }
+      logger.error('Rescue registration failed:', {
+        error: error instanceof Error ? error.message : String(error),
+        duration: Date.now() - startTime,
+      });
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to register rescue');
+    }
   }
 
   /**

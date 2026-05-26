@@ -203,7 +203,7 @@ describe('AppNavbar', () => {
       renderWithProviders(<AppNavbar />);
       expect(screen.getByRole('link', { name: /top picks/i })).toHaveAttribute(
         'href',
-        '/match/onboarding'
+        '/onboarding'
       );
     });
 

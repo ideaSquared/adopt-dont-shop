@@ -54,6 +54,7 @@ import staffRoutes from './routes/staff.routes';
 import supportTicketRoutes from './routes/supportTicket.routes';
 import userSupportRoutes from './routes/userSupport.routes';
 import moderationRoutes from './routes/moderation.routes';
+import inboxRoutes from './routes/inbox.routes';
 import userRoutes from './routes/user.routes';
 import gdprRoutes from './routes/gdpr.routes';
 import fieldPermissionsRoutes from './routes/field-permissions.routes';
@@ -355,6 +356,7 @@ app.use('/api/v1/staff', staffRoutes);
 app.use('/api/v1/support', userSupportRoutes); // User-facing support tickets
 app.use('/api/v1/admin/support', supportTicketRoutes); // Admin support ticket management
 app.use('/api/v1/admin/moderation', moderationRoutes);
+app.use('/api/v1/admin/inbox', inboxRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/config', configRoutes);
 app.use('/api/v1/field-permissions', fieldPermissionsRoutes);
