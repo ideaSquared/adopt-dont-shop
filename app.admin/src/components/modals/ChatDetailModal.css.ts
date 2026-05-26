@@ -514,3 +514,12 @@ export const participantViewLink = style({
   fontSize: '0.875rem',
   color: '#2563eb',
 });
+
+export const entityLink = style({
+  color: '#2563eb',
+  textDecoration: 'none',
+  fontWeight: 'inherit',
+  ':hover': {
+    textDecoration: 'underline',
+  },
+});

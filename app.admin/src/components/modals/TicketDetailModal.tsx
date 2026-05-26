@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Modal, Button } from '@adopt-dont-shop/lib.components';
 import {
   type SupportTicket,
@@ -86,6 +87,20 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   const statusColors = statusColorMap[ticket.status] || statusColorMap.open;
   const priorityColors = priorityColorMap[ticket.priority] || priorityColorMap.normal;
 
+  const renderCustomer = () => {
+    if (!ticket.userName) {
+      return <span className={styles.emptyValue}>Not provided</span>;
+    }
+    if (ticket.userId) {
+      return (
+        <Link to={`/users/${ticket.userId}`} onClick={onClose} className={styles.userLink}>
+          {ticket.userName}
+        </Link>
+      );
+    }
+    return ticket.userName;
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -130,9 +145,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               <FiUser />
               Customer
             </div>
-            <div className={styles.detailValue}>
-              {ticket.userName || <span className={styles.emptyValue}>Not provided</span>}
-            </div>
+            <div className={styles.detailValue}>{renderCustomer()}</div>
             <div className={clsx(styles.detailValue, styles.detailValueSecondary)}>
               {ticket.userEmail}
             </div>

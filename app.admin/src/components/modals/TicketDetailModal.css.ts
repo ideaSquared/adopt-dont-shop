@@ -259,3 +259,12 @@ export const internalNotesLabel = style({
 export const internalBadgeSpacing = style({
   marginLeft: '0.5rem',
 });
+
+export const userLink = style({
+  color: '#2563eb',
+  textDecoration: 'none',
+  fontWeight: 'inherit',
+  ':hover': {
+    textDecoration: 'underline',
+  },
+});

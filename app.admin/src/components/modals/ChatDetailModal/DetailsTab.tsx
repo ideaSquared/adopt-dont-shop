@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import * as styles from '../ChatDetailModal.css';
 import { type Conversation } from '@adopt-dont-shop/lib.chat';
 import { FiInfo, FiClock, FiUsers, FiMessageSquare } from 'react-icons/fi';
@@ -6,6 +7,7 @@ import { FiInfo, FiClock, FiUsers, FiMessageSquare } from 'react-icons/fi';
 type DetailsTabProps = {
   conversation: Conversation;
   getStatusBadge: (status?: string) => React.ReactNode;
+  onClose: () => void;
 };
 
 const formatTimestamp = (timestamp: string) => {
@@ -31,7 +33,11 @@ const formatTimestamp = (timestamp: string) => {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-export const DetailsTab: React.FC<DetailsTabProps> = ({ conversation, getStatusBadge }) => (
+export const DetailsTab: React.FC<DetailsTabProps> = ({
+  conversation,
+  getStatusBadge,
+  onClose,
+}) => (
   <div className={styles.detailGrid}>
     <div className={styles.detailItem}>
       <div className={styles.detailLabel}>
@@ -49,14 +55,30 @@ export const DetailsTab: React.FC<DetailsTabProps> = ({ conversation, getStatusB
     {conversation.rescueName && (
       <div className={styles.detailItem}>
         <div className={styles.detailLabel}>Rescue</div>
-        <div className={styles.detailValue}>{conversation.rescueName}</div>
+        <div className={styles.detailValue}>
+          {conversation.rescueId ? (
+            <Link
+              to={`/rescues/${conversation.rescueId}`}
+              onClick={onClose}
+              className={styles.entityLink}
+            >
+              {conversation.rescueName}
+            </Link>
+          ) : (
+            conversation.rescueName
+          )}
+        </div>
       </div>
     )}
 
     {conversation.petId && (
       <div className={styles.detailItem}>
         <div className={styles.detailLabel}>Pet ID</div>
-        <div className={styles.detailValue}>{conversation.petId}</div>
+        <div className={styles.detailValue}>
+          <Link to={`/pets/${conversation.petId}`} onClick={onClose} className={styles.entityLink}>
+            {conversation.petId}
+          </Link>
+        </div>
       </div>
     )}
 
