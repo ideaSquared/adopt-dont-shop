@@ -42,6 +42,7 @@ vi.mock('../hooks', () => ({
   useDeleteUser: () => mockUseDeleteUser(),
   useBulkUpdateUsers: () => defaultMutation,
   useCreateUser: () => defaultMutation,
+  useUserActivity: () => ({ data: [], isLoading: false, error: null }),
 }));
 
 vi.mock('../services/libraryServices', () => ({

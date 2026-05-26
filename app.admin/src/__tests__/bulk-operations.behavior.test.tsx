@@ -42,6 +42,7 @@ vi.mock('../hooks', () => ({
   useBulkUpdateUsers: () => mockUseBulkUpdateUsers(),
   useBulkUpdateRescues: () => mockUseBulkUpdateRescues(),
   useCreateUser: () => mockUseCreateUser(),
+  useUserActivity: () => ({ data: [], isLoading: false, error: null }),
 }));
 
 const mockGetAll = vi.fn();
@@ -622,12 +623,11 @@ describe('ADS-651 — bulk-action reasons are required and captured', () => {
     });
   });
 
-  describe('Single-row actions are unchanged', () => {
-    it('still renders the per-row actions menu and edit/email buttons', () => {
+  describe('Single-row actions are available via the detail panel', () => {
+    it('renders the table without per-row action menus (actions moved to detail panel)', () => {
       renderWithProviders(<Users />);
-      // Per-row UserActionsMenu (mocked) is present for every row.
-      expect(screen.getByTestId('actions-user-1')).toBeInTheDocument();
-      expect(screen.getByTestId('actions-user-2')).toBeInTheDocument();
+      // Per-row UserActionsMenu is no longer rendered; actions live in the detail panel.
+      expect(screen.queryByTestId('actions-user-1')).not.toBeInTheDocument();
     });
   });
 });
