@@ -134,9 +134,9 @@ describe('RescueService.registerRescue', () => {
       emailVerified: true,
     });
 
-    await expect(
-      RescueService.registerRescue(validRegistration)
-    ).rejects.toThrow('A user with this email already exists');
+    await expect(RescueService.registerRescue(validRegistration)).rejects.toThrow(
+      'A user with this email already exists'
+    );
   });
 
   it('rejects registration when rescue email already exists', async () => {
@@ -151,9 +151,9 @@ describe('RescueService.registerRescue', () => {
       status: 'pending',
     });
 
-    await expect(
-      RescueService.registerRescue(validRegistration)
-    ).rejects.toThrow('A rescue organization with this email already exists');
+    await expect(RescueService.registerRescue(validRegistration)).rejects.toThrow(
+      'A rescue organization with this email already exists'
+    );
   });
 
   it('rejects duplicate Companies House number', async () => {
@@ -178,12 +178,8 @@ describe('RescueService.registerRescue', () => {
   });
 
   it('gracefully handles external verification failure without failing registration', async () => {
-    const { verifyCompaniesHouseNumber } = await import(
-      '../../services/companies-house.service'
-    );
-    vi.mocked(verifyCompaniesHouseNumber).mockRejectedValueOnce(
-      new Error('Network timeout')
-    );
+    const { verifyCompaniesHouseNumber } = await import('../../services/companies-house.service');
+    vi.mocked(verifyCompaniesHouseNumber).mockRejectedValueOnce(new Error('Network timeout'));
 
     const result = await RescueService.registerRescue({
       ...validRegistration,

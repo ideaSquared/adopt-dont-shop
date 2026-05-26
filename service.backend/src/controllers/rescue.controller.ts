@@ -107,8 +107,7 @@ export class RescueController {
 
       res.status(201).json({
         success: true,
-        message:
-          'Registration successful. Please check your email to verify your account.',
+        message: 'Registration successful. Please check your email to verify your account.',
         data: result,
       });
     } catch (error) {

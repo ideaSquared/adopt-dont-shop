@@ -8,10 +8,9 @@ import type { AdminUser } from '@/types';
 // Override the global Modal mock so it respects the `isOpen` prop.
 // The setup-tests.ts Modal mock renders children unconditionally.
 vi.mock('@adopt-dont-shop/lib.components', async () => {
-  const original =
-    await vi.importActual<typeof import('@adopt-dont-shop/lib.components')>(
-      '@adopt-dont-shop/lib.components'
-    );
+  const original = await vi.importActual<typeof import('@adopt-dont-shop/lib.components')>(
+    '@adopt-dont-shop/lib.components'
+  );
   return {
     ...original,
     Modal: ({
@@ -157,9 +156,7 @@ describe('UserActionsMenu', () => {
 
       await user.click(screen.getByRole('menuitem', { name: /delete user/i }));
 
-      expect(
-        screen.getByText(/are you sure you want to delete this user/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/are you sure you want to delete this user/i)).toBeInTheDocument();
     });
 
     it('shows danger warning for destructive actions', async () => {

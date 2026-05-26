@@ -4,7 +4,13 @@ import { Input } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { FiSearch, FiUserPlus } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
-import { useInbox, useInboxAssign, type InboxItem, type InboxFilters, type InboxSource } from '../hooks/useInbox';
+import {
+  useInbox,
+  useInboxAssign,
+  type InboxItem,
+  type InboxFilters,
+  type InboxSource,
+} from '../hooks/useInbox';
 import * as styles from './Inbox.css';
 
 const formatRelativeTime = (iso: string): string => {
@@ -180,9 +186,7 @@ const Inbox: React.FC = () => {
       id: 'source',
       header: 'Source',
       accessor: (item: InboxItem) => (
-        <span className={getSourceBadgeClass(item.source)}>
-          {getSourceLabel(item.source)}
-        </span>
+        <span className={getSourceBadgeClass(item.source)}>{getSourceLabel(item.source)}</span>
       ),
       width: '100px',
     },
@@ -195,9 +199,7 @@ const Inbox: React.FC = () => {
             {item.title}
           </div>
           <div className={styles.itemSummary}>{item.summary}</div>
-          {item.relatedUserEmail && (
-            <div className={styles.itemMeta}>{item.relatedUserEmail}</div>
-          )}
+          {item.relatedUserEmail && <div className={styles.itemMeta}>{item.relatedUserEmail}</div>}
         </div>
       ),
       width: '350px',
@@ -206,9 +208,7 @@ const Inbox: React.FC = () => {
       id: 'status',
       header: 'Status',
       accessor: (item: InboxItem) => (
-        <span className={getStatusBadgeClass(item.status)}>
-          {item.status.replace(/_/g, ' ')}
-        </span>
+        <span className={getStatusBadgeClass(item.status)}>{item.status.replace(/_/g, ' ')}</span>
       ),
       width: '130px',
       sortable: true,
@@ -228,13 +228,12 @@ const Inbox: React.FC = () => {
     {
       id: 'assignedTo',
       header: 'Assigned',
-      accessor: (item: InboxItem) => (
+      accessor: (item: InboxItem) =>
         item.assignedTo ? (
           <span className={styles.badgeInfo}>Assigned</span>
         ) : (
           <span className={styles.badgeWarning}>Unassigned</span>
-        )
-      ),
+        ),
       width: '100px',
     },
     {
@@ -258,7 +257,7 @@ const Inbox: React.FC = () => {
     {
       id: 'actions',
       header: '',
-      accessor: (item: InboxItem) => (
+      accessor: (item: InboxItem) =>
         !item.assignedTo ? (
           <button
             className={styles.assignButton}
@@ -269,8 +268,7 @@ const Inbox: React.FC = () => {
             <FiUserPlus size={14} />
             Assign
           </button>
-        ) : null
-      ),
+        ) : null,
       width: '100px',
       align: 'center',
     },

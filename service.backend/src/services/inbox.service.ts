@@ -127,7 +127,7 @@ const fetchReports = async (filters: InboxFilters): Promise<ReadonlyArray<InboxI
   const reports = await Report.findAll({
     where,
     limit: OVER_FETCH_LIMIT,
-    order: [[(filters.sortBy ?? 'createdAt'), (filters.sortOrder ?? 'desc')]],
+    order: [[filters.sortBy ?? 'createdAt', filters.sortOrder ?? 'desc']],
   });
 
   return reports.map(reportToInboxItem);
@@ -159,7 +159,7 @@ const fetchTickets = async (filters: InboxFilters): Promise<ReadonlyArray<InboxI
   const tickets = await SupportTicket.findAll({
     where,
     limit: OVER_FETCH_LIMIT,
-    order: [[(filters.sortBy ?? 'createdAt'), (filters.sortOrder ?? 'desc')]],
+    order: [[filters.sortBy ?? 'createdAt', filters.sortOrder ?? 'desc']],
   });
 
   return tickets.map(ticketToInboxItem);
@@ -198,7 +198,9 @@ const fetchChats = async (filters: InboxFilters): Promise<ReadonlyArray<InboxIte
         ],
       },
     ],
-    order: [[(filters.sortBy === 'updatedAt' ? 'updatedAt' : 'createdAt'), (filters.sortOrder ?? 'desc')]],
+    order: [
+      [filters.sortBy === 'updatedAt' ? 'updatedAt' : 'createdAt', filters.sortOrder ?? 'desc'],
+    ],
   });
 
   const items = chats.map(chatToInboxItem);

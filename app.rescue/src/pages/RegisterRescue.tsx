@@ -71,8 +71,7 @@ const validateStep = (step: number, data: FormData): FieldErrors => {
   if (step === 2) {
     if (!data.name.trim()) errors.name = 'Organisation name is required';
     if (!data.rescueEmail.trim()) errors.rescueEmail = 'Contact email is required';
-    else if (!/\S+@\S+\.\S+/.test(data.rescueEmail))
-      errors.rescueEmail = 'Invalid email format';
+    else if (!/\S+@\S+\.\S+/.test(data.rescueEmail)) errors.rescueEmail = 'Invalid email format';
   }
 
   if (step === 3) {
@@ -154,8 +153,7 @@ const RegisterRescue = () => {
       await apiService.post<RegistrationResponse>('/api/v1/rescues/register', payload);
       setSubmitted(true);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
       setSubmitError(message);
     } finally {
       setSubmitting(false);
@@ -201,10 +199,13 @@ const RegisterRescue = () => {
             </Heading>
             <Text className={styles.successMessage}>
               Thank you for registering <strong>{formData.name}</strong>. We have sent a
-              verification email to <strong>{formData.email}</strong>. Please check your inbox
-              and click the verification link to activate your account.
+              verification email to <strong>{formData.email}</strong>. Please check your inbox and
+              click the verification link to activate your account.
             </Text>
-            <div className={styles.buttonRow} style={{ justifyContent: 'center', marginTop: '2rem' }}>
+            <div
+              className={styles.buttonRow}
+              style={{ justifyContent: 'center', marginTop: '2rem' }}
+            >
               <Button variant="primary" onClick={() => navigate('/login')}>
                 Go to Login
               </Button>
@@ -219,7 +220,13 @@ const RegisterRescue = () => {
     <div className={styles.pageContainer}>
       <div className={styles.card}>
         {/* Step indicator */}
-        <div className={styles.stepIndicator} role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={TOTAL_STEPS}>
+        <div
+          className={styles.stepIndicator}
+          role="progressbar"
+          aria-valuenow={step}
+          aria-valuemin={1}
+          aria-valuemax={TOTAL_STEPS}
+        >
           {Array.from({ length: TOTAL_STEPS }, (_, i) => {
             const stepNum = i + 1;
             let dotClass = styles.stepDot;
@@ -258,9 +265,7 @@ const RegisterRescue = () => {
         {step === 2 && (
           <>
             <h2 className={styles.stepTitle}>Organisation Details</h2>
-            <p className={styles.stepDescription}>
-              Tell us about your rescue organisation.
-            </p>
+            <p className={styles.stepDescription}>Tell us about your rescue organisation.</p>
             <div className={styles.fieldGroup}>
               {renderField('name', 'Organisation Name', 'text', 'Happy Tails Rescue')}
               {renderField('rescueEmail', 'Contact Email', 'email', 'contact@yourrescue.org')}
@@ -273,9 +278,7 @@ const RegisterRescue = () => {
         {step === 3 && (
           <>
             <h2 className={styles.stepTitle}>Address</h2>
-            <p className={styles.stepDescription}>
-              Where is your rescue organisation based?
-            </p>
+            <p className={styles.stepDescription}>Where is your rescue organisation based?</p>
             <div className={styles.fieldGroup}>
               {renderField('address', 'Address', 'text', '123 Rescue Lane')}
               <div className={styles.fieldRow}>
@@ -330,9 +333,7 @@ const RegisterRescue = () => {
         {step === 5 && (
           <>
             <h2 className={styles.stepTitle}>Review & Submit</h2>
-            <p className={styles.stepDescription}>
-              Please review your details before submitting.
-            </p>
+            <p className={styles.stepDescription}>Please review your details before submitting.</p>
 
             <div className={styles.reviewSection}>
               <span className={styles.reviewLabel}>Owner: </span>
@@ -377,9 +378,7 @@ const RegisterRescue = () => {
             {formData.charityRegistrationNumber && (
               <div className={styles.reviewSection}>
                 <span className={styles.reviewLabel}>Charity Commission: </span>
-                <span className={styles.reviewValue}>
-                  {formData.charityRegistrationNumber}
-                </span>
+                <span className={styles.reviewValue}>{formData.charityRegistrationNumber}</span>
               </div>
             )}
           </>

@@ -375,10 +375,7 @@ const PetManagement: React.FC = () => {
             <Button variant="primary" onClick={handleCreateDemoRescue} disabled={loading}>
               {loading ? 'Creating...' : 'Create Demo Rescue (Dev)'}
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/register-rescue')}
-            >
+            <Button variant="outline" onClick={() => navigate('/register-rescue')}>
               Register New Rescue
             </Button>
           </div>

@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderWithProviders, screen, waitFor } from '../../test-utils';
 import userEvent from '@testing-library/user-event';
-import { BulkModerationModal } from './BulkModerationModal';
-import type { BulkModerationModalProps } from './BulkModerationModal';
+import { BulkModerationModal, type BulkModerationModalProps } from './BulkModerationModal';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

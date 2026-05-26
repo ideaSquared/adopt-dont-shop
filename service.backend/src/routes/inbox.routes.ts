@@ -10,16 +10,8 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(requireAdmin);
 
-router.get(
-  '/',
-  generalLimiter,
-  InboxController.getItems
-);
+router.get('/', generalLimiter, InboxController.getItems);
 
-router.post(
-  '/assign',
-  generalLimiter,
-  InboxController.assign
-);
+router.post('/assign', generalLimiter, InboxController.assign);
 
 export default router;

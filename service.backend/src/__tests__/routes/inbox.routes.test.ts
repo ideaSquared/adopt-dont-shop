@@ -65,9 +65,8 @@ vi.mock('../../middleware/auth', () => ({
 vi.mock('../../middleware/rbac', () => ({
   requireAdmin: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
     requireAdminMock(req, res, next),
-  requirePermission:
-    () => (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
-      next(),
+  requirePermission: () => (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+    next(),
 }));
 
 import inboxRouter from '../../routes/inbox.routes';
@@ -194,11 +193,9 @@ describe('Inbox routes', () => {
     });
 
     it('requires authentication', async () => {
-      authenticateTokenMock.mockImplementation(
-        (_req: AuthenticatedRequest, res: Response) => {
-          res.status(401).json({ error: 'Access token required' });
-        }
-      );
+      authenticateTokenMock.mockImplementation((_req: AuthenticatedRequest, res: Response) => {
+        res.status(401).json({ error: 'Access token required' });
+      });
 
       const app = buildApp();
       const res = await request(app).get('/api/v1/admin/inbox');
@@ -212,13 +209,11 @@ describe('Inbox routes', () => {
       mockAssignInboxItem.mockResolvedValue(undefined);
 
       const app = buildApp();
-      const res = await request(app)
-        .post('/api/v1/admin/inbox/assign')
-        .send({
-          itemId: 'report-1',
-          source: 'moderation',
-          assignedTo: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        });
+      const res = await request(app).post('/api/v1/admin/inbox/assign').send({
+        itemId: 'report-1',
+        source: 'moderation',
+        assignedTo: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      });
 
       expect(res.body).toEqual(expect.objectContaining({ message: 'Item assigned successfully' }));
       expect(res.status).toBe(200);
@@ -231,9 +226,7 @@ describe('Inbox routes', () => {
 
     it('returns 400 for invalid request body', async () => {
       const app = buildApp();
-      const res = await request(app)
-        .post('/api/v1/admin/inbox/assign')
-        .send({ itemId: 'x' });
+      const res = await request(app).post('/api/v1/admin/inbox/assign').send({ itemId: 'x' });
 
       expect(res.status).toBe(400);
     });
@@ -242,13 +235,11 @@ describe('Inbox routes', () => {
       mockAssignInboxItem.mockRejectedValue(new Error('Report not found'));
 
       const app = buildApp();
-      const res = await request(app)
-        .post('/api/v1/admin/inbox/assign')
-        .send({
-          itemId: 'nonexistent',
-          source: 'moderation',
-          assignedTo: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        });
+      const res = await request(app).post('/api/v1/admin/inbox/assign').send({
+        itemId: 'nonexistent',
+        source: 'moderation',
+        assignedTo: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      });
 
       expect(res.status).toBe(404);
     });
