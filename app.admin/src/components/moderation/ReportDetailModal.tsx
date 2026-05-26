@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FiX,
   FiAlertTriangle,
@@ -64,7 +65,8 @@ const getSeverityBadgeClass = (
   }
 };
 
-// Helper to generate URLs to view reported content
+// Helper to generate in-app routes to view reported content. Returns null when
+// the entity type has no corresponding admin detail route.
 const getEntityViewUrl = (entityType: string, entityId: string): string | null => {
   switch (entityType) {
     case 'user':
@@ -77,7 +79,9 @@ const getEntityViewUrl = (entityType: string, entityId: string): string | null =
       return `/applications/${entityId}`;
     case 'message':
     case 'conversation':
-      return `/chats?messageId=${entityId}`;
+      // The chat list lives at /messages. The reported entityId is the
+      // conversation id for both message and conversation reports.
+      return `/messages?chatId=${entityId}`;
     default:
       return null;
   }
@@ -204,6 +208,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onClose,
   report,
 }) => {
+  const navigate = useNavigate();
+
   if (!report) {
     return null;
   }
@@ -231,7 +237,10 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
   const handleViewContent = () => {
     if (viewUrl) {
-      openExternal(viewUrl);
+      // Close the modal first so the moderator lands on the entity page
+      // instead of being trapped behind the still-open overlay.
+      onClose();
+      navigate(viewUrl);
     }
   };
 
@@ -351,7 +360,12 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
               {viewUrl && (
                 <>
-                  <button className={styles.viewContentButton} onClick={handleViewContent}>
+                  <button
+                    className={styles.viewContentButton}
+                    onClick={handleViewContent}
+                    data-testid='view-entity-button'
+                    data-view-url={viewUrl}
+                  >
                     <FiExternalLink size={16} />
                     View {getEntityTypeLabel(report.reportedEntityType)}
                   </button>

@@ -150,6 +150,46 @@ describe('Inbox page', () => {
     expect(sourceSelect).toHaveValue('moderation');
   });
 
+  it('navigates message-source rows to the chat deep-link, not the list view', () => {
+    renderWithProviders(<Inbox />);
+
+    fireEvent.click(screen.getByText('Chat #abc123'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/messages?chatId=chat-1');
+  });
+
+  it('navigates moderation rows to the moderation page', () => {
+    renderWithProviders(<Inbox />);
+
+    fireEvent.click(screen.getByText('Spam report on pet listing'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/moderation');
+  });
+
+  it('navigates support rows to the specific ticket page', () => {
+    renderWithProviders(<Inbox />);
+
+    fireEvent.click(screen.getByText('Cannot access my account'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/support/ticket-1');
+  });
+
+  it('renders the related user email as a link to the user detail page', () => {
+    renderWithProviders(<Inbox />);
+
+    const emailLink = screen.getByRole('link', { name: 'spammer@test.com' });
+    expect(emailLink).toHaveAttribute('href', '/users/user-1');
+  });
+
+  it('clicking the email link does not trigger the row navigation', () => {
+    renderWithProviders(<Inbox />);
+
+    const emailLink = screen.getByRole('link', { name: 'user3@test.com' });
+    fireEvent.click(emailLink);
+
+    expect(mockNavigate).not.toHaveBeenCalledWith('/messages?chatId=chat-1');
+  });
+
   describe('My Queue filter', () => {
     it('does not pass assignedTo filter by default', () => {
       renderWithProviders(<Inbox />);
