@@ -1,11 +1,9 @@
 import { type Response } from 'express';
 import { validationResult } from 'express-validator';
-import { ApiError } from '../middleware/error-handler';
 import fosterService from '../services/foster.service';
 import { FosterPlacementStatus } from '../models/FosterPlacement';
 import { UserType } from '../models/User';
 import type { AuthenticatedRequest } from '../types/auth';
-import { logger } from '../utils/logger';
 
 const ADMIN_USER_TYPES = [UserType.ADMIN, UserType.SUPER_ADMIN];
 
@@ -30,25 +28,17 @@ export class FosterController {
     if (!FosterController.rescueScopeOrAdmin(req, req.body.rescueId)) {
       return res.status(403).json({ error: 'Cannot create placements for this rescue' });
     }
-    try {
-      const placement = await fosterService.createPlacement(
-        {
-          petId: req.body.petId,
-          fosterUserId: req.body.fosterUserId,
-          rescueId: req.body.rescueId,
-          startDate: new Date(req.body.startDate),
-          notes: req.body.notes,
-        },
-        req.user!.userId
-      );
-      return res.status(201).json({ data: placement });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Failed to create foster placement', { error });
-      return res.status(500).json({ error: 'Failed to create placement' });
-    }
+    const placement = await fosterService.createPlacement(
+      {
+        petId: req.body.petId,
+        fosterUserId: req.body.fosterUserId,
+        rescueId: req.body.rescueId,
+        startDate: new Date(req.body.startDate),
+        notes: req.body.notes,
+      },
+      req.user!.userId
+    );
+    return res.status(201).json({ data: placement });
   }
 
   static async listPlacements(req: AuthenticatedRequest, res: Response) {
@@ -63,20 +53,12 @@ export class FosterController {
       ? (req.query.rescueId as string | undefined)
       : (req.user?.rescueId ?? undefined);
 
-    try {
-      const placements = await fosterService.list({
-        rescueId: scopedRescueId,
-        fosterUserId: req.query.fosterUserId as string | undefined,
-        status: req.query.status as FosterPlacementStatus | undefined,
-      });
-      return res.json({ data: placements });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Failed to list foster placements', { error });
-      return res.status(500).json({ error: 'Failed to list placements' });
-    }
+    const placements = await fosterService.list({
+      rescueId: scopedRescueId,
+      fosterUserId: req.query.fosterUserId as string | undefined,
+      status: req.query.status as FosterPlacementStatus | undefined,
+    });
+    return res.json({ data: placements });
   }
 
   static async getPlacement(req: AuthenticatedRequest, res: Response) {
@@ -106,23 +88,15 @@ export class FosterController {
     if (!FosterController.rescueScopeOrAdmin(req, existing.rescueId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    try {
-      const placement = await fosterService.endPlacement(
-        req.params.id,
-        {
-          outcome: req.body.outcome,
-          endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
-          notes: req.body.notes,
-        },
-        req.user!.userId
-      );
-      return res.json({ data: placement });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Failed to end foster placement', { error });
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+    const placement = await fosterService.endPlacement(
+      req.params.id,
+      {
+        outcome: req.body.outcome,
+        endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
+        notes: req.body.notes,
+      },
+      req.user!.userId
+    );
+    return res.json({ data: placement });
   }
 }

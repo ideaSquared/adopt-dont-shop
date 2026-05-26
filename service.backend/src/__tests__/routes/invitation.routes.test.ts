@@ -63,11 +63,6 @@ describe('Invitation routes — token safety in error logs', () => {
       expect(res.status).toBe(404);
     });
 
-    it('calls logger.error when the service throws', async () => {
-      await request(app).post('/invitations/accept').send(validBody);
-      expect(vi.mocked(logger.error)).toHaveBeenCalled();
-    });
-
     it('does not include the raw invitation token in the error log metadata', async () => {
       await request(app).post('/invitations/accept').send(validBody);
 
@@ -99,11 +94,6 @@ describe('Invitation routes — token safety in error logs', () => {
     it('returns a 500 when the service throws unexpectedly', async () => {
       const res = await request(app).get(`/invitations/details/${rawToken}`);
       expect(res.status).toBe(500);
-    });
-
-    it('calls logger.error when the service throws', async () => {
-      await request(app).get(`/invitations/details/${rawToken}`);
-      expect(vi.mocked(logger.error)).toHaveBeenCalled();
     });
 
     it('does not include the raw token in the error log metadata', async () => {

@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/lib.components';
 import { PetListSkeleton } from '../components/skeletons';
-import { Pet, PetStatus, petManagementService } from '@adopt-dont-shop/lib.pets';
+import {
+  Pet,
+  PetCreateData,
+  PetStatus,
+  PetUpdateData,
+  petManagementService,
+} from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import PetGrid from '../components/pets/PetGrid';
@@ -571,9 +577,9 @@ const PetManagement: React.FC = () => {
           onSubmit={async data => {
             try {
               if (editingPet) {
-                await petManagementService.updatePet(editingPet.pet_id, data as any);
+                await petManagementService.updatePet(editingPet.pet_id, data as PetUpdateData);
               } else {
-                await petManagementService.createPet(data as any);
+                await petManagementService.createPet(data as PetCreateData);
               }
               handlePetSaved();
               // ADS-125

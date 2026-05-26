@@ -2,7 +2,6 @@ import { Response } from 'express';
 import SupportTicketService from '../services/supportTicket.service';
 import { TicketCategory, TicketPriority, TicketStatus } from '../models/SupportTicket';
 import { logger } from '../utils/logger';
-import { ApiError } from '../middleware/error-handler';
 import { AuthenticatedRequest } from '../types/api';
 import User from '../models/User';
 
@@ -160,38 +159,23 @@ export class UserSupportController {
    * Get a specific ticket (must belong to authenticated user)
    */
   static async getMyTicket(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user!.userId;
-      const { ticketId } = req.params;
+    const userId = req.user!.userId;
+    const { ticketId } = req.params;
 
-      const ticket = await SupportTicketService.getTicketById(ticketId);
+    const ticket = await SupportTicketService.getTicketById(ticketId);
 
-      // Verify ownership
-      if (ticket.userId !== userId) {
-        return res.status(403).json({
-          success: false,
-          error: 'You do not have permission to view this ticket',
-        });
-      }
-
-      res.json({
-        success: true,
-        data: sanitizeTicketForReporter(ticket as unknown as RawTicket),
+    // Verify ownership
+    if (ticket.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to view this ticket',
       });
-    } catch (error: unknown) {
-      logger.error('Error in getMyTicket:', error);
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error',
-        });
-      }
     }
+
+    res.json({
+      success: true,
+      data: sanitizeTicketForReporter(ticket as unknown as RawTicket),
+    });
   }
 
   /**
@@ -199,61 +183,46 @@ export class UserSupportController {
    * Add a reply to the user's own ticket
    */
   static async replyToMyTicket(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user!.userId;
-      const { ticketId } = req.params;
-      const { content } = req.body;
+    const userId = req.user!.userId;
+    const { ticketId } = req.params;
+    const { content } = req.body;
 
-      if (!content) {
-        return res.status(400).json({
-          success: false,
-          error: 'Reply content is required',
-        });
-      }
-
-      // Get ticket and verify ownership
-      const ticket = await SupportTicketService.getTicketById(ticketId);
-      if (ticket.userId !== userId) {
-        return res.status(403).json({
-          success: false,
-          error: 'You do not have permission to reply to this ticket',
-        });
-      }
-
-      // Get user details for the response
-      const user = await User.findByPk(userId);
-
-      const updatedTicket = await SupportTicketService.addResponse(ticketId, {
-        responderId: userId,
-        responderType: 'user',
-        content,
-        isInternal: false, // User replies are always public
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        error: 'Reply content is required',
       });
-
-      logger.info('User replied to support ticket', {
-        userId,
-        ticketId,
-        responseLength: content.length,
-      });
-
-      res.json({
-        success: true,
-        data: sanitizeTicketForReporter(updatedTicket as unknown as RawTicket),
-      });
-    } catch (error: unknown) {
-      logger.error('Error in replyToMyTicket:', error);
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error',
-        });
-      }
     }
+
+    // Get ticket and verify ownership
+    const ticket = await SupportTicketService.getTicketById(ticketId);
+    if (ticket.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to reply to this ticket',
+      });
+    }
+
+    // Get user details for the response
+    const user = await User.findByPk(userId);
+
+    const updatedTicket = await SupportTicketService.addResponse(ticketId, {
+      responderId: userId,
+      responderType: 'user',
+      content,
+      isInternal: false, // User replies are always public
+    });
+
+    logger.info('User replied to support ticket', {
+      userId,
+      ticketId,
+      responseLength: content.length,
+    });
+
+    res.json({
+      success: true,
+      data: sanitizeTicketForReporter(updatedTicket as unknown as RawTicket),
+    });
   }
 
   /**
@@ -261,40 +230,25 @@ export class UserSupportController {
    * Get all messages for a ticket (must own the ticket)
    */
   static async getMyTicketMessages(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user!.userId;
-      const { ticketId } = req.params;
+    const userId = req.user!.userId;
+    const { ticketId } = req.params;
 
-      // Get ticket and verify ownership
-      const ticket = await SupportTicketService.getTicketById(ticketId);
-      if (ticket.userId !== userId) {
-        return res.status(403).json({
-          success: false,
-          error: 'You do not have permission to view this ticket',
-        });
-      }
-
-      // Filter out internal messages (staff notes)
-      const allResponses = ticket.Responses || ticket.responses || [];
-      const publicResponses = allResponses.filter(r => !r.isInternal);
-
-      res.json({
-        success: true,
-        data: publicResponses,
+    // Get ticket and verify ownership
+    const ticket = await SupportTicketService.getTicketById(ticketId);
+    if (ticket.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to view this ticket',
       });
-    } catch (error: unknown) {
-      logger.error('Error in getMyTicketMessages:', error);
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error',
-        });
-      }
     }
+
+    // Filter out internal messages (staff notes)
+    const allResponses = ticket.Responses || ticket.responses || [];
+    const publicResponses = allResponses.filter(r => !r.isInternal);
+
+    res.json({
+      success: true,
+      data: publicResponses,
+    });
   }
 }

@@ -1,6 +1,3 @@
-// Modern component library exports for Adopt Don't Shop
-// Testing hot reload functionality - if you see this change, hot reload is working!
-
 // Theme exports
 export { darkTheme, lightTheme, normalTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
@@ -42,9 +39,8 @@ export type {
 } from './components/layout/SplitPaneDetail';
 export { Card, CardContent, CardFooter, CardHeader } from './components/ui/Card';
 
-// Form Components - commenting out problematic ones for now
+// Form Components
 export { CheckboxInput } from './components/form/CheckboxInput';
-// export { default as CountrySelectInput } from './components/form/CountrySelectInput';
 export { SelectInput } from './components/form/SelectInput/';
 export type { SelectOption } from './components/form/SelectInput/';
 export { TextArea } from './components/form/TextArea';
@@ -71,17 +67,11 @@ export { Footer } from './components/navigation/Footer';
 export { Header } from './components/navigation/Header';
 export { Navbar } from './components/navigation/Navbar';
 
-// Data Display Components - commenting out for now
-// export { Table } from './components/data/Table';
-
 // Form components
 export * from './components/form/FileUpload';
-// export * from './components/form/RadioInput';
 
-// UI components - commenting out problematic ones
+// UI components
 export * from './components/ui/EmptyState';
-// export * from './components/ui/Pagination';
-// export * from './components/ui/ProgressBar';
 export { Toast, ToastContainer } from './components/ui/Toast';
 export type { ToastContainerProps, ToastPosition, ToastProps } from './components/ui/Toast';
 
@@ -89,7 +79,7 @@ export type { ToastContainerProps, ToastPosition, ToastProps } from './component
 export { Toaster, toast } from './components/ui/Toaster';
 export type { ToasterProps } from './components/ui/Toaster';
 
-// Types - only export working ones
+// Types
 export type {
   AlertProps,
   AlertVariant,

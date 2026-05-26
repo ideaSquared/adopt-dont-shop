@@ -6,7 +6,6 @@ import {
   ConfirmDialog,
   useConfirm,
   Skeleton,
-  SkeletonText,
 } from '@adopt-dont-shop/lib.components';
 import { FiUserPlus, FiUserMinus, FiCheck, FiClock, FiX } from 'react-icons/fi';
 import type { StaffMember, StaffInvitation, InviteStaffPayload } from '@/types/rescue';

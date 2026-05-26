@@ -4,7 +4,7 @@
  * These extend the basic types with admin-specific fields and functionality
  */
 
-import type { Rescue, RescueStatus, AdoptionPolicy } from '@adopt-dont-shop/lib.rescue';
+import type { Rescue, RescueStatus } from '@adopt-dont-shop/lib.rescue';
 import type { RescuePlan, PlanLimits } from '@adopt-dont-shop/lib.types';
 
 /**

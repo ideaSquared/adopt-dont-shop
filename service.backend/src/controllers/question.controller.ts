@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { QuestionCategory, QuestionType } from '../models/ApplicationQuestion';
 import { AuthenticatedRequest } from '../types/api';
-import { ApiError } from '../middleware/error-handler';
 import QuestionService from '../services/question.service';
 
 export class QuestionController {
@@ -133,16 +132,8 @@ export class QuestionController {
 
     const { rescueId } = req.params;
 
-    try {
-      const question = await QuestionService.createQuestion(rescueId, req.body);
-      res.status(201).json({ success: true, question });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    }
+    const question = await QuestionService.createQuestion(rescueId, req.body);
+    res.status(201).json({ success: true, question });
   }
 
   async updateQuestion(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -152,16 +143,8 @@ export class QuestionController {
 
     const { rescueId, questionId } = req.params;
 
-    try {
-      const question = await QuestionService.updateQuestion(questionId, rescueId, req.body);
-      res.status(200).json({ success: true, question });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    }
+    const question = await QuestionService.updateQuestion(questionId, rescueId, req.body);
+    res.status(200).json({ success: true, question });
   }
 
   async deleteQuestion(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -171,16 +154,8 @@ export class QuestionController {
 
     const { rescueId, questionId } = req.params;
 
-    try {
-      await QuestionService.deleteQuestion(questionId, rescueId);
-      res.status(200).json({ success: true, message: 'Question deleted successfully' });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    }
+    await QuestionService.deleteQuestion(questionId, rescueId);
+    res.status(200).json({ success: true, message: 'Question deleted successfully' });
   }
 
   async reorderQuestions(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -190,16 +165,8 @@ export class QuestionController {
 
     const { rescueId } = req.params;
 
-    try {
-      await QuestionService.reorderQuestions(rescueId, req.body.questions);
-      res.status(200).json({ success: true, message: 'Questions reordered successfully' });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    }
+    await QuestionService.reorderQuestions(rescueId, req.body.questions);
+    res.status(200).json({ success: true, message: 'Questions reordered successfully' });
   }
 }
 

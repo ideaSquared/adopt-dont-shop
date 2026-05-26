@@ -17,7 +17,6 @@ import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 import { validateBody } from '../middleware/zod-validate';
 import { clearCsrfSessionCookie, rotateCsrfSessionCookie } from '../middleware/csrf';
-import { ApiError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
 
@@ -84,31 +83,20 @@ export class AuthController {
    * Login user
    */
   async login(req: Request, res: Response): Promise<void> {
-    try {
-      const result = await AuthService.login(req.body, req.ip, req.get('user-agent'));
+    const result = await AuthService.login(req.body, req.ip, req.get('user-agent'));
 
-      res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
-      res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
+    res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+    res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
 
-      // ADS-547: rotate the CSRF session identifier on the auth state
-      // transition (covers both password-only and 2FA-gated logins —
-      // AuthService.login performs the 2FA check inline before returning a
-      // token) so an attacker who pre-planted a session cookie on the
-      // victim's browser cannot reuse the bound CSRF token post-login.
-      rotateCsrfSessionCookie(res);
+    // ADS-547: rotate the CSRF session identifier on the auth state
+    // transition (covers both password-only and 2FA-gated logins —
+    // AuthService.login performs the 2FA check inline before returning a
+    // token) so an attacker who pre-planted a session cookie on the
+    // victim's browser cannot reuse the bound CSRF token post-login.
+    rotateCsrfSessionCookie(res);
 
-      const { refreshToken: _, ...responseBody } = result;
-      res.json(responseBody);
-    } catch (error) {
-      logger.error('Login failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    const { refreshToken: _, ...responseBody } = result;
+    res.json(responseBody);
   }
 
   /**
@@ -179,45 +167,23 @@ export class AuthController {
    * Confirm password reset
    */
   async confirmPasswordReset(req: Request, res: Response): Promise<void> {
-    try {
-      const authService = new AuthService();
-      const result = await authService.confirmPasswordReset(req.body);
-      res.json(result);
-    } catch (error) {
-      logger.error('Password reset confirmation failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    const authService = new AuthService();
+    const result = await authService.confirmPasswordReset(req.body);
+    res.json(result);
   }
 
   /**
    * Verify email address
    */
   async verifyEmail(req: Request, res: Response): Promise<void> {
-    try {
-      const { token } = req.body as { token?: string };
-      if (!token) {
-        res.status(400).json({ error: 'Verification token is required' });
-        return;
-      }
-      const authService = new AuthService();
-      const result = await authService.verifyEmail(token);
-      res.json(result);
-    } catch (error) {
-      logger.error('Email verification failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-
-      res.status(500).json({ error: 'Internal server error' });
+    const { token } = req.body as { token?: string };
+    if (!token) {
+      res.status(400).json({ error: 'Verification token is required' });
+      return;
     }
+    const authService = new AuthService();
+    const result = await authService.verifyEmail(token);
+    res.json(result);
   }
 
   /**
@@ -298,24 +264,13 @@ export class AuthController {
    * Enable 2FA after verifying the setup token
    */
   async twoFactorEnable(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const { token } = req.body;
+    const userId = req.user!.userId;
+    const { token } = req.body;
 
-      // ADS-599: secret is no longer accepted from the client; the
-      // pending secret stored at twoFactorSetup time is used.
-      const result = await AuthService.enableTwoFactor(userId, token);
-      res.json({ success: true, backupCodes: result.backupCodes });
-    } catch (error) {
-      logger.error('2FA enable failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    // ADS-599: secret is no longer accepted from the client; the
+    // pending secret stored at twoFactorSetup time is used.
+    const result = await AuthService.enableTwoFactor(userId, token);
+    res.json({ success: true, backupCodes: result.backupCodes });
   }
 
   /**
@@ -426,42 +381,20 @@ export class AuthController {
    * the user a heads-up so they can react if the recovery wasn't theirs.
    */
   async confirmTwoFactorRecovery(req: Request, res: Response): Promise<void> {
-    try {
-      const authService = new AuthService();
-      const result = await authService.confirmTwoFactorRecovery(req.body);
-      res.json(result);
-    } catch (error) {
-      logger.error('2FA recovery confirmation failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    const authService = new AuthService();
+    const result = await authService.confirmTwoFactorRecovery(req.body);
+    res.json(result);
   }
 
   /**
    * Update current user profile
    */
   async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const updateData = req.body;
+    const userId = req.user!.userId;
+    const updateData = req.body;
 
-      const updatedUser = await UserService.updateUserProfile(userId, updateData);
-      res.json(updatedUser);
-    } catch (error) {
-      logger.error('Update profile failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    const updatedUser = await UserService.updateUserProfile(userId, updateData);
+    res.json(updatedUser);
   }
 }
 

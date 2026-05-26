@@ -6,9 +6,7 @@ import { ConsentPurpose } from '../models/UserConsent';
 import { AuthenticatedRequest } from '../types';
 import { UserType } from '../models/User';
 import { isAdminRole } from '../utils/is-admin-role';
-import { logger } from '../utils/logger';
 import { validateBody } from '../middleware/zod-validate';
-import { ApiError } from '../middleware/error-handler';
 import {
   ACCESS_TOKEN_COOKIE,
   ACCESS_TOKEN_COOKIE_OPTIONS,
@@ -58,43 +56,25 @@ export class GdprController {
    * account and schedules anonymization after the grace window.
    */
   async eraseSelf(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const { reason } = req.body as { reason?: string };
-      await GdprService.requestErasure(userId, { reason, actorUserId: userId });
-      // Clear auth cookies with the same options used to set them so the
-      // browser actually removes them (path/secure/sameSite must match).
-      res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
-      res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
-      res.json({ success: true, message: 'Account scheduled for deletion' });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-      logger.error('GDPR self-erase failed', { error });
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    const userId = req.user!.userId;
+    const { reason } = req.body as { reason?: string };
+    await GdprService.requestErasure(userId, { reason, actorUserId: userId });
+    // Clear auth cookies with the same options used to set them so the
+    // browser actually removes them (path/secure/sameSite must match).
+    res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
+    res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
+    res.json({ success: true, message: 'Account scheduled for deletion' });
   }
 
   async eraseByAdmin(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      if (!isAdmin(req)) {
-        res.status(403).json({ error: 'Admin access required' });
-        return;
-      }
-      const { userId } = req.params;
-      const { reason } = req.body as { reason?: string };
-      await GdprService.requestErasure(userId, { reason, actorUserId: req.user!.userId });
-      res.json({ success: true, message: 'User scheduled for deletion' });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-      logger.error('GDPR admin erase failed', { error });
-      res.status(500).json({ error: 'Internal server error' });
+    if (!isAdmin(req)) {
+      res.status(403).json({ error: 'Admin access required' });
+      return;
     }
+    const { userId } = req.params;
+    const { reason } = req.body as { reason?: string };
+    await GdprService.requestErasure(userId, { reason, actorUserId: req.user!.userId });
+    res.json({ success: true, message: 'User scheduled for deletion' });
   }
 
   /**
@@ -104,22 +84,13 @@ export class GdprController {
    * that point.
    */
   async cancelErasure(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      if (!isAdmin(req)) {
-        res.status(403).json({ error: 'Admin access required' });
-        return;
-      }
-      const { userId } = req.params;
-      await GdprService.cancelErasure(userId, { userId: req.user!.userId });
-      res.json({ success: true, message: 'User erasure cancelled' });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-      logger.error('GDPR cancel-erasure failed', { error });
-      res.status(500).json({ error: 'Internal server error' });
+    if (!isAdmin(req)) {
+      res.status(403).json({ error: 'Admin access required' });
+      return;
     }
+    const { userId } = req.params;
+    await GdprService.cancelErasure(userId, { userId: req.user!.userId });
+    res.json({ success: true, message: 'User erasure cancelled' });
   }
 
   async getConsents(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -135,40 +106,31 @@ export class GdprController {
    * through one audited path.
    */
   async eraseRescue(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { rescueId } = req.params;
-      const actor = req.user!;
-      const isPlatformAdmin = isAdmin(req);
-      const isOwnRescue = actor.userType === UserType.RESCUE_STAFF && actor.rescueId === rescueId;
+    const { rescueId } = req.params;
+    const actor = req.user!;
+    const isPlatformAdmin = isAdmin(req);
+    const isOwnRescue = actor.userType === UserType.RESCUE_STAFF && actor.rescueId === rescueId;
 
-      if (!isPlatformAdmin && !isOwnRescue) {
-        res.status(403).json({ error: 'You do not have permission to erase this rescue' });
-        return;
-      }
-
-      const { reason } = req.body as { reason?: string };
-      const result = await GdprService.eraseRescue(rescueId, {
-        reason,
-        actorUserId: actor.userId,
-      });
-      res.json({
-        success: true,
-        message: 'Rescue anonymised',
-        summary: {
-          petsArchived: result.petsArchived,
-          applicationsRejected: result.applicationsRejected,
-          staffDowngraded: result.staffDowngraded,
-          alreadyArchived: result.alreadyArchived,
-        },
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({ error: error.message });
-        return;
-      }
-      logger.error('GDPR rescue erase failed', { error });
-      res.status(500).json({ error: 'Internal server error' });
+    if (!isPlatformAdmin && !isOwnRescue) {
+      res.status(403).json({ error: 'You do not have permission to erase this rescue' });
+      return;
     }
+
+    const { reason } = req.body as { reason?: string };
+    const result = await GdprService.eraseRescue(rescueId, {
+      reason,
+      actorUserId: actor.userId,
+    });
+    res.json({
+      success: true,
+      message: 'Rescue anonymised',
+      summary: {
+        petsArchived: result.petsArchived,
+        applicationsRejected: result.applicationsRejected,
+        staffDowngraded: result.staffDowngraded,
+        alreadyArchived: result.alreadyArchived,
+      },
+    });
   }
 
   async recordConsent(req: AuthenticatedRequest, res: Response): Promise<void> {

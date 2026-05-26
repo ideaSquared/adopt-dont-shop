@@ -1,14 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
-import {
-  FiSearch,
-  FiAlertTriangle,
-  FiCheckCircle,
-  FiXCircle,
-  FiEye,
-  FiShield,
-} from 'react-icons/fi';
+import { Input } from '@adopt-dont-shop/lib.components';
+import { FiSearch, FiAlertTriangle, FiCheckCircle, FiEye, FiShield } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { BulkActionToolbar } from '../components/ui';
 import {

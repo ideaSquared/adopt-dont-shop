@@ -8,7 +8,6 @@ import { FileUploadService, sanitizeDisplayFilename } from '../services/file-upl
 import { broadcastNewMessage, isUserOnline } from '../socket/socket-handlers';
 import { ChatMessage } from '../types/chat';
 import { isAdminRole } from '../utils/is-admin-role';
-import { ApiError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuthenticatedRequest } from '../types/auth';
 
@@ -287,114 +286,106 @@ export class ChatController {
    * Get chat by ID
    */
   static async getChatById(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { chatId } = req.params;
-      const userId = req.user!.userId;
-      const isAdmin = isAdminRole(req.user!.userType);
-      const userRescueId = req.user!.rescueId || undefined;
+    const { chatId } = req.params;
+    const userId = req.user!.userId;
+    const isAdmin = isAdminRole(req.user!.userType);
+    const userRescueId = req.user!.rescueId || undefined;
 
-      // Messages are paginated to bound memory usage on long chats.
-      // Defaults: limit 50, offset 0; service clamps to max 200.
-      const parsePositiveInt = (raw: unknown): number | undefined => {
-        if (typeof raw !== 'string' || raw.length === 0) {
-          return undefined;
-        }
-        const n = parseInt(raw, 10);
-        return Number.isFinite(n) && n >= 0 ? n : undefined;
-      };
-      const messagesLimit = parsePositiveInt(req.query.messagesLimit);
-      const messagesOffset = parsePositiveInt(req.query.messagesOffset);
-
-      const chat = await ChatService.getChatById(chatId, userId, isAdmin, userRescueId, {
-        limit: messagesLimit,
-        offset: messagesOffset,
-      });
-
-      if (!chat) {
-        return res.status(404).json({
-          error: 'Chat not found',
-        });
+    // Messages are paginated to bound memory usage on long chats.
+    // Defaults: limit 50, offset 0; service clamps to max 200.
+    const parsePositiveInt = (raw: unknown): number | undefined => {
+      if (typeof raw !== 'string' || raw.length === 0) {
+        return undefined;
       }
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    };
+    const messagesLimit = parsePositiveInt(req.query.messagesLimit);
+    const messagesOffset = parsePositiveInt(req.query.messagesOffset);
 
-      const chatObj = chat.toJSON();
-      const messagesPagination = chat.messagesPagination;
+    const chat = await ChatService.getChatById(chatId, userId, isAdmin, userRescueId, {
+      limit: messagesLimit,
+      offset: messagesOffset,
+    });
 
-      // Log participants data for debugging
-      logger.info('Chat participants data', {
-        chatId: chatObj.chat_id,
-        hasParticipants: !!chatObj.Participants,
-        participantsCount: chatObj.Participants?.length || 0,
-        participantIds:
-          (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => p.participant_id) ||
-          [],
+    if (!chat) {
+      return res.status(404).json({
+        error: 'Chat not found',
       });
-
-      // Transform participants to match frontend Participant interface
-      const participants =
-        (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => {
-          if (!p.User) {
-            logger.warn('Participant missing User association', {
-              chatId: chatObj.chat_id,
-              participantId: p.participant_id,
-            });
-          }
-
-          return {
-            id: p.participant_id,
-            name: getUserFullName(p.User),
-            type: p.role === 'admin' ? 'admin' : 'user',
-            avatarUrl:
-              p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
-                ? p.User.profileImageUrl
-                : undefined,
-            isOnline: isUserOnline(p.participant_id),
-          };
-        }) || [];
-
-      logger.info('Transformed participants', {
-        chatId: chatObj.chat_id,
-        participantsCount: participants.length,
-        participants: participants.map(p => ({ id: p.id, name: p.name })),
-      });
-
-      const isParticipant = (chatObj.Participants as ParticipantWithUser[] | undefined)?.some(
-        p => p.participant_id === userId
-      );
-      const isRescueStaffOfChat = !!userRescueId && chatObj.rescue_id === userRescueId;
-      const canCountUnread = !!userId && (isParticipant || isRescueStaffOfChat);
-      const unreadCount = canCountUnread
-        ? await ChatService.getUnreadMessageCount(chatObj.chat_id, userId, userRescueId)
-        : 0;
-
-      // Transform to match frontend Conversation interface
-      const transformedChat = {
-        id: chatObj.chat_id,
-        chat_id: chatObj.chat_id,
-        participants,
-        unreadCount,
-        updatedAt: readUpdatedAt(chatObj),
-        createdAt: readCreatedAt(chatObj),
-        isActive: chatObj.status === 'active',
-        petId: chatObj.pet_id,
-        rescueId: chatObj.rescue_id,
-        rescueName: chatObj.rescue?.name || null,
-        status: chatObj.status,
-        metadata: {},
-        messages: chatObj.Messages ?? [],
-        messagesPagination: messagesPagination ?? { limit: 50, offset: 0, total: 0 },
-      };
-
-      res.json({
-        success: true,
-        data: transformedChat,
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error getting chat:', error);
-      res.status(500).json({ error: 'Internal server error' });
     }
+
+    const chatObj = chat.toJSON();
+    const messagesPagination = chat.messagesPagination;
+
+    // Log participants data for debugging
+    logger.info('Chat participants data', {
+      chatId: chatObj.chat_id,
+      hasParticipants: !!chatObj.Participants,
+      participantsCount: chatObj.Participants?.length || 0,
+      participantIds:
+        (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => p.participant_id) ||
+        [],
+    });
+
+    // Transform participants to match frontend Participant interface
+    const participants =
+      (chatObj.Participants as ParticipantWithUser[] | undefined)?.map(p => {
+        if (!p.User) {
+          logger.warn('Participant missing User association', {
+            chatId: chatObj.chat_id,
+            participantId: p.participant_id,
+          });
+        }
+
+        return {
+          id: p.participant_id,
+          name: getUserFullName(p.User),
+          type: p.role === 'admin' ? 'admin' : 'user',
+          avatarUrl:
+            p.User && typeof p.User === 'object' && 'profileImageUrl' in p.User
+              ? p.User.profileImageUrl
+              : undefined,
+          isOnline: isUserOnline(p.participant_id),
+        };
+      }) || [];
+
+    logger.info('Transformed participants', {
+      chatId: chatObj.chat_id,
+      participantsCount: participants.length,
+      participants: participants.map(p => ({ id: p.id, name: p.name })),
+    });
+
+    const isParticipant = (chatObj.Participants as ParticipantWithUser[] | undefined)?.some(
+      p => p.participant_id === userId
+    );
+    const isRescueStaffOfChat = !!userRescueId && chatObj.rescue_id === userRescueId;
+    const canCountUnread = !!userId && (isParticipant || isRescueStaffOfChat);
+    const unreadCount = canCountUnread
+      ? await ChatService.getUnreadMessageCount(chatObj.chat_id, userId, userRescueId)
+      : 0;
+
+    // Transform to match frontend Conversation interface
+    const transformedChat = {
+      id: chatObj.chat_id,
+      chat_id: chatObj.chat_id,
+      participants,
+      unreadCount,
+      updatedAt: readUpdatedAt(chatObj),
+      createdAt: readCreatedAt(chatObj),
+      isActive: chatObj.status === 'active',
+      petId: chatObj.pet_id,
+      rescueId: chatObj.rescue_id,
+      rescueName: chatObj.rescue?.name || null,
+      status: chatObj.status,
+      metadata: {},
+      messages: chatObj.Messages ?? [],
+      messagesPagination: messagesPagination ?? { limit: 50, offset: 0, total: 0 },
+    };
+
+    res.json({
+      success: true,
+      data: transformedChat,
+    });
   }
 
   /**
@@ -566,77 +557,66 @@ export class ChatController {
    * Send a message in a chat
    */
   static async sendMessage(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { chatId } = req.params;
-      const { content, messageType = 'text', attachments } = req.body;
-      const senderId = req.user!.userId;
+    const { chatId } = req.params;
+    const { content, messageType = 'text', attachments } = req.body;
+    const senderId = req.user!.userId;
 
-      // Validation
-      if (!content && (!attachments || attachments.length === 0)) {
-        return res.status(400).json({
-          error: 'Message content or attachments are required',
-        });
-      }
-
-      if (!['text', 'image', 'file'].includes(messageType)) {
-        return res.status(400).json({
-          error: 'Invalid message type',
-        });
-      }
-
-      const senderRescueId = req.user!.rescueId || undefined;
-
-      const message = await ChatService.sendMessage({
-        chatId,
-        senderId,
-        content,
-        messageType,
-        attachments,
-        senderRescueId,
+    // Validation
+    if (!content && (!attachments || attachments.length === 0)) {
+      return res.status(400).json({
+        error: 'Message content or attachments are required',
       });
-
-      const chatContext = await ChatService.getChatContext(chatId);
-      const frontendMessage = toFrontendMessage(
-        message as unknown as MessageWithSender,
-        chatContext
-      );
-
-      // Real-time fan-out. Without this, recipients only see the message
-      // on next page load — the existing socket "new_message" event was
-      // only emitted by the deprecated socket send_message handler, never
-      // by the REST path that the frontend actually uses.
-      //
-      // We emit to each participant's personal user:{id} room rather than
-      // a chat:{chatId} room, so the frontend doesn't need to track
-      // chat-room membership — every authenticated socket auto-joins its
-      // own user room on connect. The sender is included and the client
-      // dedupes by message id (the sender already appended the message
-      // optimistically from the REST response).
-      try {
-        const participants = await ChatParticipant.findAll({
-          where: { chat_id: chatId },
-          attributes: ['participant_id'],
-        });
-        const recipientIds = participants.map(p => p.participant_id);
-        broadcastNewMessage(chatId, frontendMessage, recipientIds);
-      } catch (err) {
-        // Broadcasting is best-effort — log and move on rather than
-        // failing the send when the socket fan-out misfires.
-        logger.warn('Failed to broadcast new_message over socket:', err);
-      }
-
-      res.status(201).json({
-        success: true,
-        data: frontendMessage,
-        message: 'Message sent successfully',
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error sending message:', error);
-      res.status(500).json({ error: 'Internal server error' });
     }
+
+    if (!['text', 'image', 'file'].includes(messageType)) {
+      return res.status(400).json({
+        error: 'Invalid message type',
+      });
+    }
+
+    const senderRescueId = req.user!.rescueId || undefined;
+
+    const message = await ChatService.sendMessage({
+      chatId,
+      senderId,
+      content,
+      messageType,
+      attachments,
+      senderRescueId,
+    });
+
+    const chatContext = await ChatService.getChatContext(chatId);
+    const frontendMessage = toFrontendMessage(message as unknown as MessageWithSender, chatContext);
+
+    // Real-time fan-out. Without this, recipients only see the message
+    // on next page load — the existing socket "new_message" event was
+    // only emitted by the deprecated socket send_message handler, never
+    // by the REST path that the frontend actually uses.
+    //
+    // We emit to each participant's personal user:{id} room rather than
+    // a chat:{chatId} room, so the frontend doesn't need to track
+    // chat-room membership — every authenticated socket auto-joins its
+    // own user room on connect. The sender is included and the client
+    // dedupes by message id (the sender already appended the message
+    // optimistically from the REST response).
+    try {
+      const participants = await ChatParticipant.findAll({
+        where: { chat_id: chatId },
+        attributes: ['participant_id'],
+      });
+      const recipientIds = participants.map(p => p.participant_id);
+      broadcastNewMessage(chatId, frontendMessage, recipientIds);
+    } catch (err) {
+      // Broadcasting is best-effort — log and move on rather than
+      // failing the send when the socket fan-out misfires.
+      logger.warn('Failed to broadcast new_message over socket:', err);
+    }
+
+    res.status(201).json({
+      success: true,
+      data: frontendMessage,
+      message: 'Message sent successfully',
+    });
   }
 
   /**
@@ -645,58 +625,50 @@ export class ChatController {
   static async getMessages(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { chatId } = req.params;
-      const { page = 1, limit = LARGE_PAGE_SIZE } = req.query;
+    const { chatId } = req.params;
+    const { page = 1, limit = LARGE_PAGE_SIZE } = req.query;
 
-      const parsedPage = parseInt(page as string);
-      const parsedLimit = parseInt(limit as string);
+    const parsedPage = parseInt(page as string);
+    const parsedLimit = parseInt(limit as string);
 
-      const userId = req.user!.userId;
-      const userType = req.user!.userType;
-      const isAdmin = isAdminRole(userType);
-      const userRescueId = req.user!.rescueId || undefined;
+    const userId = req.user!.userId;
+    const userType = req.user!.userType;
+    const isAdmin = isAdminRole(userType);
+    const userRescueId = req.user!.rescueId || undefined;
 
-      // Admins bypass the participant check; everyone else must be a
-      // participant of this chat (or staff of the chat's rescue) to read
-      // its messages.
-      const [result, chatContext] = await Promise.all([
-        ChatService.getMessages(chatId, {
-          page: parsedPage,
+    // Admins bypass the participant check; everyone else must be a
+    // participant of this chat (or staff of the chat's rescue) to read
+    // its messages.
+    const [result, chatContext] = await Promise.all([
+      ChatService.getMessages(chatId, {
+        page: parsedPage,
+        limit: parsedLimit,
+        userId,
+        isAdmin,
+        userRescueId,
+      }),
+      ChatService.getChatContext(chatId),
+    ]);
+
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+    // Canonical frontend shape — same helper the POST /messages path uses.
+    const transformedMessages = result.messages.map(msg =>
+      toFrontendMessage(msg as unknown as MessageWithSender, chatContext)
+    );
+
+    res.json({
+      success: true,
+      data: {
+        messages: transformedMessages,
+        pagination: {
+          page: result.page,
           limit: parsedLimit,
-          userId,
-          isAdmin,
-          userRescueId,
-        }),
-        ChatService.getChatContext(chatId),
-      ]);
-
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-
-      // Canonical frontend shape — same helper the POST /messages path uses.
-      const transformedMessages = result.messages.map(msg =>
-        toFrontendMessage(msg as unknown as MessageWithSender, chatContext)
-      );
-
-      res.json({
-        success: true,
-        data: {
-          messages: transformedMessages,
-          pagination: {
-            page: result.page,
-            limit: parsedLimit,
-            total: result.total,
-            pages: result.totalPages,
-          },
+          total: result.total,
+          pages: result.totalPages,
         },
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error getting messages:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
+      },
+    });
   }
 
   /**
@@ -719,84 +691,60 @@ export class ChatController {
    * Get unread message count
    */
   static async getUnreadCount(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { chatId } = req.params;
-      const userId = req.user!.userId;
-      const userRescueId = req.user!.rescueId || undefined;
+    const { chatId } = req.params;
+    const userId = req.user!.userId;
+    const userRescueId = req.user!.rescueId || undefined;
 
-      const count = await ChatService.getUnreadMessageCount(chatId, userId, userRescueId);
+    const count = await ChatService.getUnreadMessageCount(chatId, userId, userRescueId);
 
-      res.json({
-        success: true,
-        data: { unreadCount: count },
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error getting unread count:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    res.json({
+      success: true,
+      data: { unreadCount: count },
+    });
   }
 
   /**
    * Add participant to chat
    */
   static async addParticipant(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { chatId } = req.params;
-      const { userId, role = 'member' } = req.body;
-      const addedBy = req.user!.userId;
+    const { chatId } = req.params;
+    const { userId, role = 'member' } = req.body;
+    const addedBy = req.user!.userId;
 
-      // Validation
-      if (!userId) {
-        return res.status(400).json({
-          error: 'User ID is required',
-        });
-      }
-
-      if (!['member', 'admin'].includes(role)) {
-        return res.status(400).json({
-          error: 'Invalid role specified',
-        });
-      }
-
-      await ChatService.addParticipant(chatId, userId, addedBy, role);
-
-      res.json({
-        success: true,
-        message: 'Participant added successfully',
+    // Validation
+    if (!userId) {
+      return res.status(400).json({
+        error: 'User ID is required',
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error adding participant:', error);
-      res.status(500).json({ error: 'Internal server error' });
     }
+
+    if (!['member', 'admin'].includes(role)) {
+      return res.status(400).json({
+        error: 'Invalid role specified',
+      });
+    }
+
+    await ChatService.addParticipant(chatId, userId, addedBy, role);
+
+    res.json({
+      success: true,
+      message: 'Participant added successfully',
+    });
   }
 
   /**
    * Remove participant from chat
    */
   static async removeParticipant(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { chatId, userId } = req.params;
-      const removedBy = req.user!.userId;
+    const { chatId, userId } = req.params;
+    const removedBy = req.user!.userId;
 
-      await ChatService.removeParticipant(chatId, userId, removedBy);
+    await ChatService.removeParticipant(chatId, userId, removedBy);
 
-      res.json({
-        success: true,
-        message: 'Participant removed successfully',
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error removing participant:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    res.json({
+      success: true,
+      message: 'Participant removed successfully',
+    });
   }
 
   /**
@@ -823,111 +771,79 @@ export class ChatController {
    * Delete a chat
    */
   static async deleteChat(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { chatId } = req.params;
-      const deletedBy = req.user!.userId;
+    const { chatId } = req.params;
+    const deletedBy = req.user!.userId;
 
-      await ChatService.deleteChat(chatId, deletedBy);
+    await ChatService.deleteChat(chatId, deletedBy);
 
-      res.json({
-        success: true,
-        message: 'Chat deleted successfully',
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error deleting chat:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    res.json({
+      success: true,
+      message: 'Chat deleted successfully',
+    });
   }
 
   /**
    * Delete a message
    */
   static async deleteMessage(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { chatId, messageId } = req.params;
-      const { reason } = req.body;
-      const deletedBy = req.user!.userId;
+    const { chatId, messageId } = req.params;
+    const { reason } = req.body;
+    const deletedBy = req.user!.userId;
 
-      await ChatService.deleteMessage(messageId, deletedBy, reason);
+    await ChatService.deleteMessage(messageId, deletedBy, reason);
 
-      res.json({
-        success: true,
-        message: 'Message deleted successfully',
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error deleting message:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
+    res.json({
+      success: true,
+      message: 'Message deleted successfully',
+    });
   }
 
   /**
    * React to a message
    */
   static async addReaction(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { messageId } = req.params;
-      const { emoji } = req.body;
-      const userId = req.user!.userId;
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+    const userId = req.user!.userId;
 
-      // Validation
-      if (!emoji) {
-        return res.status(400).json({
-          error: 'Emoji is required',
-        });
-      }
-
-      const message = await ChatService.addMessageReaction(messageId, userId, emoji);
-
-      res.json({
-        success: true,
-        data: message,
-        message: 'Reaction added successfully',
+    // Validation
+    if (!emoji) {
+      return res.status(400).json({
+        error: 'Emoji is required',
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error adding reaction:', error);
-      res.status(500).json({ error: 'Internal server error' });
     }
+
+    const message = await ChatService.addMessageReaction(messageId, userId, emoji);
+
+    res.json({
+      success: true,
+      data: message,
+      message: 'Reaction added successfully',
+    });
   }
 
   /**
    * Remove reaction from a message
    */
   static async removeReaction(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { messageId } = req.params;
-      const { emoji } = req.body;
-      const userId = req.user!.userId;
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+    const userId = req.user!.userId;
 
-      // Validation
-      if (!emoji) {
-        return res.status(400).json({
-          error: 'Emoji is required',
-        });
-      }
-
-      const message = await ChatService.removeMessageReaction(messageId, userId, emoji);
-
-      res.json({
-        success: true,
-        data: message,
-        message: 'Reaction removed successfully',
+    // Validation
+    if (!emoji) {
+      return res.status(400).json({
+        error: 'Emoji is required',
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Error removing reaction:', error);
-      res.status(500).json({ error: 'Internal server error' });
     }
+
+    const message = await ChatService.removeMessageReaction(messageId, userId, emoji);
+
+    res.json({
+      success: true,
+      data: message,
+      message: 'Reaction removed successfully',
+    });
   }
 
   /**
