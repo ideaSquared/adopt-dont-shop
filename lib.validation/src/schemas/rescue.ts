@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { RESCUE_STATUSES, type RescueId } from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
 import { BulkOperationFailedIdsSchema } from './bulk-response';
+import { StrongPasswordSchema, EmailSchema as UserEmailSchema } from './user';
 
 // ----- Enums --------------------------------------------------------------
 
@@ -169,6 +170,38 @@ export const RescueCreateRequestSchema = z.object({
   contactPhone: UkPhoneNumberSchema.optional(),
 });
 export type RescueCreateRequest = z.infer<typeof RescueCreateRequestSchema>;
+
+/**
+ * POST /api/v1/rescues/register — public rescue registration.
+ *
+ * Combines owner account fields (from the user schema) with rescue
+ * organisation fields. `confirmPassword` is validated client-side;
+ * the backend only receives `password`.
+ */
+const OwnerNameSchema = z.string().trim().min(1, 'Required').max(100);
+
+export const RescueRegistrationRequestSchema = z.object({
+  // Owner account fields
+  firstName: OwnerNameSchema,
+  lastName: OwnerNameSchema,
+  email: UserEmailSchema,
+  password: StrongPasswordSchema,
+
+  // Organisation fields (same as RescueCreateRequestSchema)
+  name: NameSchema,
+  rescueEmail: EmailSchema,
+  phone: UkPhoneNumberSchema.optional(),
+  address: AddressSchema,
+  city: CitySchema,
+  county: CountySchema.optional(),
+  postcode: UkPostcodeSchema,
+  country: CountryCodeSchema,
+  website: WebsiteSchema.optional(),
+  description: DescriptionSchema.optional(),
+  companiesHouseNumber: CompaniesHouseNumberSchema.optional(),
+  charityRegistrationNumber: CharityRegistrationNumberSchema.optional(),
+});
+export type RescueRegistrationRequest = z.infer<typeof RescueRegistrationRequestSchema>;
 
 /**
  * PUT/PATCH /api/v1/rescues/:rescueId — same fields, all optional.

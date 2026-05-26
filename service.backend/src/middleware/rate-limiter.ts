@@ -248,6 +248,16 @@ export const searchLimiter = buildRouteLimiter(15 * 60 * 1000, 30, 'SEARCH', 900
 // These run pre-aggregations and stream large response bodies.
 export const reportLimiter = buildRouteLimiter(15 * 60 * 1000, 10, 'REPORT', 900);
 
+// ADS-641: rescue registration — 5 / hour / IP. Public endpoint, so
+// a tighter window discourages automated registration spam while still
+// being generous enough for a human filling in the form.
+export const rescueRegistrationLimiter = buildRouteLimiter(
+  60 * 60 * 1000,
+  5,
+  'RESCUE_REGISTRATION',
+  3600
+);
+
 // ADS-107: per-admin system-wide broadcast limiter. Coarse audiences
 // (all, all-rescues, all-adopters, all-staff) make this disproportionately
 // expensive — 10 / minute / admin keeps an over-eager admin from flooding

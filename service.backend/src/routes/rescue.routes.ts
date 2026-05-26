@@ -7,6 +7,7 @@ import {
   RescueBulkUpdateRequestSchema,
   RescueCreateRequestSchema,
   RescueDeletionRequestSchema,
+  RescueRegistrationRequestSchema,
   RescueRejectionRequestSchema,
   RescueSearchQuerySchema,
   RescueUpdateRequestSchema,
@@ -20,6 +21,7 @@ import { authenticateToken, optionalAuth } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import {
   invitationSendLimiter,
+  rescueRegistrationLimiter,
   searchLimiter,
   sensitiveWriteLimiter,
 } from '../middleware/rate-limiter';
@@ -632,6 +634,15 @@ router.get('/:rescueId/pets', validateRescueId, rescueController.getRescuePets);
 
 // Get adoption policies (public route)
 router.get('/:rescueId/adoption-policies', validateRescueId, rescueController.getAdoptionPolicies);
+
+// ADS-641: Public rescue registration (creates user + rescue + staff)
+const validateRegistration = validateBody(RescueRegistrationRequestSchema);
+router.post(
+  '/register',
+  rescueRegistrationLimiter,
+  validateRegistration,
+  rescueController.registerRescue
+);
 
 // Routes requiring authentication
 router.use(authenticateToken);

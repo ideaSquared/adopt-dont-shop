@@ -6,6 +6,7 @@ import {
   RescueCreateRequestSchema,
   RescueDeletionRequestSchema,
   RescueProfileSchema,
+  RescueRegistrationRequestSchema,
   RescueRejectionRequestSchema,
   RescueSearchQuerySchema,
   RescueStatusSchema,
@@ -265,6 +266,58 @@ describe('Rescue schemas', () => {
       expect(() => RescueVerificationRequestSchema.parse({ notes: 'x'.repeat(501) })).toThrow();
       expect(() => RescueRejectionRequestSchema.parse({ reason: 'x'.repeat(501) })).toThrow();
       expect(() => RescueDeletionRequestSchema.parse({ reason: 'x'.repeat(501) })).toThrow();
+    });
+  });
+
+  describe('RescueRegistrationRequestSchema', () => {
+    const valid = {
+      firstName: 'Jane',
+      lastName: 'Doe',
+      email: 'jane@example.com',
+      password: 'Password1!',
+      name: 'Happy Tails Rescue',
+      rescueEmail: 'hello@happytails.org',
+      address: '1 Lane',
+      city: 'London',
+      postcode: 'SW1A 1AA',
+      country: 'GB',
+    };
+
+    it('accepts a minimal valid registration payload', () => {
+      const parsed = RescueRegistrationRequestSchema.parse(valid);
+      expect(parsed.firstName).toBe('Jane');
+      expect(parsed.name).toBe('Happy Tails Rescue');
+    });
+
+    it('accepts optional charity and company numbers', () => {
+      const parsed = RescueRegistrationRequestSchema.parse({
+        ...valid,
+        companiesHouseNumber: '12345678',
+        charityRegistrationNumber: '1234567',
+      });
+      expect(parsed.companiesHouseNumber).toBe('12345678');
+    });
+
+    it('rejects a weak password', () => {
+      expect(() =>
+        RescueRegistrationRequestSchema.parse({ ...valid, password: 'short' })
+      ).toThrow();
+    });
+
+    it('rejects missing first name', () => {
+      const { firstName: _, ...rest } = valid;
+      expect(() => RescueRegistrationRequestSchema.parse(rest)).toThrow();
+    });
+
+    it('rejects missing rescue name', () => {
+      const { name: _, ...rest } = valid;
+      expect(() => RescueRegistrationRequestSchema.parse(rest)).toThrow();
+    });
+
+    it('rejects an invalid email', () => {
+      expect(() =>
+        RescueRegistrationRequestSchema.parse({ ...valid, email: 'nope' })
+      ).toThrow();
     });
   });
 
