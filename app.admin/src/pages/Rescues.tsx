@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
   FiCheckCircle,

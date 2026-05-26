@@ -472,8 +472,9 @@ export class RescueApplicationService {
       }
 
       // Fallback for direct HomeVisit response (backward compatibility)
-      if ((response as any).id || (response as any).scheduledDate) {
-        return response as unknown as HomeVisit;
+      const fallback = response as unknown as Record<string, unknown>;
+      if (fallback.id || fallback.scheduledDate) {
+        return fallback as unknown as HomeVisit;
       }
 
       throw new Error('Invalid response format from server');
@@ -493,7 +494,7 @@ export class RescueApplicationService {
   ): Promise<HomeVisit> {
     try {
       // Convert camelCase to snake_case for API
-      const apiData: Record<string, any> = {};
+      const apiData: Record<string, unknown> = {};
 
       if (updateData.status) {
         apiData.status = updateData.status;
@@ -546,8 +547,9 @@ export class RescueApplicationService {
       }
 
       // Fallback for direct HomeVisit response (backward compatibility)
-      if ((response as any).id || (response as any).scheduledDate) {
-        return response as unknown as HomeVisit;
+      const fallback = response as unknown as Record<string, unknown>;
+      if (fallback.id || fallback.scheduledDate) {
+        return fallback as unknown as HomeVisit;
       }
 
       throw new Error('Invalid response format from server');

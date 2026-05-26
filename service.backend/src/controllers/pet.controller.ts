@@ -18,7 +18,6 @@ import { PetType, Size, Gender, PetStatus, AgeGroup } from '../models/Pet';
 import PetService, { PetSearchFilters } from '../services/pet.service';
 import type { BulkPetOperation } from '../types/pet';
 import { AuthenticatedRequest } from '../types';
-import { ApiError } from '../middleware/error-handler';
 import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { logger } from '../utils/logger';
 import { parsePage, parsePaginationLimit } from '../utils/pagination';
@@ -338,174 +337,102 @@ export class PetController {
 
   // Update pet
   updatePet = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      // Sanitize request body - convert empty strings to null for numeric fields
-      const sanitizedBody = { ...req.body };
-
-      // Handle numeric fields that might be empty strings
-      const numericFields = ['adoptionFeeMinor', 'weightKg'];
-      numericFields.forEach(field => {
-        if (
-          sanitizedBody[field] === '' ||
-          sanitizedBody[field] === null ||
-          sanitizedBody[field] === undefined
-        ) {
-          sanitizedBody[field] = null;
-        }
-      });
-
-      const pet = await this.petService.updatePet(
-        req.params.petId,
-        sanitizedBody,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Pet updated successfully',
-        data: pet,
-      });
-    } catch (error) {
-      logger.error('Update pet failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    // Sanitize request body - convert empty strings to null for numeric fields
+    const sanitizedBody = { ...req.body };
+
+    // Handle numeric fields that might be empty strings
+    const numericFields = ['adoptionFeeMinor', 'weightKg'];
+    numericFields.forEach(field => {
+      if (
+        sanitizedBody[field] === '' ||
+        sanitizedBody[field] === null ||
+        sanitizedBody[field] === undefined
+      ) {
+        sanitizedBody[field] = null;
+      }
+    });
+
+    const pet = await this.petService.updatePet(req.params.petId, sanitizedBody, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Pet updated successfully',
+      data: pet,
+    });
   };
 
   // Delete pet
   deletePet = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const reason = req.body.reason;
-      const result = await this.petService.deletePet(req.params.petId, req.user!.userId, reason);
-
-      res.status(200).json({
-        success: true,
-        message: result.message,
-      });
-    } catch (error) {
-      logger.error('Delete pet failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const reason = req.body.reason;
+    const result = await this.petService.deletePet(req.params.petId, req.user!.userId, reason);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+    });
   };
 
   // Update pet images
   updatePetImages = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const images = req.body.images || [];
-      const pet = await this.petService.updatePetImages(req.params.petId, images, req.user!.userId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Pet images updated successfully',
-        data: pet,
-      });
-    } catch (error) {
-      logger.error('Update pet images failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const images = req.body.images || [];
+    const pet = await this.petService.updatePetImages(req.params.petId, images, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Pet images updated successfully',
+      data: pet,
+    });
   };
 
   // Remove pet image
   removePetImage = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const pet = await this.petService.removePetImage(
-        req.params.petId,
-        req.params.imageId,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Pet image removed successfully',
-        data: pet,
-      });
-    } catch (error) {
-      logger.error('Remove pet image failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const pet = await this.petService.removePetImage(
+      req.params.petId,
+      req.params.imageId,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Pet image removed successfully',
+      data: pet,
+    });
   };
 
   // Get pets by rescue
@@ -614,50 +541,33 @@ export class PetController {
 
   // Update pet status
   updatePetStatus = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const statusUpdate = {
-        status: req.body.status,
-        reason: req.body.reason,
-        effectiveDate: req.body.effectiveDate ? new Date(req.body.effectiveDate) : undefined,
-        notes: req.body.notes,
-      };
-
-      const pet = await this.petService.updatePetStatus(
-        req.params.petId,
-        statusUpdate,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Pet status updated successfully',
-        data: pet,
-      });
-    } catch (error) {
-      logger.error('Update pet status failed:', error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const statusUpdate = {
+      status: req.body.status,
+      reason: req.body.reason,
+      effectiveDate: req.body.effectiveDate ? new Date(req.body.effectiveDate) : undefined,
+      notes: req.body.notes,
+    };
+
+    const pet = await this.petService.updatePetStatus(
+      req.params.petId,
+      statusUpdate,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Pet status updated successfully',
+      data: pet,
+    });
   };
 
   // Get featured pets
@@ -843,52 +753,35 @@ export class PetController {
    * Get similar pets
    */
   getSimilarPets = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { petId } = req.params;
-      const limit = parsePaginationLimit(req.query.limit as string | undefined, {
-        default: 6,
-        max: 100,
-      });
-
-      if (limit < 1 || limit > 20) {
-        return res.status(400).json({
-          success: false,
-          message: 'Limit must be between 1 and 20',
-        });
-      }
-
-      const similarPets = await this.petService.getSimilarPets(petId, limit);
-
-      res.json({
-        success: true,
-        data: similarPets,
-        message: 'Similar pets retrieved successfully',
-      });
-    } catch (error) {
-      logger.error(`Error getting similar pets for ${req.params.petId}:`, error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { petId } = req.params;
+    const limit = parsePaginationLimit(req.query.limit as string | undefined, {
+      default: 6,
+      max: 100,
+    });
+
+    if (limit < 1 || limit > 20) {
+      return res.status(400).json({
+        success: false,
+        message: 'Limit must be between 1 and 20',
+      });
+    }
+
+    const similarPets = await this.petService.getSimilarPets(petId, limit);
+
+    res.json({
+      success: true,
+      data: similarPets,
+      message: 'Similar pets retrieved successfully',
+    });
   };
 
   /**
@@ -900,43 +793,26 @@ export class PetController {
   ];
 
   reportPet = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const userId = req.user!.userId;
-      const { petId } = req.params;
-      const { reason, description } = req.body;
-
-      const result = await this.petService.reportPet(petId, userId, reason, description);
-
-      res.status(201).json({
-        success: true,
-        data: result,
-        message: 'Pet reported successfully',
-      });
-    } catch (error) {
-      logger.error(`Error reporting pet ${req.params.petId}:`, error);
-
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-        return;
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const userId = req.user!.userId;
+    const { petId } = req.params;
+    const { reason, description } = req.body;
+
+    const result = await this.petService.reportPet(petId, userId, reason, description);
+
+    res.status(201).json({
+      success: true,
+      data: result,
+      message: 'Pet reported successfully',
+    });
   };
   static validateBulkUpdate = [validateBody(BulkPetOperationRequestSchema)];
 

@@ -5,8 +5,6 @@ import SupportTicket, {
   TicketPriority,
   TicketCategory,
 } from '../models/SupportTicket';
-import { logger } from '../utils/logger';
-import { ApiError } from '../middleware/error-handler';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/api';
 
@@ -202,29 +200,14 @@ export class SupportTicketController {
    * Get a single support ticket by ID
    */
   static async getTicketById(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
+    const { ticketId } = req.params;
 
-      const ticket = await SupportTicketService.getTicketById(ticketId);
+    const ticket = await SupportTicketService.getTicketById(ticketId);
 
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-      });
-    } catch (error: unknown) {
-      logger.error('Error in getTicketById:', error);
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error',
-        });
-      }
-    }
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+    });
   }
 
   /**
@@ -275,30 +258,15 @@ export class SupportTicketController {
    * Update a support ticket
    */
   static async updateTicket(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
-      const updates = req.body;
+    const { ticketId } = req.params;
+    const updates = req.body;
 
-      const ticket = await SupportTicketService.updateTicket(ticketId, updates);
+    const ticket = await SupportTicketService.updateTicket(ticketId, updates);
 
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-      });
-    } catch (error: unknown) {
-      logger.error('Error in updateTicket:', error);
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error',
-        });
-      }
-    }
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+    });
   }
 
   /**
@@ -306,38 +274,23 @@ export class SupportTicketController {
    * Assign a ticket to an agent
    */
   static async assignTicket(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
-      const { assignedTo } = req.body;
+    const { ticketId } = req.params;
+    const { assignedTo } = req.body;
 
-      if (!assignedTo) {
-        return res.status(400).json({
-          success: false,
-          error: 'assignedTo is required',
-        });
-      }
-
-      const ticket = await SupportTicketService.assignTicket(ticketId, assignedTo);
-
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-        message: 'Ticket assigned successfully',
+    if (!assignedTo) {
+      return res.status(400).json({
+        success: false,
+        error: 'assignedTo is required',
       });
-    } catch (error: unknown) {
-      logger.error('Error in assignTicket:', error);
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error',
-        });
-      }
     }
+
+    const ticket = await SupportTicketService.assignTicket(ticketId, assignedTo);
+
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+      message: 'Ticket assigned successfully',
+    });
   }
 
   /**
@@ -345,45 +298,30 @@ export class SupportTicketController {
    * Add a response to a ticket
    */
   static async addResponse(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
-      const { content, attachments, isInternal } = req.body;
-      const responderId = req.user?.userId;
+    const { ticketId } = req.params;
+    const { content, attachments, isInternal } = req.body;
+    const responderId = req.user?.userId;
 
-      if (!content) {
-        return res.status(400).json({
-          success: false,
-          error: 'Response content is required',
-        });
-      }
-
-      const ticket = await SupportTicketService.addResponse(ticketId, {
-        responderId: responderId!,
-        responderType: 'staff',
-        content: RichTextProcessingService.sanitize(content),
-        attachments,
-        isInternal: isInternal || false,
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        error: 'Response content is required',
       });
-
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-        message: 'Response added successfully',
-      });
-    } catch (error: unknown) {
-      logger.error('Error in addResponse:', error);
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error',
-        });
-      }
     }
+
+    const ticket = await SupportTicketService.addResponse(ticketId, {
+      responderId: responderId!,
+      responderType: 'staff',
+      content: RichTextProcessingService.sanitize(content),
+      attachments,
+      isInternal: isInternal || false,
+    });
+
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+      message: 'Response added successfully',
+    });
   }
 
   /**
@@ -391,38 +329,23 @@ export class SupportTicketController {
    * Escalate a ticket
    */
   static async escalateTicket(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
-      const { escalatedTo, reason } = req.body;
+    const { ticketId } = req.params;
+    const { escalatedTo, reason } = req.body;
 
-      if (!escalatedTo || !reason) {
-        return res.status(400).json({
-          success: false,
-          error: 'escalatedTo and reason are required',
-        });
-      }
-
-      const ticket = await SupportTicketService.escalateTicket(ticketId, escalatedTo, reason);
-
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-        message: 'Ticket escalated successfully',
+    if (!escalatedTo || !reason) {
+      return res.status(400).json({
+        success: false,
+        error: 'escalatedTo and reason are required',
       });
-    } catch (error: unknown) {
-      logger.error('Error in escalateTicket:', error);
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error',
-        });
-      }
     }
+
+    const ticket = await SupportTicketService.escalateTicket(ticketId, escalatedTo, reason);
+
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+      message: 'Ticket escalated successfully',
+    });
   }
 
   /**
@@ -430,32 +353,17 @@ export class SupportTicketController {
    * Get all messages/responses for a ticket
    */
   static async getTicketMessages(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
+    const { ticketId } = req.params;
 
-      const ticket = await SupportTicketService.getTicketById(ticketId);
+    const ticket = await SupportTicketService.getTicketById(ticketId);
 
-      res.json({
-        success: true,
-        data: {
-          ticketId: ticket.ticketId,
-          messages: ticket.Responses || ticket.responses || [],
-        },
-      });
-    } catch (error: unknown) {
-      logger.error('Error in getTicketMessages:', error);
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          success: false,
-          error: error.message,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Internal server error',
-        });
-      }
-    }
+    res.json({
+      success: true,
+      data: {
+        ticketId: ticket.ticketId,
+        messages: ticket.Responses || ticket.responses || [],
+      },
+    });
   }
 
   /**

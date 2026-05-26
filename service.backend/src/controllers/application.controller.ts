@@ -14,7 +14,6 @@ import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { ApplicationPriority, ApplicationStatus } from '../models/Application';
 import { UserType } from '../models/User';
 import { ApplicationService } from '../services/application.service';
-import { ApiError, NotFoundError } from '../middleware/error-handler';
 import { FileUploadService } from '../services/file-upload.service';
 import { AuthenticatedRequest } from '../types';
 import { parsePage, parsePaginationLimit } from '../utils/pagination';
@@ -26,7 +25,6 @@ import {
   CreateApplicationRequest,
   FrontendApplication,
 } from '../types/application';
-import { logger } from '../utils/logger';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { BaseController } from './base.controller';
@@ -229,443 +227,349 @@ export class ApplicationController extends BaseController {
 
   // Get applications with filtering and pagination
   getApplications = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return this.sendValidationError(res, errors.array());
-      }
-
-      const filters: ApplicationSearchFilters = {
-        search: req.query.search as string,
-        userId: req.query.userId as string,
-        petId: req.query.petId as string,
-        rescueId: req.query.rescueId as string,
-        status: req.query.status as ApplicationStatus,
-        priority: req.query.priority as ApplicationPriority,
-        score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
-        score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
-        // ADS-575: pet-type / pet-breed filters from the rescue dashboard.
-        petType: req.query.petType as string,
-        petBreed: req.query.petBreed as string,
-        createdFrom: req.query.createdFrom ? new Date(req.query.createdFrom as string) : undefined,
-        createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
-        submittedFrom: req.query.submittedFrom
-          ? new Date(req.query.submittedFrom as string)
-          : undefined,
-        submittedTo: req.query.submittedTo ? new Date(req.query.submittedTo as string) : undefined,
-      };
-
-      const options: ApplicationSearchOptions = {
-        page: parsePage(req.query.page as string | undefined),
-        limit: parsePaginationLimit(req.query.limit as string | undefined, {
-          default: DEFAULT_PAGE_SIZE,
-          max: MAX_PAGE_SIZE,
-        }),
-        sortBy: (req.query.sortBy as string) || 'createdAt',
-        sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
-        include_user: true,
-        include_pet: true,
-        include_rescue: true,
-      };
-
-      const result = await ApplicationService.searchApplications(
-        filters,
-        options,
-        req.user!.userId,
-        req.user!.userType as UserType
-      );
-
-      // Transform the applications to frontend format
-      const transformedApplications = result.applications.map(app =>
-        this.transformApplicationModel(app)
-      );
-
-      return this.sendPaginatedSuccess(res, transformedApplications, {
-        total: result.total_filtered || 0,
-        page: result.pagination.page,
-        limit: result.pagination.limit,
-        totalPages: result.pagination.totalPages,
-      });
-    } catch (error) {
-      logger.error('Error getting applications:', error);
-      return this.sendError(
-        res,
-        'Failed to retrieve applications',
-        500,
-        error instanceof Error ? error.message : 'Unknown error'
-      );
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return this.sendValidationError(res, errors.array());
     }
+
+    const filters: ApplicationSearchFilters = {
+      search: req.query.search as string,
+      userId: req.query.userId as string,
+      petId: req.query.petId as string,
+      rescueId: req.query.rescueId as string,
+      status: req.query.status as ApplicationStatus,
+      priority: req.query.priority as ApplicationPriority,
+      score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
+      score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
+      // ADS-575: pet-type / pet-breed filters from the rescue dashboard.
+      petType: req.query.petType as string,
+      petBreed: req.query.petBreed as string,
+      createdFrom: req.query.createdFrom ? new Date(req.query.createdFrom as string) : undefined,
+      createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
+      submittedFrom: req.query.submittedFrom
+        ? new Date(req.query.submittedFrom as string)
+        : undefined,
+      submittedTo: req.query.submittedTo ? new Date(req.query.submittedTo as string) : undefined,
+    };
+
+    const options: ApplicationSearchOptions = {
+      page: parsePage(req.query.page as string | undefined),
+      limit: parsePaginationLimit(req.query.limit as string | undefined, {
+        default: DEFAULT_PAGE_SIZE,
+        max: MAX_PAGE_SIZE,
+      }),
+      sortBy: (req.query.sortBy as string) || 'createdAt',
+      sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
+      include_user: true,
+      include_pet: true,
+      include_rescue: true,
+    };
+
+    const result = await ApplicationService.searchApplications(
+      filters,
+      options,
+      req.user!.userId,
+      req.user!.userType as UserType
+    );
+
+    // Transform the applications to frontend format
+    const transformedApplications = result.applications.map(app =>
+      this.transformApplicationModel(app)
+    );
+
+    return this.sendPaginatedSuccess(res, transformedApplications, {
+      total: result.total_filtered || 0,
+      page: result.pagination.page,
+      limit: result.pagination.limit,
+      totalPages: result.pagination.totalPages,
+    });
   };
 
   // Create new application
   createApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const applicationData: CreateApplicationRequest = {
-        petId: req.body.petId,
-        answers: req.body.answers,
-        references: req.body.references,
-        priority: req.body.priority,
-        notes:
-          req.body.notes !== undefined
-            ? RichTextProcessingService.sanitize(req.body.notes)
-            : undefined,
-        tags: req.body.tags,
-        // ADS-535: must thread the references-consent flag through; the
-        // model hook refuses SUBMITTED rows without it.
-        referencesConsented: req.body.referencesConsented,
-      };
-
-      const application = await ApplicationService.createApplication(
-        applicationData,
-        req.user!.userId
-      );
-
-      res.status(201).json({
-        success: true,
-        message: 'Application created successfully',
-        data: application,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-      }
-      logger.error('Error creating application:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const applicationData: CreateApplicationRequest = {
+      petId: req.body.petId,
+      answers: req.body.answers,
+      references: req.body.references,
+      priority: req.body.priority,
+      notes:
+        req.body.notes !== undefined
+          ? RichTextProcessingService.sanitize(req.body.notes)
+          : undefined,
+      tags: req.body.tags,
+      // ADS-535: must thread the references-consent flag through; the
+      // model hook refuses SUBMITTED rows without it.
+      referencesConsented: req.body.referencesConsented,
+    };
+
+    const application = await ApplicationService.createApplication(
+      applicationData,
+      req.user!.userId
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Application created successfully',
+      data: application,
+    });
   };
 
   // Get application by ID
   getApplicationById = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.getApplicationById(
-        applicationId,
-        req.user!.userId,
-        req.user!.userType as UserType
-      );
-
-      if (!application) {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      // Transform the raw application data to frontend format
-      const transformedApplication = this.transformApplicationModel(application);
-
-      res.status(200).json({
-        success: true,
-        data: transformedApplication,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-      }
-      logger.error('Error getting application by ID:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { applicationId } = req.params;
+    const application = await ApplicationService.getApplicationById(
+      applicationId,
+      req.user!.userId,
+      req.user!.userType as UserType
+    );
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found',
+      });
+    }
+
+    // Transform the raw application data to frontend format
+    const transformedApplication = this.transformApplicationModel(application);
+
+    res.status(200).json({
+      success: true,
+      data: transformedApplication,
+    });
   };
 
   // Update application
   updateApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      if (typeof req.body.notes === 'string') {
-        req.body.notes = RichTextProcessingService.sanitize(req.body.notes);
-      }
-      if (typeof req.body.interviewNotes === 'string') {
-        req.body.interviewNotes = RichTextProcessingService.sanitize(req.body.interviewNotes);
-      }
-      if (typeof req.body.homeVisitNotes === 'string') {
-        req.body.homeVisitNotes = RichTextProcessingService.sanitize(req.body.homeVisitNotes);
-      }
-      const application = await ApplicationService.updateApplication(
-        applicationId,
-        req.body,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application updated successfully',
-        data: application,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({
-          success: false,
-          message: error.message,
-        });
-      }
-      logger.error('Error updating application:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { applicationId } = req.params;
+    if (typeof req.body.notes === 'string') {
+      req.body.notes = RichTextProcessingService.sanitize(req.body.notes);
+    }
+    if (typeof req.body.interviewNotes === 'string') {
+      req.body.interviewNotes = RichTextProcessingService.sanitize(req.body.interviewNotes);
+    }
+    if (typeof req.body.homeVisitNotes === 'string') {
+      req.body.homeVisitNotes = RichTextProcessingService.sanitize(req.body.homeVisitNotes);
+    }
+    const application = await ApplicationService.updateApplication(
+      applicationId,
+      req.body,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Application updated successfully',
+      data: application,
+    });
   };
 
   // Submit application
   submitApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.submitApplication(
-        applicationId,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application submitted successfully',
-        data: application,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Error submitting application:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { applicationId } = req.params;
+    const application = await ApplicationService.submitApplication(applicationId, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Application submitted successfully',
+      data: application,
+    });
   };
 
   // Update application status
   updateApplicationStatus = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const statusUpdate: ApplicationStatusUpdateRequest = {
-        status: req.body.status,
-        actionedBy: req.user!.userId,
-        rejectionReason:
-          typeof req.body.rejectionReason === 'string'
-            ? RichTextProcessingService.sanitize(req.body.rejectionReason)
-            : req.body.rejectionReason,
-        notes:
-          typeof req.body.notes === 'string'
-            ? RichTextProcessingService.sanitize(req.body.notes)
-            : req.body.notes,
-        followUpDate: req.body.followUpDate,
-      };
-
-      const application = await ApplicationService.updateApplicationStatus(
-        applicationId,
-        statusUpdate,
-        req.user!.userId,
-        req.user!.userType as UserType
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application status updated successfully',
-        data: application,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Error updating application status:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { applicationId } = req.params;
+    const statusUpdate: ApplicationStatusUpdateRequest = {
+      status: req.body.status,
+      actionedBy: req.user!.userId,
+      rejectionReason:
+        typeof req.body.rejectionReason === 'string'
+          ? RichTextProcessingService.sanitize(req.body.rejectionReason)
+          : req.body.rejectionReason,
+      notes:
+        typeof req.body.notes === 'string'
+          ? RichTextProcessingService.sanitize(req.body.notes)
+          : req.body.notes,
+      followUpDate: req.body.followUpDate,
+    };
+
+    const application = await ApplicationService.updateApplicationStatus(
+      applicationId,
+      statusUpdate,
+      req.user!.userId,
+      req.user!.userType as UserType
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Application status updated successfully',
+      data: application,
+    });
   };
 
   // Withdraw application
   withdrawApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.withdrawApplication(
-        applicationId,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application withdrawn successfully',
-        data: application,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Error withdrawing application:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { applicationId } = req.params;
+    const application = await ApplicationService.withdrawApplication(
+      applicationId,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Application withdrawn successfully',
+      data: application,
+    });
   };
 
   // Add document to application
   addDocument = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No file uploaded. Supported formats: PDF, JPG, PNG, DOC, DOCX (max 5MB)',
-        });
-      }
-
-      const { applicationId } = req.params;
-      const documentType: string = req.body.documentType || 'OTHER';
-
-      const uploadResult = await FileUploadService.uploadFile(req.file, 'applications', {
-        uploadedBy: req.user!.userId,
-        entityId: applicationId,
-        entityType: 'application',
-        purpose: 'document',
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-
-      if (!uploadResult.success || !uploadResult.upload) {
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to store uploaded file',
-        });
-      }
-
-      const application = await ApplicationService.addDocument(
-        applicationId,
-        {
-          documentType,
-          fileName: uploadResult.upload.original_filename,
-          fileUrl: uploadResult.upload.url,
-        },
-        req.user!.userId
-      );
-
-      res.status(201).json({
-        success: true,
-        message: 'Document uploaded successfully',
-        document: {
-          documentId: uploadResult.upload.upload_id,
-          fileName: uploadResult.upload.original_filename,
-          fileType: uploadResult.upload.mime_type,
-          url: uploadResult.upload.url,
-          uploadedAt: new Date().toISOString(),
-        },
-        data: application,
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Error adding document:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded. Supported formats: PDF, JPG, PNG, DOC, DOCX (max 5MB)',
+      });
+    }
+
+    const { applicationId } = req.params;
+    const documentType: string = req.body.documentType || 'OTHER';
+
+    const uploadResult = await FileUploadService.uploadFile(req.file, 'applications', {
+      uploadedBy: req.user!.userId,
+      entityId: applicationId,
+      entityType: 'application',
+      purpose: 'document',
+    });
+
+    if (!uploadResult.success || !uploadResult.upload) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to store uploaded file',
+      });
+    }
+
+    const application = await ApplicationService.addDocument(
+      applicationId,
+      {
+        documentType,
+        fileName: uploadResult.upload.original_filename,
+        fileUrl: uploadResult.upload.url,
+      },
+      req.user!.userId
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Document uploaded successfully',
+      document: {
+        documentId: uploadResult.upload.upload_id,
+        fileName: uploadResult.upload.original_filename,
+        fileType: uploadResult.upload.mime_type,
+        url: uploadResult.upload.url,
+        uploadedAt: new Date().toISOString(),
+      },
+      data: application,
+    });
   };
 
   // Remove document from application
   removeDocument = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { applicationId, documentId } = req.params;
+    const { applicationId, documentId } = req.params;
 
-      await ApplicationService.removeDocument(applicationId, documentId, req.user!.userId);
+    await ApplicationService.removeDocument(applicationId, documentId, req.user!.userId);
 
-      res.status(200).json({
-        success: true,
-        message: 'Document removed successfully',
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Error removing document:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
-    }
+    res.status(200).json({
+      success: true,
+      message: 'Document removed successfully',
+    });
   };
 
   // Update reference
   updateReference = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.updateReference(
-        applicationId,
-        req.body,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Reference updated successfully',
-        data: application,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Error updating reference:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { applicationId } = req.params;
+    const application = await ApplicationService.updateReference(
+      applicationId,
+      req.body,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Reference updated successfully',
+      data: application,
+    });
   };
 
   // Get application form structure
@@ -724,51 +628,33 @@ export class ApplicationController extends BaseController {
       });
     }
 
-    try {
-      const result = await ApplicationService.bulkUpdateApplications(req.body, req.user!.userId);
+    const result = await ApplicationService.bulkUpdateApplications(req.body, req.user!.userId);
 
-      res.status(200).json({
-        success: true,
-        message: 'Bulk update completed',
-        data: result,
-      });
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        return res.status(404).json({
-          success: false,
-          message: error.message,
-        });
-      }
-      throw error;
-    }
+    res.status(200).json({
+      success: true,
+      message: 'Bulk update completed',
+      data: result,
+    });
   };
 
   // Delete application
   deleteApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      await ApplicationService.deleteApplication(applicationId, req.user!.userId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Application deleted successfully',
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Error deleting application:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { applicationId } = req.params;
+    await ApplicationService.deleteApplication(applicationId, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Application deleted successfully',
+    });
   };
 
   // Validate application answers

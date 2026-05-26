@@ -12,8 +12,6 @@ import { EmailType, EmailPriority } from '../models/EmailQueue';
 import { UserType } from '../models/User';
 import { RescueUpdateRequestSchema } from '@adopt-dont-shop/lib.validation';
 import { PLAN_LIMITS, type RescuePlan } from '../config/plans';
-import { ApiError } from '../middleware/error-handler';
-
 export class RescueController {
   /**
    * Search rescues with filters and pagination
@@ -61,196 +59,156 @@ export class RescueController {
    * Get rescue by ID
    */
   getRescueById = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const includeStats = req.query.includeStats === 'true';
-
-      const rescue = await RescueService.getRescueById(rescueId, includeStats);
-
-      const rescueData =
-        rescue && typeof rescue === 'object' && 'plan' in rescue
-          ? {
-              ...(rescue as object),
-              planLimits: PLAN_LIMITS[(rescue as { plan: RescuePlan }).plan],
-            }
-          : rescue;
-
-      res.status(200).json({
-        success: true,
-        data: rescueData,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Get rescue by ID failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId } = req.params;
+    const includeStats = req.query.includeStats === 'true';
+
+    const rescue = await RescueService.getRescueById(rescueId, includeStats);
+
+    const rescueData =
+      rescue && typeof rescue === 'object' && 'plan' in rescue
+        ? {
+            ...(rescue as object),
+            planLimits: PLAN_LIMITS[(rescue as { plan: RescuePlan }).plan],
+          }
+        : rescue;
+
+    res.status(200).json({
+      success: true,
+      data: rescueData,
+    });
   };
 
   /**
    * Create new rescue organization
    */
   createRescue = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const rescueData = {
-        name: req.body.name,
-        email: req.body.email,
-        phone: req.body.phone,
-        address: req.body.address,
-        city: req.body.city,
-        county: req.body.state,
-        postcode: req.body.zipCode,
-        country: req.body.country,
-        website: req.body.website,
-        description:
-          typeof req.body.description === 'string'
-            ? RichTextProcessingService.sanitize(req.body.description)
-            : req.body.description,
-        mission: req.body.mission,
-        companiesHouseNumber: req.body.companiesHouseNumber,
-        charityRegistrationNumber: req.body.charityRegistrationNumber,
-        contactPerson: req.body.contactPerson,
-        contactTitle: req.body.contactTitle,
-        contactEmail: req.body.contactEmail,
-        contactPhone: req.body.contactPhone,
-      };
-
-      const rescue = await RescueService.createRescue(rescueData, req.user!.userId);
-
-      res.status(201).json({
-        success: true,
-        message: 'Rescue organization created successfully',
-        data: rescue,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Create rescue failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const rescueData = {
+      name: req.body.name,
+      email: req.body.email,
+      phone: req.body.phone,
+      address: req.body.address,
+      city: req.body.city,
+      county: req.body.state,
+      postcode: req.body.zipCode,
+      country: req.body.country,
+      website: req.body.website,
+      description:
+        typeof req.body.description === 'string'
+          ? RichTextProcessingService.sanitize(req.body.description)
+          : req.body.description,
+      mission: req.body.mission,
+      companiesHouseNumber: req.body.companiesHouseNumber,
+      charityRegistrationNumber: req.body.charityRegistrationNumber,
+      contactPerson: req.body.contactPerson,
+      contactTitle: req.body.contactTitle,
+      contactEmail: req.body.contactEmail,
+      contactPhone: req.body.contactPhone,
+    };
+
+    const rescue = await RescueService.createRescue(rescueData, req.user!.userId);
+
+    res.status(201).json({
+      success: true,
+      message: 'Rescue organization created successfully',
+      data: rescue,
+    });
   };
 
   /**
    * Update rescue information
    */
   updateRescue = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      if (typeof req.body.description === 'string') {
-        req.body.description = RichTextProcessingService.sanitize(req.body.description);
-      }
-
-      // Strip privilege-sensitive fields (status, verifiedAt, etc.) before passing to service
-      const safeBody = RescueUpdateRequestSchema.parse(req.body);
-      const rescue = await RescueService.updateRescue(rescueId, safeBody, req.user!.userId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Rescue updated successfully',
-        data: rescue,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Update rescue failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId } = req.params;
+    if (typeof req.body.description === 'string') {
+      req.body.description = RichTextProcessingService.sanitize(req.body.description);
+    }
+
+    // Strip privilege-sensitive fields (status, verifiedAt, etc.) before passing to service
+    const safeBody = RescueUpdateRequestSchema.parse(req.body);
+    const rescue = await RescueService.updateRescue(rescueId, safeBody, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Rescue updated successfully',
+      data: rescue,
+    });
   };
 
   /**
    * Verify rescue organization (admin only)
    */
   verifyRescue = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const { notes } = req.body;
-
-      const rescue = await RescueService.verifyRescue(rescueId, req.user!.userId, notes);
-
-      res.status(200).json({
-        success: true,
-        message: 'Rescue verified successfully',
-        data: rescue,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Verify rescue failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId } = req.params;
+    const { notes } = req.body;
+
+    const rescue = await RescueService.verifyRescue(rescueId, req.user!.userId, notes);
+
+    res.status(200).json({
+      success: true,
+      message: 'Rescue verified successfully',
+      data: rescue,
+    });
   };
 
   /**
    * Reject a rescue organization
    */
   rejectRescue = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const { reason, notes } = req.body;
-
-      const rescue = await RescueService.rejectRescue(rescueId, req.user!.userId, reason, notes);
-
-      res.status(200).json({
-        success: true,
-        message: 'Rescue rejected successfully',
-        data: rescue,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Reject rescue failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId } = req.params;
+    const { reason, notes } = req.body;
+
+    const rescue = await RescueService.rejectRescue(rescueId, req.user!.userId, reason, notes);
+
+    res.status(200).json({
+      success: true,
+      message: 'Rescue rejected successfully',
+      data: rescue,
+    });
   };
 
   /**
@@ -295,127 +253,103 @@ export class RescueController {
    * Add staff member to rescue
    */
   addStaffMember = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const { userId, title } = req.body;
-
-      const staffMember = await RescueService.addStaffMember(
-        rescueId,
-        userId,
-        title,
-        req.user!.userId
-      );
-
-      res.status(201).json({
-        success: true,
-        message: 'Staff member added successfully',
-        data: staffMember,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Add staff member failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId } = req.params;
+    const { userId, title } = req.body;
+
+    const staffMember = await RescueService.addStaffMember(
+      rescueId,
+      userId,
+      title,
+      req.user!.userId
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Staff member added successfully',
+      data: staffMember,
+    });
   };
 
   /**
    * Remove staff member from rescue
    */
   removeStaffMember = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId, userId } = req.params;
-      const currentUserId = req.user!.userId;
-
-      // Prevent self-removal
-      if (userId === currentUserId) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'You cannot remove yourself from the rescue. Please ask another admin to remove you.',
-        });
-      }
-
-      const result = await RescueService.removeStaffMember(rescueId, userId, currentUserId);
-
-      res.status(200).json({
-        success: true,
-        message: result.message,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Remove staff member failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId, userId } = req.params;
+    const currentUserId = req.user!.userId;
+
+    // Prevent self-removal
+    if (userId === currentUserId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'You cannot remove yourself from the rescue. Please ask another admin to remove you.',
+      });
+    }
+
+    const result = await RescueService.removeStaffMember(rescueId, userId, currentUserId);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+    });
   };
 
   /**
    * Update staff member in rescue
    */
   updateStaffMember = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId, userId } = req.params;
-      const { title } = req.body;
-      const currentUserId = req.user!.userId;
-
-      // Prevent self-editing
-      if (userId === currentUserId) {
-        return res.status(400).json({
-          success: false,
-          message:
-            'You cannot edit your own profile. Please ask another admin to make changes to your account.',
-        });
-      }
-
-      const result = await RescueService.updateStaffMember(
-        rescueId,
-        userId,
-        { title },
-        currentUserId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Staff member updated successfully',
-        data: result,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Update staff member failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId, userId } = req.params;
+    const { title } = req.body;
+    const currentUserId = req.user!.userId;
+
+    // Prevent self-editing
+    if (userId === currentUserId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'You cannot edit your own profile. Please ask another admin to make changes to your account.',
+      });
+    }
+
+    const result = await RescueService.updateStaffMember(
+      rescueId,
+      userId,
+      { title },
+      currentUserId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Staff member updated successfully',
+      data: result,
+    });
   };
 
   /**
@@ -493,32 +427,24 @@ export class RescueController {
    * Delete rescue (soft delete, admin only)
    */
   deleteRescue = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const { reason } = req.body;
-
-      const result = await RescueService.deleteRescue(rescueId, req.user!.userId, reason);
-
-      res.status(200).json({
-        success: true,
-        message: result.message,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Delete rescue failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId } = req.params;
+    const { reason } = req.body;
+
+    const result = await RescueService.deleteRescue(rescueId, req.user!.userId, reason);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+    });
   };
 
   /**
@@ -588,161 +514,137 @@ export class RescueController {
    * Update adoption policies for a rescue
    */
   updateAdoptionPolicies = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const adoptionPolicies: AdoptionPolicy = req.body;
-      const updatedBy = req.user!.userId;
-
-      const result = await RescueService.updateAdoptionPolicies(
-        rescueId,
-        adoptionPolicies,
-        updatedBy
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Adoption policies updated successfully',
-        data: result,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Update adoption policies failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId } = req.params;
+    const adoptionPolicies: AdoptionPolicy = req.body;
+    const updatedBy = req.user!.userId;
+
+    const result = await RescueService.updateAdoptionPolicies(
+      rescueId,
+      adoptionPolicies,
+      updatedBy
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Adoption policies updated successfully',
+      data: result,
+    });
   };
 
   /**
    * Get adoption policies for a rescue
    */
   getAdoptionPolicies = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-
-      const adoptionPolicies = await RescueService.getAdoptionPolicies(rescueId);
-
-      res.status(200).json({
-        success: true,
-        data: adoptionPolicies,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Get adoption policies failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
+
+    const { rescueId } = req.params;
+
+    const adoptionPolicies = await RescueService.getAdoptionPolicies(rescueId);
+
+    res.status(200).json({
+      success: true,
+      data: adoptionPolicies,
+    });
   };
 
   /**
    * Send email to rescue organization
    */
   sendEmail = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { rescueId } = req.params;
-      const { subject, body, templateId } = req.body;
-
-      // Get rescue organization details first
-      const rescue = await RescueService.getRescueById(rescueId, false);
-
-      if (!rescue) {
-        return res.status(404).json({
-          success: false,
-          message: 'Rescue not found',
-        });
-      }
-
-      // Check if rescue has an email address
-      if (!rescue.email) {
-        return res.status(400).json({
-          success: false,
-          message: 'Rescue organization does not have an email address',
-        });
-      }
-
-      // If using a template, only templateId is required
-      // If custom email, both subject and body are required
-      if (!templateId && (!subject || !body)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Either templateId or both subject and body are required',
-        });
-      }
-
-      // Send email via email service with template support
-      const emailId = await EmailService.sendEmail({
-        templateId: templateId || undefined,
-        toEmail: rescue.email,
-        toName: rescue.name,
-        subject: subject || undefined,
-        htmlContent: body || undefined,
-        templateData: {
-          rescueName: rescue.name,
-          rescueId: rescue.rescueId,
-          baseUrl: process.env.FRONTEND_URL || 'https://adoptdontshop.com',
-        },
-        userId: req.user!.userId,
-        type: EmailType.SYSTEM,
-        priority: EmailPriority.NORMAL,
-        tags: ['rescue-email', rescueId],
-        metadata: {
-          rescueId,
-          rescueName: rescue.name,
-          sentBy: req.user!.userId,
-          ...(templateId && { templateId }),
-        },
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
+    }
 
-      logger.info('Email sent to rescue organization', {
+    const { rescueId } = req.params;
+    const { subject, body, templateId } = req.body;
+
+    // Get rescue organization details first
+    const rescue = await RescueService.getRescueById(rescueId, false);
+
+    if (!rescue) {
+      return res.status(404).json({
+        success: false,
+        message: 'Rescue not found',
+      });
+    }
+
+    // Check if rescue has an email address
+    if (!rescue.email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rescue organization does not have an email address',
+      });
+    }
+
+    // If using a template, only templateId is required
+    // If custom email, both subject and body are required
+    if (!templateId && (!subject || !body)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Either templateId or both subject and body are required',
+      });
+    }
+
+    // Send email via email service with template support
+    const emailId = await EmailService.sendEmail({
+      templateId: templateId || undefined,
+      toEmail: rescue.email,
+      toName: rescue.name,
+      subject: subject || undefined,
+      htmlContent: body || undefined,
+      templateData: {
+        rescueName: rescue.name,
+        rescueId: rescue.rescueId,
+        baseUrl: process.env.FRONTEND_URL || 'https://adoptdontshop.com',
+      },
+      userId: req.user!.userId,
+      type: EmailType.SYSTEM,
+      priority: EmailPriority.NORMAL,
+      tags: ['rescue-email', rescueId],
+      metadata: {
         rescueId,
         rescueName: rescue.name,
-        emailId,
         sentBy: req.user!.userId,
-      });
+        ...(templateId && { templateId }),
+      },
+    });
 
-      res.status(200).json({
-        success: true,
-        message: 'Email sent successfully',
-        data: {
-          emailId,
-          recipientEmail: rescue.email,
-        },
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ success: false, message: error.message });
-      }
-      logger.error('Send email to rescue failed:', error);
-      return res.status(500).json({ success: false, message: 'Internal server error' });
-    }
+    logger.info('Email sent to rescue organization', {
+      rescueId,
+      rescueName: rescue.name,
+      emailId,
+      sentBy: req.user!.userId,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Email sent successfully',
+      data: {
+        emailId,
+        recipientEmail: rescue.email,
+      },
+    });
   };
 
   bulkUpdateRescues = async (req: AuthenticatedRequest, res: Response) => {

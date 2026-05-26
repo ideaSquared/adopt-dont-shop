@@ -11,7 +11,6 @@
  * - Clear error handling
  */
 
-import { RescueService as LibRescueService } from '@adopt-dont-shop/lib.rescue';
 import { apiService } from './libraryServices';
 import type {
   AdminRescue,
@@ -74,12 +73,7 @@ const buildQueryParams = (filters: AdminRescueFilters): Record<string, string> =
  * Admin Rescue Service Class
  */
 class AdminRescueService {
-  private libRescueService: LibRescueService;
   private baseUrl = '/api/v1/rescues';
-
-  constructor() {
-    this.libRescueService = new LibRescueService(apiService);
-  }
 
   /**
    * Fetch all rescues with pagination and filtering

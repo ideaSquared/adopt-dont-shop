@@ -4,9 +4,7 @@ import { DEFAULT_PAGE_SIZE } from '../constants/pagination';
 import { NotificationService } from '../services/notification.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
-import { logger } from '../utils/logger';
 import { parsePaginationLimit } from '../utils/pagination';
-import { ApiError } from '../middleware/error-handler';
 
 /**
  * Hard cap mirroring the route-level express-validator (max 100). Acts as
@@ -58,111 +56,87 @@ export class NotificationController {
    * Get notification by ID
    */
   getNotificationById = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { notificationId } = req.params;
-
-      const notification = await NotificationService.getNotificationById(
-        notificationId,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        data: notification,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Get notification by ID failed:', error);
-      return res.status(500).json({ error: 'Internal server error' });
     }
+
+    const { notificationId } = req.params;
+
+    const notification = await NotificationService.getNotificationById(
+      notificationId,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      data: notification,
+    });
   };
 
   /**
    * Create new notification (admin/system only)
    */
   createNotification = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const notificationData = {
-        userId: req.body.userId,
-        type: req.body.type,
-        title: req.body.title,
-        message:
-          typeof req.body.message === 'string'
-            ? RichTextProcessingService.sanitize(req.body.message)
-            : req.body.message,
-        data: req.body.data,
-        priority: req.body.priority || 'medium',
-        category: req.body.category || 'general',
-        channels: req.body.channels || ['in_app'],
-        scheduledFor: req.body.scheduledFor ? new Date(req.body.scheduledFor) : undefined,
-        expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
-      };
-
-      const notification = await NotificationService.createNotification(notificationData);
-
-      res.status(201).json({
-        success: true,
-        message: 'Notification created successfully',
-        data: notification,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Create notification failed:', error);
-      return res.status(500).json({ error: 'Internal server error' });
     }
+
+    const notificationData = {
+      userId: req.body.userId,
+      type: req.body.type,
+      title: req.body.title,
+      message:
+        typeof req.body.message === 'string'
+          ? RichTextProcessingService.sanitize(req.body.message)
+          : req.body.message,
+      data: req.body.data,
+      priority: req.body.priority || 'medium',
+      category: req.body.category || 'general',
+      channels: req.body.channels || ['in_app'],
+      scheduledFor: req.body.scheduledFor ? new Date(req.body.scheduledFor) : undefined,
+      expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : undefined,
+    };
+
+    const notification = await NotificationService.createNotification(notificationData);
+
+    res.status(201).json({
+      success: true,
+      message: 'Notification created successfully',
+      data: notification,
+    });
   };
 
   /**
    * Mark notification as read
    */
   markNotificationAsRead = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { notificationId } = req.params;
-
-      await NotificationService.markAsRead(notificationId, req.user!.userId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Notification marked as read',
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Mark notification as read failed:', error);
-      return res.status(500).json({ error: 'Internal server error' });
     }
+
+    const { notificationId } = req.params;
+
+    await NotificationService.markAsRead(notificationId, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Notification marked as read',
+    });
   };
 
   /**
@@ -182,31 +156,23 @@ export class NotificationController {
    * Delete notification
    */
   deleteNotification = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { notificationId } = req.params;
-
-      await NotificationService.deleteNotification(notificationId, req.user!.userId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Notification deleted successfully',
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Delete notification failed:', error);
-      return res.status(500).json({ error: 'Internal server error' });
     }
+
+    const { notificationId } = req.params;
+
+    await NotificationService.deleteNotification(notificationId, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Notification deleted successfully',
+    });
   };
 
   /**
@@ -225,55 +191,39 @@ export class NotificationController {
    * Get user notification preferences
    */
   getNotificationPreferences = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const preferences = await NotificationService.getNotificationPreferences(req.user!.userId);
+    const preferences = await NotificationService.getNotificationPreferences(req.user!.userId);
 
-      res.status(200).json({
-        success: true,
-        data: preferences,
-      });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Get notification preferences failed:', error);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+    res.status(200).json({
+      success: true,
+      data: preferences,
+    });
   };
 
   /**
    * Update user notification preferences
    */
   updateNotificationPreferences = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const preferences = req.body;
-
-      const updatedPreferences = await NotificationService.updateNotificationPreferences(
-        req.user!.userId,
-        preferences
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Notification preferences updated successfully',
-        data: updatedPreferences,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({ error: error.message });
-      }
-      logger.error('Update notification preferences failed:', error);
-      return res.status(500).json({ error: 'Internal server error' });
     }
+
+    const preferences = req.body;
+
+    const updatedPreferences = await NotificationService.updateNotificationPreferences(
+      req.user!.userId,
+      preferences
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Notification preferences updated successfully',
+      data: updatedPreferences,
+    });
   };
 
   /**

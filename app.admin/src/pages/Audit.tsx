@@ -1,17 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
-import {
-  FiSearch,
-  FiDownload,
-  FiUser,
-  FiEdit,
-  FiTrash,
-  FiShield,
-  FiCheckCircle,
-  FiXCircle,
-  FiRefreshCw,
-} from 'react-icons/fi';
+import { FiSearch, FiUser, FiEdit, FiTrash, FiShield, FiRefreshCw } from 'react-icons/fi';
 import {
   PageContainer,
   PageHeader,
@@ -24,12 +14,7 @@ import {
   Badge,
 } from '../components/ui';
 import { DataTable, type Column } from '../components/data';
-import {
-  AuditLogsService,
-  AuditLogLevel,
-  AuditLogStatus,
-  type AuditLog,
-} from '@adopt-dont-shop/lib.audit-logs';
+import { AuditLogsService, AuditLogStatus, type AuditLog } from '@adopt-dont-shop/lib.audit-logs';
 import * as styles from './Audit.css';
 
 const getActionIconClass = (action: string): string => {

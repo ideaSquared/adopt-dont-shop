@@ -3,7 +3,6 @@ import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import User, { UserStatus, UserType } from '../models/User';
 import Rescue from '../models/Rescue';
 import AdminService from '../services/admin.service';
-import { ApiError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
 import type { RescuePlan } from '../config/plans';
@@ -88,72 +87,53 @@ export class AdminController {
   static async performUserAction(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { userId } = req.params;
-      const { action, reason, status } = req.body;
-      const adminId = req.user!.userId;
+    const { userId } = req.params;
+    const { action, reason, status } = req.body;
+    const adminId = req.user!.userId;
 
-      // Validation
-      if (!action) {
-        return res.status(400).json({
-          error: 'Action is required',
-        });
-      }
-
-      let result;
-      switch (action) {
-        case 'suspend':
-          result = await AdminService.suspendUser(userId, adminId, reason);
-          break;
-        case 'unsuspend':
-          result = await AdminService.unsuspendUser(userId, adminId);
-          break;
-        case 'verify':
-          result = await AdminService.verifyUser(userId, adminId);
-          break;
-        case 'update_status':
-          if (!status) {
-            return res.status(400).json({
-              error: 'Status is required for update_status action',
-            });
-          }
-          result = await AdminService.updateUserStatus(userId, status, adminId);
-          break;
-        case 'delete':
-          await AdminService.deleteUser(userId, adminId, reason);
-          result = { success: true };
-          break;
-        default:
-          return res.status(400).json({
-            error: 'Invalid action specified',
-          });
-      }
-
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-
-      res.json({
-        success: true,
-        data: result,
-        message: `User ${action} successful`,
-      });
-    } catch (error) {
-      logger.error('Error performing user action:', {
-        error: error instanceof Error ? error.message : String(error),
-        action: req.body.action,
-        userId: req.params.userId,
-        duration: Date.now() - startTime,
-      });
-
-      if (error instanceof ApiError) {
-        return res.status(error.statusCode).json({
-          error: error.message,
-        });
-      }
-
-      res.status(500).json({
-        error: 'Internal server error',
+    // Validation
+    if (!action) {
+      return res.status(400).json({
+        error: 'Action is required',
       });
     }
+
+    let result;
+    switch (action) {
+      case 'suspend':
+        result = await AdminService.suspendUser(userId, adminId, reason);
+        break;
+      case 'unsuspend':
+        result = await AdminService.unsuspendUser(userId, adminId);
+        break;
+      case 'verify':
+        result = await AdminService.verifyUser(userId, adminId);
+        break;
+      case 'update_status':
+        if (!status) {
+          return res.status(400).json({
+            error: 'Status is required for update_status action',
+          });
+        }
+        result = await AdminService.updateUserStatus(userId, status, adminId);
+        break;
+      case 'delete':
+        await AdminService.deleteUser(userId, adminId, reason);
+        result = { success: true };
+        break;
+      default:
+        return res.status(400).json({
+          error: 'Invalid action specified',
+        });
+    }
+
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+    res.json({
+      success: true,
+      data: result,
+      message: `User ${action} successful`,
+    });
   }
 
   /**
