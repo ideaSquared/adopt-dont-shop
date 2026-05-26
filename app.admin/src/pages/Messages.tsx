@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Heading,
   Text,
@@ -57,10 +58,29 @@ const getStatusDotClass = (status: string): string => {
 };
 
 const Messages: React.FC = () => {
+  // ADS: deep-link support — initialise from ?chatId= so the triage inbox
+  // can navigate users straight to a specific chat thread.
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(() =>
+    searchParams.get('chatId')
+  );
   const { confirm, confirmProps } = useConfirm();
+
+  const handleCloseChatModal = () => {
+    setSelectedChatId(null);
+    if (searchParams.has('chatId')) {
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          next.delete('chatId');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  };
 
   const filters = useMemo(() => {
     const apiFilters: {
@@ -386,7 +406,7 @@ const Messages: React.FC = () => {
 
       <ChatDetailModal
         isOpen={!!selectedChatId}
-        onClose={() => setSelectedChatId(null)}
+        onClose={handleCloseChatModal}
         chatId={selectedChatId}
         onUpdate={refetch}
       />
