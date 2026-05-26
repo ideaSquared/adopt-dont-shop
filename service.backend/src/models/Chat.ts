@@ -147,6 +147,10 @@ Chat.init(
         name: 'chats_pet_id_idx',
       },
       {
+        fields: ['assigned_to'],
+        name: 'chats_assigned_to_idx',
+      },
+      {
         fields: ['status'],
       },
       ...auditIndexes('chats'),

@@ -315,9 +315,7 @@ describe('Rescue schemas', () => {
     });
 
     it('rejects an invalid email', () => {
-      expect(() =>
-        RescueRegistrationRequestSchema.parse({ ...valid, email: 'nope' })
-      ).toThrow();
+      expect(() => RescueRegistrationRequestSchema.parse({ ...valid, email: 'nope' })).toThrow();
     });
   });
 

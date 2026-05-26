@@ -91,6 +91,7 @@ vi.mock('../../middleware/rate-limiter', () => ({
   sensitiveWriteLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   invitationSendLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   generalLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  rescueRegistrationLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
 vi.mock('../../middleware/field-permissions', () => ({
