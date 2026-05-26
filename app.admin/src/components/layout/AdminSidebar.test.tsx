@@ -3,15 +3,21 @@ import { MemoryRouter } from 'react-router-dom';
 import { render, screen, within } from '@testing-library/react';
 
 // The global setup-tests.ts mock of @adopt-dont-shop/lib.components doesn't
-// export Logo (which AdminSidebar pulls in for the header), so stub it here.
-vi.mock('@adopt-dont-shop/lib.components', async () => {
-  const actual = await vi.importActual<Record<string, unknown>>('@adopt-dont-shop/lib.components');
-  return {
-    ...actual,
-    Logo: () => null,
-  };
-});
+// export Logo (which AdminSidebar pulls in for the header). The previous
+// importActual approach started pulling recharts into the test bundle on
+// Vitest 4, so we now extend the existing stub inline.
+vi.mock('@adopt-dont-shop/lib.components', () => ({
+  Logo: () => null,
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
+const mockCount = vi.fn<[], number>();
+
+vi.mock('../../hooks/useMyInboxCount', () => ({
+  useMyInboxCount: () => ({ count: mockCount() }),
+}));
+
+import React from 'react';
 import { AdminSidebar } from './AdminSidebar';
 
 const renderSidebar = () =>
@@ -38,6 +44,7 @@ describe('AdminSidebar System section [ADS-652]', () => {
   ];
 
   it('lists System items ordered by frequency-of-use', () => {
+    mockCount.mockReturnValue(0);
     renderSidebar();
 
     const systemHeading = screen.getByText('System');
@@ -57,6 +64,7 @@ describe('AdminSidebar System section [ADS-652]', () => {
   });
 
   it('does not link to any known-stub pages', () => {
+    mockCount.mockReturnValue(0);
     renderSidebar();
 
     // Sentinel list: if a future page is added to System but is a stub,
@@ -71,5 +79,25 @@ describe('AdminSidebar System section [ADS-652]', () => {
     for (const stub of knownStubRoutes) {
       expect(hrefs).not.toContain(stub);
     }
+  });
+});
+
+describe('AdminSidebar Inbox assigned-to-me badge', () => {
+  it('renders the count badge next to the Inbox link when there are assigned items', () => {
+    mockCount.mockReturnValue(7);
+    renderSidebar();
+
+    const badge = screen.getByTestId('inbox-my-queue-badge');
+    expect(badge).toHaveTextContent('7');
+
+    const inboxLink = screen.getByRole('link', { name: /Inbox/ });
+    expect(inboxLink).toContainElement(badge);
+  });
+
+  it('does not render a badge when the count is zero', () => {
+    mockCount.mockReturnValue(0);
+    renderSidebar();
+
+    expect(screen.queryByTestId('inbox-my-queue-badge')).not.toBeInTheDocument();
   });
 });

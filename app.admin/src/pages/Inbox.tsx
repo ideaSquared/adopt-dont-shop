@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { FiSearch, FiUserPlus } from 'react-icons/fi';
+import { FiSearch, FiUserPlus, FiUser } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import {
   useInbox,
@@ -115,6 +115,9 @@ const Inbox: React.FC = () => {
   const sourceFilter: InboxSource | 'all' =
     sourceParam && VALID_SOURCES.has(sourceParam) ? (sourceParam as InboxSource) : 'all';
 
+  const assignedToParam = searchParams.get('assignedTo');
+  const myQueueActive = assignedToParam === 'me';
+
   const setFilterParam = (key: string, value: string) => {
     setSearchParams(
       prev => {
@@ -130,6 +133,10 @@ const Inbox: React.FC = () => {
     );
   };
 
+  const toggleMyQueue = () => {
+    setFilterParam('assignedTo', myQueueActive ? '' : 'me');
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -137,7 +144,7 @@ const Inbox: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, sourceFilter, severityFilter, statusFilter]);
+  }, [searchQuery, sourceFilter, severityFilter, statusFilter, myQueueActive]);
 
   const filters = useMemo((): InboxFilters => {
     const f: InboxFilters = {
@@ -158,8 +165,11 @@ const Inbox: React.FC = () => {
     if (searchQuery) {
       f.search = searchQuery;
     }
+    if (myQueueActive && user) {
+      f.assignedTo = user.userId;
+    }
     return f;
-  }, [sourceFilter, severityFilter, statusFilter, searchQuery, page]);
+  }, [sourceFilter, severityFilter, statusFilter, searchQuery, page, myQueueActive, user]);
 
   const { data: inboxData, isLoading, error } = useInbox(filters);
   const items = inboxData?.data ?? [];
@@ -303,6 +313,18 @@ const Inbox: React.FC = () => {
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
+
+        <button
+          type='button'
+          className={myQueueActive ? styles.myQueueChipActive : styles.myQueueChip}
+          onClick={toggleMyQueue}
+          aria-pressed={myQueueActive}
+          disabled={!user}
+          title='Show only items assigned to me'
+        >
+          <FiUser size={14} />
+          My Queue
+        </button>
 
         <div className={styles.filterGroup}>
           <label className={styles.filterLabel} htmlFor='inbox-source-filter'>

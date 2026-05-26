@@ -244,6 +244,35 @@ export const assignButton = style({
   },
 });
 
+// My Queue toggle chip
+export const myQueueChip = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.375rem',
+  padding: '0.5rem 0.875rem',
+  borderRadius: '9999px',
+  fontSize: '0.8125rem',
+  fontWeight: '600',
+  border: `1px solid ${vars.border.color.default}`,
+  background: vars.background.surface,
+  color: vars.text.secondary,
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  ':hover': {
+    borderColor: vars.colors.info,
+    color: vars.colors.infoTextEmphasis,
+  },
+});
+
+export const myQueueChipActive = style([
+  myQueueChip,
+  {
+    background: vars.colors.infoBgSubtle,
+    borderColor: vars.colors.info,
+    color: vars.colors.infoTextEmphasis,
+  },
+]);
+
 export const errorBanner = style({
   padding: '2rem',
   textAlign: 'center',
