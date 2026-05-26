@@ -9,20 +9,20 @@
 # Usage: docker build --build-arg APP_NAME=app.client -f Dockerfile.app.optimized .
 
 ARG NODE_VERSION=22.15.1
-FROM node:${NODE_VERSION}-alpine AS base
+FROM node:${NODE_VERSION}-slim AS base
 
 WORKDIR /app
 
 # Install necessary packages including wget for health checks
-# hadolint ignore=DL3018
-RUN apk add --no-cache \
-    git=~2 \
-    wget=~1 \
-    dumb-init=~1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    wget \
+    dumb-init \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S viteuser -u 1001
+RUN groupadd -g 1001 nodejs && \
+    useradd -m -u 1001 -g nodejs viteuser
 
 # Development stage
 FROM base AS development
