@@ -72,7 +72,7 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
 }));
 
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
     useNavigate: () => mockNavigate,
@@ -145,5 +145,45 @@ describe('Inbox page', () => {
     fireEvent.change(sourceSelect, { target: { value: 'moderation' } });
 
     expect(sourceSelect).toHaveValue('moderation');
+  });
+
+  it('navigates message-source rows to the chat deep-link, not the list view', () => {
+    renderWithProviders(<Inbox />);
+
+    fireEvent.click(screen.getByText('Chat #abc123'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/messages?chatId=chat-1');
+  });
+
+  it('navigates moderation rows to the moderation page', () => {
+    renderWithProviders(<Inbox />);
+
+    fireEvent.click(screen.getByText('Spam report on pet listing'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/moderation');
+  });
+
+  it('navigates support rows to the specific ticket page', () => {
+    renderWithProviders(<Inbox />);
+
+    fireEvent.click(screen.getByText('Cannot access my account'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/support/ticket-1');
+  });
+
+  it('renders the related user email as a link to the user detail page', () => {
+    renderWithProviders(<Inbox />);
+
+    const emailLink = screen.getByRole('link', { name: 'spammer@test.com' });
+    expect(emailLink).toHaveAttribute('href', '/users/user-1');
+  });
+
+  it('clicking the email link does not trigger the row navigation', () => {
+    renderWithProviders(<Inbox />);
+
+    const emailLink = screen.getByRole('link', { name: 'user3@test.com' });
+    fireEvent.click(emailLink);
+
+    expect(mockNavigate).not.toHaveBeenCalledWith('/messages?chatId=chat-1');
   });
 });

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { FiSearch, FiUserPlus } from 'react-icons/fi';
@@ -99,7 +99,7 @@ const getDetailPath = (item: InboxItem): string => {
     case 'support':
       return `/support/${item.id}`;
     case 'message':
-      return '/messages';
+      return `/messages?chatId=${item.id}`;
   }
 };
 
@@ -199,7 +199,21 @@ const Inbox: React.FC = () => {
             {item.title}
           </div>
           <div className={styles.itemSummary}>{item.summary}</div>
-          {item.relatedUserEmail && <div className={styles.itemMeta}>{item.relatedUserEmail}</div>}
+          {item.relatedUserEmail && (
+            <div className={styles.itemMeta}>
+              {item.relatedUserId ? (
+                <Link
+                  to={`/users/${item.relatedUserId}`}
+                  className={styles.relatedUserEmailLink}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {item.relatedUserEmail}
+                </Link>
+              ) : (
+                item.relatedUserEmail
+              )}
+            </div>
+          )}
         </div>
       ),
       width: '350px',
