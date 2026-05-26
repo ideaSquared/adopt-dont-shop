@@ -5,6 +5,7 @@ import { RescueService, BulkRescueAction } from '../services/rescue.service';
 import { InvitationService } from '../services/invitation.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
+import { ApiError } from '../middleware/error-handler';
 import { logger } from '../utils/logger';
 import { AdoptionPolicy } from '../types/rescue';
 import EmailService from '../services/email.service';
