@@ -142,6 +142,15 @@ const Support: React.FC = () => {
   const totalPages = ticketsData?.pagination?.totalPages ?? 1;
   const loading = ticketsLoading;
 
+  const ticketSiblingIds = useMemo(() => tickets.map(t => t.ticketId), [tickets]);
+
+  const handleNavigateTicket = (ticketId: string) => {
+    const nextTicket = tickets.find(t => t.ticketId === ticketId);
+    if (nextTicket) {
+      setSelectedTicket(nextTicket);
+    }
+  };
+
   // Stats from API
   const stats = {
     open: statsData?.open || 0,
@@ -397,6 +406,8 @@ const Support: React.FC = () => {
         onClose={() => setSelectedTicket(null)}
         ticket={selectedTicket}
         onReply={handleReply}
+        siblingIds={ticketSiblingIds}
+        onNavigate={handleNavigateTicket}
       />
     </div>
   );

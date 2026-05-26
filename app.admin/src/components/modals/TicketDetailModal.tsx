@@ -21,6 +21,7 @@ import {
 } from 'react-icons/fi';
 import clsx from 'clsx';
 import * as styles from './TicketDetailModal.css';
+import { ModalBreadcrumbNav, type BreadcrumbSegment } from './ModalBreadcrumbNav';
 
 type TicketDetailModalProps = {
   isOpen: boolean;
@@ -29,6 +30,10 @@ type TicketDetailModalProps = {
   onReply: (content: string, isInternal: boolean) => Promise<void>;
   onStatusChange?: (status: string) => Promise<void>;
   onPriorityChange?: (priority: string) => Promise<void>;
+  /** Optional list of sibling ticket IDs (in display order) to enable prev/next navigation. */
+  siblingIds?: ReadonlyArray<string>;
+  /** Called when prev/next is clicked, passes the target ticket ID. */
+  onNavigate?: (ticketId: string) => void;
 };
 
 export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
@@ -38,6 +43,8 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   onReply,
   onStatusChange,
   onPriorityChange,
+  siblingIds,
+  onNavigate,
 }) => {
   const [replyContent, setReplyContent] = useState('');
   const [isInternal, setIsInternal] = useState(false);
@@ -86,6 +93,12 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   const statusColors = statusColorMap[ticket.status] || statusColorMap.open;
   const priorityColors = priorityColorMap[ticket.priority] || priorityColorMap.normal;
 
+  const breadcrumbSegments: ReadonlyArray<BreadcrumbSegment> = [
+    { label: 'Tickets', to: '/support' },
+    { label: getStatusLabel(ticket.status), to: `/support?status=${ticket.status}` },
+    { label: formatTicketId(ticket.ticketId) },
+  ];
+
   return (
     <Modal
       isOpen={isOpen}
@@ -97,6 +110,12 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
       closeOnEscape={!isSubmitting}
     >
       <div className={styles.detailSection}>
+        <ModalBreadcrumbNav
+          segments={breadcrumbSegments}
+          siblingIds={siblingIds}
+          currentId={ticket.ticketId}
+          onNavigate={onNavigate}
+        />
         <div className={styles.ticketHeader}>
           <div>
             <div className={styles.ticketId}>{formatTicketId(ticket.ticketId)}</div>

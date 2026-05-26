@@ -8,7 +8,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '../../test-utils';
 import { ReportDetailModal } from './ReportDetailModal';
 import type {
   Report,
@@ -159,5 +159,27 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
     expect(screen.queryByTestId('no-prior-history')).not.toBeInTheDocument();
     expect(screen.queryByTestId('active-sanctions-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('no-active-sanctions')).not.toBeInTheDocument();
+  });
+
+  it('renders the breadcrumb header with Moderation root link', () => {
+    const current = makeReport();
+    mockUseReports.mockReturnValue({
+      data: { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    mockUseActiveActions.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
+
+    const moderationLink = screen.getByRole('link', { name: 'Moderation' });
+    expect(moderationLink).toHaveAttribute('href', '/moderation');
+    expect(screen.getByText(/Report #report-c/)).toBeInTheDocument();
   });
 });

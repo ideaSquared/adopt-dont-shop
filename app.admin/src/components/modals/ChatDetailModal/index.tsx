@@ -19,12 +19,17 @@ import { MessagesTab } from './MessagesTab';
 import { ParticipantsTab } from './ParticipantsTab';
 import { DetailsTab } from './DetailsTab';
 import { ModerationTab } from './ModerationTab';
+import { ModalBreadcrumbNav, type BreadcrumbSegment } from '../ModalBreadcrumbNav';
 
 type ChatDetailModalProps = {
   isOpen: boolean;
   onClose: () => void;
   chatId: string | null;
   onUpdate?: () => void;
+  /** Optional list of sibling chat IDs (in display order) to enable prev/next navigation. */
+  siblingIds?: ReadonlyArray<string>;
+  /** Called when prev/next is clicked, passes the target chat ID. */
+  onNavigate?: (chatId: string) => void;
 };
 
 type TabType = 'messages' | 'participants' | 'details' | 'moderation';
@@ -47,6 +52,8 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   onClose,
   chatId,
   onUpdate,
+  siblingIds,
+  onNavigate,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('messages');
   const { confirm, confirmProps } = useConfirm();
@@ -118,9 +125,25 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
     }
   };
 
+  const statusFilter = conversation?.status ?? 'active';
+  const breadcrumbSegments: ReadonlyArray<BreadcrumbSegment> = [
+    { label: 'Messages', to: '/messages' },
+    {
+      label: statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1),
+      to: `/messages?status=${statusFilter}`,
+    },
+    { label: `Chat #${chatId.slice(-8)}` },
+  ];
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size='xl'>
       <div className={styles.modalContent}>
+        <ModalBreadcrumbNav
+          segments={breadcrumbSegments}
+          siblingIds={siblingIds}
+          currentId={chatId}
+          onNavigate={onNavigate}
+        />
         <div className={styles.chatHeader}>
           <div className={styles.chatTitle}>
             <FiMessageSquare />
