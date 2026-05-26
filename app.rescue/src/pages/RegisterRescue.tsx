@@ -194,7 +194,7 @@ const RegisterRescue = () => {
       <div className={styles.pageContainer}>
         <div className={styles.card}>
           <div className={styles.successContainer}>
-            <Heading level={2} className={styles.successTitle}>
+            <Heading level="h2" className={styles.successTitle}>
               Registration Successful
             </Heading>
             <Text className={styles.successMessage}>

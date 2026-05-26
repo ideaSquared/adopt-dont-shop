@@ -82,21 +82,22 @@ const ticketToInboxItem = (ticket: SupportTicket): InboxItem => ({
   relatedUserEmail: ticket.userEmail,
 });
 
-const chatToInboxItem = (
-  chat: Chat & { Participants?: Array<{ user_id: string; User?: { email: string } }> }
-): InboxItem => {
-  const firstParticipant = chat.Participants?.[0];
+const chatToInboxItem = (chat: Chat): InboxItem => {
+  const participants = chat.Participants as
+    | Array<ChatParticipant & { User?: { email: string } }>
+    | undefined;
+  const firstParticipant = participants?.[0];
   return {
     id: chat.chat_id,
     source: 'message',
     title: `Chat #${chat.chat_id.slice(-6)}`,
-    summary: `${chat.status} conversation with ${chat.Participants?.length ?? 0} participants`,
+    summary: `${chat.status} conversation with ${participants?.length ?? 0} participants`,
     status: chat.status,
     severity: chat.status === ChatStatus.LOCKED ? 'high' : 'medium',
     assignedTo: chat.assigned_to ?? null,
     createdAt: chat.createdAt.toISOString(),
     updatedAt: chat.updatedAt.toISOString(),
-    relatedUserId: firstParticipant?.user_id ?? null,
+    relatedUserId: firstParticipant?.participant_id ?? null,
     relatedUserEmail: firstParticipant?.User?.email ?? null,
   };
 };

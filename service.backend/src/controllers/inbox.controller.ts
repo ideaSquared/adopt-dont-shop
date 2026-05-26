@@ -23,7 +23,7 @@ export class InboxController {
       return res.status(200).json(result);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: 'Invalid filters', details: error.errors });
+        return res.status(400).json({ error: 'Invalid filters', details: error.issues });
       }
       logger.error('Failed to fetch inbox items', { error });
       return res.status(500).json({ error: 'Internal server error' });
@@ -37,7 +37,7 @@ export class InboxController {
       return res.status(200).json({ message: 'Item assigned successfully' });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: 'Invalid request body', details: error.errors });
+        return res.status(400).json({ error: 'Invalid request body', details: error.issues });
       }
       if (error instanceof Error && error.message.includes('not found')) {
         return res.status(404).json({ error: error.message });
