@@ -21,6 +21,7 @@ on:
       - 'lib.*/**'
       - 'package.json'
       - 'package-lock.json'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
