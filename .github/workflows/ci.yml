@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d  # v4.0.0
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d  # v4.0.1
         id: filter
         with:
           filters: |
@@ -160,14 +160,13 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-      TEST_DB_PASSWORD: ${{ secrets.TEST_DB_PASSWORD || format('{0}{1}{2}', github.run_id, github.run_number, github.run_attempt) }}
 
     services:
       postgres:
         image: postgres:15
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${{ env.TEST_DB_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD || format('{0}{1}{2}', github.run_id, github.run_number, github.run_attempt) }}
           POSTGRES_DB: test_db
         options: >-
           --health-cmd pg_isready
@@ -236,7 +235,7 @@ jobs:
         working-directory: service.backend
         env:
           NODE_ENV: test
-          DATABASE_URL: postgresql://postgres:${{ env.TEST_DB_PASSWORD }}@localhost:5432/test_db
+          DATABASE_URL: postgresql://postgres:${{ secrets.TEST_DB_PASSWORD || format('{0}{1}{2}', github.run_id, github.run_number, github.run_attempt) }}@localhost:5432/test_db
 
       - name: Build (type-checks via tsc)
         run: npm run build
