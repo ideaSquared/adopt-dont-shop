@@ -42,6 +42,24 @@ globalStyle(`${header} p`, {
   margin: 0,
 });
 
+export const progressBar = style({
+  display: 'flex',
+  gap: '0.5rem',
+  marginBottom: '2rem',
+});
+
+export const progressStep = style({
+  flex: 1,
+  height: '4px',
+  borderRadius: '2px',
+  background: vars.border.color.default,
+  transition: 'background 200ms ease',
+});
+
+export const progressStepActive = style({
+  background: vars.colors.primary,
+});
+
 export const section = style({
   marginBottom: '2rem',
 });
@@ -190,7 +208,7 @@ export const slider = style({
 
 export const actions = style({
   display: 'flex',
-  justifyContent: 'flex-end',
+  justifyContent: 'space-between',
   gap: '0.75rem',
   marginTop: '2rem',
   paddingTop: '1.5rem',
@@ -199,4 +217,55 @@ export const actions = style({
 
 export const alertWrap = style({
   marginBottom: '1rem',
+});
+
+export const choiceLabel = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.375rem',
+  padding: '0.5rem 0.75rem',
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: '0.375rem',
+  cursor: 'pointer',
+  fontSize: '0.95rem',
+});
+
+export const choices = style({
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '0.5rem',
+});
+
+export const reviewSection = style({
+  marginBottom: '1.5rem',
+  padding: '1rem',
+  border: `1px solid ${vars.border.color.default}`,
+  borderRadius: '0.75rem',
+  background: vars.background.surface,
+});
+
+globalStyle(`${reviewSection} h4`, {
+  fontSize: '0.95rem',
+  fontWeight: 600,
+  marginBottom: '0.5rem',
+  color: vars.text.primary,
+});
+
+export const reviewItem = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '0.25rem 0',
+  fontSize: '0.9rem',
+  color: vars.text.secondary,
+});
+
+export const editButton = style({
+  fontSize: '0.8rem',
+  color: vars.colors.primary,
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  textDecoration: 'underline',
+  padding: 0,
 });

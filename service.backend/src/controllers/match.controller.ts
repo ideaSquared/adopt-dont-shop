@@ -42,6 +42,7 @@ const PROFILE_FIELDS = [
   'open_to_special_needs',
   'notify_new_matches',
   'min_notification_score',
+  'allergies',
 ] as const;
 
 export class MatchController {
@@ -56,6 +57,7 @@ export class MatchController {
     body('open_to_special_needs').optional().isBoolean(),
     body('notify_new_matches').optional().isBoolean(),
     body('min_notification_score').optional().isInt({ min: 0, max: 100 }),
+    body('allergies').optional({ values: 'null' }).isString(),
   ];
 
   static validateTopPicks = [query('limit').optional().isInt({ min: 1, max: 50 })];

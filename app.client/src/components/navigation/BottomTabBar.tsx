@@ -29,7 +29,7 @@ export const BottomTabBar: React.FC = () => {
     { to: '/discover', label: 'Discover', icon: <MdSwipe aria-hidden='true' /> },
     { to: '/search', label: 'Search', icon: <MdOutlineSearch aria-hidden='true' /> },
     {
-      to: hasPreferences ? '/match/top-picks' : '/match/onboarding',
+      to: hasPreferences ? '/match/top-picks' : '/onboarding',
       label: 'Top Picks',
       icon: <MdStarBorder aria-hidden='true' />,
     },

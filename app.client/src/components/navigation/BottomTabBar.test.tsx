@@ -91,15 +91,12 @@ describe('BottomTabBar', () => {
     );
   });
 
-  it('routes Top Picks to /match/onboarding when no preferences are set', () => {
+  it('routes Top Picks to /onboarding when no preferences are set', () => {
     authState.user = baseUser;
     authState.isAuthenticated = true;
     matchPreferencesState.hasPreferences = false;
     renderWithProviders(<BottomTabBar />);
-    expect(screen.getByRole('link', { name: /top picks/i })).toHaveAttribute(
-      'href',
-      '/match/onboarding'
-    );
+    expect(screen.getByRole('link', { name: /top picks/i })).toHaveAttribute('href', '/onboarding');
   });
 
   it('shows the unread-messages badge when unreadMessageCount > 0', () => {

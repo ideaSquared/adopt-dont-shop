@@ -99,7 +99,7 @@ export const TopPicksPage: React.FC = () => {
           <div className={styles.emptyIcon}>🐾</div>
           <h2>No matches yet</h2>
           <p>Tell us what you&apos;re looking for and we&apos;ll line up pets that fit.</p>
-          <Link to='/match/onboarding'>
+          <Link to='/onboarding'>
             <Button>Set match preferences</Button>
           </Link>
         </Card>

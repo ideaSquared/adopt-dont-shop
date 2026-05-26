@@ -114,7 +114,7 @@ export const AppNavbar: React.FC<AppNavbarProps> = ({ className }) => {
           )}
           {isAuthenticated && (
             <NavLink
-              to={hasPreferences ? '/match/top-picks' : '/match/onboarding'}
+              to={hasPreferences ? '/match/top-picks' : '/onboarding'}
               icon={<MdStar aria-hidden='true' />}
               description='Pets matched to your preferences'
               onClick={() => trackNavClick('top_picks')}

@@ -45,6 +45,7 @@ export type AdopterMatchProfile = {
   open_to_special_needs: boolean;
   notify_new_matches: boolean;
   min_notification_score: number;
+  allergies: string | null;
 };
 
 export type MatchTopPick = {
