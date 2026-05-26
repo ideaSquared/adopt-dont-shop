@@ -26,6 +26,7 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const Configuration = lazy(() => import('./pages/Configuration'));
 const Audit = lazy(() => import('./pages/Audit'));
 const Messages = lazy(() => import('./pages/Messages'));
+const Inbox = lazy(() => import('./pages/Inbox'));
 const Reports = lazy(() => import('./pages/Reports'));
 const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
 const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
@@ -110,6 +111,16 @@ const AdminApp: React.FC = () => {
               {/* Application Management */}
               <Route path='/applications' element={<Applications />} />
               <Route path='/applications/:applicationId' element={<Applications />} />
+
+              {/* Triage Inbox (ADS-649) */}
+              <Route
+                path='/inbox'
+                element={
+                  <RouteBoundary name='inbox'>
+                    <Inbox />
+                  </RouteBoundary>
+                }
+              />
 
               {/* Content Moderation & Safety — wrapped in a route-level boundary */}
               <Route

@@ -217,7 +217,7 @@ describe('Inbox routes', () => {
         .send({
           itemId: 'report-1',
           source: 'moderation',
-          assignedTo: '00000000-0000-0000-0000-000000000001',
+          assignedTo: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         });
 
       expect(res.body).toEqual(expect.objectContaining({ message: 'Item assigned successfully' }));
@@ -225,7 +225,7 @@ describe('Inbox routes', () => {
       expect(mockAssignInboxItem).toHaveBeenCalledWith(
         'report-1',
         'moderation',
-        '00000000-0000-0000-0000-000000000001'
+        'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
       );
     });
 
@@ -247,7 +247,7 @@ describe('Inbox routes', () => {
         .send({
           itemId: 'nonexistent',
           source: 'moderation',
-          assignedTo: '00000000-0000-0000-0000-000000000001',
+          assignedTo: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         });
 
       expect(res.status).toBe(404);

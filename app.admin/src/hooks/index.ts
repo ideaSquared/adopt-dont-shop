@@ -16,3 +16,6 @@ export * from './useApplications';
 
 // Analytics hooks
 export * from './useAnalytics';
+
+// Inbox hooks
+export * from './useInbox';
